@@ -30,3 +30,13 @@ Differences to Mysql, Postgresql
 
 - Denormalized storage required.
 
+
+BUILD
+=====
+
+Building a tarball is done by maven with the command::
+
+    >>> mvn clean package
+
+Resulting tarballs will reside in the folder rleases.
+

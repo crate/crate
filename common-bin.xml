@@ -19,7 +19,7 @@
             </includes>
         </dependencySet>
         <dependencySet>
-            <outputDirectory>/plugins</outputDirectory>
+            <outputDirectory>/plugins/elasticsearch-export-plugin</outputDirectory>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
                 <include>com.firstblick:elasticsearch-export-plugin*</include>
