@@ -9,6 +9,31 @@
 		<elasticsearch.version>0.90.0.RC1</elasticsearch.version>
 		<elasticsearch-export-plugin.version>1.0-SNAPSHOT</elasticsearch-export-plugin.version>
 	</properties>
+    <repositories>
+        <repository>
+            <id>local-repo</id>
+            <url>file://${basedir}/repo</url>
+        </repository>
+    </repositories>
+    <build>
+        <plugins>
+            <plugin>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>lib</outputDirectory>
+                            <excludeArtifactIds>hamcrest-core,junit,elasticsearch-test</excludeArtifactIds>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 	<dependencies>
 		<dependency>
 			<groupId>org.elasticsearch</groupId>
@@ -17,10 +42,28 @@
 			<scope>compile</scope>
 		</dependency>
 		<dependency>
-        	<groupId>groupId</groupId>
+        	<groupId>com.firstblick</groupId>
 			<artifactId>elasticsearch-export-plugin</artifactId>
 			<version>${elasticsearch-export-plugin.version}</version>
-			<scope>runtime</scope>
+			<scope>compile</scope>
 		</dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>3.3.0</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.vividsolutions</groupId>
+            <artifactId>jts</artifactId>
+            <version>1.12</version>
+            <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>xerces</groupId>
+                    <artifactId>xercesImpl</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
 	</dependencies>
 </project>
