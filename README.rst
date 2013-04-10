@@ -1,8 +1,8 @@
-=========
-Cradle DB
-=========
+========
+Crate DB
+========
 
-Cradle is a shared nothing fully searchable document oriented
+Crate is a shared nothing fully searchable document oriented
 cluster database.
 
 http://en.wikipedia.org/wiki/Document-oriented_database
