@@ -15,11 +15,11 @@ while [ -h "$SCRIPT" ] ; do
   fi
 done
 
-# determine elasticsearch home
-ES_HOME=`dirname "$SCRIPT"`/..
+# determine crate home
+CRATE_HOME=`dirname "$SCRIPT"`/..
 
-# make ELASTICSEARCH_HOME absolute
-ES_HOME=`cd "$ES_HOME"; pwd`
+# make CRATE_HOME absolute
+CRATE_HOME=`cd "$CRATE_HOME"; pwd`
 
 
 if [ -x "$JAVA_HOME/bin/java" ]; then
@@ -28,4 +28,4 @@ else
     JAVA=`which java`
 fi
 
-exec $JAVA $JAVA_OPTS -Xmx64m -Xms16m -Delasticsearch -Des.path.home="$ES_HOME" -cp "$ES_HOME/lib/*" org.elasticsearch.plugins.PluginManager $*
+exec $JAVA $JAVA_OPTS -Xmx64m -Xms16m -Delasticsearch -Des.path.home="$CRATE_HOME" -cp "$CRATE_HOME/lib/*" org.elasticsearch.plugins.PluginManager $*

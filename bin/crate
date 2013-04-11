@@ -9,15 +9,15 @@
 # This script relies on few environment variables to determine startup
 # behavior, those variables are:
 #
-#   ES_CLASSPATH -- A Java classpath containing everything necessary to run.
+#   CRATE_CLASSPATH -- A Java classpath containing everything necessary to run.
 #   JAVA_OPTS    -- Additional arguments to the JVM for heap size, etc
-#   ES_JAVA_OPTS -- External Java Opts on top of the defaults set
+#   CRATE_JAVA_OPTS -- External Java Opts on top of the defaults set
 #
 #
 # Optionally, exact memory values can be set using the following values, note,
-# they can still be set using the `ES_JAVA_OPTS`. Sample format include "512m", and "10g".
+# they can still be set using the `CRATE_JAVA_OPTS`. Sample format include "512m", and "10g".
 #
-#   ES_HEAP_SIZE -- Sets both the minimum and maximum memory to allocate (recommended)
+#   CRATE_HEAP_SIZE -- Sets both the minimum and maximum memory to allocate (recommended)
 #
 # As a convenience, a fragment of shell is sourced in order to set one or
 # more of these variables. This so-called `include' can be placed in a
@@ -28,20 +28,20 @@
 #
 # Any serious use-case though will likely require customization of the
 # include. For production installations, it is recommended that you copy
-# the sample to one of /usr/share/elasticsearch/elasticsearch.in.sh,
-# /usr/local/share/elasticsearch/elasticsearch.in.sh, or
-# /opt/elasticsearch/elasticsearch.in.sh and make your modifications there.
+# the sample to one of /usr/share/crate/crate.in.sh,
+# /usr/local/share/crate/crate.in.sh, or
+# /opt/crate/crate.in.sh and make your modifications there.
 #
 # Another option is to specify the full path to the include file in the
 # environment. For example:
 #
-#   $ ES_INCLUDE=/path/to/in.sh elasticsearch -p /var/run/es.pid
+#   $ CREATE_INCLUDE=/path/to/in.sh elasticsearch -p /var/run/es.pid
 #
 # Note: This is particularly handy for running multiple instances on a
 # single installation, or for quick tests.
 #
 # If you would rather configure startup entirely from the environment, you
-# can disable the include by exporting an empty ES_INCLUDE, or by
+# can disable the include by exporting an empty CRATE_INCLUDE, or by
 # ensuring that no include files exist in the aforementioned search list.
 # Be aware that you will be entirely responsible for populating the needed
 # environment variables.
@@ -61,29 +61,29 @@ while [ -h "$SCRIPT" ] ; do
   fi
 done
 
-# determine elasticsearch home
-ES_HOME=`dirname "$SCRIPT"`/..
+# determine crate home
+CRATE_HOME=`dirname "$SCRIPT"`/..
 
-# make ELASTICSEARCH_HOME absolute
-ES_HOME=`cd "$ES_HOME"; pwd`
+# make CRATE_HOME absolute
+CRATE_HOME=`cd "$CRATE_HOME"; pwd`
 
 
 # If an include wasn't specified in the environment, then search for one...
-if [ "x$ES_INCLUDE" = "x" ]; then
+if [ "x$CRATE_INCLUDE" = "x" ]; then
     # Locations (in order) to use when searching for an include file.
-    for include in /usr/share/elasticsearch/elasticsearch.in.sh \
-                   /usr/local/share/elasticsearch/elasticsearch.in.sh \
-                   /opt/elasticsearch/elasticsearch.in.sh \
-                   ~/.elasticsearch.in.sh \
-                   `dirname "$0"`/elasticsearch.in.sh; do
+    for include in /usr/share/crate/crate.in.sh \
+                   /usr/local/share/crate/crate.in.sh \
+                   /opt/crate/crate.in.sh \
+                   ~/.crate.in.sh \
+                   `dirname "$0"`/crate.in.sh; do
         if [ -r "$include" ]; then
             . "$include"
             break
         fi
     done
 # ...otherwise, source the specified include.
-elif [ -r "$ES_INCLUDE" ]; then
-    . "$ES_INCLUDE"
+elif [ -r "$CRATE_INCLUDE" ]; then
+    . "$CRATE_INCLUDE"
 fi
 
 if [ -x "$JAVA_HOME/bin/java" ]; then
@@ -92,16 +92,16 @@ else
     JAVA=java
 fi
 
-if [ -z "$ES_CLASSPATH" ]; then
-    echo "You must set the ES_CLASSPATH var" >&2
+if [ -z "$CRATE_CLASSPATH" ]; then
+    echo "You must set the CRATE_CLASSPATH var" >&2
     exit 1
 fi
 
 # Special-case path variables.
 case `uname` in
     CYGWIN*)
-        ES_CLASSPATH=`cygpath -p -w "$ES_CLASSPATH"`
-        ES_HOME=`cygpath -p -w "$ES_HOME"`
+        CRATE_CLASSPATH=`cygpath -p -w "$CRATE_CLASSPATH"`
+        CRATE_HOME=`cygpath -p -w "$CRATE_HOME"`
     ;;
 esac
 
@@ -119,12 +119,12 @@ launch_service()
     # The es-foreground option will tell ElasticSearch not to close stdout/stderr, but it's up to us not to background.
     if [ "x$foreground" != "x" ]; then
         es_parms="$es_parms -Des.foreground=yes"
-        exec "$JAVA" $JAVA_OPTS $ES_JAVA_OPTS $es_parms -Des.path.home="$ES_HOME" -cp "$ES_CLASSPATH" $props \
+        exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Des.path.home="$CRATE_HOME" -cp "$CRATE_CLASSPATH" $props \
                 org.elasticsearch.bootstrap.ElasticSearch
         execval=$?
     else
         # Startup ElasticSearch, background it, and write the pid.
-        exec "$JAVA" $JAVA_OPTS $ES_JAVA_OPTS $es_parms -Des.path.home="$ES_HOME" -cp "$ES_CLASSPATH" $props \
+        exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Des.path.home="$CRATE_HOME" -cp "$CRATE_CLASSPATH" $props \
                     org.elasticsearch.bootstrap.ElasticSearch <&- &
         execval=$?
         [ ! -z "$pidpath" ] && printf '%d' $! > "$pidpath"
@@ -140,7 +140,7 @@ eval set -- "$args"
 while true; do
     case $1 in
         -v)
-            "$JAVA" $JAVA_OPTS $ES_JAVA_OPTS $es_parms -Des.path.home="$ES_HOME" -cp "$ES_CLASSPATH" $props \
+            "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Des.path.home="$CRATE_HOME" -cp "$CRATE_CLASSPATH" $props \
                     org.elasticsearch.Version
             exit 0
         ;;

@@ -16,8 +16,8 @@
             <lineEnding>unix</lineEnding>
             <filtered>true</filtered>
             <includes>
-                <include>elasticsearch.in.sh</include>
-                <include>elasticsearch</include>
+                <include>crate.in.sh</include>
+                <include>crate</include>
                 <include>plugin</include>
             </includes>
         </fileSet>
