@@ -181,8 +181,8 @@
 #
 # bootstrap.mlockall: true
 
-# Make sure that the ES_MIN_MEM and ES_MAX_MEM environment variables are set
-# to the same value, and that the machine has enough memory to allocate
+# Make sure that the CRATE_MIN_MEM and CRATE_MAX_MEM environment variables are
+# set to the same value, and that the machine has enough memory to allocate
 # for ElasticSearch, leaving enough memory for the operating system itself.
 #
 # You should also make sure that the ElasticSearch process is allowed to lock
