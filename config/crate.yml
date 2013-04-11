@@ -29,7 +29,8 @@
 # Cluster name identifies your cluster for auto-discovery. If you're running
 # multiple clusters on the same network, make sure you're using unique names.
 #
-# cluster.name: elasticsearch
+
+cluster.name: crate
 
 
 #################################### Node #####################################
@@ -164,6 +165,9 @@
 #
 # path.plugins: /path/to/plugins
 
+path:
+    logs: /var/log/crate
+    data: /var/lib/crate
 
 #################################### Plugin ###################################
 
