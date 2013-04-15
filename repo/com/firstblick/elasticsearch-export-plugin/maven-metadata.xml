@@ -3,11 +3,12 @@
   <groupId>com.firstblick</groupId>
   <artifactId>elasticsearch-export-plugin</artifactId>
   <versioning>
-    <release>0.0.1</release>
+    <release>0.0.2</release>
     <versions>
       <version>1.0-SNAPSHOT</version>
       <version>0.0.1</version>
+      <version>0.0.2</version>
     </versions>
-    <lastUpdated>20130411151531</lastUpdated>
+    <lastUpdated>20130415211218</lastUpdated>
   </versioning>
 </metadata>

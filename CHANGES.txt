@@ -5,6 +5,13 @@ Changes for First Blick Crate
 Unreleased
 ==========
 
+2013/04/15 0.0.7
+================
+
+ - increased version of elasticsearch
+
+ - increased version of elasticsearch-export-plugin
+
 2013/04/15 0.0.6
 ================
 
