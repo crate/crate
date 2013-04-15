@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.firstblick</groupId>
 	<artifactId>crate</artifactId>
-    <version>0.0.5</version>
+    <version>0.0.6</version>
 	<properties>
 		<elasticsearch.version>0.90.0.RC1</elasticsearch.version>
 		<elasticsearch-export-plugin.version>0.0.1</elasticsearch-export-plugin.version>

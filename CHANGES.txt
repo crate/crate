@@ -4,3 +4,8 @@ Changes for First Blick Crate
 
 Unreleased
 ==========
+
+2013/04/15 0.0.6
+================
+
+ - added NOTICE file
