@@ -7,7 +7,7 @@
     <version>0.0.7</version>
 	<properties>
 		<elasticsearch.version>0.90.0.RC2</elasticsearch.version>
-		<elasticsearch-export-plugin.version>0.0.2</elasticsearch-export-plugin.version>
+		<elasticsearch-export-plugin.version>0.0.3</elasticsearch-export-plugin.version>
 	</properties>
     <repositories>
         <repository>
