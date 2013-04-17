@@ -5,6 +5,11 @@ Changes for First Blick Crate
 Unreleased
 ==========
 
+2013/04/17 0.0.8
+================
+
+ - updated export plugin to 0.0.3
+
 2013/04/15 0.0.7
 ================
 
