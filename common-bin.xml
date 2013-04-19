@@ -19,10 +19,10 @@
             </includes>
         </dependencySet>
         <dependencySet>
-            <outputDirectory>/plugins/elasticsearch-export-plugin</outputDirectory>
+            <outputDirectory>/plugins/elasticsearch-inout-plugin</outputDirectory>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
-                <include>com.firstblick:elasticsearch-export-plugin*</include>
+                <include>com.firstblick:elasticsearch-inout-plugin*</include>
             </includes>
             <excludes>
                 <exclude>com.github.tlrx:elasticsearch-test*</exclude>
