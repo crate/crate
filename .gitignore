@@ -3,3 +3,5 @@
 .settings
 /releases
 /target
+/lib/*
+!/lib/sigar
