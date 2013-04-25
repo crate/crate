@@ -5,6 +5,11 @@ Changes for First Blick Crate
 Unreleased
 ==========
 
+2013/04/25 0.1.1
+================
+
+ - added missing sigar libraries in rpm as well
+
 2013/04/25 0.1.0
 ================
 
