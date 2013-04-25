@@ -5,7 +5,12 @@ Changes for First Blick Crate
 Unreleased
 ==========
 
+2013/04/25 0.1.0
+================
+
  - added missing sigar libraries
+
+ - depending on elasticsearch-inout-plugin
 
 2013/04/17 0.0.8
 ================
