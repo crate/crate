@@ -5,6 +5,11 @@ Changes for First Blick Crate
 Unreleased
 ==========
 
+2013/05/02 0.2.1
+================
+
+ - bugfix: used wrong groupId in common-bin.xml
+
 2013/05/02 0.2.0
 ================
 
