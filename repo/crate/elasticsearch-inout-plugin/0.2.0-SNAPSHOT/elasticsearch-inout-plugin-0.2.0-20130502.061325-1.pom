@@ -1,10 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <name>elasticsearch-inout-plugin</name>
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.firstblick</groupId>
+	<groupId>crate</groupId>
 	<artifactId>elasticsearch-inout-plugin</artifactId>
-	<version>0.1.0</version>
+	<version>0.2.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <description>An Elasticsearch plugin which provides the ability to export and import data by query on server side.</description>
+    <scm>
+        <connection>git@github.com:crate/elasticsearch-inout-plugin.git</connection>
+        <developerConnection>scm:git:git@github.com:crate/elasticsearch-inout-plugin.git</developerConnection>
+        <url>https://github.com/crate/elasticsearch-inout-plugin</url>
+    </scm>
 	<properties>
 		<elasticsearch.version>0.90.0.RC2</elasticsearch.version>
 	</properties>
@@ -67,4 +75,15 @@
 			<version>0.0.8</version>
 		</dependency>
 	</dependencies>
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/crate/elasticsearch-inout-plugin/issues</url>
+    </issueManagement>
 </project>
