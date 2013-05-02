@@ -5,6 +5,11 @@ Changes for First Blick Crate
 Unreleased
 ==========
 
+2013/05/02 0.2.0
+================
+
+ - updated elasticsearch-inout-plugin to 0.2.0-SNAPSHOT
+
 2013/04/25 0.1.1
 ================
 
