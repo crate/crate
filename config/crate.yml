@@ -33,6 +33,12 @@
 cluster.name: crate
 
 
+# disable allowing to delete all indices
+#
+
+action.disable_delete_all_indices: true
+
+
 #################################### Node #####################################
 
 # Node names are generated dynamically on startup, so you're relieved
