@@ -33,8 +33,6 @@
 cluster.name: crate
 
 
-################################### Delete ####################################
-
 # disable allowing to delete all indices
 #
 
