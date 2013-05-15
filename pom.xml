@@ -7,7 +7,7 @@
     <version>0.2.1</version>
 	<properties>
 		<elasticsearch.version>0.90.0.RC2</elasticsearch.version>
-		<elasticsearch-inout-plugin.version>0.2.0-SNAPSHOT</elasticsearch-inout-plugin.version>
+		<elasticsearch-inout-plugin.version>0.3.0</elasticsearch-inout-plugin.version>
 	</properties>
     <repositories>
         <repository>
