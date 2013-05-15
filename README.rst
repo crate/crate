@@ -38,5 +38,5 @@ Building a tarball is done by maven with the command::
 
     >>> mvn clean package
 
-Resulting tarballs will reside in the folder rleases.
+Resulting tarballs will reside in the folder ``releases``.
 
