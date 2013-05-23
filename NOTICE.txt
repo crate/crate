@@ -1,8 +1,29 @@
 Crate
-Copyright 2013 First Blick
+Copyright 2013 Crate Technology GmbH
 
-This product includes software developed by The Apache Software
-Foundation (http://www.apache.org/).
+This product includes:
 
-This product includes software developed by Elasticsearch and Shay
-Banon (http://www.elasticsearch.org/).
+Lucene
+http://lucene.apache.org/
+Developed by The Apache Software Foundation.
+License: Apache License v2 (http://www.apache.org/licenses)
+
+Elasticsearch
+http://www.elasticsearch.org/
+developed by Elasticsearch and Shay Banon.
+License: Apache License v2 (http://www.apache.org/licenses)
+
+elasticsearch-head
+https://github.com/mobz/elasticsearch-head
+developed by Ben Birch (http://mobz.org/).
+License: Apache License v2 (http://www.apache.org/licenses)
+
+Bigdesk
+https://github.com/lukas-vlcek/bigdesk
+developed by Lukáš Vlček (http://cz.linkedin.com/in/lukasvlcek)
+License: Apache License v2 (http://www.apache.org/licenses)
+
+Segmentspy
+https://github.com/polyfractal/elasticsearch-segmentspy
+developed by Zachary Tong (http://www.euphonious-intuition.com/)
+License: none (public domain)

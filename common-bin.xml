@@ -38,6 +38,36 @@
                 <include>*</include>
             </includes>
         </fileSet>
+        <fileSet>
+            <directory>plugins/elasticsearch-head-${elasticsearch-head-plugin.version}</directory>
+            <outputDirectory>plugins/head/_site</outputDirectory>
+            <includes>
+               <include>**</include>
+            </includes>
+            <excludes>
+                <exclude>.gitignore</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>plugins/bigdesk-${bigdesk-plugin.version}</directory>
+            <outputDirectory>plugins/bigdesk/_site</outputDirectory>
+            <includes>
+               <include>**</include>
+            </includes>
+            <excludes>
+                <exclude>.gitignore</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet>
+            <directory>plugins/elasticsearch-segmentspy-${segmentspy-plugin.version}</directory>
+            <outputDirectory>plugins/segmentspy</outputDirectory>
+            <includes>
+               <include>**</include>
+            </includes>
+            <excludes>
+                <exclude>screenshot.png</exclude>
+            </excludes>
+        </fileSet>
     </fileSets>
     <files>
         <file>
