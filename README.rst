@@ -40,3 +40,30 @@ Building a tarball is done by maven with the command::
 
 Resulting tarballs will reside in the folder ``releases``.
 
+
+Installed plugins
+=================
+
+elasticsearch-head
+------------------
+
+A web front end for an Elasticsearch cluster.
+
+    >>> http://localhost:9200/_plugins/head
+
+
+bigdesk
+-------
+
+Live charts and statistics for Elasticsearch cluster.
+
+    >>> http://localhost:9200/_plugins/bigdesk
+
+
+segmentspy
+----------
+
+Elasticsearch plugin to watch segment dynamics (additions, merges,
+deletes)
+
+    >>> http://localhost:9200/_plugins/segmentspy
