@@ -5,6 +5,15 @@ Changes for First Blick Crate
 Unreleased
 ==========
 
+ - included segmentspy as site-plugin
+   (https://github.com/polyfractal/elasticsearch-segmentspy)
+
+ - included bigdesk as site-plugin
+   (https://github.com/lukas-vlcek/bigdesk)
+
+ - included elasticsearch-head as site-plugin
+   (https://github.com/mobz/elasticsearch-head)
+
 2013/05/15 0.3.0
 ================
 

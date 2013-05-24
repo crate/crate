@@ -8,6 +8,9 @@
 	<properties>
 		<elasticsearch.version>0.90.0</elasticsearch.version>
 		<elasticsearch-inout-plugin.version>0.3.0</elasticsearch-inout-plugin.version>
+        <elasticsearch-head-plugin.version>6dbf2ed35355e261ee94ffd5884c6446dd865c35</elasticsearch-head-plugin.version>
+        <bigdesk-plugin.version>2.2.0</bigdesk-plugin.version>
+        <segmentspy-plugin.version>0.2.0</segmentspy-plugin.version>
 	</properties>
     <repositories>
         <repository>
@@ -31,6 +34,63 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+              <groupId>com.googlecode.maven-download-plugin</groupId>
+              <artifactId>maven-download-plugin</artifactId>
+              <version>1.1.0</version>
+              <executions>
+                <execution>
+                  <id>load-elasticsearch-head</id>
+                  <phase>prepare-package</phase>
+                  <goals>
+                    <goal>wget</goal>
+                  </goals>
+                  <configuration>
+                    <url>https://github.com/mobz/elasticsearch-head/archive/${elasticsearch-head-plugin.version}.zip</url>
+                    <unpack>true</unpack>
+                    <outputDirectory>plugins</outputDirectory>
+                  </configuration>
+                </execution>
+              </executions>
+            </plugin>
+            <plugin>
+              <groupId>com.googlecode.maven-download-plugin</groupId>
+              <artifactId>maven-download-plugin</artifactId>
+              <version>1.1.0</version>
+              <executions>
+                <execution>
+                  <id>load-bigdesk</id>
+                  <phase>prepare-package</phase>
+                  <goals>
+                    <goal>wget</goal>
+                  </goals>
+                  <configuration>
+                    <url>https://github.com/lukas-vlcek/bigdesk/archive/v${bigdesk-plugin.version}.zip</url>
+                    <unpack>true</unpack>
+                    <outputDirectory>plugins</outputDirectory>
+                  </configuration>
+                </execution>
+              </executions>
+            </plugin>
+            <plugin>
+              <groupId>com.googlecode.maven-download-plugin</groupId>
+              <artifactId>maven-download-plugin</artifactId>
+              <version>1.1.0</version>
+              <executions>
+                <execution>
+                  <id>load-segmentspy</id>
+                  <phase>prepare-package</phase>
+                  <goals>
+                    <goal>wget</goal>
+                  </goals>
+                  <configuration>
+                    <url>https://github.com/polyfractal/elasticsearch-segmentspy/archive/v${segmentspy-plugin.version}.zip</url>
+                    <unpack>true</unpack>
+                    <outputDirectory>plugins</outputDirectory>
+                  </configuration>
+                </execution>
+              </executions>
             </plugin>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
