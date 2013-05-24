@@ -5,6 +5,9 @@ Changes for First Blick Crate
 Unreleased
 ==========
 
+2013/05/15 0.4.0
+================
+
  - included segmentspy as site-plugin
    (https://github.com/polyfractal/elasticsearch-segmentspy)
 
