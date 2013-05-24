@@ -26,4 +26,4 @@ License: Apache License v2 (http://www.apache.org/licenses)
 Segmentspy
 https://github.com/polyfractal/elasticsearch-segmentspy
 developed by Zachary Tong (http://www.euphonious-intuition.com/)
-License: none (public domain)
+License: MIT (https://raw.github.com/polyfractal/elasticsearch-segmentspy/master/LICENSE)
