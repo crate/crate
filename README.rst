@@ -44,6 +44,24 @@ Resulting tarballs will reside in the folder ``releases``.
 Installed plugins
 =================
 
+elasticsearch-inout-plugin
+--------------------------
+
+An Elasticsearch plugin which provides the ability to export data by
+query on server side. For details see
+https://github.com/crate/elasticsearch-inout-plugin
+
+
+elasticsearch-timefacets-plugin
+-------------------------------
+
+A plugin bundle for time based facets. For details see
+https://github.com/crate/elasticsearch-timefacets-plugin
+
+
+Installed site plugins
+======================
+
 elasticsearch-head
 ------------------
 

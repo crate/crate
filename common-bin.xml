@@ -29,6 +29,17 @@
                 <exclude>log4j:log4j*</exclude>
             </excludes>
         </dependencySet>
+        <dependencySet>
+            <outputDirectory>/plugins/elasticsearch-timefacets-plugin</outputDirectory>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>crate:elasticsearch-timefacets-plugin*</include>
+            </includes>
+            <excludes>
+                <exclude>com.github.tlrx:elasticsearch-test*</exclude>
+                <exclude>log4j:log4j*</exclude>
+            </excludes>
+        </dependencySet>
     </dependencySets>
     <fileSets>
         <fileSet>

@@ -4,10 +4,11 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>crate</groupId>
 	<artifactId>crate</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
 	<properties>
 		<elasticsearch.version>0.90.0</elasticsearch.version>
 		<elasticsearch-inout-plugin.version>0.3.0</elasticsearch-inout-plugin.version>
+		<elasticsearch-timefacets-plugin.version>0.6.0</elasticsearch-timefacets-plugin.version>
         <elasticsearch-head-plugin.version>6dbf2ed35355e261ee94ffd5884c6446dd865c35</elasticsearch-head-plugin.version>
         <bigdesk-plugin.version>2.2.0</bigdesk-plugin.version>
         <segmentspy-plugin.version>0.2.0</segmentspy-plugin.version>
@@ -16,6 +17,10 @@
         <repository>
             <id>local-repo</id>
             <url>file://${basedir}/repo</url>
+        </repository>
+        <repository>
+            <id>ls-releases</id>
+            <url>https://raw.github.com/lovelysystems/maven/master/releases</url>
         </repository>
     </repositories>
     <build>
@@ -124,6 +129,12 @@
         	<groupId>crate</groupId>
 			<artifactId>elasticsearch-inout-plugin</artifactId>
 			<version>${elasticsearch-inout-plugin.version}</version>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+        	<groupId>crate</groupId>
+			<artifactId>elasticsearch-timefacets-plugin</artifactId>
+			<version>${elasticsearch-timefacets-plugin.version}</version>
 			<scope>compile</scope>
 		</dependency>
         <dependency>
