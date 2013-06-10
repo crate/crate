@@ -5,6 +5,12 @@ Changes for First Blick Crate
 Unreleased
 ==========
 
+ - updated elasticsearch-timefacets-plugin to 0.7.0
+
+ - updated elasticsearch-inout-plugin to 0.4.0
+
+ - updated elasticsearch to 0.90.1
+
 2013/05/28 0.5.0
 ================
 

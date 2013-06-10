@@ -6,9 +6,9 @@
 	<artifactId>crate</artifactId>
     <version>0.5.0</version>
 	<properties>
-		<elasticsearch.version>0.90.0</elasticsearch.version>
-		<elasticsearch-inout-plugin.version>0.3.0</elasticsearch-inout-plugin.version>
-		<elasticsearch-timefacets-plugin.version>0.6.0</elasticsearch-timefacets-plugin.version>
+		<elasticsearch.version>0.90.1</elasticsearch.version>
+		<elasticsearch-inout-plugin.version>0.4.0</elasticsearch-inout-plugin.version>
+		<elasticsearch-timefacets-plugin.version>0.7.0</elasticsearch-timefacets-plugin.version>
         <elasticsearch-head-plugin.version>6dbf2ed35355e261ee94ffd5884c6446dd865c35</elasticsearch-head-plugin.version>
         <bigdesk-plugin.version>2.2.0</bigdesk-plugin.version>
         <segmentspy-plugin.version>0.2.0</segmentspy-plugin.version>
