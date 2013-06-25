@@ -5,6 +5,10 @@
 	<groupId>crate</groupId>
 	<artifactId>crate</artifactId>
     <version>0.6.0</version>
+    <packaging>pom</packaging>
+    <modules>
+    	<module>elasticsearch-cratedefaults-plugin</module>
+    </modules>
 	<properties>
 		<elasticsearch.version>0.90.1</elasticsearch.version>
 		<elasticsearch-inout-plugin.version>0.4.0</elasticsearch-inout-plugin.version>
