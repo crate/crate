@@ -57,13 +57,6 @@
                     <outputDirectory>plugins</outputDirectory>
                   </configuration>
                 </execution>
-              </executions>
-            </plugin>
-            <plugin>
-              <groupId>com.googlecode.maven-download-plugin</groupId>
-              <artifactId>maven-download-plugin</artifactId>
-              <version>1.1.0</version>
-              <executions>
                 <execution>
                   <id>load-bigdesk</id>
                   <phase>prepare-package</phase>
@@ -76,13 +69,6 @@
                     <outputDirectory>plugins</outputDirectory>
                   </configuration>
                 </execution>
-              </executions>
-            </plugin>
-            <plugin>
-              <groupId>com.googlecode.maven-download-plugin</groupId>
-              <artifactId>maven-download-plugin</artifactId>
-              <version>1.1.0</version>
-              <executions>
                 <execution>
                   <id>load-segmentspy</id>
                   <phase>prepare-package</phase>
