@@ -29,7 +29,7 @@ public class CrateDefaultsPlugin extends AbstractPlugin {
                 .put("action.disable_delete_all_indices", true);
 
         Environment environment = new Environment(settingsBuilder.build());
-        elasticSearchCustomSettings(environment);
+        checkForElasticSearchCustomSettings(environment);
 
         try {
             settingsBuilder.loadFromUrl(environment.resolveConfig("crate.yml"));
@@ -62,7 +62,12 @@ public class CrateDefaultsPlugin extends AbstractPlugin {
         return "Crate defaults Plugin";
     }
 
-    private void elasticSearchCustomSettings(Environment environment) {
+    /**
+     * Raise an exception if there are elasticsearch config files (yaml, json or properties).
+     * Only custom crate config files are allowed.
+     * @param environment
+     */
+    private void checkForElasticSearchCustomSettings(Environment environment) {
         URL url = null;
         try {
             url = environment.resolveConfig("elasticsearch.yml");

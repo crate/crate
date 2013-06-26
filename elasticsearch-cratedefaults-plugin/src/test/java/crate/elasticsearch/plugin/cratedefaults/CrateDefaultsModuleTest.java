@@ -121,8 +121,8 @@ public class CrateDefaultsModuleTest {
     }
 
     /**
-     * A crate.yml file can be used to override crate settings in YML format.
-     * That way it is for example possible to override the cluster name.
+     * If an elasticsearch.yml file exists, raise an exception.
+     * Only crate config files are allowed.
      * @throws IOException
      */
     @Test
@@ -144,6 +144,11 @@ public class CrateDefaultsModuleTest {
         assertTrue(ex);
     }
 
+    /**
+     * If an elasticsearch.json file exists, raise an exception.
+     * Only crate config files are allowed.
+     * @throws IOException
+     */
     @Test
     public void testElasticsearchJSONSettings() throws IOException {
         boolean ex = false;
@@ -163,6 +168,11 @@ public class CrateDefaultsModuleTest {
         assertTrue(ex);
     }
 
+    /**
+     * If an elasticsearch.properties file exists, raise an exception.
+     * Only crate config files are allowed.
+     * @throws IOException
+     */
     @Test
     public void testElasticsearchPropertiesSettings() throws IOException {
         boolean ex = false;
