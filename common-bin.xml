@@ -90,4 +90,20 @@
             <outputDirectory>/</outputDirectory>
         </file>
     </files>
+    <moduleSets>
+        <moduleSet>
+            <includes>
+                <include>crate:elasticsearch-cratedefaults-plugin*</include>
+            </includes>
+            <excludes>
+                <exclude>com.github.tlrx:elasticsearch-test*</exclude>
+                <exclude>log4j:log4j*</exclude>
+            </excludes>
+            <binaries>
+                <unpack>false</unpack>
+                <outputDirectory>/plugins/elasticsearch-cratedefaults-plugin</outputDirectory>
+            </binaries>
+        </moduleSet>
+    </moduleSets>
+
 </component>

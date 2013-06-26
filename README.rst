@@ -41,8 +41,28 @@ Building a tarball is done by maven with the command::
 Resulting tarballs will reside in the folder ``releases``.
 
 
+Crate settings
+==============
+
+Crate settings can be specified in 3 different file formats in the ``config``
+directory:
+
+- YAML: crate.yml
+- JSON: crate.json
+- Java Properties File: crate.properties
+
+There must not exist an elasticsearch config file (yml, json or properties
+format).
+
+
 Installed plugins
 =================
+
+elasticsearch-cratedefaults-plugin
+----------------------------------
+
+Default settings plugin, included as sub-module in this package.
+
 
 elasticsearch-inout-plugin
 --------------------------

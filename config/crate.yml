@@ -1,4 +1,8 @@
-##################### ElasticSearch Configuration Example #####################
+######################### Crate Configuration Example ##########################
+
+# The crate configuration is mainly the configuration of it's internal
+# elasticsearch instance, so the parameters are the same as for elasticsearch
+# configurations. 
 
 # This file contains an overview of various configuration settings,
 # targeted at operations staff. Application developers should
@@ -29,14 +33,7 @@
 # Cluster name identifies your cluster for auto-discovery. If you're running
 # multiple clusters on the same network, make sure you're using unique names.
 #
-
-cluster.name: crate
-
-
-# disable allowing to delete all indices
-#
-
-action.disable_delete_all_indices: true
+# cluster.name: crate
 
 
 #################################### Node #####################################
@@ -141,6 +138,9 @@ action.disable_delete_all_indices: true
 
 # Use the Index Status API (<http://localhost:9200/A/_status>) to inspect
 # the index status.
+
+# Enable/disable to delete all indices (Delete on root):
+# action.disable_delete_all_indices: true
 
 
 #################################### Paths ####################################
