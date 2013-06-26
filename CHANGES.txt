@@ -5,6 +5,9 @@ Changes for First Blick Crate
 Unreleased
 ==========
 
+2013/06/26 0.7.0
+================
+
  - added elasticsearch-cratedefaults-plugin as sub-module
 
  - mvn package now also creates a zip file in addition to the tar.gz
