@@ -88,7 +88,7 @@ public class CrateDefaultsPlugin extends AbstractPlugin {
         }
         if (url != null) {
             throw new ElasticSearchException("Elasticsearch configuration found at '" + url.getPath() +
-                                             "'. Only crate configuration files allowed.");
+                                             "'. Use crate configuration file.");
         }
     }
 }

@@ -137,7 +137,7 @@ public class CrateDefaultsModuleTest {
         } catch (ElasticSearchException e) {
             ex = true;
             assertTrue(e.getDetailedMessage().endsWith(
-                    "elasticsearch.yml'. Only crate configuration files allowed."));
+                    "elasticsearch.yml'. Use crate configuration file."));
         } finally {
             file.delete();
         }
@@ -161,7 +161,7 @@ public class CrateDefaultsModuleTest {
         } catch (ElasticSearchException e) {
             ex = true;
             assertTrue(e.getDetailedMessage().endsWith(
-                    "elasticsearch.json'. Only crate configuration files allowed."));
+                    "elasticsearch.json'. Use crate configuration file."));
         } finally {
             file.delete();
         }
@@ -184,7 +184,7 @@ public class CrateDefaultsModuleTest {
         } catch (ElasticSearchException e) {
             ex = true;
             assertTrue(e.getDetailedMessage().endsWith(
-                    "elasticsearch.properties'. Only crate configuration files allowed."));
+                    "elasticsearch.properties'. Use crate configuration file."));
         } finally {
             new File("elasticsearch.properties").delete();
         }
