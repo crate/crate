@@ -5,6 +5,8 @@ Changes for First Blick Crate
 Unreleased
 ==========
 
+ - added elasticsearch-cratedefaults-plugin as sub-module
+
  - mvn package now also creates a zip file in addition to the tar.gz
 
  - updated elasticsearch-timefacets-plugin to 0.7.1

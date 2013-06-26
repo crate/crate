@@ -41,8 +41,29 @@ Building a tarball is done by maven with the command::
 Resulting tarballs will reside in the folder ``releases``.
 
 
+Crate settings
+==============
+
+Crate has some default settings, which of course can be overwritten.
+The default cluster name is ``crate``. Deleting all indices is disabled
+by default.
+
+Custom crate settings can be specified in 3 different file formats in
+the ``config`` directory:
+
+- YAML: crate.yml
+- JSON: crate.json
+- Java Properties File: crate.properties
+
+
 Installed plugins
 =================
+
+elasticsearch-cratedefaults-plugin
+----------------------------------
+
+Default settings plugin, included as sub-module in this package.
+
 
 elasticsearch-inout-plugin
 --------------------------
