@@ -30,13 +30,8 @@
 # multiple clusters on the same network, make sure you're using unique names.
 #
 
-cluster.name: crate
+# cluster.name: crate
 
-
-# disable allowing to delete all indices
-#
-
-action.disable_delete_all_indices: true
 
 
 #################################### Node #####################################

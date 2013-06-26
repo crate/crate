@@ -8,7 +8,12 @@ import org.elasticsearch.env.FailedToResolveConfigException;
 import org.elasticsearch.plugins.AbstractPlugin;
 
 /**
+ * Crate Defaults Plugin sets some default crate settings:
  *
+ * <ul>
+ *     <li>Default cluster name "crate"</li>
+ *     <li>Delete all indices is disabled</li>
+ *     <li>Apply additional crate settings from "crate.yml", "crate.json" or "crate.properties" files</li>
  */
 public class CrateDefaultsPlugin extends AbstractPlugin {
 
