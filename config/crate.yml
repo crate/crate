@@ -1,5 +1,9 @@
 ######################### Crate Configuration Example ##########################
 
+# The crate configuration is mainly the configuration of it's internal
+# elasticsearch instance, so the parameters are the same as for elasticsearch
+# configurations. 
+
 # This file contains an overview of various configuration settings,
 # targeted at operations staff. Application developers should
 # consult the guide at <http://elasticsearch.org/guide>.

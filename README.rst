@@ -44,16 +44,15 @@ Resulting tarballs will reside in the folder ``releases``.
 Crate settings
 ==============
 
-Crate has some default settings, which of course can be overwritten.
-The default cluster name is ``crate``. Deleting all indices is disabled
-by default.
-
-Custom crate settings can be specified in 3 different file formats in
-the ``config`` directory:
+Crate settings can be specified in 3 different file formats in the ``config``
+directory:
 
 - YAML: crate.yml
 - JSON: crate.json
 - Java Properties File: crate.properties
+
+There must not exist an elasticsearch config file (yml, json or properties
+format).
 
 
 Installed plugins
