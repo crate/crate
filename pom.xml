@@ -7,7 +7,7 @@
     <version>0.7.0</version>
     <packaging>pom</packaging>
     <modules>
-    	<module>elasticsearch-cratedefaults-plugin</module>
+    	<module>elasticsearch-crate-plugin</module>
     </modules>
 	<properties>
 		<elasticsearch.version>0.90.1</elasticsearch.version>
@@ -105,6 +105,43 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+              <groupId>org.codehaus.mojo</groupId>
+              <artifactId>exec-maven-plugin</artifactId>
+              <version>1.2.1</version>
+              <executions>
+                <execution>
+                  <phase>prepare-package</phase>
+                  <goals>
+                    <goal>exec</goal>
+                  </goals>
+                </execution>
+              </executions>
+              <configuration>
+                <executable>grunt</executable>
+                <workingDirectory>${basedir}/elasticsearch-crate-plugin/crate-admin</workingDirectory>
+              </configuration>
+            </plugin>
+            <plugin>
+              <groupId>org.codehaus.mojo</groupId>
+              <artifactId>exec-maven-plugin</artifactId>
+              <version>1.2.1</version>
+              <executions>
+                <execution>
+                  <phase>clean</phase>
+                  <goals>
+                    <goal>exec</goal>
+                  </goals>
+                </execution>
+              </executions>
+              <configuration>
+                <executable>rm</executable>
+                <arguments>
+                  <argument>-rf </argument>
+                  <argument>${basedir}/elasticsearch-crate-plugin/crate-admin/dist</argument>
+                </arguments>
+              </configuration>
             </plugin>
         </plugins>
     </build>

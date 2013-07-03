@@ -1,12 +1,14 @@
-package crate.elasticsearch.plugin.cratedefaults;
+package crate.elasticsearch.plugin.crate;
 
 
+import crate.elasticsearch.rest.action.admin.CrateFrontpageAction;
 import org.elasticsearch.ElasticSearchException;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.FailedToResolveConfigException;
 import org.elasticsearch.plugins.AbstractPlugin;
+import org.elasticsearch.rest.RestModule;
 
 import java.net.URL;
 
@@ -19,7 +21,7 @@ import java.net.URL;
  * <li>Apply additional crate settings from "crate.yml", "crate.json" or "crate.properties" files</li>
  * </ul>
  */
-public class CrateDefaultsPlugin extends AbstractPlugin {
+public class CratePlugin extends AbstractPlugin {
 
     @Override
     public Settings additionalSettings() {
@@ -54,12 +56,16 @@ public class CrateDefaultsPlugin extends AbstractPlugin {
 
     @Override
     public String name() {
-        return "cratedefaults";
+        return "crate";
     }
 
     @Override
     public String description() {
         return "Crate defaults Plugin";
+    }
+
+    public void onModule(RestModule restModule) {
+        restModule.addRestAction(CrateFrontpageAction.class);
     }
 
     /**

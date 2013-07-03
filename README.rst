@@ -58,10 +58,12 @@ format).
 Installed plugins
 =================
 
-elasticsearch-cratedefaults-plugin
-----------------------------------
+elasticsearch-crate-plugin
+--------------------------
 
-Default settings plugin, included as sub-module in this package.
+Crate plugin, included as sub-module in this package.
+This plugin contains crate specific default settings and a rest endpoint
+reachable at '/admin' displaying a system overview as html page.
 
 
 elasticsearch-inout-plugin

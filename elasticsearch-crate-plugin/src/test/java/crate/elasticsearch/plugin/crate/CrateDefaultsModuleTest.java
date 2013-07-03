@@ -1,4 +1,4 @@
-package crate.elasticsearch.plugin.cratedefaults;
+package crate.elasticsearch.plugin.crate;
 
 import static com.github.tlrx.elasticsearch.test.EsSetup.createIndex;
 import static com.github.tlrx.elasticsearch.test.EsSetup.deleteAll;
@@ -6,15 +6,11 @@ import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
 
 import com.github.tlrx.elasticsearch.test.EsSetup;
-import com.github.tlrx.elasticsearch.test.support.junit.runners.ElasticsearchRunner;
-import junit.framework.Assert;
-import junit.framework.TestCase;
 import org.elasticsearch.ElasticSearchException;
 import org.elasticsearch.ElasticSearchIllegalArgumentException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import java.io.File;
 import java.io.FileOutputStream;

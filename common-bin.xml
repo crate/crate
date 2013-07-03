@@ -79,6 +79,13 @@
                 <exclude>screenshot.png</exclude>
             </excludes>
         </fileSet>
+        <fileSet>
+            <directory>elasticsearch-crate-plugin/crate-admin/dist</directory>
+            <outputDirectory>plugins/crate-admin/_site</outputDirectory>
+            <includes>
+               <include>**</include>
+            </includes>
+        </fileSet>
     </fileSets>
     <files>
         <file>
@@ -93,7 +100,7 @@
     <moduleSets>
         <moduleSet>
             <includes>
-                <include>crate:elasticsearch-cratedefaults-plugin*</include>
+                <include>crate:elasticsearch-crate-plugin*</include>
             </includes>
             <excludes>
                 <exclude>com.github.tlrx:elasticsearch-test*</exclude>
@@ -101,7 +108,7 @@
             </excludes>
             <binaries>
                 <unpack>false</unpack>
-                <outputDirectory>/plugins/elasticsearch-cratedefaults-plugin</outputDirectory>
+                <outputDirectory>/plugins/elasticsearch-crate-plugin</outputDirectory>
             </binaries>
         </moduleSet>
     </moduleSets>
