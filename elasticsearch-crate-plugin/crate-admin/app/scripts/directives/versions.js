@@ -11,7 +11,7 @@ angular.module('crateAdminApp')
                 '</div>',
       restrict: 'E',
       controller: ['$scope', '$element', '$attrs', '$transclude', '$http', function($scope, $element, $attrs, $transclude, $http) {
-            $scope.crate = '0.6.0';
+            $scope.crate = 'crate_version';
             $http({method: 'GET', url: '/'}).
               success(function(data) {
                 $scope.es = data.version.number;

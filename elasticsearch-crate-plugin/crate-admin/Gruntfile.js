@@ -302,6 +302,21 @@ module.exports = function (grunt) {
           ]
         }
       }
+    },
+    'string-replace': {
+      dist: {
+        files: {
+          '<%= yeoman.dist %>/scripts/plugins.js': [
+            '<%= yeoman.dist %>/scripts/plugins.js'
+          ]
+        },
+        options: {
+          replacements: [{
+            pattern: 'crate_version',
+            replacement: grunt.option('crate_version')
+          }]
+        }
+      }
     }
   });
 
@@ -335,6 +350,7 @@ module.exports = function (grunt) {
     'cdnify',
     'ngmin',
     'cssmin',
+    'string-replace',
     'uglify',
     'rev',
     'usemin'
@@ -346,3 +362,4 @@ module.exports = function (grunt) {
     'build'
   ]);
 };
+
