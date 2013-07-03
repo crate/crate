@@ -29,8 +29,9 @@ used.
 Requirements
 ------------
 
- $ sudo port install nodejs npm
+To develop or deploy this app you'll need the following packages::
 
+ $ sudo port install nodejs npm
  $ sudo npm install -g yo grunt-cli bower
  $ sudo npm install -g generator-angular
  $ sudo npm install -g generator-karma
@@ -50,10 +51,10 @@ browser displaying the index page of the app will get started
 automatically.
 
 Note: The app is designed to run as a site plugin of elasticsearch or
-      crate respectively and depends on the API of these services. The
-      grunt test-server does not provide this API and therefore some
-      parts of the app will not work correctly if it get served by any
-      other server than elasticsearch.
+crate respectively and depends on the API of these services. The grunt
+test-server does not provide this API and therefore some parts of the
+app will not work correctly if it get served by any other server than
+elasticsearch.
 
 
 running tests
@@ -70,9 +71,10 @@ creating a distribution
 -----------------------
 
 The build step is part of the default task of grunt so it's usually ok
-to run ``grunt`` in the root of the package. Since the app displays
-the version of crate and this version is not accessible by any API it
-has to be passed in during the build step of the application::
+to just run ``grunt`` in the root of the package. Since the app
+displays the version of crate and this version is not accessible by
+any API it has to be passed in during the build step of the
+application::
 
  $ grunt --crate_version=1.2.3
 
@@ -84,7 +86,7 @@ extending the app
 
 To add new components like controllers, directives, views etc. to the
 app use ``yo``, the cli of yeoman_, in combination with the
-angulargenerator_.
+angulargenerator_::
 
  $ yo angular:directive <name>
  $ yo angular:controller <name>
