@@ -5,6 +5,8 @@ Changes for First Blick Crate
 Unreleased
 ==========
 
+ - upgraded bigdesk to 2.2.1, which fixes cache memory display issues
+
 2013/06/26 0.7.0
 ================
 
