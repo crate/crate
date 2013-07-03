@@ -44,15 +44,15 @@ Resulting tarballs will reside in the folder ``releases``.
 Crate settings
 ==============
 
-Crate settings can be specified in 3 different file formats in the ``config``
-directory:
+Crate settings can be specified in 3 different file formats in the
+``config`` directory:
 
 - YAML: crate.yml
 - JSON: crate.json
 - Java Properties File: crate.properties
 
-There must not exist an elasticsearch config file (yml, json or properties
-format).
+There must not exist an elasticsearch config file (yml, json or
+properties format).
 
 
 Installed plugins
@@ -61,9 +61,9 @@ Installed plugins
 elasticsearch-crate-plugin
 --------------------------
 
-Crate plugin, included as sub-module in this package.
-This plugin contains crate specific default settings and a rest endpoint
-reachable at '/admin' displaying a system overview as html page.
+Crate plugin, included as sub-module in this package. This plugin
+contains crate specific default settings and a rest endpoint reachable
+at '/admin' displaying a system overview as html page.
 
 
 elasticsearch-inout-plugin
@@ -83,6 +83,14 @@ https://github.com/crate/elasticsearch-timefacets-plugin
 
 Installed site plugins
 ======================
+
+crate-admin
+-----------
+
+A web based admin interface for crate.
+
+http://localhost:9200/admin
+
 
 elasticsearch-head
 ------------------
