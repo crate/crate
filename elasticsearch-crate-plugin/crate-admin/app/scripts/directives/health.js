@@ -19,7 +19,7 @@ angular.module('crateAdminApp')
                 $scope.color = colorMap[data.status];
                 /* jshint -W106 */
                 $scope.nodes = data.number_of_nodes;
-                $scope.shards = data.active_shards;
+                $scope.shards = data.active_primary_shards;
                 /* jshint +W106 */
               }).
               error(function() {
