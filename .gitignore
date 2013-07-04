@@ -8,3 +8,4 @@
 /plugins
 /lib/*
 !/lib/sigar
+version.json
