@@ -10,9 +10,9 @@ angular.module('crateAdminApp')
                 '  </table>' +
                 '</div>',
       restrict: 'E',
-      controller: ['$scope', '$element', '$attrs', '$transclude', '$http', function($scope, $element, $attrs, $transclude, $http) {
-            $scope.crate = 'crate_version';
-            $http({method: 'GET', url: '/'}).
+      controller: ['$scope', '$element', '$attrs', '$transclude', '$http', '$location', function($scope, $element, $attrs, $transclude, $http, $location) {
+            var prefix = $location.search().prefix || '';
+            $http({method: 'GET', url: prefix + '/'}).
               success(function(data) {
                 $scope.es = data.version.number;
               }).

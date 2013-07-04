@@ -9,12 +9,13 @@ angular.module('crateAdminApp')
                 '  </span>' +
                 '</div>',
       restrict: 'E',
-      controller: ['$scope', '$element', '$attrs', '$transclude', '$http', '$timeout', function($scope, $element, $attrs, $transclude, $http, $timeout) {
+      controller: ['$scope', '$element', '$attrs', '$transclude', '$http', '$timeout', '$location', function($scope, $element, $attrs, $transclude, $http, $timeout, $location) {
+          var prefix = $location.search().prefix || '';
           var colorMap = {green: 'badge-success',
                           yellow: 'badge-warning',
                           red: 'badge-important'};
           var refresh = function() {
-            $http({method: 'GET', url: '/_cluster/health'}).
+            $http({method: 'GET', url: prefix + '/_cluster/health'}).
               success(function(data) {
                 $scope.color = colorMap[data.status];
                 /* jshint -W106 */
