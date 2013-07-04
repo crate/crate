@@ -19,6 +19,13 @@ angular.module('crateAdminApp')
               error(function() {
                 $scope.es = '-';
               });
+            $http({method: 'GET', url: prefix + '/_plugin/crate-admin/version.json'}).
+              success(function(data) {
+                $scope.crate = data.version.crate;
+              }).
+              error(function() {
+                $scope.crate = '-';
+              });
           }]
     };
   });
