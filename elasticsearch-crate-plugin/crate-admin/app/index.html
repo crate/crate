@@ -27,20 +27,33 @@
 
     <div class="navbar navbar-static-top">
          <div class="navbar-inner">
-             <a href="/admin" class="brand"><img src="images/logo.png"></a>
-             <ul class="nav">
-               <li><a href="/_plugin/head">Head</a></li>
-               <li><a href="/_plugin/bigdesk">BigDesk</a></li>
-               <li><a href="/_plugin/segmentspy">SegmentSpy</a></li>
-             </ul>
-             <div class="pull-right">
-               <versions></versions>
-               <health></health>
+             <div class="container">
+               <a href="/admin" class="brand"><img src="images/logo.png"></a>
+               <ul class="nav">
+                 <li><a href="/_plugin/head">Head</a></li>
+                 <li><a href="/_plugin/bigdesk">BigDesk</a></li>
+                 <li><a href="/_plugin/segmentspy">SegmentSpy</a></li>
+               </ul>
+               <div class="pull-right">
+                 <versions></versions>
+                 <health></health>
+               </div>
              </div>
          </div>
     </div>
+
+  <div class="container">
+    <div class="row-fluid">
+      <div class="sidebar span2">
+        <ul class="nav nav-list">
+          <!-- sub menu items goes here-->
+        </ul>
+      </div>
+      <div class="span10" ng-view=""></div>
+    </div>
+  </div>
+
     <!-- Add your site or application content here -->
-    <div class="container-fluid" ng-view=""></div>
 
     <script src="bower_components/angular/angular.js"></script>
 

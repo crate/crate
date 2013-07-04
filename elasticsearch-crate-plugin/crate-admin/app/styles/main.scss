@@ -3,11 +3,16 @@
 body {
     background: #fafafa;
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 14px;
     color: #333;
 }
 
 .navbar .nav > li {
     line-height: 45px;
+}
+
+.navbar-static-top {
+    margin-bottom: 25px;
 }
 
 .hero-unit {
@@ -45,4 +50,8 @@ body {
 .versions td {
   border: none;
   padding: 4px 0 0 10px;
+}
+
+.sidebar {
+  padding: 8px 0;
 }
