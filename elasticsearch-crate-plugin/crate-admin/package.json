@@ -26,8 +26,7 @@
     "matchdep": "~0.1.2",
     "connect-livereload": "~0.2.0",
     "grunt-google-cdn": "~0.2.0",
-    "grunt-ngmin": "~0.0.2",
-    "grunt-string-replace": "~0.2.4"
+    "grunt-ngmin": "~0.0.2"
   },
   "engines": {
     "node": ">=0.8.0"

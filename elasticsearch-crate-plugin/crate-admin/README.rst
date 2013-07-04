@@ -35,7 +35,6 @@ To develop or deploy this app you'll need the following packages::
  $ sudo npm install -g yo grunt-cli bower
  $ sudo npm install -g generator-angular
  $ sudo npm install -g generator-karma
- $ sudo npm install -g grunt-string-replace
  $ sudo npm install -g grunt-contrib-compass
 
 
