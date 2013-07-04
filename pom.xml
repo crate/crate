@@ -107,39 +107,39 @@
                 </executions>
             </plugin>
             <plugin>
-              <groupId>org.codehaus.mojo</groupId>
-              <artifactId>exec-maven-plugin</artifactId>
-              <version>1.2.1</version>
-              <executions>
-                <execution>
-                  <id>remove existing build of crate admin _site plugin</id>
-                  <phase>clean</phase>
-                  <goals>
-                    <goal>exec</goal>
-                  </goals>
-                  <configuration>
-                    <executable>rm</executable>
-                    <arguments>
-                      <argument>-rf </argument>
-                      <argument>${basedir}/elasticsearch-crate-plugin/crate-admin/dist</argument>
-                    </arguments>
-                  </configuration>
-                </execution>
-                <execution>
-                  <id>build crate admin _site plugin</id>
-                  <phase>prepare-package</phase>
-                  <goals>
-                    <goal>exec</goal>
-                  </goals>
-                  <configuration>
-                    <executable>grunt</executable>
-                    <workingDirectory>${basedir}/elasticsearch-crate-plugin/crate-admin</workingDirectory>
-                    <arguments>
-                      <argument>--crate_version=${version}</argument>
-                    </arguments>
-                  </configuration>
-                </execution>
-              </executions>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.2.1</version>
+                <executions>
+                    <execution>
+                        <id>check crate-admin plugin</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>test</executable>
+                            <arguments>
+                                <argument>-f</argument>
+                                <argument>${basedir}/elasticsearch-crate-plugin/crate-admin/dist/index.html</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>write versions file</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>sh</executable>
+                            <arguments>
+                                <argument>-c</argument>
+                                <argument>echo '{"version": {"crate": "${version}"}}' > version.json</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

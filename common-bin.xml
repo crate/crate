@@ -96,6 +96,10 @@
             <source>LICENSE.txt</source>
             <outputDirectory>/</outputDirectory>
         </file>
+        <file>
+            <source>version.json</source>
+            <outputDirectory>plugins/crate-admin/_site</outputDirectory>
+        </file>
     </files>
     <moduleSets>
         <moduleSet>
