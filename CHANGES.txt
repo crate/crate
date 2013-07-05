@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/07/05 0.8.0
+================
+
  - updated elasticsearch-timefacets-plugin to 0.8.0
 
  - updated elasticsearch to 0.90.2
