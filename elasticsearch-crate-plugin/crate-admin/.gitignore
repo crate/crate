@@ -1,5 +1,6 @@
 node_modules
 .tmp
 .sass-cache
+.editorconfig
 app/bower_components
 dist/version.json
