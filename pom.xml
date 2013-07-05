@@ -12,7 +12,7 @@
     	<module>elasticsearch-timefacets-plugin</module>
     </modules>
 	<properties>
-		<elasticsearch.version>0.90.1</elasticsearch.version>
+		<elasticsearch.version>0.90.2</elasticsearch.version>
         <elasticsearch-head-plugin.version>6dbf2ed35355e261ee94ffd5884c6446dd865c35</elasticsearch-head-plugin.version>
         <bigdesk-plugin.version>2.2.1</bigdesk-plugin.version>
         <segmentspy-plugin.version>0.2.0</segmentspy-plugin.version>
