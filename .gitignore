@@ -6,5 +6,5 @@
 /releases
 /target
 /plugins
-/lib/*
-!/lib/sigar
+/sources/lib/*
+!/sources/lib/sigar

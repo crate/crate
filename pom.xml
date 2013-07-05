@@ -28,7 +28,7 @@
                             <goal>copy-dependencies</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>lib</outputDirectory>
+                            <outputDirectory>sources/lib</outputDirectory>
                             <excludeArtifactIds>hamcrest-core,junit,elasticsearch-test</excludeArtifactIds>
                         </configuration>
                     </execution>

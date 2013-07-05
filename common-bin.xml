@@ -21,7 +21,7 @@
     </dependencySets>
     <fileSets>
         <fileSet>
-            <directory>config</directory>
+            <directory>sources/config</directory>
             <outputDirectory>config</outputDirectory>
             <includes>
                 <include>*</include>
