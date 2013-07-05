@@ -1,1 +1,0 @@
-"use strict";angular.module("crateAdminApp",[]).config(["$routeProvider",function(a){a.when("/:prefix",{templateUrl:"views/main.html",controller:"MainCtrl"}).otherwise({redirectTo:"/"})}]),angular.module("crateAdminApp").controller("MainCtrl",function(){});
