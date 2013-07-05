@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - updated elasticsearch-timefacets-plugin to 0.8.0
+
  - updated elasticsearch to 0.90.2
 
  - organized project structure
