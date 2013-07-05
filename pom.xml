@@ -7,7 +7,7 @@
     <version>0.7.0</version>
     <packaging>pom</packaging>
     <modules>
-    	<module>elasticsearch-cratedefaults-plugin</module>
+    	<module>elasticsearch-crate-plugin</module>
     </modules>
 	<properties>
 		<elasticsearch.version>0.90.1</elasticsearch.version>

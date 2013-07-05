@@ -1,9 +1,13 @@
-=============================
-Changes for First Blick Crate
-=============================
+=================
+Changes for Crate
+=================
 
 Unreleased
 ==========
+
+ - added /admin rest endpoint redirecting to crate-admin
+
+ - added crate-admin site plugin
 
  - upgraded bigdesk to 2.2.1, which fixes cache memory display issues
 

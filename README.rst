@@ -34,34 +34,40 @@ Differences to Mysql, Postgresql
 BUILD
 =====
 
-Building a tarball is done by maven with the command::
+In pom.xml update the <version> tag of the package. In
+elasticsearch-crate-plugin/pom.xml update the <crate.version> tag to
+the same version.
+
+Building a tarball and a zip is done by maven with the command::
 
     >>> mvn clean package
 
-Resulting tarballs will reside in the folder ``releases``.
+Resulting tarball and zip will reside in the folder ``releases``.
 
 
 Crate settings
 ==============
 
-Crate settings can be specified in 3 different file formats in the ``config``
-directory:
+Crate settings can be specified in 3 different file formats in the
+``config`` directory:
 
 - YAML: crate.yml
 - JSON: crate.json
 - Java Properties File: crate.properties
 
-There must not exist an elasticsearch config file (yml, json or properties
-format).
+There must not exist an elasticsearch config file (yml, json or
+properties format).
 
 
 Installed plugins
 =================
 
-elasticsearch-cratedefaults-plugin
-----------------------------------
+elasticsearch-crate-plugin
+--------------------------
 
-Default settings plugin, included as sub-module in this package.
+Crate plugin, included as sub-module in this package. This plugin
+contains crate specific default settings and a rest endpoint reachable
+at '/admin' displaying a system overview as html page.
 
 
 elasticsearch-inout-plugin
@@ -81,6 +87,14 @@ https://github.com/crate/elasticsearch-timefacets-plugin
 
 Installed site plugins
 ======================
+
+crate-admin
+-----------
+
+A web based admin interface for crate.
+
+http://localhost:9200/admin
+
 
 elasticsearch-head
 ------------------
