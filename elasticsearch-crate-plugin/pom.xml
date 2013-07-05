@@ -10,7 +10,7 @@
     <packaging>jar</packaging>
     <properties>
         <crate.version>0.7.0</crate.version>
-        <elasticsearch.version>0.90.1</elasticsearch.version>
+        <elasticsearch.version>0.90.2</elasticsearch.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
