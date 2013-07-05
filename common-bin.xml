@@ -18,32 +18,10 @@
                 <include>com.vividsolutions:jts</include>
             </includes>
         </dependencySet>
-        <dependencySet>
-            <outputDirectory>/plugins/elasticsearch-inout-plugin</outputDirectory>
-            <useTransitiveFiltering>true</useTransitiveFiltering>
-            <includes>
-                <include>crate:elasticsearch-inout-plugin*</include>
-            </includes>
-            <excludes>
-                <exclude>com.github.tlrx:elasticsearch-test*</exclude>
-                <exclude>log4j:log4j*</exclude>
-            </excludes>
-        </dependencySet>
-        <dependencySet>
-            <outputDirectory>/plugins/elasticsearch-timefacets-plugin</outputDirectory>
-            <useTransitiveFiltering>true</useTransitiveFiltering>
-            <includes>
-                <include>crate:elasticsearch-timefacets-plugin*</include>
-            </includes>
-            <excludes>
-                <exclude>com.github.tlrx:elasticsearch-test*</exclude>
-                <exclude>log4j:log4j*</exclude>
-            </excludes>
-        </dependencySet>
     </dependencySets>
     <fileSets>
         <fileSet>
-            <directory>config</directory>
+            <directory>sources/config</directory>
             <outputDirectory>config</outputDirectory>
             <includes>
                 <include>*</include>
@@ -109,6 +87,32 @@
             <binaries>
                 <unpack>false</unpack>
                 <outputDirectory>/plugins/crate-admin</outputDirectory>
+            </binaries>
+        </moduleSet>
+        <moduleSet>
+            <includes>
+                <include>crate:elasticsearch-timefacets-plugin*</include>
+            </includes>
+            <excludes>
+                <exclude>com.github.tlrx:elasticsearch-test*</exclude>
+                <exclude>log4j:log4j*</exclude>
+            </excludes>
+            <binaries>
+              <unpack>false</unpack>
+              <outputDirectory>/plugins/elasticsearch-timefacets-plugin</outputDirectory>
+            </binaries>
+        </moduleSet>
+        <moduleSet>
+            <includes>
+                <include>crate:elasticsearch-inout-plugin*</include>
+            </includes>
+            <excludes>
+                <exclude>com.github.tlrx:elasticsearch-test*</exclude>
+                <exclude>log4j:log4j*</exclude>
+            </excludes>
+            <binaries>
+              <unpack>false</unpack>
+              <outputDirectory>/plugins/elasticsearch-inout-plugin</outputDirectory>
             </binaries>
         </moduleSet>
     </moduleSets>

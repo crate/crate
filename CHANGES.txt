@@ -5,6 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
+ - organized project structure
+
+ - included elasticsearch-inout-plugin and
+   elasticsearch-timefacets-plugin as git submodule instead of maven
+   dependencs
+
  - added /admin rest endpoint redirecting to crate-admin
 
  - added crate-admin site plugin
