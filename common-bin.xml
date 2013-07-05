@@ -112,9 +112,8 @@
             </excludes>
             <binaries>
                 <unpack>false</unpack>
-                <outputDirectory>/plugins/elasticsearch-crate-plugin</outputDirectory>
+                <outputDirectory>/plugins/crate-admin</outputDirectory>
             </binaries>
         </moduleSet>
     </moduleSets>
-
 </component>
