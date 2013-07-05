@@ -34,11 +34,15 @@ Differences to Mysql, Postgresql
 BUILD
 =====
 
-Building a tarball is done by maven with the command::
+In pom.xml update the <version> tag of the package. In
+elasticsearch-crate-plugin/pom.xml update the <crate.version> tag to
+the same version.
+
+Building a tarball and a zip is done by maven with the command::
 
     >>> mvn clean package
 
-Resulting tarballs will reside in the folder ``releases``.
+Resulting tarball and zip will reside in the folder ``releases``.
 
 
 Crate settings
