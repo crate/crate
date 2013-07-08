@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/07/08 0.8.2
+================
+
  - fixed wrong inclusion path of sigar libs
 
 2013/07/08 0.8.1
