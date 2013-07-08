@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/07/08 0.8.1
+================
+
  - updated elasticsearch-inout-plugin to 0.5.0
 
 2013/07/05 0.8.0
