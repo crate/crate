@@ -24,7 +24,7 @@
         </fileSet>
 
         <fileSet>
-            <directory>lib/sigar</directory>
+            <directory>sources/lib/sigar</directory>
             <outputDirectory>lib/sigar</outputDirectory>
             <excludes>
                 <exclude>*.dll</exclude>
