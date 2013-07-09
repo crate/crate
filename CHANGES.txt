@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - added whitelist to allow some hard coded system properties
+
+ - altered start scripts to use valid system properties
+
 2013/07/09 0.8.3
 ================
 
