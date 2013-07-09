@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - loading system settings given by the command line as well
+
 2013/07/08 0.8.2
 ================
 

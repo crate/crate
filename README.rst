@@ -103,8 +103,30 @@ Crate settings can be specified in 3 different file formats in the
 - JSON: crate.json
 - Java Properties File: crate.properties
 
-There must not exist an elasticsearch config file (yml, json or
-properties format).
+The used default options are described in the delivered example
+configuration which can be found at config/crate.yml
+
+Any option can be configured either by a config file or as system
+property. If using system properties the required prefix 'crate.' will
+be ignored.
+
+For example, configuring the cluster name by using system properties
+will work this way:
+
+ $ crate -Dcrate.cluster.name=cluster
+
+Which is exactly the same like setting the cluster name by the config
+file:
+
+ cluster.name = cluster
+
+Settings will get applied in the following order where the latter one
+will overwrite the prior one:
+
+ 1. internal defaults
+ 2. system properties
+ 3. options from config file
+
 
 
 Development
