@@ -11,6 +11,8 @@ import org.elasticsearch.plugins.AbstractPlugin;
 import org.elasticsearch.rest.RestModule;
 
 import java.net.URL;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Crate Defaults Plugin sets some default crate settings:
@@ -25,6 +27,9 @@ public class CratePlugin extends AbstractPlugin {
 
     private static final String pattern = "^(elasticsearch|es)\\..*$";
 
+    private static final List<String> whitelist = Arrays.asList(
+            "es.logger.prefix", "es.pidfile", "es.foreground", "es.max-open-files");;
+
 
     @Override
     public Settings additionalSettings() {
@@ -32,6 +37,7 @@ public class CratePlugin extends AbstractPlugin {
         settingsBuilder
                 .put("cluster.name", "crate")
                 .put("action.disable_delete_all_indices", true);
+
 
         checkForElasticSearchSystemSettings();
         settingsBuilder.putProperties("crate.", System.getProperties());
@@ -111,6 +117,9 @@ public class CratePlugin extends AbstractPlugin {
      */
     private void checkForElasticSearchSystemSettings() {
         for (Object key : System.getProperties().keySet()) {
+            if (whitelist.contains(key.toString())) {
+                continue;
+            }
             if (key.toString().matches(pattern)) {
                 throw new ElasticSearchException("Elasticsearch system properties found: '" + key.toString() +
                         "'. Use prefix 'crate.' for system properties.");

@@ -93,6 +93,22 @@ public class CrateModuleTest {
 
     }
 
+
+    /**
+     * A few hard coded system properties has to be allowed
+     */
+    @Test
+    public void testWhitelistedSystemSettings() {
+        System.setProperty("es.logger.prefix", "a");
+        System.setProperty("es.pidfile", "b");
+        System.setProperty("es.foreground", "c");
+        System.setProperty("es.max-open-files", "d");
+        doSetUp();
+
+    }
+
+
+
     /**
      * A crate.yml file can be used to override crate settings in YML format.
      * That way it is for example possible to override the cluster name.
