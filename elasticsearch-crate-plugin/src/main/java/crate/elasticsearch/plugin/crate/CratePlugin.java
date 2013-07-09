@@ -33,6 +33,12 @@ public class CratePlugin extends AbstractPlugin {
         Environment environment = new Environment(settingsBuilder.build());
         checkForElasticSearchCustomSettings(environment);
 
+        String[] ignorePrefixes = new String[]{"es.default.", "elasticsearch.default."};
+        settingsBuilder.putProperties("elasticsearch.default.", System.getProperties())
+                .putProperties("es.default.", System.getProperties())
+                .putProperties("elasticsearch.", System.getProperties(), ignorePrefixes)
+                .putProperties("es.", System.getProperties(), ignorePrefixes);
+
         try {
             settingsBuilder.loadFromUrl(environment.resolveConfig("crate.yml"));
         } catch (FailedToResolveConfigException e) {

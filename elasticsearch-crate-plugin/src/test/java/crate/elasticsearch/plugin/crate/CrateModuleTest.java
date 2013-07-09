@@ -1,10 +1,5 @@
 package crate.elasticsearch.plugin.crate;
 
-import static com.github.tlrx.elasticsearch.test.EsSetup.createIndex;
-import static com.github.tlrx.elasticsearch.test.EsSetup.deleteAll;
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertTrue;
-
 import com.github.tlrx.elasticsearch.test.EsSetup;
 import org.elasticsearch.ElasticSearchException;
 import org.elasticsearch.ElasticSearchIllegalArgumentException;
@@ -18,7 +13,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Properties;
 
-public class CrateDefaultsModuleTest {
+import static com.github.tlrx.elasticsearch.test.EsSetup.createIndex;
+import static com.github.tlrx.elasticsearch.test.EsSetup.deleteAll;
+import static junit.framework.Assert.assertEquals;
+import static junit.framework.Assert.assertTrue;
+
+public class CrateModuleTest {
 
     protected EsSetup esSetup;
 
@@ -61,6 +61,19 @@ public class CrateDefaultsModuleTest {
         assertEquals("crate",
                 esSetup.client().admin().cluster().prepareHealth().
                         setWaitForGreenStatus().execute().actionGet().getClusterName());
+    }
+
+    /**
+     * System settings given by the command line will get applied
+     */
+    @Test
+    public void testSystemSettings() {
+        System.setProperty("es.cluster.name", "system");
+        doSetUp();
+        assertEquals("system",
+                esSetup.client().admin().cluster().prepareHealth().
+                        setWaitForGreenStatus().execute().actionGet().getClusterName());
+
     }
 
     /**
