@@ -23,6 +23,9 @@ import java.net.URL;
  */
 public class CratePlugin extends AbstractPlugin {
 
+    private static final String pattern = "^(elasticsearch|es)\\..*$";
+
+
     @Override
     public Settings additionalSettings() {
         ImmutableSettings.Builder settingsBuilder = ImmutableSettings.settingsBuilder();
@@ -30,14 +33,13 @@ public class CratePlugin extends AbstractPlugin {
                 .put("cluster.name", "crate")
                 .put("action.disable_delete_all_indices", true);
 
+        checkForElasticSearchSystemSettings();
+        settingsBuilder.putProperties("crate.", System.getProperties());
+
+        settingsBuilder.replacePropertyPlaceholders();
+
         Environment environment = new Environment(settingsBuilder.build());
         checkForElasticSearchCustomSettings(environment);
-
-        String[] ignorePrefixes = new String[]{"es.default.", "elasticsearch.default."};
-        settingsBuilder.putProperties("elasticsearch.default.", System.getProperties())
-                .putProperties("es.default.", System.getProperties())
-                .putProperties("elasticsearch.", System.getProperties(), ignorePrefixes)
-                .putProperties("es.", System.getProperties(), ignorePrefixes);
 
         try {
             settingsBuilder.loadFromUrl(environment.resolveConfig("crate.yml"));
@@ -101,6 +103,18 @@ public class CratePlugin extends AbstractPlugin {
         if (url != null) {
             throw new ElasticSearchException("Elasticsearch configuration found at '" + url.getPath() +
                                              "'. Use crate configuration file.");
+        }
+    }
+
+    /**
+     * Raise an exception if any given system property starts with es or elasticsearch
+     */
+    private void checkForElasticSearchSystemSettings() {
+        for (Object key : System.getProperties().keySet()) {
+            if (key.toString().matches(pattern)) {
+                throw new ElasticSearchException("Elasticsearch system properties found: '" + key.toString() +
+                        "'. Use prefix 'crate.' for system properties.");
+            }
         }
     }
 }

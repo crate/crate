@@ -64,11 +64,28 @@ public class CrateModuleTest {
     }
 
     /**
+     * Given system settings may not be prefixed with "es" or "elasticsearch"
+     */
+    @Test
+    public void testInvalidSystemSettings() {
+        System.setProperty("es.cluster.name", "system");
+        String msg;
+        msg = "Elasticsearch system properties found: 'es.cluster.name'. Use prefix 'crate.' for system properties.";
+        try {
+            doSetUp();
+        } catch (ElasticSearchException e) {
+            assertTrue(e.getDetailedMessage().endsWith(msg));
+        } finally {
+            System.clearProperty("es.cluster.name");
+        };
+    }
+
+    /**
      * System settings given by the command line will get applied
      */
     @Test
-    public void testSystemSettings() {
-        System.setProperty("es.cluster.name", "system");
+    public void testValidSystemSettings() {
+        System.setProperty("crate.cluster.name", "system");
         doSetUp();
         assertEquals("system",
                 esSetup.client().admin().cluster().prepareHealth().
