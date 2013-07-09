@@ -28,7 +28,7 @@ public class CratePlugin extends AbstractPlugin {
     private static final String pattern = "^(elasticsearch|es)\\..*$";
 
     private static final List<String> whitelist = Arrays.asList(
-            "es.logger.prefix", "es.pidfile", "es.foreground", "es.max-open-files");;
+            "es.logger.prefix", "es.pidfile", "es.foreground", "es.max-open-files");
 
 
     @Override
@@ -47,22 +47,36 @@ public class CratePlugin extends AbstractPlugin {
         Environment environment = new Environment(settingsBuilder.build());
         checkForElasticSearchCustomSettings(environment);
 
-        try {
-            settingsBuilder.loadFromUrl(environment.resolveConfig("crate.yml"));
-        } catch (FailedToResolveConfigException e) {
-            // ignore
-        } catch (NoClassDefFoundError e) {
-            // ignore, no yaml
+        boolean loadFromEnv = true;
+        // if its default, then load it, but also load form env
+        if (System.getProperty("crate.default.config") != null) {
+            loadFromEnv = true;
+            settingsBuilder.loadFromUrl(environment.resolveConfig(System.getProperty("crate.default.config")));
         }
-        try {
-            settingsBuilder.loadFromUrl(environment.resolveConfig("crate.json"));
-        } catch (FailedToResolveConfigException e) {
-            // ignore
+        // if explicit, just load it and don't load from env
+        if (System.getProperty("crate.config") != null) {
+            loadFromEnv = false;
+            settingsBuilder.loadFromUrl(environment.resolveConfig(System.getProperty("crate.config")));
         }
-        try {
-            settingsBuilder.loadFromUrl(environment.resolveConfig("crate.properties"));
-        } catch (FailedToResolveConfigException e) {
-            // ignore
+        if (loadFromEnv) {
+
+            try {
+                settingsBuilder.loadFromUrl(environment.resolveConfig("crate.yml"));
+            } catch (FailedToResolveConfigException e) {
+                // ignore
+            } catch (NoClassDefFoundError e) {
+                // ignore, no yaml
+            }
+            try {
+                settingsBuilder.loadFromUrl(environment.resolveConfig("crate.json"));
+            } catch (FailedToResolveConfigException e) {
+                // ignore
+            }
+            try {
+                settingsBuilder.loadFromUrl(environment.resolveConfig("crate.properties"));
+            } catch (FailedToResolveConfigException e) {
+                // ignore
+            }
         }
 
         return settingsBuilder.build();
@@ -85,6 +99,7 @@ public class CratePlugin extends AbstractPlugin {
     /**
      * Raise an exception if there are elasticsearch config files (yaml, json or properties).
      * Only custom crate config files are allowed.
+     *
      * @param environment
      */
     private void checkForElasticSearchCustomSettings(Environment environment) {
@@ -108,7 +123,7 @@ public class CratePlugin extends AbstractPlugin {
         }
         if (url != null) {
             throw new ElasticSearchException("Elasticsearch configuration found at '" + url.getPath() +
-                                             "'. Use crate configuration file.");
+                    "'. Use crate configuration file.");
         }
     }
 

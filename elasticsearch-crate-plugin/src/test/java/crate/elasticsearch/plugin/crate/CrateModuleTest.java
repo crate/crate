@@ -107,7 +107,73 @@ public class CrateModuleTest {
 
     }
 
+    /**
+     * The location of the used config file might be defined with the system
+     * property crate.config. The configuration located at crate's default
+     * location will get ignored.
+     * @throws IOException
+     */
+    @Test
+    public void testCustomYMLSettings() throws IOException {
 
+        File def = new File("crate.yml");
+        FileWriter writer = new FileWriter(def, false);
+        writer.write("cluster.name: myDefaultCluster");
+        writer.close();
+
+        File custom = new File("custom");
+        custom.mkdir();
+        File file = new File(custom, "custom.yml");
+        FileWriter customWriter = new FileWriter(file, false);
+
+        System.setProperty("crate.config", "custom/custom.yml");
+
+        customWriter.write("cluster.name: myCustomCluster");
+        customWriter.close();
+        doSetUp();
+        file.delete();
+        custom.delete();
+        def.delete();
+        System.clearProperty("crate.config");
+
+        assertEquals("myCustomCluster",
+                esSetup.client().admin().cluster().prepareHealth().
+                        setWaitForGreenStatus().execute().actionGet().getClusterName());
+    }
+
+    /**
+     * It's possible to set crate.default.config which options will applied
+     * before crate's default config will get loaded. The default config will
+     * overwrite options defined in the config defined at crate.default.config
+     * @throws IOException
+     */
+    @Test
+    public void testCustomDefaultYMLSettings() throws IOException {
+
+        File def = new File("crate.yml");
+        FileWriter writer = new FileWriter(def, false);
+        writer.write("cluster.name: myDefaultCluster");
+        writer.close();
+
+        File custom = new File("custom");
+        custom.mkdir();
+        File file = new File(custom, "custom.yml");
+        FileWriter customWriter = new FileWriter(file, false);
+
+        System.setProperty("crate.default.config", "custom/custom.yml");
+
+        customWriter.write("cluster.name: myCustomCluster");
+        customWriter.close();
+        doSetUp();
+        file.delete();
+        custom.delete();
+        def.delete();
+        System.clearProperty("crate.default.config");
+
+        assertEquals("myDefaultCluster",
+                esSetup.client().admin().cluster().prepareHealth().
+                        setWaitForGreenStatus().execute().actionGet().getClusterName());
+    }
 
     /**
      * A crate.yml file can be used to override crate settings in YML format.
