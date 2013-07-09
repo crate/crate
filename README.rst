@@ -103,8 +103,7 @@ Crate settings can be specified in 3 different file formats in the
 - JSON: crate.json
 - Java Properties File: crate.properties
 
-There must not exist an elasticsearch config file (yml, json or
-properties format).
+System properties given by the command line must be prefixed with 'crate.'
 
 
 Development
