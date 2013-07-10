@@ -8,7 +8,6 @@ import org.junit.Test;
 
 import static com.github.tlrx.elasticsearch.test.EsSetup.createIndex;
 import static com.github.tlrx.elasticsearch.test.EsSetup.deleteAll;
-import static junit.framework.Assert.assertEquals;
 
 public class CrateModuleTest {
 
@@ -37,15 +36,5 @@ public class CrateModuleTest {
         esSetup.execute(deleteAll());
     }
 
-    /**
-     * The default cluster name is "crate" if not set differently in crate settings
-     */
-    @Test
-    public void testClusterName() {
-        doSetUp();
-        assertEquals("crate",
-                esSetup.client().admin().cluster().prepareHealth().
-                        setWaitForGreenStatus().execute().actionGet().getClusterName());
-    }
 
 }

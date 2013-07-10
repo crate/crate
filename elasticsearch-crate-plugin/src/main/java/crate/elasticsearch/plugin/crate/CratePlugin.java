@@ -21,7 +21,6 @@ public class CratePlugin extends AbstractPlugin {
     public Settings additionalSettings() {
         ImmutableSettings.Builder settingsBuilder = ImmutableSettings.settingsBuilder();
         settingsBuilder
-                .put("cluster.name", "crate")
                 .put("action.disable_delete_all_indices", true);
 
         return settingsBuilder.build();
