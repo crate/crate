@@ -5,7 +5,7 @@ Changes for Crate
 Unreleased
 ==========
 
- - added REDHAT specific documentation file
+ - tarball now include CHANGES file
 
 2013/07/08 0.8.2
 ================

@@ -75,15 +75,11 @@
             <outputDirectory>/</outputDirectory>
         </file>
         <file>
-            <source>README</source>
+            <source>README.rst</source>
             <outputDirectory>/</outputDirectory>
         </file>
         <file>
             <source>CHANGES</source>
-            <outputDirectory>/</outputDirectory>
-        </file>
-        <file>
-            <source>REDHAT</source>
             <outputDirectory>/</outputDirectory>
         </file>
     </files>
