@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - added default config path to start script
+
+ - reverted loading behaviour for settings
+
  - added DEVELOP.rst file
 
  - tarball now include CHANGES file
