@@ -79,7 +79,7 @@
             <outputDirectory>/</outputDirectory>
         </file>
         <file>
-            <source>CHANGES</source>
+            <source>CHANGES.txt</source>
             <outputDirectory>/</outputDirectory>
         </file>
     </files>
