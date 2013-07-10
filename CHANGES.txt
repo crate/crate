@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/07/10 0.8.5
+================
+
  - added default config path to start script
 
  - reverted loading behaviour for settings
