@@ -96,7 +96,7 @@ http://localhost:9200/_plugin/segmentspy
 Installation
 ============
 
-Download the latest version of crate, unpack it an start it using:
+Download the latest version of crate, unpack it and start it:
 
  $ bin/crate
 
