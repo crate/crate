@@ -1,0 +1,47 @@
+===========================================================
+This document presents an overview about the administration
+and configuration of Crate DB specific to operating systems
+based on redhat.
+===========================================================
+
+For general information about crate please refer to the
+README file::
+
+    /usr/share/doc/crate-<version>/README
+
+LICENSE
+=======
+
+Crate is licensed under the Apache License Version 2.0.
+For details please refer to::
+
+    /usr/share/doc/crate-<version>/LICENSE
+
+CHANGES
+=======
+
+Please refer to::
+
+    /usr/share/doc/crate-<version>/CHANGES
+
+Starting and Stopping Crate DB
+==============================
+
+You can use the following command to start crate::
+
+    >>> service crate start
+
+After starting crate the status should be 'Running'::
+    
+    >>> service crate status
+
+To stop crate use::
+
+    >>> service crate stop
+
+Default Configuration
+=====================
+
+The configuration file is located at::
+
+    /etc/crate/crate.yml
