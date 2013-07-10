@@ -67,11 +67,19 @@
     </fileSets>
     <files>
         <file>
+            <source>LICENSE</source>
+            <outputDirectory>/</outputDirectory>
+        </file>
+        <file>
+            <source>NOTICE</source>
+            <outputDirectory>/</outputDirectory>
+        </file>
+        <file>
             <source>README.rst</source>
             <outputDirectory>/</outputDirectory>
         </file>
         <file>
-            <source>LICENSE.txt</source>
+            <source>CHANGES.txt</source>
             <outputDirectory>/</outputDirectory>
         </file>
     </files>

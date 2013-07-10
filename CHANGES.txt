@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - added DEVELOP.rst file
+
+ - tarball now include CHANGES file
+
 2013/07/09 0.8.4
 ================
 
