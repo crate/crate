@@ -93,28 +93,36 @@ deletes)
 http://localhost:9200/_plugin/segmentspy
 
 
-Crate settings
-==============
+Installation
+============
 
-Crate settings can be specified in 3 different file formats in the
-``config`` directory:
+Download the latest version of crate, unpack it an start it using:
 
-- YAML: crate.yml
-- JSON: crate.json
-- Java Properties File: crate.properties
+ $ bin/crate
 
-The used default options are described in the delivered example
-configuration which can be found at config/crate.yml
 
-Any option can be configured either by a config file or as system
-property. If using system properties the required prefix 'crate.' will
-be ignored. (The following options has to be prefixed with 'es' instead
-of crate: es.logger.prefix, es.pidfile, es.foreground, es.max-open-files)
+Under *nix system, the command will start the process in the background.
+To run it in the foreground, add the -f switch to it:
+
+ $ bin/crate -f
+
+
+Configuration
+=============
+
+The settings file is located at config/crate.yml
+The used default options are documented in this file.
+To load a settings file located somewhere else in the system
+pass the option -Des.config=/path/to/config.yml to the start script.
+
+Any option can be configured either by the config file or as system
+property. If using system properties the required prefix 'es.' will
+be ignored.
 
 For example, configuring the cluster name by using system properties
 will work this way:
 
- $ crate -Dcrate.cluster.name=cluster
+ $ crate -Des.cluster.name=cluster
 
 Which is exactly the same like setting the cluster name by the config
 file:
@@ -126,12 +134,7 @@ will overwrite the prior one:
 
  1. internal defaults
  2. system properties
- 3. options from config file located at -Dcrate.default.config
- 4. options from config file located at -Dcrate.config
- 5. options from config file located at default location
-    (<CRATE-HOME>/config/config.yml) if -Dcrate.config is not
-    defined
-
+ 3. options from config file
 
 
 Development
