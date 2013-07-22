@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - docs are now available under /_plugins/docs
+
 2013/07/10 0.8.5
 ================
 
