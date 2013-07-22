@@ -18,7 +18,7 @@ elasticsearch-crate-plugin
 --------------------------
 
 Crate plugin, included as sub-module in this package. This plugin
-contains crate specific default settings and a rest endpoint reachable
+contains Crate specific default settings and a rest endpoint reachable
 at '/admin' displaying a system overview as html page.
 
 
@@ -43,10 +43,17 @@ Installed site plugins
 crate-admin
 -----------
 
-A web based admin interface for crate.
+A web based admin interface for Crate.
 
 http://localhost:9200/admin
 
+
+docs
+----
+
+The Crate documentation available under
+
+http://localhost:9200/_plugin/docs
 
 elasticsearch-head
 ------------------
@@ -76,7 +83,7 @@ http://localhost:9200/_plugin/segmentspy
 Installation
 ============
 
-Download the latest version of crate, unpack it and start it:
+Download the latest version of Crate, unpack it and start it:
 
  $ bin/crate
 
