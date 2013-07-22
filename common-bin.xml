@@ -28,10 +28,12 @@
             </includes>
         </fileSet>
         <fileSet>
-            <directory>plugins/elasticsearch-head-${elasticsearch-head-plugin.version}</directory>
+            <directory>
+                plugins/elasticsearch-head-${elasticsearch-head-plugin.version}
+            </directory>
             <outputDirectory>plugins/head/_site</outputDirectory>
             <includes>
-               <include>**</include>
+                <include>**</include>
             </includes>
             <excludes>
                 <exclude>.gitignore</exclude>
@@ -41,17 +43,19 @@
             <directory>plugins/bigdesk-${bigdesk-plugin.version}</directory>
             <outputDirectory>plugins/bigdesk/_site</outputDirectory>
             <includes>
-               <include>**</include>
+                <include>**</include>
             </includes>
             <excludes>
                 <exclude>.gitignore</exclude>
             </excludes>
         </fileSet>
         <fileSet>
-            <directory>plugins/elasticsearch-segmentspy-${segmentspy-plugin.version}</directory>
+            <directory>
+                plugins/elasticsearch-segmentspy-${segmentspy-plugin.version}
+            </directory>
             <outputDirectory>plugins/segmentspy</outputDirectory>
             <includes>
-               <include>**</include>
+                <include>**</include>
             </includes>
             <excludes>
                 <exclude>screenshot.png</exclude>
@@ -61,7 +65,14 @@
             <directory>elasticsearch-crate-plugin/crate-admin/dist</directory>
             <outputDirectory>plugins/crate-admin/_site</outputDirectory>
             <includes>
-               <include>**</include>
+                <include>**</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>docs/out/html</directory>
+            <outputDirectory>plugins/docs/_site</outputDirectory>
+            <includes>
+                <include>**</include>
             </includes>
         </fileSet>
     </fileSets>
@@ -106,8 +117,9 @@
                 <exclude>log4j:log4j*</exclude>
             </excludes>
             <binaries>
-              <unpack>false</unpack>
-              <outputDirectory>/plugins/elasticsearch-timefacets-plugin</outputDirectory>
+                <unpack>false</unpack>
+                <outputDirectory>/plugins/elasticsearch-timefacets-plugin
+                </outputDirectory>
             </binaries>
         </moduleSet>
         <moduleSet>
@@ -119,8 +131,9 @@
                 <exclude>log4j:log4j*</exclude>
             </excludes>
             <binaries>
-              <unpack>false</unpack>
-              <outputDirectory>/plugins/elasticsearch-inout-plugin</outputDirectory>
+                <unpack>false</unpack>
+                <outputDirectory>/plugins/elasticsearch-inout-plugin
+                </outputDirectory>
             </binaries>
         </moduleSet>
     </moduleSets>

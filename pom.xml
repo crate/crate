@@ -1,24 +1,52 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<groupId>crate</groupId>
-	<artifactId>crate</artifactId>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>crate</groupId>
+    <artifactId>crate</artifactId>
     <version>0.8.5</version>
     <packaging>pom</packaging>
     <modules>
-    	<module>elasticsearch-crate-plugin</module>
-    	<module>elasticsearch-inout-plugin</module>
-    	<module>elasticsearch-timefacets-plugin</module>
+        <module>elasticsearch-crate-plugin</module>
+        <module>elasticsearch-inout-plugin</module>
+        <module>elasticsearch-timefacets-plugin</module>
     </modules>
-	<properties>
-		<elasticsearch.version>0.90.2</elasticsearch.version>
-        <elasticsearch-head-plugin.version>6dbf2ed35355e261ee94ffd5884c6446dd865c35</elasticsearch-head-plugin.version>
+    <properties>
+        <elasticsearch.version>0.90.2</elasticsearch.version>
+        <elasticsearch-head-plugin.version>
+            6dbf2ed35355e261ee94ffd5884c6446dd865c35
+        </elasticsearch-head-plugin.version>
         <bigdesk-plugin.version>2.2.1</bigdesk-plugin.version>
         <segmentspy-plugin.version>0.2.0</segmentspy-plugin.version>
-	</properties>
+    </properties>
     <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>1.2.1</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <executable>make</executable>
+                    <workingDirectory>docs</workingDirectory>
+                </configuration>
+            </plugin>
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
@@ -29,53 +57,61 @@
                         </goals>
                         <configuration>
                             <outputDirectory>sources/lib</outputDirectory>
-                            <excludeArtifactIds>hamcrest-core,junit,elasticsearch-test</excludeArtifactIds>
+                            <excludeArtifactIds>
+                                hamcrest-core,junit,elasticsearch-test
+                            </excludeArtifactIds>
                         </configuration>
                     </execution>
                 </executions>
             </plugin>
             <plugin>
-              <groupId>com.googlecode.maven-download-plugin</groupId>
-              <artifactId>maven-download-plugin</artifactId>
-              <version>1.1.0</version>
-              <executions>
-                <execution>
-                  <id>load-elasticsearch-head</id>
-                  <phase>prepare-package</phase>
-                  <goals>
-                    <goal>wget</goal>
-                  </goals>
-                  <configuration>
-                    <url>https://github.com/mobz/elasticsearch-head/archive/${elasticsearch-head-plugin.version}.zip</url>
-                    <unpack>true</unpack>
-                    <outputDirectory>plugins</outputDirectory>
-                  </configuration>
-                </execution>
-                <execution>
-                  <id>load-bigdesk</id>
-                  <phase>prepare-package</phase>
-                  <goals>
-                    <goal>wget</goal>
-                  </goals>
-                  <configuration>
-                    <url>https://github.com/lukas-vlcek/bigdesk/archive/v${bigdesk-plugin.version}.zip</url>
-                    <unpack>true</unpack>
-                    <outputDirectory>plugins</outputDirectory>
-                  </configuration>
-                </execution>
-                <execution>
-                  <id>load-segmentspy</id>
-                  <phase>prepare-package</phase>
-                  <goals>
-                    <goal>wget</goal>
-                  </goals>
-                  <configuration>
-                    <url>https://github.com/polyfractal/elasticsearch-segmentspy/archive/v${segmentspy-plugin.version}.zip</url>
-                    <unpack>true</unpack>
-                    <outputDirectory>plugins</outputDirectory>
-                  </configuration>
-                </execution>
-              </executions>
+                <groupId>com.googlecode.maven-download-plugin</groupId>
+                <artifactId>maven-download-plugin</artifactId>
+                <version>1.1.0</version>
+                <executions>
+                    <execution>
+                        <id>load-elasticsearch-head</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                        <configuration>
+                            <url>
+                                https://github.com/mobz/elasticsearch-head/archive/${elasticsearch-head-plugin.version}.zip
+                            </url>
+                            <unpack>true</unpack>
+                            <outputDirectory>plugins</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>load-bigdesk</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                        <configuration>
+                            <url>
+                                https://github.com/lukas-vlcek/bigdesk/archive/v${bigdesk-plugin.version}.zip
+                            </url>
+                            <unpack>true</unpack>
+                            <outputDirectory>plugins</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>load-segmentspy</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                        <configuration>
+                            <url>
+                                https://github.com/polyfractal/elasticsearch-segmentspy/archive/v${segmentspy-plugin.version}.zip
+                            </url>
+                            <unpack>true</unpack>
+                            <outputDirectory>plugins</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -98,13 +134,13 @@
             </plugin>
         </plugins>
     </build>
-	<dependencies>
-		<dependency>
-			<groupId>org.elasticsearch</groupId>
-			<artifactId>elasticsearch</artifactId>
-			<version>${elasticsearch.version}</version>
-			<scope>compile</scope>
-		</dependency>
+    <dependencies>
+        <dependency>
+            <groupId>org.elasticsearch</groupId>
+            <artifactId>elasticsearch</artifactId>
+            <version>${elasticsearch.version}</version>
+            <scope>compile</scope>
+        </dependency>
         <dependency>
             <groupId>net.java.dev.jna</groupId>
             <artifactId>jna</artifactId>
@@ -123,5 +159,5 @@
                 </exclusion>
             </exclusions>
         </dependency>
-	</dependencies>
+    </dependencies>
 </project>
