@@ -36,20 +36,6 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>check crate-admin plugin</id>
-                        <phase>prepare-package</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>test</executable>
-                            <arguments>
-                                <argument>-f</argument>
-                                <argument>${basedir}/crate-admin/dist/index.html</argument>
-                            </arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
                         <id>run npm install</id>
                         <phase>prepare-package</phase>
                         <goals>
@@ -91,6 +77,20 @@
                             <arguments>
                                 <argument>-c</argument>
                                 <argument>grunt build</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>check crate-admin plugin</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>test</executable>
+                            <arguments>
+                                <argument>-f</argument>
+                                <argument>${basedir}/crate-admin/dist/index.html</argument>
                             </arguments>
                         </configuration>
                     </execution>
