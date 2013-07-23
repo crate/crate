@@ -83,13 +83,13 @@ http://localhost:9200/_plugin/segmentspy
 Installation
 ============
 
-Download the latest version of Crate, unpack it and start it:
+Download the latest version of Crate, unpack it and start it::
 
  $ bin/crate
 
 
-Under *nix system, the command will start the process in the background.
-To run it in the foreground, add the -f switch to it:
+Under \*nix system, the command will start the process in the background.
+To run it in the foreground, add the -f switch to it::
 
  $ bin/crate -f
 
@@ -107,12 +107,12 @@ property. If using system properties the required prefix 'es.' will
 be ignored.
 
 For example, configuring the cluster name by using system properties
-will work this way:
+will work this way::
 
  $ crate -Des.cluster.name=cluster
 
 Which is exactly the same like setting the cluster name by the config
-file:
+file::
 
  cluster.name = cluster
 
