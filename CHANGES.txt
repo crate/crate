@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - added a SQL console to the crate admin interface.
+
+ - added the crate-sql-plugin. Therefore it is now possible to query crate
+   using SQL.
+
  - docs are now available under /_plugins/docs
 
 2013/07/10 0.8.5

@@ -7,6 +7,10 @@ angular.module('crateAdminApp', [])
         templateUrl: 'views/main.html',
         controller: 'MainCtrl'
       })
+      .when('/sqlconsole', {
+        templateUrl: 'views/sqlconsole.html',
+        controller: 'SqlconsoleCtrl'
+      })
       .otherwise({
         redirectTo: '/'
       });
