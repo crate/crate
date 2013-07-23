@@ -14,6 +14,7 @@
     	<module>crate-sql-plugin</module>
     </modules>
     <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <elasticsearch.version>0.90.2</elasticsearch.version>
         <elasticsearch-head-plugin.version>
             6dbf2ed35355e261ee94ffd5884c6446dd865c35

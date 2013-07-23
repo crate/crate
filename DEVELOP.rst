@@ -20,7 +20,7 @@ Version Handling
 Dependencies which has been included into the project by git submodules
 requires an unconventional version handling. To update such a submodule
 to a specific version `cd` into the particular directory and reset the
-package to the specific tag.
+package to the specific tag::
 
  $ cd <submodule>
  $ git fetch
@@ -45,6 +45,13 @@ Building a tarball and a zip is done by maven with the command::
     >>> mvn clean package
 
 Resulting tarball and zip will reside in the folder ``releases``.
+
+.. note::
+
+    Building the package will also build all plugins included as git
+    submodules. Some of these execute pre-package steps that might require
+    additional dependencies to be installed. Please refer to the README or
+    DEVELOP documents in the respective folders.
 
 Documentation
 =============

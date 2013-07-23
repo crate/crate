@@ -101,8 +101,6 @@
                 <include>crate:elasticsearch-crate-plugin*</include>
             </includes>
             <excludes>
-                <exclude>com.github.tlrx:elasticsearch-test*</exclude>
-                <exclude>log4j:log4j*</exclude>
             </excludes>
             <binaries>
                 <unpack>false</unpack>
@@ -114,8 +112,6 @@
                 <include>crate:elasticsearch-timefacets-plugin*</include>
             </includes>
             <excludes>
-                <exclude>com.github.tlrx:elasticsearch-test*</exclude>
-                <exclude>log4j:log4j*</exclude>
             </excludes>
             <binaries>
                 <unpack>false</unpack>
@@ -128,8 +124,6 @@
                 <include>crate:elasticsearch-inout-plugin*</include>
             </includes>
             <excludes>
-                <exclude>com.github.tlrx:elasticsearch-test*</exclude>
-                <exclude>log4j:log4j*</exclude>
             </excludes>
             <binaries>
                 <unpack>false</unpack>
@@ -140,11 +134,8 @@
         <moduleSet>
             <includes>
                 <include>crate:crate-sql-plugin*</include>
-                <include>com.akiban:sql*</include>
             </includes>
             <excludes>
-                <exclude>com.github.tlrx:elasticsearch-test*</exclude>
-                <exclude>log4j:log4j*</exclude>
             </excludes>
             <binaries>
               <unpack>false</unpack>
