@@ -6,4 +6,4 @@
 	url = git://github.com/crate/elasticsearch-timefacets-plugin.git
 [submodule "crate-sql-plugin"]
 	path = crate-sql-plugin
-	url = git@github.com:crate/crate-sql-plugin.git
+	url = git://github.com/crate/crate-sql-plugin.git
