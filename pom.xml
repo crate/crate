@@ -8,9 +8,10 @@
     <version>0.8.5</version>
     <packaging>pom</packaging>
     <modules>
-        <module>elasticsearch-crate-plugin</module>
-        <module>elasticsearch-inout-plugin</module>
-        <module>elasticsearch-timefacets-plugin</module>
+    	<module>elasticsearch-crate-plugin</module>
+    	<module>elasticsearch-inout-plugin</module>
+    	<module>elasticsearch-timefacets-plugin</module>
+    	<module>crate-sql-plugin</module>
     </modules>
     <properties>
         <elasticsearch.version>0.90.2</elasticsearch.version>
