@@ -3,4 +3,4 @@ node_modules
 .sass-cache
 .editorconfig
 app/bower_components
-dist/version.json
+dist/
