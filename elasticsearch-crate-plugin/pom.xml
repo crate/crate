@@ -50,6 +50,21 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <id>run grunt build</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                          <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>sh</executable>
+                            <workingDirectory>${basedir}/crate-admin/</workingDirectory>
+                            <arguments>
+                                <argument>-c</argument>
+                                <argument>grunt build</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>write versions file</id>
                         <phase>prepare-package</phase>
                         <goals>
