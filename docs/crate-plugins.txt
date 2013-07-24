@@ -1,0 +1,11 @@
+=============
+Crate Plugins
+=============
+
+Crate adds a lot of extra functionality throughout the plugins listed here.
+
+.. toctree::
+  :titlesonly:
+  
+  plugins/crate-sql-plugin
+  plugins/elasticsearch-inout-plugin

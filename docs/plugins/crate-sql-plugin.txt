@@ -1,0 +1,1 @@
+.. include:: ../../crate-sql-plugin/docs/index.txt
