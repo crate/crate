@@ -16,6 +16,8 @@ angular.module('crateAdminApp')
                                'title': 'BigDesk'},
                               {'url': prefix + '/_plugin/segmentspy',
                                'title': 'SegmentSpy'},
+                              {'url': prefix + '/_plugin/docs',
+                               'title': 'Documentation'},
                              ];
           }]
     };
