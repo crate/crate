@@ -37,7 +37,7 @@ then
 fi
 
 # check if tag to create has already been created
-VERSION=`mvn validate | grep "Building crate" | cut -d " " -f 4`
+VERSION=`mvn validate | grep "Building crate " | cut -d " " -f 4`
 EXISTS=`git tag | grep $VERSION`
 
 if [ "$VERSION" == "$EXISTS" ]
