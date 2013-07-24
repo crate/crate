@@ -15,3 +15,15 @@ First Steps
   :doc:`hello`.
 
 - Take a look at the :doc:`plugins`
+
+Contents
+========
+
+.. toctree::
+   :maxdepth: 2
+
+   hello
+   installation
+   configuration
+   plugins
+
