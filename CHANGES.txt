@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - included sql and inout plugin documentation
+
  - sphinx generated text documentation added to distribution
 
  - docs are now tested in the maven verify phase
