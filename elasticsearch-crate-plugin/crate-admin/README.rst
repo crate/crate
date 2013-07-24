@@ -46,7 +46,7 @@ And to generate the angular js dependencies use::
 
  $ bower install
 
-running the app using the test-server
+Running the app using the test-server
 -------------------------------------
 
 
@@ -67,7 +67,7 @@ it's API requests to a proper elasticsearch endpoint pass the optional
  $ open http://localhost:9000/#/?prefix=http://localhost:9200
 
 
-running tests
+Running tests
 -------------
 
 In the root of the package (here) start the test runner::
@@ -76,26 +76,13 @@ In the root of the package (here) start the test runner::
 
 This will execute all tests defined in ``test/spec/``.
 
-
-creating a distribution
------------------------
-
-The build step is part of the default task of grunt so it's usually ok
-to just run ``grunt`` in the root of the package.
-
- $ grunt
-
-This will generate a distributable version of the app under ``dist``.
-
-
-extending the app
+Extending the app
 -----------------
 
 To add new components like controllers, directives, views etc. to the
 app use ``yo``, the cli of yeoman_, in combination with the
 angulargenerator_::
 
- $ yo angular:directive <name>
  $ yo angular:controller <name>
  $ yo angular:view <name>
 
