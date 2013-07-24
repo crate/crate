@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - added a custom sphinx theme for the documentation.
+
  - included sql and inout plugin documentation
 
  - sphinx generated text documentation added to distribution
