@@ -13,9 +13,9 @@
 
     <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
 
-        <link rel="stylesheet" href="styles/0bae0b90.main.css">
+        <link rel="stylesheet" href="styles/9cf76d12.main.css">
 </head>
-  <body ng-app="crateAdminApp">
+  <body ng-app="crateAdminApp" style="margin:0px;padding:0px;overflow:hidden">
     <!--[if lt IE 7]>
       <p class="chromeframe">You are using an outdated browser. <a href="http://browsehappy.com/">Upgrade your browser today</a> or <a href="http://www.google.com/chromeframe/?redirect=true">install Google Chrome Frame</a> to better experience this site.</p>
     <![endif]-->
@@ -31,7 +31,7 @@
                <a href="/admin" class="brand"><img src="images/88132f9e.logo.png"></a>
                <ul class="nav">
                  <plugins></plugins>
-                 <li><a href="#/sqlconsole">SQL</a></li>
+                 <li><a onclick="$('iframe').hide();$('div.content').show()" href="#/sqlconsole">SQL</a></li>
                </ul>
                <div class="pull-right">
                  <versions></versions>
@@ -41,23 +41,28 @@
          </div>
     </div>
 
-  <div class="container">
+  <div class="container content">
     <div class="row-fluid">
-      <div class="sidebar span2">
-        <ul class="nav nav-list">
-          <!-- sub menu items goes here-->
-        </ul>
-      </div>
-      <div class="span10" ng-view=""></div>
+      <div class="span12" ng-view=""></div>
     </div>
   </div>
+  <iframe name="plugin_frame" frameborder="0" height="100%" width="100%"></iframe>
 
     <!-- Add your site or application content here -->
 
     <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.0.7/angular.min.js"></script>
 
-    <script src="scripts/437ae57a.scripts.js"></script>
+    <script src="scripts/58517b41.scripts.js"></script>
 
-        <script src="scripts/da725c75.plugins.js"></script>
+        <script src="scripts/de5b9456.plugins.js"></script>
+
+    <script type="text/javascript">
+      $(function() {
+          $('iframe').css('height', $(window).height() - 68);
+          $(window).resize(function() {
+            $('iframe').css('height', $(window).height() - 68);
+          });
+      });
+    </script>
 </body>
 </html>

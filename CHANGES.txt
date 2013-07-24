@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - changed the admin interface to open the linked plugins and documentation in
+   a frame.
+
  - added a custom sphinx theme for the documentation.
 
  - included sql and inout plugin documentation
