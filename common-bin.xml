@@ -79,10 +79,6 @@
     </fileSets>
     <files>
         <file>
-            <source>LICENSE</source>
-            <outputDirectory>/</outputDirectory>
-        </file>
-        <file>
             <source>NOTICE</source>
             <outputDirectory>/</outputDirectory>
         </file>
