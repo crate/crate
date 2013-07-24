@@ -8,6 +8,8 @@ angular.module('crateAdminApp')
         "rows": []
     }
 
+    $('iframe').hide();
+
     $scope.resultHeaders = [];
     $scope.error = {};
     $scope.error.hide = true;

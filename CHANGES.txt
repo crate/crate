@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fixed scrolling issue in the sql console of the admin interface
+
 2013/07/24 0.9.0
 ================
 
