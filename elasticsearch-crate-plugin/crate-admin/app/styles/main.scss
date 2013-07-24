@@ -1,10 +1,21 @@
 @import "bootstrap-sass/lib/bootstrap";
 
+html, body {
+	min-height: 100%;
+}
+
 body {
     background: #fafafa;
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 14px;
     color: #333;
+}
+
+iframe {
+	position: absolute;
+	top: 68px;
+	bottom: 0px;
+	height: 400px;
 }
 
 .navbar .nav > li {
