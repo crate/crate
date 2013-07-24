@@ -56,7 +56,8 @@ Normally the documentation is built upon maven package. However if you
 work on the documentation it might be faster to run sphinx directly,
 which can be done by just running ``make`` in the ``docs`` directory.
 
-The documentation is also tested. Tests can be run like this::
+The documentation is also tested in the ``verify`` phase of
+maven. Tests can be run also directly like this::
 
   make test
 
