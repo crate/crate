@@ -2,8 +2,13 @@ SHELL = /bin/sh
 
 VERSION := $(shell ls -1 ../releases/crate*.tar.gz|sort|tail -n1 |grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
 
-html: pyenv out
+build: out/html out/text
+
+out/html: pyenv out
 	./pyenv/bin/sphinx-build -b html -E . out/html
+
+out/text: pyenv out
+	./pyenv/bin/sphinx-build -b text -E . out/text
 
 out tmp:
 	mkdir $@

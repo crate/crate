@@ -76,6 +76,13 @@
                 <include>**</include>
             </includes>
         </fileSet>
+        <fileSet>
+            <directory>docs/out/text</directory>
+            <outputDirectory>/docs</outputDirectory>
+            <includes>
+                <include>*.txt</include>
+            </includes>
+        </fileSet>
     </fileSets>
     <files>
         <file>

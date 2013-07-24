@@ -20,4 +20,9 @@ in the foreground you can use Control-C to stop the process again.
 
  Crate needs a working Java_ installation in order to run.
 
+.. seealso::
+
+ :doc:`Configuring Crate <configuration>`
+
 .. _Java: http://www.oracle.com/technetwork/java/javase/downloads/index.html
+

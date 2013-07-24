@@ -54,7 +54,9 @@ written in ReStructuredText_ and processed with Sphinx_.
 
 Normally the documentation is built upon maven package. However if you
 work on the documentation it might be faster to run sphinx directly,
-which can be done by just running ``make`` in the ``docs`` directory.
+which can be done by just running ``make`` in the ``docs``
+directory. The output can then be found in the ``out/html`` and
+``out/text`` directories.
 
 The documentation is also tested in the ``verify`` phase of
 maven. Tests can be run also directly like this::
