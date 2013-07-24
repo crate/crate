@@ -12,4 +12,4 @@ nitpicky = True
 html_show_sourcelink = False
 
 
-exclude_trees = ['pyenv']
+exclude_trees = ['pyenv', 'tmp']

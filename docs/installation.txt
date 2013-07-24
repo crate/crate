@@ -1,0 +1,23 @@
+=========================
+Installation Instructions
+=========================
+
+.. highlight:: sh
+
+After downloading the latest stable version of Crate from
+http://download.cratedb.org/ the package needs to be unpacked::
+
+   sh$ tar zxf crate-0.8.5.tar.gz
+
+Now Cate can be started in the foreground like this::
+
+   sh$ ./bin/crate -f
+
+In order to start in the background omit the `-f` option. If started
+in the foreground you can use Control-C to stop the process again.
+
+.. Note::
+
+ Crate needs a working Java_ installation in order to run.
+
+.. _Java: http://www.oracle.com/technetwork/java/javase/downloads/index.html
