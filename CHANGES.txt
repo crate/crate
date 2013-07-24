@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - docs are now tested in the maven verify phase
+
  - added a link to the documentation in the crate-admin interface available
    under `/admin`
 

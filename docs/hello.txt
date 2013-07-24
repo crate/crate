@@ -1,0 +1,134 @@
+===========
+Hello Crate
+===========
+
+.. highlight:: sh
+
+To get started let's have a quick look on how Crate can be accessed
+via the bare HTTP-Endpoints. This tutorial uses the Curl_ command-line
+utility to do the requests.
+
+To check if Crate is running, we can do a GET on the root, which
+displays basic system information::
+
+    sh$ curl -sS 'localhost:9200/?pretty=1'
+    {
+      "ok" : true,
+      "status" : 200,
+      "name" : "crate",
+      "version" : {
+        "number" : "0.90.2",
+        "snapshot_build" : false,
+        "lucene_version" : "4.3.1"
+      },
+      "tagline" : "You Know, for Search"
+    }
+
+.. note::
+
+ The ``pretty`` query parameter used above tells Crate to pretty print
+ results. This works for every endpoint.
+
+In this guide we want to create a database for quotes. Let's create
+the index and the ``quote`` type, which will contain information about
+the author of the quote and the quote itself::
+
+    sh$ curl -sSX PUT 'localhost:9200/quotes?pretty' -d '{
+    ... "mappings" : {
+    ...  "quote": {
+    ...   "properties": {
+    ...     "author": {
+    ...       "type": "string",
+    ...       "index": "not_analyzed"
+    ...     },
+    ...     "content": {
+    ...      "type": "string"
+    ... }}}}}'
+    {
+      "ok" : true,
+      "acknowledged" : true
+    }
+
+Now we can add the first quote to the database::
+
+    sh$ curl -sSX PUT 'localhost:9200/quotes/quote/1?pretty=1&refresh=true' -d '{
+    ...  "author" : "Me",
+    ...  "content" : "Hello Crate!"
+    ... }'
+    {
+      "ok" : true,
+      "_index" : "quotes",
+      "_type" : "quote",
+      "_id" : "1",
+      "_version" : 1
+    }
+
+.. note::
+
+ The ``refresh`` query parameter tells Crate to make the result
+ immediatly visible in subsequent queries, which is needed for this
+ demonstration. However - direct GETs like the one below are realtime
+ and would not need a refresh.
+
+We can now view what we have just inserted like this::
+
+    sh$ curl -sSX GET 'localhost:9200/quotes/quote/1?pretty=1'
+    {
+      "_index" : "quotes",
+      "_type" : "quote",
+      "_id" : "1",
+      "_version" : 1,
+      "exists" : true, "_source" : {
+     "author" : "Me",
+     "content" : "Hello Crate!"
+    }
+    }
+
+Let's add another quote::
+
+    sh$ curl -sSX PUT 'localhost:9200/quotes/quote/2?pretty=1&refresh=true' -d '{
+    ...  "author" : "Ford",
+    ...  "content" : "Don\u0027t panic... don\u0027t panic..."
+    ... }'
+    {
+      "ok" : true,
+      "_index" : "quotes",
+      "_type" : "quote",
+      "_id" : "2",
+      "_version" : 1
+    }
+
+
+
+To list all quotes we can use ordinary SQL_ queries::
+
+    sh$ curl -sSX POST 'localhost:9200/_sql?pretty=1' -d '{
+    ... "stmt": "select author, content from quotes order by author"
+    ... }'
+    {
+      "rows" : [ {
+        "content" : "Don't panic... don't panic...",
+        "author" : "Ford"
+      }, {
+        "content" : "Hello Crate!",
+        "author" : "Me"
+      } ]
+    }
+
+Looking up only Ford's quotes::
+
+    sh$ curl -sSX POST 'localhost:9200/_sql?pretty=1' -d '{
+    ... "stmt": "select content from quotes where author=\u0027Ford\u0027"
+    ... }'
+    {
+      "rows" : [ {
+        "content" : "Don't panic... don't panic..."
+      } ]
+    }
+
+.. _Curl: http://curl.haxx.se/
+
+
+.. _SQL: https://en.wikipedia.org/wiki/SQL
+
+

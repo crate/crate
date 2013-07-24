@@ -1,1 +1,17 @@
-.. include:: ../README.rst
+===================
+Crate Documentation
+===================
+
+Welcome to Crate - a shared nothing, fully searchable, document
+oriented cluster database.
+
+First Steps
+===========
+
+- In order to get Crate up and running take a look at the
+  :doc:`installation`.
+
+- If you are new to Crate, it is probably the best to say
+  :doc:`hello`.
+
+- Take a look at the :doc:`plugins`
