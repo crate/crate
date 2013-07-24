@@ -46,11 +46,19 @@ Building a tarball and a zip is done by maven with the command::
 
 Resulting tarball and zip will reside in the folder ``releases``.
 
-Documentation
-=============
+Writing Documentation
+=====================
 
 The documentation is maintained under the ``docs`` directory and
 written in ReStructuredText_ and processed with Sphinx_.
+
+Normally the documentation is built upon maven package. However if you
+work on the documentation it might be faster to run sphinx directly,
+which can be done by just running ``make`` in the ``docs`` directory.
+
+The documentation is also tested. Tests can be run like this::
+
+  make test
 
 .. _Python: http://www.python.org/
 

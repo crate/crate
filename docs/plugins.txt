@@ -1,0 +1,83 @@
+=================
+Installed plugins
+=================
+
+Crate depends on Elasticsearch_, a real-time search and analytics
+engine. Crate adds functionality throughout the plugins listed here.
+
+Plugins provided by the Crate Team
+==================================
+
+elasticsearch-crate-plugin
+--------------------------
+
+Sets Crate specific default settings and adds a rest endpoint
+reachable at '/admin' displaying a system overview as html page.
+
+crate-sql-plugin
+----------------
+
+Allows to throw SQL-Queries at Crate.
+
+elasticsearch-inout-plugin
+--------------------------
+
+Provides the ability to export data by query on server side.
+
+:Website: https://github.com/crate/elasticsearch-inout-plugin
+
+elasticsearch-timefacets-plugin
+-------------------------------
+
+A plugin bundle for time based facets. For details see
+
+:Website: https://github.com/crate/elasticsearch-timefacets-plugin
+
+crate-admin
+-----------
+
+A web based admin interface for Crate which can be accessed under
+
+:Endpoint: http://localhost:9200/admin.
+
+docs
+----
+
+The Crate documentation.
+
+:Endpoint: http://localhost:9200/_plugin/docs
+
+3rd-Party Plugins
+=================
+
+elasticsearch-head
+------------------
+
+A web front end for an Elasticsearch cluster
+
+:Endpoint: http://localhost:9200/_plugin/head
+
+:Website: http://mobz.github.io/elasticsearch-head/
+
+bigdesk
+-------
+
+Live charts and statistics for Elasticsearch cluster.
+
+:Endpoint: http://localhost:9200/_plugin/bigdesk
+
+:Website: http://bigdesk.org/
+
+
+segmentspy
+----------
+
+Elasticsearch plugin to watch segment dynamics (additions, merges,
+deletes)
+
+:Endpoint: http://localhost:9200/_plugin/segmentspy
+
+:Website: https://github.com/polyfractal/elasticsearch-segmentspy
+
+
+.. _Elasticsearch: http://www.elasticsearch.org
