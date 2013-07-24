@@ -7,6 +7,9 @@ Unreleased
 
  - docs are now tested in the maven verify phase
 
+ - added a link to the documentation in the crate-admin interface available
+   under `/admin`
+
  - added a SQL console to the crate admin interface.
 
  - added the crate-sql-plugin. Therefore it is now possible to query crate
