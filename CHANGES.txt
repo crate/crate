@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/07/24 0.9.0
+================
+
  - changed the admin interface to open the linked plugins and documentation in
    a frame.
 
