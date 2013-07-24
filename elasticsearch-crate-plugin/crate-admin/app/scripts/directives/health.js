@@ -5,7 +5,7 @@ angular.module('crateAdminApp')
     return {
       template: '<div class="pull-right ng-cloak">' +
                 '  <span class="badge {{color}} cluster-state">' +
-                '    {{nodes}} / {{shards}}' +
+                '    {{nodes}}, {{shards}}' +
                 '  </span>' +
                 '</div>',
       restrict: 'E',
