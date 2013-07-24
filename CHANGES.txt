@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - docs are now tested in the maven verify phase
+
  - added a SQL console to the crate admin interface.
 
  - added the crate-sql-plugin. Therefore it is now possible to query crate
