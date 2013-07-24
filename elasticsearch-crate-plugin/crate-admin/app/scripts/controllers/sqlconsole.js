@@ -14,6 +14,7 @@ angular.module('crateAdminApp')
 
     $scope.execute = function() {
         var prefix = $location.search().prefix || '';
+
         $http.post(prefix + "/_sql", {
             "stmt": $scope.statement
         }).success(function(data) {
