@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>crate</groupId>
     <artifactId>crate</artifactId>
-    <version>0.9.1</version>
+    <version>0.9.2</version>
     <packaging>pom</packaging>
     <modules>
     	<module>elasticsearch-crate-plugin</module>

@@ -9,7 +9,7 @@
     <version>${crate.version}</version>
     <packaging>jar</packaging>
     <properties>
-        <crate.version>0.9.1</crate.version>
+        <crate.version>0.9.2</crate.version>
         <elasticsearch.version>0.90.2</elasticsearch.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
