@@ -1,0 +1,27 @@
+{ "index" : { "_index" : "locations", "_type" : "location", "_id" : "1" } }
+{ "name": "North West Ripple", "date":"1979-10-12", "kind": "Galaxy", "position": 1, "description": "Relative to life on NowWhat, living on an affluent world in the North West ripple of the Galaxy is said to be easier by a factor of about seventeen million."}
+{ "index" : { "_index" : "locations", "_type" : "location", "_id" : "2" } }
+{ "name": "Outer Eastern Rim", "date":"1979-10-12", "kind": "Galaxy", "position": 2, "description": "The Outer Eastern Rim of the Galaxy where the Guide has supplanted the Encyclopedia Galactica among its more relaxed civilisations."}
+{ "index" : { "_index" : "locations", "_type" : "location", "_id" : "3" } }
+{ "name": "Galactic Sector QQ7 Active J Gamma", "date":"2013-05-01", "kind": "Galaxy", "position": 4, "description": "Galactic Sector QQ7 Active J Gamma contains the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains."}
+{ "index" : { "_index" : "locations", "_type" : "location", "_id" : "4" } }
+{ "name": "Aldebaran", "date":"2013-07-16", "kind": "Star System", "position": 1, "description": "Max Quordlepleen claims that the only thing left after the end of the Universe will be the sweets trolley and a fine selection of Aldebaran liqueurs."}
+{ "index" : { "_index" : "locations", "_type" : "location", "_id" : "5" } }
+{ "name": "Algol", "date":"2013-07-16", "kind": "Star System", "position": 2, "description": "Algol is the home of the Algolian Suntiger, the tooth of which is one of the ingredients of the Pan Galactic Gargle Blaster."}
+{ "index" : { "_index" : "locations", "_type" : "location", "_id" : "6" } }
+{ "name": "Alpha Centauri", "date":"1979-10-12", "kind": "Star System", "position": 3, "description": "4.1 light-years northwest of earth"}
+{ "index" : { "_index" : "locations", "_type" : "location", "_id" : "7" } }
+{ "name": "Altair", "date":"2013-07-16", "kind": "Star System", "position": 4, "description": "The Altairian dollar is one of three freely convertible currencies in the galaxy, though by the time of the novels it had apparently recently collapsed."}
+{ "index" : { "_index" : "locations", "_type" : "location", "_id" : "8" } }
+{ "name": "Allosimanius Syneca", "date":"2013-07-16", "kind": "Planet", "position": 1, "description": "Allosimanius Syneca is a planet noted for ice, snow, mind-hurtling beauty and stunning cold."}
+{ "index" : { "_index" : "locations", "_type" : "location", "_id" : "9" } }
+{ "name": "Argabuthon", "date":"2013-07-16", "kind": "Planet", "position": 2, "description": "It is also the home of Prak, a man placed into solitary confinement after an overdose of truth drug caused him to tell the Truth in its absolute and final form, causing anyone to hear it to go insane."}
+{ "index" : { "_index" : "locations", "_type" : "location", "_id" : "10" } }
+{ "name": "Arkintoofle Minor", "date":"1979-10-12", "kind": "Planet", "position": 3, "description": "Motivated by the fact that the only thing in the Universe that travels faster than light is bad news, the Hingefreel people native to Arkintoofle Minor constructed a starship driven by bad news."}
+{ "index" : { "_index" : "locations", "_type" : "location", "_id" : "11" } }
+{ "name": "Bartledan", "date":"2013-07-16", "kind": "Planet", "position": 4, "description": "An Earthlike planet on which Arthur Dent lived for a short time, Bartledan is inhabited by Bartledanians, a race that appears human but only physically."}
+{ "index" : { "_index" : "locations", "_type" : "location", "_id" : "12" } }
+{ "name": "", "date":"2013-07-16", "kind": "Planet", "position": 5, "description": "This Planet doesn't really exist"}
+{ "index" : { "_index" : "locations", "_type" : "location", "_id" : "13" } }
+{ "name": null, "date":"2013-07-16", "kind": "Galaxy", "position": 6, "description": "The end of the Galaxy."}
+{ "index" : { "_index" : "locations", "_type" : "location", "_id" : "13" } }

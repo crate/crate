@@ -1,0 +1,34 @@
+{
+    "location": {
+        "_id": {
+            "type": "string",
+            "index": "not_analyzed",
+            "store": "true"
+        },
+        "properties": {
+            "name": {
+                "type": "string",
+                "index": "not_analyzed",
+                "store": true
+            },
+            "date": {
+                "type": "date",
+                "store": true
+            },
+            "kind": {
+                "type": "string",
+                "index": "not_analyzed",
+                "store": true
+            },
+            "position": {
+                "type": "integer",
+                "store": true
+            },
+            "description": {
+                "type": "string",
+                "index": "analyzed",
+                "store": true
+            }
+        }
+    }
+}

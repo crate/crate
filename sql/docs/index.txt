@@ -1,0 +1,223 @@
+==============================
+Crate SQL Plugin Documentation
+==============================
+
+The Crate SQL plugin enables you to communicate with Crate via 
+SQL (Structured Query Language). For general information about
+SQL please refer to `Wikipedia SQL`_.
+
+.. _`Wikipedia SQL`: http://en.wikipedia.org/wiki/Sql
+
+
+SQL statements are sent to the '_sql' endpoint in json format,
+whereby the statement is sent as value associated to the key 'stmt".
+
+Query
+=====
+
+The response to a query contains all objects matching the given
+statement in json format.
+
+Select
+------
+
+If the '*' operator is used as field name for a 'select' statement
+all properties are returned from the appropriate 'index'::
+
+    >>> post('/_sql', {'stmt':'select * from locations order by "_id"'})
+    {
+        "rows": [
+            {
+                "_id": "1", 
+                "_index": "locations", 
+                "_source": {
+                    "date": "1979-10-12", 
+                    "description": "...",
+                    "kind": "Galaxy", 
+                    "name": "North West Ripple", 
+                    "position": 1
+                }, 
+                "_type": "location"
+            }, 
+            {
+                "_id": "10", 
+                "_index": "locations", 
+                "_source": {
+                    "date": "1979-10-12", 
+                    "description": "...",
+                    "kind": "Planet", 
+                    "name": "Arkintoofle Minor", 
+                    "position": 3
+                }, 
+                "_type": "location"
+            }, 
+                ...
+        ]
+    }
+
+If a field name is specified, the values are associated to a key
+matching the appropriate field name::
+
+    >>> post('/_sql', {'stmt':'select name, description from locations order by "_id"'})
+    {
+        "rows": [
+            {
+                "description": "...",
+                "name": "North West Ripple"
+            },
+            {
+                "description": "...",
+                "name": "Arkintoofle Minor"
+            },
+                ...
+        ]
+    }
+
+
+Alias
+-----
+
+Aliases are also supported:: 
+
+    >>> post('/_sql', {'stmt':'select name as n, description as d from locations order by "_id"'})
+    {
+        "rows": [
+            {
+                "d": "...",
+                "n": "North West Ripple"
+            },
+            {
+                "d": "...",
+                "n": "Galactic Sector QQ7 Active J Gamma"
+            },
+                ...
+        ]
+    }
+
+
+Comparison
+----------
+
+Usual comparison operators are available for string, integer/long, 
+float/double and date type:
+
+    ===========  =================================
+    Operator     Description
+    ===========  =================================
+    <            less than
+    >            greater than
+    <=           less than or equal to
+    >=           greater than or equal to
+    =            equal
+    <>           not equal
+    !=           not equal - same as <>
+    is not null  field is not null and not missing
+    is null      field is null or missing
+    ===========  =================================
+
+The field 'name' used for the request below is indexed with
+'not_analyzed' settings. For a 'analyzed' field the result may differ
+depending on the used Analyzer/Tokenizer. For details regarding analysis
+please refer to the `elasticsearch analysis`_ site.
+
+.. _`elasticsearch analysis`: http://www.elasticsearch.org/guide/reference/index-modules/analysis/
+
+For strings a lexicographical comparison is performed based on the
+Lucene TermRangeQuery::
+
+    >>> post("/_sql", {"stmt":"select name, description from locations where name > 'Argabuthon' order by \"_id\""})
+    {
+        "rows": [
+            {
+                "description": "...",
+                "name": "North West Ripple"
+            }, 
+            {
+                "description": "...",
+                "name": "Arkintoofle Minor"
+            }, 
+            {
+                "description": "...",
+                "name": "Bartledan"
+            }, 
+            {
+                "description": "...",
+                "name": "Outer Eastern Rim"
+            }, 
+            {
+                "description": "...",
+                "name": "Galactic Sector QQ7 Active J Gamma"
+            }
+        ]
+    }
+
+For details please refer to the `Apache Lucene`_ site. 
+
+.. _`Apache Lucene`: http://lucene.apache.org/core/4_0_0/core/org/apache/lucene/search/Query.html
+
+
+In most SQL databases there is a distinction between `NULL` and empty string.
+Since Crate is a schemaless document oriented database there is the third
+possibility that a row doesn't contain a field. Due to this `is null` will
+return all rows where the fields value is `NULL` or where the field doesn't
+exist at all. `is not null` also behaves this way. E.g. the following query
+returns 2 rows since the `is null` filter matches all rows and a limit is
+specified::
+
+    >>> post("/_sql", {"stmt": "select name from locations where invalid_field is null order by \"_id\" limit 2"})
+    {
+        "rows": [
+            {
+                "name": "North West Ripple"
+            }, 
+            {
+                "name": "Arkintoofle Minor"
+            }
+        ]
+    }
+
+Number and date field comparison behave as expected from standard SQL.
+The following example uses one of the supported ISO date formats::
+
+    >>> post("/_sql", {"stmt":"select name, description from locations where date <= '1979-10-12' and position < 3 order by \"_id\""})
+    {
+        "rows": [
+            {
+                "description": "...",
+                "name": "North West Ripple"
+            },
+            {
+                "description": "...",
+                "name": "Outer Eastern Rim"
+            }
+        ]
+    }
+
+All supported default ISO date formats are comparable.
+For a full list please refer to the `elasticsearch date-format`_ site.
+
+.. _`elasticsearch date-format`: http://www.elasticsearch.org/guide/reference/mapping/date-format/
+
+For custom date types, or defined date formats in the object mapping
+the corresponding format should be used for a comparison. Otherwise
+the operation may fail.
+
+
+Limit, Offset and Ordering
+--------------------------
+
+Limit, Offset and Ordering is supported as well::
+
+    >>> post("/_sql", {"stmt":"select name, kind from locations order by name desc, kind limit 2 offset 1"})
+    {
+        "rows": [
+            {
+                "kind": "Galaxy",
+                "name": "North West Ripple"
+            },
+            {
+                "kind": "Galaxy",
+                "name": "Galactic Sector QQ7 Active J Gamma"
+            }
+        ]
+    }
