@@ -7,3 +7,6 @@
 [submodule "crate-sql-plugin"]
 	path = crate-sql-plugin
 	url = git@github.com:crate/crate-sql-plugin.git
+[submodule "es/upstream"]
+	path = es/upstream
+	url = git@github.com:crate/crate-elasticsearch.git
