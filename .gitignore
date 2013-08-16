@@ -4,7 +4,10 @@
 .project
 .settings
 /releases
-/target
 /plugins
 /sources/lib/*
 !/sources/lib/sigar
+*~
+.gradle
+/build
+/out

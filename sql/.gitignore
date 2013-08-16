@@ -6,6 +6,5 @@
 /.settings/
 /test-output/
 /data/
-/target/
-/sandbox/
 /logs/
+/build/

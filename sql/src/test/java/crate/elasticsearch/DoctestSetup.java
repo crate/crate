@@ -4,7 +4,7 @@ import org.junit.Before;
 import org.python.core.*;
 import org.python.util.PythonInterpreter;
 
-public class DoctestSetup extends TestSetup {
+public abstract class DoctestSetup extends TestSetup {
 
     private static final String PY_TEST = "src/test/python/tests.py";
 

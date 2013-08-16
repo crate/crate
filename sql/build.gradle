@@ -1,0 +1,14 @@
+apply plugin: 'java'
+
+// we do not want to have elasticsearch here, since we provide it in :es
+configurations {
+    all*.exclude group: 'org.elasticsearch'
+}
+
+dependencies {
+    compile project(':es')
+    compile 'com.akiban:akiban-sql-parser:1.0.15'
+    testCompile 'com.github.tlrx:elasticsearch-test:0.0.8'
+    testCompile 'junit:junit:4.8.1'
+    testCompile 'org.python:jython-standalone:2.7-b1'
+}
