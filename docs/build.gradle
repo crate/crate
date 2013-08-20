@@ -1,0 +1,14 @@
+
+def textOut = file("$projectDir/out/text")
+
+
+task sphinx << {
+    exec() {
+        executable = "make"
+    }
+}
+
+
+task clean << {
+    delete textOut
+}
