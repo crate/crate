@@ -1,0 +1,27 @@
+{
+  "index1" : {
+    "1" : {
+      "_timestamp" : {
+        "enabled" : true,
+        "store" : true
+      },
+      "_ttl" : {
+        "enabled" : true,
+        "default" : 86400000
+      },
+      "properties" : {
+        "name" : {
+          "type" : "string",
+          "store" : true
+        }
+      }
+    },
+    "2" : {
+      "properties" : {
+        "name" : {
+          "type" : "string"
+        }
+      }
+    }
+  }
+}
