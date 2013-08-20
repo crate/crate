@@ -1,6 +1,3 @@
-[submodule "elasticsearch-inout-plugin"]
-	path = elasticsearch-inout-plugin
-	url = git://github.com/crate/elasticsearch-inout-plugin.git
 [submodule "elasticsearch-timefacets-plugin"]
 	path = elasticsearch-timefacets-plugin
 	url = git://github.com/crate/elasticsearch-timefacets-plugin.git
