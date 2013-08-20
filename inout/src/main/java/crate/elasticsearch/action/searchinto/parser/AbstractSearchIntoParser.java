@@ -1,7 +1,7 @@
 package crate.elasticsearch.action.searchinto.parser;
 
+import com.google.common.collect.ImmutableMap;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.collect.ImmutableMap;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;

@@ -3,8 +3,8 @@ package crate.elasticsearch.searchinto.mapping;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
 import org.elasticsearch.ElasticSearchException;
-import org.elasticsearch.common.collect.ImmutableMap;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.index.mapper.internal.IdFieldMapper;
 import org.elasticsearch.index.mapper.internal.IndexFieldMapper;

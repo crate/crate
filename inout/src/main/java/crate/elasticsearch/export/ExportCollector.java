@@ -1,7 +1,5 @@
 package crate.elasticsearch.export;
 
-import static org.elasticsearch.common.collect.Lists.newArrayList;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
@@ -35,6 +33,8 @@ import org.elasticsearch.search.internal.InternalSearchHit;
 import org.elasticsearch.search.internal.InternalSearchHitField;
 
 import crate.elasticsearch.action.export.ExportContext;
+
+import static com.google.common.collect.Lists.newArrayList;
 
 
 public class ExportCollector extends Collector {

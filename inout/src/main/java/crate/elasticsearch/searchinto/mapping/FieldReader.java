@@ -1,6 +1,6 @@
 package crate.elasticsearch.searchinto.mapping;
 
-import org.elasticsearch.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.index.mapper.internal.*;
 import org.elasticsearch.search.SearchHit;

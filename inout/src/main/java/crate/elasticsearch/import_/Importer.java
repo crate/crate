@@ -20,6 +20,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
+import com.google.common.collect.ImmutableMap;
 import org.elasticsearch.ElasticSearchException;
 import org.elasticsearch.ElasticSearchParseException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -32,7 +33,6 @@ import org.elasticsearch.action.index.IndexRequest.OpType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.collect.ImmutableMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.settings.ImmutableSettings;

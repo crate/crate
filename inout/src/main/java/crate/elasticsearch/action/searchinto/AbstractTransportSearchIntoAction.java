@@ -1,7 +1,5 @@
 package crate.elasticsearch.action.searchinto;
 
-import static org.elasticsearch.common.collect.Lists.newArrayList;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +36,8 @@ import crate.elasticsearch.action.searchinto.parser.ISearchIntoParser;
 import crate.elasticsearch.action.searchinto.parser.SearchIntoParser;
 import crate.elasticsearch.searchinto.Writer;
 import crate.elasticsearch.searchinto.WriterResult;
+
+import static com.google.common.collect.Lists.newArrayList;
 
 
 /**

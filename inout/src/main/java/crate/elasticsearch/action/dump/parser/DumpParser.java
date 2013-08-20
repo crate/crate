@@ -1,10 +1,10 @@
 package crate.elasticsearch.action.dump.parser;
 
+import com.google.common.collect.ImmutableMap;
 import crate.elasticsearch.action.export.ExportContext;
 import crate.elasticsearch.action.export.parser.ExportForceOverwriteParseElement;
 import crate.elasticsearch.action.export.parser.IExportParser;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.collect.ImmutableMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;

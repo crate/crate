@@ -1,8 +1,8 @@
 package crate.elasticsearch.action.searchinto;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import org.elasticsearch.cache.recycler.CacheRecycler;
-import org.elasticsearch.common.collect.ImmutableList;
-import org.elasticsearch.common.collect.Lists;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.service.IndexService;

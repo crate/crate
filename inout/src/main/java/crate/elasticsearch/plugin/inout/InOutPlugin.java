@@ -2,7 +2,7 @@ package crate.elasticsearch.plugin.inout;
 
 import java.util.Collection;
 
-import org.elasticsearch.common.collect.Lists;
+import com.google.common.collect.Lists;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.AbstractPlugin;

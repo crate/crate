@@ -1,5 +1,6 @@
 package crate.elasticsearch.action.restore.parser;
 
+import com.google.common.collect.ImmutableMap;
 import crate.elasticsearch.action.dump.parser.DumpParser;
 import crate.elasticsearch.action.import_.ImportContext;
 import crate.elasticsearch.action.import_.parser.DirectoryParseElement;
@@ -7,7 +8,6 @@ import crate.elasticsearch.action.import_.parser.IImportParser;
 import crate.elasticsearch.action.import_.parser.ImportParseElement;
 import crate.elasticsearch.action.import_.parser.ImportParseException;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.collect.ImmutableMap;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
