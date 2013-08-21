@@ -1,6 +1,6 @@
 #!/bin/sh
 
-CRATE_CLASSPATH=$CRATE_CLASSPATH:$CRATE_HOME/lib/${project.build.finalName}.jar:$CRATE_HOME/lib/*:$CRATE_HOME/lib/sigar/*
+CRATE_CLASSPATH=$CRATE_CLASSPATH:$CRATE_HOME/lib/crate-*.jar:$CRATE_HOME/lib/*:$CRATE_HOME/lib/sigar/*
 
 if [ "x$CRATE_MIN_MEM" = "x" ]; then
     CRATE_MIN_MEM=256m

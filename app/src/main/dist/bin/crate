@@ -126,9 +126,9 @@ launch_service()
                 org.elasticsearch.bootstrap.ElasticSearch
         execval=$?
     else
-        # Startup ElasticSearch, background it, and write the pid.
+        # Startup Crate, background it, and write the pid.
         exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Des.path.home="$CRATE_HOME" -Des.config="$CRATE_CONFIG" -cp "$CRATE_CLASSPATH" $props \
-                    org.elasticsearch.bootstrap.ElasticSearch <&- &
+                    crate.bootstrap.Crate <&- &
         execval=$?
         [ ! -z "$pidpath" ] && printf '%d' $! > "$pidpath"
     fi
