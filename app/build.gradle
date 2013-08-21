@@ -1,0 +1,130 @@
+apply plugin:'distribution'
+apply plugin: 'java'
+
+configurations {
+    all*.exclude group: 'org.elasticsearch'
+}
+
+task dist {
+    dependsOn ':docs:itest', distTar, distZip
+}
+
+//jar {
+//    // the line blow results in a single jar, which destroys plugin loading because of the merged property files
+//    //from { configurations.runtime.collect { it.isDirectory() ? it : zipTree(it) } }
+//    manifest {
+//        attributes 'Main-Class': 'crate.bootstrap.Crate',
+//                'Implementation-Title': 'Crate',
+//                'Implementation-Version': version,
+//                'Built-Date': new Date(),
+//                'Built-JDK': System.getProperty('java.version'),
+//                'Built-Gradle': gradle.gradleVersion
+//    }
+//}
+
+distTar {
+    dependsOn ":docs:sphinx"
+    compression = Compression.GZIP
+    baseName = 'crate'
+}
+
+distZip {
+    dependsOn ":docs:sphinx"
+    baseName = 'crate'
+}
+
+ext {
+    downloadDir = new File(buildDir, 'downloads')
+    plugin_head_version = '6dbf2ed35355e261ee94ffd5884c6446dd865c35'
+    plugin_bigdesk_version = '2.2.1'
+    plugin_segmentspy_version = '0.2.0'
+}
+
+dependencies {
+    compile project(':es')
+    compile project(':sql')
+    compile project(':elasticsearch-crate-plugin')
+    compile project(':inout')
+}
+
+installDist.dependsOn(jar, ":docs:sphinx")
+
+def docsDir = project(":docs").projectDir
+
+distributions {
+    main {
+        baseName = 'crate'
+        contents {
+            into("docs") {
+                from "${docsDir}/out/text"
+                include '**/*.txt'
+                exclude '.doctrees'
+            }
+            into("lib") {
+                from jar
+                from project.configurations.runtime
+            }
+            into("plugins/docs/_site") {
+                from "${docsDir}/out/html"
+            }
+            into('plugins/crate-admin/_site'){
+                from new File(project(":elasticsearch-crate-plugin").projectDir, 'crate-admin/dist')
+            }
+            into('plugins') {
+                from 'plugins'
+            }
+        }
+    }
+}
+
+
+def download (String url, String name){
+    downloadDir.mkdirs()
+    def dest = new File(downloadDir, name)
+    ant.get(
+            src: url,
+            verbose: true,
+            usetimestamp: true,
+            skipexisting: true,
+            dest: dest
+    )
+    return dest;
+}
+
+def extractTopfolder(File src, String trg){
+    copy {
+        includeEmptyDirs = false
+        from(zipTree(src)) {
+            eachFile { details ->
+                details.path =
+                    details.path.substring(details.relativePath.segments[0].length())
+            }
+        }
+        into trg
+    }
+}
+
+task downloadPlugins << {
+    def dest = download(
+            "https://github.com/mobz/elasticsearch-head/archive/${plugin_head_version}.zip",
+            "head_${plugin_head_version}.zip")
+    extractTopfolder(dest, 'plugins/head/_site')
+    dest = download(
+            "https://github.com/lukas-vlcek/bigdesk/archive/v${plugin_bigdesk_version}.zip",
+            "bigdesk_${plugin_bigdesk_version}.zip"
+            )
+    extractTopfolder(dest, 'plugins/bigdesk/_site')
+    dest = download(
+            "https://github.com/polyfractal/elasticsearch-segmentspy/archive/v${plugin_segmentspy_version}.zip",
+            "segementspy_${plugin_segmentspy_version}.zip"
+    )
+    extractTopfolder(dest, 'plugins/segmentspy')
+}
+
+processResources.dependsOn downloadPlugins
+
+task(runDebug, dependsOn: 'classes', type: JavaExec) {
+    main = 'crate.bootstrap.CrateF'
+    debug = true
+    classpath = sourceSets.main.runtimeClasspath
+}
