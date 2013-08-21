@@ -1,12 +1,9 @@
+.DS_Store
 .idea/
 *.iml
 .classpath
 .project
 .settings
-/releases
-/plugins
-/sources/lib/*
-!/sources/lib/sigar
 *~
 .gradle
 /build

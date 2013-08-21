@@ -1,0 +1,13 @@
+allprojects {
+    group = 'crate'
+    version = '0.9.2'
+    repositories {
+        mavenCentral()
+    }
+}
+
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '1.7'
+}
+
