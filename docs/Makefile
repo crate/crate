@@ -1,6 +1,6 @@
 SHELL = /bin/sh
 
-VERSION := $(shell ls -1 ../releases/crate*.tar.gz|sort|tail -n1 |grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
+VERSION := $(shell ls -1 ../app/build/distributions/crate*.tgz|sort|tail -n1 |grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
 
 build: out/html out/text
 
@@ -22,8 +22,8 @@ clean:
 distclean: clean
 	$(MAKE) -C pyenv distclean
 
-tmp/crate: ../releases/crate-$(VERSION).tar.gz tmp
-	tar -C tmp -zxv -f ../releases/crate-$(VERSION).tar.gz
+tmp/crate: ../app/build/distributions/crate-$(VERSION).tgz tmp
+	tar -C tmp -zxv -f ../app/build/distributions/crate-$(VERSION).tgz
 	mv tmp/crate-$(VERSION) tmp/crate
 
 test: pyenv tmp/crate

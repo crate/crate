@@ -8,6 +8,10 @@ task sphinx << {
     }
 }
 
+task itest (type:Exec, dependsOn: ':app:distTar'){
+
+    commandLine 'make', 'clean', 'test'
+}
 
 task clean << {
     delete textOut
