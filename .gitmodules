@@ -1,3 +1,6 @@
 [submodule "es/upstream"]
 	path = es/upstream
 	url = git@github.com:crate/crate-elasticsearch.git
+[submodule "crate-blob-plugin"]
+	path = crate-blob-plugin
+	url = git@github.com:crate/crate-blob-plugin.git
