@@ -30,12 +30,13 @@ empty_layer = CrateLayer('crate',
     )
 
 
+
 def test_suite():
     suite = unittest.TestSuite()
-
-    s = doctest.DocFileSuite('../../hello.txt', parser=parser,
+    for fn in ('hello.txt', 'blob.txt'):
+        s = doctest.DocFileSuite('../../' +  fn, parser=parser,
                              optionflags=doctest.NORMALIZE_WHITESPACE |
                              doctest.ELLIPSIS)
-    s.layer = empty_layer
-    suite.addTest(s)
+        s.layer = empty_layer
+        suite.addTest(s)
     return suite
