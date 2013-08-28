@@ -1,6 +1,8 @@
 from lovely.testlayers import server, layer
 import os
 import signal
+import requests
+import sys
 
 here = os.path.dirname(__file__)
 
@@ -66,6 +68,13 @@ class CrateLayer(server.ServerLayer, layer.WorkDirectoryLayer):
         wd = self.wdPath()
         self.start_cmd = self.start_cmd + ('-Des.path.data="%s"' % wd,)
         super(CrateLayer, self).start()
+        try:
+            print >> sys.stderr, "Waiting for status 'green' ..."
+            requests.get(self.crate_servers[0] + '/_cluster/health?pretty=1&wait_for_status=green')
+            print >> sys.stderr, "Crate started"
+        except Exception, e:
+            self.stop()
+            raise
 
 
     def makeSnapshot(self, ident):

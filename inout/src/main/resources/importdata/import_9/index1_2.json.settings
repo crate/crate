@@ -1,0 +1,9 @@
+{
+  "index1" : {
+    "settings" : {
+      "index.number_of_replicas" : "1",
+      "index.number_of_shards" : "2",
+      "index.version.created" : "900052"
+    }
+  }
+}

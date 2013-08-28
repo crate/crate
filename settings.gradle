@@ -1,0 +1,1 @@
+include 'es', 'testing', 'inout', 'crate-blob-plugin', 'elasticsearch-crate-plugin', 'sql', 'docs', 'app'

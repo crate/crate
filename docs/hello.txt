@@ -15,11 +15,13 @@ displays basic system information::
     {
       "ok" : true,
       "status" : 200,
-      "name" : "crate",
+      "name" : "...",
       "version" : {
-        "number" : "0.90.2",
-        "snapshot_build" : false,
-        "lucene_version" : "4.3.1"
+        "number" : "0.90.3",
+        "build_hash" : "${buildNumber}",
+        "build_timestamp" : "NA",
+        "build_snapshot" : false,
+        "lucene_version" : "4.4"
       },
       "tagline" : "You Know, for Search"
     }

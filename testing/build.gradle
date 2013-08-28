@@ -1,0 +1,29 @@
+apply plugin: 'java'
+
+configurations {
+    all*.exclude group: 'org.elasticsearch'
+}
+
+evaluationDependsOn(':es')
+
+dependencies {
+    compile project(':es')
+    compile 'org.python:jython-standalone:2.7-b1'
+    compile project(':es').sourceSets.test.runtimeClasspath
+}
+
+
+sourceSets {
+    main {
+        resources {
+            srcDir 'src/main/java'
+            include '**/*.py'
+        }
+    }
+    test {
+        resources {
+            srcDir 'src/test/java'
+            include '**/*.txt'
+        }
+    }
+}

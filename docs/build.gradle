@@ -1,0 +1,18 @@
+
+def textOut = file("$projectDir/out/text")
+
+
+task sphinx << {
+    exec() {
+        executable = "make"
+    }
+}
+
+task itest (type:Exec, dependsOn: ':app:distTar'){
+
+    commandLine 'make', 'clean', 'test'
+}
+
+task clean << {
+    delete textOut
+}
