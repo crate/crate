@@ -1,21 +1,26 @@
-package crate.elasticsearch.module.sql.test;
+package crate.elasticsearch.integrationtests;
 
 import com.akiban.sql.StandardException;
 import crate.elasticsearch.action.SQLRequestBuilder;
-import crate.elasticsearch.TestSetup;
+import crate.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.search.SearchAction;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.search.SearchHit;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
 
-public class RestSqlActionTest extends TestSetup {
+public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
 
+
+    @Before
+    public void setUpIndex() throws Exception {
+        new Setup(this).setUpLocations();
+    }
 
     @Test
     public void testSqlRequest() throws StandardException {
@@ -23,8 +28,7 @@ public class RestSqlActionTest extends TestSetup {
         builder.source("{\"stmt\": \"select * from locations\"}");
         SearchRequest request = builder.buildSearchRequest();
 
-        Client client = esSetup.client();
-        ActionFuture<SearchResponse> responseFuture = client.execute(SearchAction.INSTANCE, request);
+        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
         SearchResponse response = responseFuture.actionGet();
 
         Throwable failure = responseFuture.getRootFailure();
@@ -40,8 +44,7 @@ public class RestSqlActionTest extends TestSetup {
         builder.source("{\"stmt\": \"select * from locations limit 2\"}");
         SearchRequest request = builder.buildSearchRequest();
 
-        Client client = esSetup.client();
-        ActionFuture<SearchResponse> responseFuture = client.execute(SearchAction.INSTANCE, request);
+        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
         SearchResponse response = responseFuture.actionGet();
 
         Throwable failure = responseFuture.getRootFailure();
@@ -57,8 +60,7 @@ public class RestSqlActionTest extends TestSetup {
         builder.source("{\"stmt\": \"select * from locations limit 15 offset 2\"}");
         SearchRequest request = builder.buildSearchRequest();
 
-        Client client = esSetup.client();
-        ActionFuture<SearchResponse> responseFuture = client.execute(SearchAction.INSTANCE, request);
+        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
         SearchResponse response = responseFuture.actionGet();
 
         Throwable failure = responseFuture.getRootFailure();
@@ -76,8 +78,7 @@ public class RestSqlActionTest extends TestSetup {
         builder.source("{\"stmt\": \"select * from locations where kind = 'Planet'\"}");
         SearchRequest request = builder.buildSearchRequest();
 
-        Client client = esSetup.client();
-        ActionFuture<SearchResponse> responseFuture = client.execute(SearchAction.INSTANCE, request);
+        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
         SearchResponse response = responseFuture.actionGet();
 
         Throwable failure = responseFuture.getRootFailure();
@@ -93,8 +94,7 @@ public class RestSqlActionTest extends TestSetup {
         builder.source("{\"stmt\": \"select * from locations where kind != 'Planet'\"}");
         SearchRequest request = builder.buildSearchRequest();
 
-        Client client = esSetup.client();
-        ActionFuture<SearchResponse> responseFuture = client.execute(SearchAction.INSTANCE, request);
+        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
         SearchResponse response = responseFuture.actionGet();
 
         Throwable failure = responseFuture.getRootFailure();
@@ -110,8 +110,7 @@ public class RestSqlActionTest extends TestSetup {
         builder.source("{\"stmt\": \"select * from locations where kind = 'Planet' or kind = 'Galaxy'\"}");
         SearchRequest request = builder.buildSearchRequest();
 
-        Client client = esSetup.client();
-        ActionFuture<SearchResponse> responseFuture = client.execute(SearchAction.INSTANCE, request);
+        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
         SearchResponse response = responseFuture.actionGet();
 
         Throwable failure = responseFuture.getRootFailure();
@@ -127,8 +126,7 @@ public class RestSqlActionTest extends TestSetup {
         builder.source("{\"stmt\": \"select * from locations where date = '2013-05-01'\"}");
         SearchRequest request = builder.buildSearchRequest();
 
-        Client client = esSetup.client();
-        ActionFuture<SearchResponse> responseFuture = client.execute(SearchAction.INSTANCE, request);
+        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
         SearchResponse response = responseFuture.actionGet();
 
         Throwable failure = responseFuture.getRootFailure();
@@ -144,8 +142,7 @@ public class RestSqlActionTest extends TestSetup {
         builder.source("{\"stmt\": \"select name from locations where date > '2013-05-01'\"}");
         SearchRequest request = builder.buildSearchRequest();
 
-        Client client = esSetup.client();
-        ActionFuture<SearchResponse> responseFuture = client.execute(SearchAction.INSTANCE, request);
+        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
         SearchResponse response = responseFuture.actionGet();
 
         Throwable failure = responseFuture.getRootFailure();
@@ -161,8 +158,7 @@ public class RestSqlActionTest extends TestSetup {
         builder.source("{\"stmt\": \"select * from locations where position > 3\"}");
         SearchRequest request = builder.buildSearchRequest();
 
-        Client client = esSetup.client();
-        ActionFuture<SearchResponse> responseFuture = client.execute(SearchAction.INSTANCE, request);
+        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
         SearchResponse response = responseFuture.actionGet();
 
         Throwable failure = responseFuture.getRootFailure();
@@ -177,17 +173,16 @@ public class RestSqlActionTest extends TestSetup {
         SQLRequestBuilder builder = new SQLRequestBuilder();
 
         builder.source(
-            XContentFactory.jsonBuilder()
-                .startObject()
-                .field("stmt", "select * from locations where \"_id\" = 1 or \"_id\" = 2 or \"_id\" = 3")
-                .endObject()
-                .string()
-        );
+                XContentFactory.jsonBuilder()
+                        .startObject()
+                        .field("stmt", "select * from locations where \"_id\" = 1 or \"_id\" = 2 or \"_id\" = 3")
+                        .endObject()
+                        .string()
+                      );
 
         SearchRequest request = builder.buildSearchRequest();
 
-        Client client = esSetup.client();
-        ActionFuture<SearchResponse> responseFuture = client.execute(SearchAction.INSTANCE, request);
+        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
         SearchResponse response = responseFuture.actionGet();
 
         Throwable failure = responseFuture.getRootFailure();

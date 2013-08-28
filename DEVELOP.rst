@@ -46,6 +46,16 @@ The root of the installation can then be found under
 
  $ ./app/build/install/crate/bin/crate -f
 
+IntelliJ
+========
+
+To use this project in intellij do not use the built-in JetGradle
+Plugin. Instead use gradle directly by running::
+
+ ./gradlew idea
+
+This will create the project files.
+
 Debugging
 =========
 

@@ -9,19 +9,6 @@ task dist {
     dependsOn ':docs:itest', distTar, distZip
 }
 
-//jar {
-//    // the line blow results in a single jar, which destroys plugin loading because of the merged property files
-//    //from { configurations.runtime.collect { it.isDirectory() ? it : zipTree(it) } }
-//    manifest {
-//        attributes 'Main-Class': 'crate.bootstrap.Crate',
-//                'Implementation-Title': 'Crate',
-//                'Implementation-Version': version,
-//                'Built-Date': new Date(),
-//                'Built-JDK': System.getProperty('java.version'),
-//                'Built-Gradle': gradle.gradleVersion
-//    }
-//}
-
 distTar {
     dependsOn ":docs:sphinx"
     compression = Compression.GZIP
@@ -39,6 +26,8 @@ ext {
     plugin_bigdesk_version = '2.2.1'
     plugin_segmentspy_version = '0.2.0'
 }
+
+evaluationDependsOn(':es')
 
 dependencies {
     compile project(':es')
