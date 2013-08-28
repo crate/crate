@@ -1,0 +1,97 @@
+============
+Blob Support
+============
+
+Crate includes support to store `binary large objects`_. By utilizing
+Crate's cluster features the files can be replicated and sharded just
+like regular data.
+
+Any index can hold blobs if enabled. To enable blobs on an index the
+``blobs.enabled`` flag needs to be set to true like this::
+
+    sh$ curl -sSX PUT 'localhost:9200/myblobs?pretty' -d '{
+    ... "number_of_shards": 3,
+    ... "number_of_replicas": 1,
+    ... "blobs.enabled": true}'
+    {
+      "ok" : true,
+      "acknowledged" : true
+    }
+
+Now crate is configured to allow blobs to be management under the index's
+``_blobs`` endpoint.
+
+Uploading
+---------
+
+To upload a blob the sha1 hash of the blob has to be known upfront
+since this has to be used as the id of the new blob. For this example
+we use a fancy python one-liner to compute the shasum::
+
+    sh$ python -c 'import hashlib;print hashlib.sha1("contents").hexdigest()'
+    4a756ca07e9487f482465a99e8286abc86ba4dc7
+
+The blob can now be uploaded by issuing a PUT request::
+
+    sh$ curl -isSX PUT 'localhost:9200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7' -d 'contents'
+    HTTP/1.1 201 Created
+    Content-Length: 0
+
+If a blob already exists with the given hash a 409 Conflict is returned::
+
+    sh$ curl -isSX PUT 'localhost:9200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7' -d 'contents'
+    HTTP/1.1 409 Conflict
+    Content-Length: 0
+
+Download
+--------
+
+To download a blob simply use a GET request::
+
+    sh$ curl -sS 'localhost:9200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
+    contents
+
+.. note::
+
+    Since the blobs are sharded throughout the cluster not every node has all
+    the blobs. In case that the GET request has been sent to a node that
+    doesn't contain the requested file it will respond with a 307 Temporary
+    Redirect which will lead to a node that does contain the file.
+
+If the blob doesn't exist a 404 Not Found error is returned::
+
+    sh$ curl -isS 'localhost:9200/myblobs/_blobs/e5fa44f2b31c1fb553b6021e7360d07d5d91ff5e'
+    HTTP/1.1 404 Not Found
+    Content-Length: 0
+
+To determine if a blob exists without downloading it, a HEAD request can be
+used::
+
+    sh$ curl -sS -I 'localhost:9200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
+    HTTP/1.1 200 OK
+    Content-Length: 8
+    Accept-Ranges: bytes
+    Expires: Thu, 31 Dec 2037 23:59:59 GMT
+    Cache-Control: max-age=315360000
+
+.. note::
+
+    The cache headers for blobs are static and basically allows clients to
+    cache the response forever since the blob is immutable.
+
+Delete
+------
+
+To delete a blob simply use a DELETE request::
+
+    sh$ curl -isS -XDELETE 'localhost:9200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
+    HTTP/1.1 204 No Content
+    Content-Length: 0
+
+If the blob doesn't exist a 404 Not Found error is returned::
+
+    sh$ curl -isS -XDELETE 'localhost:9200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
+    HTTP/1.1 404 Not Found
+    Content-Length: 0
+
+.. _`binary large objects`: http://en.wikipedia.org/wiki/Binary_large_object

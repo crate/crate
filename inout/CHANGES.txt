@@ -1,0 +1,67 @@
+======================================
+Changes for Elasticsearch InOut Plugin
+======================================
+
+Unreleased
+==========
+
+ - elasticsearch 0.90.3 compatibility.
+   NOTE: This is incompatible with 0.90.2 or other earlier versions of
+   elasticsearch
+
+2013/07/08 0.5.0
+================
+
+ - fixed tests due to platform differences
+
+ - elasticsearch 0.90.2 compatibility
+
+2013/06/10 0.4.0
+================
+
+ - elasticsearch 0.90.1 compatibility
+
+ - added support for nested in-fields on search_into
+
+
+2013/05/15 0.3.0
+================
+
+ - added reindex endpoint
+
+ - added cross cluster support for _search_into endpoint
+
+ - added settings and mappings parameters to import endpoint
+
+ - updated elasticsearch to 0.90.0
+
+ - added _restore endpoint
+
+ - added settings and mappings parameters to export endpoint
+
+ - added _dump endpoint
+
+ - added file_pattern parameter to import endpoint
+
+ - support for relative paths on export and import
+
+ - renamed 'node' in export output to 'node_id'
+
+2013/05/01 0.2.0
+================
+
+ - added gzip compression flag to uncompress import files
+
+ - added basic _import endpoints with node distribution
+
+ - added support for _ttl and _timestamp fields
+
+ - added support for _version field
+
+ - added gzip parameter to export (output_file and output_cmd)
+
+2013/04/19 0.1.0
+================
+
+ - Basic implementation of _export endpoint
+

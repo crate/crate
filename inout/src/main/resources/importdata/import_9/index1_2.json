@@ -1,0 +1,2 @@
+{"_id":"3","_index":"index2","_type":"a","_source":{"name":"three"}}
+{"_id":"4","_index":"index2","_type":"b","_source":{"name":"four"}}

@@ -1,0 +1,23 @@
+============================
+Changes for Crate SQL Plugin
+============================
+
+Unreleased
+==========
+
+2013/08/08 0.1.0
+================
+
+ - added support for "is not null" and "is null"
+
+ - documented "!=" operator
+
+ - Now a helpful error message is returned if selecting a constant values is
+   attempted. (`select 1 from` or `select 'value' from` is not supported).
+
+ - Responses from requests sent to `/_sql` endpoint are now in a custom format
+   as defined the documentation.
+
+ - Added README and DEVELOP specific information 
+
+ - Added documentation for using the SQL SELECT command

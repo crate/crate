@@ -1,0 +1,11 @@
+{
+    "d": {
+        "properties": {
+            "name": {
+                "type": "string",
+                "index": "not_analyzed",
+                "store": true
+            }
+        }
+    }
+}

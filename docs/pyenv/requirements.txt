@@ -11,3 +11,4 @@ zc.customdoctests==1.0.1
 zope.exceptions==4.0.6
 zope.interface==4.0.5
 zope.testrunner==4.4.1
+requests==1.2.3
