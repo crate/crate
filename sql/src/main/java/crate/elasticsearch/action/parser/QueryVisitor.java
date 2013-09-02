@@ -2,7 +2,9 @@ package crate.elasticsearch.action.parser;
 
 import com.akiban.sql.StandardException;
 import com.akiban.sql.parser.*;
+import crate.elasticsearch.action.sql.NodeExecutionContext;
 import crate.elasticsearch.sql.SQLParseException;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
@@ -19,8 +21,8 @@ public class QueryVisitor implements Visitor {
     private XContentGenerator generator = null;
     private boolean stopTraverse;
 
-    public QueryVisitor() {
-        generator = new XContentGenerator();
+    public QueryVisitor(NodeExecutionContext executionContext) {
+        generator = new XContentGenerator(executionContext);
         stopTraverse = false;
     }
 
@@ -42,11 +44,11 @@ public class QueryVisitor implements Visitor {
     }
 
     /**
-     * See {@link crate.elasticsearch.action.parser.XContentGenerator#getFieldNameMapping()}
+     * See {@link crate.elasticsearch.action.parser.XContentGenerator#outputFields()}
      * @return
      */
-    public Map<String, String> getFieldnameMapping() {
-        return generator.getFieldNameMapping();
+    public List<Tuple<String, String>> outputFields() {
+        return generator.outputFields();
     }
 
     @Override

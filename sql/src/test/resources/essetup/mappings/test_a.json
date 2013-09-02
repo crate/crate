@@ -1,5 +1,5 @@
 {
-    "location": {
+    "default": {
         "_id": {
             "type": "string",
             "index": "not_analyzed",

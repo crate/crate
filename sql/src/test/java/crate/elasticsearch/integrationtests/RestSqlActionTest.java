@@ -1,194 +1,67 @@
 package crate.elasticsearch.integrationtests;
 
-import com.akiban.sql.StandardException;
-import crate.elasticsearch.action.SQLRequestBuilder;
+import crate.elasticsearch.action.sql.SQLRequestBuilder;
+import crate.elasticsearch.action.sql.SQLResponse;
 import crate.test.integration.AbstractSharedCrateClusterTest;
-import org.elasticsearch.action.ActionFuture;
-import org.elasticsearch.action.search.SearchAction;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.Before;
 import org.junit.Test;
+import org.skyscreamer.jsonassert.JSONAssert;
 
 import java.io.IOException;
 
 public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
 
 
+    private static XContentBuilder builder;
+
+    static {
+        try {
+            builder = XContentFactory.contentBuilder(XContentType.JSON);
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File
+            // Templates.
+        }
+    }
+
+    @Override
+    protected int numberOfNodes() {
+        return 1;
+    }
+
     @Before
     public void setUpIndex() throws Exception {
         new Setup(this).setUpLocations();
     }
 
-    @Test
-    public void testSqlRequest() throws StandardException {
-        SQLRequestBuilder builder = new SQLRequestBuilder();
-        builder.source("{\"stmt\": \"select * from locations\"}");
-        SearchRequest request = builder.buildSearchRequest();
-
-        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
-        SearchResponse response = responseFuture.actionGet();
-
-        Throwable failure = responseFuture.getRootFailure();
-
-        assertNull(failure);
-        assertEquals(0, response.getFailedShards());
-        assertEquals(13, response.getHits().getTotalHits());
+    private String sql(String source) throws IOException {
+        XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
+        builder.generator().usePrettyPrint();
+        SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client());
+        requestBuilder.source(new BytesArray(source));
+        SQLResponse response = requestBuilder.execute().actionGet();
+        response.toXContent(builder, ToXContent.EMPTY_PARAMS);
+        return builder.string();
     }
 
     @Test
-    public void testSqlRequestWithLimit() throws StandardException {
-        SQLRequestBuilder builder = new SQLRequestBuilder();
-        builder.source("{\"stmt\": \"select * from locations limit 2\"}");
-        SearchRequest request = builder.buildSearchRequest();
-
-        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
-        SearchResponse response = responseFuture.actionGet();
-
-        Throwable failure = responseFuture.getRootFailure();
-
-        assertNull(failure);
-        assertEquals(0, response.getFailedShards());
-        assertEquals(2, response.getHits().getHits().length);
+    public void testSqlRequest() throws Exception {
+        String json = sql("{\"stmt\": \"select * from locations where \\\"_id\\\" = '1'\"}");
+        //System.out.println(json);
+        JSONAssert.assertEquals(
+                "{\n" +
+                        "  \"cols\" : [ \"date\", \"description\", \"kind\", \"name\", " +
+                        "\"position\" ],\n" +
+                        "  \"rows\" : [ [ \"1979-10-12T00:00:00.000Z\", " +
+                        "\"Relative to life on NowWhat, living on an affluent world in the North" +
+                        " West ripple of the Galaxy is said to be easier by a factor of about " +
+                        "seventeen million.\", \"Galaxy\", \"North West Ripple\", 1 ] ]\n" +
+                        "}"
+                , json, true);
     }
 
-    @Test
-    public void testSqlRequestWithLimitAndOffset() throws StandardException {
-        SQLRequestBuilder builder = new SQLRequestBuilder();
-        builder.source("{\"stmt\": \"select * from locations limit 15 offset 2\"}");
-        SearchRequest request = builder.buildSearchRequest();
-
-        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
-        SearchResponse response = responseFuture.actionGet();
-
-        Throwable failure = responseFuture.getRootFailure();
-
-        assertNull(failure);
-        assertEquals(0, response.getFailedShards());
-        SearchHit[] hits = response.getHits().getHits();
-        // because of the offset, only 9 instead of all 11 are displayed
-        assertEquals(11, hits.length);
-    }
-
-    @Test
-    public void testSqlRequestWithFilter() throws StandardException {
-        SQLRequestBuilder builder = new SQLRequestBuilder();
-        builder.source("{\"stmt\": \"select * from locations where kind = 'Planet'\"}");
-        SearchRequest request = builder.buildSearchRequest();
-
-        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
-        SearchResponse response = responseFuture.actionGet();
-
-        Throwable failure = responseFuture.getRootFailure();
-
-        assertNull(failure);
-        assertEquals(0, response.getFailedShards());
-        assertEquals(5, response.getHits().getHits().length);
-    }
-
-    @Test
-    public void testSqlRequestWithNotEqual() throws StandardException {
-        SQLRequestBuilder builder = new SQLRequestBuilder();
-        builder.source("{\"stmt\": \"select * from locations where kind != 'Planet'\"}");
-        SearchRequest request = builder.buildSearchRequest();
-
-        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
-        SearchResponse response = responseFuture.actionGet();
-
-        Throwable failure = responseFuture.getRootFailure();
-
-        assertNull(failure);
-        assertEquals(0, response.getFailedShards());
-        assertEquals(8, response.getHits().getHits().length);
-    }
-
-    @Test
-    public void testSqlRequestWithOneOrFilter() throws StandardException {
-        SQLRequestBuilder builder = new SQLRequestBuilder();
-        builder.source("{\"stmt\": \"select * from locations where kind = 'Planet' or kind = 'Galaxy'\"}");
-        SearchRequest request = builder.buildSearchRequest();
-
-        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
-        SearchResponse response = responseFuture.actionGet();
-
-        Throwable failure = responseFuture.getRootFailure();
-
-        assertNull(failure);
-        assertEquals(0, response.getFailedShards());
-        assertEquals(9, response.getHits().getTotalHits());
-    }
-
-    @Test
-    public void testSqlRequestWithDateFilter() throws StandardException {
-        SQLRequestBuilder builder = new SQLRequestBuilder();
-        builder.source("{\"stmt\": \"select * from locations where date = '2013-05-01'\"}");
-        SearchRequest request = builder.buildSearchRequest();
-
-        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
-        SearchResponse response = responseFuture.actionGet();
-
-        Throwable failure = responseFuture.getRootFailure();
-
-        assertNull(failure);
-        assertEquals(0, response.getFailedShards());
-        assertEquals(1, response.getHits().getTotalHits());
-    }
-
-    @Test
-    public void testSqlRequestWithDateGtFilter() throws StandardException {
-        SQLRequestBuilder builder = new SQLRequestBuilder();
-        builder.source("{\"stmt\": \"select name from locations where date > '2013-05-01'\"}");
-        SearchRequest request = builder.buildSearchRequest();
-
-        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
-        SearchResponse response = responseFuture.actionGet();
-
-        Throwable failure = responseFuture.getRootFailure();
-
-        assertNull(failure);
-        assertEquals(0, response.getFailedShards());
-        assertEquals(8, response.getHits().getTotalHits());
-    }
-
-    @Test
-    public void testSqlRequestWithNumericGtFilter() throws StandardException {
-        SQLRequestBuilder builder = new SQLRequestBuilder();
-        builder.source("{\"stmt\": \"select * from locations where position > 3\"}");
-        SearchRequest request = builder.buildSearchRequest();
-
-        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
-        SearchResponse response = responseFuture.actionGet();
-
-        Throwable failure = responseFuture.getRootFailure();
-
-        assertNull(failure);
-        assertEquals(0, response.getFailedShards());
-        assertEquals(5, response.getHits().getTotalHits());
-    }
-
-    @Test
-    public void testSqlRequestWithMultipleOr() throws IOException, StandardException {
-        SQLRequestBuilder builder = new SQLRequestBuilder();
-
-        builder.source(
-                XContentFactory.jsonBuilder()
-                        .startObject()
-                        .field("stmt", "select * from locations where \"_id\" = 1 or \"_id\" = 2 or \"_id\" = 3")
-                        .endObject()
-                        .string()
-                      );
-
-        SearchRequest request = builder.buildSearchRequest();
-
-        ActionFuture<SearchResponse> responseFuture = client().execute(SearchAction.INSTANCE, request);
-        SearchResponse response = responseFuture.actionGet();
-
-        Throwable failure = responseFuture.getRootFailure();
-
-        assertNull(failure);
-        assertEquals(0, response.getFailedShards());
-        assertEquals(3, response.getHits().getTotalHits());
-    }
 }
