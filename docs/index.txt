@@ -5,27 +5,10 @@ Crate Documentation
 Welcome to Crate - a shared nothing, fully searchable, document
 oriented cluster database.
 
-First Steps
-===========
+.. only:: html
 
-- In order to get Crate up and running take a look at the
-  :doc:`installation`.
+    .. include:: index_html.rst
 
-- If you are new to Crate, it is probably the best to say
-  :doc:`hello`.
+.. only:: text
 
-- Take a look at the :doc:`crate-plugins` and :doc:`3rd-party-plugins`
-
-Contents
-========
-
-.. toctree::
-   :maxdepth: 2
-
-   hello
-   installation
-   configuration
-   blob
-   crate-plugins
-   3rd-party-plugins
-
+    .. include:: index_text.rst

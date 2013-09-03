@@ -7,7 +7,7 @@ Installation Instructions
 After downloading the latest stable version of Crate from
 http://download.cratedb.org/ the package needs to be unpacked::
 
-   sh$ tar zxf crate-0.8.5.tar.gz
+   sh$ tar zxf crate-*.tar.gz
 
 Now Cate can be started in the foreground like this::
 
