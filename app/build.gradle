@@ -40,11 +40,17 @@ dependencies {
 installDist.dependsOn(jar, ":docs:sphinx")
 
 def docsDir = project(":docs").projectDir
+def rootDir = project.parent.projectDir
 
 distributions {
     main {
         baseName = 'crate'
         contents {
+            into("") {
+                from "$rootDir"
+                include 'NOTICE'
+                include 'CHANGES.txt'
+            }
             into("docs") {
                 from "${docsDir}/out/text"
                 include '**/*.txt'
