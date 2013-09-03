@@ -1,4 +1,4 @@
-package crate.elasticsearch.action.parser;
+package crate.elasticsearch.action.sql.parser;
 
 import com.google.common.collect.ImmutableMap;
 import crate.elasticsearch.sql.SQLParseException;
@@ -6,44 +6,37 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.search.SearchParseException;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
- * Parser for SQL statements in JSON format
- *
+ * Parser for SQL statements in JSON and other XContent formats
+ * <p/>
  * {
- *     "stmt": "select * from...."
+ * "stmt": "select * from...."
  * }
  */
-public class SQLRequestParser {
+public class SQLXContentSourceParser {
 
-    private final ImmutableMap<String, SQLParseElement> elementParsers;
+    private final SQLXContentSourceContext context;
 
     static final class Fields {
         static final String STMT = "stmt";
     }
 
-    public SQLRequestParser() {
-        /**
-         * The stock elasticsearch parsers make use of SearchParseElements and a SearchContext;
-         * But the SQLRequestParser here operates on a higher level and hasn't access to the SearchContext
-         *
-         * Therefore SqlParseElements and an SQLContext is used.
-         */
+    private static final ImmutableMap<String, SQLParseElement> elementParsers = ImmutableMap.of(
+            Fields.STMT, (SQLParseElement) new SQLStmtParseElement()
+                                                                                               );
 
-        Map<String, SQLParseElement> elementParsers = new HashMap<String, SQLParseElement>();
-        elementParsers.put(Fields.STMT, new SQLStmtParseElement());
-
-        this.elementParsers = ImmutableMap.copyOf(elementParsers);
+    public SQLXContentSourceParser(SQLXContentSourceContext context) {
+        this.context = context;
     }
 
-    private void validate(SQLContext context) throws SearchParseException {
+    private void validate() throws SQLParseSourceException {
+        if (context.stmt() == null) {
+            throw new SQLParseSourceException(context, "Field [stmt] was not defined");
+        }
     }
 
-    public void parseSource(SQLContext context, BytesReference source) throws SQLParseException {
+    public void parseSource(BytesReference source) throws SQLParseException {
         XContentParser parser = null;
         try {
             if (source != null && source.length() != 0) {
@@ -63,7 +56,7 @@ public class SQLRequestParser {
                     }
                 }
             }
-            validate(context);
+            validate();
         } catch (Exception e) {
             String sSource = "_na_";
             try {

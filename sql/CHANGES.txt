@@ -5,6 +5,10 @@ Changes for Crate SQL Plugin
 Unreleased
 ==========
 
+ - json format changed from object based to tuple based
+
+ - sql requests are now possible via the transport protocol
+
 2013/08/08 0.1.0
 ================
 

@@ -11,6 +11,8 @@ evaluationDependsOn(':app')
 dependencies {
     compile project(':es')
     compile 'com.akiban:akiban-sql-parser:1.0.15'
+    testCompile 'org.skyscreamer:jsonassert:1.2.0'
+    testCompile "org.mockito:mockito-core:1.9.5"
     testCompile project(':testing')
 }
 
