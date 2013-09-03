@@ -32,27 +32,23 @@ public class BlobRecoveryHandler {
     private final ESLogger logger = Loggers.getLogger(getClass());
     private final StartRecoveryRequest request;
     private final TransportService transportService;
-    private final boolean enabled;
     private final BlobShard blobShard;
     private final RecoverySettings recoverySettings;
     private final InternalIndexShard shard;
     private final BlobTransferTarget blobTransferTarget;
-    private ClusterService clusterService;
 
-    public BlobRecoveryHandler(IndicesService indicesService, TransportService transportService,
-                               RecoverySettings recoverySettings, BlobTransferTarget blobTransferTarget,
+    public BlobRecoveryHandler(TransportService transportService,
+                               RecoverySettings recoverySettings,
+                               BlobTransferTarget blobTransferTarget,
+                               BlobIndices blobIndices,
                                InternalIndexShard shard, StartRecoveryRequest request)
     {
         this.recoverySettings = recoverySettings;
-        this.blobShard = indicesService.indexServiceSafe(
-                request.shardId().index().name()).shardInjectorSafe(request.shardId().id()).getInstance(BlobShard.class);
+        this.blobShard = blobIndices.blobShardSafe(request.shardId().index().name(), request.shardId().id());
         this.request = request;
         this.transportService = transportService;
         this.blobTransferTarget = blobTransferTarget;
         this.shard = shard;
-
-        // TODO: fix this and add enabled check to phase1-3
-        this.enabled = blobShard.indexSettings().getAsBoolean(BlobIndices.SETTING_BLOBS_ENABLED, false);
     }
 
     private Set<BytesArray> getExistingDigestsFromTarget(byte prefix) {
