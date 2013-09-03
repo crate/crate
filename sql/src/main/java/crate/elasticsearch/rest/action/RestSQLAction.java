@@ -1,22 +1,20 @@
 package crate.elasticsearch.rest.action;
 
-import com.akiban.sql.StandardException;
-import crate.elasticsearch.action.SQLRequestBuilder;
+import crate.elasticsearch.action.sql.SQLRequestBuilder;
+import crate.elasticsearch.action.sql.SQLResponse;
 import org.elasticsearch.ElasticSearchException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.search.SearchOperationThreading;
 import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.*;
-import crate.elasticsearch.rest.action.SQLResponseBuilder;
+
+import java.io.IOException;
 
 import static org.elasticsearch.rest.RestStatus.BAD_REQUEST;
 import static org.elasticsearch.rest.action.support.RestXContentBuilder.restContentBuilder;
-import java.io.IOException;
 
 public class RestSQLAction extends BaseRestHandler {
 
@@ -31,49 +29,36 @@ public class RestSQLAction extends BaseRestHandler {
     public void handleRequest(final RestRequest request, final RestChannel channel) {
 
         SearchRequest searchRequest;
-        final SQLRequestBuilder requestBuilder = new SQLRequestBuilder();
-        try {
 
+        final SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client);
+        try {
             if (request.hasContent()) {
                 requestBuilder.source(request.content());
             } else {
                 throw new ElasticSearchException("missing request body");
             }
-
-            searchRequest = requestBuilder.buildSearchRequest();
-            searchRequest.listenerThreaded(false);
-            SearchOperationThreading operationThreading = SearchOperationThreading.fromString(request.param("operation_threading"), null);
-            if (operationThreading != null) {
-                if (operationThreading == SearchOperationThreading.NO_THREADS) {
-                    // since we don't spawn, don't allow no_threads, but change it to a single thread
-                    operationThreading = SearchOperationThreading.SINGLE_THREAD;
-                }
-                searchRequest.operationThreading(operationThreading);
-            }
         } catch (Exception e) {
             if (logger.isDebugEnabled()) {
-                logger.debug("failed to parse search request parameters", e);
+                logger.debug("failed to parse sql request", e);
             }
             try {
                 XContentBuilder builder = restContentBuilder(request);
-                channel.sendResponse(new XContentRestResponse(request, BAD_REQUEST, builder.startObject().field("error", e.getMessage()).endObject()));
+                channel.sendResponse(new XContentRestResponse(request, BAD_REQUEST, builder.startObject().field("error",
+                        e.getMessage()).endObject()));
             } catch (IOException e1) {
                 logger.error("Failed to send failure response", e1);
             }
             return;
         }
-        client.search(searchRequest, new ActionListener<SearchResponse>() {
+        requestBuilder.execute(new ActionListener<SQLResponse>() {
             @Override
-            public void onResponse(SearchResponse response) {
-
-                SQLResponseBuilder responseBuilder = new SQLResponseBuilder();
+            public void onResponse(SQLResponse response) {
 
                 try {
                     XContentBuilder builder = restContentBuilder(request);
-                    builder.startObject();
-                    responseBuilder.build(response, builder, requestBuilder.getFieldNameMapping());
-                    builder.endObject();
-                    channel.sendResponse(new XContentRestResponse(request, response.status(), builder));
+                    response.toXContent(builder, request);
+                    // TODO: implement shard counts on response to set status properly
+                    channel.sendResponse(new XContentRestResponse(request, RestStatus.OK, builder));
                 } catch (Exception e) {
                     if (logger.isDebugEnabled()) {
                         logger.debug("failed to execute search (building response)", e);

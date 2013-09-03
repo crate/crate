@@ -2,9 +2,17 @@ package crate.elasticsearch.action.parser;
 
 import com.akiban.sql.StandardException;
 import com.akiban.sql.parser.*;
+import crate.elasticsearch.action.sql.NodeExecutionContext;
 import crate.elasticsearch.sql.SQLParseException;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.index.mapper.DocumentFieldMappers;
+import org.elasticsearch.index.mapper.DocumentMapper;
+import org.elasticsearch.index.service.IndexService;
 
 import java.io.IOException;
 import java.util.*;
@@ -13,9 +21,9 @@ import java.util.*;
  * This class is responsible for generating XContent from the SQL Syntax Tree.
  * Currently only Select statements are supported that are translated into
  * Elasticsearch Query-Json in XContentBuilder format.
- *
+ * <p/>
  * Starting point of this class is @{link #generate(CursorNode)}
- *
+ * <p/>
  * The generated XContent is then available via the XContentBuilder that can be accessed
  * using the @{link #getXContentBuilder()} method.
  */
@@ -24,35 +32,32 @@ public class XContentGenerator {
     private List<String> indices;
     private XContentBuilder jsonBuilder;
 
-    private final Map<String, String> fieldNameMapping;
+    private final List<Tuple<String, String>> outputFields;
+
+    private IndexMetaData indexMetaData;
+    private MappingMetaData mapping;
+    private NodeExecutionContext executionContext;
+    private DocumentMapper mapper;
+    private IndexService indexService;
+    private DocumentFieldMappers fieldMappers;
+    private DocumentMapper documentMapper;
+    private NodeExecutionContext.TableExecutionContext tableContext;
+    private boolean requireVersion = false;
+
 
     /**
-     * the fieldNameMapping contains a mapping for the "select X as Y" sql clause
-     * the key is Y (the "display name")
-     * the value is X (the "source name")
+     * returns the requested output fields as a list of tuples where
+     * the left side is the alias and the right side is the column name
      *
-     * so it is possible to select the same source twice.
-     * E.g.  select name as n, name as c
-     * will result in two entries:
-     *
-     *      {"n", "name"}
-     *      {"c", "name"}
-     *
-     * For every field selected there will always be an entry.
-     * "select *" will result in
-     *      {"*", "*"}
-     *
-     * Or "select name" will result in
-     *      {"name", "name"}
-     *
-     * @return
+     * @return list of tuples
      */
-    public Map<String, String> getFieldNameMapping() {
-        return fieldNameMapping;
+    public List<Tuple<String, String>> outputFields() {
+        return outputFields;
     }
 
     /**
-     * The operators here are a redefinition of those defined in {@link BinaryRelationalOperatorNode}
+     * The operators here are a redefinition of those defined in {@link
+     * BinaryRelationalOperatorNode}
      * There they are not static so they can't be used in the rangeQueryOperatorMap further below.
      */
     static class SQLOperatorTypes {
@@ -71,14 +76,16 @@ public class XContentGenerator {
         put(SQLOperatorTypes.LESS_EQUALS, "lte");
     }};
 
-    public XContentGenerator() {
+    @Inject
+    public XContentGenerator(NodeExecutionContext executionContext) {
+        this.executionContext = executionContext;
         indices = new ArrayList<String>();
-        fieldNameMapping = new HashMap<String, String>();
-
         try {
             jsonBuilder = XContentFactory.jsonBuilder().startObject();
         } catch (IOException ex) {
         }
+        outputFields = new ArrayList<Tuple<String, String>>();
+
     }
 
     public void generate(CursorNode node) throws IOException, StandardException {
@@ -88,13 +95,15 @@ public class XContentGenerator {
                 generate(node.getOrderByList());
             }
 
-            generate((SelectNode)node.getResultSetNode());
+            generate((SelectNode) node.getResultSetNode());
 
             if (node.getOffsetClause() != null) {
-                jsonBuilder.field("from", ((NumericConstantNode)node.getOffsetClause()).getValue());
+                jsonBuilder.field("from",
+                        ((NumericConstantNode) node.getOffsetClause()).getValue());
             }
             if (node.getFetchFirstClause() != null) {
-                jsonBuilder.field("size", ((NumericConstantNode)node.getFetchFirstClause()).getValue());
+                jsonBuilder.field("size",
+                        ((NumericConstantNode) node.getFetchFirstClause()).getValue());
             }
         } else {
             throw new SQLParseException("unsupported sql statement: " + node.statementToString());
@@ -109,13 +118,13 @@ public class XContentGenerator {
         if (whereClause != null) {
             switch (whereClause.getNodeType()) {
                 case NodeTypes.BINARY_EQUALS_OPERATOR_NODE:
-                    generate((BinaryRelationalOperatorNode)whereClause);
+                    generate((BinaryRelationalOperatorNode) whereClause);
                     break;
                 case NodeTypes.AND_NODE:
-                    generate((AndNode)whereClause);
+                    generate((AndNode) whereClause);
                     break;
                 case NodeTypes.OR_NODE:
-                    generate((OrNode)whereClause);
+                    generate((OrNode) whereClause);
                     break;
                 default:
                     generate(whereClause);
@@ -126,11 +135,10 @@ public class XContentGenerator {
         }
         jsonBuilder.endObject();
 
-        // set the "fields" property if it's not "select * from"
         generate(node.getResultColumns());
 
         // only include the version if it was explicitly selected.
-        if (fieldNameMapping.values().contains("_version")) {
+        if (requireVersion) {
             jsonBuilder.field("version", true);
         }
     }
@@ -140,107 +148,112 @@ public class XContentGenerator {
 
         for (OrderByColumn column : node) {
             jsonBuilder.startObject()
-                .startObject(column.getExpression().getColumnName())
+                    .startObject(column.getExpression().getColumnName())
                     .field("order", column.isAscending() ? "asc" : "desc")
                     .field("ignore_unmapped", true)
-                .endObject()
-            .endObject();
+                    .endObject()
+                    .endObject();
         }
 
         jsonBuilder.endArray();
     }
 
     private void generate(FromList fromList) throws StandardException {
-        FromTable table;
-        for (int i = 0; i < fromList.size(); i++) {
-            table = fromList.get(i);
-            try {
-                indices.add(table.getTableName().getTableName());
-            } catch (NullPointerException ex) {
-                if (!(table instanceof FromBaseTable)) {
-                    throw new SQLParseException(
-                        "Joins are currently not supported", ex);
-                }
-
-                throw new SQLParseException(
-                    "Can't read tableName from node " + table.getClass().getName(), ex
-                );
-            }
+        if (fromList.size() != 1) {
+            throw new SQLParseException(
+                    "Only exactly one from table is allowed, got: " + fromList.size());
         }
+        FromTable table = fromList.get(0);
+        if (!(table instanceof FromBaseTable)) {
+            throw new SQLParseException(
+                    "From type " + table.getClass().getName() + " not supported");
+        }
+        String name = table.getTableName().getTableName();
+        tableContext = executionContext.tableContext(name);
+        if (tableContext == null) {
+            throw new SQLParseException("No table definition found for " + name);
+        }
+        indices.add(name);
     }
 
     private void generate(ResultColumnList columnList) throws IOException {
-        List<String> fields = new ArrayList<String>();
-        boolean hasAllResultColumn = false;
-        String columnName;
+        Set<String> fields = new LinkedHashSet<String>();
 
         for (ResultColumn column : columnList) {
             if (column instanceof AllResultColumn) {
-                hasAllResultColumn = true;
-                fieldNameMapping.put("*", "*");
+                for (String name : tableContext.allCols()) {
+                    outputFields.add(new Tuple<String, String>(name, name));
+                    fields.add(name);
+                }
                 continue;
             }
 
-            columnName = column.getExpression().getColumnName();
+            String columnName = column.getExpression().getColumnName();
             if (columnName == null) {
                 // column is a constantValue (e.g. "select 1 from ...");
                 String columnValue = "";
-                if (column.getExpression() instanceof  NumericConstantNode) {
-                    columnValue = ((NumericConstantNode)column.getExpression()).getValue().toString();
-                } else if (column.getExpression() instanceof  CharConstantNode) {
-                    columnValue = ((CharConstantNode)column.getExpression()).getValue().toString();
+                if (column.getExpression() instanceof NumericConstantNode) {
+                    columnValue = ((NumericConstantNode) column.getExpression()).getValue()
+                            .toString();
+                } else if (column.getExpression() instanceof CharConstantNode) {
+                    columnValue = ((CharConstantNode) column.getExpression()).getValue()
+                            .toString();
                 }
                 throw new SQLParseException(
-                    "selecting constant values (select " + columnValue + " from ...) is not supported");
+                        "selecting constant values (select " + columnValue + " from ...) is not " +
+                                "supported");
             }
 
-            // the version field is a special case handled in generate(SelectNode)
-            if (!columnName.equals("_version")) {
+            if (columnName.startsWith("_")) {
+                // treat this as internal, so this is not a field
+                if (columnName.equals("_version")) {
+                    requireVersion = true;
+                }
+            } else {
+                // this should be a normal field which will also be extracted from the source for
+                // us in the search hit, so it is always safe to add it to the fields
                 fields.add(columnName);
             }
-            fieldNameMapping.put(column.getName(), columnName);
+            outputFields.add(new Tuple<String, String>(column.getName(), columnName));
         }
-
-        if (fields.size() > 0 ) {
-            if (hasAllResultColumn) {
-                fields.add("_source");
-            }
+        if (fields.size() > 0) {
             jsonBuilder.field("fields", fields);
         }
     }
 
     private void generate(Integer operatorType, ColumnReference left, ConstantNode right)
-        throws IOException, StandardException
-    {
+            throws IOException, StandardException {
         // if an operator is added here the swapOperator method should also be extended.
 
         if (operatorType == SQLOperatorTypes.EQUALS) {
             jsonBuilder.startObject("term")
-                .field(left.getColumnName(), right.getValue())
-            .endObject();
+                    .field(left.getColumnName(), right.getValue())
+                    .endObject();
         } else if (rangeQueryOperatorMap.containsKey(operatorType)) {
             jsonBuilder.startObject("range")
-                .startObject(left.getColumnName())
+                    .startObject(left.getColumnName())
                     .field(rangeQueryOperatorMap.get(operatorType), right.getValue())
-                .endObject()
-            .endObject();
+                    .endObject()
+                    .endObject();
         } else if (operatorType == SQLOperatorTypes.NOT_EQUALS) {
             jsonBuilder.startObject("bool")
-                .startObject("must_not")
+                    .startObject("must_not")
                     .startObject("term").field(left.getColumnName(), right.getValue()).endObject()
-                .endObject()
-            .endObject();
+                    .endObject()
+                    .endObject();
         } else {
             throw new SQLParseException("Unhandled operator: " + operatorType.toString());
         }
     }
 
     /**
-     * if the fieldName is on the right side and the value on the left the operator needs to be switched
+     * if the fieldName is on the right side and the value on the left the operator needs to be
+     * switched
      * E.g.
-     *      4 < pos
+     * 4 < pos
      * is translated to
-     *      pos > 4
+     * pos > 4
+     *
      * @param operatorType
      * @return the swapped operator
      */
@@ -265,17 +278,14 @@ public class XContentGenerator {
     }
 
     private void generate(Integer operatorType, ValueNode left, ValueNode right)
-        throws IOException, StandardException
-    {
+            throws IOException, StandardException {
         if (left.getNodeType() == NodeTypes.COLUMN_REFERENCE
-            && (right instanceof NumericConstantNode || right instanceof  CharConstantNode))
-        {
-            generate(operatorType, (ColumnReference)left, (ConstantNode)right);
+                && (right instanceof NumericConstantNode || right instanceof CharConstantNode)) {
+            generate(operatorType, (ColumnReference) left, (ConstantNode) right);
             return;
-        } else if ( (left instanceof NumericConstantNode || left instanceof  CharConstantNode)
-            && right.getNodeType() == NodeTypes.COLUMN_REFERENCE)
-        {
-            generate(swapOperator(operatorType), (ColumnReference)right, (ConstantNode)left);
+        } else if ((left instanceof NumericConstantNode || left instanceof CharConstantNode)
+                && right.getNodeType() == NodeTypes.COLUMN_REFERENCE) {
+            generate(swapOperator(operatorType), (ColumnReference) right, (ConstantNode) left);
             return;
         }
 
@@ -284,15 +294,14 @@ public class XContentGenerator {
     }
 
     private void generate(BinaryRelationalOperatorNode node)
-        throws IOException, StandardException
-    {
+            throws IOException, StandardException {
         generate(node.getOperatorType(), node.getLeftOperand(), node.getRightOperand());
     }
 
     private void generate(OrNode node) throws IOException, StandardException {
         jsonBuilder.startObject("bool")
-            .field("minimum_should_match", 1)
-            .startArray("should");
+                .field("minimum_should_match", 1)
+                .startArray("should");
 
         jsonBuilder.startObject();
         generate(node.getLeftOperand());
@@ -306,8 +315,8 @@ public class XContentGenerator {
 
     private void generate(AndNode node) throws IOException, StandardException {
         jsonBuilder.startObject("bool")
-            .field("minimum_should_match", 1)
-            .startArray("must");
+                .field("minimum_should_match", 1)
+                .startArray("must");
 
         jsonBuilder.startObject();
         generate(node.getLeftOperand());
@@ -321,15 +330,15 @@ public class XContentGenerator {
 
     private void generate(IsNullNode node) throws IOException, StandardException {
         jsonBuilder
-            .startObject("filtered")
+                .startObject("filtered")
                 .startObject("filter")
-                    .startObject("missing")
-                        .field("field", node.getOperand().getColumnName())
-                        .field("existence", true)
-                        .field("null_value", true)
-                    .endObject()
+                .startObject("missing")
+                .field("field", node.getOperand().getColumnName())
+                .field("existence", true)
+                .field("null_value", true)
                 .endObject()
-            .endObject();
+                .endObject()
+                .endObject();
     }
 
     private void generate(NotNode node) throws IOException, StandardException {
@@ -340,16 +349,16 @@ public class XContentGenerator {
 
     private void generate(ValueNode node) throws IOException, StandardException {
 
-        if (node instanceof  BinaryRelationalOperatorNode) {
-            generate((BinaryRelationalOperatorNode)node);
+        if (node instanceof BinaryRelationalOperatorNode) {
+            generate((BinaryRelationalOperatorNode) node);
         } else if (node instanceof IsNullNode) {
-            generate((IsNullNode)node);
-        } else if (node instanceof  NotNode) {
-            generate((NotNode)node);
+            generate((IsNullNode) node);
+        } else if (node instanceof NotNode) {
+            generate((NotNode) node);
         } else if (node.getNodeType() == NodeTypes.AND_NODE) {
-            generate((AndNode)node);
+            generate((AndNode) node);
         } else if (node.getNodeType() == NodeTypes.OR_NODE) {
-            generate((OrNode)node);
+            generate((OrNode) node);
         } else {
             throw new SQLParseException("Unhandled node " + node.toString());
         }
@@ -365,9 +374,11 @@ public class XContentGenerator {
 
     /**
      * The indices are only available after @{link #generate(CursorNode)} has been called.
+     *
      * @return tables from the sql select statement.
      */
     public List<String> getIndices() {
         return indices;
     }
+
 }
