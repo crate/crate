@@ -50,9 +50,6 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
@@ -129,9 +126,14 @@ public class BlobRecoverySource extends AbstractComponent {
         logger.trace("[{}][{}] starting recovery to {}, mark_as_relocated {}", request.shardId().index().name(), request.shardId().id(), request.targetNode(), request.markAsRelocated());
         final RecoveryResponse response = new RecoveryResponse();
 
+        final BlobRecoveryHandler blobRecoveryHandler;
 
-        final BlobRecoveryHandler blobRecoveryHandler = new BlobRecoveryHandler(indicesService,
-            transportService, recoverySettings, blobTransferTarget, shard, request);
+        if (blobIndices.blobsEnabled(shard.shardId().getIndex())) {
+            blobRecoveryHandler = new BlobRecoveryHandler(
+                transportService, recoverySettings, blobTransferTarget, blobIndices, shard, request);
+        } else {
+            blobRecoveryHandler = null;
+        }
 
         shard.recover(new Engine.RecoveryHandler() {
             @Override
@@ -139,7 +141,9 @@ public class BlobRecoverySource extends AbstractComponent {
                 long totalSize = 0;
                 long existingTotalSize = 0;
                 try {
-                    blobRecoveryHandler.phase1();
+                    if (blobRecoveryHandler != null) {
+                        blobRecoveryHandler.phase1();
+                    }
                     StopWatch stopWatch = new StopWatch().start();
 
                     for (String name : snapshot.getFiles()) {
@@ -260,8 +264,6 @@ public class BlobRecoverySource extends AbstractComponent {
                 response.startTime = stopWatch.totalTime().millis();
                 logger.trace("[{}][{}] recovery [phase2] to {}: start took [{}]", request.shardId().index().name(), request.shardId().id(), request.targetNode(), stopWatch.totalTime());
 
-                blobRecoveryHandler.phase2();
-
                 logger.trace("[{}][{}] recovery [phase2] to {}: sending transaction log operations", request.shardId().index().name(), request.shardId().id(), request.targetNode());
                 stopWatch = new StopWatch().start();
                 int totalOperations = sendSnapshot(snapshot);
@@ -276,7 +278,6 @@ public class BlobRecoverySource extends AbstractComponent {
                 if (shard.state() == IndexShardState.CLOSED) {
                     throw new IndexShardClosedException(request.shardId());
                 }
-                blobRecoveryHandler.phase3();
                 logger.trace("[{}][{}] recovery [phase3] to {}: sending transaction log operations", request.shardId().index().name(), request.shardId().id(), request.targetNode());
                 StopWatch stopWatch = new StopWatch().start();
                 int totalOperations = sendSnapshot(snapshot);
