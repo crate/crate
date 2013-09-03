@@ -332,3 +332,12 @@ Direct access to an index that isn't blob enabled doesn't return anything::
         }, 
         "indices": {}
     }
+
+
+An empty file is handled just like any other file::
+
+    >>> put('/test/_blobs/da39a3ee5e6b4b0d3255bfef95601890afd80709', data='')
+    HTTP Response 201
+
+    >>> put('/test/_blobs/da39a3ee5e6b4b0d3255bfef95601890afd80709', data='')
+    HTTP Error 409: Conflict

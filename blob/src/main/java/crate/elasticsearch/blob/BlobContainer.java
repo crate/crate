@@ -19,8 +19,6 @@ public class BlobContainer {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 
-    public static final String EMPTY_STRING_DIGEST = "da39a3ee5e6b4b0d3255bfef95601890afd80709";
-
     public static final String[] SUB_DIRS = new String[256];
 
     public static final byte[] PREFIXES = new byte[256];
