@@ -42,6 +42,9 @@ installDist.dependsOn(jar, ":docs:sphinx")
 def docsDir = project(":docs").projectDir
 def rootDir = project.parent.projectDir
 
+def versionFile = new File(project(":elasticsearch-crate-plugin").projectDir, "crate-admin/dist/version.json")
+versionFile.text = '{"version": {"crate": "' + project.parent.version + '"}}'
+
 distributions {
     main {
         baseName = 'crate'
@@ -65,6 +68,7 @@ distributions {
             }
             into('plugins/crate-admin/_site'){
                 from new File(project(":elasticsearch-crate-plugin").projectDir, 'crate-admin/dist')
+                from versionFile
             }
             into('plugins') {
                 from 'plugins'
