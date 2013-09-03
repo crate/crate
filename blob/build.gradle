@@ -1,0 +1,36 @@
+apply plugin: 'java'
+
+// we do not want to have elasticsearch here, since we provide it in :es
+configurations {
+    all*.exclude group: 'org.elasticsearch'
+}
+
+evaluationDependsOn(':testing')
+
+dependencies {
+    compile project(':es')
+    testCompile project(':testing')
+}
+
+test {
+    // show standard out and standard error of the test JVM(s) on the console
+    testLogging.showStandardStreams = true
+
+}
+
+sourceSets {
+    test {
+        resources {
+            srcDir 'src/test/python'
+            include '**/*.py'
+        }
+        resources {
+            srcDir 'src/test/java'
+            include '**/*.json'
+            include '**/*.yml'
+            include '**/*.rst'
+        }
+
+    }
+
+}

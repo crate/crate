@@ -34,7 +34,7 @@ dependencies {
     compile project(':sql')
     compile project(':elasticsearch-crate-plugin')
     compile project(':inout')
-    compile project(':crate-blob-plugin')
+    compile project(':blob')
 }
 
 installDist.dependsOn(jar, ":docs:sphinx")

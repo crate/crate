@@ -9,6 +9,7 @@ evaluationDependsOn(':es')
 dependencies {
     compile project(':es')
     compile 'org.python:jython-standalone:2.7-b1'
+    compile "org.mockito:mockito-core:1.9.5"
     compile project(':es').sourceSets.test.runtimeClasspath
 }
 
