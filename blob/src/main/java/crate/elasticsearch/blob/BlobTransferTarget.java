@@ -50,7 +50,7 @@ public class BlobTransferTarget extends AbstractComponent {
         BlobShard blobShard = blobIndices.blobShardSafe(request.index(), shardId);
         File existing = blobShard.blobContainer().getFile(request.id());
         long size = existing.length();
-        if (size > 0) {
+        if (existing.exists()) {
             // the file exists
             response.status(RemoteDigestBlob.Status.EXISTS);
             response.size(size);

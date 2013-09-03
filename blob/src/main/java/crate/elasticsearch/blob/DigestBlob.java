@@ -76,9 +76,8 @@ public class DigestBlob {
 
     private void addContent(ChannelBuffer buffer, boolean last) throws IOException {
         if (buffer != null) {
-            int localsize = buffer.readableBytes();
+            int readableBytes = buffer.readableBytes();
             ByteBuffer byteBuffer = buffer.toByteBuffer();
-            int written = 0;
             if (file == null) {
                 file = createTmpFile();
             }
@@ -86,13 +85,15 @@ public class DigestBlob {
                 FileOutputStream outputStream = new FileOutputStream(file);
                 fileChannel = outputStream.getChannel();
             }
-            while (written < localsize) {
+
+            int written = 0;
+            do {
                 if (headLength == 0) {
                     updateDigest(byteBuffer);
                 }
                 written += fileChannel.write(byteBuffer);
-            }
-            size += localsize;
+            } while (written < readableBytes);
+            size += readableBytes;
             buffer.readerIndex(buffer.readerIndex() + written);
             chunks ++;
         }
@@ -134,6 +135,7 @@ public class DigestBlob {
         if (headLength > 0) {
             calculateDigest();
         }
+
         assert md != null;
         String contentDigest = Hex.encodeHexString(md.digest());
         if (!contentDigest.equals(digest)) {
