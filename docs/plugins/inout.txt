@@ -1,0 +1,1 @@
+.. include:: ../../inout/README.rst

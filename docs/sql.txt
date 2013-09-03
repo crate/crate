@@ -28,8 +28,8 @@ A simple select::
     }
 
 
-If the '*' operator is used, all properties defined in the schema are
- getting returned for each object::
+If the '*' operator is used, all properties defined in the schema are getting
+returned for each object::
 
 
     sh$ curl -sSXPOST 'localhost:9200/_sql?pretty' -d '{
