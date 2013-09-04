@@ -1,0 +1,48 @@
+=================
+Crate Java Client
+=================
+
+.. highlight:: java
+
+To access a Crate Cluster a Java client library is available. The library
+exposes a very simply interface to query Crate using SQL.
+
+Usage
+-----
+
+A minimal example is just a few lines of code::
+
+    import crate.elasticsearch.client.CrateClient;
+
+    CrateClient client = new CrateClient("server1.crate.org:9300", "server2.crate.org:9300");
+    SQLResponse r = client.sql("select firstName, lastName from users").actionGet();
+
+    System.out.println(Arrays.toString(r.cols()));
+    // outputs ["firstName", "lastName"]
+
+    for (Object[] row: r.rows()){
+        System.out.println(Arrays.toString(row));
+    }
+    // outputs the users. For example:
+    // ["Arthur", "Dent"]
+    // ["Ford", "Perfect"]
+
+The `CrateClient` takes multiple servers as arguments. They are used in a
+round-robin fashion to distribute the load. In case a server is unavailable it
+will be skipped.
+
+Queries are executed asynchronous. `client.sql("")` will return a
+`Future<SQLResponse>` and code execution is only blocked if `.actionGet()` is
+called on it.
+
+Maven
+-----
+
+The easiest way to use the crateclient is to include it as a dependency using
+maven::
+
+    <dependency>
+        <groupId>org.crate<groupId>
+        <artifactId>crateClient</artifactId>
+        <version>0.1.0</version>
+    </dependency>
