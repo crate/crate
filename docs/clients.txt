@@ -1,0 +1,29 @@
+================
+Client Libraries
+================
+
+
+Crate java client
+===================
+
+.. toctree::
+   :maxdepth: 2
+
+   clients/java
+
+
+Crate python client
+===================
+
+.. toctree::
+   :maxdepth: 2
+
+   crate-python/index
+
+API documentation
+-----------------
+
+.. toctree::
+   :maxdepth: 2
+
+   crate-python/crate
