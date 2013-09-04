@@ -2,6 +2,11 @@
 Changes for Crate
 =================
 
+2013/09/04 0.10.1
+=================
+
+ - fixed a serialization error in the sql module
+
 2013/09/03 0.10.0
 =================
 

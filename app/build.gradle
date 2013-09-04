@@ -13,6 +13,7 @@ distTar {
     dependsOn ":docs:sphinx"
     compression = Compression.GZIP
     baseName = 'crate'
+    extension = 'tar.gz'
 }
 
 distZip {
