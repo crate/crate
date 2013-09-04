@@ -1,6 +1,9 @@
 package crate.elasticsearch.integrationtests;
 
-import crate.elasticsearch.blob.*;
+import crate.elasticsearch.blob.PutChunkAction;
+import crate.elasticsearch.blob.PutChunkRequest;
+import crate.elasticsearch.blob.StartBlobAction;
+import crate.elasticsearch.blob.StartBlobRequest;
 import crate.elasticsearch.blob.stats.BlobStatsAction;
 import crate.elasticsearch.blob.stats.BlobStatsRequest;
 import crate.elasticsearch.blob.stats.BlobStatsResponse;
@@ -16,10 +19,9 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.test.integration.AbstractNodesTests;
 import org.junit.After;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.BlockJUnit4ClassRunner;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -30,19 +32,17 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 public class RecoveryTests extends AbstractNodesTests {
 
-   private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(25, TimeUnit.MINUTES);
+    private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(25, TimeUnit.MINUTES);
 
-    static
-    {
+    static {
         Logger logger;
         ConsoleAppender consoleAppender;
 
-        logger = Logger.getLogger("org.elasticsearch.crate.elasticsearch.blob.recovery.BlobRecoveryHandler");
+        logger = Logger.getLogger(
+                "org.elasticsearch.crate.elasticsearch.blob.recovery.BlobRecoveryHandler");
         logger.setLevel(Level.DEBUG);
         consoleAppender = new ConsoleAppender(new PatternLayout("%r [%t] %-5p %c %x - %m\n"));
         logger.addAppender(consoleAppender);
@@ -52,7 +52,8 @@ public class RecoveryTests extends AbstractNodesTests {
         consoleAppender = new ConsoleAppender(new PatternLayout("%r [%t] %-5p %c %x - %m\n"));
         logger.addAppender(consoleAppender);
 
-        logger = Logger.getLogger("org.elasticsearch.crate.elasticsearch.integrationtests.RecoveryTests");
+        logger = Logger.getLogger(
+                "org.elasticsearch.crate.elasticsearch.integrationtests.RecoveryTests");
         logger.setLevel(Level.INFO);
         consoleAppender = new ConsoleAppender(new PatternLayout("%r [%t] %-5p %c %x - %m\n"));
         logger.addAppender(consoleAppender);
@@ -78,9 +79,10 @@ public class RecoveryTests extends AbstractNodesTests {
         byte[] digest = getDigest(content);
         byte[] contentBytes = content.getBytes();
         logger.info("Uploading {} digest {}", content, Hex.encodeHexString(digest));
-        BytesArray bytes = new BytesArray(new byte[] { contentBytes[0] });
+        BytesArray bytes = new BytesArray(new byte[]{contentBytes[0]});
         if (content.length() == 1) {
-            client.execute(StartBlobAction.INSTANCE, new StartBlobRequest("test", digest, bytes, true)).actionGet();
+            client.execute(StartBlobAction.INSTANCE, new StartBlobRequest("test", digest, bytes,
+                    true)).actionGet();
         } else {
             StartBlobRequest startBlobRequest = new StartBlobRequest("test", digest, bytes, false);
             client.execute(StartBlobAction.INSTANCE, startBlobRequest).actionGet();
@@ -89,11 +91,12 @@ public class RecoveryTests extends AbstractNodesTests {
                     Thread.sleep(200);
                 } catch (InterruptedException ex) {
                 }
-                bytes = new BytesArray(new byte[] { contentBytes[i] });
+                bytes = new BytesArray(new byte[]{contentBytes[i]});
                 client.execute(PutChunkAction.INSTANCE,
-                    new PutChunkRequest(
-                        "test", digest, startBlobRequest.transferId(), bytes, i, (i + 1) == content.length())
-                ).actionGet();
+                        new PutChunkRequest(
+                                "test", digest, startBlobRequest.transferId(), bytes, i,
+                                (i + 1) == content.length())
+                              ).actionGet();
             }
         }
     }
@@ -103,7 +106,7 @@ public class RecoveryTests extends AbstractNodesTests {
         StringBuilder sb = new StringBuilder();
         int charValue = 64;
         for (long i = 0; i <= numChars + 10; i++) {
-            charValue ++;
+            charValue++;
             if (charValue > 90) {
                 charValue = 64;
             }
@@ -126,13 +129,15 @@ public class RecoveryTests extends AbstractNodesTests {
                         .put("index.number_of_shards", 1)
                         .put("index.number_of_replicas", 0)
                         .put("blobs.enabled", true)
-                ).execute().actionGet();
+                            ).execute().actionGet();
 
         logger.info("--> starting [node2] ...");
         startNode("node2");
 
-        client("node1").admin().cluster().prepareHealth("test").setWaitForGreenStatus().execute().actionGet();
-        client("node2").admin().cluster().prepareHealth("test").setWaitForGreenStatus().execute().actionGet();
+        client("node1").admin().cluster().prepareHealth(
+                "test").setWaitForGreenStatus().execute().actionGet();
+        client("node2").admin().cluster().prepareHealth(
+                "test").setWaitForGreenStatus().execute().actionGet();
 
         final AtomicLong idGenerator = new AtomicLong();
         final AtomicLong indexCounter = new AtomicLong();
@@ -165,9 +170,9 @@ public class RecoveryTests extends AbstractNodesTests {
         }
 
         logger.info("--> waiting for 2 blobs to be uploaded ...");
-        while ( client("node1").execute(BlobStatsAction.INSTANCE, new BlobStatsRequest().indices("test"))
-            .actionGet().blobShardStats()[0].blobStats().count() < 2)
-        {
+        while (client("node1").execute(BlobStatsAction.INSTANCE, new BlobStatsRequest().indices(
+                "test"))
+                .actionGet().blobShardStats()[0].blobStats().count() < 2) {
             Thread.sleep(10);
         }
         logger.info("--> 2 blobs uploaded");
@@ -181,17 +186,17 @@ public class RecoveryTests extends AbstractNodesTests {
                     .add(new MoveAllocationCommand(new ShardId("test", 0), fromNode, toNode))
                     .execute().actionGet();
             ClusterHealthResponse clusterHealthResponse = client("node1").admin().cluster()
-                .prepareHealth()
-                .setWaitForEvents(Priority.LANGUID)
-                .setWaitForRelocatingShards(0)
-                .setTimeout(ACCEPTABLE_RELOCATION_TIME).execute().actionGet();
+                    .prepareHealth()
+                    .setWaitForEvents(Priority.LANGUID)
+                    .setWaitForRelocatingShards(0)
+                    .setTimeout(ACCEPTABLE_RELOCATION_TIME).execute().actionGet();
 
             assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
             clusterHealthResponse = client("node2").admin().cluster()
-                .prepareHealth()
-                .setWaitForEvents(Priority.LANGUID)
-                .setWaitForRelocatingShards(0)
-                .setTimeout(ACCEPTABLE_RELOCATION_TIME).execute().actionGet();
+                    .prepareHealth()
+                    .setWaitForEvents(Priority.LANGUID)
+                    .setWaitForRelocatingShards(0)
+                    .setTimeout(ACCEPTABLE_RELOCATION_TIME).execute().actionGet();
             assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
             logger.info("--> DONE relocate the shard from {} to {}", fromNode, toNode);
         }
@@ -203,7 +208,8 @@ public class RecoveryTests extends AbstractNodesTests {
         logger.info("--> uploading threads stopped");
 
         BlobStatsResponse response = client("node2")
-            .execute(BlobStatsAction.INSTANCE, new BlobStatsRequest().indices("test")).actionGet();
+                .execute(BlobStatsAction.INSTANCE, new BlobStatsRequest().indices(
+                        "test")).actionGet();
         long numBlobs = response.blobShardStats()[0].blobStats().count();
         long uploadedDocs = indexCounter.get();
         logger.info("--> expected {} got {}", uploadedDocs, numBlobs);
