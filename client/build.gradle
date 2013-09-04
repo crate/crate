@@ -1,0 +1,20 @@
+apply plugin: 'java'
+apply plugin: 'distribution'
+
+dependencies {
+    compile project(path: ':sql')
+    testCompile project(':testing')
+}
+
+configurations {
+    all*.exclude group: 'org.elasticsearch'
+    all*.exclude group: 'com.akiban'
+    all*.exclude group: 'org.apache.lucene'
+}
+
+
+
+jar {
+    baseName 'crate-client'
+}
+
