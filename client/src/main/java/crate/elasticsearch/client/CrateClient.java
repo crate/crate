@@ -49,7 +49,6 @@ public class CrateClient {
 
         ModulesBuilder modules = new ModulesBuilder();
         modules.add(new CrateClientModule());
-        //modules.add(new SQLModule(settings));
         modules.add(new Version.Module(version));
 
         modules.add(new SettingsModule(this.settings));
@@ -74,8 +73,8 @@ public class CrateClient {
             Integer port = 9300;
             if (parts.length == 2) {
                 port = Integer.parseInt(parts[1]);
-                internalClient.addTransportAddress(new InetSocketTransportAddress(host, port));
             }
+            internalClient.addTransportAddress(new InetSocketTransportAddress(host, port));
         }
     }
 
