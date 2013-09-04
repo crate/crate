@@ -58,14 +58,25 @@ public class SQLResponse extends ActionResponse implements ToXContent {
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         cols = in.readStringArray();
-        rows = (Object [][]) in.readGenericValue();
+        int numRows = in.readInt();
+        rows = new Object[numRows][cols.length];
+        for (int i = 0; i < numRows; i++) {
+            for (int j = 0; j < cols.length; j++) {
+                rows[i][j] = in.readGenericValue();
+            }
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeStringArray(cols);
-        out.writeGenericValue(rows);
+        out.writeInt(rows.length);
+        for (int i = 0; i < rows.length ; i++) {
+            for (int j = 0; j < cols.length; j++) {
+                out.writeGenericValue(rows[i][j]);
+            }
+        }
     }
 
     @Override
