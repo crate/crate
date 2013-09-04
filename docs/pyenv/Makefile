@@ -1,8 +1,6 @@
 SHELL = /bin/sh
-# use python2 if it exists, otherwise assume that python is a python2
-# sphinx doesn't work with python3 yet.
-# see http://www.python.org/dev/peps/pep-0394/
-PYTHON := $(shell (which python2 &> /dev/null && which python2 || which python))
+# find a python2.7 version, first look in /opt/python-2.7, then check for python2 in $PATH and if that fails use python in $PATH
+PYTHON := $(shell (test -f /opt/python-2.7/bin/python && echo /opt/python-2.7/bin/python || (which python2 &> /dev/null && which python2 || which python)))
 
 bin/sphinx-build: bin/python
 	./bin/pip install -r requirements.txt
