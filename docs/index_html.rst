@@ -21,4 +21,5 @@ Contents
    blob
    crate-plugins
    3rd-party-plugins
+   clients
 
