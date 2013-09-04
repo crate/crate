@@ -1,1 +1,9 @@
-include 'es', 'testing', 'inout', 'blob', 'elasticsearch-crate-plugin', 'sql', 'docs', 'app'
+include 'es',
+        'testing',
+        'inout',
+        'blob',
+        'elasticsearch-crate-plugin',
+        'sql',
+        'docs',
+        'app',
+        'client'
