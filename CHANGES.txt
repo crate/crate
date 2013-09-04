@@ -2,6 +2,11 @@
 Changes for Crate
 =================
 
+unreleased
+==========
+
+ - added java client library in client project
+
 2013/09/04 0.10.1
 =================
 
