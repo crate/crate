@@ -2,8 +2,12 @@
 Changes for Crate
 =================
 
-Unreleased
-==========
+2013/09/03 0.10.0
+=================
+
+ - blob support is now included
+
+ - sql response format changed
 
  - use crate fork for elasticsearch dependency
 
@@ -12,6 +16,9 @@ Unreleased
  - integrate plugins from submodules to internal folders
 
  - removed timefacts plugin since it is not 0.90.3 compatible
+
+ NOTE:
+    this update makes crate incompatible with other elasticsearch-plugins
 
 2013/08/08 0.9.2
 ================

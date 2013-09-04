@@ -1,1 +1,0 @@
-.. include:: ../../elasticsearch-inout-plugin/README.rst

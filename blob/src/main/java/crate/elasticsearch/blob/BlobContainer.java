@@ -1,0 +1,154 @@
+package crate.elasticsearch.blob;
+
+import crate.elasticsearch.blob.exceptions.DigestNotFoundException;
+import crate.elasticsearch.common.Hex;
+import org.elasticsearch.ElasticSearchIllegalStateException;
+import org.elasticsearch.common.UUID;
+import org.elasticsearch.common.io.FileSystemUtils;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
+import java.io.RandomAccessFile;
+import java.util.ArrayList;
+import java.util.List;
+
+public class BlobContainer {
+
+    private final ESLogger logger = Loggers.getLogger(getClass());
+
+    public static final String[] SUB_DIRS = new String[256];
+
+    public static final byte[] PREFIXES = new byte[256];
+
+    private final File[] subDirs = new File[256];
+
+    static {
+        for (int i = 0; i < 256; i++) {
+            SUB_DIRS[i] = String.format("%02x", i & 0xFFFFF);
+            PREFIXES[i] = (byte)i;
+        }
+    }
+
+    private final File baseDirectory;
+    private final File tmpDirectory;
+    private final File varDirectory;
+
+    public BlobContainer(File baseDirectory) {
+        this.baseDirectory = baseDirectory;
+        this.tmpDirectory = new File(baseDirectory, "tmp");
+        this.varDirectory = new File(baseDirectory, "var");
+        FileSystemUtils.mkdirs(this.varDirectory);
+        FileSystemUtils.mkdirs(this.tmpDirectory);
+
+        createSubDirectories(this.varDirectory);
+    }
+
+    /**
+     * All files are saved into a sub-folder
+     * that is named after the first two characters of the file's sha1 hash
+     * pre create these folders so that a .exists() check can be saved on each put request.
+     *
+     * @param parentDir
+     */
+    private void createSubDirectories(File parentDir) {
+        for (int i = 0; i < SUB_DIRS.length; i++) {
+            subDirs[i] = new File(parentDir, SUB_DIRS[i]);
+            subDirs[i].mkdir();
+        }
+    }
+
+    public interface FileVisitor {
+
+        public boolean visit(File file);
+
+    }
+
+    public void walkFiles(FilenameFilter filter, FileVisitor visitor) {
+        for (File dir : subDirs) {
+            for (File file : dir.listFiles(filter)) {
+                if (!visitor.visit(file)) {
+                    return;
+                }
+            }
+        }
+    }
+
+    /**
+     * get all digests in a subfolder
+     * the digests are returned as byte[][] instead as String[] to save overhead in the BlobRecovery
+     *
+     * incomplete files leftover from a previous recovery are deleted.
+     *
+     * @param prefix the subfolder for which to get the digests
+     * @return byte array containing the digests (digest = byte[20])
+     */
+    public byte[][] cleanAndReturnDigests(byte prefix) {
+        int index = prefix & 0xFF;  // byte is signed and may be negative, convert to int to get correct index
+        String[] names = cleanDigests(subDirs[index].list(), index);
+        byte[][] digests = new byte[names.length][];
+        for(int i = 0; i < names.length; i ++){
+            try {
+                digests[i] = Hex.decodeHex(names[i]);
+            } catch (ElasticSearchIllegalStateException ex) {
+                logger.error("Can't convert string {} to byte array", names[i]);
+                throw ex;
+            }
+        }
+        return digests;
+    }
+
+    /**
+     * delete all digests that have a .X suffix.
+     * they are leftover files from a previous recovery that was interrupted
+     */
+    private String[] cleanDigests(String[] names, int index) {
+        List<String> newNames = new ArrayList<String>(names.length);
+        for (int nameIdx = 0; nameIdx < names.length; nameIdx++) {
+            if (names[nameIdx].contains(".")) {
+                if (!new File(subDirs[index], names[nameIdx]).delete()) {
+                    logger.error("Could not delete {}/{}", subDirs[index], names[nameIdx]);
+                }
+            } else {
+                newNames.add(names[nameIdx]);
+            }
+        }
+
+        return newNames.toArray(new String[newNames.size()]);
+    }
+
+    public File getBaseDirectory() {
+        return baseDirectory;
+    }
+
+    public File getTmpDirectory() {
+        return tmpDirectory;
+    }
+
+    public File getVarDirectory() {
+        return varDirectory;
+    }
+
+    public File getFile(String digest) {
+        return new File(getVarDirectory(), digest.substring(0, 2) + File.separator + digest);
+    }
+
+    public boolean exists(String digest) {
+        return getFile(digest).exists();
+    }
+
+    public DigestBlob createBlob(String digest, UUID transferId) {
+        // TODO: check if exists already
+        return new DigestBlob(this, digest, transferId);
+    }
+
+    public RandomAccessFile getRandomAccessFile(String digest) {
+        try {
+            return new RandomAccessFile(getFile(digest), "r");
+        } catch (FileNotFoundException e) {
+            throw new DigestNotFoundException(digest);
+        }
+    }
+}

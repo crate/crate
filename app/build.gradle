@@ -34,17 +34,26 @@ dependencies {
     compile project(':sql')
     compile project(':elasticsearch-crate-plugin')
     compile project(':inout')
-    compile project(':crate-blob-plugin')
+    compile project(':blob')
 }
 
 installDist.dependsOn(jar, ":docs:sphinx")
 
 def docsDir = project(":docs").projectDir
+def rootDir = project.parent.projectDir
+
+def versionFile = new File(project(":elasticsearch-crate-plugin").projectDir, "crate-admin/dist/version.json")
+versionFile.text = '{"version": {"crate": "' + project.parent.version + '"}}'
 
 distributions {
     main {
         baseName = 'crate'
         contents {
+            into("") {
+                from "$rootDir"
+                include 'NOTICE'
+                include 'CHANGES.txt'
+            }
             into("docs") {
                 from "${docsDir}/out/text"
                 include '**/*.txt'
@@ -59,6 +68,7 @@ distributions {
             }
             into('plugins/crate-admin/_site'){
                 from new File(project(":elasticsearch-crate-plugin").projectDir, 'crate-admin/dist')
+                from versionFile
             }
             into('plugins') {
                 from 'plugins'
