@@ -3,6 +3,8 @@ export PYTHONPATH := $(PYTHONPATH):$(shell pwd)/crate-python/tmp/src
 
 VERSION = 0.0.1
 
+build: prepare
+
 download:
 	curl --retry 3 -sSO -n https://download.lovelysystems.com/eggs/lovely/crate-$(VERSION).tar.gz
 
