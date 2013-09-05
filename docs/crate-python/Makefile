@@ -5,8 +5,6 @@ VERSION = 0.0.2
 
 build: prepare
 
-build: prepare
-
 download:
 	curl --retry 3 -sSO -n https://download.lovelysystems.com/eggs/lovely/crate-$(VERSION).tar.gz
 
