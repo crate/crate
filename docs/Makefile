@@ -2,6 +2,8 @@ SHELL = /bin/sh
 
 VERSION := $(shell ls -1 ../app/build/distributions/crate*.tar.gz|sort|tail -n1 |grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+')
 
+export PYTHONPATH := $(PYTHONPATH):$(shell pwd)/crate-python/tmp/src
+
 build: out/html out/text
 
 out/html: pyenv crate-python out
