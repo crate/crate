@@ -1,7 +1,7 @@
 allprojects {
     apply plugin: 'idea'
     group = 'crate'
-    version = '0.10.1'
+    version = '0.10.2'
     repositories {
         mavenCentral()
     }
