@@ -2,7 +2,6 @@
 Client Libraries
 ================
 
-
 Crate java client
 ===================
 

@@ -33,10 +33,8 @@ test: pyenv tmp/crate
 	./pyenv/bin/zope-testrunner -v --auto-color --path=src
 
 
-crate-python:
+crate-python: pyenv
 	$(MAKE) -C crate-python
-	./pyenv/bin/sphinx-apidoc -s txt -o crate-python crate-python/tmp/src
-
 
 
 .PHONY: build pyenv clean test crate-python
