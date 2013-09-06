@@ -12,7 +12,7 @@ Usage
 
 A minimal example is just a few lines of code::
 
-    import crate.elasticsearch.client.CrateClient;
+    import org.cratedb.client.CrateClient;
 
     CrateClient client = new CrateClient("server1.crate.org:9300", "server2.crate.org:9300");
     SQLResponse r = client.sql("select firstName, lastName from users").actionGet();
