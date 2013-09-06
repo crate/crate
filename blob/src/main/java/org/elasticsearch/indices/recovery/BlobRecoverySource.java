@@ -21,9 +21,9 @@ package org.elasticsearch.indices.recovery;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import crate.elasticsearch.blob.BlobTransferTarget;
-import crate.elasticsearch.blob.recovery.BlobRecoveryHandler;
-import crate.elasticsearch.blob.v2.BlobIndices;
+import org.cratedb.blob.BlobTransferTarget;
+import org.cratedb.blob.recovery.BlobRecoveryHandler;
+import org.cratedb.blob.v2.BlobIndices;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.elasticsearch.ElasticSearchException;
