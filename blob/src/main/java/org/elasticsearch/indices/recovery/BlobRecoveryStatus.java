@@ -1,7 +1,6 @@
 package org.elasticsearch.indices.recovery;
 
-import crate.elasticsearch.blob.v2.BlobShard;
-import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.cratedb.blob.v2.BlobShard;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.ConcurrentMapLong;
 import org.elasticsearch.index.shard.ShardId;

@@ -125,7 +125,7 @@ task downloadPlugins << {
 processResources.dependsOn downloadPlugins
 
 task(runDebug, dependsOn: 'classes', type: JavaExec) {
-    main = 'crate.bootstrap.CrateF'
+    main = 'org.cratedb.bootstrap.CrateF'
     debug = true
     classpath = sourceSets.main.runtimeClasspath
 }

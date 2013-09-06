@@ -1,11 +1,10 @@
 package org.elasticsearch.indices.recovery;
 
-import crate.elasticsearch.blob.BlobWriteException;
-import crate.elasticsearch.blob.exceptions.IllegalBlobRecoveryStateException;
-import crate.elasticsearch.blob.v2.BlobShard;
-import crate.elasticsearch.common.Hex;
+import org.cratedb.blob.BlobWriteException;
+import org.cratedb.blob.exceptions.IllegalBlobRecoveryStateException;
+import org.cratedb.blob.v2.BlobShard;
+import org.cratedb.common.Hex;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -22,9 +21,6 @@ import org.elasticsearch.transport.*;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.RandomAccessFile;
-import java.util.ArrayList;
-import java.util.List;
 
 
 public class BlobRecoveryTarget extends AbstractComponent {
