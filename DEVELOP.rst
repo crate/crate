@@ -17,7 +17,7 @@ following command from within the crate repository::
 Build
 =====
 
-This project uses Gradle_ as build tool. It can be invoced by
+This project uses Gradle_ as build tool. It can be invoked by
 executing ``./gradlew``. The first time this command is executed it is
 bootstrapped automatically, therefore there is no need to install
 gradle on the system.
@@ -34,7 +34,7 @@ Building a tarball and a zip is done by gradle with the command::
 
  $ ./gradlew dist
 
-Resulting tarball and zip will reside in the folder
+The resulting tarball and zip will reside in the folder
 ``./app/build/distributions``.
 
 It is also possible to install the distribution locally by running::
