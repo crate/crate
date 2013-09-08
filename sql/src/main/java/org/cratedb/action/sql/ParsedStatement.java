@@ -4,6 +4,8 @@ import com.akiban.sql.StandardException;
 import com.akiban.sql.parser.SQLParser;
 import com.akiban.sql.parser.StatementNode;
 import org.cratedb.action.parser.QueryVisitor;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.collect.Tuple;
@@ -25,7 +27,7 @@ public class ParsedStatement {
 
     private final String stmt;
     private final SQLParser parser = new SQLParser();
-    private final StatementNode statementNode;
+    public final StatementNode statementNode;
     private final QueryVisitor visitor;
 
     public ParsedStatement(String stmt, NodeExecutionContext executionContext) throws
@@ -55,6 +57,24 @@ public class ParsedStatement {
         return request;
     }
 
+    public IndexRequest buildIndexRequest() throws StandardException {
+        IndexRequest request = new IndexRequest();
+        if (logger.isDebugEnabled()) {
+            builder.generator().usePrettyPrint();
+            try {
+                logger.info("converted sql to: " + builder.string());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        // TODO: eliminate hardcoded source type
+        request.type("default");
+
+        request.index(indices.toArray(new String[indices.size()])[0]);
+        request.source(builder.bytes().toBytes());
+        return request;
+    }
+
     public String[] cols() {
         String[] cols = new String[outputFields.size()];
         for (int i = 0; i < outputFields.size(); i++) {
@@ -79,6 +99,13 @@ public class ParsedStatement {
         SQLResponse response = new SQLResponse();
         response.cols(cols());
         response.rows(rows);
+        return response;
+    }
+
+    public SQLResponse buildResponse(IndexResponse indexResponse) {
+
+        SQLResponse response = new SQLResponse();
+        response.cols(cols());
         return response;
     }
 }

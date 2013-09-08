@@ -4,6 +4,7 @@ import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
+import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -343,6 +344,40 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 "select i from test where i > 10");
         assertEquals(1, response.rows().length);
         assertEquals(20, response.rows()[0][0]);
+    }
+
+
+    @Test
+    public void testInsertWithColumnNames() throws Exception {
+        prepareCreate("test")
+                .addMapping("default",
+                        "firstName", "type=string,store=true,index=not_analyzed",
+                        "lastName", "type=string,store=true,index=not_analyzed")
+                .execute().actionGet();
+
+        execute("insert into test (\"firstName\", \"lastName\") values(\"hoschi\", \"galoschi\")");
+        refresh();
+
+        // NOTE: WHERE clause it not working here, seems like a SELECT stmt bug!!
+        //execute("select * from test where firstName = 'hoschi'");
+        // So use select without where for now
+        execute("select * from test");
+
+        assertEquals(1, response.rows().length);
+        assertEquals("hoschi", response.rows()[0][0]);
+        assertEquals("galoschi", response.rows()[0][1]);
+    }
+
+    @Test(expected = UncategorizedExecutionException.class)
+    public void testInsertWithoutColumnNamesException() throws Exception {
+        prepareCreate("test")
+                .addMapping("default",
+                        "firstName", "type=string,store=true,index=not_analyzed",
+                        "lastName", "type=string,store=true,index=not_analyzed")
+                .execute().actionGet();
+
+        // insert stmt without column names are not implemented yet
+        execute("insert into test values(\"hoschi\", \"galoschi\")");
     }
 
 }

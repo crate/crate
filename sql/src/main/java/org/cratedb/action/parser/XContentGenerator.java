@@ -110,6 +110,25 @@ public class XContentGenerator {
         }
     }
 
+    public void generate(InsertNode node) throws IOException, StandardException {
+        ResultColumnList resultColumns = node.getResultSetNode().getResultColumns();
+        ResultColumnList targetColumns = node.getTargetColumnList();
+
+        indices.add(node.getTargetTableName().getTableName());
+
+        // TODO: support stmt without column name declaration
+        // find out how to get column names from ES here
+        if (targetColumns == null) {
+            throw new SQLParseException("unsupported sql statement: INSERT without column names is not supported yet");
+        }
+
+        for (ResultColumn resultColumn : resultColumns) {
+            jsonBuilder.field(targetColumns.get(resultColumns.indexOf(resultColumn)).getName(), resultColumn.getExpression().getColumnName());
+        }
+
+        System.out.println("generate InsertNode json string: " + jsonBuilder.string());
+    }
+
     private void generate(SelectNode node) throws IOException, StandardException {
         jsonBuilder.startObject("query");
         generate(node.getFromList());
