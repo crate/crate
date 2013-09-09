@@ -17,6 +17,7 @@ import org.jboss.netty.util.CharsetUtil;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.channels.ClosedChannelException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -86,7 +87,15 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
 
             digestBlob = null;
             HttpRequest request = (HttpRequest) msg;
-            URI uri = new URI(request.getUri());
+            URI uri;
+            try {
+                uri = new URI(request.getUri());
+            } catch (URISyntaxException ex) {
+                // e.g. url like "localhost:9200//" throws exception
+                // sendUpstream so that regular ES status is returned
+                ctx.sendUpstream(e);
+                return;
+            }
 
             Matcher matcher = pattern.matcher(uri.getPath());
             if (!matcher.matches()){
