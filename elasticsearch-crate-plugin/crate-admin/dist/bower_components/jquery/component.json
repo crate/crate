@@ -9,13 +9,5 @@
   "scripts": [
     "jquery.js"
   ],
-  "license": "MIT",
-  "gitHead": "0e94233e6a4ab678d8fc04312241b2f840717b0c",
-  "readme": "jQuery Component\n================\n\nShim repository for jQuery.\n",
-  "readmeFilename": "README.md",
-  "_id": "jquery@1.9.1",
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/components/jquery.git"
-  }
+  "license": "MIT"
 }

@@ -23,11 +23,8 @@ angular.module('crateAdminApp')
             $scope.error.hide = true;
 
             $scope.resultHeaders = [];
-            for (var i = 0; i < 1; i++) {
-                for (var property in data.rows[i]) {
-                    $scope.resultHeaders.push(property);
-                }
-                $scope.resultHeaders.sort();
+            for (var col in data.cols) {
+                $scope.resultHeaders.push(data.cols[col]);
             }
 
             $scope.result = data;
