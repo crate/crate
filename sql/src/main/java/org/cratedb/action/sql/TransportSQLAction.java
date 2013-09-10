@@ -55,7 +55,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         ParsedStatement stmt;
         SearchRequest searchRequest;
         try {
-            stmt = new ParsedStatement(request.stmt(), executionContext);
+            stmt = new ParsedStatement(request.stmt(), request.args(), executionContext);
             searchRequest = stmt.buildSearchRequest();
         } catch (Exception e) {
             listener.onFailure(e);

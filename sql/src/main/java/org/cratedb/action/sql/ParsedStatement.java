@@ -28,11 +28,11 @@ public class ParsedStatement {
     private final StatementNode statementNode;
     private final QueryVisitor visitor;
 
-    public ParsedStatement(String stmt, NodeExecutionContext executionContext) throws
+    public ParsedStatement(String stmt, Object[] args, NodeExecutionContext executionContext) throws
             StandardException {
         this.stmt = stmt;
         statementNode = parser.parseStatement(stmt);
-        visitor = new QueryVisitor(executionContext);
+        visitor = new QueryVisitor(executionContext, args);
         statementNode.accept(visitor);
         builder = visitor.getXContentBuilder();
         indices = visitor.getIndices();

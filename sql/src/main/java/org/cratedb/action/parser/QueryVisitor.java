@@ -21,7 +21,12 @@ public class QueryVisitor implements Visitor {
     private boolean stopTraverse;
 
     public QueryVisitor(NodeExecutionContext executionContext) {
-        generator = new XContentGenerator(executionContext);
+        generator = new XContentGenerator(executionContext, new Object[0]);
+        stopTraverse = false;
+    }
+
+    public QueryVisitor(NodeExecutionContext executionContext, Object[] args) {
+        generator = new XContentGenerator(executionContext, args);
         stopTraverse = false;
     }
 
