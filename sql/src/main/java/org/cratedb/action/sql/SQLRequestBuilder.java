@@ -31,6 +31,7 @@ public class SQLRequestBuilder extends ActionRequestBuilder<SQLRequest, SQLRespo
         parser = new SQLXContentSourceParser(context);
         parser.parseSource(source);
         request.stmt(context.stmt());
+        request.args(context.args());
         return this;
     }
 

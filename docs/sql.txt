@@ -162,3 +162,33 @@ the corresponding format should be used for a comparison. Otherwise
 the operation may fail.
 
 
+SQL Parameter Substitution
+==========================
+
+Usually it is required to use values from program variables inside the SQL
+statement. The CRATE `_sql` endpoint provides support for this use-case.
+
+The SQL statement has to be changed to use placeholders where the values should
+be inserted. Placeholders can either bei numbered (in the form of `$1`, `$2`,
+etc.) or unnumbered using a question mark `?`.
+
+The placeholders will then be substituted with values from an array that has to
+be provided in the JSON body of the request under the `"args"` key::
+
+    sh$ curl -sSXPOST 'localhost:9200/_sql?pretty' -d@- <<- EOF
+    ... {"stmt":
+    ...     "select date,position from locations
+    ...     where date <= \$1 and position < \$2 order by position",
+    ...  "args": ["1979-10-12", 3]
+    ... }
+    ... EOF
+    {
+      "cols" : [ "date", "position" ],
+      "rows" : [ [ "1979-10-12T00:00:00.000Z", 1 ],
+                 [ "1979-10-12T00:00:00.000Z", 2 ] ]
+    }
+
+.. note::
+
+    In this example the placeholders start with an backslash due to shell
+    escaping.
