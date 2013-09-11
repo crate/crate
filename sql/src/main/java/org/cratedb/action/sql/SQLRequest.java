@@ -34,6 +34,10 @@ public class SQLRequest extends ActionRequest<SQLRequest> {
         return args;
     }
 
+    public void args(Object[] args) {
+        this.args = args;
+    }
+
     public SQLRequest stmt(String stmt){
         this.stmt = stmt;
         return this;

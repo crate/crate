@@ -88,8 +88,8 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("select first_name, last_name from test where last_name = $1", args);
         assertArrayEquals(new Object[]{"Youri", "Zoon"}, response.rows()[0]);
 
-        args = new Object[] {38};
-        execute("select first_name, last_name from test where age = $1", args);
+        args = new Object[] {38, "Zoon"};
+        execute("select first_name, last_name from test where age = $1 and last_name = $2", args);
         assertArrayEquals(new Object[]{"Youri", "Zoon"}, response.rows()[0]);
     }
 

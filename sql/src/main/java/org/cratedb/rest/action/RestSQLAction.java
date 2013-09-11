@@ -28,8 +28,6 @@ public class RestSQLAction extends BaseRestHandler {
     @Override
     public void handleRequest(final RestRequest request, final RestChannel channel) {
 
-        SearchRequest searchRequest;
-
         final SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client);
         try {
             if (request.hasContent()) {
