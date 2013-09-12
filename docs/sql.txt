@@ -11,8 +11,8 @@ information about SQL please refer to `Wikipedia SQL`_.
 SQL statements are sent to the '_sql' endpoint in json format,
 whereby the statement is sent as value associated to the key 'stmt".
 
-Query
-=====
+Select Query
+============
 
 The response to a query contains the column names of the result and
 the actual result rows as a two-dimensional array of values.
@@ -192,3 +192,24 @@ be provided in the JSON body of the request under the `"args"` key::
 
     In this example the placeholders start with an backslash due to shell
     escaping.
+
+
+Insert Query
+============
+
+Crate also supports SQL ``Insert`` queries using the ``_sql`` endpoint.
+Currently only 1 row per query is supported, support for inserting multiple rows will be available soon.
+Be aware the the column list at Crate is always ordered alphabetically and so must the insert values.
+
+Inserting 1 row::
+
+    sh$ curl -sSX POST 'localhost:9200/_sql?pretty=1' -d @- <<EOF
+    ... {
+    ... "stmt": "insert into locations values('2013-09-12T21:43:59.000Z', 'Blagulon Kappa is the planet to which the police are native.', 'Planet', 'Blagulon Kappa', 7)"
+    ... }
+    ... EOF
+    {
+      "cols" : [ ],
+      "rows" : [ ]
+    }
+

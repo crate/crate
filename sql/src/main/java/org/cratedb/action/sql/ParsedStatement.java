@@ -117,9 +117,11 @@ public class ParsedStatement {
     }
 
     public SQLResponse buildResponse(IndexResponse indexResponse) {
+        Object[][] rows = new Object[outputFields.size()][outputFields.size()];
 
         SQLResponse response = new SQLResponse();
         response.cols(cols());
+        response.rows(rows);
         return response;
     }
 }
