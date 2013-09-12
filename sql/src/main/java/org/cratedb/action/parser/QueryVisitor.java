@@ -59,8 +59,8 @@ public class QueryVisitor implements XContentVisitor {
     public Visitable visit(Visitable node) throws StandardException {
 
         /**
-         * only the CursorNode and InsertNode is interesting here.
-         * The Node can be used to traverse down the Tree as it contains the references needed.
+         * only the CursorNode is interesting here.
+         * The CursorNode can be used to traverse down the Tree as it contains the references needed.
          * This is done in the XContentGenerator.
          */
         QueryTreeNode treeNode = (QueryTreeNode)node;
@@ -68,11 +68,8 @@ public class QueryVisitor implements XContentVisitor {
             case NodeTypes.CURSOR_NODE:
                 stopTraverse = true;
                 return visit((CursorNode)node);
-            case NodeTypes.INSERT_NODE:
-                stopTraverse = true;
-                return visit((InsertNode)node);
             default:
-                throw new SQLParseException("First node wasn't a CURSOR_NODE or INSERT_NODE. Unsupported Statement");
+                throw new SQLParseException("First node wasn't a CURSOR_NODE. Unsupported Statement");
         }
     }
 
