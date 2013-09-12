@@ -40,6 +40,10 @@ public class NodeExecutionContext {
 
         }
 
+        public DocumentMapper mapper() {
+            return documentMapper;
+        }
+
         /**
          * returns all columns defined in the mapping as a sorted sequence
          * to be used in "*" selects.

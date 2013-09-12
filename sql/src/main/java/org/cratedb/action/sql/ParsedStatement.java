@@ -1,9 +1,12 @@
 package org.cratedb.action.sql;
 
 import com.akiban.sql.StandardException;
+import com.akiban.sql.parser.NodeTypes;
 import com.akiban.sql.parser.SQLParser;
 import com.akiban.sql.parser.StatementNode;
+import org.cratedb.action.parser.InsertVisitor;
 import org.cratedb.action.parser.QueryVisitor;
+import org.cratedb.action.parser.XContentVisitor;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
@@ -27,19 +30,30 @@ public class ParsedStatement {
 
     private final String stmt;
     private final SQLParser parser = new SQLParser();
-    public final StatementNode statementNode;
-    private final QueryVisitor visitor;
+    private final StatementNode statementNode;
+    private final XContentVisitor visitor;
 
     public ParsedStatement(String stmt, NodeExecutionContext executionContext) throws
             StandardException {
         this.stmt = stmt;
         statementNode = parser.parseStatement(stmt);
-        visitor = new QueryVisitor(executionContext);
+        switch (type()) {
+            case NodeTypes.INSERT_NODE:
+                visitor = new InsertVisitor(executionContext);
+                break;
+            default:
+                visitor = new QueryVisitor(executionContext);
+                break;
+        }
         statementNode.accept(visitor);
         builder = visitor.getXContentBuilder();
         indices = visitor.getIndices();
         outputFields = visitor.outputFields();
         sqlFields = new SQLFields(outputFields);
+    }
+
+    public int type() {
+        return statementNode.getNodeType();
     }
 
     public SearchRequest buildSearchRequest() throws StandardException {
@@ -67,10 +81,10 @@ public class ParsedStatement {
                 e.printStackTrace();
             }
         }
-        // TODO: eliminate hardcoded source type
+        // We only support 1 ES type per index, it's named: ``default``
         request.type("default");
 
-        request.index(indices.toArray(new String[indices.size()])[0]);
+        request.index(indices.get(0));
         request.source(builder.bytes().toBytes());
         return request;
     }

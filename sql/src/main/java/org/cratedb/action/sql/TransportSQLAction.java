@@ -85,7 +85,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         IndexRequest indexRequest;
         try {
             stmt = new ParsedStatement(request.stmt(), executionContext);
-            switch (stmt.statementNode.getNodeType()) {
+            switch (stmt.type()) {
                 case NodeTypes.INSERT_NODE:
                     indexRequest = stmt.buildIndexRequest();
                     transportIndexAction.execute(indexRequest, new IndexResponseListener(stmt, listener));
