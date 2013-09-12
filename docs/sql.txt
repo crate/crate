@@ -219,4 +219,4 @@ Inserting a row::
 
 .. note::
 
-    Inserting multiple rows at once (aka. bulk inserts) are not supported yet.
+    Inserting multiple rows at once (aka. bulk inserts) is not supported yet.
