@@ -197,11 +197,15 @@ be provided in the JSON body of the request under the `"args"` key::
 Insert Query
 ============
 
-Crate also supports SQL ``Insert`` queries using the ``_sql`` endpoint.
-Currently only 1 row per query is supported, support for inserting multiple rows will be available soon.
-Be aware the the column list at Crate is always ordered alphabetically and so must the insert values.
+Crate also supports SQL ``INSERT`` queries using the ``_sql`` endpoint, the request data structure is the like querying
+an `Select Query`_ .
 
-Inserting 1 row::
+.. note::
+
+    Be aware that the column list at Crate is always ordered alphabetically by column name and so must the inserted
+    column values.
+
+Inserting a row::
 
     sh$ curl -sSX POST 'localhost:9200/_sql?pretty=1' -d @- <<EOF
     ... {
@@ -213,3 +217,6 @@ Inserting 1 row::
       "rows" : [ ]
     }
 
+.. note::
+
+    Inserting multiple rows at once (aka. bulk inserts) are not supported yet.
