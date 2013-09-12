@@ -19,6 +19,11 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         return 1;
     }
 
+    private void execute(String stmt, Object[] args) {
+        request = new SQLRequest(stmt, args);
+        response = client().execute(SQLAction.INSTANCE, new SQLRequest(stmt, args)).actionGet();
+    }
+
     private void execute(String stmt) {
         request = new SQLRequest(stmt);
         response = client().execute(SQLAction.INSTANCE, new SQLRequest(stmt)).actionGet();
@@ -61,6 +66,31 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 response.cols());
         assertEquals(1, response.rows().length);
         assertArrayEquals(new Object[]{1L, "Youri", "Zoon", "id1"}, response.rows()[0]);
+    }
+
+    @Test
+    public void testSelectWithParams() throws Exception {
+        prepareCreate("test")
+            .addMapping("default",
+                "first_name", "type=string,index=not_analyzed",
+                "last_name", "type=string,index=not_analyzed",
+                "age", "type=double,index=not_analyzed")
+            .execute().actionGet();
+        client().prepareIndex("test", "default", "id1").setRefresh(true)
+            .setSource("{\"first_name\":\"Youri\",\"last_name\":\"Zoon\", \"age\": 38}")
+            .execute().actionGet();
+
+        Object[] args = new Object[] {"id1"};
+        execute("select first_name, last_name from test where \"_id\" = $1", args);
+        assertArrayEquals(new Object[]{"Youri", "Zoon"}, response.rows()[0]);
+
+        args = new Object[] {"Zoon"};
+        execute("select first_name, last_name from test where last_name = $1", args);
+        assertArrayEquals(new Object[]{"Youri", "Zoon"}, response.rows()[0]);
+
+        args = new Object[] {38, "Zoon"};
+        execute("select first_name, last_name from test where age = $1 and last_name = $2", args);
+        assertArrayEquals(new Object[]{"Youri", "Zoon"}, response.rows()[0]);
     }
 
     @Test

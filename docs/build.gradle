@@ -2,15 +2,37 @@
 def textOut = file("$projectDir/out/text")
 
 
-task sphinx << {
-    exec() {
-        executable = "make"
+task bootstrap (type:Exec) {
+    inputs.file "$projectDir/bootstrap.py"
+    outputs.file "$projectDir/bin/buildout"
+
+    commandLine 'python2.7', "$projectDir/bootstrap.py"
+}
+
+task unpackDistTar << {
+    copy {
+        includeEmptyDirs = false
+        from(tarTree(project(':app').distTar.archivePath)) {
+            eachFile { details ->
+                details.path =
+                    details.path.substring(details.relativePath.segments[0].length())
+            }
+        }
+        into "$projectDir/tmp/crate/"
     }
 }
 
-task itest (type:Exec, dependsOn: ':app:distTar'){
+task buildout (type:Exec, dependsOn: bootstrap) {
+    commandLine "$projectDir/bin/buildout", '-N'
+}
 
-    commandLine 'make', 'clean', 'test'
+task sphinx (type: Exec, dependsOn: buildout) {
+    commandLine "$projectDir/bin/sphinx"
+}
+
+task itest (type:Exec, dependsOn: unpackDistTar){
+
+    executable = "$projectDir/bin/test"
 }
 
 task clean << {

@@ -33,7 +33,7 @@ public class ParsedStatement {
     private final StatementNode statementNode;
     private final XContentVisitor visitor;
 
-    public ParsedStatement(String stmt, NodeExecutionContext executionContext) throws
+    public ParsedStatement(String stmt, Object[] args, NodeExecutionContext executionContext) throws
             StandardException {
         this.stmt = stmt;
         statementNode = parser.parseStatement(stmt);
@@ -42,7 +42,7 @@ public class ParsedStatement {
                 visitor = new InsertVisitor(executionContext);
                 break;
             default:
-                visitor = new QueryVisitor(executionContext);
+                visitor = new QueryVisitor(executionContext, args);
                 break;
         }
         statementNode.accept(visitor);

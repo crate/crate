@@ -43,6 +43,7 @@ public class XContentGenerator {
     private DocumentMapper documentMapper;
     private NodeExecutionContext.TableExecutionContext tableContext;
     private boolean requireVersion = false;
+    private Object[] params;
 
 
     /**
@@ -76,8 +77,8 @@ public class XContentGenerator {
         put(SQLOperatorTypes.LESS_EQUALS, "lte");
     }};
 
-    @Inject
-    public XContentGenerator(NodeExecutionContext executionContext) {
+    public XContentGenerator(NodeExecutionContext executionContext, Object[] args) {
+        this.params = args;
         this.executionContext = executionContext;
         indices = new ArrayList<String>();
         try {
@@ -221,6 +222,30 @@ public class XContentGenerator {
         }
     }
 
+    private void generate(Integer operatorType, ColumnReference left, Object right)
+        throws IOException, StandardException {
+
+        if (operatorType == SQLOperatorTypes.EQUALS) {
+            jsonBuilder.startObject("term")
+                .field(left.getColumnName(), right)
+                .endObject();
+        } else if (rangeQueryOperatorMap.containsKey(operatorType)) {
+            jsonBuilder.startObject("range")
+                .startObject(left.getColumnName())
+                .field(rangeQueryOperatorMap.get(operatorType), right)
+                .endObject()
+                .endObject();
+        } else if (operatorType == SQLOperatorTypes.NOT_EQUALS) {
+            jsonBuilder.startObject("bool")
+                .startObject("must_not")
+                .startObject("term").field(left.getColumnName(), right).endObject()
+                .endObject()
+                .endObject();
+        } else {
+            throw new SQLParseException("Unhandled operator: " + operatorType.toString());
+        }
+    }
+
     private void generate(Integer operatorType, ColumnReference left, ConstantNode right)
             throws IOException, StandardException {
         // if an operator is added here the swapOperator method should also be extended.
@@ -286,6 +311,9 @@ public class XContentGenerator {
         } else if ((left instanceof NumericConstantNode || left instanceof CharConstantNode)
                 && right.getNodeType() == NodeTypes.COLUMN_REFERENCE) {
             generate(swapOperator(operatorType), (ColumnReference) right, (ConstantNode) left);
+            return;
+        } else if (left.getNodeType() == NodeTypes.COLUMN_REFERENCE && (right instanceof ParameterNode)) {
+            generate(operatorType, (ColumnReference)left, params[((ParameterNode) right).getParameterNumber()]);
             return;
         }
 

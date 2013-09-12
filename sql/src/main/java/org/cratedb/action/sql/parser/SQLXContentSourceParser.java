@@ -20,11 +20,13 @@ public class SQLXContentSourceParser {
 
     static final class Fields {
         static final String STMT = "stmt";
+        static final String ARGS = "args";
     }
 
     private static final ImmutableMap<String, SQLParseElement> elementParsers = ImmutableMap.of(
-            Fields.STMT, (SQLParseElement) new SQLStmtParseElement()
-                                                                                               );
+            Fields.STMT, (SQLParseElement) new SQLStmtParseElement(),
+            Fields.ARGS, (SQLParseElement) new SQLArgsParseElement()
+    );
 
     public SQLXContentSourceParser(SQLXContentSourceContext context) {
         this.context = context;
