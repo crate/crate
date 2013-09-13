@@ -89,6 +89,12 @@ public class XContentGenerator {
 
     }
 
+    public void generate(DeleteNode node) throws IOException, StandardException {
+        SelectNode selectNode = (SelectNode)node.getResultSetNode();
+        generate(selectNode.getFromList());
+        whereClause(selectNode.getWhereClause());
+    }
+
     public void generate(CursorNode node) throws IOException, StandardException {
 
         if (node.statementToString().equals("SELECT")) {
@@ -111,29 +117,19 @@ public class XContentGenerator {
         }
     }
 
+    private void whereClause(ValueNode node) throws IOException, StandardException {
+        if (node != null) {
+            generate(node);
+        } else {
+            jsonBuilder.field("match_all", new HashMap());
+        }
+    }
+
     private void generate(SelectNode node) throws IOException, StandardException {
         jsonBuilder.startObject("query");
         generate(node.getFromList());
 
-        ValueNode whereClause = node.getWhereClause();
-        if (whereClause != null) {
-            switch (whereClause.getNodeType()) {
-                case NodeTypes.BINARY_EQUALS_OPERATOR_NODE:
-                    generate((BinaryRelationalOperatorNode) whereClause);
-                    break;
-                case NodeTypes.AND_NODE:
-                    generate((AndNode) whereClause);
-                    break;
-                case NodeTypes.OR_NODE:
-                    generate((OrNode) whereClause);
-                    break;
-                default:
-                    generate(whereClause);
-                    break;
-            }
-        } else {
-            jsonBuilder.field("match_all", new HashMap());
-        }
+        whereClause(node.getWhereClause());
         jsonBuilder.endObject();
 
         generate(node.getResultColumns());
@@ -180,6 +176,9 @@ public class XContentGenerator {
     private void generate(ResultColumnList columnList) throws IOException {
         Set<String> fields = new LinkedHashSet<String>();
 
+        if (columnList == null) {
+            return;
+        }
         for (ResultColumn column : columnList) {
             if (column instanceof AllResultColumn) {
                 for (String name : tableContext.allCols()) {
