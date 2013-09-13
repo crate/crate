@@ -35,7 +35,8 @@ In this guide we want to create a database for quotes. Let's create
 the index and the ``quote`` type, which will contain information about
 the author of the quote and the quote itself::
 
-    sh$ curl -sSX PUT 'localhost:9200/quotes?pretty' -d '{
+    sh$ curl -sSX PUT 'localhost:9200/quotes?pretty' -d @- <<EOF
+    ... {
     ... "mappings" : {
     ...  "default": {
     ...   "properties": {
@@ -45,7 +46,8 @@ the author of the quote and the quote itself::
     ...     },
     ...     "content": {
     ...      "type": "string"
-    ... }}}}}'
+    ... }}}}}
+    ... EOF
     {
       "ok" : true,
       "acknowledged" : true
@@ -53,78 +55,79 @@ the author of the quote and the quote itself::
 
 Now we can add the first quote to the database::
 
-    sh$ curl -sSX PUT 'localhost:9200/quotes/default/1?pretty=1&refresh=true' -d '{
-    ...  "author" : "Me",
-    ...  "content" : "Hello Crate!"
-    ... }'
+    sh$ curl -sSX POST 'localhost:9200/_sql?pretty=1&refresh=true' -d @- <<EOF
+    ... {
+    ... "stmt": "insert into quotes values('Me', 'Hello Crate!')"
+    ... }
+    ... EOF
     {
-      "ok" : true,
-      "_index" : "quotes",
-      "_type" : "default",
-      "_id" : "1",
-      "_version" : 1
+      "cols" : [ ],
+      "rows" : [ ]
     }
 
-.. note::
+Refresh in order to make the result immediatly visible in subsequent queries::
 
- The ``refresh`` query parameter tells Crate to make the result
- immediatly visible in subsequent queries, which is needed for this
- demonstration. However - direct GETs like the one below are realtime
- and would not need a refresh.
+    sh$ curl -sSX POST 'localhost:9200/quotes/_refresh?pretty=1'
+    {
+      "ok" : true,
+      "_shards" : {
+        "total" : 10,
+        "successful" : 5,
+        "failed" : 0
+      }
+    }
+
 
 We can now view what we have just inserted like this::
 
-    sh$ curl -sSX GET 'localhost:9200/quotes/default/1?pretty=1'
+    sh$ curl -sSX POST 'localhost:9200/_sql?pretty=1' -d @- <<EOF
+    ... {
+    ... "stmt": "select author, content from quotes order by author"
+    ... }
+    ... EOF
     {
-      "_index" : "quotes",
-      "_type" : "default",
-      "_id" : "1",
-      "_version" : 1,
-      "exists" : true, "_source" : {
-     "author" : "Me",
-     "content" : "Hello Crate!"
-    }
+      "cols" : [ "author", "content" ],
+      "rows" : [ [ "Me", "Hello Crate!" ] ]
     }
 
 Let's add another quote::
 
-    sh$ curl -sSX PUT 'localhost:9200/quotes/default/2?pretty=1&refresh=true' -d '{
-    ...  "author" : "Ford",
-    ...  "content" : "Don\u0027t panic... don\u0027t panic..."
-    ... }'
+    sh$ curl -sSX POST 'localhost:9200/_sql?pretty=1&refresh=true' -d @- <<EOF
+    ... {
+    ... "stmt": "insert into quotes values('Ford', 'Don''t panic... don''t panic...')"
+    ... }
+    ... EOF
     {
-      "ok" : true,
-      "_index" : "quotes",
-      "_type" : "default",
-      "_id" : "2",
-      "_version" : 1
+      "cols" : [ ],
+      "rows" : [ ]
     }
 
+Refresh again::
 
-
-To list all quotes we can use ordinary SQL_ queries::
-
-    sh$ curl -sSX POST 'localhost:9200/_sql?pretty=1' -d '{
-    ... "stmt": "select author, content from quotes order by author"
-    ... }'
+    sh$ curl -sSX POST 'localhost:9200/quotes/_refresh?pretty=1'
     {
-      "cols" : [ "author", "content" ],
-      "rows" : [ [ "Ford", "Don't panic... don't panic..." ], [ "Me", "Hello Crate!" ] ]
+      "ok" : true,
+      "_shards" : {
+        "total" : 10,
+        "successful" : 5,
+        "failed" : 0
+      }
     }
 
 Looking up only Ford's quotes::
 
-    sh$ curl -sSX POST 'localhost:9200/_sql?pretty=1' -d '{
-    ... "stmt": "select content from quotes where author=\u0027Ford\u0027"
-    ... }'
+    sh$ curl -sSX POST 'localhost:9200/_sql?pretty=1' -d @- <<EOF
+    ... {
+    ... "stmt": "select content from quotes where author='Ford'"
+    ... }
+    ... EOF
     {
       "cols" : [ "content" ],
       "rows" : [ [ "Don't panic... don't panic..." ] ]
     }
 
+
 .. _Curl: http://curl.haxx.se/
-
-
 .. _SQL: https://en.wikipedia.org/wiki/SQL
 
 

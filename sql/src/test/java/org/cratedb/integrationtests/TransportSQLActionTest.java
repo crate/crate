@@ -375,4 +375,74 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(20, response.rows()[0][0]);
     }
 
+
+    @Test
+    public void testInsertWithColumnNames() throws Exception {
+//            ESLogger logger = Loggers.getLogger("org.elasticsearch.org.cratedb");
+//            logger.setLevel("DEBUG");
+        prepareCreate("test")
+                .addMapping("default",
+                        "firstName", "type=string,store=true,index=not_analyzed",
+                        "lastName", "type=string,store=true,index=not_analyzed")
+                .execute().actionGet();
+
+        execute("insert into test (\"firstName\", \"lastName\") values('Youri', 'Zoon')");
+        refresh();
+
+        execute("select * from test where \"firstName\" = 'Youri'");
+
+        assertEquals(1, response.rows().length);
+        assertEquals("Youri", response.rows()[0][0]);
+        assertEquals("Zoon", response.rows()[0][1]);
+    }
+
+    @Test
+    public void testInsertWithoutColumnNames() throws Exception {
+        prepareCreate("test")
+                .addMapping("default",
+                        "firstName", "type=string,store=true,index=not_analyzed",
+                        "lastName", "type=string,store=true,index=not_analyzed")
+                .execute().actionGet();
+
+        execute("insert into test values('Youri', 'Zoon')");
+        refresh();
+
+        execute("select * from test where \"firstName\" = 'Youri'");
+
+        assertEquals(1, response.rows().length);
+        assertEquals("Youri", response.rows()[0][0]);
+        assertEquals("Zoon", response.rows()[0][1]);
+    }
+
+    @Test
+    public void testInsertAllCoreDatatypes() throws Exception {
+        prepareCreate("test")
+                .addMapping("default",
+                        "boolean", "type=boolean",
+                        "datetime", "type=date",
+                        "double", "type=double",
+                        "float", "type=float",
+                        "integer", "type=integer",
+                        "long", "type=long",
+                        "short", "type=short",
+                        "string", "type=string,index=not_analyzed")
+                .execute().actionGet();
+
+        execute("insert into test values(true, '2013-09-10T21:51:43', 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775807, 32767, 'Youri')");
+        refresh();
+
+
+        execute("select * from test");
+
+        assertEquals(1, response.rows().length);
+        assertEquals(true, response.rows()[0][0]);
+        assertEquals(1378849903000L, response.rows()[0][1]);
+        assertEquals(1.79769313486231570e+308, response.rows()[0][2]);
+        assertEquals(3.402, response.rows()[0][3]);
+        assertEquals(2147483647, response.rows()[0][4]);
+        assertEquals(9223372036854775807L, response.rows()[0][5]);
+        assertEquals(32767, response.rows()[0][6]);
+        assertEquals("Youri", response.rows()[0][7]);
+    }
+
 }
