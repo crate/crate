@@ -1,7 +1,9 @@
 package org.cratedb.action.sql;
 
-import com.akiban.sql.parser.NodeTypes;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.bulk.TransportBulkAction;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.index.TransportIndexAction;
@@ -24,6 +26,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final TransportSearchAction transportSearchAction;
     private final TransportIndexAction transportIndexAction;
     private final TransportDeleteByQueryAction transportDeleteByQueryAction;
+    private final TransportBulkAction transportBulkAction;
 
     private final NodeExecutionContext executionContext;
 
@@ -33,13 +36,15 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             TransportService transportService,
             TransportSearchAction transportSearchAction,
             TransportDeleteByQueryAction transportDeleteByQueryAction,
-            TransportIndexAction transportIndexAction) {
+            TransportIndexAction transportIndexAction,
+            TransportBulkAction transportBulkAction) {
         super(settings, threadPool);
         this.executionContext = executionContext;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
         this.transportSearchAction = transportSearchAction;
         this.transportIndexAction = transportIndexAction;
         this.transportDeleteByQueryAction = transportDeleteByQueryAction;
+        this.transportBulkAction = transportBulkAction;
     }
 
     private class SearchResponseListener implements ActionListener<SearchResponse> {
@@ -105,6 +110,27 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
     }
 
+    private class BulkResponseListener implements ActionListener<BulkResponse> {
+
+        private final ActionListener<SQLResponse> delegate;
+        private final ParsedStatement stmt;
+
+        public BulkResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+            delegate = listener;
+            this.stmt = stmt;
+        }
+
+        @Override
+        public void onResponse(BulkResponse bulkResponse) {
+            delegate.onResponse(stmt.buildResponse(bulkResponse));
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            delegate.onFailure(e);
+        }
+    }
+
     @Override
     protected void doExecute(SQLRequest request, ActionListener<SQLResponse> listener) {
         System.out.println("doExecute: " + request);
@@ -115,13 +141,17 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         try {
             stmt = new ParsedStatement(request.stmt(), request.args(), executionContext);
             switch (stmt.type()) {
-                case NodeTypes.INSERT_NODE:
+                case ParsedStatement.INSERT_ACTION:
                     indexRequest = stmt.buildIndexRequest();
                     transportIndexAction.execute(indexRequest, new IndexResponseListener(stmt, listener));
                     break;
-                case NodeTypes.DELETE_NODE:
+                case ParsedStatement.DELETE_ACTION:
                     deleteRequest = stmt.buildDeleteRequest();
                     transportDeleteByQueryAction.execute(deleteRequest, new DeleteResponseListener(stmt, listener));
+                    break;
+                case ParsedStatement.BULK_ACTION:
+                    BulkRequest bulkRequest = stmt.buildBulkRequest();
+                    transportBulkAction.execute(bulkRequest, new BulkResponseListener(stmt, listener));
                     break;
                 default:
                     searchRequest = stmt.buildSearchRequest();

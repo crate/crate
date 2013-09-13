@@ -469,4 +469,20 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals("Youri", response.rows()[0][7]);
     }
 
+    @Test
+    public void testInsertMultipleRows() throws Exception {
+        prepareCreate("test")
+                .addMapping("default",
+                        "age", "type=integer",
+                        "name", "type=string,store=true,index=not_analyzed")
+                .execute().actionGet();
+
+        execute("insert into test values(32, 'Youri'), (42, 'Ruben')");
+        refresh();
+
+        execute("select * from test");
+
+        assertEquals(2, response.rows().length);
+    }
+
 }

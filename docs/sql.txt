@@ -218,9 +218,18 @@ Inserting a row::
       "rows" : [ ]
     }
 
-.. note::
+Inserting multiple rows at once (aka. bulk insert) can be done by defining multiple values for the ``INSERT`` statement::
 
-    Inserting multiple rows at once (aka. bulk inserts) is not supported yet.
+    sh$ curl -sSX POST 'localhost:9200/_sql?pretty=1' -d @- <<EOF
+    ... {
+    ... "stmt": "insert into locations values('2013-09-12T21:43:59.000Z', 'Blagulon Kappa is the planet to which the police are native.', 'Planet', 'Blagulon Kappa', 7),
+    ...          ('2013-09-13T116:43:59.000Z', 'Brontitall is a planet with a warm, rich atmosphere and no mountains.', 'Planet', 'Brontitall', 10)"
+    ... }
+    ... EOF
+    {
+      "cols" : [ ],
+      "rows" : [ ]
+    }
 
 Deleting data
 =============

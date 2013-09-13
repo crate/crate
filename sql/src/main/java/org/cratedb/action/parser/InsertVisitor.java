@@ -5,8 +5,11 @@ import com.akiban.sql.parser.*;
 import com.google.common.collect.Lists;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -26,6 +29,10 @@ public class InsertVisitor implements XContentVisitor {
     private NodeExecutionContext.TableExecutionContext tableContext;
     private List<String> columnNameList;
     private int columnIndex;
+    private int rowCount;
+    private int rowIndex;
+    private byte streamSeparator;
+    private ESLogger logger = Loggers.getLogger(InsertVisitor.class);
 
 
     private final List<Tuple<String, String>> outputFields;
@@ -34,12 +41,16 @@ public class InsertVisitor implements XContentVisitor {
         this.executionContext = nodeExecutionContext;
         indices = new ArrayList<String>();
         try {
-            jsonBuilder = XContentFactory.jsonBuilder().startObject();
-        } catch (IOException ex) {
+            jsonBuilder = XContentFactory.jsonBuilder();
+        } catch (IOException e) {
+            logger.error("Cannot create the jsonBuilder", e);
         }
         outputFields = new ArrayList<Tuple<String, String>>();
         columnIndex = 0;
         stopTraverse = false;
+        rowCount = 0;
+        rowIndex = -1;
+        streamSeparator = JsonXContent.jsonXContent.streamSeparator();
     }
 
     @Override
@@ -63,6 +74,10 @@ public class InsertVisitor implements XContentVisitor {
         switch (treeNode.getNodeType()) {
             case NodeTypes.INSERT_NODE:
                 return visit((InsertNode)node);
+            case NodeTypes.ROWS_RESULT_SET_NODE:
+                return visit((RowsResultSetNode)node);
+            case NodeTypes.ROW_RESULT_SET_NODE:
+                return visit((RowResultSetNode)node);
             case NodeTypes.RESULT_COLUMN:
                 return visit((ResultColumn)node);
             default:
@@ -79,11 +94,15 @@ public class InsertVisitor implements XContentVisitor {
     public boolean stopTraversal() {
         if (stopTraverse == true) {
             // Closing the XContent root object.
-            // Seems like it must not be done explicitly (will be done automatically somehow),
-            // but it feels more accurate to do so ;)
             try {
                 jsonBuilder.endObject();
+                if (rowCount > 0) {
+                    // Multiple rows detected, write required XContent stream separator
+                    jsonBuilder.flush();
+                    jsonBuilder.stream().write(streamSeparator);
+                }
             } catch (IOException e) {
+                logger.error("Error while writing json", e);
             }
         }
         return stopTraverse;
@@ -117,24 +136,99 @@ public class InsertVisitor implements XContentVisitor {
         return node;
     }
 
-    private Visitable visit(ResultColumn node) throws StandardException {
-        if (node.getExpression() instanceof ConstantNode) {
-            generate((ConstantNode)node.getExpression());
-        }
-        if (columnIndex == columnNameList.size()) {
-            stopTraverse = true;
+    private Visitable visit(RowsResultSetNode node) throws StandardException {
+        rowCount = node.getRows().size();
+
+        return node;
+    }
+
+    private Visitable visit(RowResultSetNode node) throws StandardException {
+        if (rowCount > 0) {
+            // Multiple rows detected, generate XContent usable for a BulkRequest
+            rowIndex++;
+            if (rowIndex > 0) {
+                // NOT first row node, close object from the first row, write new header and open another object for
+                // the next values
+                try {
+                    jsonBuilder = jsonBuilder.endObject();
+                    jsonBuilder.flush();
+                    jsonBuilder.stream().write(streamSeparator);
+                    generateBulkHeader();
+                    jsonBuilder = jsonBuilder.startObject();
+                } catch (IOException e) {
+                    logger.error("Error while writing json", e);
+                }
+            } else {
+                // first row node, generate the bulk header and open a object for the values
+                generateBulkHeader();
+                try {
+                    jsonBuilder.startObject();
+                } catch (IOException e) {
+                    logger.error("Error while writing json", e);
+                }
+            }
+        } else {
+            // No multiple rows, simple start an object usable for a IndexRequest
+            try {
+                jsonBuilder.startObject();
+            } catch (IOException e) {
+                logger.error("Error while writing json", e);
+            }
         }
         return node;
     }
 
-    private void generate(ConstantNode node) {
-        String name = columnNameList.get(columnIndex);
-        try {
-            jsonBuilder.field(name, tableContext.mapper().mappers().name(name).mapper().value(node.getValue()));
-        } catch (IOException ex) {
+
+    private Visitable visit(ResultColumn node) throws StandardException {
+        if (rowCount > 0 && rowIndex < 0) {
+            return node;
         }
-        columnIndex++;
+        if (node.getExpression() instanceof ConstantNode) {
+            String name = columnNameList.get(columnIndex);
+            generate((ConstantNode)node.getExpression(), name);
+
+            if (columnIndex == columnNameList.size()-1) {
+                // reset columnIndex
+                columnIndex = 0;
+                if (rowIndex == rowCount-1) {
+                    stopTraverse = true;
+                }
+            }
+
+            columnIndex++;
+        }
+        return node;
     }
 
+    private void generate(ConstantNode node, String columnName) {
+        try {
+            jsonBuilder.field(columnName,
+                    tableContext.mapper().mappers().name(columnName).mapper().value(node.getValue()));
+        } catch (IOException e) {
+            logger.error("Error while writing json", e);
+        }
+    }
+
+    private void generateBulkHeader() {
+        try {
+            jsonBuilder.startObject();
+            jsonBuilder.startObject("index");
+            jsonBuilder.field("_index", indices.get(0));
+            jsonBuilder.field("_type", "default");
+            jsonBuilder.endObject();
+            jsonBuilder.endObject();
+            jsonBuilder.flush();
+            jsonBuilder.stream().write(streamSeparator);
+        } catch (IOException e) {
+            logger.error("Error while writing json", e);
+        }
+    }
+
+    public boolean isBulk() {
+        if (rowCount > 0) {
+            return true;
+        }
+        return false;
+    }
 
 }
