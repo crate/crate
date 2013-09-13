@@ -7,6 +7,9 @@ import org.elasticsearch.action.bulk.TransportBulkAction;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.index.TransportIndexAction;
+import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
+import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
+import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.TransportSearchAction;
@@ -22,6 +25,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
     private final TransportSearchAction transportSearchAction;
     private final TransportIndexAction transportIndexAction;
+    private final TransportDeleteByQueryAction transportDeleteByQueryAction;
     private final TransportBulkAction transportBulkAction;
 
     private final NodeExecutionContext executionContext;
@@ -29,13 +33,17 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     @Inject
     protected TransportSQLAction(Settings settings, ThreadPool threadPool,
             NodeExecutionContext executionContext,
-            TransportService transportService, TransportSearchAction transportSearchAction,
-            TransportIndexAction transportIndexAction, TransportBulkAction transportBulkAction) {
+            TransportService transportService,
+            TransportSearchAction transportSearchAction,
+            TransportDeleteByQueryAction transportDeleteByQueryAction,
+            TransportIndexAction transportIndexAction,
+            TransportBulkAction transportBulkAction) {
         super(settings, threadPool);
         this.executionContext = executionContext;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
         this.transportSearchAction = transportSearchAction;
         this.transportIndexAction = transportIndexAction;
+        this.transportDeleteByQueryAction = transportDeleteByQueryAction;
         this.transportBulkAction = transportBulkAction;
     }
 
@@ -81,6 +89,27 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
     }
 
+    private class DeleteResponseListener implements ActionListener<DeleteByQueryResponse> {
+
+        private final ActionListener<SQLResponse> delegate;
+        private final ParsedStatement stmt;
+
+        public DeleteResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+            this.delegate = listener;
+            this.stmt = stmt;
+        }
+
+        @Override
+        public void onResponse(DeleteByQueryResponse deleteByQueryResponses) {
+            delegate.onResponse(stmt.buildResponse(deleteByQueryResponses));
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            delegate.onFailure(e);
+        }
+    }
+
     private class BulkResponseListener implements ActionListener<BulkResponse> {
 
         private final ActionListener<SQLResponse> delegate;
@@ -108,12 +137,17 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         ParsedStatement stmt;
         SearchRequest searchRequest;
         IndexRequest indexRequest;
+        DeleteByQueryRequest deleteRequest;
         try {
             stmt = new ParsedStatement(request.stmt(), request.args(), executionContext);
             switch (stmt.type()) {
                 case ParsedStatement.INSERT_ACTION:
                     indexRequest = stmt.buildIndexRequest();
                     transportIndexAction.execute(indexRequest, new IndexResponseListener(stmt, listener));
+                    break;
+                case ParsedStatement.DELETE_ACTION:
+                    deleteRequest = stmt.buildDeleteRequest();
+                    transportDeleteByQueryAction.execute(deleteRequest, new DeleteResponseListener(stmt, listener));
                     break;
                 case ParsedStatement.BULK_ACTION:
                     BulkRequest bulkRequest = stmt.buildBulkRequest();
@@ -170,4 +204,5 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             return ThreadPool.Names.SAME;
         }
     }
+
 }

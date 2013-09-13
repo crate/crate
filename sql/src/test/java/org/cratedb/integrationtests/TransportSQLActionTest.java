@@ -210,6 +210,30 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     @Test
+    public void testDelete() throws Exception {
+        createIndex("test");
+        client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
+        refresh();
+        execute("delete from test");
+        assertEquals(0, response.rows().length);
+        execute("select \"_id\" from test");
+        assertEquals(0, response.rows().length);
+    }
+
+    @Test
+    public void testDeleteWithWhere() throws Exception {
+        createIndex("test");
+        client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
+        client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
+        client().prepareIndex("test", "default", "id3").setSource("{}").execute().actionGet();
+        refresh();
+        execute("delete from test where \"_id\" = 'id1'");
+        assertEquals(0, response.rows().length);
+        execute("select \"_id\" from test");
+        assertEquals(2, response.rows().length);
+    }
+
+    @Test
     public void testSelectSource() throws Exception {
         createIndex("test");
         client().prepareIndex("test", "default", "id1").setSource("{\"a\":1}")

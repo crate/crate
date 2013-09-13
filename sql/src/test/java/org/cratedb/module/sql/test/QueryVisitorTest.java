@@ -721,4 +721,16 @@ public class QueryVisitorTest {
         assertEquals("{\"query\":{\"range\":{\"position\":{\"lte\":4}}},\"fields\":[\"a\",\"b\"]}",
                 visitor.getXContentBuilder().string());
     }
+
+    @Test
+    public void testDeleteQuery() throws Exception {
+        QueryVisitor visitor = getQueryVisitor();
+        SQLParser parser = new SQLParser();
+        String sql = "delete from locations where 4 < position";
+        StatementNode statement = parser.parseStatement(sql);
+
+        statement.accept(visitor);
+        assertEquals("{\"range\":{\"position\":{\"gt\":4}}}",
+            visitor.getXContentBuilder().string());
+    }
 }

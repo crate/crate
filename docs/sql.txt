@@ -230,3 +230,18 @@ Inserting multiple rows at once (aka. bulk insert) can be done by defining multi
       "cols" : [ ],
       "rows" : [ ]
     }
+
+Deleting data
+=============
+
+Deleting rows in ``CRATE`` is done using the SQL ``DELETE`` statement::
+
+    sh$ curl -sSX POST 'localhost:9200/_sql?pretty=1' -d @- <<EOF
+    ... {
+    ... "stmt": "delete from locations where position > 3"
+    ... }
+    ... EOF
+    {
+        "cols" : [ ],
+        "rows" : [ ]
+    }

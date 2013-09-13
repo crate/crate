@@ -9,7 +9,7 @@ task bootstrap (type:Exec) {
     commandLine 'python2.7', "$projectDir/bootstrap.py"
 }
 
-task unpackDistTar << {
+task unpackDistTar (dependsOn: project(':app').distTar) << {
     copy {
         includeEmptyDirs = false
         from(tarTree(project(':app').distTar.archivePath)) {
