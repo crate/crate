@@ -11,10 +11,11 @@ information about SQL please refer to `Wikipedia SQL`_.
 SQL statements are sent to the '_sql' endpoint in json format,
 whereby the statement is sent as value associated to the key 'stmt".
 
-Select Query
-============
+Retrieving Data
+===============
 
-The response to a query contains the column names of the result and
+Retrieving data from ``Crate`` is usually done by querying a SQL ``SELECT`` statement.
+The response to a ``SELECT`` query contains the column names of the result and
 the actual result rows as a two-dimensional array of values.
 
 A simple select::
@@ -194,15 +195,15 @@ be provided in the JSON body of the request under the `"args"` key::
     escaping.
 
 
-Insert Query
-============
+Inserting data
+==============
 
-Crate also supports SQL ``INSERT`` queries using the ``_sql`` endpoint, the request data structure is the like querying
-an `Select Query`_ .
+Inserting data to ``Crate`` is done by using the SQL ``INSERT`` statement on the ``_sql`` endpoint.
+The request data structure is similar like at `Retrieving Data`_ .
 
 .. note::
 
-    The column list at Crate is always ordered alphabetically by column name and so must the inserted
+    The column list at ``Crate` is always ordered alphabetically by column name and so must the inserted
     column values.
 
 Inserting a row::
