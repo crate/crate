@@ -26,15 +26,6 @@ public class QueryVisitor extends XContentVisitor {
         stopTraverse = false;
     }
 
-
-    private Object getMappedValue(
-            TableExecutionContext tc,
-            ValueNode value,
-            String columnName){
-
-        return tc.mapper().mappers().name(columnName).mapper().value(value);
-    }
-
     private void setTable(String tableName){
         stmt.addIndex(tableName);
     }
