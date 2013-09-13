@@ -202,7 +202,7 @@ an `Select Query`_ .
 
 .. note::
 
-    Be aware that the column list at Crate is always ordered alphabetically by column name and so must the inserted
+    The column list at Crate is always ordered alphabetically by column name and so must the inserted
     column values.
 
 Inserting a row::
