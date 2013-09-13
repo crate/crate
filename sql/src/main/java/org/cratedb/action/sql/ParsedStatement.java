@@ -7,6 +7,8 @@ import com.akiban.sql.parser.StatementNode;
 import org.cratedb.action.parser.InsertVisitor;
 import org.cratedb.action.parser.QueryVisitor;
 import org.cratedb.action.parser.XContentVisitor;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
@@ -33,11 +35,15 @@ public class ParsedStatement {
     private final StatementNode statementNode;
     private final XContentVisitor visitor;
 
+    public static final int SEARCH_ACTION = 1;
+    public static final int INSERT_ACTION = 2;
+    public static final int BULK_ACTION = 3;
+
     public ParsedStatement(String stmt, Object[] args, NodeExecutionContext executionContext) throws
             StandardException {
         this.stmt = stmt;
         statementNode = parser.parseStatement(stmt);
-        switch (type()) {
+        switch (statementNode.getNodeType()) {
             case NodeTypes.INSERT_NODE:
                 visitor = new InsertVisitor(executionContext);
                 break;
@@ -53,7 +59,15 @@ public class ParsedStatement {
     }
 
     public int type() {
-        return statementNode.getNodeType();
+        switch (statementNode.getNodeType()) {
+            case NodeTypes.INSERT_NODE:
+                if (((InsertVisitor)visitor).isBulk()) {
+                    return BULK_ACTION;
+                }
+                return INSERT_ACTION;
+            default:
+                return SEARCH_ACTION;
+        }
     }
 
     public SearchRequest buildSearchRequest() throws StandardException {
@@ -89,6 +103,30 @@ public class ParsedStatement {
         return request;
     }
 
+    public BulkRequest buildBulkRequest() throws StandardException {
+        BulkRequest request = new BulkRequest();
+
+        if (logger.isDebugEnabled()) {
+            builder.generator().usePrettyPrint();
+            try {
+                logger.info("converted sql to: " + builder.string());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        String defaultIndex = "index";
+        String defaultType = "default";
+
+        try {
+            request.add(builder.bytes(), false, defaultIndex, defaultType);
+        } catch (Exception e) {
+            throw new StandardException(e.getMessage());
+        }
+
+        return request;
+    }
+
     public String[] cols() {
         String[] cols = new String[outputFields.size()];
         for (int i = 0; i < outputFields.size(); i++) {
@@ -117,11 +155,18 @@ public class ParsedStatement {
     }
 
     public SQLResponse buildResponse(IndexResponse indexResponse) {
-        Object[][] rows = new Object[outputFields.size()][outputFields.size()];
-
         SQLResponse response = new SQLResponse();
         response.cols(cols());
-        response.rows(rows);
+        response.rows(new Object[0][0]);
+
+        return response;
+    }
+
+    public SQLResponse buildResponse(BulkResponse bulkResponse) {
+        SQLResponse response = new SQLResponse();
+        response.cols(cols());
+        response.rows(new Object[0][0]);
+
         return response;
     }
 }
