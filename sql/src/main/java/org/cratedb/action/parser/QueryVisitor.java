@@ -39,6 +39,15 @@ public class QueryVisitor implements XContentVisitor {
         return node;
     }
 
+    public Visitable visit(DeleteNode node) throws StandardException {
+        try {
+            generator.generate(node);
+        } catch (IOException ex) {
+            throw new StandardException(ex);
+        }
+        return node;
+    }
+
     public XContentBuilder getXContentBuilder() {
         return generator.getXContentBuilder();
     }
@@ -68,8 +77,12 @@ public class QueryVisitor implements XContentVisitor {
             case NodeTypes.CURSOR_NODE:
                 stopTraverse = true;
                 return visit((CursorNode)node);
+            case NodeTypes.DELETE_NODE:
+                stopTraverse = true;
+                return visit((DeleteNode)node);
             default:
-                throw new SQLParseException("First node wasn't a CURSOR_NODE. Unsupported Statement");
+                throw new SQLParseException(
+                    "First node wasn't a CURSOR_NODE or DELETE_NODE. Unsupported Statement");
         }
     }
 

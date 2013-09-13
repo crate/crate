@@ -5,6 +5,9 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.index.TransportIndexAction;
+import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
+import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
+import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.TransportSearchAction;
@@ -20,19 +23,23 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
     private final TransportSearchAction transportSearchAction;
     private final TransportIndexAction transportIndexAction;
+    private final TransportDeleteByQueryAction transportDeleteByQueryAction;
 
     private final NodeExecutionContext executionContext;
 
     @Inject
     protected TransportSQLAction(Settings settings, ThreadPool threadPool,
             NodeExecutionContext executionContext,
-            TransportService transportService, TransportSearchAction transportSearchAction,
+            TransportService transportService,
+            TransportSearchAction transportSearchAction,
+            TransportDeleteByQueryAction transportDeleteByQueryAction,
             TransportIndexAction transportIndexAction) {
         super(settings, threadPool);
         this.executionContext = executionContext;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
         this.transportSearchAction = transportSearchAction;
         this.transportIndexAction = transportIndexAction;
+        this.transportDeleteByQueryAction = transportDeleteByQueryAction;
     }
 
     private class SearchResponseListener implements ActionListener<SearchResponse> {
@@ -77,18 +84,44 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
     }
 
+    private class DeleteResponseListener implements ActionListener<DeleteByQueryResponse> {
+
+        private final ActionListener<SQLResponse> delegate;
+        private final ParsedStatement stmt;
+
+        public DeleteResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+            this.delegate = listener;
+            this.stmt = stmt;
+        }
+
+        @Override
+        public void onResponse(DeleteByQueryResponse deleteByQueryResponses) {
+            delegate.onResponse(stmt.buildResponse(deleteByQueryResponses));
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            delegate.onFailure(e);
+        }
+    }
+
     @Override
     protected void doExecute(SQLRequest request, ActionListener<SQLResponse> listener) {
         System.out.println("doExecute: " + request);
         ParsedStatement stmt;
         SearchRequest searchRequest;
         IndexRequest indexRequest;
+        DeleteByQueryRequest deleteRequest;
         try {
             stmt = new ParsedStatement(request.stmt(), request.args(), executionContext);
             switch (stmt.type()) {
                 case NodeTypes.INSERT_NODE:
                     indexRequest = stmt.buildIndexRequest();
                     transportIndexAction.execute(indexRequest, new IndexResponseListener(stmt, listener));
+                    break;
+                case NodeTypes.DELETE_NODE:
+                    deleteRequest = stmt.buildDeleteRequest();
+                    transportDeleteByQueryAction.execute(deleteRequest, new DeleteResponseListener(stmt, listener));
                     break;
                 default:
                     searchRequest = stmt.buildSearchRequest();
@@ -141,4 +174,5 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             return ThreadPool.Names.SAME;
         }
     }
+
 }

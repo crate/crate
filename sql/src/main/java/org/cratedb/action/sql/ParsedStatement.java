@@ -9,6 +9,8 @@ import org.cratedb.action.parser.QueryVisitor;
 import org.cratedb.action.parser.XContentVisitor;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
+import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.collect.Tuple;
@@ -123,5 +125,22 @@ public class ParsedStatement {
         response.cols(cols());
         response.rows(rows);
         return response;
+    }
+
+    public SQLResponse buildResponse(DeleteByQueryResponse deleteByQueryResponse) {
+        SQLResponse response = new SQLResponse();
+        response.cols(cols());
+        response.rows(new Object[0][0]);
+
+        // TODO: add rows affected
+        return response;
+    }
+
+    public DeleteByQueryRequest buildDeleteRequest() {
+        DeleteByQueryRequest request = new DeleteByQueryRequest();
+        request.query(builder.bytes().toBytes());
+        request.indices(indices.toArray(new String[indices.size()]));
+
+        return request;
     }
 }
