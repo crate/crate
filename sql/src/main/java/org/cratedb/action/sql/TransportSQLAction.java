@@ -1,6 +1,10 @@
 package org.cratedb.action.sql;
 
+import com.akiban.sql.parser.NodeTypes;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.index.TransportIndexAction;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.TransportSearchAction;
@@ -15,17 +19,20 @@ import org.elasticsearch.transport.TransportService;
 public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse> {
 
     private final TransportSearchAction transportSearchAction;
+    private final TransportIndexAction transportIndexAction;
 
     private final NodeExecutionContext executionContext;
 
     @Inject
     protected TransportSQLAction(Settings settings, ThreadPool threadPool,
             NodeExecutionContext executionContext,
-            TransportService transportService, TransportSearchAction transportSearchAction) {
+            TransportService transportService, TransportSearchAction transportSearchAction,
+            TransportIndexAction transportIndexAction) {
         super(settings, threadPool);
         this.executionContext = executionContext;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
         this.transportSearchAction = transportSearchAction;
+        this.transportIndexAction = transportIndexAction;
     }
 
     private class SearchResponseListener implements ActionListener<SearchResponse> {
@@ -49,19 +56,49 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
     }
 
+    private class IndexResponseListener implements ActionListener<IndexResponse> {
+
+        private final ActionListener<SQLResponse> delegate;
+        private final ParsedStatement stmt;
+
+        public IndexResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+            delegate = listener;
+            this.stmt = stmt;
+        }
+
+        @Override
+        public void onResponse(IndexResponse indexResponse) {
+            delegate.onResponse(stmt.buildResponse(indexResponse));
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            delegate.onFailure(e);
+        }
+    }
+
     @Override
     protected void doExecute(SQLRequest request, ActionListener<SQLResponse> listener) {
         System.out.println("doExecute: " + request);
         ParsedStatement stmt;
         SearchRequest searchRequest;
+        IndexRequest indexRequest;
         try {
             stmt = new ParsedStatement(request.stmt(), request.args(), executionContext);
-            searchRequest = stmt.buildSearchRequest();
+            switch (stmt.type()) {
+                case NodeTypes.INSERT_NODE:
+                    indexRequest = stmt.buildIndexRequest();
+                    transportIndexAction.execute(indexRequest, new IndexResponseListener(stmt, listener));
+                    break;
+                default:
+                    searchRequest = stmt.buildSearchRequest();
+                    transportSearchAction.execute(searchRequest, new SearchResponseListener(stmt, listener));
+                    break;
+            }
         } catch (Exception e) {
             listener.onFailure(e);
             return;
         }
-        transportSearchAction.execute(searchRequest, new SearchResponseListener(stmt, listener));
 
     }
 

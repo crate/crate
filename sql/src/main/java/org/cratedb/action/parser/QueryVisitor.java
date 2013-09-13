@@ -15,7 +15,7 @@ import java.util.List;
  * See https://github.com/akiban/sql-parser for more information.
  *
  */
-public class QueryVisitor implements Visitor {
+public class QueryVisitor implements XContentVisitor {
 
     private XContentGenerator generator = null;
     private boolean stopTraverse;
