@@ -5,8 +5,11 @@ import com.akiban.sql.parser.*;
 import com.google.common.collect.Lists;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -28,6 +31,8 @@ public class InsertVisitor implements XContentVisitor {
     private int columnIndex;
     private int rowCount;
     private int rowIndex;
+    private byte streamSeparator;
+    private ESLogger logger = Loggers.getLogger(InsertVisitor.class);
 
 
     private final List<Tuple<String, String>> outputFields;
@@ -37,13 +42,15 @@ public class InsertVisitor implements XContentVisitor {
         indices = new ArrayList<String>();
         try {
             jsonBuilder = XContentFactory.jsonBuilder();
-        } catch (IOException ex) {
+        } catch (IOException e) {
+            logger.error("Cannot create the jsonBuilder", e);
         }
         outputFields = new ArrayList<Tuple<String, String>>();
         columnIndex = 0;
         stopTraverse = false;
         rowCount = 0;
         rowIndex = -1;
+        streamSeparator = JsonXContent.jsonXContent.streamSeparator();
     }
 
     @Override
@@ -90,10 +97,12 @@ public class InsertVisitor implements XContentVisitor {
             try {
                 jsonBuilder.endObject();
                 if (rowCount > 0) {
+                    // Multiple rows detected, write required XContent stream separator
                     jsonBuilder.flush();
-                    jsonBuilder.stream().write('\n');
+                    jsonBuilder.stream().write(streamSeparator);
                 }
             } catch (IOException e) {
+                logger.error("Error while writing json", e);
             }
         }
         return stopTraverse;
@@ -135,28 +144,35 @@ public class InsertVisitor implements XContentVisitor {
 
     private Visitable visit(RowResultSetNode node) throws StandardException {
         if (rowCount > 0) {
-            // Multiple rows detected, generate XContent for bulk requests
+            // Multiple rows detected, generate XContent usable for a BulkRequest
             rowIndex++;
             if (rowIndex > 0) {
+                // NOT first row node, close object from the first row, write new header and open another object for
+                // the next values
                 try {
                     jsonBuilder = jsonBuilder.endObject();
                     jsonBuilder.flush();
-                    jsonBuilder.stream().write('\n');
+                    jsonBuilder.stream().write(streamSeparator);
                     generateBulkHeader();
                     jsonBuilder = jsonBuilder.startObject();
                 } catch (IOException e) {
+                    logger.error("Error while writing json", e);
                 }
             } else {
+                // first row node, generate the bulk header and open a object for the values
                 generateBulkHeader();
                 try {
                     jsonBuilder.startObject();
                 } catch (IOException e) {
+                    logger.error("Error while writing json", e);
                 }
             }
         } else {
+            // No multiple rows, simple start an object usable for a IndexRequest
             try {
                 jsonBuilder.startObject();
             } catch (IOException e) {
+                logger.error("Error while writing json", e);
             }
         }
         return node;
@@ -188,7 +204,8 @@ public class InsertVisitor implements XContentVisitor {
         try {
             jsonBuilder.field(columnName,
                     tableContext.mapper().mappers().name(columnName).mapper().value(node.getValue()));
-        } catch (IOException ex) {
+        } catch (IOException e) {
+            logger.error("Error while writing json", e);
         }
     }
 
@@ -201,8 +218,9 @@ public class InsertVisitor implements XContentVisitor {
             jsonBuilder.endObject();
             jsonBuilder.endObject();
             jsonBuilder.flush();
-            jsonBuilder.stream().write('\n');
+            jsonBuilder.stream().write(streamSeparator);
         } catch (IOException e) {
+            logger.error("Error while writing json", e);
         }
     }
 

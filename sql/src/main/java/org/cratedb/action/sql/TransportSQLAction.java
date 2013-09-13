@@ -116,7 +116,6 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                     transportIndexAction.execute(indexRequest, new IndexResponseListener(stmt, listener));
                     break;
                 case ParsedStatement.BULK_ACTION:
-                    System.out.println("executing bulk request");
                     BulkRequest bulkRequest = stmt.buildBulkRequest();
                     transportBulkAction.execute(bulkRequest, new BulkResponseListener(stmt, listener));
                     break;

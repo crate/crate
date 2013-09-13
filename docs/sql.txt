@@ -218,7 +218,7 @@ Inserting a row::
       "rows" : [ ]
     }
 
-Inserting multiple rows at once (aka. bulk insert)::
+Inserting multiple rows at once (aka. bulk insert) can be done by defining multiple values for the ``INSERT`` statement::
 
     sh$ curl -sSX POST 'localhost:9200/_sql?pretty=1' -d @- <<EOF
     ... {

@@ -103,7 +103,7 @@ public class ParsedStatement {
         return request;
     }
 
-    public BulkRequest buildBulkRequest() throws StandardException {
+    public BulkRequest buildBulkRequest() throws Exception {
         BulkRequest request = new BulkRequest();
 
         if (logger.isDebugEnabled()) {
@@ -111,18 +111,14 @@ public class ParsedStatement {
             try {
                 logger.info("converted sql to: " + builder.string());
             } catch (IOException e) {
-                e.printStackTrace();
+                logger.error("Error while converting json to string for debugging", e);
             }
         }
 
         String defaultIndex = "index";
         String defaultType = "default";
 
-        try {
-            request.add(builder.bytes(), false, defaultIndex, defaultType);
-        } catch (Exception e) {
-            throw new StandardException(e.getMessage());
-        }
+        request.add(builder.bytes(), false, defaultIndex, defaultType);
 
         return request;
     }
