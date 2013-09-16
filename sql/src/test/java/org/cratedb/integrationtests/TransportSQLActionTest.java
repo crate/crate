@@ -91,6 +91,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         args = new Object[] {38, "Zoon"};
         execute("select first_name, last_name from test where age = $1 and last_name = $2", args);
         assertArrayEquals(new Object[]{"Youri", "Zoon"}, response.rows()[0]);
+
+        args = new Object[] {38, "Zoon"};
+        execute("select first_name, last_name from test where age = ? and last_name = ?", args);
+        assertArrayEquals(new Object[]{"Youri", "Zoon"}, response.rows()[0]);
     }
 
     @Test
@@ -480,9 +484,49 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("insert into test values(32, 'Youri'), (42, 'Ruben')");
         refresh();
 
-        execute("select * from test");
+        execute("select * from test order by \"_id\"");
 
         assertEquals(2, response.rows().length);
+        assertArrayEquals(new Object[]{32, "Youri"}, response.rows()[0]);
+        assertArrayEquals(new Object[]{42, "Ruben"}, response.rows()[1]);
+    }
+
+    @Test
+    public void testInsertWithParams() throws Exception {
+        prepareCreate("test")
+                .addMapping("default",
+                        "age", "type=integer",
+                        "name", "type=string,store=true,index=not_analyzed")
+                .execute().actionGet();
+
+        Object[] args = new Object[] {32, "Youri"};
+        execute("insert into test values(?, ?)", args);
+        refresh();
+
+        execute("select * from test where name = 'Youri'");
+
+        assertEquals(1, response.rows().length);
+        assertEquals(32, response.rows()[0][0]);
+        assertEquals("Youri", response.rows()[0][1]);
+    }
+
+    @Test
+    public void testInsertMultipleRowsWithParams() throws Exception {
+        prepareCreate("test")
+                .addMapping("default",
+                        "age", "type=integer",
+                        "name", "type=string,store=true,index=not_analyzed")
+                .execute().actionGet();
+
+        Object[] args = new Object[] {32, "Youri", 42, "Ruben"};
+        execute("insert into test values(?, ?), (?, ?)", args);
+        refresh();
+
+        execute("select * from test order by \"_id\"");
+
+        assertEquals(2, response.rows().length);
+        assertArrayEquals(new Object[]{32, "Youri"}, response.rows()[0]);
+        assertArrayEquals(new Object[]{42, "Ruben"}, response.rows()[1]);
     }
 
 }

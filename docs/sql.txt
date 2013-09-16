@@ -223,13 +223,29 @@ Inserting multiple rows at once (aka. bulk insert) can be done by defining multi
     sh$ curl -sSX POST 'localhost:9200/_sql?pretty=1' -d @- <<EOF
     ... {
     ... "stmt": "insert into locations values('2013-09-12T21:43:59.000Z', 'Blagulon Kappa is the planet to which the police are native.', 'Planet', 'Blagulon Kappa', 7),
-    ...          ('2013-09-13T116:43:59.000Z', 'Brontitall is a planet with a warm, rich atmosphere and no mountains.', 'Planet', 'Brontitall', 10)"
+    ...          ('2013-09-13T16:43:59.000Z', 'Brontitall is a planet with a warm, rich atmosphere and no mountains.', 'Planet', 'Brontitall', 10)"
     ... }
     ... EOF
     {
       "cols" : [ ],
       "rows" : [ ]
     }
+
+| The ``INSERT`` statement also supports `SQL Parameter Substitution`_.
+Inserting a row using parameter substitution::
+
+    sh$ curl -sSX POST 'localhost:9200/_sql?pretty=1' -d @- <<EOF
+    ... {
+    ... "stmt": "insert into locations values(?, ?, ?, ?, ?)",
+    ... "args": ["2013-09-13T12:28:59.000Z", "Dangrabad Beta is noted for its sand blizzards.", "Planet", "Dangrabad Beta", 15]
+    ... }
+    ... EOF
+    {
+      "cols" : [ ],
+      "rows" : [ ]
+    }
+
+
 
 Deleting data
 =============
