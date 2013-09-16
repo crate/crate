@@ -48,7 +48,7 @@ public class ParsedStatement {
         statementNode = parser.parseStatement(stmt);
         switch (statementNode.getNodeType()) {
             case NodeTypes.INSERT_NODE:
-                visitor = new InsertVisitor(executionContext);
+                visitor = new InsertVisitor(executionContext, args);
                 break;
             default:
                 visitor = new QueryVisitor(executionContext, args);
