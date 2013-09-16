@@ -31,7 +31,7 @@ public class QueryVisitorTest {
         statement.accept(visitor);
     }
 
-    private QueryVisitor getQueryVisitor() {
+    private QueryVisitor getQueryVisitor() throws StandardException {
 
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
         NodeExecutionContext.TableExecutionContext tec = mock(

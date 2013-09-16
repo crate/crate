@@ -20,12 +20,12 @@ public class QueryVisitor implements XContentVisitor {
     private XContentGenerator generator = null;
     private boolean stopTraverse;
 
-    public QueryVisitor(NodeExecutionContext executionContext) {
+    public QueryVisitor(NodeExecutionContext executionContext) throws StandardException {
         generator = new XContentGenerator(executionContext, new Object[0]);
         stopTraverse = false;
     }
 
-    public QueryVisitor(NodeExecutionContext executionContext, Object[] args) {
+    public QueryVisitor(NodeExecutionContext executionContext, Object[] args) throws StandardException {
         generator = new XContentGenerator(executionContext, args);
         stopTraverse = false;
     }
@@ -48,7 +48,7 @@ public class QueryVisitor implements XContentVisitor {
         return node;
     }
 
-    public XContentBuilder getXContentBuilder() {
+    public XContentBuilder getXContentBuilder() throws StandardException {
         return generator.getXContentBuilder();
     }
 

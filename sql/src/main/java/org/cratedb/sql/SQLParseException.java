@@ -1,6 +1,9 @@
 package org.cratedb.sql;
 
-public class SQLParseException extends RuntimeException {
+import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.rest.RestStatus;
+
+public class SQLParseException extends ElasticSearchException {
 
     public SQLParseException(String msg) {
         super(msg);
@@ -8,5 +11,10 @@ public class SQLParseException extends RuntimeException {
 
     public SQLParseException(String msg, Exception e) {
         super(msg, e);
+    }
+
+    @Override
+    public RestStatus status() {
+        return RestStatus.BAD_REQUEST;
     }
 }

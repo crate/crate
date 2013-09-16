@@ -38,7 +38,7 @@ public class InsertVisitor implements XContentVisitor {
 
     private final List<Tuple<String, String>> outputFields;
 
-    public InsertVisitor(NodeExecutionContext nodeExecutionContext, Object[] args) {
+    public InsertVisitor(NodeExecutionContext nodeExecutionContext, Object[] args) throws StandardException {
         this.executionContext = nodeExecutionContext;
         this.args = args;
         indices = new ArrayList<String>();
@@ -46,6 +46,7 @@ public class InsertVisitor implements XContentVisitor {
             jsonBuilder = XContentFactory.jsonBuilder();
         } catch (IOException e) {
             logger.error("Cannot create the jsonBuilder", e);
+            throw new StandardException(e);
         }
         outputFields = new ArrayList<Tuple<String, String>>();
         columnIndex = 0;
@@ -55,7 +56,7 @@ public class InsertVisitor implements XContentVisitor {
         streamSeparator = JsonXContent.jsonXContent.streamSeparator();
     }
 
-    public InsertVisitor(NodeExecutionContext nodeExecutionContext) {
+    public InsertVisitor(NodeExecutionContext nodeExecutionContext) throws StandardException {
         this(nodeExecutionContext, new Object[0]);
     }
 
@@ -137,37 +138,30 @@ public class InsertVisitor implements XContentVisitor {
     }
 
     private Visitable visit(RowResultSetNode node) throws StandardException {
-        if (rowCount > 0) {
-            // Multiple rows detected, generate XContent usable for a BulkRequest
-            rowIndex++;
-            if (rowIndex > 0) {
-                // NOT first row node, close object from the first row, write new header and open another object for
-                // the next values
-                try {
+        try {
+            if (rowCount > 0) {
+                // Multiple rows detected, generate XContent usable for a BulkRequest
+                rowIndex++;
+                if (rowIndex > 0) {
+                    // NOT first row node, close object from the first row, write new header and open another object for
+                    // the next values
                     jsonBuilder = jsonBuilder.endObject();
                     jsonBuilder.flush();
                     jsonBuilder.stream().write(streamSeparator);
                     generateBulkHeader();
                     jsonBuilder = jsonBuilder.startObject();
-                } catch (IOException e) {
-                    logger.error("Error while writing json", e);
+                } else {
+                    // first row node, generate the bulk header and open a object for the values
+                    generateBulkHeader();
+                    jsonBuilder.startObject();
                 }
             } else {
-                // first row node, generate the bulk header and open a object for the values
-                generateBulkHeader();
-                try {
-                    jsonBuilder.startObject();
-                } catch (IOException e) {
-                    logger.error("Error while writing json", e);
-                }
-            }
-        } else {
-            // No multiple rows, simple start an object usable for a IndexRequest
-            try {
+                // No multiple rows, simple start an object usable for a IndexRequest
                 jsonBuilder.startObject();
-            } catch (IOException e) {
-                logger.error("Error while writing json", e);
             }
+        } catch (IOException e) {
+            logger.error("Error while writing json", e);
+            throw new StandardException(e);
         }
         return node;
     }
@@ -213,16 +207,17 @@ public class InsertVisitor implements XContentVisitor {
         return node;
     }
 
-    private void generate(Object value, String columnName) {
+    private void generate(Object value, String columnName) throws StandardException {
         try {
             jsonBuilder.field(columnName,
                     tableContext.mapper().mappers().name(columnName).mapper().value(value));
         } catch (IOException e) {
             logger.error("Error while writing json", e);
+            throw new StandardException(e);
         }
     }
 
-    private void closeRootObject() {
+    private void closeRootObject() throws StandardException {
         // Closing the XContent root object.
         try {
             jsonBuilder.endObject();
@@ -233,10 +228,11 @@ public class InsertVisitor implements XContentVisitor {
             }
         } catch (IOException e) {
             logger.error("Error while writing json", e);
+            throw new StandardException(e);
         }
     }
 
-    private void generateBulkHeader() {
+    private void generateBulkHeader() throws StandardException {
         try {
             jsonBuilder.startObject();
             jsonBuilder.startObject("index");
@@ -248,6 +244,7 @@ public class InsertVisitor implements XContentVisitor {
             jsonBuilder.stream().write(streamSeparator);
         } catch (IOException e) {
             logger.error("Error while writing json", e);
+            throw new StandardException(e);
         }
     }
 
@@ -257,5 +254,4 @@ public class InsertVisitor implements XContentVisitor {
         }
         return false;
     }
-
 }

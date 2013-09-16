@@ -1,5 +1,6 @@
 package org.cratedb.action.parser;
 
+import com.akiban.sql.StandardException;
 import com.akiban.sql.parser.Visitor;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -15,7 +16,7 @@ import java.util.List;
  */
 public interface XContentVisitor extends Visitor {
 
-    public XContentBuilder getXContentBuilder();
+    public XContentBuilder getXContentBuilder() throws StandardException;
 
     public List<String> getIndices();
 

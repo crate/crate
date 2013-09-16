@@ -77,13 +77,14 @@ public class XContentGenerator {
         put(SQLOperatorTypes.LESS_EQUALS, "lte");
     }};
 
-    public XContentGenerator(NodeExecutionContext executionContext, Object[] args) {
+    public XContentGenerator(NodeExecutionContext executionContext, Object[] args) throws StandardException {
         this.params = args;
         this.executionContext = executionContext;
         indices = new ArrayList<String>();
         try {
             jsonBuilder = XContentFactory.jsonBuilder().startObject();
         } catch (IOException ex) {
+            throw new StandardException(ex);
         }
         outputFields = new ArrayList<Tuple<String, String>>();
 
@@ -391,10 +392,11 @@ public class XContentGenerator {
         }
     }
 
-    public XContentBuilder getXContentBuilder() {
+    public XContentBuilder getXContentBuilder() throws StandardException {
         try {
             jsonBuilder = jsonBuilder.endObject();
         } catch (IOException ex) {
+            throw new StandardException(ex);
         }
         return jsonBuilder;
     }
