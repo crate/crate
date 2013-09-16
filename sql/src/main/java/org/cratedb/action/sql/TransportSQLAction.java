@@ -1,5 +1,7 @@
 package org.cratedb.action.sql;
 
+import com.akiban.sql.StandardException;
+import org.cratedb.sql.SQLParseException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -133,7 +135,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
     @Override
     protected void doExecute(SQLRequest request, ActionListener<SQLResponse> listener) {
-        System.out.println("doExecute: " + request);
+        logger.trace("doExecute: " + request);
         ParsedStatement stmt;
         SearchRequest searchRequest;
         IndexRequest indexRequest;
@@ -158,11 +160,18 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                     transportSearchAction.execute(searchRequest, new SearchResponseListener(stmt, listener));
                     break;
             }
+        } catch (StandardException e) {
+            listener.onFailure(standardExceptionToParseException(e));
+            return;
         } catch (Exception e) {
             listener.onFailure(e);
             return;
         }
 
+    }
+
+    private SQLParseException standardExceptionToParseException(StandardException e) {
+        return new SQLParseException(e.getMessage(), e);
     }
 
     private class TransportHandler extends BaseTransportRequestHandler<SQLRequest> {
