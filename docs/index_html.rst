@@ -7,7 +7,8 @@ First Steps
 - If you are new to Crate, it is probably the best to say
   :doc:`hello`.
 
-- Take a look at the :doc:`sql`, :doc:`plugins/inout` and :doc:`3rd-party-plugins`
+- Take a look at the :doc:`sql/index`, :doc:`plugins/inout` and
+  :doc:`3rd-party-plugins`
 
 Contents
 ========
@@ -18,7 +19,7 @@ Contents
    hello
    installation
    configuration
+   sql/index
    blob
-   crate-plugins
    3rd-party-plugins
    clients

@@ -2,8 +2,7 @@
 3rd Party Plugins
 =================
 
-In addition to the :doc:`crate-plugins` crate also bundles some 3rd party
-plugins.
+Crate includes a few 3rd party plugins out of the box.
 
 elasticsearch-head
 ------------------
