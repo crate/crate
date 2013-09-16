@@ -33,12 +33,14 @@ public class InsertVisitor implements XContentVisitor {
     private int rowIndex;
     private byte streamSeparator;
     private ESLogger logger = Loggers.getLogger(InsertVisitor.class);
+    private Object[] args;
 
 
     private final List<Tuple<String, String>> outputFields;
 
-    public InsertVisitor(NodeExecutionContext nodeExecutionContext) {
+    public InsertVisitor(NodeExecutionContext nodeExecutionContext, Object[] args) {
         this.executionContext = nodeExecutionContext;
+        this.args = args;
         indices = new ArrayList<String>();
         try {
             jsonBuilder = XContentFactory.jsonBuilder();
@@ -52,6 +54,11 @@ public class InsertVisitor implements XContentVisitor {
         rowIndex = -1;
         streamSeparator = JsonXContent.jsonXContent.streamSeparator();
     }
+
+    public InsertVisitor(NodeExecutionContext nodeExecutionContext) {
+        this(nodeExecutionContext, new Object[0]);
+    }
+
 
     @Override
     public XContentBuilder getXContentBuilder() {
@@ -92,19 +99,6 @@ public class InsertVisitor implements XContentVisitor {
 
     @Override
     public boolean stopTraversal() {
-        if (stopTraverse == true) {
-            // Closing the XContent root object.
-            try {
-                jsonBuilder.endObject();
-                if (rowCount > 0) {
-                    // Multiple rows detected, write required XContent stream separator
-                    jsonBuilder.flush();
-                    jsonBuilder.stream().write(streamSeparator);
-                }
-            } catch (IOException e) {
-                logger.error("Error while writing json", e);
-            }
-        }
         return stopTraverse;
     }
 
@@ -181,29 +175,62 @@ public class InsertVisitor implements XContentVisitor {
 
     private Visitable visit(ResultColumn node) throws StandardException {
         if (rowCount > 0 && rowIndex < 0) {
+            // multiple rows detected but ``ResultColumn`` not inside a ``RowsResultSetNode``, ignore column
             return node;
         }
-        if (node.getExpression() instanceof ConstantNode) {
-            String name = columnNameList.get(columnIndex);
-            generate((ConstantNode)node.getExpression(), name);
+        String name = columnNameList.get(columnIndex);
+        Object value = null;
 
-            if (columnIndex == columnNameList.size()-1) {
+        if (node.getExpression() instanceof ConstantNode) {
+            value = ((ConstantNode)node.getExpression()).getValue();
+        } else if (node.getExpression() instanceof ParameterNode) {
+            if (args.length == 0) {
+                throw new StandardException("Missing statement parameters");
+            }
+            int parameterNumber = ((ParameterNode)node.getExpression()).getParameterNumber();
+            try {
+                value = args[parameterNumber];
+            } catch (IndexOutOfBoundsException e) {
+                throw new StandardException("Statement parameter value not found");
+            }
+        }
+
+        if (value != null) {
+            generate(value, name);
+
+            columnIndex++;
+            if (columnIndex == columnNameList.size()) {
                 // reset columnIndex
                 columnIndex = 0;
                 if (rowIndex == rowCount-1) {
+                    // end of processing
+                    closeRootObject();
                     stopTraverse = true;
                 }
             }
-
-            columnIndex++;
         }
+
         return node;
     }
 
-    private void generate(ConstantNode node, String columnName) {
+    private void generate(Object value, String columnName) {
         try {
             jsonBuilder.field(columnName,
-                    tableContext.mapper().mappers().name(columnName).mapper().value(node.getValue()));
+                    tableContext.mapper().mappers().name(columnName).mapper().value(value));
+        } catch (IOException e) {
+            logger.error("Error while writing json", e);
+        }
+    }
+
+    private void closeRootObject() {
+        // Closing the XContent root object.
+        try {
+            jsonBuilder.endObject();
+            if (rowCount > 0) {
+                // Multiple rows detected, write required XContent stream separator
+                jsonBuilder.flush();
+                jsonBuilder.stream().write(streamSeparator);
+            }
         } catch (IOException e) {
             logger.error("Error while writing json", e);
         }
