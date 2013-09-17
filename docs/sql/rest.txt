@@ -64,3 +64,71 @@ The same query using question marks as placeholders looks like this::
       "rows" : [ [ "1979-10-12T00:00:00.000Z", 1 ],
                  [ "1979-10-12T00:00:00.000Z", 2 ] ]
     }
+
+Error Handling
+==============
+
+Queries that are invalid or cannot be satisfied will result in an error
+response. The response will contain an error code, an error message and in some
+cases additional arguments that are specific to the error code.
+
+Client libraries should use the error code to translate the error into an
+appropriate exception::
+
+    sh$ curl -sSXPOST 'localhost:9200/_sql?pretty' -d '{
+    ... "stmt":"select name, position"
+    ... }'
+    {
+      "error" : {
+        "message" : "SQLParseException[Only exactly one from table is allowed, got: 0]",
+        "code" : 4000
+      }
+    }
+
+To get more insight into what exactly went wrong an additional `error_trace`
+GET parameter can be specified to return the stack trace::
+
+    sh$ curl -sSXPOST 'localhost:9200/_sql?pretty&error_trace=True' -d '{
+    ... "stmt":"select name, position"
+    ... }'
+    {
+      "error" : {
+        "message" : "SQLParseException[Only exactly one from table is allowed, got: 0]",
+        "code" : 4000
+      },
+      "error_trace" : {
+        "message" : "Only exactly one from table is allowed, got: 0",
+        "at" : {
+          "class" : "org.cratedb.action.parser.XContentGenerator",
+          "method" : "generate",
+          "file" : "XContentGenerator.java",
+          "line" : 161
+        },
+        "at" : {
+          "class" : "org.cratedb.action.parser.XContentGenerator",
+          "method" : "generate",
+          "file" : "XContentGenerator.java",
+          "line" : 131
+        },
+        "at" : {
+          "class" : "org.cratedb.action.parser.XContentGenerator",
+          "method" : "generate",
+          "file" : "XContentGenerator.java",
+          "line" : 106
+        },
+    ...
+
+.. note::
+
+    This parameter is intended for crate developers or for users requesting
+    support for Crate. Client libraries shouldn't make use of this option and
+    not include the stacktrace.
+
+Currently the defined error codes are:
+
+    ===== =====================================================================
+    Code  Error
+    ===== =====================================================================
+    1000  Generic undefined error
+    4000  The statement contains an invalid syntax or unsupported SQL statement
+    ===== =====================================================================
