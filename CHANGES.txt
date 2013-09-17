@@ -5,7 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/09/17 0.11.0
+=================
+
  - the `_sql` endpoint now supports SQL parameter substitution.
+
+ - DELETE and INSERT SQL statements are now supported.
 
 2013/09/05 0.10.2
 =================
