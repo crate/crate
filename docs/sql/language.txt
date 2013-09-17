@@ -1,0 +1,165 @@
+==============
+Querying Crate
+==============
+
+This section provides an overview on how to query documents using SQL.
+
+Retrieving Data
+===============
+
+Retrieving data from ``Crate`` is done by using a SQL ``SELECT`` statement.
+The response to a ``SELECT`` query contains the column names of the result and
+the actual result rows as a two-dimensional array of values.
+
+A simple select::
+
+    cr> select name, position from locations order by "_id" limit 2
+    +-------------------+----------+
+    | name              | position |
+    +-------------------+----------+
+    | North West Ripple | 1        |
+    | Arkintoofle Minor | 3        |
+    +-------------------+----------+
+
+If the '*' operator is used, all properties defined in the schema are returned
+for each object::
+
+    cr> select * from locations order by "_id" limit 1 offset 1
+    +--------------------------+--------------...---+--------+-------------------+----------+
+    | date                     | description        | kind   | name              | position |
+    +--------------------------+--------------...---+--------+-------------------+----------+
+    | 1979-10-12T00:00:00.000Z | Motivated by ...s. | Planet | Arkintoofle Minor | 3        |
+    +--------------------------+--------------...---+--------+-------------------+----------+
+
+Aliases can be used to change the output name of the columns::
+
+    cr> select name as n from locations order by "_id" limit 1
+    +-------------------+
+    | n                 |
+    +-------------------+
+    | North West Ripple |
+    +-------------------+
+
+Where Clause
+------------
+
+A simple where clause example using an equality operator::
+
+    cr> select description from locations where "_id" = '1'
+    +-----------------------------------------...-------------------------------------------+
+    | description                                                                           |
+    +-----------------------------------------...-------------------------------------------+
+    | Relative to life on NowWhat, living on a...er by a factor of about seventeen million. |
+    +-----------------------------------------...-------------------------------------------+
+
+Usual comparison operators to be used in filters are available for
+string, integer/long, float/double and date type:
+
+    ===========  =================================
+    Operator     Description
+    ===========  =================================
+    <            less than
+    >            greater than
+    <=           less than or equal to
+    >=           greater than or equal to
+    =            equal
+    <>           not equal
+    !=           not equal - same as <>
+    is not null  field is not null and not missing
+    is null      field is null or missing
+    ===========  =================================
+
+.. note::
+
+  The field 'name' used for the request above is defined as
+  'not_analyzed' in the schema. For an 'analyzed' field the result may
+  differ depending on the used Analyzer/Tokenizer. For details
+  regarding analysis please refer to the `elasticsearch analysis`_
+  site.
+
+.. _`elasticsearch analysis`: http://www.elasticsearch.org/guide/reference/index-modules/analysis/
+
+For strings a lexicographical comparison is performed based on the
+Lucene TermRangeQuery::
+
+    cr> select name from locations where name > 'Argabuthon' order by name
+    +------------------------------------+
+    | name                               |
+    +------------------------------------+
+    | Arkintoofle Minor                  |
+    | Bartledan                          |
+    | Galactic Sector QQ7 Active J Gamma |
+    | North West Ripple                  |
+    | Outer Eastern Rim                  |
+    +------------------------------------+
+
+For details please refer to the `Apache Lucene`_ site.
+
+.. _`Apache Lucene`: http://lucene.apache.org/core/4_0_0/core/org/apache/lucene/search/Query.html
+
+
+In most SQL databases there is a distinction between `NULL` and empty string.
+Since Crate is a schemaless document oriented database there is the third
+possibility that a row doesn't contain a field. Due to this `is null` will
+return all rows where the fields value is `NULL` or where the field doesn't
+exist at all. `is not null` also behaves this way. E.g. the following query
+returns 2 rows since the `is null` filter matches all rows and a limit is
+specified::
+
+    cr> select name from locations where missing is null order by "_id" limit 2
+    +-------------------+
+    | name              |
+    +-------------------+
+    | North West Ripple |
+    | Arkintoofle Minor |
+    +-------------------+
+
+Number and date field comparison behave as expected from standard SQL.
+The following example uses one of the supported ISO date formats::
+
+    cr> select date, position from locations where date <= '1979-10-12' and
+    ... position < 3 order by position
+    +--------------------------+----------+
+    | date                     | position |
+    +--------------------------+----------+
+    | 1979-10-12T00:00:00.000Z | 1        |
+    | 1979-10-12T00:00:00.000Z | 2        |
+    +--------------------------+----------+
+
+All supported default ISO date formats are comparable.
+For a full list please refer to the `elasticsearch date-format`_ site.
+
+.. _`elasticsearch date-format`: http://www.elasticsearch.org/guide/reference/mapping/date-format/
+
+For custom date types, or defined date formats in the object mapping
+the corresponding format should be used for a comparison. Otherwise
+the operation may fail.
+
+
+Inserting data
+==============
+
+Inserting data to ``Crate`` is done by using the SQL ``INSERT`` statement.
+
+.. note::
+
+    The column list at ``Crate`` is always ordered alphabetically by column name
+    and so must the inserted column values.
+
+Inserting a row::
+
+    cr> insert into locations values ('2013-09-12T21:43:59.000Z', 'Blagulon Kappa is the planet to which the police are native.', 'Planet', 'Blagulon Kappa', 7)
+
+Inserting multiple rows at once (aka. bulk insert) can be done by defining
+multiple values for the ``INSERT`` statement::
+
+    cr> insert into locations values
+    ... ('2013-09-12T21:43:59.000Z', 'Blagulon Kappa is the planet to which the police are native.', 'Planet', 'Blagulon Kappa', 7),
+    ... ('2013-09-13T16:43:59.000Z', 'Brontitall is a planet with a warm, rich atmosphere and no mountains.', 'Planet', 'Brontitall', 10)
+
+Deleting data
+=============
+
+Deleting rows in Crate is done using the SQL ``DELETE`` statement::
+
+    cr> delete from locations where position > 3
