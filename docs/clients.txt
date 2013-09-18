@@ -18,7 +18,8 @@ Crate python client
 .. toctree::
    :maxdepth: 2
 
-   crate-python/index
+   crate-python/client
+   crate-python/blobs
 
 API documentation
 -----------------
