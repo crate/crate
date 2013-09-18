@@ -189,7 +189,6 @@ public class InsertVisitor implements XContentVisitor {
                 throw new StandardException("Statement parameter value not found");
             }
 
-            logger.debug("found value: " + value);
             generate(value, name, false);
         }
 
