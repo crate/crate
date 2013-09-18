@@ -7,6 +7,7 @@ import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
@@ -484,11 +485,11 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("insert into test values(32, 'Youri'), (42, 'Ruben')");
         refresh();
 
-        execute("select * from test order by \"_id\"");
+        execute("select * from test order by \"name\"");
 
         assertEquals(2, response.rows().length);
-        assertArrayEquals(new Object[]{32, "Youri"}, response.rows()[0]);
-        assertArrayEquals(new Object[]{42, "Ruben"}, response.rows()[1]);
+        assertArrayEquals(new Object[]{42, "Ruben"}, response.rows()[0]);
+        assertArrayEquals(new Object[]{32, "Youri"}, response.rows()[1]);
     }
 
     @Test
@@ -522,11 +523,32 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("insert into test values(?, ?), (?, ?)", args);
         refresh();
 
-        execute("select * from test order by \"_id\"");
+        execute("select * from test order by \"name\"");
 
         assertEquals(2, response.rows().length);
-        assertArrayEquals(new Object[]{32, "Youri"}, response.rows()[0]);
-        assertArrayEquals(new Object[]{42, "Ruben"}, response.rows()[1]);
+        assertArrayEquals(new Object[]{42, "Ruben"}, response.rows()[0]);
+        assertArrayEquals(new Object[]{32, "Youri"}, response.rows()[1]);
     }
 
+    @Test
+    public void testInsertObject() throws Exception {
+        prepareCreate("test")
+                .addMapping("default",
+                        "message", "type=string,store=true,index=not_analyzed",
+                        "person", "type=object,store=true")
+                .execute().actionGet();
+
+        Map<String, String> person = new HashMap<String, String>();
+        person.put("first_name", "Youri");
+        person.put("last_name", "Zoon");
+        Object[] args = new Object[] {"I'm addicted to kite", person};
+
+        execute("insert into test values(?, ?)", args);
+        refresh();
+
+        execute("select * from test");
+
+        assertEquals(1, response.rows().length);
+        assertArrayEquals(args, response.rows()[0]);
+    }
 }
