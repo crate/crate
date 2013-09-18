@@ -1,10 +1,14 @@
 package org.cratedb.action.sql;
 
+import com.google.common.collect.ImmutableMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.object.ObjectMapper;
+import org.elasticsearch.index.mapper.object.RootObjectMapper;
 import org.elasticsearch.indices.IndicesService;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -54,9 +58,20 @@ public class NodeExecutionContext {
             Set<String> res = new TreeSet<String>();
             for (FieldMapper m : documentMapper.mappers()) {
                 String name = m.names().name();
-                if (!name.startsWith("_")) {
+                // don't add internal and sub-object field names
+                if (!name.startsWith("_") && !m.names().sourcePath().contains(".")) {
                     res.add(name);
                 }
+            }
+
+            // add object type field names
+            Map<String, ObjectMapper> objectMappers = documentMapper.objectMappers();
+            for (Map.Entry<String, ObjectMapper> entry : objectMappers.entrySet()) {
+                ObjectMapper mapper = entry.getValue();
+                if (mapper instanceof RootObjectMapper) {
+                    continue;
+                }
+                res.add(entry.getKey());
             }
             return res;
         }

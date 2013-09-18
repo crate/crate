@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fixed support for ``object`` type mappings, objects are now supported
+   by the transport layer (so also by the java client library)
+
 2013/09/18 0.11.1
 =================
 
