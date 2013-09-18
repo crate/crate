@@ -5,6 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/09/18 0.11.1
+=================
+
+ - fixed the namespace error in the startscript that resulted in crate not
+   starting correctly in the background.
+
 2013/09/17 0.11.0
 =================
 
