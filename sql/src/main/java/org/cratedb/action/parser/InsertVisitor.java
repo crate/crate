@@ -177,6 +177,7 @@ public class InsertVisitor implements XContentVisitor {
 
         if (node.getExpression() instanceof ConstantNode) {
             value = ((ConstantNode)node.getExpression()).getValue();
+            generate(value, name);
         } else if (node.getExpression() instanceof ParameterNode) {
             if (args.length == 0) {
                 throw new StandardException("Missing statement parameters");
@@ -187,20 +188,18 @@ public class InsertVisitor implements XContentVisitor {
             } catch (IndexOutOfBoundsException e) {
                 throw new StandardException("Statement parameter value not found");
             }
+
+            generate(value, name, false);
         }
 
-        if (value != null) {
-            generate(value, name);
-
-            columnIndex++;
-            if (columnIndex == columnNameList.size()) {
-                // reset columnIndex
-                columnIndex = 0;
-                if (rowIndex == rowCount-1) {
-                    // end of processing
-                    closeRootObject();
-                    stopTraverse = true;
-                }
+        columnIndex++;
+        if (columnIndex == columnNameList.size()) {
+            // reset columnIndex
+            columnIndex = 0;
+            if (rowIndex == rowCount-1) {
+                // end of processing
+                closeRootObject();
+                stopTraverse = true;
             }
         }
 
@@ -208,9 +207,16 @@ public class InsertVisitor implements XContentVisitor {
     }
 
     private void generate(Object value, String columnName) throws StandardException {
+        generate(value, columnName, true);
+    }
+
+    private void generate(Object value, String columnName,
+                          Boolean useMapper) throws StandardException {
+        if (useMapper) {
+            value = tableContext.mapper().mappers().name(columnName).mapper().value(value);
+        }
         try {
-            jsonBuilder.field(columnName,
-                    tableContext.mapper().mappers().name(columnName).mapper().value(value));
+            jsonBuilder.field(columnName, value);
         } catch (IOException e) {
             logger.error("Error while writing json", e);
             throw new StandardException(e);
