@@ -6,7 +6,9 @@ Unreleased
 ==========
 
  - fixed support for ``object`` type mappings, objects are now supported
-   by the transport layer (so also by the java client library)
+   by the transport layer (so also by the java client library).
+   In addition the `/_sql`  endpoint now properly accepts nested objects inside
+   the `args` key of the request body.
 
 2013/09/18 0.11.1
 =================
