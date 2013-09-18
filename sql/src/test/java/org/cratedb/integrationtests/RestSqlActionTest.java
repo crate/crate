@@ -1,5 +1,6 @@
 package org.cratedb.integrationtests;
 
+import org.codehaus.jackson.map.ObjectMapper;
 import org.cratedb.action.sql.SQLRequestBuilder;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.action.sql.parser.SQLXContentSourceContext;
@@ -16,7 +17,6 @@ import org.junit.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
 
@@ -99,13 +99,14 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
             "}\n");
         parser.parseSource(source);
 
-        assertEquals("[[\"1\", \"2\"], \"1\", 1, 2, 2.0, 99999999999999999999999999999999]", arrayRepr(context.args()));
+        ObjectMapper mapper = new ObjectMapper();
+        assertEquals(
+            "[[\"1\",\"2\"],\"1\",1,2,2.0,99999999999999999999999999999999]",
+            mapper.writeValueAsString(context.args()));
     }
 
-    @Test(expected = SQLParseException.class)
+    @Test
     public void testArgsParserNestedList() throws Exception {
-
-        // nested lists are not supported
 
         SQLXContentSourceContext context = new SQLXContentSourceContext();
         SQLXContentSourceParser parser = new SQLXContentSourceParser(context);
@@ -114,12 +115,13 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
             "    \"args\": [[\"1\", \"2\", [\"1\"]], \"1\", 1, 2, 2.0, 99999999999999999999999999999999]\n" +
             "}\n");
         parser.parseSource(source);
+        ObjectMapper mapper = new ObjectMapper();
+        assertEquals("[[\"1\",\"2\",[\"1\"]],\"1\",1,2,2.0,99999999999999999999999999999999]",
+            mapper.writeValueAsString(context.args()));
     }
 
-    @Test(expected = SQLParseException.class)
+    @Test
     public void testArgsParserNestedMap() throws Exception {
-
-        // nested maps are not supported
 
         SQLXContentSourceContext context = new SQLXContentSourceContext();
         SQLXContentSourceParser parser = new SQLXContentSourceParser(context);
@@ -128,34 +130,22 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
             "    \"args\": [{\"1\": \"2\"}, 1]\n" +
             "}\n");
         parser.parseSource(source);
+        ObjectMapper mapper = new ObjectMapper();
+        assertEquals("[{\"1\":\"2\"},1]", mapper.writeValueAsString(context.args()));
     }
 
-    /**
-     * method to print an object[]
-     * similar to Arrays.deepToString() but quotes strings
-     * @param array
-     * @return
-     */
-    private String arrayRepr(Object[] array) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("[");
+    @Test
+    public void testArgsParserVeryNestedMap() throws Exception {
 
-        for (int i = 0; i < array.length; i++) {
-            if (array[i] instanceof Object[]) {
-                sb.append(arrayRepr((Object[])array[i]));
-            } else if (array[i] instanceof String) {
-                sb.append("\"" + array[i].toString() + "\"");
-            } else {
-                sb.append(array[i].toString());
-            }
-
-            if (i + 1 < array.length) {
-                sb.append(", ");
-            }
-        }
-
-        sb.append("]");
-        return sb.toString();
+        SQLXContentSourceContext context = new SQLXContentSourceContext();
+        SQLXContentSourceParser parser = new SQLXContentSourceParser(context);
+        BytesArray source = new BytesArray("{\n" +
+            "    \"stmt\": \"select * from locations\",\n" +
+            "    \"args\": [{\"1\": {\"2\": {\"3\": 3}}}, [{\"1\": {\"2\": [2, 2]}}]]\n" +
+            "}\n");
+        parser.parseSource(source);
+        ObjectMapper mapper = new ObjectMapper();
+        assertEquals("[{\"1\":{\"2\":{\"3\":3}}},[{\"1\":{\"2\":[2,2]}}]]",
+            mapper.writeValueAsString(context.args()));
     }
-
 }
