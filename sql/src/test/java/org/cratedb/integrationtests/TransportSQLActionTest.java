@@ -426,6 +426,45 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     @Test
+    public void testInsertWithReturning() throws Exception {
+        prepareCreate("test")
+            .addMapping("default",
+                "firstname", "type=string,store=true,index=not_analyzed",
+                "lastname", "type=string,store=true,index=not_analyzed")
+            .execute().actionGet();
+        execute("insert into test (firstname, lastname) values('Youri', 'Zoon') returning (firstname)");
+        assertEquals(1, response.rows().length);
+        assertEquals("Youri", response.rows()[0][0]);
+    }
+
+    @Test
+    public void testInsertWithReturningWithStar() throws Exception {
+        prepareCreate("test")
+            .addMapping("default",
+                "firstname", "type=string,store=true,index=not_analyzed",
+                "lastname", "type=string,store=true,index=not_analyzed")
+            .execute().actionGet();
+
+        execute("insert into test (firstname, lastname) values('Youri', 'Zoon') returning *");
+        assertEquals(1, response.rows().length);
+        assertEquals("Youri", response.rows()[0][0]);
+        assertEquals("Zoon", response.rows()[0][1]);
+    }
+
+    @Test
+    public void testInsertMultiRowWithReturning() throws Exception {
+        prepareCreate("test")
+            .addMapping("default",
+                "firstname", "type=string,store=true,index=not_analyzed",
+                "lastname", "type=string,store=true,index=not_analyzed")
+            .execute().actionGet();
+        execute("insert into test (firstname, lastname) values('Youri', 'Zoon'), ('Foo', 'Bar') returning (firstname)");
+        assertEquals(2, response.rows().length);
+        assertEquals("Youri", response.rows()[0][0]);
+        assertEquals("Foo", response.rows()[1][0]);
+    }
+
+    @Test
     public void testInsertWithoutColumnNames() throws Exception {
         prepareCreate("test")
                 .addMapping("default",
