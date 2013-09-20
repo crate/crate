@@ -105,16 +105,31 @@ public class XContentGenerator {
 
             generate((SelectNode) node.getResultSetNode());
 
-            if (node.getOffsetClause() != null) {
-                jsonBuilder.field("from",
-                        ((NumericConstantNode) node.getOffsetClause()).getValue());
-            }
-            if (node.getFetchFirstClause() != null) {
-                jsonBuilder.field("size",
-                        ((NumericConstantNode) node.getFetchFirstClause()).getValue());
-            }
+            offsetClause(node.getOffsetClause());
+            fetchFirstClause(node.getFetchFirstClause());
         } else {
             throw new SQLParseException("unsupported sql statement: " + node.statementToString());
+        }
+    }
+
+    private void offsetClause(ValueNode node) throws IOException, StandardException {
+        fieldFromParamNodeOrConstantNode(node, "from");
+    }
+
+    private void fetchFirstClause(ValueNode node) throws IOException, StandardException {
+        fieldFromParamNodeOrConstantNode(node, "size");
+    }
+
+    private void fieldFromParamNodeOrConstantNode(ValueNode node, String fieldName)
+        throws IOException, StandardException
+    {
+        if (node == null) {
+            return;
+        }
+        if (node.isParameterNode()) {
+            jsonBuilder.field(fieldName,params[((ParameterNode)node).getParameterNumber()]);
+        } else {
+            jsonBuilder.field(fieldName,((ConstantNode) node).getValue());
         }
     }
 

@@ -32,6 +32,10 @@ public class QueryVisitorTest {
     }
 
     private QueryVisitor getQueryVisitor() throws StandardException {
+        return getQueryVisitor(new Object[0]);
+    }
+
+    private QueryVisitor getQueryVisitor(Object[] params) throws StandardException {
 
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
         NodeExecutionContext.TableExecutionContext tec = mock(
@@ -39,7 +43,7 @@ public class QueryVisitorTest {
         when(nec.tableContext("locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("a", "b"));
 
-        return new QueryVisitor(nec);
+        return new QueryVisitor(nec, params);
     }
 
     @Test(expected = SQLParseException.class)
@@ -96,6 +100,26 @@ public class QueryVisitorTest {
 
         assertEquals("{\"query\":{\"match_all\":{}},\"fields\":[\"a\",\"b\"]}",
                 visitor.getXContentBuilder().string());
+    }
+
+    @Test
+    public void testSelectWithLimitAsParameter() throws Exception {
+        QueryVisitor visitor = getQueryVisitor(new Object[] { 5 });
+        SQLParser parser = new SQLParser();
+        String sql = "SELECT name from locations limit ?";
+        StatementNode statement = parser.parseStatement(sql);
+
+        statement.accept(visitor);
+    }
+
+    @Test
+    public void testSelectWithLimitAsOffset() throws Exception {
+        QueryVisitor visitor = getQueryVisitor(new Object[] { 5 });
+        SQLParser parser = new SQLParser();
+        String sql = "SELECT name from locations limit 1 offset ?";
+        StatementNode statement = parser.parseStatement(sql);
+
+        statement.accept(visitor);
     }
 
     @Test
