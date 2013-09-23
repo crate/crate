@@ -28,6 +28,7 @@ public class InsertVisitor implements XContentVisitor {
     private NodeExecutionContext executionContext;
     private NodeExecutionContext.TableExecutionContext tableContext;
     private List<String> columnNameList;
+    private Object[][] rows;
     private int columnIndex;
     private int rowCount;
     private int rowIndex;
@@ -60,6 +61,9 @@ public class InsertVisitor implements XContentVisitor {
         this(nodeExecutionContext, new Object[0]);
     }
 
+    public Object[][] rows() {
+        return rows;
+    }
 
     @Override
     public XContentBuilder getXContentBuilder() {
@@ -128,7 +132,25 @@ public class InsertVisitor implements XContentVisitor {
             columnNameList = Arrays.asList(targetColumnList.getColumnNames());
         }
 
+        ResultColumnList returningColumnList = node.getReturningList();
+        if (returningColumnList != null) {
+            setOutputFields(returningColumnList);
+        }
+
         return node;
+    }
+
+    private void setOutputFields(ResultColumnList resultColumns) {
+        // akiban doesn't support "returning columnName as c"
+        for (ResultColumn column : resultColumns) {
+            if (column instanceof AllResultColumn) {
+                for (String columnName : tableContext.allCols()) {
+                    outputFields.add(new Tuple<String, String>(columnName, columnName));
+                }
+            } else {
+                outputFields.add(new Tuple<String, String>(column.getName(), column.getName()));
+            }
+        }
     }
 
     private Visitable visit(RowsResultSetNode node) throws StandardException {
@@ -139,6 +161,12 @@ public class InsertVisitor implements XContentVisitor {
 
     private Visitable visit(RowResultSetNode node) throws StandardException {
         try {
+            if (!outputFields.isEmpty() && rows == null) {
+                // if multiple rows are inserted at once rowCount is the number of rows
+                // if only one row is inserted the rowCount is -1
+                rows = new Object[rowCount > 0 ? rowCount : 1][outputFields.size()];
+            }
+
             if (rowCount > 0) {
                 // Multiple rows detected, generate XContent usable for a BulkRequest
                 rowIndex++;
@@ -215,6 +243,13 @@ public class InsertVisitor implements XContentVisitor {
         if (useMapper) {
             value = tableContext.mapper().mappers().name(columnName).mapper().value(value);
         }
+
+        int returningIdx = outputFields.indexOf(new Tuple<String, String>(columnName, columnName));
+        if (returningIdx > -1) {
+            // on inserts with only one row rowIndex is -1 instead of 0
+            rows[rowIndex > -1 ? rowIndex : 0][returningIdx] = value;
+        }
+
         try {
             jsonBuilder.field(columnName, value);
         } catch (IOException e) {

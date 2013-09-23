@@ -138,15 +138,13 @@ public class ParsedStatement {
 
     public SQLResponse buildResponse(SearchResponse searchResponse) {
 
-        SQLFields fields = new SQLFields(outputFields);
         SearchHit[] searchHits = searchResponse.getHits().getHits();
         Object[][] rows = new Object[searchHits.length][outputFields.size()];
 
-
         for (int i = 0; i < searchHits.length; i++) {
             SearchHit hit = searchHits[i];
-            fields.hit(hit);
-            rows[i] = fields.getRowValues();
+            sqlFields.hit(hit);
+            rows[i] = sqlFields.getRowValues();
         }
 
         SQLResponse response = new SQLResponse();
@@ -158,7 +156,7 @@ public class ParsedStatement {
     public SQLResponse buildResponse(IndexResponse indexResponse) {
         SQLResponse response = new SQLResponse();
         response.cols(cols());
-        response.rows(new Object[0][0]);
+        response.rows(((InsertVisitor)visitor).rows());
 
         return response;
     }
@@ -166,7 +164,7 @@ public class ParsedStatement {
     public SQLResponse buildResponse(BulkResponse bulkResponse) {
         SQLResponse response = new SQLResponse();
         response.cols(cols());
-        response.rows(new Object[0][0]);
+        response.rows(((InsertVisitor)visitor).rows());
 
         return response;
     }
