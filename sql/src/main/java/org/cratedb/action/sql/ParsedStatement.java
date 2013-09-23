@@ -1,9 +1,9 @@
 package org.cratedb.action.sql;
 
-import com.akiban.sql.StandardException;
-import com.akiban.sql.parser.NodeTypes;
-import com.akiban.sql.parser.SQLParser;
-import com.akiban.sql.parser.StatementNode;
+import org.cratedb.sql.parser.StandardException;
+import org.cratedb.sql.parser.parser.NodeTypes;
+import org.cratedb.sql.parser.parser.SQLParser;
+import org.cratedb.sql.parser.parser.StatementNode;
 import org.cratedb.action.parser.InsertVisitor;
 import org.cratedb.action.parser.QueryVisitor;
 import org.cratedb.action.parser.XContentVisitor;

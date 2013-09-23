@@ -1,7 +1,7 @@
 package org.cratedb.action.parser;
 
-import com.akiban.sql.StandardException;
-import com.akiban.sql.parser.*;
+import org.cratedb.sql.parser.StandardException;
+import org.cratedb.sql.parser.parser.*;
 import com.google.common.collect.Lists;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.elasticsearch.common.collect.Tuple;

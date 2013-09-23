@@ -1,9 +1,9 @@
 package org.cratedb.module.sql.test;
 
-import com.akiban.sql.StandardException;
-import com.akiban.sql.parser.SQLParser;
-import com.akiban.sql.parser.SQLParserContext;
-import com.akiban.sql.parser.StatementNode;
+import org.cratedb.sql.parser.StandardException;
+import org.cratedb.sql.parser.parser.SQLParser;
+import org.cratedb.sql.parser.parser.SQLParserContext;
+import org.cratedb.sql.parser.parser.StatementNode;
 import com.google.common.collect.ImmutableSet;
 import org.cratedb.action.parser.QueryVisitor;
 import org.cratedb.action.sql.NodeExecutionContext;

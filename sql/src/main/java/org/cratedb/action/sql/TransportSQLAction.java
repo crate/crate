@@ -1,6 +1,6 @@
 package org.cratedb.action.sql;
 
-import com.akiban.sql.StandardException;
+import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.SQLParseException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkRequest;
