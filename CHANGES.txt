@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - included foundationDB/akiban ``sql-parser`` code into the ``sql`` module
+
 2013/09/20 0.11.3
 =================
 
