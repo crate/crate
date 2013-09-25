@@ -1,5 +1,6 @@
 
 def textOut = file("$projectDir/out/text")
+def crateDist = file("$projectDir/tmp/crate/")
 
 
 task bootstrap (type:Exec) {
@@ -18,7 +19,7 @@ task unpackDistTar (dependsOn: project(':app').distTar) << {
                     details.path.substring(details.relativePath.segments[0].length())
             }
         }
-        into "$projectDir/tmp/crate/"
+        into crateDist
     }
 }
 
@@ -37,4 +38,5 @@ task itest (type:Exec, dependsOn: unpackDistTar){
 
 task clean << {
     delete textOut
+    delete crateDist
 }
