@@ -11,8 +11,7 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * The QueryVisitor is an implementation of the Visitor interface provided by the akiban SQL-Parser
- * See https://github.com/akiban/sql-parser for more information.
+ * The QueryVisitor is an implementation of the Visitor interface provided by the SQL-Parser
  *
  */
 public class QueryVisitor implements XContentVisitor {
