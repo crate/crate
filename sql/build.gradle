@@ -48,13 +48,25 @@ sourceSets {
     }
 }
 
-task compileJavaCC << {
+task compileJavaCC {
     def javaccPath = project.file('src/main/javacc')
     def javaccTree = fileTree(dir: javaccPath, include: '**/*.jj')
+
+    def outputFiles = []
     javaccTree.each {File file ->
         def outPath = file.parentFile.absolutePath.replace('javacc/', 'java/')
-        String[] args = ["-STATIC=false","-OUTPUT_DIRECTORY:$outPath", "$file"]
-        org.javacc.parser.Main.mainProgram(args)
+        outputFiles.add(outPath)
+    }
+
+    inputs.files javaccTree
+    outputs.files outputFiles
+
+    doLast {
+        javaccTree.each {File file ->
+            def outPath = file.parentFile.absolutePath.replace('javacc/', 'java/')
+            String[] args = ["-STATIC=false","-OUTPUT_DIRECTORY:$outPath", "$file"]
+            org.javacc.parser.Main.mainProgram(args)
+        }
     }
 }
 
