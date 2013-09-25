@@ -10,12 +10,19 @@ evaluationDependsOn(':app')
 
 dependencies {
     compile project(':es')
-    compile 'com.akiban:akiban-sql-parser:1.0.15'
     testCompile 'org.skyscreamer:jsonassert:1.2.0'
     testCompile "org.mockito:mockito-core:1.9.5"
     testCompile project(':testing')
 }
 
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'net.java.dev.javacc:javacc:5.0'
+    }
+}
 
 test {
     testLogging {
@@ -40,3 +47,27 @@ sourceSets {
         }
     }
 }
+
+task compileJavaCC {
+    def javaccPath = project.file('src/main/javacc')
+    def javaccTree = fileTree(dir: javaccPath, include: '**/*.jj')
+
+    def outputFiles = []
+    javaccTree.each {File file ->
+        def outPath = file.parentFile.absolutePath.replace('javacc/', 'java/')
+        outputFiles.add(outPath)
+    }
+
+    inputs.files javaccTree
+    outputs.files outputFiles
+
+    doLast {
+        javaccTree.each {File file ->
+            def outPath = file.parentFile.absolutePath.replace('javacc/', 'java/')
+            String[] args = ["-STATIC=false","-OUTPUT_DIRECTORY:$outPath", "$file"]
+            org.javacc.parser.Main.mainProgram(args)
+        }
+    }
+}
+
+compileJava.dependsOn compileJavaCC

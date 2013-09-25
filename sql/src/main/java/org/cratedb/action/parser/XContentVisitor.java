@@ -1,7 +1,7 @@
 package org.cratedb.action.parser;
 
-import com.akiban.sql.StandardException;
-import com.akiban.sql.parser.Visitor;
+import org.cratedb.sql.parser.StandardException;
+import org.cratedb.sql.parser.parser.Visitor;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
