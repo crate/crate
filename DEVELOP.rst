@@ -2,6 +2,12 @@
 DEVELOPMENT
 ===========
 
+Prerequisites
+=============
+
+Crate is developed in Java_, so a working Java_ installation is required.
+The minimum supported JVM version is **1.7**.
+
 Submodules
 ==========
 
@@ -94,3 +100,4 @@ task is run as a dependency of the ``dist`` task.
 
 .. _Gradle: http://www.gradle.org/
 
+.. _Java: http://www.oracle.com/technetwork/java/javase/downloads/index.html
