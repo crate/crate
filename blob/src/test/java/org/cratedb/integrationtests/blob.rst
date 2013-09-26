@@ -341,3 +341,11 @@ An empty file is handled just like any other file::
 
     >>> put('/test/_blobs/da39a3ee5e6b4b0d3255bfef95601890afd80709', data='')
     HTTP Error 409: Conflict
+
+
+Indexing a huge document on a non-blob index is still possible::
+
+    >>> url = '/test_no_blobs/default/1'
+    >>> data = {"content": "a" * (64 * 1024)}
+    >>> put(url, data=json.dumps(data))
+    HTTP Response 201
