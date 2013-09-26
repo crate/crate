@@ -88,6 +88,20 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
             , json, true);
     }
 
+    @Test
+    public void testSqlRequestWithNullArgs() throws Exception {
+
+        String json = sql("{\n" +
+            "    \"stmt\": \"insert into locations (name, kind) values (?, ?)\",\n" +
+            "    \"args\": [\"Somewhere\", null]\n" +
+            "}\n");
+
+        JSONAssert.assertEquals(
+            "{\n" +
+                "  \"cols\" : [ ],\n" +
+                "  \"rows\" : [ ]\n" +
+                "}", json, true);
+    }
 
     @Test
     public void testArgsParser() throws Exception {
