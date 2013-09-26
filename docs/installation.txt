@@ -18,7 +18,7 @@ in the foreground you can use Control-C to stop the process again.
 
 .. Note::
 
- Crate needs a working Java_ installation in order to run.
+ Crate needs a working Java_ >= 1.7 installation in order to run.
 
 .. seealso::
 
