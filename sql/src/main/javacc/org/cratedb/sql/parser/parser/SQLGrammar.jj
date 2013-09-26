@@ -7782,6 +7782,7 @@ columnReference() throws StandardException :
     String tableName = null;
     String schemaName = null;
     TableName tabName = null;
+    NestedColumnReference nestedColumn = null;
 }
 {
     firstName = identifierDeferCheckLength()
@@ -7833,14 +7834,33 @@ columnReference() throws StandardException :
                                                      new Integer(nextToLastIdentifierToken.endOffset),
                                                      parserContext);
             }
+    }
 
-        return (ColumnReference)nodeFactory.getNode(NodeTypes.COLUMN_REFERENCE,
+    (
+        LOOKAHEAD( { getToken(1).kind == LEFT_BRACKET } )
+        {
+            nestedColumn =  (NestedColumnReference)nodeFactory.getNode(NodeTypes.NESTED_COLUMN_REFERENCE,
                                                     columnName,
                                                     tabName,
                                                     new Integer(lastIdentifierToken.beginOffset),
                                                     new Integer(lastIdentifierToken.endOffset),
                                                     parserContext);
-    }
+            nestedColumnPaths(nestedColumn);
+            return nestedColumn;
+
+        }
+
+    |
+
+        {
+            return (ColumnReference)nodeFactory.getNode(NodeTypes.COLUMN_REFERENCE,
+                                                columnName,
+                                                tabName,
+                                                new Integer(lastIdentifierToken.beginOffset),
+                                                new Integer(lastIdentifierToken.endOffset),
+                                                parserContext);
+        }
+    )
 }
 
 /*
@@ -7869,6 +7889,28 @@ columnReference() throws StandardException :
     <IDENTIFIER>
 }
 */
+
+
+void
+nestedColumnPaths(NestedColumnReference column) throws StandardException :
+{}
+{
+    <LEFT_BRACKET> nestedColumnPathElement(column) <RIGHT_BRACKET>
+    ( <LEFT_BRACKET> nestedColumnPathElement(column) <RIGHT_BRACKET> )*
+}
+
+void
+nestedColumnPathElement(NestedColumnReference column) throws StandardException :
+{
+    ValueNode element;
+}
+{
+    element = literal()
+    {
+        column.addPathElement((ConstantNode)element);
+    }
+}
+
 
 OrderByList
 orderByClause() throws StandardException :

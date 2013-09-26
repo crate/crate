@@ -662,6 +662,10 @@ public final class NodeFactoryImpl extends NodeFactory
         case NodeTypes.PARTITION_BY_COLUMN:
             return NodeNames.PARTITION_BY_COLUMN_NAME;
 
+        case NodeTypes.NESTED_COLUMN_REFERENCE:
+            return NodeNames.NESTED_COLUMN_REFERENCE_NAME;
+
+
         default:
             throw new StandardException("Not implemented");
         }
