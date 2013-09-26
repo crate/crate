@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - calling _sql with `null` in the `args` no longer causes an error.
+
  - fixed a regression that caused chunk requests to only work for blobs
 
  - included foundationDB/akiban ``sql-parser`` code into the ``sql`` module
