@@ -4,8 +4,6 @@ import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -121,9 +119,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     @Test
     public void testSelectNestedColumns() throws Exception {
-        ESLogger logger = Loggers.getLogger("org.elasticsearch");
-        logger.setLevel("debug");
-
         prepareCreate("test")
                 .addMapping("default",
                         "message", "type=string",

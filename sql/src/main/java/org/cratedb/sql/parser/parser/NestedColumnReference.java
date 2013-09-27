@@ -110,7 +110,7 @@ public class NestedColumnReference extends ColumnReference {
     }
 
     /**
-     * Generates the path strings through iterating over the path elements
+     * Generates the path strings by iterating over the path elements
      *
      * @throws StandardException
      */
