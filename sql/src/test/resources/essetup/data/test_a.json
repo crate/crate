@@ -19,7 +19,7 @@
 { "index" : { "_index" : "locations", "_type" : "default", "_id" : "10" } }
 { "name": "Arkintoofle Minor", "date":"1979-10-12", "kind": "Planet", "position": 3, "description": "Motivated by the fact that the only thing in the Universe that travels faster than light is bad news, the Hingefreel people native to Arkintoofle Minor constructed a starship driven by bad news."}
 { "index" : { "_index" : "locations", "_type" : "default", "_id" : "11" } }
-{ "name": "Bartledan", "date":"2013-07-16", "kind": "Planet", "position": 4, "description": "An Earthlike planet on which Arthur Dent lived for a short time, Bartledan is inhabited by Bartledanians, a race that appears human but only physically."}
+{ "name": "Bartledan", "date":"2013-07-16", "kind": "Planet", "position": 4, "description": "An Earthlike planet on which Arthur Dent lived for a short time, Bartledan is inhabited by Bartledanians, a race that appears human but only physically.", "race": {"name": "Bartledannians", "description": "Similar to humans, but do not breathe", "interests": [ "netball" ] } }
 { "index" : { "_index" : "locations", "_type" : "default", "_id" : "12" } }
 { "name": "", "date":"2013-07-16", "kind": "Planet", "position": 5, "description": "This Planet doesn't really exist"}
 { "index" : { "_index" : "locations", "_type" : "default", "_id" : "13" } }
