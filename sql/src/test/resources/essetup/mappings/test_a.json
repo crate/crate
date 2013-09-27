@@ -28,6 +28,10 @@
                 "type": "string",
                 "index": "analyzed",
                 "store": true
+            },
+            "race": {
+                "type": "object",
+                "store": true
             }
         }
     }

@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableSet;
 import org.cratedb.action.parser.QueryVisitor;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.sql.SQLParseException;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Test;
 
@@ -266,6 +267,77 @@ public class QueryVisitorTest {
                         .string();
 
         assertEquals(expected, visitor.getXContentBuilder().string());
+    }
+
+    @Test
+    public void testSelectNestedColumnsFromTable() throws StandardException, IOException {
+
+        NodeExecutionContext nec = mock(NodeExecutionContext.class);
+        NodeExecutionContext.TableExecutionContext tec = mock(
+                NodeExecutionContext.TableExecutionContext.class);
+        when(nec.tableContext("persons")).thenReturn(tec);
+        when(tec.allCols()).thenReturn(ImmutableSet.of("message", "person"));
+
+        QueryVisitor visitor = new QueryVisitor(nec, new Object[0]);
+
+        SQLParser parser = new SQLParser();
+        String sql = "select persons.message, persons.person['addresses'] from persons " +
+                "where person['name'] = 'Ford'";
+
+        StatementNode statement = parser.parseStatement(sql);
+        statement.accept(visitor);
+
+        String expected =
+                XContentFactory.jsonBuilder()
+                        .startObject()
+                        .startObject("query")
+                        .startObject("term").field("person.name", "Ford").endObject()
+                        .endObject()
+                        .field("fields", Arrays.asList("message", "person.addresses"))
+                        .endObject()
+                        .string();
+
+        assertEquals(expected, visitor.getXContentBuilder().string());
+        assertEquals(new Tuple<String,String>("message", "message"), visitor.outputFields().get(0));
+        assertEquals(new Tuple<String,String>("person['addresses']",
+                "person.addresses"), visitor.outputFields().get(1));
+    }
+
+    @Test(expected = SQLParseException.class)
+    public void testUnsuportedNestedColumnIndexInWhereClause() throws StandardException,
+            IOException {
+
+        NodeExecutionContext nec = mock(NodeExecutionContext.class);
+        NodeExecutionContext.TableExecutionContext tec = mock(
+                NodeExecutionContext.TableExecutionContext.class);
+        when(nec.tableContext("persons")).thenReturn(tec);
+
+        QueryVisitor visitor = new QueryVisitor(nec, new Object[0]);
+
+        SQLParser parser = new SQLParser();
+        String sql = "select persons.message, person['name'] from persons " +
+                "where person['addresses'][0]['city'] = 'Berlin'";
+
+        StatementNode statement = parser.parseStatement(sql);
+        statement.accept(visitor);
+    }
+
+    @Test(expected = SQLParseException.class)
+    public void testUnsuportedNestedColumnIndexInFields() throws StandardException,
+            IOException {
+
+        NodeExecutionContext nec = mock(NodeExecutionContext.class);
+        NodeExecutionContext.TableExecutionContext tec = mock(
+                NodeExecutionContext.TableExecutionContext.class);
+        when(nec.tableContext("persons")).thenReturn(tec);
+
+        QueryVisitor visitor = new QueryVisitor(nec, new Object[0]);
+
+        SQLParser parser = new SQLParser();
+        String sql = "select persons.message, person['name'], person['addresses'][0] from persons";
+
+        StatementNode statement = parser.parseStatement(sql);
+        statement.accept(visitor);
     }
 
     @Test
