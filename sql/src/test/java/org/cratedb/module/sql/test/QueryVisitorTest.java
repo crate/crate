@@ -281,7 +281,7 @@ public class QueryVisitorTest {
         QueryVisitor visitor = new QueryVisitor(nec, new Object[0]);
 
         SQLParser parser = new SQLParser();
-        String sql = "select persons.message, person['addresses'][0]['street'] from persons " +
+        String sql = "select persons.message, persons.person['addresses'] from persons " +
                 "where person['name'] = 'Ford'";
 
         StatementNode statement = parser.parseStatement(sql);
@@ -293,14 +293,14 @@ public class QueryVisitorTest {
                         .startObject("query")
                         .startObject("term").field("person.name", "Ford").endObject()
                         .endObject()
-                        .field("fields", Arrays.asList("message", "person.addresses[0].street"))
+                        .field("fields", Arrays.asList("message", "person.addresses"))
                         .endObject()
                         .string();
 
         assertEquals(expected, visitor.getXContentBuilder().string());
         assertEquals(new Tuple<String,String>("message", "message"), visitor.outputFields().get(0));
-        assertEquals(new Tuple<String,String>("person['addresses'][0]['street']",
-                "person.addresses[0].street"), visitor.outputFields().get(1));
+        assertEquals(new Tuple<String,String>("person['addresses']",
+                "person.addresses"), visitor.outputFields().get(1));
     }
 
     @Test(expected = SQLParseException.class)
@@ -317,6 +317,24 @@ public class QueryVisitorTest {
         SQLParser parser = new SQLParser();
         String sql = "select persons.message, person['name'] from persons " +
                 "where person['addresses'][0]['city'] = 'Berlin'";
+
+        StatementNode statement = parser.parseStatement(sql);
+        statement.accept(visitor);
+    }
+
+    @Test(expected = SQLParseException.class)
+    public void testUnsuportedNestedColumnIndexInFields() throws StandardException,
+            IOException {
+
+        NodeExecutionContext nec = mock(NodeExecutionContext.class);
+        NodeExecutionContext.TableExecutionContext tec = mock(
+                NodeExecutionContext.TableExecutionContext.class);
+        when(nec.tableContext("persons")).thenReturn(tec);
+
+        QueryVisitor visitor = new QueryVisitor(nec, new Object[0]);
+
+        SQLParser parser = new SQLParser();
+        String sql = "select persons.message, person['name'], person['addresses'][0] from persons";
 
         StatementNode statement = parser.parseStatement(sql);
         statement.accept(visitor);

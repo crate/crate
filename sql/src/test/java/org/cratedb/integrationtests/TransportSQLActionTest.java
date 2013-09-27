@@ -131,26 +131,17 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 .execute().actionGet();
         client().prepareIndex("test", "default", "id1").setRefresh(true)
                 .setSource("{\"message\":\"I'm addicted to kite\", " +
-                        "\"person\": { \"name\": \"Youri\", \"addresses\": [ { \"city\": " +
+                        "\"person\": { \"name\": \"youri\", \"addresses\": [ { \"city\": " +
                         "\"Dirksland\", \"country\": \"NL\" } ] }}")
                 .execute().actionGet();
 
-        // TODO: Choosing nested fields by array index seems not to work
-        /*
-        execute("select message, person['name'], person['addresses'][0]['city'] from test " +
-                "where person['name'] = 'youri'");
-        assertArrayEquals(new String[]{"message", "person['name']", "person['addresses'][0]['city']"},
-                response.cols());
-        */
-
-        // TODO: Selecting correct Uppercase value "Youri" doesn't work, why?
         execute("select message, person['name'], person['addresses']['city'] from test " +
                 "where person['name'] = 'youri'");
 
         assertArrayEquals(new String[]{"message", "person['name']", "person['addresses']['city']"},
                 response.cols());
         assertEquals(1, response.rows().length);
-        assertArrayEquals(new Object[]{"I'm addicted to kite", "Youri",
+        assertArrayEquals(new Object[]{"I'm addicted to kite", "youri",
                 new ArrayList<String>(){{add("Dirksland");}}},
                 response.rows()[0]);
     }

@@ -227,12 +227,20 @@ public class XContentGenerator {
                     requireVersion = true;
                 }
             } else if (column.getExpression() instanceof NestedColumnReference) {
-                // build XContent input and SQL output fields from nested column nodes
+                // resolve XContent input and SQL output path from nested column path nodes
                 NestedColumnReference nestedColumnReference = (NestedColumnReference) column
                         .getExpression();
+
+                if (nestedColumnReference.pathContainsNumeric()) {
+                    throw new SQLParseException("Selecting nested column array indexes is not " +
+                            "supported");
+                }
+
                 fields.add(nestedColumnReference.xcontentPathString());
                 columnName = nestedColumnReference.xcontentPathString();
                 if (columnAlias == column.getExpression().getColumnName()) {
+                    // if no alias ("AS") is defined, use the SQL syntax for the output column
+                    // name
                     columnAlias = nestedColumnReference.sqlPathString();
                 }
             } else {
