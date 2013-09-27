@@ -59,13 +59,24 @@ public class InsertVisitorTest {
         assertEquals(statement.type(), ParsedStatement.BULK_ACTION);
 
         BulkRequest bulkRequest = statement.buildBulkRequest();
-        for (ActionRequest actionRequest : bulkRequest.requests()) {
-            assertTrue(actionRequest instanceof IndexRequest);
 
-            IndexRequest indexRequest = (IndexRequest)actionRequest;
+        assertEquals(2, bulkRequest.requests().size());
 
-            assertEquals("locations", indexRequest.index());
-            assertEquals(IndexRequest.OpType.CREATE, indexRequest.opType());
-        }
+        ActionRequest actionRequest1 = bulkRequest.requests().get(0);
+        ActionRequest actionRequest2 = bulkRequest.requests().get(1);
+
+        assertTrue(actionRequest1 instanceof IndexRequest);
+        assertTrue(actionRequest2 instanceof IndexRequest);
+
+        assertEquals("locations", ((IndexRequest)actionRequest1).index());
+        assertEquals(IndexRequest.OpType.CREATE, ((IndexRequest)actionRequest1).opType());
+        assertEquals(" {\"name\":\"North West Ripple\",\"kind\":\"Galaxy\"}",
+                new String(((IndexRequest)actionRequest1).source().toBytes()));
+
+        assertEquals("locations", ((IndexRequest)actionRequest2).index());
+        assertEquals(IndexRequest.OpType.CREATE, ((IndexRequest)actionRequest2).opType());
+        assertEquals(" {\"name\":\"Bartledan\",\"kind\":\"Planet\"}",
+                new String(((IndexRequest)actionRequest2).source().toBytes()));
+
     }
 }
