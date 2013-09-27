@@ -189,7 +189,7 @@ public class XContentGenerator {
         indices.add(name);
     }
 
-    private void generate(ResultColumnList columnList) throws IOException {
+    private void generate(ResultColumnList columnList) throws IOException, StandardException {
         Set<String> fields = new LinkedHashSet<String>();
 
         if (columnList == null) {
@@ -205,6 +205,7 @@ public class XContentGenerator {
             }
 
             String columnName = column.getExpression().getColumnName();
+            String columnAlias = column.getName();
             if (columnName == null) {
                 // column is a constantValue (e.g. "select 1 from ...");
                 String columnValue = "";
@@ -225,12 +226,29 @@ public class XContentGenerator {
                 if (columnName.equals("_version")) {
                     requireVersion = true;
                 }
+            } else if (column.getExpression() instanceof NestedColumnReference) {
+                // resolve XContent input and SQL output path from nested column path nodes
+                NestedColumnReference nestedColumnReference = (NestedColumnReference) column
+                        .getExpression();
+
+                if (nestedColumnReference.pathContainsNumeric()) {
+                    throw new SQLParseException("Selecting nested column array indexes is not " +
+                            "supported");
+                }
+
+                fields.add(nestedColumnReference.xcontentPathString());
+                columnName = nestedColumnReference.xcontentPathString();
+                if (columnAlias == column.getExpression().getColumnName()) {
+                    // if no alias ("AS") is defined, use the SQL syntax for the output column
+                    // name
+                    columnAlias = nestedColumnReference.sqlPathString();
+                }
             } else {
                 // this should be a normal field which will also be extracted from the source for
                 // us in the search hit, so it is always safe to add it to the fields
                 fields.add(columnName);
             }
-            outputFields.add(new Tuple<String, String>(column.getName(), columnName));
+            outputFields.add(new Tuple<String, String>(columnAlias, columnName));
         }
         if (fields.size() > 0) {
             jsonBuilder.field("fields", fields);
@@ -240,20 +258,30 @@ public class XContentGenerator {
     private void generate(Integer operatorType, ColumnReference left, Object right)
         throws IOException, StandardException {
 
+        String columnName = left.getColumnName();
+        if (left instanceof NestedColumnReference) {
+            NestedColumnReference nestedColumnReference = (NestedColumnReference) left;
+            if (nestedColumnReference.pathContainsNumeric()) {
+                throw new SQLParseException("Filtering by nested column array indexes is not " +
+                        "supported");
+            }
+            columnName = nestedColumnReference.xcontentPathString();
+        }
+
         if (operatorType == SQLOperatorTypes.EQUALS) {
             jsonBuilder.startObject("term")
-                .field(left.getColumnName(), right)
+                .field(columnName, right)
                 .endObject();
         } else if (rangeQueryOperatorMap.containsKey(operatorType)) {
             jsonBuilder.startObject("range")
-                .startObject(left.getColumnName())
+                .startObject(columnName)
                 .field(rangeQueryOperatorMap.get(operatorType), right)
                 .endObject()
                 .endObject();
         } else if (operatorType == SQLOperatorTypes.NOT_EQUALS) {
             jsonBuilder.startObject("bool")
                 .startObject("must_not")
-                .startObject("term").field(left.getColumnName(), right).endObject()
+                .startObject("term").field(columnName, right).endObject()
                 .endObject()
                 .endObject();
         } else {
@@ -265,20 +293,30 @@ public class XContentGenerator {
             throws IOException, StandardException {
         // if an operator is added here the swapOperator method should also be extended.
 
+        String columnName = left.getColumnName();
+        if (left instanceof NestedColumnReference) {
+            NestedColumnReference nestedColumnReference = (NestedColumnReference) left;
+            if (nestedColumnReference.pathContainsNumeric()) {
+                throw new SQLParseException("Filtering by nested column array index is not " +
+                        "supported");
+            }
+            columnName = ((NestedColumnReference) left).xcontentPathString();
+        }
+
         if (operatorType == SQLOperatorTypes.EQUALS) {
             jsonBuilder.startObject("term")
-                    .field(left.getColumnName(), right.getValue())
+                    .field(columnName, right.getValue())
                     .endObject();
         } else if (rangeQueryOperatorMap.containsKey(operatorType)) {
             jsonBuilder.startObject("range")
-                    .startObject(left.getColumnName())
+                    .startObject(columnName)
                     .field(rangeQueryOperatorMap.get(operatorType), right.getValue())
                     .endObject()
                     .endObject();
         } else if (operatorType == SQLOperatorTypes.NOT_EQUALS) {
             jsonBuilder.startObject("bool")
                     .startObject("must_not")
-                    .startObject("term").field(left.getColumnName(), right.getValue()).endObject()
+                    .startObject("term").field(columnName, right.getValue()).endObject()
                     .endObject()
                     .endObject();
         } else {
@@ -319,15 +357,15 @@ public class XContentGenerator {
 
     private void generate(Integer operatorType, ValueNode left, ValueNode right)
             throws IOException, StandardException {
-        if (left.getNodeType() == NodeTypes.COLUMN_REFERENCE
+        if (left instanceof ColumnReference
                 && (right instanceof NumericConstantNode || right instanceof CharConstantNode)) {
             generate(operatorType, (ColumnReference) left, (ConstantNode) right);
             return;
         } else if ((left instanceof NumericConstantNode || left instanceof CharConstantNode)
-                && right.getNodeType() == NodeTypes.COLUMN_REFERENCE) {
+                && right instanceof ColumnReference) {
             generate(swapOperator(operatorType), (ColumnReference) right, (ConstantNode) left);
             return;
-        } else if (left.getNodeType() == NodeTypes.COLUMN_REFERENCE && (right instanceof ParameterNode)) {
+        } else if (left instanceof ColumnReference && (right instanceof ParameterNode)) {
             generate(operatorType, (ColumnReference)left, params[((ParameterNode) right).getParameterNumber()]);
             return;
         }
