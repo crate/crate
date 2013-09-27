@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/09/27 0.12.0
+=================
+
  - implemented support for selecting and querying inner/nested object properties.
 
  - calling _sql with `null` in the `args` no longer causes an error.
