@@ -241,7 +241,7 @@ public class InsertVisitor implements XContentVisitor {
     private void generateBulkHeader() throws StandardException {
         try {
             jsonBuilder.startObject();
-            jsonBuilder.startObject("index");
+            jsonBuilder.startObject("create");
             jsonBuilder.field("_index", indices.get(0));
             jsonBuilder.field("_type", "default");
             jsonBuilder.endObject();
