@@ -59,11 +59,11 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
         JSONAssert.assertEquals(
                 "{\n" +
                         "  \"cols\" : [ \"date\", \"description\", \"kind\", \"name\", " +
-                        "\"position\" ],\n" +
+                        "\"position\", \"race\" ],\n" +
                         "  \"rows\" : [ [ \"1979-10-12T00:00:00.000Z\", " +
                         "\"Relative to life on NowWhat, living on an affluent world in the North" +
                         " West ripple of the Galaxy is said to be easier by a factor of about " +
-                        "seventeen million.\", \"Galaxy\", \"North West Ripple\", 1 ] ]\n" +
+                        "seventeen million.\", \"Galaxy\", \"North West Ripple\", 1, null ] ]\n" +
                         "}"
                 , json, true);
     }
@@ -79,15 +79,29 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
         JSONAssert.assertEquals(
             "{\n" +
                 "  \"cols\" : [ \"date\", \"description\", \"kind\", \"name\", " +
-                "\"position\" ],\n" +
+                "\"position\", \"race\" ],\n" +
                 "  \"rows\" : [ [ \"1979-10-12T00:00:00.000Z\", " +
                 "\"Relative to life on NowWhat, living on an affluent world in the North" +
                 " West ripple of the Galaxy is said to be easier by a factor of about " +
-                "seventeen million.\", \"Galaxy\", \"North West Ripple\", 1 ] ]\n" +
+                "seventeen million.\", \"Galaxy\", \"North West Ripple\", 1, null ] ]\n" +
                 "}"
             , json, true);
     }
 
+    @Test
+    public void testSqlRequestWithNullArgs() throws Exception {
+
+        String json = sql("{\n" +
+            "    \"stmt\": \"insert into locations (name, kind) values (?, ?)\",\n" +
+            "    \"args\": [\"Somewhere\", null]\n" +
+            "}\n");
+
+        JSONAssert.assertEquals(
+            "{\n" +
+                "  \"cols\" : [ ],\n" +
+                "  \"rows\" : [ ]\n" +
+                "}", json, true);
+    }
 
     @Test
     public void testArgsParser() throws Exception {

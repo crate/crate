@@ -253,6 +253,8 @@ public interface NodeNames
 
     static final String MODIFY_COLUMN_NODE_NAME = "org.cratedb.sql.parser.parser.ModifyColumnNode";
 
+    static final String NESTED_COLUMN_REFERENCE_NAME = "org.cratedb.sql.parser.parser.NestedColumnReference";
+
     static final String NEW_INVOCATION_NODE_NAME = "org.cratedb.sql.parser.parser.NewInvocationNode";
 
     static final String NEXT_SEQUENCE_NODE_NAME = "org.cratedb.sql.parser.parser.NextSequenceNode";

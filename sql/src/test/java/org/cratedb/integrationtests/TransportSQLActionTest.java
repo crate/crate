@@ -6,6 +6,7 @@ import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -113,6 +114,31 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 response.cols());
         assertEquals(1, response.rows().length);
         assertArrayEquals(new Object[]{"Youri", "Zoon", 1L, 1L}, response.rows()[0]);
+    }
+
+
+    @Test
+    public void testSelectNestedColumns() throws Exception {
+        prepareCreate("test")
+                .addMapping("default",
+                        "message", "type=string",
+                        "person", "type=object")
+                .execute().actionGet();
+        client().prepareIndex("test", "default", "id1").setRefresh(true)
+                .setSource("{\"message\":\"I'm addicted to kite\", " +
+                        "\"person\": { \"name\": \"youri\", \"addresses\": [ { \"city\": " +
+                        "\"Dirksland\", \"country\": \"NL\" } ] }}")
+                .execute().actionGet();
+
+        execute("select message, person['name'], person['addresses']['city'] from test " +
+                "where person['name'] = 'youri'");
+
+        assertArrayEquals(new String[]{"message", "person['name']", "person['addresses']['city']"},
+                response.cols());
+        assertEquals(1, response.rows().length);
+        assertArrayEquals(new Object[]{"I'm addicted to kite", "youri",
+                new ArrayList<String>(){{add("Dirksland");}}},
+                response.rows()[0]);
     }
 
     @Test

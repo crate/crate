@@ -5,8 +5,8 @@ import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -183,6 +183,62 @@ public class QueryVisitorTest {
     }
 
     @Test
+    public void testSelectNestedColumnsFromTable() throws StandardException, IOException {
+
+        NodeExecutionContext nec = mock(NodeExecutionContext.class);
+        NodeExecutionContext.TableExecutionContext tec = mock(
+                NodeExecutionContext.TableExecutionContext.class);
+        when(nec.tableContext("persons")).thenReturn(tec);
+        when(tec.allCols()).thenReturn(ImmutableSet.of("message", "person"));
+
+        String sql = "select persons.message, persons.person['addresses'] from persons " +
+                "where person['name'] = 'Ford'";
+        stmt = new ParsedStatement(sql, new Object[0], nec);
+
+        String expected =
+                XContentFactory.jsonBuilder()
+                        .startObject()
+                        .startObject("query")
+                        .startObject("term").field("person.name", "Ford").endObject()
+                        .endObject()
+                        .field("fields", Arrays.asList("message", "person.addresses"))
+                        .endObject()
+                        .string();
+
+        assertEquals(expected, getSource());
+        assertEquals(new Tuple<String, String>("message", "message"),
+                stmt.outputFields().get(0));
+        assertEquals(new Tuple<String, String>("person['addresses']",
+                "person.addresses"),
+                stmt.outputFields().get(1));
+    }
+
+    @Test(expected = SQLParseException.class)
+    public void testUnsuportedNestedColumnIndexInWhereClause() throws StandardException,
+            IOException {
+
+        NodeExecutionContext nec = mock(NodeExecutionContext.class);
+        NodeExecutionContext.TableExecutionContext tec = mock(
+                NodeExecutionContext.TableExecutionContext.class);
+        when(nec.tableContext("persons")).thenReturn(tec);
+        String sql = "select persons.message, person['name'] from persons " +
+                "where person['addresses'][0]['city'] = 'Berlin'";
+        stmt = new ParsedStatement(sql, new Object[0], nec);
+    }
+
+    @Test(expected = SQLParseException.class)
+    public void testUnsuportedNestedColumnIndexInFields() throws StandardException,
+            IOException {
+
+        NodeExecutionContext nec = mock(NodeExecutionContext.class);
+        NodeExecutionContext.TableExecutionContext tec = mock(
+                NodeExecutionContext.TableExecutionContext.class);
+        when(nec.tableContext("persons")).thenReturn(tec);
+        String sql = "select persons.message, person['name'], person['addresses'][0] from persons";
+        stmt = new ParsedStatement(sql, new Object[0], nec);
+    }
+
+    @Test
     public void testWhereClauseToTermsQuery() throws StandardException, IOException {
         execStatement("select name, kind from locations where name = 'Bartledan'");
         String expected =
@@ -321,6 +377,7 @@ public class QueryVisitorTest {
                         .string();
         assertEquals(expected, getSource());
     }
+
     @Test
     public void testWhereClauseToTermsQueryWithNumberField() throws StandardException,
             IOException {
@@ -329,6 +386,7 @@ public class QueryVisitorTest {
         assertEquals("{\"query\":{\"term\":{\"position\":4}},\"fields\":[\"a\",\"b\"]}",
                 getSource());
     }
+
     @Test
     public void testWhereClauseWithYodaCondition() throws StandardException, IOException {
         execStatement("select name, kind from locations where 'Bartledan' = name");
@@ -445,6 +503,7 @@ public class QueryVisitorTest {
         String actual = getSource();
         assertEquals(expected, actual);
     }
+
     @Test
     public void testWhereClauseWithOrAndNestedAnd() throws StandardException, IOException {
         execStatement("select name, kind from locations where name = 'Bartledan' or (kind = " +
@@ -552,8 +611,8 @@ public class QueryVisitorTest {
     @Test
     public void testUpdate() throws Exception {
         execStatement("update locations set a=? where a=2", new Object[]{1});
-        assertEquals("{\"query\":{\"term\":{\"a\":2}},\"facets\":{\"sql\":{\"stmt\":\"update " +
-                "locations set a=? where a=2\",\"args\":[1]}}}", getSource());
+        assertEquals("{\"query\":{\"term\":{\"a\":2}}," +
+                "\"facets\":{\"sql\":{\"sql\":{\"stmt\":\"update locations set a=? where a=2\",\"args\":[1]}}}}", getSource());
     }
 
     @Test
@@ -566,7 +625,7 @@ public class QueryVisitorTest {
 
     @Test
     public void testUpdateDocWith2Args() throws Exception {
-        execStatement("update locations set a=?,b=? where a=2", new Object[]{1,2});
+        execStatement("update locations set a=?,b=? where a=2", new Object[]{1, 2});
         Map<String, Object> expected = new HashMap<String, Object>(1);
         expected.put("a", 1);
         expected.put("b", 2);

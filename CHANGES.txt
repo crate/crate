@@ -5,6 +5,17 @@ Changes for Crate
 Unreleased
 ==========
 
+ - bugfix: use ES operation type ``create`` for SQL ``INSERT``.
+
+2013/09/27 0.12.0
+=================
+
+ - implemented support for selecting and querying inner/nested object properties.
+
+ - calling _sql with `null` in the `args` no longer causes an error.
+
+ - fixed a regression that caused chunk requests to only work for blobs
+
  - included foundationDB/akiban ``sql-parser`` code into the ``sql`` module
 
 2013/09/20 0.11.3

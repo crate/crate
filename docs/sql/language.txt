@@ -25,11 +25,11 @@ If the '*' operator is used, all properties defined in the schema are returned
 for each object::
 
     cr> select * from locations order by "_id" limit 1 offset 1
-    +--------------------------+--------------...---+--------+-------------------+----------+
-    | date                     | description        | kind   | name              | position |
-    +--------------------------+--------------...---+--------+-------------------+----------+
-    | 1979-10-12T00:00:00.000Z | Motivated by ...s. | Planet | Arkintoofle Minor | 3        |
-    +--------------------------+--------------...---+--------+-------------------+----------+
+    +--------------------------+--------------...---+--------+-------------------+----------+------+
+    | date                     | description        | kind   | name              | position | race |
+    +--------------------------+--------------...---+--------+-------------------+----------+------+
+    | 1979-10-12T00:00:00.000Z | Motivated by ...s. | Planet | Arkintoofle Minor | 3        | None |
+    +--------------------------+--------------...---+--------+-------------------+----------+------+
 
 Aliases can be used to change the output name of the columns::
 
@@ -135,6 +135,30 @@ For custom date types, or defined date formats in the object mapping
 the corresponding format should be used for a comparison. Otherwise
 the operation may fail.
 
+Inner/Nested Objects
+--------------------
+
+``Crate`` supports an ``object`` data type, used for simple storing a whole object into a
+column and it's even possible to select and query for properties of such objects.
+
+Select a property of an inner object::
+
+    cr> select name, race['name'] from locations where name = 'Bartledan'
+    +-----------+----------------+
+    | name      | race['name']   |
+    +-----------+----------------+
+    | Bartledan | Bartledannians |
+    +-----------+----------------+
+
+
+Query for a property of an inner object::
+
+    cr> select name, race['name'] from locations where race['name'] = 'bartledannians'
+    +-----------+----------------+
+    | name      | race['name']   |
+    +-----------+----------------+
+    | Bartledan | Bartledannians |
+    +-----------+----------------+
 
 Inserting data
 ==============
@@ -153,7 +177,7 @@ Inserting a row::
 Inserting multiple rows at once (aka. bulk insert) can be done by defining
 multiple values for the ``INSERT`` statement::
 
-    cr> insert into locations values
+    cr> insert into locations (date, description, kind, name, position) values
     ... ('2013-09-12T21:43:59.000Z', 'Blagulon Kappa is the planet to which the police are native.', 'Planet', 'Blagulon Kappa', 7),
     ... ('2013-09-13T16:43:59.000Z', 'Brontitall is a planet with a warm, rich atmosphere and no mountains.', 'Planet', 'Brontitall', 10)
 

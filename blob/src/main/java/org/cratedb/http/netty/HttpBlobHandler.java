@@ -133,8 +133,9 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
         } else if (msg instanceof HttpChunk) {
             HttpChunk chunk = (HttpChunk) msg;
             if (currentMessage == null) {
-                // the chunk might come from a discarded request
-                simpleResponse(HttpResponseStatus.CONFLICT, null);
+                // the chunk is probably from a regular non-blob request.
+                ctx.sendUpstream(e);
+                return;
             }
             // write chunk to file
             writeToFile(chunk.getContent(), chunk.isLast(), false);

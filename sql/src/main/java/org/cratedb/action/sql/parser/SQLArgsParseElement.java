@@ -33,6 +33,8 @@ public class SQLArgsParseElement implements SQLParseElement {
                 subList.add(parseSubArray(context, parser));
             } else if (token == XContentParser.Token.START_OBJECT) {
                 subList.add(parser.map());
+            } else if (token == XContentParser.Token.VALUE_NULL) {
+                subList.add(null);
             } else {
                 throw new SQLParseSourceException(context, "Field [" + parser.currentName() + "] has an invalid value");
             }

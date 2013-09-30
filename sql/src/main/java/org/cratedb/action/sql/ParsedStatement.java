@@ -63,11 +63,7 @@ public class ParsedStatement {
                 visitor = new QueryVisitor(this);
                 break;
         }
-        try {
-            statementNode.accept(visitor);
-        } catch (Exception e){
-            System.out.println(e);
-        }
+        statementNode.accept(visitor);
         builder = visitor.getXContentBuilder();
         sqlFields = new SQLFields(outputFields);
     }
@@ -125,6 +121,7 @@ public class ParsedStatement {
         // We only support 1 ES type per index, it's named: ``default``
         request.type("default");
 
+        request.create(true);
         request.index(indices.get(0));
         request.source(builder.bytes().toBytes());
         return request;
