@@ -15,11 +15,6 @@ import org.elasticsearch.search.facet.InternalFacet;
 import java.io.IOException;
 import java.util.Map;
 
-//import static org.elasticsearch.common.collect.Lists.newArrayList;
-
-/**
- *
- */
 public class InternalSQLFacet extends InternalFacet implements SQLFacet {
 
     private static final BytesReference STREAM_TYPE = new HashedBytesArray(Strings.toUTF8Bytes(
