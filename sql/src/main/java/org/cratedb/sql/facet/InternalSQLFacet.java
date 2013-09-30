@@ -11,10 +11,8 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.facet.Facet;
 import org.elasticsearch.search.facet.InternalFacet;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 //import static org.elasticsearch.common.collect.Lists.newArrayList;
@@ -92,16 +90,16 @@ public class InternalSQLFacet extends InternalFacet implements SQLFacet {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeVLong(rowCount);
-        if (rowCount==0) return;
+        if (rowCount == 0) return;
         int numCols = 0;
-        if (rows==null || rows.length==0){
+        if (rows == null || rows.length == 0) {
             out.writeInt(0);
             return;
         } else {
             out.writeInt(rows.length);
             numCols = rows[0].length;
         }
-        for (int i = 0; i < rows.length ; i++) {
+        for (int i = 0; i < rows.length; i++) {
             for (int j = 0; j < numCols; j++) {
                 out.writeGenericValue(rows[i][j]);
             }
@@ -111,7 +109,7 @@ public class InternalSQLFacet extends InternalFacet implements SQLFacet {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         // at this point we do not support xcontent output
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }
 
     public static InternalSQLFacet readMapReduceFacet(StreamInput in) throws IOException {
@@ -123,8 +121,8 @@ public class InternalSQLFacet extends InternalFacet implements SQLFacet {
     @Override
     public void reduce(ParsedStatement stmt) {
         // Currently only the rowcount gets accumulated
-        for (Facet facet: reduceContext.facets()){
-            if (facet!=this){
+        for (Facet facet : reduceContext.facets()) {
+            if (facet != this) {
                 rowCount += ((InternalSQLFacet) facet).rowCount();
             }
         }
