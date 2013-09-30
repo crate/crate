@@ -76,7 +76,7 @@ public class UpdateCollector extends FacetExecutor.Collector {
 
     private void collect(Uid uid) {
         UpdateRequest request = new CollectorUpdateRequest(shardId, uid);
-        // TODO: check if it is safe to reuse updateDoc on each request
+        // Since we are sequential here, it should be ok to reuse the same request instance
         UpdateResponse response = updateAction.execute(request).actionGet();
         rowCount++;
     }
