@@ -1,5 +1,6 @@
 package org.cratedb.action.parser;
 
+import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
 import com.google.common.collect.Lists;
@@ -22,10 +23,9 @@ import java.util.List;
  */
 public class InsertVisitor implements XContentVisitor {
 
-    private List<String> indices;
+    private final ParsedStatement stmt;
     private XContentBuilder jsonBuilder;
     private boolean stopTraverse;
-    private NodeExecutionContext executionContext;
     private NodeExecutionContext.TableExecutionContext tableContext;
     private List<String> columnNameList;
     private int columnIndex;
@@ -33,22 +33,16 @@ public class InsertVisitor implements XContentVisitor {
     private int rowIndex;
     private byte streamSeparator;
     private ESLogger logger = Loggers.getLogger(InsertVisitor.class);
-    private Object[] args;
 
 
-    private final List<Tuple<String, String>> outputFields;
-
-    public InsertVisitor(NodeExecutionContext nodeExecutionContext, Object[] args) throws StandardException {
-        this.executionContext = nodeExecutionContext;
-        this.args = args;
-        indices = new ArrayList<String>();
+    public InsertVisitor(ParsedStatement stmt) throws StandardException {
+        this.stmt = stmt;
         try {
             jsonBuilder = XContentFactory.jsonBuilder();
         } catch (IOException e) {
             logger.error("Cannot create the jsonBuilder", e);
             throw new StandardException(e);
         }
-        outputFields = new ArrayList<Tuple<String, String>>();
         columnIndex = 0;
         stopTraverse = false;
         rowCount = 0;
@@ -56,24 +50,9 @@ public class InsertVisitor implements XContentVisitor {
         streamSeparator = JsonXContent.jsonXContent.streamSeparator();
     }
 
-    public InsertVisitor(NodeExecutionContext nodeExecutionContext) throws StandardException {
-        this(nodeExecutionContext, new Object[0]);
-    }
-
-
     @Override
     public XContentBuilder getXContentBuilder() {
         return jsonBuilder;
-    }
-
-    @Override
-    public List<String> getIndices() {
-        return indices;
-    }
-
-    @Override
-    public List<Tuple<String, String>> outputFields() {
-        return outputFields;
     }
 
     @Override
@@ -116,13 +95,12 @@ public class InsertVisitor implements XContentVisitor {
         String tableName = node.getTargetTableName().getTableName();
         ResultColumnList targetColumnList = node.getTargetColumnList();
 
-        indices.add(tableName);
-        tableContext = executionContext.tableContext(tableName);
+        stmt.addIndex(tableName);
+        tableContext = stmt.context().tableContext(tableName);
 
         // Get column names from index if not defined by query
         // NOTE: returned column name list is alphabetic ordered!
         if (targetColumnList == null) {
-            tableContext = executionContext.tableContext(tableName);
             columnNameList = Lists.newArrayList(tableContext.allCols());
         } else {
             columnNameList = Arrays.asList(targetColumnList.getColumnNames());
@@ -179,6 +157,7 @@ public class InsertVisitor implements XContentVisitor {
             value = ((ConstantNode)node.getExpression()).getValue();
             generate(value, name);
         } else if (node.getExpression() instanceof ParameterNode) {
+            Object[] args = stmt.args();
             if (args.length == 0) {
                 throw new StandardException("Missing statement parameters");
             }
@@ -242,7 +221,7 @@ public class InsertVisitor implements XContentVisitor {
         try {
             jsonBuilder.startObject();
             jsonBuilder.startObject("index");
-            jsonBuilder.field("_index", indices.get(0));
+            jsonBuilder.field("_index", stmt.indices().get(0));
             jsonBuilder.field("_type", "default");
             jsonBuilder.endObject();
             jsonBuilder.endObject();
