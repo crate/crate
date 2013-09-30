@@ -1,5 +1,6 @@
 package org.cratedb.action.parser;
 
+import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
 import org.cratedb.action.sql.NodeExecutionContext;
@@ -8,7 +9,9 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The QueryVisitor is an implementation of the Visitor interface provided by the SQL-Parser
@@ -16,18 +19,74 @@ import java.util.List;
  */
 public class QueryVisitor implements XContentVisitor {
 
+    private final ParsedStatement stmt;
     private XContentGenerator generator = null;
     private boolean stopTraverse;
+    private NodeExecutionContext.TableExecutionContext tableContext;
 
-    public QueryVisitor(NodeExecutionContext executionContext) throws StandardException {
-        generator = new XContentGenerator(executionContext, new Object[0]);
+    public QueryVisitor(ParsedStatement stmt) throws StandardException {
+        this.stmt = stmt;
+        generator = new XContentGenerator(stmt);
         stopTraverse = false;
     }
 
-    public QueryVisitor(NodeExecutionContext executionContext, Object[] args) throws StandardException {
-        generator = new XContentGenerator(executionContext, args);
-        stopTraverse = false;
+
+    private Object getMappedValue(
+            NodeExecutionContext.TableExecutionContext tc,
+            ValueNode value,
+            String columnName){
+
+        return tc.mapper().mappers().name(columnName).mapper().value(value);
     }
+
+    private Object evaluateValueNode(String name, ValueNode node) throws StandardException {
+        Object value;
+        if (node instanceof ConstantNode) {
+            value = tableContext.mappedValue(name, ((ConstantNode) node).getValue());
+        } else if (node instanceof ParameterNode) {
+            Object[] args = stmt.args();
+            if (args.length == 0) {
+                throw new StandardException("Missing statement parameters");
+            }
+            int parameterNumber = ((ParameterNode)node).getParameterNumber();
+            try {
+                value = args[parameterNumber];
+            } catch (IndexOutOfBoundsException e) {
+                throw new StandardException("Statement parameter value not found");
+            }
+        } else {
+            throw new SQLParseException(
+                    "ValueNode type not supported " + node.getClass().getName());
+        }
+        return value;
+    }
+
+    private void setTable(String tableName){
+        stmt.addIndex(tableName);
+        tableContext = stmt.context().tableContext(tableName);
+    }
+
+    public Visitable visit(UpdateNode node) throws StandardException {
+        String tableName = node.getTargetTableName().getTableName();
+        setTable(tableName);
+        try {
+            generator.generate(node);
+        } catch (IOException ex) {
+            throw new StandardException(ex);
+        }
+
+        // TODO: merge docs
+        Map<String, Object> updateDoc = new HashMap<String, Object>();
+        for (ResultColumn rc: ((SelectNode)node.getResultSetNode()).getResultColumns()){
+            String key = rc.getName();
+            Object value = evaluateValueNode(key, rc.getExpression());
+            updateDoc.put(key, value);
+        }
+
+        stmt.updateDoc(updateDoc);
+        return node;
+    }
+
 
     public Visitable visit(CursorNode node) throws StandardException {
         try {
@@ -51,18 +110,6 @@ public class QueryVisitor implements XContentVisitor {
         return generator.getXContentBuilder();
     }
 
-    public List<String> getIndices() {
-        return generator.getIndices();
-    }
-
-    /**
-     * See {@link org.cratedb.action.parser.XContentGenerator#outputFields()}
-     * @return
-     */
-    public List<Tuple<String, String>> outputFields() {
-        return generator.outputFields();
-    }
-
     @Override
     public Visitable visit(Visitable node) throws StandardException {
 
@@ -76,6 +123,9 @@ public class QueryVisitor implements XContentVisitor {
             case NodeTypes.CURSOR_NODE:
                 stopTraverse = true;
                 return visit((CursorNode)node);
+            case NodeTypes.UPDATE_NODE:
+                stopTraverse = true;
+                return visit((UpdateNode)node);
             case NodeTypes.DELETE_NODE:
                 stopTraverse = true;
                 return visit((DeleteNode)node);

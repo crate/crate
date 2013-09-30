@@ -49,6 +49,17 @@ public class NodeExecutionContext {
         }
 
         /**
+         *
+         * @param name the name of the column
+         * @param value the value to be mapped
+         * @return the value converted to the proper type
+         */
+        public Object mappedValue(String name, Object value){
+            return documentMapper.mappers().name(name).mapper().value(value);
+        }
+
+
+        /**
          * returns all columns defined in the mapping as a sorted sequence
          * to be used in "*" selects.
          *
