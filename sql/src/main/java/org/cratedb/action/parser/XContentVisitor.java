@@ -18,12 +18,4 @@ public interface XContentVisitor extends Visitor {
 
     public XContentBuilder getXContentBuilder() throws StandardException;
 
-    public List<String> getIndices();
-
-    /**
-     * See {@link org.cratedb.action.parser.XContentGenerator#outputFields()}
-     * @return
-     */
-    public List<Tuple<String, String>> outputFields();
-
 }

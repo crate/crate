@@ -577,4 +577,47 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1, response.rows().length);
         assertArrayEquals(args, response.rows()[0]);
     }
+
+    @Test
+    public void testUpdateObject() throws Exception {
+        prepareCreate("test")
+                .addMapping("default",
+                        "message", "type=string,index=not_analyzed")
+                .execute().actionGet();
+
+        execute("insert into test values('hello'),('again')");
+        refresh();
+
+        execute("update test set message='b' where message = 'hello'");
+
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("select message from test where message='b'");
+        assertEquals(1, response.rows().length);
+        assertEquals("b", response.rows()[0][0]);
+
+    }
+
+    @Test
+    public void testUpdateObjectWithArgs() throws Exception {
+        prepareCreate("test")
+                .addMapping("default",
+                        "coolness", "type=float,index=not_analyzed")
+                .execute().actionGet();
+
+        execute("insert into test values(1.1),(2.2)");
+        refresh();
+
+        execute("update test set coolness=3.3 where coolness = ?", new Object[]{2.2});
+
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("select coolness from test where coolness=3.3");
+        assertEquals(1, response.rows().length);
+        assertEquals(3.3, response.rows()[0][0]);
+
+    }
+
 }

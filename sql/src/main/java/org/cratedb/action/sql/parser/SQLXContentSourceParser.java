@@ -43,20 +43,7 @@ public class SQLXContentSourceParser {
         try {
             if (source != null && source.length() != 0) {
                 parser = XContentFactory.xContent(source).createParser(source);
-                XContentParser.Token token;
-                while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
-                    if (token == XContentParser.Token.FIELD_NAME) {
-                        String fieldName = parser.currentName();
-                        parser.nextToken();
-                        SQLParseElement element = elementParsers.get(fieldName);
-                        if (element == null) {
-                            throw new SQLParseException("No parser for element [" + fieldName + "]");
-                        }
-                        element.parse(parser, context);
-                    } else if (token == null) {
-                        break;
-                    }
-                }
+                parse(parser);
             }
             validate();
         } catch (Exception e) {
@@ -70,6 +57,23 @@ public class SQLXContentSourceParser {
         } finally {
             if (parser != null) {
                 parser.close();
+            }
+        }
+    }
+
+    public void parse(XContentParser parser) throws Exception {
+        XContentParser.Token token;
+        while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
+            if (token == XContentParser.Token.FIELD_NAME) {
+                String fieldName = parser.currentName();
+                parser.nextToken();
+                SQLParseElement element = elementParsers.get(fieldName);
+                if (element == null) {
+                    throw new SQLParseException("No parser for element [" + fieldName + "]");
+                }
+                element.parse(parser, context);
+            } else if (token == null) {
+                break;
             }
         }
     }

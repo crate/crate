@@ -1,5 +1,6 @@
 package org.cratedb.action.sql;
 
+import org.cratedb.sql.SQLResult;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -10,7 +11,7 @@ import org.elasticsearch.common.xcontent.XContentBuilderString;
 import java.io.IOException;
 import java.util.Arrays;
 
-public class SQLResponse extends ActionResponse implements ToXContent {
+public class SQLResponse extends ActionResponse implements ToXContent, SQLResult {
 
     static final class Fields {
         static final XContentBuilderString COLS = new XContentBuilderString("cols");
@@ -19,6 +20,16 @@ public class SQLResponse extends ActionResponse implements ToXContent {
 
     private Object[][] rows;
     private String[] cols;
+    private long rowCount;
+
+    public SQLResponse() {
+    }
+
+    public SQLResponse(String[] cols, Object[][] rows, long rowCount) {
+        this.cols = cols;
+        this.rows = rows;
+        this.rowCount = rowCount;
+    }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
@@ -48,6 +59,16 @@ public class SQLResponse extends ActionResponse implements ToXContent {
         return rows;
     }
 
+    @Override
+    public long rowCount() {
+        return rowCount;
+    }
+
+    public void rowCount(long rowCount) {
+        this.rowCount = rowCount;
+    }
+
+
     public void rows(Object[][] rows) {
         this.rows = rows;
     }
@@ -55,6 +76,7 @@ public class SQLResponse extends ActionResponse implements ToXContent {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
+        rowCount = in.readVLong();
         cols = in.readStringArray();
         int numRows = in.readInt();
         rows = new Object[numRows][cols.length];
@@ -68,6 +90,7 @@ public class SQLResponse extends ActionResponse implements ToXContent {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+        out.writeVLong(rowCount);
         out.writeStringArray(cols);
         out.writeInt(rows.length);
         for (int i = 0; i < rows.length ; i++) {
@@ -82,6 +105,7 @@ public class SQLResponse extends ActionResponse implements ToXContent {
         return "SQLResponse{" +
                 "cols=" + ((cols!=null) ? Arrays.toString(cols): null) +
                 ", rows=" + ((rows!=null) ? rows.length: -1)  +
+                ", rowCount=" + rowCount  +
                 '}';
     }
 }

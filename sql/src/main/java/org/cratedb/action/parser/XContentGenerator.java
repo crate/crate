@@ -1,18 +1,13 @@
 package org.cratedb.action.parser;
 
+import org.cratedb.action.sql.NodeExecutionContext;
+import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
-import org.cratedb.action.sql.NodeExecutionContext;
-import org.cratedb.sql.SQLParseException;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.index.mapper.DocumentFieldMappers;
-import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.service.IndexService;
 
 import java.io.IOException;
 import java.util.*;
@@ -29,32 +24,11 @@ import java.util.*;
  */
 public class XContentGenerator {
 
-    private List<String> indices;
+    private final ParsedStatement stmt;
     private XContentBuilder jsonBuilder;
 
-    private final List<Tuple<String, String>> outputFields;
-
-    private IndexMetaData indexMetaData;
-    private MappingMetaData mapping;
-    private NodeExecutionContext executionContext;
-    private DocumentMapper mapper;
-    private IndexService indexService;
-    private DocumentFieldMappers fieldMappers;
-    private DocumentMapper documentMapper;
     private NodeExecutionContext.TableExecutionContext tableContext;
     private boolean requireVersion = false;
-    private Object[] params;
-
-
-    /**
-     * returns the requested output fields as a list of tuples where
-     * the left side is the alias and the right side is the column name
-     *
-     * @return list of tuples
-     */
-    public List<Tuple<String, String>> outputFields() {
-        return outputFields;
-    }
 
     /**
      * The operators here are a redefinition of those defined in {@link
@@ -77,23 +51,40 @@ public class XContentGenerator {
         put(SQLOperatorTypes.LESS_EQUALS, "lte");
     }};
 
-    public XContentGenerator(NodeExecutionContext executionContext, Object[] args) throws StandardException {
-        this.params = args;
-        this.executionContext = executionContext;
-        indices = new ArrayList<String>();
+    public XContentGenerator(ParsedStatement stmt) throws StandardException {
+        this.stmt = stmt;
         try {
             jsonBuilder = XContentFactory.jsonBuilder().startObject();
         } catch (IOException ex) {
             throw new StandardException(ex);
         }
-        outputFields = new ArrayList<Tuple<String, String>>();
-
     }
 
     public void generate(DeleteNode node) throws IOException, StandardException {
-        SelectNode selectNode = (SelectNode)node.getResultSetNode();
+        SelectNode selectNode = (SelectNode) node.getResultSetNode();
         generate(selectNode.getFromList());
         whereClause(selectNode.getWhereClause());
+    }
+
+    public void generate(UpdateNode node) throws IOException, StandardException {
+
+        jsonBuilder.startObject("query");
+        whereClause(((SelectNode) node.getResultSetNode()).getWhereClause());
+        jsonBuilder.endObject();
+
+        jsonBuilder.startObject("facets");
+        jsonBuilder.startObject("sql");
+        jsonBuilder.startObject("sql");
+
+        jsonBuilder.field("stmt", stmt.stmt());
+        if (stmt.hasArgs()) {
+            jsonBuilder.field("args", stmt.args());
+        }
+        jsonBuilder.endObject();
+        jsonBuilder.endObject();
+        jsonBuilder.endObject();
+
+
     }
 
     public void generate(CursorNode node) throws IOException, StandardException {
@@ -121,15 +112,14 @@ public class XContentGenerator {
     }
 
     private void fieldFromParamNodeOrConstantNode(ValueNode node, String fieldName)
-        throws IOException, StandardException
-    {
+            throws IOException, StandardException {
         if (node == null) {
             return;
         }
         if (node.isParameterNode()) {
-            jsonBuilder.field(fieldName,params[((ParameterNode)node).getParameterNumber()]);
+            jsonBuilder.field(fieldName, stmt.args()[((ParameterNode) node).getParameterNumber()]);
         } else {
-            jsonBuilder.field(fieldName,((ConstantNode) node).getValue());
+            jsonBuilder.field(fieldName, ((ConstantNode) node).getValue());
         }
     }
 
@@ -182,11 +172,11 @@ public class XContentGenerator {
                     "From type " + table.getClass().getName() + " not supported");
         }
         String name = table.getTableName().getTableName();
-        tableContext = executionContext.tableContext(name);
+        tableContext = stmt.context().tableContext(name);
         if (tableContext == null) {
             throw new SQLParseException("No table definition found for " + name);
         }
-        indices.add(name);
+        stmt.addIndex(name);
     }
 
     private void generate(ResultColumnList columnList) throws IOException, StandardException {
@@ -198,7 +188,7 @@ public class XContentGenerator {
         for (ResultColumn column : columnList) {
             if (column instanceof AllResultColumn) {
                 for (String name : tableContext.allCols()) {
-                    outputFields.add(new Tuple<String, String>(name, name));
+                    stmt.addOutputField(name, name);
                     fields.add(name);
                 }
                 continue;
@@ -248,7 +238,8 @@ public class XContentGenerator {
                 // us in the search hit, so it is always safe to add it to the fields
                 fields.add(columnName);
             }
-            outputFields.add(new Tuple<String, String>(columnAlias, columnName));
+
+            stmt.addOutputField(columnAlias, columnName);
         }
         if (fields.size() > 0) {
             jsonBuilder.field("fields", fields);
@@ -256,7 +247,7 @@ public class XContentGenerator {
     }
 
     private void generate(Integer operatorType, ColumnReference left, Object right)
-        throws IOException, StandardException {
+            throws IOException, StandardException {
 
         String columnName = left.getColumnName();
         if (left instanceof NestedColumnReference) {
@@ -366,7 +357,7 @@ public class XContentGenerator {
             generate(swapOperator(operatorType), (ColumnReference) right, (ConstantNode) left);
             return;
         } else if (left instanceof ColumnReference && (right instanceof ParameterNode)) {
-            generate(operatorType, (ColumnReference)left, params[((ParameterNode) right).getParameterNumber()]);
+            generate(operatorType, (ColumnReference)left, stmt.args()[((ParameterNode) right).getParameterNumber()]);
             return;
         }
 
@@ -454,13 +445,5 @@ public class XContentGenerator {
         return jsonBuilder;
     }
 
-    /**
-     * The indices are only available after @{link #generate(CursorNode)} has been called.
-     *
-     * @return tables from the sql select statement.
-     */
-    public List<String> getIndices() {
-        return indices;
-    }
 
 }
