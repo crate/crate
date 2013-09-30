@@ -3,13 +3,11 @@ package org.cratedb.plugin;
 import com.google.common.collect.Lists;
 import org.cratedb.module.SQLModule;
 import org.cratedb.rest.action.RestSQLAction;
-import org.cratedb.script.UpdateScriptFactory;
 import org.cratedb.sql.facet.SQLFacetParser;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.AbstractPlugin;
 import org.elasticsearch.rest.RestModule;
-import org.elasticsearch.script.ScriptModule;
 import org.elasticsearch.search.facet.FacetModule;
 
 import java.util.Collection;

@@ -70,12 +70,12 @@ public class InsertVisitorTest {
 
         assertEquals("locations", ((IndexRequest)actionRequest1).index());
         assertEquals(IndexRequest.OpType.CREATE, ((IndexRequest)actionRequest1).opType());
-        assertEquals(" {\"name\":\"North West Ripple\",\"kind\":\"Galaxy\"}",
+        assertEquals("{\"name\":\"North West Ripple\",\"kind\":\"Galaxy\"}",
                 new String(((IndexRequest)actionRequest1).source().toBytes()));
 
         assertEquals("locations", ((IndexRequest)actionRequest2).index());
         assertEquals(IndexRequest.OpType.CREATE, ((IndexRequest)actionRequest2).opType());
-        assertEquals(" {\"name\":\"Bartledan\",\"kind\":\"Planet\"}",
+        assertEquals("{\"name\":\"Bartledan\",\"kind\":\"Planet\"}",
                 new String(((IndexRequest)actionRequest2).source().toBytes()));
 
     }

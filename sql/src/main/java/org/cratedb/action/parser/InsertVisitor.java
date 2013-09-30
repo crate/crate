@@ -1,58 +1,45 @@
 package org.cratedb.action.parser;
 
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
 import com.google.common.collect.Lists;
 import org.cratedb.action.sql.NodeExecutionContext;
-import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 /**
  * The InsertVisitor is an implementation of the XContentVisitor interface.
  * It will build a XContent document from a SQL ``INSERT`` stmt, usable as a ``IndexRequest`` source.
  */
-public class InsertVisitor implements XContentVisitor {
+public class InsertVisitor extends XContentVisitor {
 
-    private final ParsedStatement stmt;
-    private XContentBuilder jsonBuilder;
     private boolean stopTraverse;
     private NodeExecutionContext.TableExecutionContext tableContext;
     private List<String> columnNameList;
-    private int columnIndex;
-    private int rowCount;
-    private int rowIndex;
-    private byte streamSeparator;
     private ESLogger logger = Loggers.getLogger(InsertVisitor.class);
-
+    private List<String> primaryKeys;
+    private IndexRequest[] indexRequests;
 
     public InsertVisitor(ParsedStatement stmt) throws StandardException {
-        this.stmt = stmt;
-        try {
-            jsonBuilder = XContentFactory.jsonBuilder();
-        } catch (IOException e) {
-            logger.error("Cannot create the jsonBuilder", e);
-            throw new StandardException(e);
-        }
-        columnIndex = 0;
+        super(stmt);
         stopTraverse = false;
-        rowCount = 0;
-        rowIndex = -1;
-        streamSeparator = JsonXContent.jsonXContent.streamSeparator();
     }
 
     @Override
     public XContentBuilder getXContentBuilder() {
-        return jsonBuilder;
+        throw new UnsupportedOperationException("Use indexRequests() go get the built requests.");
+    }
+
+    public IndexRequest[] indexRequests() {
+        return indexRequests;
     }
 
     @Override
@@ -60,13 +47,8 @@ public class InsertVisitor implements XContentVisitor {
         QueryTreeNode treeNode = (QueryTreeNode)node;
         switch (treeNode.getNodeType()) {
             case NodeTypes.INSERT_NODE:
+                stopTraverse = true;
                 return visit((InsertNode)node);
-            case NodeTypes.ROWS_RESULT_SET_NODE:
-                return visit((RowsResultSetNode)node);
-            case NodeTypes.ROW_RESULT_SET_NODE:
-                return visit((RowResultSetNode)node);
-            case NodeTypes.RESULT_COLUMN:
-                return visit((ResultColumn)node);
             default:
                 return node;
         }
@@ -106,137 +88,60 @@ public class InsertVisitor implements XContentVisitor {
             columnNameList = Arrays.asList(targetColumnList.getColumnNames());
         }
 
-        return node;
-    }
-
-    private Visitable visit(RowsResultSetNode node) throws StandardException {
-        rowCount = node.getRows().size();
-
-        return node;
-    }
-
-    private Visitable visit(RowResultSetNode node) throws StandardException {
-        try {
-            if (rowCount > 0) {
-                // Multiple rows detected, generate XContent usable for a BulkRequest
-                rowIndex++;
-                if (rowIndex > 0) {
-                    // NOT first row node, close object from the first row, write new header and open another object for
-                    // the next values
-                    jsonBuilder = jsonBuilder.endObject();
-                    jsonBuilder.flush();
-                    jsonBuilder.stream().write(streamSeparator);
-                    generateBulkHeader();
-                    jsonBuilder = jsonBuilder.startObject();
-                } else {
-                    // first row node, generate the bulk header and open a object for the values
-                    generateBulkHeader();
-                    jsonBuilder.startObject();
-                }
-            } else {
-                // No multiple rows, simple start an object usable for a IndexRequest
-                jsonBuilder.startObject();
-            }
-        } catch (IOException e) {
-            logger.error("Error while writing json", e);
-            throw new StandardException(e);
-        }
-        return node;
-    }
-
-
-    private Visitable visit(ResultColumn node) throws StandardException {
-        if (rowCount > 0 && rowIndex < 0) {
-            // multiple rows detected but ``ResultColumn`` not inside a ``RowsResultSetNode``, ignore column
-            return node;
-        }
-        String name = columnNameList.get(columnIndex);
-        Object value = null;
-
-        if (node.getExpression() instanceof ConstantNode) {
-            value = ((ConstantNode)node.getExpression()).getValue();
-            generate(value, name);
-        } else if (node.getExpression() instanceof ParameterNode) {
-            Object[] args = stmt.args();
-            if (args.length == 0) {
-                throw new StandardException("Missing statement parameters");
-            }
-            int parameterNumber = ((ParameterNode)node.getExpression()).getParameterNumber();
-            try {
-                value = args[parameterNumber];
-            } catch (IndexOutOfBoundsException e) {
-                throw new StandardException("Statement parameter value not found");
-            }
-
-            generate(value, name, false);
+        primaryKeys = tableContext.primaryKeys();
+        if (primaryKeys.size() > 1) {
+            throw new SQLParseException("Multiple primary key columns are not supported!");
         }
 
-        columnIndex++;
-        if (columnIndex == columnNameList.size()) {
-            // reset columnIndex
-            columnIndex = 0;
-            if (rowIndex == rowCount-1) {
-                // end of processing
-                closeRootObject();
-                stopTraverse = true;
+        ResultSetNode resultSetNode = node.getResultSetNode();
+        if (resultSetNode instanceof RowResultSetNode) {
+            indexRequests = new IndexRequest[1];
+            visit((RowResultSetNode)resultSetNode, 0);
+        } else {
+            RowsResultSetNode rowsResultSetNode = (RowsResultSetNode)resultSetNode;
+            RowResultSetNode[] rows = rowsResultSetNode.getRows().toArray(
+                new RowResultSetNode[rowsResultSetNode.getRows().size()]);
+            indexRequests = new IndexRequest[rows.length];
+
+            for (int i = 0; i < rows.length; i++) {
+                visit(rows[i], i);
             }
         }
+
 
         return node;
     }
 
-    private void generate(Object value, String columnName) throws StandardException {
-        generate(value, columnName, true);
-    }
+    private Visitable visit(RowResultSetNode node, int idx) throws StandardException {
+        indexRequests[idx] = new IndexRequest(stmt.indices().get(0), stmt.context().DEFAULT_TYPE);
+        indexRequests[idx].create(true);
 
-    private void generate(Object value, String columnName,
-                          Boolean useMapper) throws StandardException {
-        if (useMapper) {
-            value = tableContext.mapper().mappers().name(columnName).mapper().value(value);
-        }
-        try {
-            jsonBuilder.field(columnName, value);
-        } catch (IOException e) {
-            logger.error("Error while writing json", e);
-            throw new StandardException(e);
-        }
-    }
+        Map<String, Object> source = new HashMap<String, Object>();
+        ResultColumnList resultColumnList = node.getResultColumns();
 
-    private void closeRootObject() throws StandardException {
-        // Closing the XContent root object.
-        try {
-            jsonBuilder.endObject();
-            if (rowCount > 0) {
-                // Multiple rows detected, write required XContent stream separator
-                jsonBuilder.flush();
-                jsonBuilder.stream().write(streamSeparator);
+        for (ResultColumn column : resultColumnList) {
+            String columnName = columnNameList.get(resultColumnList.indexOf(column));
+            Object value = evaluateValueNode(
+                tableContext, columnName, column.getExpression()
+            );
+
+            source.put(columnName, value);
+            if (primaryKeys.contains(columnName)) {
+                indexRequests[idx].id(value.toString());
             }
-        } catch (IOException e) {
-            logger.error("Error while writing json", e);
-            throw new StandardException(e);
         }
-    }
 
-    private void generateBulkHeader() throws StandardException {
-        try {
-            jsonBuilder.startObject();
-            jsonBuilder.startObject("create");
-            jsonBuilder.field("_index", stmt.indices().get(0));
-            jsonBuilder.field("_type", "default");
-            jsonBuilder.endObject();
-            jsonBuilder.endObject();
-            jsonBuilder.flush();
-            jsonBuilder.stream().write(streamSeparator);
-        } catch (IOException e) {
-            logger.error("Error while writing json", e);
-            throw new StandardException(e);
+        if (primaryKeys.size() > 0 && indexRequests[idx].id() == null) {
+            throw new SQLParseException(
+                "Primary key is required but is missing from the insert statement");
         }
+
+        indexRequests[idx].source(source);
+
+        return node;
     }
 
     public boolean isBulk() {
-        if (rowCount > 0) {
-            return true;
-        }
-        return false;
+        return indexRequests.length > 1;
     }
 }

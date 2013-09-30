@@ -1,5 +1,6 @@
 package org.cratedb.action.sql;
 
+import org.cratedb.sql.DuplicateKeyException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.SQLParseException;
 import org.elasticsearch.action.ActionListener;
@@ -18,6 +19,7 @@ import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
@@ -66,7 +68,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onFailure(Throwable e) {
-            delegate.onFailure(e);
+            delegate.onFailure(reRaiseCrateException(e));
         }
     }
 
@@ -87,7 +89,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onFailure(Throwable e) {
-            delegate.onFailure(e);
+            delegate.onFailure(reRaiseCrateException(e));
         }
     }
 
@@ -108,7 +110,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onFailure(Throwable e) {
-            delegate.onFailure(e);
+            delegate.onFailure(reRaiseCrateException(e));
         }
     }
 
@@ -129,7 +131,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onFailure(Throwable e) {
-            delegate.onFailure(e);
+            delegate.onFailure(reRaiseCrateException(e));
         }
     }
 
@@ -162,12 +164,17 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             }
         } catch (StandardException e) {
             listener.onFailure(standardExceptionToParseException(e));
-            return;
         } catch (Exception e) {
             listener.onFailure(e);
-            return;
         }
+    }
 
+    private Throwable reRaiseCrateException(Throwable e) {
+        if (e instanceof DocumentAlreadyExistsException) {
+            return new DuplicateKeyException(
+                "A document with the same primary key exists already", e);
+        }
+        return e;
     }
 
     private SQLParseException standardExceptionToParseException(StandardException e) {
