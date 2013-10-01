@@ -437,11 +437,6 @@ public class XContentGenerator {
     }
 
     public XContentBuilder getXContentBuilder() throws StandardException {
-        try {
-            jsonBuilder = jsonBuilder.endObject();
-        } catch (IOException ex) {
-            throw new StandardException(ex);
-        }
         return jsonBuilder;
     }
 
