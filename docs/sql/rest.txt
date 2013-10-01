@@ -125,4 +125,5 @@ Currently the defined error codes are:
     ===== =====================================================================
     1000  Generic undefined error
     4000  The statement contains an invalid syntax or unsupported SQL statement
+    4091  A document with the same primary key exists already.
     ===== =====================================================================

@@ -1,0 +1,50 @@
+.. _sql_ddl:
+
+========================
+Data Definition in Crate
+========================
+
+Currently Crate doesn't support any DDL SQL Statements.  Meanwhile it is
+possible to create tables using the `HTTP REST` interface.
+
+.. note::
+
+    This will be deprecated as soon as the DDL statements are available.
+
+In order to create a table simply call the `<servername:port>/<tablename>`
+endpoint using a `PUT` request. In the body should be the schema definition in
+`JSON` format::
+
+    sh$ curl -sSX PUT 'localhost:9200/ships?pretty' -d @- <<EOF
+    ... {
+    ... "settings" : {
+    ...   "crate": {
+    ...     "primary_keys": "id"
+    ...    }
+    ... },
+    ... "mappings" : {
+    ...  "default": {
+    ...   "properties": {
+    ...     "id": {
+    ...       "type": "string",
+    ...       "index": "not_analyzed"
+    ...     },
+    ...     "name": {
+    ...       "type": "string",
+    ...       "index": "not_analyzed"
+    ...     },
+    ...     "description": {
+    ...      "type": "string"
+    ... }}}}}
+    ... EOF
+    {
+      "ok" : true,
+      "acknowledged" : true
+    }
+
+Currently primary key's cannot be auto generated and have to be specified if
+data is inserted, otherwise an error is returned.
+
+.. note::
+
+    Multi-column primary keys are currently not supported.
