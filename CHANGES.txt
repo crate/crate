@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - set the ``keyword analyzer`` as the default analyzer
+
  - bugfix: use ES operation type ``create`` for SQL ``INSERT``.
 
 2013/09/27 0.12.0
