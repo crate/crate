@@ -15,6 +15,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.google.common.collect.Maps.newHashMap;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     private SQLResponse response;
@@ -604,6 +609,29 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     @Test
+    public void testTwoColumnUpdate() throws Exception {
+        prepareCreate("test")
+            .addMapping("default",
+                "col1", "type=string,index=not_analyzed",
+                "col2", "type=string,index=not_analyzed")
+            .execute().actionGet();
+
+        execute("insert into test values('hello', 'hallo'), ('again', 'nochmal')");
+        refresh();
+
+        execute("update test set col1='b' where col1 = 'hello'");
+
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("select col1, col2 from test where col1='b'");
+        assertEquals(1, response.rows().length);
+        assertEquals("b", response.rows()[0][0]);
+        assertEquals("hallo", response.rows()[0][1]);
+
+    }
+
+    @Test
     public void testUpdateObjectWithArgs() throws Exception {
         prepareCreate("test")
                 .addMapping("default",
@@ -624,6 +652,186 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     }
 
+    @Test
+    public void testUpdateNestedObjectWithoutDetailedSchema() throws Exception {
+        prepareCreate("test")
+            .addMapping("default",
+                "coolness", "type=object,index=not_analyzed")
+            .execute().actionGet();
+
+
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("x", "1");
+        map.put("y", 2);
+        Object[] args = new Object[] { map };
+
+        execute("insert into test values (?)", args);
+        refresh();
+
+        execute("update test set coolness['x'] = 3");
+
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("select coolness from test");
+        assertEquals(1, response.rows().length);
+        assertEquals("{y=2, x=3}", response.rows()[0][0].toString());
+    }
+
+    @Test
+    public void testUpdateNestedNestedObject() throws Exception {
+        Settings settings = settingsBuilder()
+            .put("mapper.dynamic", true).build();
+        prepareCreate("test")
+            .setSettings(settings)
+            .execute().actionGet();
+
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("x", "1");
+        map.put("y", 2);
+        Object[] args = new Object[] { map };
+
+        execute("insert into test (a) values (?)", args);
+        refresh();
+
+        execute("update test set coolness['x']['y']['z'] = 3");
+
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("select coolness['x'] from test");
+        assertEquals(1, response.rows().length);
+        assertEquals("{y={z=3}}", response.rows()[0][0].toString());
+
+        execute("update test set firstcol = 1, coolness['x']['a'] = 'a', coolness['x']['b'] = 'b', othercol = 2");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("select coolness, firstcol, othercol from test");
+        assertEquals(1, response.rows().length);
+        assertEquals("{x={b=b, a=a, y={z=3}}}", response.rows()[0][0].toString());
+        assertEquals(1, response.rows()[0][1]);
+        assertEquals(2, response.rows()[0][2]);
+    }
+
+    @Test
+    public void testUpdateNestedObjectDeleteWithArgs() throws Exception {
+        Settings settings = settingsBuilder()
+            .put("mapper.dynamic", true).build();
+        prepareCreate("test")
+            .setSettings(settings)
+            .execute().actionGet();
+
+        Map<String, Object> map = newHashMap();
+        Map<String, Object> nestedMap = newHashMap();
+        nestedMap.put("y", 2);
+        nestedMap.put("z", 3);
+        map.put("x", nestedMap);
+        Object[] args = new Object[] { map };
+
+        execute("insert into test (a) values (?)", args);
+        refresh();
+
+        execute("update test set a['x']['z'] = ?", new Object[] { null });
+
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("select a from test");
+        assertEquals(1, response.rows().length);
+        assertEquals("{x={z=null, y=2}}", response.rows()[0][0].toString());
+    }
+
+    @Test
+    public void testUpdateNestedObjectDeleteWithoutArgs() throws Exception {
+        Settings settings = settingsBuilder()
+            .put("mapper.dynamic", true).build();
+        prepareCreate("test")
+            .setSettings(settings)
+            .execute().actionGet();
+
+        Map<String, Object> map = newHashMap();
+        Map<String, Object> nestedMap = newHashMap();
+        nestedMap.put("y", 2);
+        nestedMap.put("z", 3);
+        map.put("x", nestedMap);
+        Object[] args = new Object[] { map };
+
+        execute("insert into test (a) values (?)", args);
+        refresh();
+
+        execute("update test set a['x']['z'] = null");
+
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("select a from test");
+        assertEquals(1, response.rows().length);
+        assertEquals("{x={z=null, y=2}}", response.rows()[0][0].toString());
+    }
+
+    @Test(expected = SQLParseException.class)
+    public void testUpdateWithNestedObjectArrayIdxAccess() throws Exception {
+        prepareCreate("test")
+            .addMapping("default",
+                "coolness", "type=float,index=not_analyzed")
+            .execute().actionGet();
+
+        execute("insert into test values (?)", new Object[] { new Object[] {2.2, 2.3, 2.4}});
+        refresh();
+
+        execute("update test set coolness[0] = 3.3");
+
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("select coolness from test");
+        assertEquals(1, response.rows().length);
+        assertEquals(3.3, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testUpdateNestedObjectWithDetailedSchema() throws Exception {
+        prepareCreate("test")
+            .addMapping("default", "{\n" +
+                "    \"type\": {\n" +
+                "        \"properties\": {\n" +
+                "            \"coolness\": {\n" +
+                "                \"type\": \"object\",\n" +
+                "                \"properties\": {\n" +
+                "                    \"x\": {\n" +
+                "                        \"type\": \"string\",\n" +
+                "                        \"index\": \"not_analyzed\"\n" +
+                "                    },\n" +
+                "                    \"y\": {\n" +
+                "                        \"type\": \"string\",\n" +
+                "                        \"index\": \"not_analyzed\"\n" +
+                "                    }\n" +
+                "                }\n" +
+                "            }\n" +
+                "        }\n" +
+                "    }\n" +
+                "}\n")
+            .execute().actionGet();
+
+
+        Map<String, Object> map = new HashMap<String, Object>();
+        map.put("x", "1");
+        map.put("y", 2);
+        Object[] args = new Object[] { map };
+
+        execute("insert into test values (?)", args);
+        refresh();
+
+        execute("update test set coolness['x'] = 3");
+
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("select coolness from test");
+        assertEquals(1, response.rows().length);
+        assertEquals("{y=2, x=3}", response.rows()[0][0].toString());
+    }
 
     @Test
     public void testInsertWithPrimaryKey() throws Exception {

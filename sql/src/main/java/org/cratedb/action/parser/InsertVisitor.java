@@ -88,9 +88,14 @@ public class InsertVisitor extends XContentVisitor {
             columnNameList = Arrays.asList(targetColumnList.getColumnNames());
         }
 
-        primaryKeys = tableContext.primaryKeys();
-        if (primaryKeys.size() > 1) {
-            throw new SQLParseException("Multiple primary key columns are not supported!");
+        if (tableContext != null) {
+            // no tableContext if dynamicMapping is enabled and mapping is missing
+            primaryKeys = tableContext.primaryKeys();
+            if (primaryKeys.size() > 1) {
+                throw new SQLParseException("Multiple primary key columns are not supported!");
+            }
+        } else {
+            primaryKeys = new ArrayList<String>(0);
         }
 
         ResultSetNode resultSetNode = node.getResultSetNode();
@@ -107,7 +112,6 @@ public class InsertVisitor extends XContentVisitor {
                 visit(rows[i], i);
             }
         }
-
 
         return node;
     }

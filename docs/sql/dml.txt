@@ -183,6 +183,19 @@ multiple values for the ``INSERT`` statement::
     ... ('2013-09-12T21:43:59.000Z', 'Blagulon Kappa is the planet to which the police are native.', 'Planet', 'Blagulon Kappa', 7),
     ... ('2013-09-13T16:43:59.000Z', 'Brontitall is a planet with a warm, rich atmosphere and no mountains.', 'Planet', 'Brontitall', 10)
 
+
+Updating data
+=============
+
+In order to update documents in `Crate` the SQL `UPDATE` statement can be
+used::
+
+    cr> update locations set description = 'Updated description' where name = 'Blagulon Kappa'
+
+Updating nested objects is also supported::
+
+    cr> update locations set race['name'] = 'Human' where name = 'Bartledan'
+
 Deleting data
 =============
 

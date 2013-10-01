@@ -1,10 +1,10 @@
 package org.cratedb.action.sql;
 
-import com.google.common.collect.ImmutableMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.FieldMappers;
 import org.elasticsearch.index.mapper.object.ObjectMapper;
 import org.elasticsearch.index.mapper.object.RootObjectMapper;
 import org.elasticsearch.indices.IndicesService;
@@ -57,7 +57,11 @@ public class NodeExecutionContext {
          * @return the value converted to the proper type
          */
         public Object mappedValue(String name, Object value){
-            return documentMapper.mappers().name(name).mapper().value(value);
+            FieldMapper fieldMapper = documentMapper.mappers().smartNameFieldMapper(name);
+            if (fieldMapper != null) {
+                return fieldMapper.value(value);
+            }
+            return value;
         }
 
         public List<String> primaryKeys() {

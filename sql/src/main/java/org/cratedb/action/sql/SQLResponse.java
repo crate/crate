@@ -36,12 +36,14 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
         builder.startObject();
         builder.array(Fields.COLS, cols);
         builder.startArray(Fields.ROWS);
-        for (int i = 0; i < rows.length; i++) {
-            builder.startArray();
-            for (int j = 0; j < cols.length; j++) {
-                builder.value(rows[i][j]);
+        if (rows != null) {
+            for (int i = 0; i < rows.length; i++) {
+                builder.startArray();
+                for (int j = 0; j < cols.length; j++) {
+                    builder.value(rows[i][j]);
+                }
+                builder.endArray();
             }
-            builder.endArray();
         }
         builder.endArray();
         return builder;
