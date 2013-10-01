@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - [test] clean ES data dir before test cluster startup
+
  - set the ``keyword analyzer`` as the default analyzer
 
  - bugfix: use ES operation type ``create`` for SQL ``INSERT``.
