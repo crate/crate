@@ -5,6 +5,7 @@ import org.cratedb.module.SQLModule;
 import org.cratedb.rest.action.RestSQLAction;
 import org.cratedb.sql.facet.SQLFacetParser;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.AbstractPlugin;
 import org.elasticsearch.rest.RestModule;
@@ -18,6 +19,16 @@ public class SQLPlugin extends AbstractPlugin {
 
     public SQLPlugin(Settings settings) {
         this.settings = settings;
+    }
+
+    @Override
+    public Settings additionalSettings() {
+        ImmutableSettings.Builder settingsBuilder = ImmutableSettings.settingsBuilder();
+
+        // Set default analyzer
+        settingsBuilder.put("index.analysis.analyzer.default.type", "keyword");
+
+        return settingsBuilder.build();
     }
 
     public String name() {

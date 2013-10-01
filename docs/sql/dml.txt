@@ -155,7 +155,7 @@ Select a property of an inner object::
 
 Query for a property of an inner object::
 
-    cr> select name, race['name'] from locations where race['name'] = 'bartledannians'
+    cr> select name, race['name'] from locations where race['name'] = 'Bartledannians'
     +-----------+----------------+
     | name      | race['name']   |
     +-----------+----------------+

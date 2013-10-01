@@ -27,10 +27,15 @@ public class CratePlugin extends AbstractPlugin {
     @Override
     public Settings additionalSettings() {
         ImmutableSettings.Builder settingsBuilder = ImmutableSettings.settingsBuilder();
+
+        // Forbid DELETE on '/' aka. deleting all indices
         settingsBuilder.put("action.disable_delete_all_indices", true);
+
+        // Set the default cluster name if not explicitly defined
         if (this.settings.get(ClusterName.SETTING).equals(ClusterName.DEFAULT.value())) {
             settingsBuilder.put("cluster.name", "crate");
         }
+
         return settingsBuilder.build();
     }
 
