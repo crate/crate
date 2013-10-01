@@ -3,7 +3,11 @@ package org.cratedb.integrationtests;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.sql.DuplicateKeyException;
+import org.cratedb.sql.SQLParseException;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -45,8 +49,8 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     public void testSelectStar() throws Exception {
         prepareCreate("test")
                 .addMapping("default",
-                        "firstName", "type=string",
-                        "lastName", "type=string")
+                    "firstName", "type=string",
+                    "lastName", "type=string")
                 .execute().actionGet();
         execute("select * from test");
         assertArrayEquals(new String[]{"firstName", "lastName"}, response.cols());
@@ -620,4 +624,89 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     }
 
+
+    @Test
+    public void testInsertWithPrimaryKey() throws Exception {
+        createTestIndexWithPkMapping();
+
+        Object[] args = new Object[] { "1",
+            "A towel is about the most massively useful thing an interstellar hitch hiker can have."};
+        execute("insert into test (pk_col, message) values (?, ?)", args);
+        refresh();
+
+        GetResponse response = client().prepareGet("test", "default", "1").execute().actionGet();
+        assertTrue(response.getSourceAsMap().containsKey("message"));
+    }
+
+    @Test
+    public void testInsertWithPrimaryKeyMultiValues() throws Exception {
+        createTestIndexWithPkMapping();
+
+        Object[] args = new Object[] {
+            "1", "All the doors in this spaceship have a cheerful and sunny disposition.",
+            "2", "I always thought something was fundamentally wrong with the universe"
+        };
+        execute("insert into test (pk_col, message) values (?, ?), (?, ?)", args);
+        refresh();
+
+        GetResponse response = client().prepareGet("test", "default", "1").execute().actionGet();
+        assertTrue(response.getSourceAsMap().containsKey("message"));
+    }
+
+    @Test (expected = DuplicateKeyException.class)
+    public void testInsertWithUniqueContraintViolation() throws Exception {
+        createTestIndexWithPkMapping();
+
+        Object[] args = new Object[] {
+            "1", "All the doors in this spaceship have a cheerful and sunny disposition.",
+        };
+        execute("insert into test (pk_col, message) values (?, ?)", args);
+
+        args = new Object[] {
+            "1", "I always thought something was fundamentally wrong with the universe"
+        };
+
+        execute("insert into test (pk_col, message) values (?, ?)", args);
+    }
+
+    private void createTestIndexWithPkMapping() {
+        Settings settings = settingsBuilder()
+            .put("crate.primary_keys", "pk_col").build();
+
+        prepareCreate("test")
+            .setSettings(settings)
+            .addMapping("default",
+                "pk_col", "type=string,store=true,index=not_analyzed",
+                "message", "type=string,store=true,index=not_analyzed")
+                .execute().actionGet();
+    }
+
+    @Test (expected = SQLParseException.class)
+    public void testMultiplePrimaryKeyColumns() throws Exception {
+        Settings settings = settingsBuilder()
+            .put("crate.primary_keys", "pk_col1, pk_col2").build();
+
+        prepareCreate("test")
+            .setSettings(settings)
+            .addMapping("default",
+                "pk_col", "type=string,store=true,index=not_analyzed",
+                "message", "type=string,store=true,index=not_analyzed")
+            .execute().actionGet();
+
+        Object[] args = new Object[] {
+            "Life, loathe it or ignore it, you can't like it."
+        };
+        execute("insert into test (message) values (?)", args);
+    }
+
+    @Test (expected = SQLParseException.class)
+    public void testInsertWithPKMissingOnInsert() throws Exception {
+        createTestIndexWithPkMapping();
+
+        Object[] args = new Object[] {
+            "In the beginning the Universe was created.\n" +
+                "This has made a lot of people very angry and been widely regarded as a bad move."
+        };
+        execute("insert into test (message) values (?)", args);
+    }
 }

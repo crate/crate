@@ -17,15 +17,14 @@ import java.util.Map;
  * The QueryVisitor is an implementation of the Visitor interface provided by the SQL-Parser
  *
  */
-public class QueryVisitor implements XContentVisitor {
+public class QueryVisitor extends XContentVisitor {
 
-    private final ParsedStatement stmt;
     private XContentGenerator generator = null;
     private boolean stopTraverse;
     private NodeExecutionContext.TableExecutionContext tableContext;
 
     public QueryVisitor(ParsedStatement stmt) throws StandardException {
-        this.stmt = stmt;
+        super(stmt);
         generator = new XContentGenerator(stmt);
         stopTraverse = false;
     }
@@ -37,28 +36,6 @@ public class QueryVisitor implements XContentVisitor {
             String columnName){
 
         return tc.mapper().mappers().name(columnName).mapper().value(value);
-    }
-
-    private Object evaluateValueNode(String name, ValueNode node) throws StandardException {
-        Object value;
-        if (node instanceof ConstantNode) {
-            value = tableContext.mappedValue(name, ((ConstantNode) node).getValue());
-        } else if (node instanceof ParameterNode) {
-            Object[] args = stmt.args();
-            if (args.length == 0) {
-                throw new StandardException("Missing statement parameters");
-            }
-            int parameterNumber = ((ParameterNode)node).getParameterNumber();
-            try {
-                value = args[parameterNumber];
-            } catch (IndexOutOfBoundsException e) {
-                throw new StandardException("Statement parameter value not found");
-            }
-        } else {
-            throw new SQLParseException(
-                    "ValueNode type not supported " + node.getClass().getName());
-        }
-        return value;
     }
 
     private void setTable(String tableName){
@@ -79,7 +56,7 @@ public class QueryVisitor implements XContentVisitor {
         Map<String, Object> updateDoc = new HashMap<String, Object>();
         for (ResultColumn rc: ((SelectNode)node.getResultSetNode()).getResultColumns()){
             String key = rc.getName();
-            Object value = evaluateValueNode(key, rc.getExpression());
+            Object value = evaluateValueNode(tableContext, key, rc.getExpression());
             updateDoc.put(key, value);
         }
 

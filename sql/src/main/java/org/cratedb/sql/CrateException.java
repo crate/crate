@@ -8,8 +8,12 @@ public abstract class CrateException extends ElasticSearchException {
         super(msg);
     }
 
-    public CrateException(String msg, Exception e) {
+    public CrateException(String msg, Throwable e) {
         super(msg, e);
+    }
+
+    public CrateException(Throwable e) {
+         super(e.getMessage(), e);
     }
 
     public abstract int errorCode();

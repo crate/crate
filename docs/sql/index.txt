@@ -10,5 +10,6 @@ For general information about SQL please refer to `Wikipedia SQL`_.
 .. toctree::
    :maxdepth: 2
 
-   language
+   ddl
+   dml
    rest

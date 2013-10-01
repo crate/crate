@@ -20,7 +20,6 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.SearchHit;
 
 import java.io.IOException;
@@ -28,8 +27,7 @@ import java.util.*;
 
 public class ParsedStatement {
 
-    private final SQLFields sqlFields;
-    private final XContentBuilder builder;
+    private XContentBuilder builder;
 
     private final ArrayList<Tuple<String, String>> outputFields =
             new ArrayList<Tuple<String, String>>();
@@ -39,7 +37,6 @@ public class ParsedStatement {
 
     private final String stmt;
     private final Object[] args;
-    private final SQLParser parser = new SQLParser();
     private final StatementNode statementNode;
     private final XContentVisitor visitor;
 
@@ -54,6 +51,7 @@ public class ParsedStatement {
         this.stmt = stmt;
         this.args = args;
         this.context = context;
+        SQLParser parser = new SQLParser();
         statementNode = parser.parseStatement(stmt);
         switch (statementNode.getNodeType()) {
             case NodeTypes.INSERT_NODE:
@@ -64,8 +62,6 @@ public class ParsedStatement {
                 break;
         }
         statementNode.accept(visitor);
-        builder = visitor.getXContentBuilder();
-        sqlFields = new SQLFields(outputFields);
     }
 
     public boolean addIndex(String index){
@@ -95,6 +91,8 @@ public class ParsedStatement {
 
     public SearchRequest buildSearchRequest() throws StandardException {
         SearchRequest request = new SearchRequest();
+        builder = visitor.getXContentBuilder();
+
         if (logger.isDebugEnabled()) {
             builder.generator().usePrettyPrint();
             try {
@@ -109,22 +107,11 @@ public class ParsedStatement {
     }
 
     public IndexRequest buildIndexRequest() throws StandardException {
-        IndexRequest request = new IndexRequest();
-        if (logger.isDebugEnabled()) {
-            builder.generator().usePrettyPrint();
-            try {
-                logger.info("converted sql to: " + builder.string());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        // We only support 1 ES type per index, it's named: ``default``
-        request.type("default");
 
-        request.create(true);
-        request.index(indices.get(0));
-        request.source(builder.bytes().toBytes());
-        return request;
+        InsertVisitor insertVisitor = (InsertVisitor)visitor;
+        IndexRequest[] requests = insertVisitor.indexRequests();
+        assert requests.length == 1;
+        return requests[0];
     }
 
     public BulkRequest buildBulkRequest() throws Exception {
@@ -139,10 +126,10 @@ public class ParsedStatement {
             }
         }
 
-        String defaultIndex = "index";
-        String defaultType = "default";
-
-        request.add(builder.bytes(), false, defaultIndex, defaultType);
+        InsertVisitor insertVisitor = (InsertVisitor)visitor;
+        for (IndexRequest indexRequest : insertVisitor.indexRequests()) {
+            request.add(indexRequest);
+        }
 
         return request;
     }
@@ -217,8 +204,9 @@ public class ParsedStatement {
         return response;
     }
 
-    public DeleteByQueryRequest buildDeleteRequest() {
+    public DeleteByQueryRequest buildDeleteRequest() throws StandardException {
         DeleteByQueryRequest request = new DeleteByQueryRequest();
+        builder = visitor.getXContentBuilder();
         request.query(builder.bytes().toBytes());
         request.indices(indices.toArray(new String[indices.size()]));
 
