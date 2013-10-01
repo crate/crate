@@ -130,17 +130,17 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 .execute().actionGet();
         client().prepareIndex("test", "default", "id1").setRefresh(true)
                 .setSource("{\"message\":\"I'm addicted to kite\", " +
-                        "\"person\": { \"name\": \"youri\", \"addresses\": [ { \"city\": " +
+                        "\"person\": { \"name\": \"Youri\", \"addresses\": [ { \"city\": " +
                         "\"Dirksland\", \"country\": \"NL\" } ] }}")
                 .execute().actionGet();
 
         execute("select message, person['name'], person['addresses']['city'] from test " +
-                "where person['name'] = 'youri'");
+                "where person['name'] = 'Youri'");
 
         assertArrayEquals(new String[]{"message", "person['name']", "person['addresses']['city']"},
                 response.cols());
         assertEquals(1, response.rows().length);
-        assertArrayEquals(new Object[]{"I'm addicted to kite", "youri",
+        assertArrayEquals(new Object[]{"I'm addicted to kite", "Youri",
                 new ArrayList<String>(){{add("Dirksland");}}},
                 response.rows()[0]);
     }
