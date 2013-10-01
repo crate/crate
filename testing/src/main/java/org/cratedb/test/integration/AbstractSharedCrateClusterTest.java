@@ -28,6 +28,7 @@ import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -76,6 +77,7 @@ public abstract class AbstractSharedCrateClusterTest extends ElasticsearchTestCa
 
     @BeforeClass
     public static void beforeClass() throws Exception {
+        cleanDataFiles();
         cluster();
     }
 
@@ -450,5 +452,11 @@ public abstract class AbstractSharedCrateClusterTest extends ElasticsearchTestCa
             assert !item.isFailed() : String.format("unable to index data {}", item);
         }
         return bulk;
+    }
+
+    public static void cleanDataFiles() {
+        File homeFile = new File(System.getProperty("user.dir"));
+        File dataFile = new File(homeFile, "data");
+        FileSystemUtils.deleteRecursively(dataFile, false);
     }
 }
