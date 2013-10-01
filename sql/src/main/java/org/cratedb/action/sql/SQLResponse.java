@@ -16,11 +16,13 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
     static final class Fields {
         static final XContentBuilderString COLS = new XContentBuilderString("cols");
         static final XContentBuilderString ROWS = new XContentBuilderString("rows");
+        static final XContentBuilderString ROWCOUNT = new XContentBuilderString("rowcount");
     }
+    public static final long NO_ROW_COUNT = -1L;
 
     private Object[][] rows;
     private String[] cols;
-    private long rowCount;
+    private long rowCount = NO_ROW_COUNT;
 
     public SQLResponse() {
     }
@@ -44,6 +46,9 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
             builder.endArray();
         }
         builder.endArray();
+        if (hasRowCount()) {
+            builder.field(Fields.ROWCOUNT, rowCount());
+        }
         return builder;
     }
 
@@ -68,6 +73,9 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
         this.rowCount = rowCount;
     }
 
+    public boolean hasRowCount() {
+        return this.rowCount() > NO_ROW_COUNT;
+    }
 
     public void rows(Object[][] rows) {
         this.rows = rows;
@@ -76,7 +84,11 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
+        boolean negative = in.readBoolean();
         rowCount = in.readVLong();
+        if (negative) {
+            rowCount = -rowCount;
+        }
         cols = in.readStringArray();
         int numRows = in.readInt();
         rows = new Object[numRows][cols.length];
@@ -90,7 +102,8 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeVLong(rowCount);
+        out.writeBoolean(rowCount < 0);
+        out.writeVLong(Math.abs(rowCount));
         out.writeStringArray(cols);
         out.writeInt(rows.length);
         for (int i = 0; i < rows.length ; i++) {
