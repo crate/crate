@@ -98,9 +98,8 @@ public abstract class AbstractSharedCrateClusterTest extends ElasticsearchTestCa
             super(random);
 
             // Create temporary directory and use it as the data directory
-            File currentWorkingDir = new File(System.getProperty("user.dir"));
             try {
-                tmpDataDir = Files.createTempDirectory(currentWorkingDir.toPath(), null);
+                tmpDataDir = Files.createTempDirectory(null);
             } catch (IOException e) {
                 e.printStackTrace();
             }
