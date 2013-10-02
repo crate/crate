@@ -29,10 +29,10 @@ public class SQLResponseTest extends TestCase {
         SQLResponse r = new SQLResponse();
         r.cols(new String[]{"col1", "col2"});
         r.rows(new Object[][]{new Object[]{1, 2}});
-
+        r.rowCount(1L);
         //System.out.println(json(r));
         JSONAssert.assertEquals(
-                "{\"cols\":[\"col1\",\"col2\"],\"rows\":[[1,2]]}",
+                "{\"cols\":[\"col1\",\"col2\"],\"rows\":[[1,2]],\"rowcount\":1}",
                 json(r), false);
     }
 
@@ -47,6 +47,24 @@ public class SQLResponseTest extends TestCase {
         //System.out.println(json(r));
         JSONAssert.assertEquals(
                 "{\"cols\":[\"some\",\"thing\"],\"rows\":[[\"one\",\"two\"],[\"three\",\"four\"]]}",
+                json(r), false);
+    }
+
+    @Test
+    public void testXContentRowCount() throws Exception {
+        SQLResponse r = new SQLResponse();
+        r.cols(new String[]{"some", "thing"});
+        r.rows(new Object[][]{
+                new Object[]{"one", "two"},
+                new Object[]{"three", "four"},
+        });
+        JSONAssert.assertEquals(
+                "{\"cols\":[\"some\",\"thing\"],\"rows\":[[\"one\",\"two\"],[\"three\",\"four\"]]}",
+                json(r), false);
+
+        r.rowCount(2L);
+        JSONAssert.assertEquals(
+                "{\"cols\":[\"some\",\"thing\"],\"rows\":[[\"one\",\"two\"],[\"three\",\"four\"]],\"rowcount\":2}",
                 json(r), false);
     }
 
@@ -68,7 +86,7 @@ public class SQLResponseTest extends TestCase {
 
         assertArrayEquals(r1.cols(), r2.cols());
         assertArrayEquals(r1.rows(), r2.rows());
-
+        assertEquals(r1.rowCount(), r2.rowCount());
 
         o.reset();
         r1 = new SQLResponse();
@@ -82,7 +100,23 @@ public class SQLResponseTest extends TestCase {
 
         assertArrayEquals(r1.cols(), r2.cols());
         assertArrayEquals(r1.rows(), r2.rows());
+        assertEquals(r1.rowCount(), r2.rowCount());
 
+        o.reset();
+
+        r1 = new SQLResponse();
+        r1.cols(new String[]{"a", "b"});
+        r1.rows(new Object[][]{new String[]{"ab","ba"}, new String[]{"ba", "ab"}});
+        r1.rowCount(2L);
+
+        r1.writeTo(o);
+
+        r2 = new SQLResponse();
+        r2.readFrom(new BytesStreamInput(o.bytes()));
+
+        assertArrayEquals(r1.cols(), r2.cols());
+        assertArrayEquals(r1.rows(), r2.rows());
+        assertEquals(r1.rowCount(), r2.rowCount());
     }
 
 }
