@@ -12,6 +12,7 @@ import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
+import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
@@ -19,7 +20,6 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.test.integration.AbstractNodesTests;
 import org.junit.After;
 import org.junit.Test;
 
@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.hamcrest.core.IsEqual.equalTo;
 
-public class RecoveryTests extends AbstractNodesTests {
+public class RecoveryTests extends AbstractCrateNodesTests {
 
     private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(25, TimeUnit.MINUTES);
 
