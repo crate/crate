@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/10/02 0.13.1
+=================
+
+ - include rowcount of affected rows into update responses
+
  - [test] create temporary directory for test data, will be deleted after test run
 
 2013/10/02 0.13.0
