@@ -1,5 +1,7 @@
 package org.cratedb.action.sql;
 
+import org.cratedb.sql.CrateException;
+import org.cratedb.sql.VersionConflictException;
 import org.cratedb.sql.facet.InternalSQLFacet;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.NodeTypes;
@@ -16,10 +18,12 @@ import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.ShardSearchFailure;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.search.SearchHit;
 
 import java.io.IOException;
@@ -148,6 +152,18 @@ public class ParsedStatement {
     }
 
     public SQLResponse buildResponse(SearchResponse searchResponse) {
+
+        if (searchResponse.getFailedShards() > 0) {
+            for (ShardSearchFailure failure : searchResponse.getShardFailures()) {
+                if (failure.failure().getCause() instanceof VersionConflictEngineException) {
+                    throw new VersionConflictException(failure.failure());
+                }
+            }
+
+            // just take the first failure to have at least some stack trace.
+            throw new CrateException(searchResponse.getFailedShards() + " shard failures",
+                searchResponse.getShardFailures()[0].failure());
+        }
 
         if (useFacet()){
             return buildResponse(searchResponse,

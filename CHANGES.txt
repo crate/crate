@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - If a shard or version conflict occurs during select query or update the
+   errors are now correctly thrown. Extended the documentation to mention the
+   VerionConflictException
+
  - don't load any JS files from externals domains (CDN) at the admin web interface
 
 2013/10/02 0.13.1
