@@ -5,6 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
+
+2013/10/02 0.13.0
+=================
+
+ - add support for sql update statements.
+
  - set the ``keyword analyzer`` as the default analyzer
 
  - bugfix: use ES operation type ``create`` for SQL ``INSERT``.
