@@ -22,16 +22,15 @@ public class AbstractCrateNodesTests extends AbstractNodesTests {
         builder.put(settings);
 
         // Create temporary directory and use it as the data directory
-        File currentWorkingDir = new File(System.getProperty("user.dir"));
         try {
-            Path tmpDataDir = Files.createTempDirectory(currentWorkingDir.toPath(), null);
+            Path tmpDataDir = Files.createTempDirectory(null);
             tmpDataDirs.put(id, tmpDataDir);
             builder.put("path.data", tmpDataDir.toAbsolutePath());
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        return super.buildNode(id, settings);
+        return super.buildNode(id, builder.build());
     }
 
     public void deleteTemporaryDataDirectory(String id) {
