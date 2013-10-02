@@ -35,7 +35,7 @@ public class AbstractCrateNodesTests extends AbstractNodesTests {
     }
 
     public void deleteTemporaryDataDirectory(String id) {
-        assert !tmpDataDirs.containsKey(id);
+        assert tmpDataDirs.containsKey(id);
         Path tmpDataDir = tmpDataDirs.get(id);
         if (tmpDataDir != null) {
             FileSystemUtils.deleteRecursively(tmpDataDir.toFile(), true);
