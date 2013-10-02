@@ -1,6 +1,7 @@
 package org.cratedb.sql.facet;
 
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.sql.VersionConflictException;
 import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.search.facet.FacetExecutor;
 import org.elasticsearch.search.facet.InternalFacet;

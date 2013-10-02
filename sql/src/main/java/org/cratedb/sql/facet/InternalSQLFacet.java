@@ -145,6 +145,5 @@ public class InternalSQLFacet extends InternalFacet implements SQLFacet {
             // been parsed.
             return InternalSQLFacet.readMapReduceFacet(in);
         }
-
     }
 }

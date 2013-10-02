@@ -1,6 +1,7 @@
 package org.cratedb.action.sql;
 
 import org.cratedb.sql.DuplicateKeyException;
+import org.cratedb.sql.VersionConflictException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.SQLParseException;
 import org.elasticsearch.action.ActionListener;
@@ -13,6 +14,7 @@ import org.elasticsearch.action.index.TransportIndexAction;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
 import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
+import org.elasticsearch.action.search.ReduceSearchPhaseException;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.TransportSearchAction;
@@ -173,6 +175,18 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         if (e instanceof DocumentAlreadyExistsException) {
             return new DuplicateKeyException(
                 "A document with the same primary key exists already", e);
+        } else if (e instanceof ReduceSearchPhaseException && e.getCause() instanceof VersionConflictException) {
+            /**
+             * For update or search requests we use upstream ES SearchRequests
+             * These requests are executed using the transportSearchAction.
+             *
+             * The transportSearchAction (or the more specific QueryThenFetch/../ Action inside it
+             * executes the TransportSQLAction.SearchResponseListener onResponse/onFailure
+             * but adds its own error handling around it.
+             * By doing so it wraps every exception raised inside our onResponse in its own ReduceSearchPhaseException
+             * Here we unwrap it to get the original exception.
+             */
+            return e.getCause();
         }
         return e;
     }

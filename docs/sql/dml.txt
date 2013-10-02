@@ -196,6 +196,13 @@ Updating nested objects is also supported::
 
     cr> update locations set race['name'] = 'Human' where name = 'Bartledan'
 
+.. note::
+
+    If the same documents are updated concurrently an VersionConflictException
+    might occur. Crate contains a retry logic that tries to resolve the
+    conflict automatically. But if it fails more than 3 times the error is
+    returned to the user.
+
 Deleting data
 =============
 

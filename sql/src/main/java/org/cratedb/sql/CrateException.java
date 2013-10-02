@@ -2,7 +2,7 @@ package org.cratedb.sql;
 
 import org.elasticsearch.ElasticSearchException;
 
-public abstract class CrateException extends ElasticSearchException {
+public class CrateException extends ElasticSearchException {
 
     public CrateException(String msg) {
         super(msg);
@@ -16,7 +16,10 @@ public abstract class CrateException extends ElasticSearchException {
          super(e.getMessage(), e);
     }
 
-    public abstract int errorCode();
+    public int errorCode() {
+        return 1000;
+    }
+
     public Object[] args() {
         return new Object[0];
     }
