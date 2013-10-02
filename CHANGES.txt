@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - don't load any JS files from externals domains (CDN) at the admin web interface
+
 2013/10/02 0.13.1
 =================
 
