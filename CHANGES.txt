@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/10/02 0.13.2
+=================
+
+ - updated crate-python client documentation
+
  - If a shard or version conflict occurs during select query or update the
    errors are now correctly thrown. Extended the documentation to mention the
    VerionConflictException
