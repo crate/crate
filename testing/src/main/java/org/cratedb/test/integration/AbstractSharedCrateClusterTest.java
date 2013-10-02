@@ -76,25 +76,46 @@ import static org.hamcrest.Matchers.equalTo;
 @Ignore
 public abstract class AbstractSharedCrateClusterTest extends ElasticsearchTestCase {
 
+
+    private static class DataDirectoryCleaner
+            implements Runnable
+    {
+        private CrateTestCluster crateTestCluster;
+
+        private DataDirectoryCleaner(CrateTestCluster crateTestCluster)
+        {
+            this.crateTestCluster = crateTestCluster;
+        }
+
+        public void run()
+        {
+            crateTestCluster.deleteTemporaryDataDirectory();
+        }
+    }
+
     public static class CrateTestCluster extends TestCluster {
 
         private Path tmpDataDir = null;
+        private DataDirectoryCleaner dataDirectoryCleaner = new DataDirectoryCleaner(this);
 
         public CrateTestCluster(Random random) {
             super(random);
+
+            // Create temporary directory and use it as the data directory
+            File currentWorkingDir = new File(System.getProperty("user.dir"));
+            try {
+                tmpDataDir = Files.createTempDirectory(currentWorkingDir.toPath(), null);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         public Node buildNode(Settings settings) {
             ImmutableSettings.Builder builder = ImmutableSettings.builder();
             builder.put(settings);
 
-            // Create temporary directory and use it as the data directory
-            File currentWorkingDir = new File(System.getProperty("user.dir"));
-            try {
-                tmpDataDir = Files.createTempDirectory(currentWorkingDir.toPath(), null);
+            if (tmpDataDir != null) {
                 builder.put("path.data", tmpDataDir.toAbsolutePath());
-            } catch (IOException e) {
-                e.printStackTrace();
             }
 
             return super.buildNode(builder.build());
@@ -103,7 +124,12 @@ public abstract class AbstractSharedCrateClusterTest extends ElasticsearchTestCa
         public void deleteTemporaryDataDirectory() {
             if (tmpDataDir != null) {
                 FileSystemUtils.deleteRecursively(tmpDataDir.toFile(), true);
+                tmpDataDir = null;
             }
+        }
+
+        public Runnable getShutdownRunnable() {
+            return dataDirectoryCleaner;
         }
 
     }
@@ -115,6 +141,9 @@ public abstract class AbstractSharedCrateClusterTest extends ElasticsearchTestCa
         public synchronized static CrateTestCluster accquireCluster(Random random) {
             if (cluster == null) {
                 cluster = new CrateTestCluster(random);
+
+                Thread hook = new Thread(cluster.getShutdownRunnable());
+                Runtime.getRuntime().addShutdownHook(hook);
             }
             cluster.reset(random);
             return cluster;
@@ -159,7 +188,6 @@ public abstract class AbstractSharedCrateClusterTest extends ElasticsearchTestCa
 
     @AfterClass
     public static void afterClass() {
-        cluster.deleteTemporaryDataDirectory();
         cluster = null;
         ClusterManager.releaseCluster();
     }
