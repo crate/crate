@@ -1,16 +1,17 @@
 package org.cratedb.client;
 
 import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.internal.InternalNode;
-import org.elasticsearch.test.integration.AbstractNodesTests;
 import org.elasticsearch.transport.TransportService;
+import org.junit.After;
 import org.junit.Test;
 
 import java.util.Arrays;
 
-public class CrateClientTest extends AbstractNodesTests {
+public class CrateClientTest extends AbstractCrateNodesTests {
 
     @Test
     public void testCreateClient() throws Exception {
@@ -39,4 +40,10 @@ public class CrateClientTest extends AbstractNodesTests {
         }
 
     }
+
+    @After
+    public void shutdownNodes() {
+        closeAllNodes();
+    }
+
 }
