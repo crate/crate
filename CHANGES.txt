@@ -5,6 +5,7 @@ Changes for Crate
 Unreleased
 ==========
 
+ - [test] create temporary directory for test data, will be deleted after test run
 
 2013/10/02 0.13.0
 =================

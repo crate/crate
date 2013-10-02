@@ -28,6 +28,7 @@ import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -35,12 +36,15 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
+import org.elasticsearch.node.Node;
 import org.elasticsearch.test.integration.ClusterManager;
 import org.elasticsearch.test.integration.ElasticsearchTestCase;
 import org.elasticsearch.test.integration.TestCluster;
 import org.junit.*;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
@@ -72,7 +76,79 @@ import static org.hamcrest.Matchers.equalTo;
 @Ignore
 public abstract class AbstractSharedCrateClusterTest extends ElasticsearchTestCase {
 
-    private static TestCluster cluster;
+
+    private static class DataDirectoryCleaner implements Runnable {
+        private CrateTestCluster crateTestCluster;
+
+        private DataDirectoryCleaner(CrateTestCluster crateTestCluster) {
+            this.crateTestCluster = crateTestCluster;
+        }
+
+        public void run() {
+            crateTestCluster.deleteTemporaryDataDirectory();
+        }
+    }
+
+    public static class CrateTestCluster extends TestCluster {
+
+        private Path tmpDataDir = null;
+        private DataDirectoryCleaner dataDirectoryCleaner = new DataDirectoryCleaner(this);
+
+        public CrateTestCluster(Random random) {
+            super(random);
+
+            // Create temporary directory and use it as the data directory
+            File currentWorkingDir = new File(System.getProperty("user.dir"));
+            try {
+                tmpDataDir = Files.createTempDirectory(currentWorkingDir.toPath(), null);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        public Node buildNode(Settings settings) {
+            ImmutableSettings.Builder builder = ImmutableSettings.builder();
+            builder.put(settings);
+
+            if (tmpDataDir != null) {
+                builder.put("path.data", tmpDataDir.toAbsolutePath());
+            }
+
+            return super.buildNode(builder.build());
+        }
+
+        public void deleteTemporaryDataDirectory() {
+            if (tmpDataDir != null) {
+                FileSystemUtils.deleteRecursively(tmpDataDir.toFile(), true);
+                tmpDataDir = null;
+            }
+        }
+
+        public Runnable getShutdownRunnable() {
+            return dataDirectoryCleaner;
+        }
+
+    }
+
+    public static class CrateClusterManager extends ClusterManager {
+
+        private static CrateTestCluster cluster;
+
+        public synchronized static CrateTestCluster accquireCluster(Random random) {
+            if (cluster == null) {
+                cluster = new CrateTestCluster(random);
+
+                Thread hook = new Thread(cluster.getShutdownRunnable());
+                Runtime.getRuntime().addShutdownHook(hook);
+            }
+            cluster.reset(random);
+            return cluster;
+
+        }
+    }
+
+
+    private static CrateTestCluster cluster;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -95,9 +171,9 @@ public abstract class AbstractSharedCrateClusterTest extends ElasticsearchTestCa
                 .persistentSettings().getAsMap().size(), equalTo(0));
     }
 
-    public static TestCluster cluster() {
+    public static CrateTestCluster cluster() {
         if (cluster == null) {
-            cluster = ClusterManager.accquireCluster(getRandom());
+            cluster = CrateClusterManager.accquireCluster(getRandom());
         }
         return cluster;
     }
