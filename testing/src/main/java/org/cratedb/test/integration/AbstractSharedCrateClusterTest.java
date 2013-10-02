@@ -77,18 +77,14 @@ import static org.hamcrest.Matchers.equalTo;
 public abstract class AbstractSharedCrateClusterTest extends ElasticsearchTestCase {
 
 
-    private static class DataDirectoryCleaner
-            implements Runnable
-    {
+    private static class DataDirectoryCleaner implements Runnable {
         private CrateTestCluster crateTestCluster;
 
-        private DataDirectoryCleaner(CrateTestCluster crateTestCluster)
-        {
+        private DataDirectoryCleaner(CrateTestCluster crateTestCluster) {
             this.crateTestCluster = crateTestCluster;
         }
 
-        public void run()
-        {
+        public void run() {
             crateTestCluster.deleteTemporaryDataDirectory();
         }
     }
