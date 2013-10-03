@@ -20,6 +20,7 @@ Crate python client
 
    crate-python/client
    crate-python/blobs
+   crate-python/sqlalchemy
 
 API documentation
 -----------------
