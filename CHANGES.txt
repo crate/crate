@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - updated elasticsearch to 0.90.5
+
  - included the python clients sqlalchemy documentation
 
 2013/10/02 0.13.2

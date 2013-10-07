@@ -5,6 +5,7 @@ import org.cratedb.blob.stats.BlobStatsRequest;
 import org.cratedb.blob.stats.BlobStatsResponse;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -14,7 +15,6 @@ import org.elasticsearch.rest.action.support.RestXContentBuilder;
 import java.io.IOException;
 
 import static org.elasticsearch.rest.action.support.RestActions.buildBroadcastShardsHeader;
-import static org.elasticsearch.rest.action.support.RestActions.splitIndices;
 import static org.elasticsearch.rest.RestStatus.OK;
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 
@@ -30,7 +30,7 @@ public class RestBlobIndicesStatsAction extends BaseRestHandler {
     @Override
     public void handleRequest(final RestRequest request, final RestChannel channel) {
         BlobStatsRequest blobStatsRequest = new BlobStatsRequest();
-        blobStatsRequest.indices(splitIndices(request.param("index")));
+        blobStatsRequest.indices(Strings.splitStringByCommaToArray(request.param("index")));
 
         client.execute(BlobStatsAction.INSTANCE, blobStatsRequest,
             new ActionListener<BlobStatsResponse>() {

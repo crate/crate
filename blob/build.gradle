@@ -8,8 +8,8 @@ configurations {
 evaluationDependsOn(':testing')
 
 dependencies {
-    compile project(':es')
     testCompile project(':testing')
+    compile project(':es')
 }
 
 test {

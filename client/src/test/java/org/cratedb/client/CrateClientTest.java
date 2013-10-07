@@ -13,6 +13,10 @@ import java.util.Arrays;
 
 public class CrateClientTest extends AbstractCrateNodesTests {
 
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
     @Test
     public void testCreateClient() throws Exception {
 
@@ -42,7 +46,8 @@ public class CrateClientTest extends AbstractCrateNodesTests {
     }
 
     @After
-    public void shutdownNodes() {
+    public void shutdownNodes() throws Exception {
+        super.tearDown();
         closeAllNodes();
     }
 

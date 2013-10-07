@@ -8,15 +8,15 @@ repositories {
 // mvn dependency:tree|grep -o ' .- .*:compile'|cut -d ' ' -f 3|sort|gsed "s/\(.*\):jar:\(.*\):compile/compile '\1:\2'/g"
 // TODO: excludes e.g. xerces
 dependencies {
-    compile 'com.fasterxml.jackson.core:jackson-core:2.2.2'
-    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-smile:2.2.2'
-    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.2.2'
-    compile 'com.google.guava:guava:14.0.1'
+    compile 'com.fasterxml.jackson.core:jackson-core:2.2.3'
+    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-smile:2.2.3'
+    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.2.3'
+    compile 'com.google.guava:guava:15.0'
     compile 'com.ning:compress-lzf:0.9.6'
     compile 'com.spatial4j:spatial4j:0.3'
     compile 'com.vividsolutions:jts:1.12'
-    compile 'io.netty:netty:3.6.6.Final'
-    compile 'joda-time:joda-time:2.2'
+    compile 'io.netty:netty:3.7.0.Final'
+    compile 'joda-time:joda-time:2.3'
     compile 'log4j:log4j:1.2.17'
     compile 'net.java.dev.jna:jna:3.3.0'
     compile 'net.sf.trove4j:trove4j:3.0.3'

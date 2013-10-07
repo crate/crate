@@ -3,7 +3,6 @@ package org.cratedb.rest.action.admin.searchinto;
 import static org.elasticsearch.rest.RestRequest.Method.POST;
 import static org.elasticsearch.rest.RestStatus.BAD_REQUEST;
 import static org.elasticsearch.rest.RestStatus.OK;
-import static org.elasticsearch.rest.action.support.RestActions.splitTypes;
 
 import java.io.IOException;
 
@@ -12,6 +11,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.IgnoreIndices;
 import org.elasticsearch.action.support.broadcast.BroadcastOperationThreading;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -55,7 +55,7 @@ public class RestSearchIntoAction extends BaseRestHandler {
     public void handleRequest(final RestRequest request,
             final RestChannel channel) {
         SearchIntoRequest searchIntoRequest = new SearchIntoRequest(
-                RestActions.splitIndices(request.param("index")));
+            Strings.splitStringByCommaToArray(request.param("index")));
 
         if (request.hasParam("ignore_indices")) {
             searchIntoRequest.ignoreIndices(IgnoreIndices.fromString(
@@ -90,7 +90,7 @@ public class RestSearchIntoAction extends BaseRestHandler {
                 }
             }
             searchIntoRequest.routing(request.param("routing"));
-            searchIntoRequest.types(splitTypes(request.param("type")));
+            searchIntoRequest.types(Strings.splitStringByCommaToArray(request.param("type")));
             searchIntoRequest.preference(request.param("preference",
                     "_primary"));
         } catch (Exception e) {

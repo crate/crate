@@ -2,8 +2,8 @@ apply plugin: 'java'
 apply plugin: 'distribution'
 
 dependencies {
-    compile project(path: ':sql')
     testCompile project(':testing')
+    compile project(path: ':sql')
 }
 
 configurations {

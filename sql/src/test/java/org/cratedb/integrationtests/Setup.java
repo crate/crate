@@ -12,11 +12,10 @@ public class Setup {
 
     public void setUpLocations() throws Exception {
         test.prepareCreate("locations").setSettings(
-                test.settingsBuilder().loadFromClasspath("/essetup/settings/test_a.json").build())
+                test.randomSettingsBuilder().loadFromClasspath("/essetup/settings/test_a.json").build())
                 .addMapping("default", test.stringFromPath("/essetup/mappings/test_a.json"))
                 .execute().actionGet();
         test.loadBulk("/essetup/data/test_a.json");
         test.refresh();
     }
-
 }

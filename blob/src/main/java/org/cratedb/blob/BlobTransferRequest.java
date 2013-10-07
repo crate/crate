@@ -1,13 +1,13 @@
 package org.cratedb.blob;
 
 import org.elasticsearch.action.support.replication.ShardReplicationOperationRequest;
-import org.elasticsearch.common.UUID;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.UUID;
 
 /**
  * Base Request Class for Blob Transfers
