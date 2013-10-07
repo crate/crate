@@ -22,7 +22,7 @@ public class BlobRecoveryStatus {
     }
 
     public boolean canceled() {
-        return indexRecoveryStatus.canceled;
+        return indexRecoveryStatus.isCanceled();
     }
 
     public void sentCanceledToSource() {

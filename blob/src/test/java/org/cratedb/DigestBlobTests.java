@@ -2,13 +2,13 @@ package org.cratedb;
 
 import org.cratedb.blob.BlobContainer;
 import org.cratedb.blob.DigestBlob;
-import org.elasticsearch.common.UUID;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;

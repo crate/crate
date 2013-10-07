@@ -11,7 +11,6 @@ evaluationDependsOn(':app')
 dependencies {
     compile project(':es')
     testCompile 'org.skyscreamer:jsonassert:1.2.0'
-    testCompile "org.mockito:mockito-core:1.9.5"
     testCompile project(':testing')
 }
 
@@ -33,19 +32,6 @@ test {
     }
     // force run, see: http://gradle.1045684.n5.nabble.com/how-does-gradle-decide-when-to-run-tests-td3314172.html
     outputs.upToDateWhen { false }
-}
-
-sourceSets {
-    test {
-        resources {
-            srcDir 'src/test/java'
-            include '**/*.rst'
-        }
-        resources {
-            srcDir 'src/test/resources'
-            include '**/*.json'
-        }
-    }
 }
 
 task compileJavaCC {
@@ -71,3 +57,13 @@ task compileJavaCC {
 }
 
 compileJava.dependsOn compileJavaCC
+
+sourceSets {
+    test {
+        resources {
+            srcDir 'src/test/java'
+            include '**/*.rst'
+            include '**/*.json'
+        }
+    }
+}

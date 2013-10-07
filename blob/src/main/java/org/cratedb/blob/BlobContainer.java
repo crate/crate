@@ -3,7 +3,6 @@ package org.cratedb.blob;
 import org.cratedb.blob.exceptions.DigestNotFoundException;
 import org.cratedb.common.Hex;
 import org.elasticsearch.ElasticSearchIllegalStateException;
-import org.elasticsearch.common.UUID;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -14,6 +13,7 @@ import java.io.FilenameFilter;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class BlobContainer {
 

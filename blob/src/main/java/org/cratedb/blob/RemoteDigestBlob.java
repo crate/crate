@@ -3,11 +3,12 @@ package org.cratedb.blob;
 import org.cratedb.common.Hex;
 import org.elasticsearch.ElasticSearchIllegalArgumentException;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.UUID;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.jboss.netty.buffer.ChannelBuffer;
+
+import java.util.UUID;
 
 public class RemoteDigestBlob {
 

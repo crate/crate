@@ -12,7 +12,7 @@ public class IntegrationTestTest extends DoctestTestCase {
 
     @Test
     public void testReadme() throws Exception {
-        execDocFile("README.txt");
+        execDocFile("README.txt", getClass());
     }
 
 }

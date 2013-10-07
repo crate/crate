@@ -5,7 +5,6 @@ import org.cratedb.blob.pending_transfer.BlobHeadRequestHandler;
 import org.cratedb.blob.pending_transfer.HeadChunkFileTooSmallException;
 import org.cratedb.blob.pending_transfer.PutHeadChunkRunnable;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.UUID;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
@@ -16,6 +15,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.UUID;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;

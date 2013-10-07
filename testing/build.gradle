@@ -26,6 +26,14 @@ sourceSets {
         resources {
             srcDir 'src/test/java'
             include '**/*.txt'
+            include '**/*.rst'
+            include '**/*.json'
+        }
+        resources {
+            srcDir 'src/test/resources'
+            include '**/*.txt'
+            include '**/*.rst'
+            include '**/*.json'
         }
     }
 }

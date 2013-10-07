@@ -38,6 +38,8 @@ public class RecoveryTests extends AbstractCrateNodesTests {
     private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(25, TimeUnit.MINUTES);
 
     static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+
         Logger logger;
         ConsoleAppender consoleAppender;
 

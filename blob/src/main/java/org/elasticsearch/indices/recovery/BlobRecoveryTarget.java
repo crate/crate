@@ -131,7 +131,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
 
             RecoveryStatus onGoingIndexRecovery = indexRecoveryTarget.peerRecoveryStatus(request.shardId());
 
-            if (onGoingIndexRecovery.canceled) {
+            if (onGoingIndexRecovery.isCanceled()) {
                 throw new IndexShardClosedException(request.shardId());
             }
 

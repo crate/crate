@@ -19,6 +19,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.collect.Maps.newHashMap;
 import static junit.framework.Assert.assertNotNull;
+import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
