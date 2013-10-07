@@ -8,8 +8,8 @@ configurations {
 evaluationDependsOn(':testing')
 
 dependencies {
-    testCompile project(':testing')
     compile project(':es')
+    testCompile project(':testing')
 }
 
 test {
@@ -21,16 +21,8 @@ test {
 sourceSets {
     test {
         resources {
-            srcDir 'src/test/python'
-            include '**/*.py'
-        }
-        resources {
             srcDir 'src/test/java'
-            include '**/*.json'
-            include '**/*.yml'
             include '**/*.rst'
         }
-
     }
-
 }

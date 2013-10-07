@@ -36,8 +36,8 @@ public abstract class AbstractSharedCrateClusterTest extends AbstractSharedClust
         return super.refresh();
     }
 
-    public byte[] bytesFromPath(String path) throws IOException {
-        InputStream is = getInputStream(path);
+    public byte[] bytesFromPath(String path, Class<?> aClass) throws IOException {
+        InputStream is = getInputStream(path, aClass);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Streams.copy(is, out);
         is.close();
@@ -45,9 +45,8 @@ public abstract class AbstractSharedCrateClusterTest extends AbstractSharedClust
         return out.toByteArray();
     }
 
-    public InputStream getInputStream(String path) throws FileNotFoundException {
-        ClassLoader classLoader = Classes.getDefaultClassLoader();
-        InputStream is = classLoader.getResourceAsStream(path);
+    public InputStream getInputStream(String path, Class<?> aClass) throws FileNotFoundException {
+        InputStream is = aClass.getResourceAsStream(path);
         if (is == null) {
             throw new FileNotFoundException("Resource [" + path + "] not found in classpath");
         }
@@ -76,14 +75,14 @@ public abstract class AbstractSharedCrateClusterTest extends AbstractSharedClust
         }
     }
 
-    public String stringFromPath(String path) throws IOException {
+    public String stringFromPath(String path, Class<?> aClass) throws IOException {
         return Streams.copyToString(new InputStreamReader(
-                getInputStream(path),
+                getInputStream(path, aClass),
                 Charsets.UTF_8));
     }
 
-    public BulkResponse loadBulk(String path) throws Exception {
-        byte[] bulkPayload = bytesFromPath(path);
+    public BulkResponse loadBulk(String path, Class<?> aClass) throws Exception {
+        byte[] bulkPayload = bytesFromPath(path, aClass);
         BulkResponse bulk = client().prepareBulk().add(bulkPayload, 0, bulkPayload.length, false, null, null).execute().actionGet();
         for (BulkItemResponse item : bulk.getItems()) {
             assert !item.isFailed() : String.format("unable to index data {}", item);

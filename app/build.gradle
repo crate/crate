@@ -23,7 +23,7 @@ distZip {
 
 ext {
     downloadDir = new File(buildDir, 'downloads')
-    plugin_head_version = '6dbf2ed35355e261ee94ffd5884c6446dd865c35'
+    plugin_head_version = '3b6740cfd0a79c60516ce8fbd78f018c1f38e08e'
     plugin_bigdesk_version = '2.2.1'
     plugin_segmentspy_version = '0.2.0'
 }

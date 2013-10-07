@@ -407,7 +407,7 @@ public class RestExportActionTest extends AbstractRestActionTest {
     @Test
     public void testTimestampStored(){
         esSetup.execute(deleteAll(), createIndex("tsstored").withSettings(
-                fromClassPath("essetup/settings/test_a.json")).withMapping("d",
+                fromClassPath("essetup/settings/test_b.json")).withMapping("d",
                         "{\"d\": {\"_timestamp\": {\"enabled\": true, \"store\": \"yes\"}}}"));
         Client client = esSetup.client();
         client.prepareIndex("tsstored", "d", "1").setSource(
@@ -438,7 +438,7 @@ public class RestExportActionTest extends AbstractRestActionTest {
     @Test
     public void testTTLEnabled() {
         esSetup.execute(deleteAll(), createIndex("ttlenabled").withSettings(
-                fromClassPath("essetup/settings/test_a.json")).withMapping("d",
+                fromClassPath("essetup/settings/test_b.json")).withMapping("d",
                         "{\"d\": {\"_ttl\": {\"enabled\": true, \"default\": \"1d\"}}}"));
         Client client = esSetup.client();
         client.prepareIndex("ttlenabled", "d", "1").setSource("field1", "value1").execute().actionGet();

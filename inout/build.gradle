@@ -6,7 +6,17 @@ configurations {
 }
 
 dependencies {
-    testCompile 'com.github.tlrx:elasticsearch-test:0.0.9'
-    testCompile project(':testing')
     compile project(':es')
+    testCompile project(':testing')
+    testCompile 'com.github.tlrx:elasticsearch-test:0.0.9'
+}
+
+sourceSets {
+    test {
+        resources {
+            srcDir 'src/test/java'
+            include '**/*.rst'
+            include '**/*.json'
+        }
+    }
 }

@@ -36,8 +36,8 @@ public class RestRestoreActionTest extends AbstractRestActionTest {
         setUpSecondNode();
         // create sample data
         esSetup.execute(deleteAll(), createIndex("users").withSettings(
-                fromClassPath("essetup/settings/test_a.json")).withMapping("d",
-                        fromClassPath("essetup/mappings/test_a.json")));
+                fromClassPath("essetup/settings/test_b.json")).withMapping("d",
+                        fromClassPath("essetup/mappings/test_b.json")));
         esSetup.execute(index("users", "d", "1").withSource("{\"name\": \"item1\"}"));
         esSetup.execute(index("users", "d", "2").withSource("{\"name\": \"item2\"}"));
         esSetup2.client().admin().cluster().prepareHealth().setWaitForGreenStatus().
