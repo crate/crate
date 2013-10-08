@@ -55,6 +55,29 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     @Test
+    public void testSelectCountStar() throws Exception {
+        createIndex("test");
+        client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
+        client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
+        refresh();
+        execute("select count(*) from test");
+        assertEquals(1, response.rows().length);
+        assertEquals(2L, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testSelectCountStarWithWhereClause() throws Exception {
+        prepareCreate("test")
+            .addMapping("default", "name", "type=string,index=not_analyzed").execute().actionGet();
+        client().prepareIndex("test", "default", "id1").setSource("{\"name\": \"Arthur\"}").execute().actionGet();
+        client().prepareIndex("test", "default", "id2").setSource("{\"name\": \"Trillian\"}").execute().actionGet();
+        refresh();
+        execute("select count(*) from test where name = 'Trillian'");
+        assertEquals(1, response.rows().length);
+        assertEquals(1L, response.rows()[0][0]);
+    }
+
+    @Test
     public void testSelectStar() throws Exception {
         prepareCreate("test")
                 .addMapping("default",

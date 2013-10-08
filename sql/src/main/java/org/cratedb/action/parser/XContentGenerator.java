@@ -5,7 +5,6 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
@@ -132,13 +131,16 @@ public class XContentGenerator {
     }
 
     private void generate(SelectNode node) throws IOException, StandardException {
-        jsonBuilder.startObject("query");
         generate(node.getFromList());
-
-        whereClause(node.getWhereClause());
-        jsonBuilder.endObject();
-
         generate(node.getResultColumns());
+
+        if (stmt.countRequest()) {
+            whereClause(node.getWhereClause());
+        } else {
+            jsonBuilder.startObject("query");
+            whereClause(node.getWhereClause());
+            jsonBuilder.endObject();
+        }
 
         // only include the version if it was explicitly selected.
         if (requireVersion) {
@@ -197,21 +199,13 @@ public class XContentGenerator {
             String columnName = column.getExpression().getColumnName();
             String columnAlias = column.getName();
             if (columnName == null) {
-                // column is a constantValue (e.g. "select 1 from ...");
-                String columnValue = "";
-                if (column.getExpression() instanceof NumericConstantNode) {
-                    columnValue = ((NumericConstantNode) column.getExpression()).getValue()
-                            .toString();
-                } else if (column.getExpression() instanceof CharConstantNode) {
-                    columnValue = ((CharConstantNode) column.getExpression()).getValue()
-                            .toString();
+                if (column.getExpression() instanceof  AggregateNode) {
+                    handleAggregateNode(stmt, column);
+                    continue;
+                } else {
+                    raiseUnsupportedSelectFromConstantNode(column);
                 }
-                throw new SQLParseException(
-                        "selecting constant values (select " + columnValue + " from ...) is not " +
-                                "supported");
-            }
-
-            if (columnName.startsWith("_")) {
+            } else if (columnName.startsWith("_")) {
                 // treat this as internal, so this is not a field
                 if (columnName.equals("_version")) {
                     requireVersion = true;
@@ -228,7 +222,7 @@ public class XContentGenerator {
 
                 fields.add(nestedColumnReference.xcontentPathString());
                 columnName = nestedColumnReference.xcontentPathString();
-                if (columnAlias == column.getExpression().getColumnName()) {
+                if (columnAlias.equals(column.getExpression().getColumnName())) {
                     // if no alias ("AS") is defined, use the SQL syntax for the output column
                     // name
                     columnAlias = nestedColumnReference.sqlPathString();
@@ -241,9 +235,38 @@ public class XContentGenerator {
 
             stmt.addOutputField(columnAlias, columnName);
         }
+
+        // TODO: validate that regular columns are in group by clause if an aggregate function is in the columnList
+
         if (fields.size() > 0) {
             jsonBuilder.field("fields", fields);
         }
+    }
+
+    private void handleAggregateNode(ParsedStatement stmt, ResultColumn column) {
+        AggregateNode node = (AggregateNode)column.getExpression();
+        if (node.getAggregateName().equals("COUNT(*)")) {
+            String alias = column.getName() != null ? column.getName() : node.getAggregateName();
+            stmt.countRequest(true);  // TODO: check for group by once implemented
+            stmt.addOutputField(alias, node.getAggregateName());
+        } else {
+            throw new SQLParseException("Unsupported Aggregate function " + node.getAggregateName());
+        }
+    }
+
+    private void raiseUnsupportedSelectFromConstantNode(ResultColumn column) {
+        // column is a constantValue (e.g. "select 1 from ...");
+        String columnValue = "";
+        if (column.getExpression() instanceof NumericConstantNode) {
+            columnValue = ((NumericConstantNode) column.getExpression()).getValue()
+                .toString();
+        } else if (column.getExpression() instanceof CharConstantNode) {
+            columnValue = ((CharConstantNode) column.getExpression()).getValue()
+                .toString();
+        }
+        throw new SQLParseException(
+            "selecting constant values (select " + columnValue + " from ...) is not " +
+                "supported");
     }
 
     private void generate(Integer operatorType, ColumnReference left, Object right)

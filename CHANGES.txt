@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - added support for `select count(*) from ...`
+
  - updated elasticsearch to 0.90.5
 
  - included the python clients sqlalchemy documentation
