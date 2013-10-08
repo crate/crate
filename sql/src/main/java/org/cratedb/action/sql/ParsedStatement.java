@@ -12,6 +12,8 @@ import org.cratedb.action.parser.QueryVisitor;
 import org.cratedb.action.parser.XContentVisitor;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.action.count.CountRequest;
+import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
@@ -49,6 +51,7 @@ public class ParsedStatement {
     public static final int DELETE_ACTION = 3;
     public static final int BULK_ACTION = 4;
     private Map<String, Object> updateDoc;
+    private boolean countRequest;
 
     public ParsedStatement(String stmt, Object[] args, NodeExecutionContext context) throws
             StandardException {
@@ -110,6 +113,14 @@ public class ParsedStatement {
         return request;
     }
 
+    public CountRequest buildCountRequest() throws StandardException {
+        CountRequest request = new CountRequest();
+        builder = visitor.getXContentBuilder();
+        request.indices(indices.toArray(new String[indices.size()]));
+        request.query(builder.bytes().toBytes());
+        return request;
+    }
+
     public IndexRequest buildIndexRequest() throws StandardException {
 
         InsertVisitor insertVisitor = (InsertVisitor)visitor;
@@ -149,6 +160,12 @@ public class ParsedStatement {
     public SQLResponse buildResponse(SearchResponse searchResponse, InternalSQLFacet facet) {
         facet.reduce(this);
         return new SQLResponse(cols(), facet.rows(), facet.rowCount());
+    }
+
+    public SQLResponse buildResponse(CountResponse countResponse) {
+        Object[][] rows = new Object[1][];
+        rows[0] = new Object[] { countResponse.getCount() };
+        return new SQLResponse(cols(), rows, rows.length);
     }
 
     public SQLResponse buildResponse(SearchResponse searchResponse) {
@@ -271,4 +288,13 @@ public class ParsedStatement {
     public List<String> indices() {
         return indices;
     }
+
+    public void countRequest(boolean countRequest) {
+        this.countRequest = countRequest;
+    }
+
+    public boolean countRequest() {
+        return countRequest;
+    }
+
 }
