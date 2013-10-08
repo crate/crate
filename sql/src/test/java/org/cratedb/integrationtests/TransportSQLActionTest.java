@@ -954,10 +954,8 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("insert into test (pk_col, message) values (?, ?)", args);
     }
 
-    private void createTestIndexWithPkMapping() {
-        XContentBuilder mapping = null;
-        try {
-            mapping = XContentFactory.jsonBuilder().startObject()
+    private void createTestIndexWithPkMapping() throws IOException {
+        XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
                     .startObject("default")
                     .startObject("_meta").field("primary_keys", "pk_col").endObject()
                     .startObject("properties")
@@ -968,9 +966,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                     .endObject()
                     .endObject()
                     .endObject();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
         prepareCreate("test")
             .addMapping("default", mapping)
@@ -979,10 +974,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     @Test (expected = SQLParseException.class)
     public void testMultiplePrimaryKeyColumns() throws Exception {
-
-        XContentBuilder mapping = null;
-        try {
-            mapping = XContentFactory.jsonBuilder().startObject()
+        XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
                     .startObject("default")
                     .startObject("_meta").array("primary_keys", "pk_col1", "pk_col2").endObject()
                     .startObject("properties")
@@ -993,10 +985,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                     .endObject()
                     .endObject()
                     .endObject();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
 
         prepareCreate("test")
             .addMapping("default", mapping)
