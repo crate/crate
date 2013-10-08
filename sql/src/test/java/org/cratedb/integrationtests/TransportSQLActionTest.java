@@ -9,8 +9,11 @@ import org.cratedb.sql.VersionConflictException;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -952,27 +955,51 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     private void createTestIndexWithPkMapping() {
-        Settings settings = settingsBuilder()
-            .put("crate.primary_keys", "pk_col").build();
+        XContentBuilder mapping = null;
+        try {
+            mapping = XContentFactory.jsonBuilder().startObject()
+                    .startObject("default")
+                    .startObject("_meta").field("primary_keys", "pk_col").endObject()
+                    .startObject("properties")
+                    .startObject("pk_col").field("type", "string").field("store",
+                            "true").field("index", "not_analyzed").endObject()
+                    .startObject("message").field("type", "string").field("store",
+                            "true").field("index", "not_analyzed").endObject()
+                    .endObject()
+                    .endObject()
+                    .endObject();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         prepareCreate("test")
-            .setSettings(settings)
-            .addMapping("default",
-                "pk_col", "type=string,store=true,index=not_analyzed",
-                "message", "type=string,store=true,index=not_analyzed")
+            .addMapping("default", mapping)
                 .execute().actionGet();
     }
 
     @Test (expected = SQLParseException.class)
     public void testMultiplePrimaryKeyColumns() throws Exception {
-        Settings settings = settingsBuilder()
-            .put("crate.primary_keys", "pk_col1, pk_col2").build();
+
+        XContentBuilder mapping = null;
+        try {
+            mapping = XContentFactory.jsonBuilder().startObject()
+                    .startObject("default")
+                    .startObject("_meta").array("primary_keys", "pk_col1", "pk_col2").endObject()
+                    .startObject("properties")
+                    .startObject("pk_col").field("type", "string").field("store",
+                            "true").field("index", "not_analyzed").endObject()
+                    .startObject("message").field("type", "string").field("store",
+                            "true").field("index", "not_analyzed").endObject()
+                    .endObject()
+                    .endObject()
+                    .endObject();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
 
         prepareCreate("test")
-            .setSettings(settings)
-            .addMapping("default",
-                "pk_col", "type=string,store=true,index=not_analyzed",
-                "message", "type=string,store=true,index=not_analyzed")
+            .addMapping("default", mapping)
             .execute().actionGet();
 
         Object[] args = new Object[] {
