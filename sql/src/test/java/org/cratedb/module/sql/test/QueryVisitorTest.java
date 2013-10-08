@@ -1,11 +1,13 @@
 package org.cratedb.module.sql.test;
 
 import com.google.common.collect.ImmutableSet;
+import org.cratedb.action.parser.XContentGenerator;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Test;
 
@@ -70,18 +72,50 @@ public class QueryVisitorTest {
     public void testSelectAllFromTable() throws StandardException, IOException {
         execStatement("select * from locations");
         stmt.buildSearchRequest().source().toString();
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"match_all\":{}}}",
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"match_all\":{}},\"size\":" + XContentGenerator.DEFAULT_SELECT_LIMIT + "}",
                 stmt.buildSearchRequest().source().toUtf8());
     }
 
     @Test
     public void testSelectWithLimitAsParameter() throws Exception {
-        execStatement("SELECT name from locations limit ?", new Object[]{5});
+        Integer limit = 5;
+        execStatement("SELECT name from locations limit ?", new Object[]{limit});
+        String expected =
+                XContentFactory.jsonBuilder()
+                        .startObject()
+                        .field("fields", Arrays.asList("name"))
+                        .startObject("query")
+                        .field("match_all", new HashMap<String, Object>())
+                        .endObject()
+                        .field("size", limit)
+                        .endObject()
+                        .string();
+        assertEquals(
+            expected,
+            stmt.buildSearchRequest().source().toUtf8()
+        );
     }
 
     @Test
     public void testSelectWithLimitAsOffset() throws Exception {
-        execStatement("SELECT name from locations limit 1 offset ?", new Object[]{5});
+        Integer limit = 1;
+        Integer offset = 5;
+        execStatement("SELECT name from locations limit " + limit + " offset ?", new Object[]{offset});
+        String expected =
+                XContentFactory.jsonBuilder()
+                        .startObject()
+                        .field("fields", Arrays.asList("name"))
+                        .startObject("query")
+                        .field("match_all", new HashMap<String, Object>())
+                        .endObject()
+                        .field("from", offset)
+                        .field("size", limit)
+                        .endObject()
+                        .string();
+        assertEquals(
+                expected,
+                stmt.buildSearchRequest().source().toUtf8()
+        );
     }
 
     @Test
@@ -95,6 +129,7 @@ public class QueryVisitorTest {
                         .startObject("query")
                         .field("match_all", new HashMap())
                         .endObject()
+                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
         stmt.outputFields();
@@ -115,6 +150,7 @@ public class QueryVisitorTest {
                         .field("match_all", new HashMap())
                         .endObject()
                         .field("version", true)
+                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -124,7 +160,7 @@ public class QueryVisitorTest {
     @Test
     public void testSelectAllAndFieldFromTable() throws StandardException, IOException {
         execStatement("select *, name from locations");
-        assertEquals("{\"fields\":[\"a\",\"b\",\"name\"],\"query\":{\"match_all\":{}}}",
+        assertEquals("{\"fields\":[\"a\",\"b\",\"name\"],\"query\":{\"match_all\":{}},\"size\":1000}",
                 getSource());
     }
 
@@ -133,6 +169,16 @@ public class QueryVisitorTest {
         execStatement("select * from locations limit 5");
         assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"match_all\":{}},\"size\":5}",
                 getSource());
+    }
+
+    @Test
+    public void testSelectWithHugeLimit() throws StandardException, IOException {
+        execStatement("select * from locations limit 2000");
+        assertEquals(
+            "{\"fields\":[\"a\",\"b\"],\"query\":{\"match_all\":{}},\"size\":2000}",
+            getSource()
+        );
+
     }
 
     @Test
@@ -150,7 +196,9 @@ public class QueryVisitorTest {
         assertEquals(
                 "{\"sort\":[{\"kind\":{\"order\":\"asc\",\"ignore_unmapped\":true}}]," +
                     "\"fields\":[\"a\",\"b\"]," +
-                        "\"query\":{\"match_all\":{}}}", getSource());
+                        "\"query\":{\"match_all\":{}},\"size\":" +
+                        XContentGenerator.DEFAULT_SELECT_LIMIT +
+                        "}", getSource());
     }
 
     @Test
@@ -162,7 +210,9 @@ public class QueryVisitorTest {
                         "{\"name\":{\"order\":\"desc\"," +
                         "\"ignore_unmapped\":true}}]," +
                         "\"fields\":[\"a\",\"b\"]," +
-                        "\"query\":{\"match_all\":{}}}",
+                        "\"query\":{\"match_all\":{}},\"size\":" +
+                        XContentGenerator.DEFAULT_SELECT_LIMIT +
+                        "}",
                 getSource());
     }
 
@@ -177,6 +227,7 @@ public class QueryVisitorTest {
                         .startObject("query")
                         .field("match_all", new HashMap())
                         .endObject()
+                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -203,6 +254,7 @@ public class QueryVisitorTest {
                         .startObject("query")
                         .startObject("term").field("person.name", "Ford").endObject()
                         .endObject()
+                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -249,6 +301,7 @@ public class QueryVisitorTest {
                         .startObject("query")
                         .startObject("term").field("name", "Bartledan").endObject()
                         .endObject()
+                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
         assertEquals(expected, getSource());
@@ -265,6 +318,7 @@ public class QueryVisitorTest {
                         .startObject("query")
                         .startObject("term").field("_id", 1).endObject()
                         .endObject()
+                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
         assertEquals(expected, getSource());
@@ -284,6 +338,7 @@ public class QueryVisitorTest {
                         .endObject()
                         .endObject()
                         .endObject()
+                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
         assertEquals(expected, getSource());
@@ -308,6 +363,7 @@ public class QueryVisitorTest {
                         .endObject()
                         .endObject()
                         .endObject()
+                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -337,6 +393,7 @@ public class QueryVisitorTest {
                         .endObject()
                         .endObject()
                         .endObject()
+                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -358,6 +415,7 @@ public class QueryVisitorTest {
                         .endObject()
                         .endObject()
                         .endObject()
+                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
         assertEquals(expected, getSource());
@@ -374,6 +432,7 @@ public class QueryVisitorTest {
                         .startObject("query")
                         .startObject("term").field("date", "2013-07-16").endObject()
                         .endObject()
+                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
         assertEquals(expected, getSource());
@@ -384,7 +443,7 @@ public class QueryVisitorTest {
             IOException {
         execStatement("select * from locations where position = 4");
 
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"term\":{\"position\":4}}}",
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"term\":{\"position\":4}},\"size\":" + XContentGenerator.DEFAULT_SELECT_LIMIT + "}",
                 getSource());
     }
 
@@ -399,6 +458,7 @@ public class QueryVisitorTest {
                         .startObject("query")
                         .startObject("term").field("name", "Bartledan").endObject()
                         .endObject()
+                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -424,6 +484,7 @@ public class QueryVisitorTest {
                         .endArray()
                         .endObject()
                         .endObject()
+                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -448,6 +509,7 @@ public class QueryVisitorTest {
                         .endArray()
                         .endObject()
                         .endObject()
+                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -498,6 +560,7 @@ public class QueryVisitorTest {
                         .endArray()
                         .endObject()
                         .endObject()
+                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -534,6 +597,7 @@ public class QueryVisitorTest {
                         .endArray()
                         .endObject()
                         .endObject()
+                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -563,6 +627,7 @@ public class QueryVisitorTest {
                         .endArray()
                         .endObject()
                         .endObject()
+                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -573,7 +638,7 @@ public class QueryVisitorTest {
     public void testWhereClauseToRangeQueryWithGtNumberField() throws StandardException,
             IOException {
         execStatement("select * from locations where position > 4");
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gt\":4}}}}",
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gt\":4}}},\"size\":" + XContentGenerator.DEFAULT_SELECT_LIMIT + "}",
                 getSource());
     }
 
@@ -581,7 +646,7 @@ public class QueryVisitorTest {
     public void testWhereClauseToRangeQueryWithGteNumberField() throws StandardException,
             IOException {
         execStatement("select * from locations where position >= 4");
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gte\":4}}}}",
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gte\":4}}},\"size\":" + XContentGenerator.DEFAULT_SELECT_LIMIT + "}",
                 getSource());
     }
 
@@ -589,7 +654,7 @@ public class QueryVisitorTest {
     public void testWhereClauseToRangeQueryWithGtNumberFieldYoda() throws StandardException,
             IOException {
         execStatement("select * from locations where 4 < position");
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gt\":4}}}}",
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gt\":4}}},\"size\":" + XContentGenerator.DEFAULT_SELECT_LIMIT + "}",
                 getSource());
     }
 
@@ -597,7 +662,7 @@ public class QueryVisitorTest {
     public void testWhereClauseToRangeQueryWithLteNumberField() throws StandardException,
             IOException {
         execStatement("select * from locations where position <= 4");
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"lte\":4}}}}",
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"lte\":4}}},\"size\":" + XContentGenerator.DEFAULT_SELECT_LIMIT + "}",
                 getSource());
     }
 
@@ -611,7 +676,7 @@ public class QueryVisitorTest {
     @Test
     public void testCountQuery() throws Exception {
         execStatement("select count(*) from locations where 4 < position");
-        assertEquals("{\"range\":{\"position\":{\"gt\":4}}}",
+        assertEquals("{\"range\":{\"position\":{\"gt\":4}},\"size\":" + XContentGenerator.DEFAULT_SELECT_LIMIT + "}",
             getSource());
     }
 
