@@ -15,6 +15,7 @@ import java.util.Collection;
 
 public class SQLPlugin extends AbstractPlugin {
 
+    public static final int DEFAULT_SELECT_LIMIT = 1000;
     private final Settings settings;
 
     public SQLPlugin(Settings settings) {
@@ -28,6 +29,8 @@ public class SQLPlugin extends AbstractPlugin {
         // Set default analyzer
         settingsBuilder.put("index.analysis.analyzer.default.type", "keyword");
 
+        // Set default maximum limit
+        settingsBuilder.put("crate.sql.default.limit", DEFAULT_SELECT_LIMIT);
         return settingsBuilder.build();
     }
 

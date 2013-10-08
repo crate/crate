@@ -101,7 +101,12 @@ public class NodeExecutionContext {
             return res;
         }
 
+        /**
+         * get settings for current index
+         */
+        public Settings indexSettings() {
+            return NodeExecutionContext.this.indicesService.indexServiceSafe(this.tableName).settingsService().getSettings();
+        }
 
     }
-
 }

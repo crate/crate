@@ -2,10 +2,10 @@ package org.cratedb.action.parser;
 
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.plugin.SQLPlugin;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
@@ -104,16 +104,19 @@ public class XContentGenerator {
     }
 
     private void offsetClause(ValueNode node) throws IOException, StandardException {
-        fieldFromParamNodeOrConstantNode(node, "from");
+        fieldFromParamNodeOrConstantNode(node, "from", null);
     }
 
     private void fetchFirstClause(ValueNode node) throws IOException, StandardException {
-        fieldFromParamNodeOrConstantNode(node, "size");
+        fieldFromParamNodeOrConstantNode(node, "size", this.tableContext.indexSettings().getAsInt("crate.sql.default.limit", SQLPlugin.DEFAULT_SELECT_LIMIT));
     }
 
-    private void fieldFromParamNodeOrConstantNode(ValueNode node, String fieldName)
+    private void fieldFromParamNodeOrConstantNode(ValueNode node, String fieldName, Object defaultValue)
             throws IOException, StandardException {
         if (node == null) {
+            if (defaultValue != null) {
+                jsonBuilder.field(fieldName, defaultValue);
+            }
             return;
         }
         if (node.isParameterNode()) {
