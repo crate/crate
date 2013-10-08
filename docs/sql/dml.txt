@@ -137,6 +137,15 @@ For custom date types, or defined date formats in the object mapping
 the corresponding format should be used for a comparison. Otherwise
 the operation may fail.
 
+Limits
+------
+
+As unlimited SELECT queries could break your cluster if the matching rows exceed your node's RAM,
+SELECT statements are limited by default to **1000** rows.
+You can expand this limit by using an explicit LIMIT-clause.
+But you are encouraged to make use of a windowing using LIMIT and OFFSET to iterate through all the results
+of a potentially large resultset instead of expanding the default limit.
+
 Inner/Nested Objects
 --------------------
 

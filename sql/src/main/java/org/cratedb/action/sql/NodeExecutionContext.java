@@ -1,10 +1,8 @@
 package org.cratedb.action.sql;
 
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.FieldMapper;
-import org.elasticsearch.index.mapper.FieldMappers;
 import org.elasticsearch.index.mapper.object.ObjectMapper;
 import org.elasticsearch.index.mapper.object.RootObjectMapper;
 import org.elasticsearch.indices.IndicesService;
@@ -111,7 +109,5 @@ public class NodeExecutionContext {
             return res;
         }
 
-
     }
-
 }

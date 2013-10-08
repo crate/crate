@@ -23,6 +23,8 @@ import java.util.*;
  */
 public class XContentGenerator {
 
+    public static final int DEFAULT_SELECT_LIMIT = 1000;
+
     private final ParsedStatement stmt;
     private XContentBuilder jsonBuilder;
 
@@ -103,16 +105,19 @@ public class XContentGenerator {
     }
 
     private void offsetClause(ValueNode node) throws IOException, StandardException {
-        fieldFromParamNodeOrConstantNode(node, "from");
+        fieldFromParamNodeOrConstantNode(node, "from", null);
     }
 
     private void fetchFirstClause(ValueNode node) throws IOException, StandardException {
-        fieldFromParamNodeOrConstantNode(node, "size");
+        fieldFromParamNodeOrConstantNode(node, "size", DEFAULT_SELECT_LIMIT);
     }
 
-    private void fieldFromParamNodeOrConstantNode(ValueNode node, String fieldName)
+    private void fieldFromParamNodeOrConstantNode(ValueNode node, String fieldName, Object defaultValue)
             throws IOException, StandardException {
         if (node == null) {
+            if (defaultValue != null) {
+                jsonBuilder.field(fieldName, defaultValue);
+            }
             return;
         }
         if (node.isParameterNode()) {
