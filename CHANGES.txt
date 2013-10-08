@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - set ``primary keys`` definition under the type mappings ``_meta`` instead of index
+   ``settings.crate``
  - added support for `select count(*) from ...`
 
  - updated elasticsearch to 0.90.5
