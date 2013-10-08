@@ -9,8 +9,11 @@ import org.cratedb.sql.VersionConflictException;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -19,6 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.collect.Maps.newHashMap;
 import static junit.framework.Assert.assertNotNull;
+import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -51,6 +55,29 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("select \"_id\" as b, \"_version\" as a from test");
         assertArrayEquals(new String[]{"b", "a"}, response.cols());
         assertEquals(1, response.rows().length);
+    }
+
+    @Test
+    public void testSelectCountStar() throws Exception {
+        createIndex("test");
+        client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
+        client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
+        refresh();
+        execute("select count(*) from test");
+        assertEquals(1, response.rows().length);
+        assertEquals(2L, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testSelectCountStarWithWhereClause() throws Exception {
+        prepareCreate("test")
+            .addMapping("default", "name", "type=string,index=not_analyzed").execute().actionGet();
+        client().prepareIndex("test", "default", "id1").setSource("{\"name\": \"Arthur\"}").execute().actionGet();
+        client().prepareIndex("test", "default", "id2").setSource("{\"name\": \"Trillian\"}").execute().actionGet();
+        refresh();
+        execute("select count(*) from test where name = 'Trillian'");
+        assertEquals(1, response.rows().length);
+        assertEquals(1L, response.rows()[0][0]);
     }
 
     @Test
@@ -927,28 +954,40 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("insert into test (pk_col, message) values (?, ?)", args);
     }
 
-    private void createTestIndexWithPkMapping() {
-        Settings settings = settingsBuilder()
-            .put("crate.primary_keys", "pk_col").build();
+    private void createTestIndexWithPkMapping() throws IOException {
+        XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
+                    .startObject("default")
+                    .startObject("_meta").field("primary_keys", "pk_col").endObject()
+                    .startObject("properties")
+                    .startObject("pk_col").field("type", "string").field("store",
+                            "true").field("index", "not_analyzed").endObject()
+                    .startObject("message").field("type", "string").field("store",
+                            "true").field("index", "not_analyzed").endObject()
+                    .endObject()
+                    .endObject()
+                    .endObject();
 
         prepareCreate("test")
-            .setSettings(settings)
-            .addMapping("default",
-                "pk_col", "type=string,store=true,index=not_analyzed",
-                "message", "type=string,store=true,index=not_analyzed")
+            .addMapping("default", mapping)
                 .execute().actionGet();
     }
 
     @Test (expected = SQLParseException.class)
     public void testMultiplePrimaryKeyColumns() throws Exception {
-        Settings settings = settingsBuilder()
-            .put("crate.primary_keys", "pk_col1, pk_col2").build();
+        XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
+                    .startObject("default")
+                    .startObject("_meta").array("primary_keys", "pk_col1", "pk_col2").endObject()
+                    .startObject("properties")
+                    .startObject("pk_col").field("type", "string").field("store",
+                            "true").field("index", "not_analyzed").endObject()
+                    .startObject("message").field("type", "string").field("store",
+                            "true").field("index", "not_analyzed").endObject()
+                    .endObject()
+                    .endObject()
+                    .endObject();
 
         prepareCreate("test")
-            .setSettings(settings)
-            .addMapping("default",
-                "pk_col", "type=string,store=true,index=not_analyzed",
-                "message", "type=string,store=true,index=not_analyzed")
+            .addMapping("default", mapping)
             .execute().actionGet();
 
         Object[] args = new Object[] {

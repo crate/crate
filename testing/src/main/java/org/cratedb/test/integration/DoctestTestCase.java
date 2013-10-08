@@ -1,5 +1,8 @@
 package org.cratedb.test.integration;
 
+import org.elasticsearch.common.Classes;
+import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.python.core.*;
 import org.python.util.PythonInterpreter;
@@ -29,8 +32,14 @@ public abstract class DoctestTestCase extends AbstractSharedCrateClusterTest {
         interp.execfile(s, "tests.py");
     }
 
-    protected void execDocFile(String name) {
-        URL url = getClass().getResource(name);
+    protected void execDocFile(String name, Class<? extends DoctestTestCase> aClass) {
+        URL url;
+        if (aClass == null) {
+           ClassLoader classLoader = Classes.getDefaultClassLoader();
+            url = classLoader.getResource(name);
+        } else {
+            url = aClass.getResource(name);
+        }
         if (url == null) {
             throw new RuntimeException("docfile resource not found: " + name);
         }
@@ -38,9 +47,21 @@ public abstract class DoctestTestCase extends AbstractSharedCrateClusterTest {
     }
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
+        super.setUp();
         if (interp == null) {
             resetInterpreter();
         }
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        super.tearDown();
+
+        // the test base classes verify that tests don't set any system properties
+        // the properties here are set by the PythonInterpreter and have to be cleared
+        // in order for the tests to pass
+        System.clearProperty("python.cachedir.skip");
+        System.clearProperty("python.console.encoding");
     }
 }

@@ -21,6 +21,7 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.indices.IndicesService;
@@ -167,7 +168,7 @@ public abstract class AbstractTransportSearchIntoAction extends
                 request.shardId());
         SearchIntoContext context = new SearchIntoContext(0,
             new ShardSearchRequest().types(request.types()).filteringAliases(request.filteringAliases()),
-            shardTarget, indexShard.searcher(), indexService, indexShard, scriptService, cacheRecycler
+            shardTarget, indexShard.acquireSearcher(), indexService, indexShard, scriptService, cacheRecycler
         );
         SearchIntoContext.setCurrent(context);
 
@@ -192,7 +193,6 @@ public abstract class AbstractTransportSearchIntoAction extends
                         "failed to execute inout", e);
             }
         } finally {
-            // this will also release the index searcher
             context.release();
             SearchContext.removeCurrent();
         }

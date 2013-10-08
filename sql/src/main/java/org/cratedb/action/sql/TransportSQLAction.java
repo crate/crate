@@ -8,6 +8,9 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.bulk.TransportBulkAction;
+import org.elasticsearch.action.count.CountRequest;
+import org.elasticsearch.action.count.CountResponse;
+import org.elasticsearch.action.count.TransportCountAction;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.index.TransportIndexAction;
@@ -33,6 +36,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final TransportIndexAction transportIndexAction;
     private final TransportDeleteByQueryAction transportDeleteByQueryAction;
     private final TransportBulkAction transportBulkAction;
+    private final TransportCountAction transportCountAction;
 
     private final NodeExecutionContext executionContext;
 
@@ -43,7 +47,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             TransportSearchAction transportSearchAction,
             TransportDeleteByQueryAction transportDeleteByQueryAction,
             TransportIndexAction transportIndexAction,
-            TransportBulkAction transportBulkAction) {
+            TransportBulkAction transportBulkAction,
+            TransportCountAction transportCountAction) {
         super(settings, threadPool);
         this.executionContext = executionContext;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
@@ -51,6 +56,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         this.transportIndexAction = transportIndexAction;
         this.transportDeleteByQueryAction = transportDeleteByQueryAction;
         this.transportBulkAction = transportBulkAction;
+        this.transportCountAction = transportCountAction;
     }
 
     private class SearchResponseListener implements ActionListener<SearchResponse> {
@@ -160,6 +166,11 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                     transportBulkAction.execute(bulkRequest, new BulkResponseListener(stmt, listener));
                     break;
                 default:
+                    if (stmt.countRequest()) {
+                        CountRequest countRequest = stmt.buildCountRequest();
+                        transportCountAction.execute(countRequest, new CountResponseListener(stmt, listener));
+                        break;
+                    }
                     searchRequest = stmt.buildSearchRequest();
                     transportSearchAction.execute(searchRequest, new SearchResponseListener(stmt, listener));
                     break;
@@ -235,4 +246,25 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
     }
 
+    private class CountResponseListener implements ActionListener<CountResponse> {
+
+        private final ActionListener<SQLResponse> delegate;
+        private final ParsedStatement stmt;
+
+
+        public CountResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+            this.stmt = stmt;
+            this.delegate = listener;
+        }
+
+        @Override
+        public void onResponse(CountResponse countResponse) {
+            delegate.onResponse(stmt.buildResponse(countResponse));
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            delegate.onFailure(reRaiseCrateException(e));
+        }
+    }
 }

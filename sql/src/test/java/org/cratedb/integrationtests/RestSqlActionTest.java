@@ -5,7 +5,6 @@ import org.cratedb.action.sql.SQLRequestBuilder;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.action.sql.parser.SQLXContentSourceContext;
 import org.cratedb.action.sql.parser.SQLXContentSourceParser;
-import org.cratedb.sql.SQLParseException;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.xcontent.ToXContent;
@@ -19,18 +18,6 @@ import org.skyscreamer.jsonassert.JSONAssert;
 import java.io.IOException;
 
 public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
-
-
-    private static XContentBuilder builder;
-
-    static {
-        try {
-            builder = XContentFactory.contentBuilder(XContentType.JSON);
-        } catch (IOException e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File
-            // Templates.
-        }
-    }
 
     @Override
     protected int numberOfNodes() {
@@ -55,7 +42,6 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
     @Test
     public void testSqlRequest() throws Exception {
         String json = sql("{\"stmt\": \"select * from locations where \\\"_id\\\" = '1'\"}");
-        //System.out.println(json);
         JSONAssert.assertEquals(
                 "{\n" +
                         "  \"cols\" : [ \"date\", \"description\", \"kind\", \"name\", " +

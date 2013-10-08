@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.lucene.util.AbstractRandomizedTest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.indices.IndexMissingException;
@@ -230,16 +231,16 @@ public class RestExportActionTest extends AbstractRestActionTest {
      * The 'force_overwrite' parameter forces existing files to be overwritten.
      */
     @Test
-    public void testForceOverwrite() {
-        String filename = "/tmp/filename.export";
+    public void testForceOverwrite() throws Exception {
+        String filename = "/tmp/filename.export_${shard}";
         ExportResponse response = executeExportRequest("{\"output_file\": \"" + filename +
                 "\", \"fields\": [\"name\"], \"force_overwrite\": \"true\"}");
 
         List<Map<String, Object>> infos = getExports(response);
         assertEquals(2, infos.size());
-        assertEquals("/tmp/filename.export", infos.get(0).get("output_file").toString());
-        assertEquals("/tmp/filename.export", infos.get(1).get("output_file").toString());
-        List<String> lines = readLines(filename);
+        assertEquals("/tmp/filename.export_0", infos.get(0).get("output_file").toString());
+        assertEquals("/tmp/filename.export_1", infos.get(1).get("output_file").toString());
+        List<String> lines = readLines(filename.replace("${shard}", "1"));
         assertEquals(2, lines.size());
         assertEquals("{\"name\":\"bike\"}", lines.get(0));
     }
@@ -406,7 +407,7 @@ public class RestExportActionTest extends AbstractRestActionTest {
     @Test
     public void testTimestampStored(){
         esSetup.execute(deleteAll(), createIndex("tsstored").withSettings(
-                fromClassPath("essetup/settings/test_a.json")).withMapping("d",
+                fromClassPath("essetup/settings/test_b.json")).withMapping("d",
                         "{\"d\": {\"_timestamp\": {\"enabled\": true, \"store\": \"yes\"}}}"));
         Client client = esSetup.client();
         client.prepareIndex("tsstored", "d", "1").setSource(
@@ -437,7 +438,7 @@ public class RestExportActionTest extends AbstractRestActionTest {
     @Test
     public void testTTLEnabled() {
         esSetup.execute(deleteAll(), createIndex("ttlenabled").withSettings(
-                fromClassPath("essetup/settings/test_a.json")).withMapping("d",
+                fromClassPath("essetup/settings/test_b.json")).withMapping("d",
                         "{\"d\": {\"_ttl\": {\"enabled\": true, \"default\": \"1d\"}}}"));
         Client client = esSetup.client();
         client.prepareIndex("ttlenabled", "d", "1").setSource("field1", "value1").execute().actionGet();

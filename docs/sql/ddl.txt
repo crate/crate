@@ -17,13 +17,11 @@ endpoint using a `PUT` request. In the body should be the schema definition in
 
     sh$ curl -sSX PUT 'localhost:9200/ships?pretty' -d @- <<EOF
     ... {
-    ... "settings" : {
-    ...   "crate": {
-    ...     "primary_keys": "id"
-    ...    }
-    ... },
     ... "mappings" : {
     ...  "default": {
+    ...   "_meta": {
+    ...     "primary_keys": "id"
+    ...   },
     ...   "properties": {
     ...     "id": {
     ...       "type": "string",

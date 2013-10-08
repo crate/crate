@@ -2,7 +2,6 @@ package org.cratedb.blob.pending_transfer;
 
 import org.cratedb.blob.BlobTransferTarget;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.UUID;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -15,6 +14,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.*;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public class PutHeadChunkRunnable implements Runnable {

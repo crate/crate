@@ -5,6 +5,16 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/10/08 0.14.0
+=================
+
+ - set ``primary keys`` definition under the type mappings ``_meta`` instead of index
+   ``settings.crate``
+
+ - added support for `select count(*) from ...`
+
+ - updated elasticsearch to 0.90.5
+
  - included the python clients sqlalchemy documentation
 
 2013/10/02 0.13.2

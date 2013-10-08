@@ -38,10 +38,11 @@ public abstract class AbstractRestActionTest extends TestCase {
     public void setUp() {
         esSetup = new EsSetup();
         esSetup.execute(deleteAll(), createIndex("users").withSettings(
-                fromClassPath("essetup/settings/test_a.json")).withMapping("d",
-                        fromClassPath("essetup/mappings/test_a.json")).withData(
-                                fromClassPath("essetup/data/test_a.json")));
-        esSetup.client().admin().indices().prepareRefresh("users").execute();
+                fromClassPath("essetup/settings/test_b.json")).withMapping("d",
+                        fromClassPath("essetup/mappings/test_b.json")).withData(
+                                fromClassPath("essetup/data/test_b.json")));
+        esSetup.client().admin().indices().prepareRefresh("users").execute().actionGet();
+        esSetup.client().admin().cluster().prepareHealth("users").setWaitForGreenStatus().execute().actionGet();
     }
 
     @After

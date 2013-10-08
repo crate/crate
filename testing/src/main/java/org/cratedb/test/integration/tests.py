@@ -13,6 +13,7 @@ import logging
 
 log = logging.getLogger('pytest')
 
+
 def print_json(content):
     print(json.dumps(json.loads(content), indent=4, sort_keys=True))
 
@@ -93,13 +94,29 @@ class Endpoint(object):
         req = self._req(path, headers)
         return self._exec_req(req)
 
+    def pget(self, *args):
+        resp = self.get(*args)
+        print_json(resp.content)
+
+    def ppost(self, *args):
+        resp = self.post(*args)
+        print_json(resp.content)
+
     def post(self, path, data=''):
         req = self._req(path)
+        if isinstance(data, dict):
+            data = json.dumps(data)
         req.add_data(data)
         return self._exec_req(req)
 
+    def pput(self, *args):
+        resp = self.put(*args)
+        print_json(resp.content)
+
     def put(self, path, data=''):
         req = self._req(path)
+        if isinstance(data, dict):
+            data = json.dumps(data)
         req.add_data(data)
         req.get_method = lambda: 'PUT'
         return self._exec_req(req)
@@ -138,6 +155,7 @@ def mget(endpoint, requests):
 
 def setUp(test):
     ep = Endpoint()
+    test.globs['Endpoint'] = Endpoint
     test.globs['get'] = ep.get
     test.globs['head'] = ep.head
     test.globs['post'] = ep.post

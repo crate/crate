@@ -6,7 +6,6 @@ import org.cratedb.blob.v2.BlobIndices;
 import org.cratedb.blob.v2.BlobShard;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.UUID;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -14,6 +13,7 @@ import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.transport.*;
 
 import java.io.File;
+import java.util.UUID;
 import java.util.concurrent.*;
 
 public class BlobTransferTarget extends AbstractComponent {
@@ -233,7 +233,7 @@ public class BlobTransferTarget extends AbstractComponent {
             } catch (InterruptedException e) {
                 logger.error("can't retrieve getHeadRequestLatch", e, null);
             } catch (ExecutionException e) {
-                logger.error("can't retrieve getHeadRequestLatch", e, null);
+                logger.error("can't retrieve getHeadRequestLatch", e);
             }
         }
     }

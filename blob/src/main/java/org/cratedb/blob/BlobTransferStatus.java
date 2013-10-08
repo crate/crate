@@ -1,6 +1,7 @@
 package org.cratedb.blob;
 
-import org.elasticsearch.common.UUID;
+
+import java.util.UUID;
 
 public class BlobTransferStatus {
 

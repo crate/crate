@@ -64,12 +64,22 @@ public class NodeExecutionContext {
             return value;
         }
 
+        /**
+         * Returns the ``primary key`` column names defined at index creation under the ``_meta``
+         * key. If not defined, return empty list.
+         *
+         * @return a list of primary key column names
+         */
         public List<String> primaryKeys() {
-            Settings settings = indicesService.indexServiceSafe(tableName).settingsService().getSettings();
-            String[] defaultArr = new String[0];
-            String[] pks = settings.getAsArray("index.crate.primary_keys", defaultArr, true);
+            List<String> pks = new ArrayList<String>();
+            Object srcPks = documentMapper.meta().get("primary_keys");
+            if (srcPks instanceof String) {
+                pks.add((String)srcPks);
+            } else if (srcPks instanceof List) {
+                pks.addAll((List)srcPks);
+            }
 
-            return Arrays.asList(pks);
+            return pks;
         }
 
 

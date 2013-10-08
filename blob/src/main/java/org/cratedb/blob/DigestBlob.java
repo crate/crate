@@ -2,7 +2,6 @@ package org.cratedb.blob;
 
 import org.cratedb.blob.exceptions.DigestMismatchException;
 import org.cratedb.common.Hex;
-import org.elasticsearch.common.UUID;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.elasticsearch.common.logging.ESLogger;
@@ -13,6 +12,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 

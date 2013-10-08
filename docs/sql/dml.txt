@@ -171,6 +171,19 @@ Query for a property of an inner object::
     | Bartledan | Bartledannians |
     +-----------+----------------+
 
+Data Aggregation
+----------------
+
+Currently the only supported aggregation function in `crate` is `count(*)`
+without any groupings::
+
+    cr> select count(*) from locations
+    +----------+
+    | COUNT(*) |
+    +----------+
+    | 13       |
+    +----------+
+
 Inserting data
 ==============
 

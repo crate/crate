@@ -70,7 +70,7 @@ public class QueryVisitorTest {
     public void testSelectAllFromTable() throws StandardException, IOException {
         execStatement("select * from locations");
         stmt.buildSearchRequest().source().toString();
-        assertEquals("{\"query\":{\"match_all\":{}},\"fields\":[\"a\",\"b\"]}",
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"match_all\":{}}}",
                 stmt.buildSearchRequest().source().toUtf8());
     }
 
@@ -91,10 +91,10 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
+                        .field("fields", Arrays.asList("name"))
                         .startObject("query")
                         .field("match_all", new HashMap())
                         .endObject()
-                        .field("fields", Arrays.asList("name"))
                         .endObject()
                         .string();
         stmt.outputFields();
@@ -124,14 +124,14 @@ public class QueryVisitorTest {
     @Test
     public void testSelectAllAndFieldFromTable() throws StandardException, IOException {
         execStatement("select *, name from locations");
-        assertEquals("{\"query\":{\"match_all\":{}},\"fields\":[\"a\",\"b\",\"name\"]}",
+        assertEquals("{\"fields\":[\"a\",\"b\",\"name\"],\"query\":{\"match_all\":{}}}",
                 getSource());
     }
 
     @Test
     public void testSelectWithLimit() throws StandardException, IOException {
         execStatement("select * from locations limit 5");
-        assertEquals("{\"query\":{\"match_all\":{}},\"fields\":[\"a\",\"b\"],\"size\":5}",
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"match_all\":{}},\"size\":5}",
                 getSource());
     }
 
@@ -139,7 +139,7 @@ public class QueryVisitorTest {
     public void testSelectWithLimitAndOffset() throws StandardException, IOException {
         execStatement("select * from locations limit 5 offset 3");
         assertEquals(
-                "{\"query\":{\"match_all\":{}},\"fields\":[\"a\",\"b\"],\"from\":3,\"size\":5}",
+                "{\"fields\":[\"a\",\"b\"],\"query\":{\"match_all\":{}},\"from\":3,\"size\":5}",
                 getSource());
     }
 
@@ -149,8 +149,8 @@ public class QueryVisitorTest {
         execStatement("select * from locations order by kind");
         assertEquals(
                 "{\"sort\":[{\"kind\":{\"order\":\"asc\",\"ignore_unmapped\":true}}]," +
-                        "\"query\":{\"match_all\":{}},\"fields\":[\"a\"," +
-                        "\"b\"]}", getSource());
+                    "\"fields\":[\"a\",\"b\"]," +
+                        "\"query\":{\"match_all\":{}}}", getSource());
     }
 
     @Test
@@ -160,8 +160,9 @@ public class QueryVisitorTest {
         assertEquals(
                 "{\"sort\":[{\"kind\":{\"order\":\"asc\",\"ignore_unmapped\":true}}," +
                         "{\"name\":{\"order\":\"desc\"," +
-                        "\"ignore_unmapped\":true}}],\"query\":{\"match_all\":{}}," +
-                        "\"fields\":[\"a\",\"b\"]}",
+                        "\"ignore_unmapped\":true}}]," +
+                        "\"fields\":[\"a\",\"b\"]," +
+                        "\"query\":{\"match_all\":{}}}",
                 getSource());
     }
 
@@ -172,10 +173,10 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
+                        .field("fields", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .field("match_all", new HashMap())
                         .endObject()
-                        .field("fields", Arrays.asList("name", "kind"))
                         .endObject()
                         .string();
 
@@ -198,10 +199,10 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
+                        .field("fields", Arrays.asList("message", "person.addresses"))
                         .startObject("query")
                         .startObject("term").field("person.name", "Ford").endObject()
                         .endObject()
-                        .field("fields", Arrays.asList("message", "person.addresses"))
                         .endObject()
                         .string();
 
@@ -244,10 +245,10 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
+                        .field("fields", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("term").field("name", "Bartledan").endObject()
                         .endObject()
-                        .field("fields", Arrays.asList("name", "kind"))
                         .endObject()
                         .string();
         assertEquals(expected, getSource());
@@ -260,10 +261,10 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
+                        .field("fields", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("term").field("_id", 1).endObject()
                         .endObject()
-                        .field("fields", Arrays.asList("name", "kind"))
                         .endObject()
                         .string();
         assertEquals(expected, getSource());
@@ -275,6 +276,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
+                        .field("fields", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("bool")
                         .startObject("must_not")
@@ -282,7 +284,6 @@ public class QueryVisitorTest {
                         .endObject()
                         .endObject()
                         .endObject()
-                        .field("fields", Arrays.asList("name", "kind"))
                         .endObject()
                         .string();
         assertEquals(expected, getSource());
@@ -295,6 +296,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
+                        .field("fields", Arrays.asList("name"))
                         .startObject("query")
                         .startObject("filtered")
                         .startObject("filter")
@@ -306,7 +308,6 @@ public class QueryVisitorTest {
                         .endObject()
                         .endObject()
                         .endObject()
-                        .field("fields", Arrays.asList("name"))
                         .endObject()
                         .string();
 
@@ -320,6 +321,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
+                        .field("fields", Arrays.asList("name"))
                         .startObject("query")
                         .startObject("bool")
                         .startObject("must_not")
@@ -335,7 +337,6 @@ public class QueryVisitorTest {
                         .endObject()
                         .endObject()
                         .endObject()
-                        .field("fields", Arrays.asList("name"))
                         .endObject()
                         .string();
 
@@ -349,6 +350,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
+                        .field("fields", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("bool")
                         .startObject("must_not")
@@ -356,7 +358,6 @@ public class QueryVisitorTest {
                         .endObject()
                         .endObject()
                         .endObject()
-                        .field("fields", Arrays.asList("name", "kind"))
                         .endObject()
                         .string();
         assertEquals(expected, getSource());
@@ -369,10 +370,10 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
+                        .field("fields", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("term").field("date", "2013-07-16").endObject()
                         .endObject()
-                        .field("fields", Arrays.asList("name", "kind"))
                         .endObject()
                         .string();
         assertEquals(expected, getSource());
@@ -383,7 +384,7 @@ public class QueryVisitorTest {
             IOException {
         execStatement("select * from locations where position = 4");
 
-        assertEquals("{\"query\":{\"term\":{\"position\":4}},\"fields\":[\"a\",\"b\"]}",
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"term\":{\"position\":4}}}",
                 getSource());
     }
 
@@ -394,10 +395,10 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
+                        .field("fields", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("term").field("name", "Bartledan").endObject()
                         .endObject()
-                        .field("fields", Arrays.asList("name", "kind"))
                         .endObject()
                         .string();
 
@@ -411,6 +412,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
+                        .field("fields", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("bool")
                         .field("minimum_should_match", 1)
@@ -422,7 +424,6 @@ public class QueryVisitorTest {
                         .endArray()
                         .endObject()
                         .endObject()
-                        .field("fields", Arrays.asList("name", "kind"))
                         .endObject()
                         .string();
 
@@ -435,6 +436,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
+                        .field("fields", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("bool")
                         .field("minimum_should_match", 1)
@@ -446,7 +448,6 @@ public class QueryVisitorTest {
                         .endArray()
                         .endObject()
                         .endObject()
-                        .field("fields", Arrays.asList("name", "kind"))
                         .endObject()
                         .string();
 
@@ -467,6 +468,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
+                        .field("fields", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("bool")
                         .field("minimum_should_match", 1)
@@ -496,7 +498,6 @@ public class QueryVisitorTest {
                         .endArray()
                         .endObject()
                         .endObject()
-                        .field("fields", Arrays.asList("name", "kind"))
                         .endObject()
                         .string();
 
@@ -511,6 +512,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
+                        .field("fields", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("bool")
                         .field("minimum_should_match", 1)
@@ -532,7 +534,6 @@ public class QueryVisitorTest {
                         .endArray()
                         .endObject()
                         .endObject()
-                        .field("fields", Arrays.asList("name", "kind"))
                         .endObject()
                         .string();
 
@@ -545,6 +546,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
+                        .field("fields", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("bool")
                         .field("minimum_should_match", 1)
@@ -561,7 +563,6 @@ public class QueryVisitorTest {
                         .endArray()
                         .endObject()
                         .endObject()
-                        .field("fields", Arrays.asList("name", "kind"))
                         .endObject()
                         .string();
 
@@ -572,7 +573,7 @@ public class QueryVisitorTest {
     public void testWhereClauseToRangeQueryWithGtNumberField() throws StandardException,
             IOException {
         execStatement("select * from locations where position > 4");
-        assertEquals("{\"query\":{\"range\":{\"position\":{\"gt\":4}}},\"fields\":[\"a\",\"b\"]}",
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gt\":4}}}}",
                 getSource());
     }
 
@@ -580,7 +581,7 @@ public class QueryVisitorTest {
     public void testWhereClauseToRangeQueryWithGteNumberField() throws StandardException,
             IOException {
         execStatement("select * from locations where position >= 4");
-        assertEquals("{\"query\":{\"range\":{\"position\":{\"gte\":4}}},\"fields\":[\"a\",\"b\"]}",
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gte\":4}}}}",
                 getSource());
     }
 
@@ -588,7 +589,7 @@ public class QueryVisitorTest {
     public void testWhereClauseToRangeQueryWithGtNumberFieldYoda() throws StandardException,
             IOException {
         execStatement("select * from locations where 4 < position");
-        assertEquals("{\"query\":{\"range\":{\"position\":{\"gt\":4}}},\"fields\":[\"a\",\"b\"]}",
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gt\":4}}}}",
                 getSource());
     }
 
@@ -596,7 +597,7 @@ public class QueryVisitorTest {
     public void testWhereClauseToRangeQueryWithLteNumberField() throws StandardException,
             IOException {
         execStatement("select * from locations where position <= 4");
-        assertEquals("{\"query\":{\"range\":{\"position\":{\"lte\":4}}},\"fields\":[\"a\",\"b\"]}",
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"lte\":4}}}}",
                 getSource());
     }
 
@@ -605,6 +606,13 @@ public class QueryVisitorTest {
         execStatement("delete from locations where 4 < position");
         assertEquals("{\"range\":{\"position\":{\"gt\":4}}}",
                 getSource());
+    }
+
+    @Test
+    public void testCountQuery() throws Exception {
+        execStatement("select count(*) from locations where 4 < position");
+        assertEquals("{\"range\":{\"position\":{\"gt\":4}}}",
+            getSource());
     }
 
 

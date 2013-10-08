@@ -128,7 +128,7 @@ public class RestImportActionTest extends AbstractRestActionTest {
     @Test
     public void testFields() {
         esSetup.execute(deleteAll(), createIndex("test").withSettings(
-                fromClassPath("essetup/settings/test_a.json")).withMapping("d",
+                fromClassPath("essetup/settings/test_b.json")).withMapping("d",
                         "{\"d\": {\"_timestamp\": {\"enabled\": true, \"store\": \"yes\"}}}"));
 
         long now = new Date().getTime();
@@ -228,8 +228,8 @@ public class RestImportActionTest extends AbstractRestActionTest {
         setUpSecondNode();
         // create sample data
         esSetup.execute(deleteAll(), createIndex("users").withSettings(
-                fromClassPath("essetup/settings/test_a.json")).withMapping("d",
-                        fromClassPath("essetup/mappings/test_a.json")));
+                fromClassPath("essetup/settings/test_b.json")).withMapping("d",
+                        fromClassPath("essetup/mappings/test_b.json")));
         esSetup.execute(index("users", "d", "1").withSource("{\"name\": \"item1\"}"));
         esSetup.execute(index("users", "d", "2").withSource("{\"name\": \"item2\"}"));
         esSetup2.client().admin().cluster().prepareHealth().setWaitForGreenStatus().
@@ -242,8 +242,8 @@ public class RestImportActionTest extends AbstractRestActionTest {
         exportRequest.source("{\"output_file\": \"myExport/export.${shard}.${index}.json\", \"fields\": [\"_source\", \"_id\", \"_index\", \"_type\"], \"force_overwrite\": true}");
         esSetup.client().execute(ExportAction.INSTANCE, exportRequest).actionGet();
         esSetup.execute(deleteAll(), createIndex("users").withSettings(
-                fromClassPath("essetup/settings/test_a.json")).withMapping("d",
-                        fromClassPath("essetup/mappings/test_a.json")));
+                fromClassPath("essetup/settings/test_b.json")).withMapping("d",
+                        fromClassPath("essetup/mappings/test_b.json")));
 
         // run import with relative directory
         ImportResponse response = executeImportRequest("{\"directory\": \"myExport\"}");

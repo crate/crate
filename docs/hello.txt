@@ -17,7 +17,7 @@ displays basic system information::
       "status" : 200,
       "name" : "...",
       "version" : {
-        "number" : "0.90.3",
+        "number" : "0.90.5",
         "build_hash" : "${buildNumber}",
         "build_timestamp" : "NA",
         "build_snapshot" : false,

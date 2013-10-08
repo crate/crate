@@ -1,12 +1,12 @@
 package org.cratedb.blob;
 
 import org.cratedb.common.Hex;
-import org.elasticsearch.common.UUID;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.UUID;
 
 public class StartBlobRequest extends BlobTransferRequest<StartBlobRequest> {
 

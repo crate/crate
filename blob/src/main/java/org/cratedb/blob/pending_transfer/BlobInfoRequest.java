@@ -1,6 +1,7 @@
 package org.cratedb.blob.pending_transfer;
 
-import org.elasticsearch.common.UUID;
+
+import java.util.UUID;
 
 public class BlobInfoRequest extends BlobTransportRequest {
 
