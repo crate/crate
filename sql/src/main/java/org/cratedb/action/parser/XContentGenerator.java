@@ -2,7 +2,6 @@ package org.cratedb.action.parser;
 
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
-import org.cratedb.plugin.SQLPlugin;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
@@ -23,6 +22,8 @@ import java.util.*;
  * using the @{link #getXContentBuilder()} method.
  */
 public class XContentGenerator {
+
+    public static final int DEFAULT_SELECT_LIMIT = 1000;
 
     private final ParsedStatement stmt;
     private XContentBuilder jsonBuilder;
@@ -108,7 +109,7 @@ public class XContentGenerator {
     }
 
     private void fetchFirstClause(ValueNode node) throws IOException, StandardException {
-        fieldFromParamNodeOrConstantNode(node, "size", this.tableContext.indexSettings().getAsInt("crate.sql.default.limit", SQLPlugin.DEFAULT_SELECT_LIMIT));
+        fieldFromParamNodeOrConstantNode(node, "size", DEFAULT_SELECT_LIMIT);
     }
 
     private void fieldFromParamNodeOrConstantNode(ValueNode node, String fieldName, Object defaultValue)

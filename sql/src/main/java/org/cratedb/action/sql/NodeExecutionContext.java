@@ -1,10 +1,8 @@
 package org.cratedb.action.sql;
 
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.FieldMapper;
-import org.elasticsearch.index.mapper.FieldMappers;
 import org.elasticsearch.index.mapper.object.ObjectMapper;
 import org.elasticsearch.index.mapper.object.RootObjectMapper;
 import org.elasticsearch.indices.IndicesService;
@@ -109,13 +107,6 @@ public class NodeExecutionContext {
                 res.add(entry.getKey());
             }
             return res;
-        }
-
-        /**
-         * get settings for current index
-         */
-        public Settings indexSettings() {
-            return NodeExecutionContext.this.indicesService.indexServiceSafe(this.tableName).settingsService().getSettings();
         }
 
     }
