@@ -1,5 +1,7 @@
 package org.cratedb.module;
 
+import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.TransportSQLAction;
@@ -16,6 +18,10 @@ public class SQLModule extends AbstractModule {
         bind(NodeExecutionContext.class).asEagerSingleton();
         MapBinder<GenericAction, TransportAction> transportActionsBinder = MapBinder.newMapBinder(binder(), GenericAction.class,
                 TransportAction.class);
+
+        MapBinder<String, AggFunction> aggFunctionBinder =
+            MapBinder.newMapBinder(binder(), String.class, AggFunction.class);
+        aggFunctionBinder.addBinding(CountAggFunction.NAME).to(CountAggFunction.class).asEagerSingleton();
 
         transportActionsBinder.addBinding(SQLAction.INSTANCE).to(TransportSQLAction.class).asEagerSingleton();
 

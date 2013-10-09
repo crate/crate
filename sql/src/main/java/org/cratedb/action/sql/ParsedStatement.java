@@ -1,14 +1,14 @@
 package org.cratedb.action.sql;
 
-import org.cratedb.action.parser.InsertVisitor;
-import org.cratedb.action.parser.QueryPlanner;
-import org.cratedb.action.parser.QueryVisitor;
-import org.cratedb.action.parser.XContentVisitor;
+import org.cratedb.action.groupby.aggregate.AggExpr;
+import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.parser.*;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.VersionConflictException;
 import org.cratedb.sql.facet.InternalSQLFacet;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.NodeTypes;
+import org.cratedb.sql.parser.parser.ResultColumnList;
 import org.cratedb.sql.parser.parser.SQLParser;
 import org.cratedb.sql.parser.parser.StatementNode;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -28,6 +28,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.ShardSearchFailure;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -37,6 +38,7 @@ import org.elasticsearch.search.SearchHit;
 
 import java.io.IOException;
 import java.util.*;
+
 
 public class ParsedStatement {
 
@@ -67,6 +69,12 @@ public class ParsedStatement {
     private Map<String, Object> updateDoc;
     private Map<String, Object> plannerResults;
     private boolean countRequest;
+
+    public List<String> groupByColumnNames;
+    public List<ColumnDescription> resultColumnList;
+
+    public Integer limit = null;
+    public Integer offset = null;
 
     public ParsedStatement(String stmt, Object[] args, NodeExecutionContext context) throws
             StandardException {
@@ -164,6 +172,10 @@ public class ParsedStatement {
         }
 
         return request;
+    }
+
+    public BytesReference getXContentAsBytesRef() throws StandardException {
+        return visitor.getXContentBuilder().bytes();
     }
 
     public CountRequest buildCountRequest() throws StandardException {
@@ -425,6 +437,10 @@ public class ParsedStatement {
     }
 
     public boolean countRequest() {
+        if (hasGroupBy()) {
+            return false;
+        }
+
         return countRequest;
     }
 
@@ -442,5 +458,9 @@ public class ParsedStatement {
 
     public XContentVisitor visitor() {
         return visitor;
+    }
+
+    public boolean hasGroupBy() {
+        return (groupByColumnNames != null && groupByColumnNames.size() > 0);
     }
 }

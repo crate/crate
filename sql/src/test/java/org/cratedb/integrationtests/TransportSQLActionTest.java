@@ -1,5 +1,7 @@
 package org.cratedb.integrationtests;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Ordering;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
@@ -8,18 +10,18 @@ import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.VersionConflictException;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.hamcrest.Matchers.hasItems;
@@ -32,7 +34,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     @Override
     protected int numberOfNodes() {
-        return 1;
+        return 2;
     }
 
     private void execute(String stmt, Object[] args) {
@@ -1046,7 +1048,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("insert into test (message) values (?)", args);
     }
 
-
     private void createTestIndexWithPkAndRoutingMapping() throws IOException {
         XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
                 .startObject("default")
@@ -1182,4 +1183,89 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     }
 
+    public void testCountWithGroupBy() throws Exception {
+        groupBySetup();
+
+        execute("select count(*), race from characters group by race");
+        assertEquals(3, response.rows().length);
+
+        List<Tuple<Long, String>> result = newArrayList();
+
+        for (int i = 0; i < response.rows().length; i++) {
+            result.add(new Tuple<>((Long)response.rows()[i][0], (String)response.rows()[i][1]));
+        }
+
+        Ordering ordering = Ordering.natural().onResultOf(
+            new Function<Tuple<Long, String>, Comparable>() {
+
+            @Override
+            public Comparable apply(@Nullable Tuple<Long, String> input) {
+                return input.v1();
+            }
+        });
+
+        Collections.sort(result, ordering);
+        assertEquals("Android", result.get(0).v2());
+        assertEquals("Vogon", result.get(1).v2());
+        assertEquals("Human", result.get(2).v2());
+    }
+
+    // TODO: support order by and limit
+    //public void testCountWithGroupByOrderOnAggFuncAndLimit() throws Exception {
+    //    groupBySetup();
+
+    //    execute("select count(*), race from characters group by race order by count(*) desc limit 2");
+
+    //    assertEquals(2, response.rows().length);
+    //    assertEquals(3, response.rows()[0][0]);
+    //    assertEquals("Human", response.rows()[0][1]);
+    //    assertEquals(2, response.rows()[1][0]);
+    //    assertEquals("Vogon", response.rows()[1][1]);
+    //}
+
+    //// TODO: support order by and limit
+    //public void testCountWithGroupByOrderOnKeyAndLimit() throws Exception {
+    //    groupBySetup();
+
+    //    execute("select count(*), race from characters group by race order by race desc limit 2");
+
+    //    assertEquals(2, response.rows().length);
+    //    assertEquals(2, response.rows()[0][0]);
+    //    assertEquals("Vogon", response.rows()[0][1]);
+    //    assertEquals(3, response.rows()[1][0]);
+    //    assertEquals("Human", response.rows()[1][1]);
+    //}
+
+    private void groupBySetup() throws Exception {
+        XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
+            .startObject("default")
+            .startObject("properties")
+                .startObject("race")
+                    .field("type", "string")
+                    .field("store", "true")
+                    .field("index", "not_analyzed")
+                .endObject()
+                .startObject("name")
+                    .field("type", "string")
+                    .field("store", "true")
+                    .field("index", "not_analyzed")
+                .endObject()
+            .endObject()
+            .endObject()
+            .endObject();
+
+
+        prepareCreate("characters").addMapping("default", mapping).execute().actionGet();
+        ensureGreen();
+        execute("insert into characters (race, name) values ('Human', 'Arthur Dent')");
+        execute("insert into characters (race, name) values ('Human', 'Trillian')");
+        execute("insert into characters (race, name) values ('Human', 'Ford Perfect')");
+        execute("insert into characters (race, name) values ('Android', 'Marving')");
+        execute("insert into characters (race, name) values ('Vogon', 'Jeltz')");
+        execute("insert into characters (race, name) values ('Vogon', 'Kwaltz')");
+        refresh();
+
+        execute("select count(*) from characters");
+        assertEquals(6L, response.rows()[0][0]);
+    }
 }

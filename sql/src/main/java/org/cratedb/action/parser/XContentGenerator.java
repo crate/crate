@@ -1,5 +1,8 @@
 package org.cratedb.action.parser;
 
+import org.cratedb.action.groupby.aggregate.AggExpr;
+import org.cratedb.action.groupby.ParameterInfo;
+import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
@@ -90,40 +93,38 @@ public class XContentGenerator {
     public void generate(CursorNode node) throws IOException, StandardException {
 
         if (node.statementToString().equals("SELECT")) {
+            generate((SelectNode) node.getResultSetNode());
+
             if (node.getOrderByList() != null) {
                 generate(node.getOrderByList());
             }
 
-            generate((SelectNode) node.getResultSetNode());
-
-            offsetClause(node.getOffsetClause());
-            fetchFirstClause(node.getFetchFirstClause());
+            if (stmt.hasGroupBy()) {
+                stmt.offset = (Integer)getValueFromNode(node.getOffsetClause());
+                stmt.limit = (Integer)getValueFromNode(node.getFetchFirstClause());
+            } else {
+                Object offset = getValueFromNode(node.getOffsetClause());
+                if (offset != null) {
+                    jsonBuilder.field("from", offset);
+                }
+                Object size = getValueFromNode(node.getFetchFirstClause());
+                jsonBuilder.field("size", size != null ? size : DEFAULT_SELECT_LIMIT);
+            }
         } else {
             throw new SQLParseException("unsupported sql statement: " + node.statementToString());
         }
     }
 
-    private void offsetClause(ValueNode node) throws IOException, StandardException {
-        fieldFromParamNodeOrConstantNode(node, "from", null);
-    }
-
-    private void fetchFirstClause(ValueNode node) throws IOException, StandardException {
-        fieldFromParamNodeOrConstantNode(node, "size", DEFAULT_SELECT_LIMIT);
-    }
-
-    private void fieldFromParamNodeOrConstantNode(ValueNode node, String fieldName, Object defaultValue)
-            throws IOException, StandardException {
+    private Object getValueFromNode(ValueNode node) {
         if (node == null) {
-            if (defaultValue != null) {
-                jsonBuilder.field(fieldName, defaultValue);
-            }
-            return;
+            return null;
         }
+
         if (node.isParameterNode()) {
-            jsonBuilder.field(fieldName, stmt.args()[((ParameterNode) node).getParameterNumber()]);
-        } else {
-            jsonBuilder.field(fieldName, ((ConstantNode) node).getValue());
+            return stmt.args()[((ParameterNode)node).getParameterNumber()];
         }
+
+        return ((ConstantNode)node).getValue();
     }
 
     private void whereClause(ValueNode node) throws IOException, StandardException {
@@ -140,6 +141,14 @@ public class XContentGenerator {
     }
 
     private void generate(SelectNode node) throws IOException, StandardException {
+        if (node.getGroupByList() != null) {
+            stmt.groupByColumnNames = new ArrayList<>(node.getGroupByList().size());
+
+            for (GroupByColumn groupByColumn : node.getGroupByList()) {
+                stmt.groupByColumnNames.add(groupByColumn.getColumnName());
+            }
+        }
+
         generate(node.getFromList());
         generate(node.getResultColumns());
 
@@ -158,6 +167,11 @@ public class XContentGenerator {
     }
 
     private void generate(OrderByList node) throws IOException {
+        if (stmt.hasGroupBy()) {
+            // TODO: add sorting info to parsedStatement
+            return; // no need to generate sort XContent
+        }
+
         jsonBuilder.startArray("sort");
 
         for (OrderByColumn column : node) {
@@ -192,13 +206,21 @@ public class XContentGenerator {
     }
 
     private void generate(ResultColumnList columnList) throws IOException, StandardException {
-        Set<String> fields = new LinkedHashSet<String>();
-
         if (columnList == null) {
             return;
         }
+        Set<String> fields = new LinkedHashSet<>();
+
+        if (stmt.hasGroupBy()) {
+            stmt.resultColumnList = new ArrayList<>(columnList.size());
+        }
+
         for (ResultColumn column : columnList) {
             if (column instanceof AllResultColumn) {
+                if (stmt.hasGroupBy()) {
+                    throw new SQLParseException(
+                        "select * with group by not allowed. It is required to specify the columns explicitly");
+                }
                 for (String name : stmt.tableContext().allCols()) {
                     stmt.addOutputField(name, name);
                     fields.add(name);
@@ -209,7 +231,7 @@ public class XContentGenerator {
             String columnName = column.getExpression().getColumnName();
             String columnAlias = column.getName();
             if (columnName == null) {
-                if (column.getExpression() instanceof  AggregateNode) {
+                if (column.getExpression() instanceof AggregateNode) {
                     handleAggregateNode(stmt, column);
                     continue;
                 } else {
@@ -241,12 +263,14 @@ public class XContentGenerator {
                 // this should be a normal field which will also be extracted from the source for
                 // us in the search hit, so it is always safe to add it to the fields
                 fields.add(columnName);
+
+                if (stmt.hasGroupBy()) {
+                    stmt.resultColumnList.add(new ColumnReferenceDescription(columnName));
+                }
             }
 
             stmt.addOutputField(columnAlias, columnName);
         }
-
-        // TODO: validate that regular columns are in group by clause if an aggregate function is in the columnList
 
         if (fields.size() > 0) {
             jsonBuilder.field("fields", fields);
@@ -254,10 +278,16 @@ public class XContentGenerator {
     }
 
     private void handleAggregateNode(ParsedStatement stmt, ResultColumn column) {
+
         AggregateNode node = (AggregateNode)column.getExpression();
         if (node.getAggregateName().equals("COUNT(*)")) {
+            if (stmt.hasGroupBy()) {
+                ParameterInfo parameterInfo = new ParameterInfo();
+                parameterInfo.isAllColumn = true;
+                stmt.resultColumnList.add(new AggExpr(CountAggFunction.NAME, parameterInfo));
+            }
             String alias = column.getName() != null ? column.getName() : node.getAggregateName();
-            stmt.countRequest(true);  // TODO: check for group by once implemented
+            stmt.countRequest(true);
             stmt.addOutputField(alias, node.getAggregateName());
         } else {
             throw new SQLParseException("Unsupported Aggregate function " + node.getAggregateName());

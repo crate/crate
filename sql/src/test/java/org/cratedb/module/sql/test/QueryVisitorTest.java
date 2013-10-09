@@ -200,10 +200,10 @@ public class QueryVisitorTest {
 
         execStatement("select * from locations order by kind");
         assertEquals(
-                "{\"sort\":[{\"kind\":{\"order\":\"asc\",\"ignore_unmapped\":true}}]," +
-                    "\"fields\":[\"a\",\"b\"]," +
-                        "\"query\":{\"match_all\":{}},\"size\":" +
-                        XContentGenerator.DEFAULT_SELECT_LIMIT +
+                "{\"fields\":[\"a\",\"b\"]," +
+                        "\"query\":{\"match_all\":{}}," +
+                        "\"sort\":[{\"kind\":{\"order\":\"asc\",\"ignore_unmapped\":true}}]," +
+                        "\"size\":" + XContentGenerator.DEFAULT_SELECT_LIMIT +
                         "}", getSource());
     }
 
@@ -212,12 +212,13 @@ public class QueryVisitorTest {
 
         execStatement("select * from locations order by kind asc, name desc");
         assertEquals(
-                "{\"sort\":[{\"kind\":{\"order\":\"asc\",\"ignore_unmapped\":true}}," +
+                "{\"fields\":[\"a\",\"b\"]," +
+                        "\"query\":{\"match_all\":{}}," +
+                        "\"sort\":[{\"kind\":{\"order\":\"asc\",\"ignore_unmapped\":true}}," +
                         "{\"name\":{\"order\":\"desc\"," +
                         "\"ignore_unmapped\":true}}]," +
-                        "\"fields\":[\"a\",\"b\"]," +
-                        "\"query\":{\"match_all\":{}},\"size\":" +
-                        XContentGenerator.DEFAULT_SELECT_LIMIT +
+                        "" +
+                        "\"size\":" + XContentGenerator.DEFAULT_SELECT_LIMIT +
                         "}",
                 getSource());
     }
@@ -739,4 +740,11 @@ public class QueryVisitorTest {
 
     }
 
+    @Test
+    public void testSelectWithGroupBy() throws Exception {
+        // limit and offset shouldn't be set in the xcontent because the limit has to be applied
+        // after the grouping is done
+        execStatement("select count(*), kind from locations group by kind limit 4 offset 3");
+        assertEquals("{\"fields\":[\"kind\"],\"query\":{\"match_all\":{}}}", getSource());
+    }
 }
