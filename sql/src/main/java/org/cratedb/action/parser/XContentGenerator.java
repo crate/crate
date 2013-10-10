@@ -129,6 +129,11 @@ public class XContentGenerator {
 
     private void whereClause(ValueNode node) throws IOException, StandardException {
         if (node != null) {
+            if (stmt.context().queryPlanner().optimizedWhereClause(stmt, node)) {
+                // stop further generation because we'll switch to Get/Update/DeleteRequest
+                // instead of Search/DeleteByQueryRequest if planner checks succeeded
+                return;
+            }
             generate(node);
         } else {
             jsonBuilder.field("match_all", new HashMap<>());

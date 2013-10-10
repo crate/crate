@@ -372,3 +372,8 @@
 #monitor.jvm.gc.ConcurrentMarkSweep.warn: 10s
 #monitor.jvm.gc.ConcurrentMarkSweep.info: 5s
 #monitor.jvm.gc.ConcurrentMarkSweep.debug: 2s
+
+
+###################################### SQL ####################################
+
+#crate.planner.optimize_pk_queries: true

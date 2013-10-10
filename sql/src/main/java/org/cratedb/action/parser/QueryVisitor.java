@@ -140,6 +140,8 @@ public class QueryVisitor extends XContentVisitor {
     }
 
     public Visitable visit(DeleteNode node) throws StandardException {
+        String tableName = node.getTargetTableName().getTableName();
+        setTable(tableName);
         try {
             generator.generate(node);
         } catch (IOException ex) {

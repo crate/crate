@@ -1,5 +1,9 @@
 package org.cratedb.action.sql;
 
+import org.cratedb.action.parser.InsertVisitor;
+import org.cratedb.action.parser.QueryPlanner;
+import org.cratedb.action.parser.QueryVisitor;
+import org.cratedb.action.parser.XContentVisitor;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.VersionConflictException;
 import org.cratedb.sql.facet.InternalSQLFacet;
@@ -7,20 +11,23 @@ import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.NodeTypes;
 import org.cratedb.sql.parser.parser.SQLParser;
 import org.cratedb.sql.parser.parser.StatementNode;
-import org.cratedb.action.parser.InsertVisitor;
-import org.cratedb.action.parser.QueryVisitor;
-import org.cratedb.action.parser.XContentVisitor;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.count.CountRequest;
 import org.elasticsearch.action.count.CountResponse;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.ShardSearchFailure;
+import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -29,7 +36,10 @@ import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.search.SearchHit;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ParsedStatement {
 
@@ -48,9 +58,16 @@ public class ParsedStatement {
 
     public static final int SEARCH_ACTION = 1;
     public static final int INSERT_ACTION = 2;
-    public static final int DELETE_ACTION = 3;
+    public static final int DELETE_BY_QUERY_ACTION = 3;
     public static final int BULK_ACTION = 4;
+    public static final int GET_ACTION = 5;
+    public static final int DELETE_ACTION = 6;
+    public static final int UPDATE_ACTION = 7;
+
+    public static final int UPDATE_RETRY_ON_CONFLICT = 3;
+
     private Map<String, Object> updateDoc;
+    private Map<String, Object> plannerResults;
     private boolean countRequest;
 
     public ParsedStatement(String stmt, Object[] args, NodeExecutionContext context) throws
@@ -58,6 +75,7 @@ public class ParsedStatement {
         this.stmt = stmt;
         this.args = args;
         this.context = context;
+        this.plannerResults = new HashMap<String, Object>();
         SQLParser parser = new SQLParser();
         statementNode = parser.parseStatement(stmt);
         switch (statementNode.getNodeType()) {
@@ -90,7 +108,20 @@ public class ParsedStatement {
                 }
                 return INSERT_ACTION;
             case NodeTypes.DELETE_NODE:
-                return DELETE_ACTION;
+                if (getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE) != null) {
+                    return DELETE_ACTION;
+                }
+                return DELETE_BY_QUERY_ACTION;
+            case NodeTypes.CURSOR_NODE:
+                if (getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE) != null) {
+                    return GET_ACTION;
+                }
+                return SEARCH_ACTION;
+            case NodeTypes.UPDATE_NODE:
+                if (getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE) != null) {
+                    return UPDATE_ACTION;
+                }
+                return SEARCH_ACTION;
             default:
                 return SEARCH_ACTION;
         }
@@ -145,6 +176,37 @@ public class ParsedStatement {
         for (IndexRequest indexRequest : insertVisitor.indexRequests()) {
             request.add(indexRequest);
         }
+
+        return request;
+    }
+
+    public GetRequest buildGetRequest() {
+        String id = (String)getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE);
+        GetRequest request = new GetRequest(indices.get(0),
+                NodeExecutionContext.DEFAULT_TYPE, id);
+        request.routing(id);
+        request.fields(cols());
+
+        return request;
+    }
+
+    public DeleteRequest buildDeleteRequest() {
+        String id = (String)getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE);
+        DeleteRequest request = new DeleteRequest(indices.get(0),
+                NodeExecutionContext.DEFAULT_TYPE, id);
+        request.routing(id);
+
+        return request;
+    }
+
+    public UpdateRequest buildUpdateRequest() {
+        String id = (String)getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE);
+        UpdateRequest request = new UpdateRequest(indices.get(0),
+                NodeExecutionContext.DEFAULT_TYPE, id);
+        request.routing(id);
+        request.fields(cols());
+        request.doc(updateDoc());
+        request.retryOnConflict(UPDATE_RETRY_ON_CONFLICT);
 
         return request;
     }
@@ -228,6 +290,29 @@ public class ParsedStatement {
         return response;
     }
 
+    public SQLResponse buildResponse(GetResponse getResponse) {
+        SQLResponse response = new SQLResponse();
+
+        if (! getResponse.isExists()) {
+            response.cols(cols());
+            response.rows(new Object[0][0]);
+            response.rowCount(0);
+            return response;
+        }
+
+        SQLFields fields = new SQLFields(outputFields);
+        Object[][] rows = new Object[1][outputFields.size()];
+
+        fields.applyGetResponse(getResponse);
+        rows[0] = fields.getRowValues();
+
+        response.cols(cols());
+        response.rows(rows);
+        response.rowCount(1);
+
+        return response;
+    }
+
     public SQLResponse buildResponse(DeleteByQueryResponse deleteByQueryResponse) {
         SQLResponse response = new SQLResponse();
         response.cols(cols());
@@ -237,13 +322,44 @@ public class ParsedStatement {
         return response;
     }
 
-    public DeleteByQueryRequest buildDeleteRequest() throws StandardException {
+    public DeleteByQueryRequest buildDeleteByQueryRequest() throws StandardException {
         DeleteByQueryRequest request = new DeleteByQueryRequest();
         builder = visitor.getXContentBuilder();
         request.query(builder.bytes().toBytes());
         request.indices(indices.toArray(new String[indices.size()]));
 
         return request;
+    }
+
+
+    public SQLResponse buildResponse(DeleteResponse deleteResponse) {
+        SQLResponse response = new SQLResponse();
+        response.cols(cols());
+        response.rows(new Object[0][0]);
+
+        if (! deleteResponse.isNotFound()) {
+            response.rowCount(1);
+        }
+
+        return response;
+    }
+
+    public SQLResponse buildResponse(UpdateResponse updateResponse) {
+        SQLResponse response = new SQLResponse();
+        response.cols(cols());
+        response.rows(new Object[0][0]);
+        response.rowCount(1);
+
+        return response;
+    }
+
+    public SQLResponse buildMissingDocumentResponse() {
+        SQLResponse response = new SQLResponse();
+        response.cols(cols());
+        response.rows(new Object[0][0]);
+        response.rowCount(0);
+
+        return response;
     }
 
     public Map<String, Object> updateDoc() {
@@ -297,4 +413,11 @@ public class ParsedStatement {
         return countRequest;
     }
 
+    public void setPlannerResult(String key, Object value) {
+        plannerResults.put(key, value);
+    }
+
+    public Object getPlannerResult(String key) {
+        return plannerResults.get(key);
+    }
 }

@@ -2,6 +2,7 @@ package org.cratedb.sql.facet;
 
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.search.Scorer;
+import org.cratedb.action.sql.ParsedStatement;
 import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
@@ -35,7 +36,7 @@ public class UpdateCollector extends FacetExecutor.Collector {
         CollectorUpdateRequest(ShardId shardId, Uid uid) {
             super(shardId.getIndex(), uid.type(), uid.id());
             this.shardId = shardId.id();
-            retryOnConflict(3);
+            retryOnConflict(ParsedStatement.UPDATE_RETRY_ON_CONFLICT);
             doc(updateDoc);
         }
     }
