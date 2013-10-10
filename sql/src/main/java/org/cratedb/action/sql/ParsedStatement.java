@@ -181,23 +181,29 @@ public class ParsedStatement {
     }
 
     public GetRequest buildGetRequest() {
-        GetRequest request = new GetRequest(indices.get(0), NodeExecutionContext.DEFAULT_TYPE,
-                (String)getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE));
+        String id = (String)getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE);
+        GetRequest request = new GetRequest(indices.get(0),
+                NodeExecutionContext.DEFAULT_TYPE, id);
+        request.routing(id);
         request.fields(cols());
 
         return request;
     }
 
     public DeleteRequest buildDeleteRequest() {
-        DeleteRequest request = new DeleteRequest(indices.get(0), NodeExecutionContext.DEFAULT_TYPE,
-                (String)getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE));
+        String id = (String)getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE);
+        DeleteRequest request = new DeleteRequest(indices.get(0),
+                NodeExecutionContext.DEFAULT_TYPE, id);
+        request.routing(id);
 
         return request;
     }
 
     public UpdateRequest buildUpdateRequest() {
-        UpdateRequest request = new UpdateRequest(indices.get(0), NodeExecutionContext.DEFAULT_TYPE,
-                (String)getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE));
+        String id = (String)getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE);
+        UpdateRequest request = new UpdateRequest(indices.get(0),
+                NodeExecutionContext.DEFAULT_TYPE, id);
+        request.routing(id);
         request.fields(cols());
         request.doc(updateDoc());
         request.retryOnConflict(UPDATE_RETRY_ON_CONFLICT);
