@@ -61,8 +61,9 @@ task compileJavaCC {
 
 // Properties for JUnit-Benchmarks
 tasks.withType(Test) {
-    systemProperty 'jub.consumers', 'CONSOLE,H2'
+    systemProperty 'jub.consumers', 'CONSOLE,H2,XML'
     systemProperty 'jub.db.file', '/tmp/crate-junit-benchmarks/results'
+    systemProperty 'jub.xml.file', '/tmp/crate-junit-benchmarks/results.xml'
     systemProperty 'jub.charts.dir', '/tmp/crate-junit-benchmarks'
 }
 
