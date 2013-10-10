@@ -1,7 +1,6 @@
 package org.cratedb.plugin;
 
 import com.google.common.collect.Lists;
-import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.module.SQLModule;
 import org.cratedb.rest.action.RestSQLAction;
 import org.cratedb.sql.facet.SQLFacetParser;
@@ -28,11 +27,6 @@ public class SQLPlugin extends AbstractPlugin {
 
         // Set default analyzer
         settingsBuilder.put("index.analysis.analyzer.default.type", "keyword");
-
-        // Enable planner by default
-        if (this.settings.get(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES) == null) {
-            settingsBuilder.put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, true);
-        }
 
         return settingsBuilder.build();
     }

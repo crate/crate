@@ -46,7 +46,7 @@ public class QueryPlanner {
     public Boolean optimizedWhereClause(ParsedStatement stmt, ValueNode node) throws
             StandardException {
 
-        if (! settings.getAsBoolean(SETTINGS_OPTIMIZE_PK_QUERIES, false)) {
+        if (! settings.getAsBoolean(SETTINGS_OPTIMIZE_PK_QUERIES, true)) {
             return false;
         }
 
