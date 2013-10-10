@@ -8,10 +8,13 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,10 +44,18 @@ public class QueryVisitorTest {
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
         NodeExecutionContext.TableExecutionContext tec = mock(
                 NodeExecutionContext.TableExecutionContext.class);
-        QueryPlanner queryPlanner = mock(QueryPlanner.class);
+        Settings settings = mock(ImmutableSettings.class);
+        when(settings.getAsBoolean(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES,
+                true)).thenReturn(true);
+        QueryPlanner queryPlanner = new QueryPlanner(settings);
+        queryPlanner.setTableContext(tec);
         when(nec.queryPlanner()).thenReturn(queryPlanner);
         when(nec.tableContext("locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("a", "b"));
+        when(tec.isRouting("pk_col")).thenReturn(true);
+        when(tec.primaryKeys()).thenReturn(new ArrayList<String>(1) {{
+            add("pk_col");
+        }});
         stmt = new ParsedStatement(sql, args, nec);
         return stmt;
     }
@@ -723,5 +734,25 @@ public class QueryVisitorTest {
 
     }
 
+    @Test
+    public void testSelectWithPlannerEnabled() throws Exception {
+        execStatement("select pk_col, a from locations where pk_col='1'");
+        assertEquals(ParsedStatement.GET_ACTION, stmt.type());
+        assertEquals("1", stmt.getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE));
+    }
+
+    @Test
+    public void testDeleteWithPlannerEnabled() throws Exception {
+        execStatement("delete from locations where pk_col='1'");
+        assertEquals(ParsedStatement.DELETE_ACTION, stmt.type());
+        assertEquals("1", stmt.getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE));
+    }
+
+    @Test
+    public void testUpdateWithPlannerEnabled() throws Exception {
+        execStatement("update locations set message='dont panic' where pk_col='1'");
+        assertEquals(ParsedStatement.UPDATE_ACTION, stmt.type());
+        assertEquals("1", stmt.getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE));
+    }
 
 }

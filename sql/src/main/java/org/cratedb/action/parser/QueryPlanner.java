@@ -77,7 +77,7 @@ public class QueryPlanner {
             ValueNode leftOperand = ((BinaryRelationalOperatorNode)node).getLeftOperand();
             ValueNode rightOperand = ((BinaryRelationalOperatorNode)node).getRightOperand();
             if (leftOperand instanceof ColumnReference) {
-                if (tableContext.isRouting((ColumnReference)leftOperand) &&
+                if (tableContext.isRouting(leftOperand.getColumnName()) &&
                         tableContext.primaryKeys().contains(leftOperand.getColumnName()) &&
                         rightOperand instanceof ConstantNode) {
                     stmt.setPlannerResult(RESULT_DOCUMENT_PRIMARY_KEY_VALUE,
@@ -86,7 +86,7 @@ public class QueryPlanner {
                 }
             }
             if (rightOperand instanceof ColumnReference) {
-                if (tableContext.isRouting((ColumnReference)rightOperand) &&
+                if (tableContext.isRouting(rightOperand.getColumnName()) &&
                         tableContext.primaryKeys().contains(rightOperand.getColumnName()) &&
                         leftOperand instanceof ConstantNode) {
                     stmt.setPlannerResult(RESULT_DOCUMENT_PRIMARY_KEY_VALUE,
