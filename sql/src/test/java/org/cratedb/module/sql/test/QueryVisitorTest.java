@@ -1,13 +1,13 @@
 package org.cratedb.module.sql.test;
 
 import com.google.common.collect.ImmutableSet;
+import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.parser.XContentGenerator;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Test;
 
@@ -41,6 +41,8 @@ public class QueryVisitorTest {
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
         NodeExecutionContext.TableExecutionContext tec = mock(
                 NodeExecutionContext.TableExecutionContext.class);
+        QueryPlanner queryPlanner = mock(QueryPlanner.class);
+        when(nec.queryPlanner()).thenReturn(queryPlanner);
         when(nec.tableContext("locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("a", "b"));
         stmt = new ParsedStatement(sql, args, nec);
@@ -240,6 +242,8 @@ public class QueryVisitorTest {
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
         NodeExecutionContext.TableExecutionContext tec = mock(
                 NodeExecutionContext.TableExecutionContext.class);
+        QueryPlanner queryPlanner = mock(QueryPlanner.class);
+        when(nec.queryPlanner()).thenReturn(queryPlanner);
         when(nec.tableContext("persons")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("message", "person"));
 
@@ -273,6 +277,8 @@ public class QueryVisitorTest {
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
         NodeExecutionContext.TableExecutionContext tec = mock(
                 NodeExecutionContext.TableExecutionContext.class);
+        QueryPlanner queryPlanner = mock(QueryPlanner.class);
+        when(nec.queryPlanner()).thenReturn(queryPlanner);
         when(nec.tableContext("persons")).thenReturn(tec);
         String sql = "select persons.message, person['name'] from persons " +
                 "where person['addresses'][0]['city'] = 'Berlin'";

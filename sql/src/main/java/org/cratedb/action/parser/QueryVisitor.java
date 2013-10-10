@@ -1,15 +1,15 @@
 package org.cratedb.action.parser;
 
+import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
-import org.cratedb.action.sql.NodeExecutionContext;
-import org.cratedb.sql.SQLParseException;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.google.common.collect.Maps.newHashMap;
 
@@ -140,6 +140,8 @@ public class QueryVisitor extends XContentVisitor {
     }
 
     public Visitable visit(DeleteNode node) throws StandardException {
+        String tableName = node.getTargetTableName().getTableName();
+        setTable(tableName);
         try {
             generator.generate(node);
         } catch (IOException ex) {

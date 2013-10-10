@@ -21,11 +21,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.collect.Maps.newHashMap;
-import static junit.framework.Assert.assertNotNull;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
@@ -1006,4 +1002,73 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         };
         execute("insert into test (message) values (?)", args);
     }
+
+
+    private void createTestIndexWithPkAndRoutingMapping() throws IOException {
+        XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
+                .startObject("default")
+                .startObject("_meta").field("primary_keys", "some_id").endObject()
+                .startObject("_routing")
+                .field("required", false)
+                .field("path", "some_id")
+                .endObject()
+                .startObject("properties")
+                .startObject("some_id").field("type", "string").field("store",
+                        "true").field("index", "not_analyzed").endObject()
+                .startObject("foo").field("type", "string").field("store",
+                        "true").field("index", "not_analyzed").endObject()
+                .endObject()
+                .endObject()
+                .endObject();
+
+        prepareCreate("test")
+                .addMapping("default", mapping)
+                .execute().actionGet();
+
+    }
+
+    @Test
+    public void testSelectToGetRequestByPlanner() throws Exception {
+        createTestIndexWithPkAndRoutingMapping();
+
+        execute("insert into test (some_id, foo) values (124, 'bar1')");
+        refresh();
+
+        execute("select some_id, foo from test where some_id='124'");
+        assertEquals(1, response.rows().length);
+        assertEquals("124", response.rows()[0][0]);
+    }
+
+
+    @Test
+    public void testDeleteToDeleteRequestByPlanner() throws Exception {
+        createTestIndexWithPkAndRoutingMapping();
+
+        execute("insert into test (some_id, foo) values (123, 'bar')");
+        refresh();
+
+        execute("delete from test where some_id='123'");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("select * from test where some_id='123'");
+        assertEquals(0, response.rowCount());
+    }
+
+    @Test
+    public void testUpdateToUpdateRequestByPlanner() throws Exception {
+        createTestIndexWithPkAndRoutingMapping();
+
+        execute("insert into test (some_id, foo) values (123, 'bar')");
+        refresh();
+
+        execute("update test set foo='bar1' where some_id='123'");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("select foo from test where some_id='123'");
+        assertEquals(1, response.rowCount());
+        assertEquals("bar1", response.rows()[0][0]);
+    }
+
 }

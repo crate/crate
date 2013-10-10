@@ -1,5 +1,9 @@
 package org.cratedb.action.sql;
 
+import org.cratedb.action.parser.QueryPlanner;
+import org.cratedb.sql.parser.parser.ColumnReference;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.FieldMapper;
@@ -12,11 +16,16 @@ import java.util.*;
 public class NodeExecutionContext {
 
     private final IndicesService indicesService;
+    private final ClusterService clusterService;
+    private final QueryPlanner queryPlanner;
     public static final String DEFAULT_TYPE = "default";
 
     @Inject
-    public NodeExecutionContext(IndicesService indicesService) {
+    public NodeExecutionContext(IndicesService indicesService, ClusterService clusterService,
+                                QueryPlanner queryPlanner) {
         this.indicesService = indicesService;
+        this.clusterService = clusterService;
+        this.queryPlanner = queryPlanner;
     }
 
     /**
@@ -27,20 +36,30 @@ public class NodeExecutionContext {
     public TableExecutionContext tableContext(String name) {
         DocumentMapper dm = indicesService.indexServiceSafe(name).mapperService()
                 .documentMapper(DEFAULT_TYPE);
-        if (dm!=null){
-            return new TableExecutionContext(name, dm);
+        MappingMetaData mappingMetaData = clusterService.state().metaData().index(name)
+                .mappingOrDefault(DEFAULT_TYPE);
+        TableExecutionContext tableExecutionContext = null;
+        if (dm!=null && mappingMetaData != null){
+            tableExecutionContext = new TableExecutionContext(name, dm, mappingMetaData);
+            queryPlanner.setTableContext(tableExecutionContext);
         }
-        return null;
+        return tableExecutionContext;
+    }
+
+    public QueryPlanner queryPlanner() {
+        return queryPlanner;
     }
 
 
     public class TableExecutionContext {
 
         private final DocumentMapper documentMapper;
+        private final MappingMetaData mappingMetaData;
         private final String tableName;
 
-        TableExecutionContext(String name, DocumentMapper documentMapper) {
+        TableExecutionContext(String name, DocumentMapper documentMapper, MappingMetaData mappingMetaData) {
             this.documentMapper = documentMapper;
+            this.mappingMetaData = mappingMetaData;
             this.tableName = name;
         }
 
@@ -107,6 +126,27 @@ public class NodeExecutionContext {
                 res.add(entry.getKey());
             }
             return res;
+        }
+
+        /**
+         * Check if given name is equal to defined routing name.
+         * First check against {@link FieldMapper.Names(String).fullName()},
+         * then against {@link FieldMapper.Names(String).indexName()},
+         * and last against {@link FieldMapper.Names(String).name()}.
+         *
+         * @param name
+         * @return
+         */
+        public Boolean isRouting(String name) {
+            String routingPath = mappingMetaData.routing().path();
+            if (routingPath == null) {
+                routingPath = "_id";
+            }
+            return routingPath.equals(name);
+        }
+
+        public Boolean isRouting(ColumnReference column) {
+            return isRouting(column.getColumnName());
         }
 
     }
