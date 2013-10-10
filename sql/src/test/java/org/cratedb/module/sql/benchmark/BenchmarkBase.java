@@ -28,6 +28,14 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
     public static List<Node> startedNodes = new ArrayList<>(2);
 
 
+    /**
+     * whether or not to use the query planner
+     * will be overriden in subclasses
+     */
+    public boolean isQueryPlannerEnabled() {
+        return false;
+    }
+
     @Before
     public void prepareIndex() throws Exception {
         for (String nodeId : new String[]{NODE1, NODE2}) {
@@ -72,13 +80,16 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
 
     public Settings getNodeSettings(String nodeId) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder().put("network.host", "127.0.0.1");
+        builder.put("crate.planner.optimize_pk_queries", isQueryPlannerEnabled());
         switch (nodeId) {
             case NODE1:
                 builder.put("transport.tcp.port", 9301);
                 builder.put("http.port", 9201);
+                break;
             case NODE2:
                 builder.put("transport.tcp.port", 9402);
                 builder.put("http.port", 9202);
+                break;
         }
         return builder.build();
     }

@@ -7,13 +7,14 @@ import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
+import org.elasticsearch.action.search.SearchAction;
 import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.update.UpdateAction;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -34,7 +35,7 @@ public class UpdateBenchmark extends BenchmarkBase {
     public static final int BENCHMARK_ROUNDS = 100;
 
     public static String updateId;
-    public static byte[] updateSource;
+
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
@@ -54,32 +55,6 @@ public class UpdateBenchmark extends BenchmarkBase {
         }
     }
 
-    @BeforeClass
-    public static void createUpdateSource() throws IOException {
-        updateSource = XContentFactory.jsonBuilder()
-                .startObject()
-                .array("fields", "areaInSqKm", "captial", "continent", "continentName", "countryCode", "countryName", "north", "east", "south", "west", "fipsCode", "currencyCode", "languages", "isoAlpha3", "isoNumeric", "population")
-                .startObject("query")
-                .startObject("bool")
-                .field("minimum_should_match", 1)
-                .startArray("should")
-                .startObject()
-                .startObject("term")
-                .field("countryCode", "CU")
-                .endObject()
-                .endObject()
-                .startObject()
-                .startObject("term")
-                .field("countryName", "Micronesia")
-                .endObject()
-                .endObject()
-                .endArray()
-                .endObject()
-                .endObject()
-                .endObject().bytes().toBytes();
-
-    }
-
     public SQLRequest getSqlUpdateByIdRequest() {
         return new SQLRequest("UPDATE countries SET population=? WHERE \"_id\"=?", new Object[]{ Math.abs(getRandom().nextInt()), updateId });
     }
@@ -94,21 +69,47 @@ public class UpdateBenchmark extends BenchmarkBase {
         return new SQLRequest("UPDATE countries SET population=? WHERE \"countryCode\"=?", new Object[]{ Math.abs(getRandom().nextInt()), "US" });
     }
 
-    public SearchRequest getApiUpdateRequest() {
+    public SearchRequest getApiUpdateRequest() throws IOException {
         SearchRequest request = new SearchRequest(INDEX_NAME);
-
+        request.source(
+                XContentFactory.jsonBuilder()
+                        .startObject()
+                            .startObject("query")
+                                .startObject("term")
+                                    .field("countryCode", "US")
+                                .endObject()
+                            .endObject()
+                            .startObject("facets")
+                                .startObject("sql")
+                                    .startObject("sql")
+                                        .field("stmt", "UPDATE countries SET population=? WHERE \"countryCode\"=?")
+                                        .field("args", new Object[]{Math.abs(getRandom().nextInt()), updateId})
+                                    .endObject()
+                                .endObject()
+                            .endObject()
+                        .endObject().bytes().toBytes()
+        );
         return request;
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void testUpdateSqlBy() {
+    public void testUpdateSql() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             SQLResponse response = client().execute(SQLAction.INSTANCE, getSqlUpdateRequest()).actionGet();
             assertEquals(
                     1,
                     response.rowCount()
             );
+        }
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void testUpdateApi() throws IOException {
+        for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
+            SearchResponse response = client().execute(SearchAction.INSTANCE, getApiUpdateRequest()).actionGet();
+            assertEquals(1, response.getHits().totalHits());
         }
     }
 

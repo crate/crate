@@ -22,14 +22,34 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 @AxisRange(min = 0, max = 1)
 @BenchmarkMethodChart(filePrefix = "benchmark-select")
+@RunWith(Parameterized.class)
 public class SelectBenchmark extends BenchmarkBase {
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][] {
+                {false}, {true}
+        });
+    }
+
+    @Parameterized.Parameter
+    public boolean enableQueryPlanner;
+
+    @Override
+    public boolean isQueryPlannerEnabled() {
+        return enableQueryPlanner;
+    }
 
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
