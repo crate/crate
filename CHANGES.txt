@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fixed filtering by a boolean constant
+
  - implemented SQL query planner:
    - optimize primary key queries to hit only one single shard
 
