@@ -284,15 +284,12 @@ public class ParsedStatement {
     }
 
     public SQLResponse buildResponse(GetResponse getResponse) {
-        SQLResponse response = new SQLResponse();
 
         if (! getResponse.isExists()) {
-            response.cols(cols());
-            response.rows(new Object[0][0]);
-            response.rowCount(0);
-            return response;
+            return buildEmptyResponse(0);
         }
 
+        SQLResponse response = new SQLResponse();
         SQLFields fields = new SQLFields(outputFields);
         Object[][] rows = new Object[1][outputFields.size()];
 
