@@ -6,15 +6,14 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.text.StringAndBytesText;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.index.get.GetField;
+import org.elasticsearch.index.mapper.FieldMapper;
+import org.elasticsearch.index.mapper.core.DateFieldMapper;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHitField;
 import org.elasticsearch.search.internal.InternalSearchHit;
 import org.elasticsearch.search.internal.InternalSearchHitField;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class SQLFields {
 
@@ -79,12 +78,12 @@ public class SQLFields {
         this.hit = hit;
     }
 
-    public void applyGetResponse(GetResponse getResponse) {
-        this.hit = searchHitFromGetResponse(getResponse);
+    public void applyGetResponse(NodeExecutionContext.TableExecutionContext tableContext, GetResponse getResponse) {
+        this.hit = searchHitFromGetResponse(tableContext, getResponse);
     }
 
     private List<FieldExtractor> getFieldExtractors() {
-        List<FieldExtractor> extractors = new ArrayList<FieldExtractor>(fields.size());
+        List<FieldExtractor> extractors = new ArrayList<>(fields.size());
         for (Tuple<String, String> t : fields) {
             String fn = t.v2();
             FieldExtractor fc = null;
@@ -116,13 +115,29 @@ public class SQLFields {
         return extractors;
     }
 
-    private SearchHit searchHitFromGetResponse(GetResponse getResponse) {
-        // build a SearchHit out of a GetResponse
-        Map<String, SearchHitField> searchFields = new HashMap<String,
-                SearchHitField>(getResponse.getFields().size());
+    /**
+     * build a SearchHit out of a GetResponse
+     * Apply DocumentMapping again as Realtime-GetRequests only fetch from source
+     */
+    private SearchHit searchHitFromGetResponse(NodeExecutionContext.TableExecutionContext tableContext, GetResponse getResponse) {
+
+        Map<String, SearchHitField> searchFields = new HashMap<>(getResponse.getFields().size());
         for (Map.Entry<String, GetField> entry : getResponse.getFields().entrySet()) {
-            searchFields.put(entry.getKey(), new InternalSearchHitField(entry.getKey(),
-                    entry.getValue().getValues()));
+            FieldMapper<?> mapper = tableContext.mapper().mappers().smartNameFieldMapper(entry.getKey());
+            List<Object> searchFieldValues = new ArrayList<>(1);
+            for (Object value: entry.getValue().getValues()) {
+                if (mapper instanceof DateFieldMapper) {
+                    searchFieldValues.add(mapper.valueForSearch(((DateFieldMapper) mapper).value(entry.getValue().getValue())));
+                } else {
+                    searchFieldValues.add(mapper.valueForSearch(entry.getValue().getValue()));
+                }
+            }
+
+            searchFields.put(entry.getKey(), new InternalSearchHitField(
+                    entry.getKey(),
+                    searchFieldValues
+                )
+            );
         }
 
         BytesReference source = null;

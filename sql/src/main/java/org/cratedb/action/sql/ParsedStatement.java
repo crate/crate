@@ -46,9 +46,9 @@ public class ParsedStatement {
     private XContentBuilder builder;
 
     private final ArrayList<Tuple<String, String>> outputFields =
-            new ArrayList<Tuple<String, String>>();
+            new ArrayList<>();
     private final NodeExecutionContext context;
-    private final List<String> indices = new ArrayList<String>(1);
+    private final List<String> indices = new ArrayList<>(1);
     private ESLogger logger = Loggers.getLogger(ParsedStatement.class);
 
     private final String stmt;
@@ -75,7 +75,7 @@ public class ParsedStatement {
         this.stmt = stmt;
         this.args = args;
         this.context = context;
-        this.plannerResults = new HashMap<String, Object>();
+        this.plannerResults = new HashMap<>();
         SQLParser parser = new SQLParser();
         statementNode = parser.parseStatement(stmt);
         switch (statementNode.getNodeType()) {
@@ -186,7 +186,7 @@ public class ParsedStatement {
                 NodeExecutionContext.DEFAULT_TYPE, id);
         request.routing(id);
         request.fields(cols());
-
+        request.realtime(true);
         return request;
     }
 
@@ -262,6 +262,7 @@ public class ParsedStatement {
         SQLResponse response = new SQLResponse();
         response.cols(cols());
         response.rows(rows);
+        response.rowCount(rows.length);
         return response;
     }
 
@@ -293,7 +294,8 @@ public class ParsedStatement {
         SQLFields fields = new SQLFields(outputFields);
         Object[][] rows = new Object[1][outputFields.size()];
 
-        fields.applyGetResponse(getResponse);
+        // only works with one queried index/table
+        fields.applyGetResponse(context().tableContext(indices().get(0)), getResponse);
         rows[0] = fields.getRowValues();
 
         response.cols(cols());
