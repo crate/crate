@@ -1,13 +1,16 @@
 package org.cratedb.module.sql.benchmark;
 
 import org.cratedb.test.integration.AbstractCrateNodesTests;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.client.Requests;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
+import org.elasticsearch.test.hamcrest.ElasticsearchAssertions;
 import org.junit.AfterClass;
 import org.junit.Before;
 
@@ -16,6 +19,8 @@ import java.util.List;
 
 import static org.cratedb.test.integration.PathAccessor.bytesFromPath;
 import static org.cratedb.test.integration.PathAccessor.stringFromPath;
+import static org.hamcrest.Matchers.equalTo;
+
 
 public class BenchmarkBase extends AbstractCrateNodesTests {
 
@@ -51,7 +56,11 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
 
             if (loadData()) {
                 loadBulk(DATA);
-                client().admin().indices().refresh(new RefreshRequest(INDEX_NAME)).actionGet();
+                ClusterHealthRequest request = Requests.clusterHealthRequest().waitForRelocatingShards(0);
+
+                ClusterHealthResponse actionGet = client().admin().cluster().health(request).actionGet();
+                assertThat(actionGet.isTimedOut(), equalTo(false));
+                ElasticsearchAssertions.assertNoFailures(client().admin().indices().prepareRefresh().execute().actionGet());
             }
         }
     }
@@ -80,7 +89,7 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
 
     public Settings getNodeSettings(String nodeId) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder().put("network.host", "127.0.0.1");
-        builder.put("crate.planner.optimize_pk_queries", isQueryPlannerEnabled());
+        builder.put("crate.planner.optimize_pk_queries", isQueryPlannerEnabled()).put("index.store.type", "memory");
         switch (nodeId) {
             case NODE1:
                 builder.put("transport.tcp.port", 9301);
