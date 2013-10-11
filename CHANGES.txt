@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - created Benchmark to check performance and verify improvements by query planner
+
+ - added rowcount to all SELECT responses
+
  - implemented SQL query planner:
    - optimize primary key queries to hit only one single shard
 
