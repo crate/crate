@@ -382,10 +382,10 @@ public class XContentGenerator {
     private void generate(Integer operatorType, ValueNode left, ValueNode right)
             throws IOException, StandardException {
         if (left instanceof ColumnReference
-                && (right instanceof NumericConstantNode || right instanceof CharConstantNode)) {
+                && (right instanceof NumericConstantNode || right instanceof ConstantNode)) {
             generate(operatorType, (ColumnReference) left, (ConstantNode) right);
             return;
-        } else if ((left instanceof NumericConstantNode || left instanceof CharConstantNode)
+        } else if ((left instanceof NumericConstantNode || left instanceof ConstantNode)
                 && right instanceof ColumnReference) {
             generate(swapOperator(operatorType), (ColumnReference) right, (ConstantNode) left);
             return;

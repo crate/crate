@@ -233,6 +233,26 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     }
 
+    @Test
+    public void testFilterByBoolean() throws Exception {
+        prepareCreate("test")
+                .addMapping("default",
+                        "sunshine", "type=boolean,index=not_analyzed")
+                .execute().actionGet();
+
+        execute("insert into test values (?)", new Object[] {true});
+        refresh();
+
+        execute("select sunshine from test where sunshine = true");
+        assertEquals(1, response.rows().length);
+        assertEquals(true, response.rows()[0][0]);
+
+        execute("select sunshine from test where sunshine = ?", new Object[]{true});
+        assertEquals(1, response.rows().length);
+        assertEquals(true, response.rows()[0][0]);
+
+    }
+
 
     /**
      * Queries are case sensitive by default, however column names without quotes are converted
