@@ -88,7 +88,8 @@ We can now view what we have just inserted like this::
     ... EOF
     {
       "cols" : [ "author", "content" ],
-      "rows" : [ [ "Me", "Hello Crate!" ] ]
+      "rows" : [ [ "Me", "Hello Crate!" ] ],
+      "rowcount" : 1
     }
 
 Let's add another quote::
@@ -125,7 +126,8 @@ Looking up only Ford's quotes::
     ... EOF
     {
       "cols" : [ "content" ],
-      "rows" : [ [ "Don't panic... don't panic..." ] ]
+      "rows" : [ [ "Don't panic... don't panic..." ] ],
+      "rowcount" : 1
     }
 
 

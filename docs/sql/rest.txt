@@ -19,7 +19,8 @@ A simple `SELECT` statement can be submitted like this::
     ... }'
     {
       "cols" : [ "name", "position" ],
-      "rows" : [ [ "North West Ripple", 1 ], [ "Arkintoofle Minor", 3 ] ]
+      "rows" : [ [ "North West Ripple", 1 ], [ "Arkintoofle Minor", 3 ] ],
+      "rowcount" : 2
     }
 
 In addition to the `stmt` key the request body may also contain an `args` key
@@ -41,8 +42,8 @@ expected under the `args` key::
     ... EOF
     {
       "cols" : [ "date", "position" ],
-      "rows" : [ [ "1979-10-12T00:00:00.000Z", 1 ],
-                 [ "1979-10-12T00:00:00.000Z", 2 ] ]
+      "rows" : [ [ "1979-10-12T00:00:00.000Z", 1 ], [ "1979-10-12T00:00:00.000Z", 2 ] ],
+      "rowcount" : 2
     }
 
 .. note::
@@ -61,8 +62,8 @@ The same query using question marks as placeholders looks like this::
     ... EOF
     {
       "cols" : [ "date", "position" ],
-      "rows" : [ [ "1979-10-12T00:00:00.000Z", 1 ],
-                 [ "1979-10-12T00:00:00.000Z", 2 ] ]
+      "rows" : [ [ "1979-10-12T00:00:00.000Z", 1 ], [ "1979-10-12T00:00:00.000Z", 2 ] ],
+      "rowcount" : 2
     }
 
 Error Handling
