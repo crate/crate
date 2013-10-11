@@ -108,17 +108,17 @@ public class ParsedStatement {
                 }
                 return INSERT_ACTION;
             case NodeTypes.DELETE_NODE:
-                if (getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE) != null) {
+                if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null) {
                     return DELETE_ACTION;
                 }
                 return DELETE_BY_QUERY_ACTION;
             case NodeTypes.CURSOR_NODE:
-                if (getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE) != null) {
+                if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null) {
                     return GET_ACTION;
                 }
                 return SEARCH_ACTION;
             case NodeTypes.UPDATE_NODE:
-                if (getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE) != null) {
+                if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null) {
                     return UPDATE_ACTION;
                 }
                 return SEARCH_ACTION;
@@ -181,7 +181,7 @@ public class ParsedStatement {
     }
 
     public GetRequest buildGetRequest() {
-        String id = (String)getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE);
+        String id = (String)getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE);
         GetRequest request = new GetRequest(indices.get(0),
                 NodeExecutionContext.DEFAULT_TYPE, id);
         request.routing(id);
@@ -191,7 +191,7 @@ public class ParsedStatement {
     }
 
     public DeleteRequest buildDeleteRequest() {
-        String id = (String)getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE);
+        String id = (String)getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE);
         DeleteRequest request = new DeleteRequest(indices.get(0),
                 NodeExecutionContext.DEFAULT_TYPE, id);
         request.routing(id);
@@ -200,7 +200,7 @@ public class ParsedStatement {
     }
 
     public UpdateRequest buildUpdateRequest() {
-        String id = (String)getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE);
+        String id = (String)getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE);
         UpdateRequest request = new UpdateRequest(indices.get(0),
                 NodeExecutionContext.DEFAULT_TYPE, id);
         request.routing(id);
@@ -275,19 +275,12 @@ public class ParsedStatement {
     }
 
     public SQLResponse buildResponse(IndexResponse indexResponse) {
-        SQLResponse response = new SQLResponse();
-        response.cols(cols());
-        response.rows(new Object[0][0]);
-
-        return response;
+        return buildEmptyResponse(1);
     }
 
     public SQLResponse buildResponse(BulkResponse bulkResponse) {
-        SQLResponse response = new SQLResponse();
-        response.cols(cols());
-        response.rows(new Object[0][0]);
-
-        return response;
+        // TODO: add rows affected
+        return buildEmptyResponse(0);
     }
 
     public SQLResponse buildResponse(GetResponse getResponse) {
@@ -314,12 +307,8 @@ public class ParsedStatement {
     }
 
     public SQLResponse buildResponse(DeleteByQueryResponse deleteByQueryResponse) {
-        SQLResponse response = new SQLResponse();
-        response.cols(cols());
-        response.rows(new Object[0][0]);
-
         // TODO: add rows affected
-        return response;
+        return buildEmptyResponse(0);
     }
 
     public DeleteByQueryRequest buildDeleteByQueryRequest() throws StandardException {
@@ -333,31 +322,27 @@ public class ParsedStatement {
 
 
     public SQLResponse buildResponse(DeleteResponse deleteResponse) {
-        SQLResponse response = new SQLResponse();
-        response.cols(cols());
-        response.rows(new Object[0][0]);
-
+        int rowCount = 0;
         if (! deleteResponse.isNotFound()) {
-            response.rowCount(1);
+            rowCount = 1;
         }
 
-        return response;
+        return buildEmptyResponse(rowCount);
     }
 
     public SQLResponse buildResponse(UpdateResponse updateResponse) {
-        SQLResponse response = new SQLResponse();
-        response.cols(cols());
-        response.rows(new Object[0][0]);
-        response.rowCount(1);
-
-        return response;
+        return buildEmptyResponse(1);
     }
 
     public SQLResponse buildMissingDocumentResponse() {
+        return buildEmptyResponse(0);
+    }
+
+    private SQLResponse buildEmptyResponse(int rowCount) {
         SQLResponse response = new SQLResponse();
         response.cols(cols());
         response.rows(new Object[0][0]);
-        response.rowCount(0);
+        response.rowCount(rowCount);
 
         return response;
     }
