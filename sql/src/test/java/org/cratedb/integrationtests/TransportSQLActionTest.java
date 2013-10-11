@@ -247,10 +247,13 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1, response.rows().length);
         assertEquals(true, response.rows()[0][0]);
 
-        execute("select sunshine from test where sunshine = ?", new Object[]{true});
-        assertEquals(1, response.rows().length);
-        assertEquals(true, response.rows()[0][0]);
+        execute("update test set sunshine=false where sunshine = true");
+        assertEquals(1, response.rowCount());
+        refresh();
 
+        execute("select sunshine from test where sunshine = ?", new Object[]{false});
+        assertEquals(1, response.rows().length);
+        assertEquals(false, response.rows()[0][0]);
     }
 
 
