@@ -262,6 +262,7 @@ public class ParsedStatement {
         SQLResponse response = new SQLResponse();
         response.cols(cols());
         response.rows(rows);
+        response.rowCount(rows.length);
         return response;
     }
 
