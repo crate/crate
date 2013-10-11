@@ -1,5 +1,6 @@
 package org.cratedb.module.sql.benchmark;
 
+import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -89,7 +90,7 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
 
     public Settings getNodeSettings(String nodeId) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder().put("network.host", "127.0.0.1");
-        builder.put("crate.planner.optimize_pk_queries", isQueryPlannerEnabled()).put("index.store.type", "memory");
+        builder.put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, isQueryPlannerEnabled()).put("index.store.type", "memory");
         switch (nodeId) {
             case NODE1:
                 builder.put("transport.tcp.port", 9301);

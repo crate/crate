@@ -95,7 +95,6 @@ public class SelectBenchmark extends BenchmarkBase {
 
 
     public GetRequest getApiGetRequest() {
-        // TODO: where to get id?
         return new GetRequest(INDEX_NAME, "default", getGetId());
     }
 
