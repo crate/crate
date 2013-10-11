@@ -420,4 +420,8 @@ public class ParsedStatement {
     public Object getPlannerResult(String key) {
         return plannerResults.get(key);
     }
+
+    public XContentVisitor visitor() {
+        return visitor;
+    }
 }

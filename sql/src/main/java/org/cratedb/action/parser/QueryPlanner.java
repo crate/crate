@@ -5,7 +5,6 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.BinaryRelationalOperatorNode;
 import org.cratedb.sql.parser.parser.ColumnReference;
-import org.cratedb.sql.parser.parser.ConstantNode;
 import org.cratedb.sql.parser.parser.ValueNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -76,26 +75,28 @@ public class QueryPlanner {
         if (node instanceof BinaryRelationalOperatorNode) {
             ValueNode leftOperand = ((BinaryRelationalOperatorNode)node).getLeftOperand();
             ValueNode rightOperand = ((BinaryRelationalOperatorNode)node).getRightOperand();
+            Object value = null;
             if (leftOperand instanceof ColumnReference) {
                 if (tableContext.isRouting(leftOperand.getColumnName()) &&
-                        tableContext.primaryKeys().contains(leftOperand.getColumnName()) &&
-                        rightOperand instanceof ConstantNode) {
-                    stmt.setPlannerResult(RESULT_DOCUMENT_PRIMARY_KEY_VALUE,
-                            ((ConstantNode) rightOperand).getValue().toString());
-                    return true;
+                        tableContext.primaryKeys().contains(leftOperand.getColumnName())) {
+                    value = stmt.visitor().evaluateValueNode(tableContext,
+                            leftOperand.getColumnName(), rightOperand);
                 }
             }
             if (rightOperand instanceof ColumnReference) {
                 if (tableContext.isRouting(rightOperand.getColumnName()) &&
-                        tableContext.primaryKeys().contains(rightOperand.getColumnName()) &&
-                        leftOperand instanceof ConstantNode) {
-                    stmt.setPlannerResult(RESULT_DOCUMENT_PRIMARY_KEY_VALUE,
-                            ((ConstantNode) leftOperand).getValue().toString());
-                    return true;
+                        tableContext.primaryKeys().contains(rightOperand.getColumnName())) {
+                    value = stmt.visitor().evaluateValueNode(tableContext,
+                            rightOperand.getColumnName(), leftOperand);
                 }
+            }
+            if (value != null) {
+                stmt.setPlannerResult(RESULT_DOCUMENT_PRIMARY_KEY_VALUE, value.toString());
+                return true;
             }
         }
 
         return false;
     }
+
 }
