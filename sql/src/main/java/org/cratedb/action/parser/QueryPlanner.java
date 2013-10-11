@@ -9,6 +9,8 @@ import org.cratedb.sql.parser.parser.ValueNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 
+import java.util.List;
+
 public class QueryPlanner {
 
     public static final String PRIMARY_KEY_VALUE = "primaryKeyValue";
@@ -72,20 +74,24 @@ public class QueryPlanner {
      */
     private Boolean checkSinglePrimaryAndRouting(ParsedStatement stmt,
                                                  ValueNode node) throws StandardException {
+        List<String> primaryKeys = tableContext.primaryKeys();
+        if (primaryKeys.isEmpty()) {
+            primaryKeys.add("_id"); // Default Primary Key (only for optimization, not for consistency checks)
+        }
         if (node instanceof BinaryRelationalOperatorNode) {
             ValueNode leftOperand = ((BinaryRelationalOperatorNode)node).getLeftOperand();
             ValueNode rightOperand = ((BinaryRelationalOperatorNode)node).getRightOperand();
             Object value = null;
             if (leftOperand instanceof ColumnReference) {
                 if (tableContext.isRouting(leftOperand.getColumnName()) &&
-                        tableContext.primaryKeys().contains(leftOperand.getColumnName())) {
+                        primaryKeys.contains(leftOperand.getColumnName())) {
                     value = stmt.visitor().evaluateValueNode(tableContext,
                             leftOperand.getColumnName(), rightOperand);
                 }
             }
             if (rightOperand instanceof ColumnReference) {
                 if (tableContext.isRouting(rightOperand.getColumnName()) &&
-                        tableContext.primaryKeys().contains(rightOperand.getColumnName())) {
+                        primaryKeys.contains(rightOperand.getColumnName())) {
                     value = stmt.visitor().evaluateValueNode(tableContext,
                             rightOperand.getColumnName(), leftOperand);
                 }
