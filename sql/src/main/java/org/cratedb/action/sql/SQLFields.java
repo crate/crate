@@ -1,17 +1,22 @@
 package org.cratedb.action.sql;
 
+import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.text.StringAndBytesText;
 import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.index.get.GetField;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHitField;
+import org.elasticsearch.search.internal.InternalSearchHit;
+import org.elasticsearch.search.internal.InternalSearchHitField;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class SQLFields {
-
 
     private final List<Tuple<String, String>> fields;
     private SearchHit hit;
@@ -74,6 +79,10 @@ public class SQLFields {
         this.hit = hit;
     }
 
+    public void applyGetResponse(GetResponse getResponse) {
+        this.hit = searchHitFromGetResponse(getResponse);
+    }
+
     private List<FieldExtractor> getFieldExtractors() {
         List<FieldExtractor> extractors = new ArrayList<FieldExtractor>(fields.size());
         for (Tuple<String, String> t : fields) {
@@ -107,5 +116,23 @@ public class SQLFields {
         return extractors;
     }
 
+    private SearchHit searchHitFromGetResponse(GetResponse getResponse) {
+        // build a SearchHit out of a GetResponse
+        Map<String, SearchHitField> searchFields = new HashMap<String,
+                SearchHitField>(getResponse.getFields().size());
+        for (Map.Entry<String, GetField> entry : getResponse.getFields().entrySet()) {
+            searchFields.put(entry.getKey(), new InternalSearchHitField(entry.getKey(),
+                    entry.getValue().getValues()));
+        }
+
+        BytesReference source = null;
+        if (getResponse.getSourceInternal() != null) {
+            source = getResponse.getSourceAsBytesRef();
+        }
+
+        return new InternalSearchHit(0, getResponse.getId(),
+                new StringAndBytesText(getResponse.getType()), source,
+                searchFields);
+    }
 }
 

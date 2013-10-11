@@ -1,9 +1,9 @@
 package org.cratedb.action.sql;
 
 import org.cratedb.sql.DuplicateKeyException;
+import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.VersionConflictException;
 import org.cratedb.sql.parser.StandardException;
-import org.cratedb.sql.SQLParseException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -11,20 +11,30 @@ import org.elasticsearch.action.bulk.TransportBulkAction;
 import org.elasticsearch.action.count.CountRequest;
 import org.elasticsearch.action.count.CountResponse;
 import org.elasticsearch.action.count.TransportCountAction;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexResponse;
-import org.elasticsearch.action.index.TransportIndexAction;
+import org.elasticsearch.action.delete.DeleteRequest;
+import org.elasticsearch.action.delete.DeleteResponse;
+import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
 import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.get.TransportGetAction;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.index.TransportIndexAction;
 import org.elasticsearch.action.search.ReduceSearchPhaseException;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.action.update.TransportUpdateAction;
+import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
+import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
@@ -37,6 +47,9 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final TransportDeleteByQueryAction transportDeleteByQueryAction;
     private final TransportBulkAction transportBulkAction;
     private final TransportCountAction transportCountAction;
+    private final TransportGetAction transportGetAction;
+    private final TransportDeleteAction transportDeleteAction;
+    private final TransportUpdateAction transportUpdateAction;
 
     private final NodeExecutionContext executionContext;
 
@@ -48,7 +61,10 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             TransportDeleteByQueryAction transportDeleteByQueryAction,
             TransportIndexAction transportIndexAction,
             TransportBulkAction transportBulkAction,
-            TransportCountAction transportCountAction) {
+            TransportCountAction transportCountAction,
+            TransportGetAction transportGetAction,
+            TransportDeleteAction transportDeleteAction,
+            TransportUpdateAction transportUpdateAction) {
         super(settings, threadPool);
         this.executionContext = executionContext;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
@@ -57,6 +73,9 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         this.transportDeleteByQueryAction = transportDeleteByQueryAction;
         this.transportBulkAction = transportBulkAction;
         this.transportCountAction = transportCountAction;
+        this.transportGetAction = transportGetAction;
+        this.transportDeleteAction = transportDeleteAction;
+        this.transportUpdateAction = transportUpdateAction;
     }
 
     private class SearchResponseListener implements ActionListener<SearchResponse> {
@@ -101,7 +120,28 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
     }
 
-    private class DeleteResponseListener implements ActionListener<DeleteByQueryResponse> {
+    private class DeleteByQueryResponseListener implements ActionListener<DeleteByQueryResponse> {
+
+        private final ActionListener<SQLResponse> delegate;
+        private final ParsedStatement stmt;
+
+        public DeleteByQueryResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+            this.delegate = listener;
+            this.stmt = stmt;
+        }
+
+        @Override
+        public void onResponse(DeleteByQueryResponse deleteByQueryResponses) {
+            delegate.onResponse(stmt.buildResponse(deleteByQueryResponses));
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            delegate.onFailure(reRaiseCrateException(e));
+        }
+    }
+
+    private class DeleteResponseListener implements ActionListener<DeleteResponse> {
 
         private final ActionListener<SQLResponse> delegate;
         private final ParsedStatement stmt;
@@ -112,8 +152,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
 
         @Override
-        public void onResponse(DeleteByQueryResponse deleteByQueryResponses) {
-            delegate.onResponse(stmt.buildResponse(deleteByQueryResponses));
+        public void onResponse(DeleteResponse deleteResponse) {
+            delegate.onResponse(stmt.buildResponse(deleteResponse));
         }
 
         @Override
@@ -149,7 +189,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         ParsedStatement stmt;
         SearchRequest searchRequest;
         IndexRequest indexRequest;
-        DeleteByQueryRequest deleteRequest;
+        DeleteByQueryRequest deleteByQueryRequest;
         try {
             stmt = new ParsedStatement(request.stmt(), request.args(), executionContext);
             switch (stmt.type()) {
@@ -157,13 +197,25 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                     indexRequest = stmt.buildIndexRequest();
                     transportIndexAction.execute(indexRequest, new IndexResponseListener(stmt, listener));
                     break;
+                case ParsedStatement.DELETE_BY_QUERY_ACTION:
+                    deleteByQueryRequest = stmt.buildDeleteByQueryRequest();
+                    transportDeleteByQueryAction.execute(deleteByQueryRequest, new DeleteByQueryResponseListener(stmt, listener));
+                    break;
                 case ParsedStatement.DELETE_ACTION:
-                    deleteRequest = stmt.buildDeleteRequest();
-                    transportDeleteByQueryAction.execute(deleteRequest, new DeleteResponseListener(stmt, listener));
+                    DeleteRequest deleteRequest = stmt.buildDeleteRequest();
+                    transportDeleteAction.execute(deleteRequest, new DeleteResponseListener(stmt, listener));
                     break;
                 case ParsedStatement.BULK_ACTION:
                     BulkRequest bulkRequest = stmt.buildBulkRequest();
                     transportBulkAction.execute(bulkRequest, new BulkResponseListener(stmt, listener));
+                    break;
+                case ParsedStatement.GET_ACTION:
+                    GetRequest getRequest = stmt.buildGetRequest();
+                    transportGetAction.execute(getRequest, new GetResponseListener(stmt, listener));
+                    break;
+                case ParsedStatement.UPDATE_ACTION:
+                    UpdateRequest updateRequest = stmt.buildUpdateRequest();
+                    transportUpdateAction.execute(updateRequest, new UpdateResponseListener(stmt, listener));
                     break;
                 default:
                     if (stmt.countRequest()) {
@@ -267,4 +319,51 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             delegate.onFailure(reRaiseCrateException(e));
         }
     }
+
+    private class GetResponseListener implements ActionListener<GetResponse> {
+
+        private final ActionListener<SQLResponse> delegate;
+        private final ParsedStatement stmt;
+
+        public GetResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+            delegate = listener;
+            this.stmt = stmt;
+        }
+
+        @Override
+        public void onResponse(GetResponse getResponse) {
+            delegate.onResponse(stmt.buildResponse(getResponse));
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            delegate.onFailure(reRaiseCrateException(e));
+        }
+    }
+
+    private class UpdateResponseListener implements ActionListener<UpdateResponse> {
+
+        private final ActionListener<SQLResponse> delegate;
+        private final ParsedStatement stmt;
+
+        public UpdateResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+            delegate = listener;
+            this.stmt = stmt;
+        }
+
+        @Override
+        public void onResponse(UpdateResponse updateResponse) {
+            delegate.onResponse(stmt.buildResponse(updateResponse));
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            if (e instanceof DocumentMissingException) {
+                delegate.onResponse(stmt.buildMissingDocumentResponse());
+            } else {
+                delegate.onFailure(reRaiseCrateException(e));
+            }
+        }
+    }
+
 }

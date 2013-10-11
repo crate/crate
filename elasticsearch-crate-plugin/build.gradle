@@ -7,6 +7,5 @@ configurations {
 
 dependencies {
     compile project(':es')
-    testCompile 'junit:junit:4.8.1'
     testCompile 'com.github.tlrx:elasticsearch-test:0.0.8'
 }
