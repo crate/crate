@@ -85,7 +85,8 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
         JSONAssert.assertEquals(
             "{\n" +
                 "  \"cols\" : [ ],\n" +
-                "  \"rows\" : [ ]\n" +
+                "  \"rows\" : [ ],\n" +
+                "  \"rowcount\" : 1\n" +
                 "}", json, true);
     }
 

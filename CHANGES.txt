@@ -5,8 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
- - implemented SQL query planner, currently only optimizing primary key queries to
-   Get/Delete/UpdateRequests instead of SearchRequests
+ - implemented SQL query planner:
+   - optimize primary key queries to hit only one single shard
 
  - set explicit default limit on select to 1000 rows.
 

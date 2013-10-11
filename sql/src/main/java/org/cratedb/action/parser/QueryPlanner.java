@@ -11,7 +11,7 @@ import org.elasticsearch.common.settings.Settings;
 
 public class QueryPlanner {
 
-    public static final String RESULT_DOCUMENT_PRIMARY_KEY_VALUE = "documentPrimaryKeyValue";
+    public static final String PRIMARY_KEY_VALUE = "primaryKeyValue";
 
     public static final String SETTINGS_OPTIMIZE_PK_QUERIES = "crate.planner.optimize_pk_queries";
 
@@ -91,7 +91,7 @@ public class QueryPlanner {
                 }
             }
             if (value != null) {
-                stmt.setPlannerResult(RESULT_DOCUMENT_PRIMARY_KEY_VALUE, value.toString());
+                stmt.setPlannerResult(PRIMARY_KEY_VALUE, value.toString());
                 return true;
             }
         }

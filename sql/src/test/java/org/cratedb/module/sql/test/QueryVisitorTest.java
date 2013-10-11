@@ -738,14 +738,14 @@ public class QueryVisitorTest {
     public void testSelectWithPlannerEnabled() throws Exception {
         execStatement("select pk_col, a from locations where pk_col=?", new Object[]{1});
         assertEquals(ParsedStatement.GET_ACTION, stmt.type());
-        assertEquals("1", stmt.getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE));
+        assertEquals("1", stmt.getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE));
     }
 
     @Test
     public void testDeleteWithPlannerEnabled() throws Exception {
         execStatement("delete from locations where ?=pk_col", new Object[]{1});
         assertEquals(ParsedStatement.DELETE_ACTION, stmt.type());
-        assertEquals("1", stmt.getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE));
+        assertEquals("1", stmt.getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE));
     }
 
     @Test
@@ -753,7 +753,7 @@ public class QueryVisitorTest {
         execStatement("update locations set message=? where pk_col=?",
                 new Object[]{"don't panic", 1});
         assertEquals(ParsedStatement.UPDATE_ACTION, stmt.type());
-        assertEquals("1", stmt.getPlannerResult(QueryPlanner.RESULT_DOCUMENT_PRIMARY_KEY_VALUE));
+        assertEquals("1", stmt.getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE));
     }
 
 }
