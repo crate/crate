@@ -62,7 +62,8 @@ Now we can add the first quote to the database::
     ... EOF
     {
       "cols" : [ ],
-      "rows" : [ ]
+      "rows" : [ ],
+      "rowcount" : 1
     }
 
 Refresh in order to make the result immediatly visible in subsequent queries::
@@ -99,7 +100,8 @@ Let's add another quote::
     ... EOF
     {
       "cols" : [ ],
-      "rows" : [ ]
+      "rows" : [ ],
+      "rowcount" : 1
     }
 
 Refresh again::
