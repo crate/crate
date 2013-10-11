@@ -22,41 +22,23 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
 @AxisRange(min = 0, max = 1)
 @BenchmarkMethodChart(filePrefix = "benchmark-select")
-@RunWith(Parameterized.class)
 public class SelectBenchmark extends BenchmarkBase {
-
-    @Parameterized.Parameters
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][] {
-                {false}, {true}
-        });
-    }
-
-    @Parameterized.Parameter
-    public boolean enableQueryPlanner;
-
-    @Override
-    public boolean isQueryPlannerEnabled() {
-        return enableQueryPlanner;
-    }
 
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
     public static final int NUM_REQUESTS_PER_TEST = 10;
     public static final int BENCHMARK_ROUNDS = 100;
-    private static List<String> someIds = new ArrayList<>(10);
+    public int apiGetRound = 0;
+    public int sqlGetRound = 0;
+    private List<String> someIds = new ArrayList<>(10);
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
@@ -140,8 +122,10 @@ public class SelectBenchmark extends BenchmarkBase {
     @Test
     public void testGetApi() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            GetResponse response = client().execute(GetAction.INSTANCE, getApiGetRequest()).actionGet();
-            assertTrue(response.isExists());
+            GetRequest request = getApiGetRequest();
+            GetResponse response = client().execute(GetAction.INSTANCE, request).actionGet();
+            assertTrue(String.format("Queried row '%s' does not exist (API). Round: %d", request.id(), apiGetRound), response.isExists());
+            apiGetRound++;
         }
     }
 
@@ -149,11 +133,14 @@ public class SelectBenchmark extends BenchmarkBase {
     @Test
     public void testGetSql() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SQLResponse response = client().execute(SQLAction.INSTANCE, getSqlGetRequest()).actionGet();
+            SQLRequest request = getSqlGetRequest();
+            SQLResponse response = client().execute(SQLAction.INSTANCE, request).actionGet();
             assertEquals(
+                    String.format("Queried row '%s' does not exist (SQL). Round: %d", request.args()[0], sqlGetRound),
                     1,
                     response.rows().length
             );
+            sqlGetRound++;
         }
     }
 
@@ -163,6 +150,7 @@ public class SelectBenchmark extends BenchmarkBase {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             SearchResponse response = client().execute(SearchAction.INSTANCE, getApiSearchRequest()).actionGet();
             assertEquals(
+                    "Did not find the two wanted rows (API).",
                     2L,
                     response.getHits().getTotalHits()
             );
@@ -175,6 +163,7 @@ public class SelectBenchmark extends BenchmarkBase {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             SQLResponse response = client().execute(SQLAction.INSTANCE, getSqlSearchRequest()).actionGet();
             assertEquals(
+                    "Did not find the two wanted rows (SQL).",
                     2,
                     response.rows().length
             );

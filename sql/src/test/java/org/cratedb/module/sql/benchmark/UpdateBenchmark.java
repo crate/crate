@@ -25,7 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @AxisRange(min = 0, max = 1)
-@BenchmarkMethodChart(filePrefix = "benchmark-select")
+@BenchmarkMethodChart(filePrefix = "benchmark-update")
 public class UpdateBenchmark extends BenchmarkBase {
 
     @Rule
@@ -34,7 +34,7 @@ public class UpdateBenchmark extends BenchmarkBase {
     public static final int NUM_REQUESTS_PER_TEST = 10;
     public static final int BENCHMARK_ROUNDS = 100;
 
-    public static String updateId;
+    public String updateId;
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
