@@ -1,3 +1,4 @@
+
 apply plugin: 'java'
 
 // we do not want to have elasticsearch here, since we provide it in :es
@@ -11,6 +12,8 @@ evaluationDependsOn(':app')
 dependencies {
     compile project(':es')
     testCompile 'org.skyscreamer:jsonassert:1.2.0'
+    testCompile 'com.carrotsearch:junit-benchmarks:0.7.0'
+    testCompile 'com.h2database:h2:1.3.173'
     testCompile project(':testing')
 }
 
@@ -54,6 +57,14 @@ task compileJavaCC {
             org.javacc.parser.Main.mainProgram(args)
         }
     }
+}
+
+// Properties for JUnit-Benchmarks
+tasks.withType(Test) {
+    systemProperty 'jub.consumers', 'CONSOLE,H2,XML'
+    systemProperty 'jub.db.file', '/tmp/crate-junit-benchmarks/results'
+    systemProperty 'jub.xml.file', '/tmp/crate-junit-benchmarks/results.xml'
+    systemProperty 'jub.charts.dir', '/tmp/crate-junit-benchmarks'
 }
 
 compileJava.dependsOn compileJavaCC

@@ -318,6 +318,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
         execute("delete from test where \"_id\" = 'id1'");
         assertEquals(0, response.rows().length);
+        refresh();
         execute("select \"_id\" from test");
         assertEquals(2, response.rows().length);
     }

@@ -136,7 +136,7 @@ public class XContentGenerator {
             }
             generate(node);
         } else {
-            jsonBuilder.field("match_all", new HashMap());
+            jsonBuilder.field("match_all", new HashMap<>());
         }
     }
 

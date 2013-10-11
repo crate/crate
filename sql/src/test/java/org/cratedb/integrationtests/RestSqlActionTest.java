@@ -49,7 +49,8 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
                         "  \"rows\" : [ [ \"1979-10-12T00:00:00.000Z\", " +
                         "\"Relative to life on NowWhat, living on an affluent world in the North" +
                         " West ripple of the Galaxy is said to be easier by a factor of about " +
-                        "seventeen million.\", \"Galaxy\", \"North West Ripple\", 1, null ] ]\n" +
+                        "seventeen million.\", \"Galaxy\", \"North West Ripple\", 1, null ] ],\n" +
+                        " \"rowcount\": 1" +
                         "}"
                 , json, true);
     }
@@ -69,7 +70,8 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
                 "  \"rows\" : [ [ \"1979-10-12T00:00:00.000Z\", " +
                 "\"Relative to life on NowWhat, living on an affluent world in the North" +
                 " West ripple of the Galaxy is said to be easier by a factor of about " +
-                "seventeen million.\", \"Galaxy\", \"North West Ripple\", 1, null ] ]\n" +
+                "seventeen million.\", \"Galaxy\", \"North West Ripple\", 1, null ] ],\n" +
+                " \"rowcount\": 1" +
                 "}"
             , json, true);
     }

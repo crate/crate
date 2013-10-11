@@ -52,7 +52,7 @@ public class QueryVisitor extends XContentVisitor {
             throw new StandardException(ex);
         }
 
-        Map<String, Object> updateDoc = new HashMap<String, Object>();
+        Map<String, Object> updateDoc = new HashMap<>();
         for (ResultColumn rc: (node.getResultSetNode()).getResultColumns()){
             if (rc.getReference() != null && rc.getReference() instanceof NestedColumnReference) {
                 // nested object column (in format col1[prop1][prop2]...

@@ -1,0 +1,80 @@
+{
+    "default": {
+        "properties": {
+            "areaInSqKm": {
+                "type": "float",
+                "store": true
+            },
+            "capital": {
+                "type": "string",
+                "index": "not_analyzed",
+                "store": true
+            },
+            "continent": {
+                "type": "string",
+                "index": "not_analyzed",
+                "store": true
+            },
+            "continentName": {
+                "type": "string",
+                "index": "not_analyzed",
+                "store": true
+            },
+            "countryCode": {
+                "type": "string",
+                "index": "not_analyzed",
+                "store": true
+            },
+            "countryName": {
+                "type": "string",
+                "index": "not_analyzed",
+                "store": true
+            },
+            "north": {
+                "type": "float",
+                "store": true
+            },
+            "east": {
+                "type": "float",
+                "store": true
+            },
+            "south": {
+                "type": "float",
+                "store": true
+            },
+            "west": {
+                "type": "float",
+                "store": true
+            },
+            "fipsCode": {
+                "type": "string",
+                "index": "not_analyzed",
+                "store": true
+            },
+            "currencyCode": {
+                "type": "string",
+                "index": "not_analyzed",
+                "store": true
+            },
+            "languages": {
+                "type": "string",
+                "index": "not_analyzed",
+                "store": true
+            },
+            "isoAlpha3": {
+                "type": "string",
+                "index": "not_analyzed",
+                "store": true
+            },
+            "isoNumeric": {
+                "type": "string",
+                "index": "not_analyzed",
+                "store": true
+            },
+            "population": {
+                "type": "integer",
+                "store": true
+            }
+        }
+    }
+}
