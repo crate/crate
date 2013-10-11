@@ -78,7 +78,7 @@ public class QueryPlanner {
         if (primaryKeys.isEmpty()) {
             primaryKeys.add("_id"); // Default Primary Key (only for optimization, not for consistency checks)
         }
-        if (node instanceof BinaryRelationalOperatorNode) {
+        if (node instanceof BinaryRelationalOperatorNode && ((BinaryRelationalOperatorNode)node).getOperatorType() == XContentGenerator.SQLOperatorTypes.EQUALS) {
             ValueNode leftOperand = ((BinaryRelationalOperatorNode)node).getLeftOperand();
             ValueNode rightOperand = ((BinaryRelationalOperatorNode)node).getRightOperand();
             Object value = null;
