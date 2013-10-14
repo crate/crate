@@ -13,9 +13,11 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.test.hamcrest.ElasticsearchAssertions;
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.Before;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.cratedb.test.integration.PathAccessor.bytesFromPath;
@@ -42,8 +44,19 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
         return false;
     }
 
+    /**
+     * determine whether we are in a benchmark run or not
+     * @return true if we are in a benchmark-run, false otherwise
+     */
+    public static boolean isBenchmarkRun() {
+        return Arrays.asList("on", "true", "yes", "enabled").contains(System.getProperty("crate.test.benchmark", "off").toLowerCase());
+    }
+
     @Before
-    public void prepareIndex() throws Exception {
+    public void prepareBenchmarkRun() throws Exception {
+        // ignore if not in benchmark run
+        Assume.assumeTrue("Not in Benchmark Run", isBenchmarkRun());
+
         for (String nodeId : new String[]{NODE1, NODE2}) {
             Node insertNode = node(nodeId);
             if (insertNode==null) {
@@ -56,12 +69,7 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
                     .addMapping("default", stringFromPath(MAPPING, InsertBenchmark.class)).execute().actionGet();
 
             if (loadData()) {
-                loadBulk(DATA);
-                ClusterHealthRequest request = Requests.clusterHealthRequest().waitForRelocatingShards(0);
-
-                ClusterHealthResponse actionGet = client().admin().cluster().health(request).actionGet();
-                assertThat(actionGet.isTimedOut(), equalTo(false));
-                ElasticsearchAssertions.assertNoFailures(client().admin().indices().prepareRefresh().execute().actionGet());
+                doLoadData();
             }
         }
     }
@@ -86,6 +94,15 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
 
     public boolean loadData() {
         return false;
+    }
+
+    public void doLoadData() throws Exception {
+        loadBulk(DATA);
+        ClusterHealthRequest request = Requests.clusterHealthRequest().waitForRelocatingShards(0);
+
+        ClusterHealthResponse actionGet = client().admin().cluster().health(request).actionGet();
+        assertThat(actionGet.isTimedOut(), equalTo(false));
+        ElasticsearchAssertions.assertNoFailures(client().admin().indices().prepareRefresh().execute().actionGet());
     }
 
     public Settings getNodeSettings(String nodeId) {

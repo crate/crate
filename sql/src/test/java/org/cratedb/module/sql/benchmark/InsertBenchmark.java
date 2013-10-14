@@ -30,7 +30,8 @@ public class InsertBenchmark extends BenchmarkBase {
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
-    public static final int NUM_REQUESTS_PER_TEST = 10;
+    public static final int NUM_REQUESTS_PER_TEST = 100;
+    public static final int BENCHMARK_ROUNDS = 100;
     public static final String SINGLE_INSERT_SQL_STMT = "INSERT INTO countries " +
             "(\"countryName\", \"countryCode\", \"isoNumeric\", \"east\", \"north\", \"west\", \"south\"," +
             "\"isoAlpha3\", \"currencyCode\", \"continent\", \"continentName\", \"languages\", \"fipsCode\", \"capital\", \"population\") " +
@@ -109,7 +110,7 @@ public class InsertBenchmark extends BenchmarkBase {
         return request;
     }
 
-    @BenchmarkOptions(benchmarkRounds = 100, warmupRounds = 1)
+    @BenchmarkOptions(benchmarkRounds =  BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
     public void testInsertSingleSql() {
         for (int i=0;i<NUM_REQUESTS_PER_TEST;i++) {
@@ -117,7 +118,7 @@ public class InsertBenchmark extends BenchmarkBase {
         }
     }
 
-    @BenchmarkOptions(benchmarkRounds = 100, warmupRounds = 1)
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
     public void testInsertBulkSql() {
         for (int i=0;i<NUM_REQUESTS_PER_TEST;i++) {
@@ -125,7 +126,7 @@ public class InsertBenchmark extends BenchmarkBase {
         }
     }
 
-    @BenchmarkOptions(benchmarkRounds = 100, warmupRounds = 1)
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
     public void testInsertSingleApi() {
         for (int i=0;i<NUM_REQUESTS_PER_TEST;i++) {
@@ -133,7 +134,7 @@ public class InsertBenchmark extends BenchmarkBase {
         }
     }
 
-    @BenchmarkOptions(benchmarkRounds = 100, warmupRounds = 1)
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
     public void testInsertBulkApi() {
         for (int i=0;i<NUM_REQUESTS_PER_TEST;i++) {
