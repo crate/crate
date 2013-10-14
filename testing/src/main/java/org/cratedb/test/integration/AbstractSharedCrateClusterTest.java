@@ -12,7 +12,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.junit.Before;
 
-
 import static org.cratedb.test.integration.PathAccessor.bytesFromPath;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 
