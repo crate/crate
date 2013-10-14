@@ -43,6 +43,12 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         response = client().execute(SQLAction.INSTANCE, new SQLRequest(stmt)).actionGet();
     }
 
+    @Override
+    public Settings getSettings() {
+        // set number of replicas to 0 for getting a green cluster when using only one node
+        return randomSettingsBuilder().put("number_of_replicas", 0).build();
+    }
+
     @Test
     public void testSelectKeepsOrder() throws Exception {
         createIndex("test");
@@ -339,10 +345,11 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     @Test
     public void testSelectObject() throws Exception {
         createIndex("test");
-        client().prepareIndex("test", "default", "id1")
+        client().prepareIndex("test", "default", "id1").setRefresh(true)
                 .setSource("{\"a\":{\"nested\":2}}")
                 .execute().actionGet();
-        refresh();
+        ensureGreen();
+
         execute("select a from test");
         assertArrayEquals(new String[]{"a"}, response.cols());
         assertEquals(1, response.rows().length);
@@ -827,10 +834,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     public void testUpdateWithNestedObjectArrayIdxAccess() throws Exception {
         prepareCreate("test")
             .addMapping("default",
-                "coolness", "type=float,index=not_analyzed")
+                    "coolness", "type=float,index=not_analyzed")
             .execute().actionGet();
 
-        execute("insert into test values (?)", new Object[] { new Object[] {2.2, 2.3, 2.4}});
+        execute("insert into test values (?)", new Object[]{new Object[]{2.2, 2.3, 2.4}});
         refresh();
 
         execute("update test set coolness[0] = 3.3");
