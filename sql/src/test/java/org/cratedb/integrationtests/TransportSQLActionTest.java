@@ -339,7 +339,8 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     @Test
     public void testSelectObject() throws Exception {
         createIndex("test");
-        client().prepareIndex("test", "default", "id1").setSource("{\"a\":{\"nested\":2}}")
+        client().prepareIndex("test", "default", "id1")
+                .setSource("{\"a\":{\"nested\":2}}")
                 .execute().actionGet();
         refresh();
         execute("select a from test");
@@ -708,9 +709,9 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
             .addMapping("default",
                 "coolness", "type=object,index=not_analyzed")
             .execute().actionGet();
+        refresh();
 
-
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
         map.put("x", "1");
         map.put("y", 2);
         Object[] args = new Object[] { map };
@@ -735,8 +736,9 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         prepareCreate("test")
             .setSettings(settings)
             .execute().actionGet();
+        refresh();
 
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
         map.put("x", "1");
         map.put("y", 2);
         Object[] args = new Object[] { map };
@@ -771,6 +773,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         prepareCreate("test")
             .setSettings(settings)
             .execute().actionGet();
+        refresh();
 
         Map<String, Object> map = newHashMap();
         Map<String, Object> nestedMap = newHashMap();
@@ -990,6 +993,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         prepareCreate("test")
             .addMapping("default", mapping)
                 .execute().actionGet();
+        refresh();
     }
 
     @Test (expected = SQLParseException.class)
@@ -1048,7 +1052,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         prepareCreate("test")
                 .addMapping("default", mapping)
                 .execute().actionGet();
-
+        refresh();
     }
 
     @Test
