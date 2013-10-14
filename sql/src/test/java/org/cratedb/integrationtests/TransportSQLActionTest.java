@@ -43,6 +43,12 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         response = client().execute(SQLAction.INSTANCE, new SQLRequest(stmt)).actionGet();
     }
 
+    @Override
+    public Settings getSettings() {
+        // set number of replicas to 0 for getting a green cluster when using only one node
+        return randomSettingsBuilder().put("number_of_replicas", 0).build();
+    }
+
     @Test
     public void testSelectKeepsOrder() throws Exception {
         createIndex("test");
@@ -339,9 +345,11 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     @Test
     public void testSelectObject() throws Exception {
         createIndex("test");
-        client().prepareIndex("test", "default", "id1").setSource("{\"a\":{\"nested\":2}}")
+        client().prepareIndex("test", "default", "id1").setRefresh(true)
+                .setSource("{\"a\":{\"nested\":2}}")
                 .execute().actionGet();
-        refresh();
+        ensureGreen();
+
         execute("select a from test");
         assertArrayEquals(new String[]{"a"}, response.cols());
         assertEquals(1, response.rows().length);
@@ -708,9 +716,9 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
             .addMapping("default",
                 "coolness", "type=object,index=not_analyzed")
             .execute().actionGet();
+        ensureGreen();
 
-
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
         map.put("x", "1");
         map.put("y", 2);
         Object[] args = new Object[] { map };
@@ -731,12 +739,15 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     @Test
     public void testUpdateNestedNestedObject() throws Exception {
         Settings settings = settingsBuilder()
-            .put("mapper.dynamic", true).build();
+            .put("mapper.dynamic", true)
+            .put("number_of_replicas", 0)
+            .build();
         prepareCreate("test")
             .setSettings(settings)
             .execute().actionGet();
+        ensureGreen();
 
-        Map<String, Object> map = new HashMap<String, Object>();
+        Map<String, Object> map = new HashMap<>();
         map.put("x", "1");
         map.put("y", 2);
         Object[] args = new Object[] { map };
@@ -767,10 +778,13 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     @Test
     public void testUpdateNestedObjectDeleteWithArgs() throws Exception {
         Settings settings = settingsBuilder()
-            .put("mapper.dynamic", true).build();
+            .put("mapper.dynamic", true)
+            .put("number_of_replicas", 0)
+            .build();
         prepareCreate("test")
             .setSettings(settings)
             .execute().actionGet();
+        ensureGreen();
 
         Map<String, Object> map = newHashMap();
         Map<String, Object> nestedMap = newHashMap();
@@ -795,10 +809,13 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     @Test
     public void testUpdateNestedObjectDeleteWithoutArgs() throws Exception {
         Settings settings = settingsBuilder()
-            .put("mapper.dynamic", true).build();
+            .put("mapper.dynamic", true)
+            .put("number_of_replicas", 0)
+            .build();
         prepareCreate("test")
             .setSettings(settings)
             .execute().actionGet();
+        ensureGreen();
 
         Map<String, Object> map = newHashMap();
         Map<String, Object> nestedMap = newHashMap();
@@ -824,10 +841,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     public void testUpdateWithNestedObjectArrayIdxAccess() throws Exception {
         prepareCreate("test")
             .addMapping("default",
-                "coolness", "type=float,index=not_analyzed")
+                    "coolness", "type=float,index=not_analyzed")
             .execute().actionGet();
 
-        execute("insert into test values (?)", new Object[] { new Object[] {2.2, 2.3, 2.4}});
+        execute("insert into test values (?)", new Object[]{new Object[]{2.2, 2.3, 2.4}});
         refresh();
 
         execute("update test set coolness[0] = 3.3");
@@ -911,7 +928,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 "}\n")
             .execute().actionGet();
 
-
         Map<String, Object> map = new HashMap<String, Object>();
         map.put("x", "1");
         map.put("y", 2);
@@ -990,6 +1006,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         prepareCreate("test")
             .addMapping("default", mapping)
                 .execute().actionGet();
+        ensureGreen();
     }
 
     @Test (expected = SQLParseException.class)
@@ -1048,7 +1065,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         prepareCreate("test")
                 .addMapping("default", mapping)
                 .execute().actionGet();
-
+        ensureGreen();
     }
 
     @Test
