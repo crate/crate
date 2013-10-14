@@ -1,6 +1,5 @@
 package org.cratedb.action.parser;
 
-import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
@@ -8,10 +7,7 @@ import org.cratedb.sql.parser.parser.ConstantNode;
 import org.cratedb.sql.parser.parser.ParameterNode;
 import org.cratedb.sql.parser.parser.ValueNode;
 import org.cratedb.sql.parser.parser.Visitor;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-
-import java.util.List;
 
 /**
  * The XContentVisitor is an extended Visitor interface provided by the akiban SQL-Parser
@@ -31,15 +27,11 @@ public abstract class XContentVisitor implements Visitor {
     }
 
 
-    protected Object evaluateValueNode(
-        NodeExecutionContext.TableExecutionContext tableContext,
-        String name,
-        ValueNode node
-    ) throws StandardException
-    {
+    protected Object evaluateValueNode(String name, ValueNode node) throws StandardException {
         Object value;
         if (node instanceof ConstantNode) {
-            value = tableContext.mappedValue(name, ((ConstantNode) node).getValue());
+            assert stmt.tableContext() != null;
+            value = stmt.tableContext().mappedValue(name, ((ConstantNode) node).getValue());
         } else if (node instanceof ParameterNode) {
             Object[] args = stmt.args();
             if (args.length == 0) {

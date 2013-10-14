@@ -1,18 +1,15 @@
 package org.cratedb.action.parser;
 
+import com.google.common.collect.Lists;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
-import com.google.common.collect.Lists;
-import org.cratedb.action.sql.NodeExecutionContext;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 
-import java.io.IOException;
 import java.util.*;
 
 /**
@@ -22,7 +19,6 @@ import java.util.*;
 public class InsertVisitor extends XContentVisitor {
 
     private boolean stopTraverse;
-    private NodeExecutionContext.TableExecutionContext tableContext;
     private List<String> columnNameList;
     private ESLogger logger = Loggers.getLogger(InsertVisitor.class);
     private List<String> primaryKeys;
@@ -78,19 +74,19 @@ public class InsertVisitor extends XContentVisitor {
         ResultColumnList targetColumnList = node.getTargetColumnList();
 
         stmt.addIndex(tableName);
-        tableContext = stmt.context().tableContext(tableName);
+        stmt.tableContext(stmt.context().tableContext(tableName));
 
         // Get column names from index if not defined by query
         // NOTE: returned column name list is alphabetic ordered!
         if (targetColumnList == null) {
-            columnNameList = Lists.newArrayList(tableContext.allCols());
+            columnNameList = Lists.newArrayList(stmt.tableContext().allCols());
         } else {
             columnNameList = Arrays.asList(targetColumnList.getColumnNames());
         }
 
-        if (tableContext != null) {
+        if (stmt.tableContext() != null) {
             // no tableContext if dynamicMapping is enabled and mapping is missing
-            primaryKeys = tableContext.primaryKeys();
+            primaryKeys = stmt.tableContext().primaryKeys();
             if (primaryKeys.size() > 1) {
                 throw new SQLParseException("Multiple primary key columns are not supported!");
             }
@@ -125,9 +121,7 @@ public class InsertVisitor extends XContentVisitor {
 
         for (ResultColumn column : resultColumnList) {
             String columnName = columnNameList.get(resultColumnList.indexOf(column));
-            Object value = evaluateValueNode(
-                tableContext, columnName, column.getExpression()
-            );
+            Object value = evaluateValueNode(columnName, column.getExpression());
 
             source.put(columnName, value);
             if (primaryKeys.contains(columnName)) {

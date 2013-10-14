@@ -66,6 +66,7 @@ public class ParsedStatement {
 
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;
 
+    private NodeExecutionContext.TableExecutionContext tableContext;
     private Map<String, Object> updateDoc;
     private Map<String, Object> plannerResults;
     private boolean countRequest;
@@ -75,6 +76,7 @@ public class ParsedStatement {
         this.stmt = stmt;
         this.args = args;
         this.context = context;
+        this.tableContext = null;
         this.plannerResults = new HashMap<>();
         SQLParser parser = new SQLParser();
         statementNode = parser.parseStatement(stmt);
@@ -98,6 +100,14 @@ public class ParsedStatement {
 
     public NodeExecutionContext context(){
         return context;
+    }
+
+    public void tableContext(NodeExecutionContext.TableExecutionContext tableContext) {
+        this.tableContext = tableContext;
+    }
+
+    public NodeExecutionContext.TableExecutionContext tableContext() {
+        return tableContext;
     }
 
     public int type() {

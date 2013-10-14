@@ -28,7 +28,6 @@ public class XContentGenerator {
     private final ParsedStatement stmt;
     private XContentBuilder jsonBuilder;
 
-    private NodeExecutionContext.TableExecutionContext tableContext;
     private boolean requireVersion = false;
 
     /**
@@ -184,10 +183,11 @@ public class XContentGenerator {
                     "From type " + table.getClass().getName() + " not supported");
         }
         String name = table.getTableName().getTableName();
-        tableContext = stmt.context().tableContext(name);
+        NodeExecutionContext.TableExecutionContext tableContext = stmt.context().tableContext(name);
         if (tableContext == null) {
             throw new SQLParseException("No table definition found for " + name);
         }
+        stmt.tableContext(tableContext);
         stmt.addIndex(name);
     }
 
@@ -199,7 +199,7 @@ public class XContentGenerator {
         }
         for (ResultColumn column : columnList) {
             if (column instanceof AllResultColumn) {
-                for (String name : tableContext.allCols()) {
+                for (String name : stmt.tableContext().allCols()) {
                     stmt.addOutputField(name, name);
                     fields.add(name);
                 }
