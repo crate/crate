@@ -151,6 +151,10 @@ public class ParsedStatement {
         }
         request.source(builder.bytes().toBytes());
         request.indices(indices.toArray(new String[indices.size()]));
+
+        // Set routing value if found by planner
+        request.routing((String)getPlannerResult(QueryPlanner.ROUTING_VALUE));
+
         return request;
     }
 
@@ -326,6 +330,9 @@ public class ParsedStatement {
         request.query(builder.bytes().toBytes());
         request.indices(indices.toArray(new String[indices.size()]));
 
+        // Set routing value if found by planner
+        request.routing((String)getPlannerResult(QueryPlanner.ROUTING_VALUE));
+
         return request;
     }
 
@@ -413,6 +420,10 @@ public class ParsedStatement {
 
     public Object getPlannerResult(String key) {
         return plannerResults.get(key);
+    }
+
+    public Map<String, Object> plannerResults() {
+        return plannerResults;
     }
 
     public XContentVisitor visitor() {
