@@ -1,6 +1,5 @@
 package org.cratedb.action.parser;
 
-import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.BinaryRelationalOperatorNode;
@@ -17,7 +16,6 @@ public class QueryPlanner {
 
     public static final String SETTINGS_OPTIMIZE_PK_QUERIES = "crate.planner.optimize_pk_queries";
 
-    private NodeExecutionContext.TableExecutionContext tableContext = null;
     private Settings settings;
 
     @Inject
@@ -26,18 +24,8 @@ public class QueryPlanner {
     }
 
     /**
-     * Sets the {@link org.cratedb.action.sql.NodeExecutionContext.TableExecutionContext} to the
-     * current scope. It's needed to resolve mapping definitions like ``primary_keys`` or
-     * ``routing``.
-     *
-     * @param tableContext
-     */
-    public void setTableContext(NodeExecutionContext.TableExecutionContext tableContext) {
-        this.tableContext = tableContext;
-    }
-
-    /**
      * Check if we can optimize queries based on the SQL WHERE clause.
+     * Returns true if Visitor/Generator should stop operating, otherwise false.
      *
      * @param stmt
      * @param node
@@ -51,7 +39,7 @@ public class QueryPlanner {
             return false;
         }
 
-        assert tableContext != null;
+        assert stmt.tableContext() != null;
 
         if (checkSinglePrimaryAndRouting(stmt, node)) {
             return true;
@@ -72,27 +60,24 @@ public class QueryPlanner {
      * @return
      * @throws StandardException
      */
-    private Boolean checkSinglePrimaryAndRouting(ParsedStatement stmt,
-                                                 ValueNode node) throws StandardException {
-        List<String> primaryKeys = tableContext.primaryKeys();
-        if (primaryKeys.isEmpty()) {
-            primaryKeys.add("_id"); // Default Primary Key (only for optimization, not for consistency checks)
-        }
+    private Boolean checkSinglePrimaryAndRouting(ParsedStatement stmt, ValueNode node)
+            throws StandardException {
+        List<String> primaryKeys = stmt.tableContext().primaryKeysIncludingDefault();
         if (node instanceof BinaryRelationalOperatorNode && ((BinaryRelationalOperatorNode)node).getOperatorType() == XContentGenerator.SQLOperatorTypes.EQUALS) {
             ValueNode leftOperand = ((BinaryRelationalOperatorNode)node).getLeftOperand();
             ValueNode rightOperand = ((BinaryRelationalOperatorNode)node).getRightOperand();
             Object value = null;
             if (leftOperand instanceof ColumnReference) {
-                if (tableContext.isRouting(leftOperand.getColumnName()) &&
+                if (stmt.tableContext().isRouting(leftOperand.getColumnName()) &&
                         primaryKeys.contains(leftOperand.getColumnName())) {
-                    value = stmt.visitor().evaluateValueNode(tableContext,
+                    value = stmt.visitor().evaluateValueNode(
                             leftOperand.getColumnName(), rightOperand);
                 }
             }
             if (rightOperand instanceof ColumnReference) {
-                if (tableContext.isRouting(rightOperand.getColumnName()) &&
+                if (stmt.tableContext().isRouting(rightOperand.getColumnName()) &&
                         primaryKeys.contains(rightOperand.getColumnName())) {
-                    value = stmt.visitor().evaluateValueNode(tableContext,
+                    value = stmt.visitor().evaluateValueNode(
                             rightOperand.getColumnName(), leftOperand);
                 }
             }
