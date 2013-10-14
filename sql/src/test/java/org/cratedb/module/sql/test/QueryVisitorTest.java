@@ -48,12 +48,14 @@ public class QueryVisitorTest {
         when(settings.getAsBoolean(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES,
                 true)).thenReturn(true);
         QueryPlanner queryPlanner = new QueryPlanner(settings);
-        queryPlanner.setTableContext(tec);
         when(nec.queryPlanner()).thenReturn(queryPlanner);
         when(nec.tableContext("locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("a", "b"));
         when(tec.isRouting("pk_col")).thenReturn(true);
         when(tec.primaryKeys()).thenReturn(new ArrayList<String>(1) {{
+            add("pk_col");
+        }});
+        when(tec.primaryKeysIncludingDefault()).thenReturn(new ArrayList<String>(1) {{
             add("pk_col");
         }});
         stmt = new ParsedStatement(sql, args, nec);

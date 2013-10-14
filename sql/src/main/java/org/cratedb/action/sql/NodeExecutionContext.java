@@ -38,12 +38,10 @@ public class NodeExecutionContext {
                 .documentMapper(DEFAULT_TYPE);
         MappingMetaData mappingMetaData = clusterService.state().metaData().index(name)
                 .mappingOrDefault(DEFAULT_TYPE);
-        TableExecutionContext tableExecutionContext = null;
         if (dm!=null && mappingMetaData != null){
-            tableExecutionContext = new TableExecutionContext(name, dm, mappingMetaData);
-            queryPlanner.setTableContext(tableExecutionContext);
+            return new TableExecutionContext(name, dm, mappingMetaData);
         }
-        return tableExecutionContext;
+        return null;
     }
 
     public QueryPlanner queryPlanner() {
@@ -97,6 +95,20 @@ public class NodeExecutionContext {
             }
 
             return pks;
+        }
+
+        /**
+         * Returns the ``primary key`` column names defined at index creation under the ``_meta``
+         * key. If none defined, add ``_id`` as primary key(Default).
+         *
+         * @return a list of primary key column names
+         */
+        public List<String> primaryKeysIncludingDefault() {
+            List<String> primaryKeys = primaryKeys();
+            if (primaryKeys.isEmpty()) {
+                primaryKeys.add("_id"); // Default Primary Key (only for optimization, not for consistency checks)
+            }
+            return primaryKeys;
         }
 
 

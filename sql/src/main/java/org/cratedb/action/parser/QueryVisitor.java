@@ -21,7 +21,6 @@ public class QueryVisitor extends XContentVisitor {
 
     private XContentGenerator generator = null;
     private boolean stopTraverse;
-    private NodeExecutionContext.TableExecutionContext tableContext;
 
     public QueryVisitor(ParsedStatement stmt) throws StandardException {
         super(stmt);
@@ -40,7 +39,7 @@ public class QueryVisitor extends XContentVisitor {
 
     private void setTable(String tableName){
         stmt.addIndex(tableName);
-        tableContext = stmt.context().tableContext(tableName);
+        stmt.tableContext(stmt.context().tableContext(tableName));
     }
 
     public Visitable visit(UpdateNode node) throws StandardException {
@@ -64,12 +63,12 @@ public class QueryVisitor extends XContentVisitor {
                 // to get the correct value from the fieldMapper the key has to be in the format of
                 // col1.prop1.prop2
                 String fullKey = nestedColumn.xcontentPathString();
-                Object value = evaluateValueNode(tableContext, fullKey, rc.getExpression());
+                Object value = evaluateValueNode(fullKey, rc.getExpression());
 
                 addValue(updateDoc, path, value, 0);
             } else {
                 addValue(updateDoc, new String[] { rc.getName() },
-                    evaluateValueNode(tableContext, rc.getName(), rc.getExpression()), 0
+                    evaluateValueNode(rc.getName(), rc.getExpression()), 0
                 );
             }
         }
