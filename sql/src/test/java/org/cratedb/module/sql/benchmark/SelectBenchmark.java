@@ -34,7 +34,7 @@ public class SelectBenchmark extends BenchmarkBase {
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
-    public static final int NUM_REQUESTS_PER_TEST = 10;
+    public static final int NUM_REQUESTS_PER_TEST = 100;
     public static final int BENCHMARK_ROUNDS = 100;
     public int apiGetRound = 0;
     public int sqlGetRound = 0;

@@ -35,6 +35,8 @@ test {
     }
     // force run, see: http://gradle.1045684.n5.nabble.com/how-does-gradle-decide-when-to-run-tests-td3314172.html
     outputs.upToDateWhen { false }
+
+    exclude('org/cratedb/module/sql/benchmark/**')
 }
 
 task compileJavaCC {
@@ -59,13 +61,34 @@ task compileJavaCC {
     }
 }
 
-// Properties for JUnit-Benchmarks
-tasks.withType(Test) {
+task bench(type: Test) {
+    description = 'Run the Crate JUnit Benchmarks'
+    group = 'crate'
+    benchmark_dir = '/tmp/crate-junit-benchmarks/'
+
+    // Properties for JUnit Benchmarks
     systemProperty 'jub.consumers', 'CONSOLE,H2,XML'
-    systemProperty 'jub.db.file', '/tmp/crate-junit-benchmarks/results'
-    systemProperty 'jub.xml.file', '/tmp/crate-junit-benchmarks/results.xml'
-    systemProperty 'jub.charts.dir', '/tmp/crate-junit-benchmarks'
+    systemProperty 'jub.db.file', benchmark_dir + 'results'
+    systemProperty'jub.xml.file', benchmark_dir + 'results.xml'
+    systemProperty 'jub.charts.dir', benchmark_dir
+    systemProperty 'crate.test.benchmark', 'yes'
+
+    include('org/cratedb/module/sql/benchmark/**')
+
+    testLogging {
+        // show standard out and standard error of the test JVM(s) on the console
+        showStandardStreams = true
+        // Show that tests are run in the command-line output
+        events 'started', 'passed'
+    }
+    // force run, see: http://gradle.1045684.n5.nabble.com/how-does-gradle-decide-when-to-run-tests-td3314172.html
+    outputs.upToDateWhen { false }
+
+    doLast {
+        println "Benchmark Results in " + benchmark_dir
+    }
 }
+
 
 compileJava.dependsOn compileJavaCC
 
