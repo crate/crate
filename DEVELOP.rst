@@ -76,6 +76,16 @@ Unit tests can be run like this::
 
   $ ./gradlew test
 
+Benchmark
+=========
+
+A Benchmark for our SQL Interface can be run by calling::
+
+  $ ./gradlew bench
+
+It will output some results to stdout (read between the lines) and finally you will
+receive information where more detailed benchmark-results got stored.
+
 Writing Documentation
 =====================
 

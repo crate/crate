@@ -13,14 +13,12 @@ import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryAction;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,7 +29,7 @@ public class DeleteBenchmark extends BenchmarkBase {
     @Rule
     public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
-    public static final int NUM_REQUESTS_PER_TEST = 10;
+    public static final int NUM_REQUESTS_PER_TEST = 100;
     public static final int BENCHMARK_ROUNDS = 24; // Don't exceed the number of deletable rows
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
@@ -46,8 +44,9 @@ public class DeleteBenchmark extends BenchmarkBase {
     }
 
     @Before
-    public void prepare() {
+    public void prepare() throws Exception {
         if (ids.isEmpty() || countryCodes.isEmpty()) {
+            doLoadData();
             // setupOnce non-static
             SQLRequest request = new SQLRequest("SELECT \"_id\", \"countryCode\" FROM countries");
             SQLResponse response = client().execute(SQLAction.INSTANCE, request).actionGet();
@@ -58,42 +57,33 @@ public class DeleteBenchmark extends BenchmarkBase {
         }
     }
 
-    @After
-    public void dropIndex() {
-        // Drop the index so it will be refilled for the next test-round
-        // refill will only affect warmup-round, not benchmark itself
-        if (ids.isEmpty() || countryCodes.isEmpty()) {
-            wipeIndices(client(), INDEX_NAME);
-        }
-    }
-
-    public String getDeleteId() {
+    public String getDeleteId() throws Exception {
         if (ids.isEmpty()) {
-            prepare();
+           prepare();
         }
         return ids.remove(0);
     }
 
-    public String getCountryCode() {
+    public String getCountryCode() throws Exception {
         if (countryCodes.isEmpty()) {
             prepare();
         }
         return countryCodes.remove(0);
     }
 
-    public DeleteRequest getDeleteApiByIdRequest() {
+    public DeleteRequest getDeleteApiByIdRequest() throws Exception {
         return new DeleteRequest(INDEX_NAME, "default", getDeleteId());
     }
 
-    public SQLRequest getDeleteSqlByIdRequest() {
+    public SQLRequest getDeleteSqlByIdRequest() throws Exception {
         return new SQLRequest("DELETE FROM countries WHERE \"_id\"=?", new Object[]{ getDeleteId() });
     }
 
-    public SQLRequest getDeleteSqlByQueryRequest() {
+    public SQLRequest getDeleteSqlByQueryRequest() throws Exception {
         return new SQLRequest("DELETE FROM countries WHERE \"countryCode\"=?", new Object[]{ getCountryCode() });
     }
 
-    public DeleteByQueryRequest getDeleteApiByQueryRequest() throws IOException {
+    public DeleteByQueryRequest getDeleteApiByQueryRequest() throws Exception {
 
         return new DeleteByQueryRequest(INDEX_NAME).query(
                 XContentFactory.jsonBuilder()
@@ -107,7 +97,7 @@ public class DeleteBenchmark extends BenchmarkBase {
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void testDeleteApiById() {
+    public void testDeleteApiById() throws Exception {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             DeleteResponse response = client().execute(DeleteAction.INSTANCE, getDeleteApiByIdRequest()).actionGet();
             assertFalse(response.isNotFound());
@@ -116,7 +106,7 @@ public class DeleteBenchmark extends BenchmarkBase {
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void testDeleteApiByQuery() throws IOException {
+    public void testDeleteApiByQuery() throws Exception {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             client().execute(DeleteByQueryAction.INSTANCE, getDeleteApiByQueryRequest()).actionGet();
         }
@@ -124,7 +114,7 @@ public class DeleteBenchmark extends BenchmarkBase {
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void testDeleteSqlById() {
+    public void testDeleteSqlById() throws Exception {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             SQLResponse response = client().execute(SQLAction.INSTANCE, getDeleteSqlByIdRequest()).actionGet();
         }
@@ -132,7 +122,7 @@ public class DeleteBenchmark extends BenchmarkBase {
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
-    public void testDeleteSQLByQuery() {
+    public void testDeleteSQLByQuery() throws Exception {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             SQLResponse response = client().execute(SQLAction.INSTANCE, getDeleteSqlByQueryRequest()).actionGet();
         }
