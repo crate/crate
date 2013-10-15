@@ -104,7 +104,7 @@ public class QueryPlanner {
             ValueNode leftOperand = ((OrNode) node).getLeftOperand();
             ValueNode rightOperand = ((OrNode) node).getRightOperand();
 
-            if (leftOperand instanceof OrNode) {
+            if (leftOperand instanceof OrNode || leftOperand instanceof InListOperatorNode) {
                 extractMultiplePrimaryKeyValues(stmt, leftOperand, results);
             } else {
                 Object leftValue = extractPrimaryKeyValue(stmt, leftOperand);
@@ -122,7 +122,7 @@ public class QueryPlanner {
                 return;
             }
 
-            if (rightOperand instanceof OrNode) {
+            if (rightOperand instanceof OrNode || rightOperand instanceof InListOperatorNode) {
                 extractMultiplePrimaryKeyValues(stmt, rightOperand, results);
             } else {
                 Object rightValue = extractPrimaryKeyValue(stmt, rightOperand);
@@ -130,6 +130,24 @@ public class QueryPlanner {
                     results.add(rightValue.toString());
                 } else {
                     // some invalid node, clear results and quit
+                    results.clear();
+                    return;
+                }
+            }
+        } else if (node instanceof InListOperatorNode) {
+            // WHERE pk_col IN (1,2,3,...)
+            Object value;
+            List<String> primaryKeys = stmt.tableContext().primaryKeysIncludingDefault();
+            RowConstructorNode leftOperand = ((InListOperatorNode) node).getLeftOperand();
+            RowConstructorNode rightOperandList = ((InListOperatorNode) node).getRightOperandList();
+            if (leftOperand.getNodeList().size() == 1 && leftOperand.getNodeList().get(0) instanceof ColumnReference) {
+                String columnName = leftOperand.getNodeList().get(0).getColumnName();
+                if (stmt.tableContext().isRouting(columnName) && primaryKeys.contains(columnName)) {
+                    for (ValueNode listValue : rightOperandList.getNodeList()) {
+                        value = stmt.visitor().evaluateValueNode(columnName, listValue);
+                        results.add(value.toString());
+                    }
+                } else {
                     results.clear();
                     return;
                 }

@@ -117,7 +117,7 @@ public class ParsedStatement {
             case NodeTypes.DELETE_NODE:
                 if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null) {
                     return DELETE_ACTION;
-                }
+                } else
                 return DELETE_BY_QUERY_ACTION;
             case NodeTypes.CURSOR_NODE:
                 if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null) {

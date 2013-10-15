@@ -1150,4 +1150,17 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(0, response.rowCount());
     }
 
+    @Test
+    public void testSelectToMultiGetRequestByPlannerWhereIn() throws Exception {
+        createTestIndexWithPkAndRoutingMapping();
+
+        execute("insert into test (some_id, foo) values (1, 'foo')");
+        execute("insert into test (some_id, foo) values (2, 'bar')");
+        execute("insert into test (some_id, foo) values (3, 'baz')");
+        refresh();
+
+        execute("SELECT * FROM test WHERE some_id IN (?,?,?)", new Object[]{"1", "2", "3"});
+        assertEquals(3, response.rowCount());
+    }
+
 }

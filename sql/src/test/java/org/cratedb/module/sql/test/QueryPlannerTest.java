@@ -286,6 +286,44 @@ public class QueryPlannerTest {
         assertThat(stmt.type(), is(not(ParsedStatement.MULTI_GET_ACTION)));
     }
 
+    @Test
+    public void testSelectMultiplePrimaryKeysWhereIn() throws StandardException {
+        execStatement("SELECT * FROM phrases WHERE pk_col IN (?, ?, ?)",
+                new Object[]{"foo", "bar", "baz"});
+        @SuppressWarnings("unchecked")
+        Set<String> primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.MULTIPLE_PRIMARY_KEY_VALUES);
+        assertThat(primaryKeyValues, is(notNullValue()));
+        assertThat(primaryKeyValues, hasItems("foo", "bar", "baz"));
+        assertEquals(1, stmt.plannerResults().size());
+        assertThat(stmt.type(), is(ParsedStatement.MULTI_GET_ACTION));
+    }
 
+    @Test
+    public void testSelectMultiplePrimaryKeysWhereInAndOr() throws StandardException {
+        execStatement("SELECT * FROM phrases WHERE pk_col IN (?, ?, ?) OR pk_col=?",
+                new Object[]{"foo", "bar", "baz", "dunno"});
+        @SuppressWarnings("unchecked")
+        Set<String> primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.MULTIPLE_PRIMARY_KEY_VALUES);
+        assertThat(primaryKeyValues, is(notNullValue()));
+        assertThat(primaryKeyValues, hasItems("foo", "bar", "baz", "dunno"));
+        assertEquals(1, stmt.plannerResults().size());
+        assertThat(stmt.type(), is(ParsedStatement.MULTI_GET_ACTION));
+
+        execStatement("SELECT * FROM phrases WHERE pk_col=? OR pk_col=? OR pk_col IN (?, ?)",
+                new Object[]{"foo", "bar", "baz", "dunno"});
+        primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.MULTIPLE_PRIMARY_KEY_VALUES);
+        assertThat(primaryKeyValues, is(notNullValue()));
+        assertThat(primaryKeyValues, hasItems("foo", "bar", "baz", "dunno"));
+        assertEquals(1, stmt.plannerResults().size());
+        assertThat(stmt.type(), is(ParsedStatement.MULTI_GET_ACTION));
+    }
+
+    @Test
+    public void testSelectMultiplePrimarykeysWhereInInvalid() throws StandardException {
+        execStatement("SELECT * FROM phrases WHERE phrase IN (?, ?, ?)",
+                new Object[]{"foo", "bar", "baz"});
+        assertThat(stmt.getPlannerResult(QueryPlanner.MULTIPLE_PRIMARY_KEY_VALUES), is(nullValue()));
+        assertThat(stmt.type(), is(not(ParsedStatement.MULTI_GET_ACTION)));
+    }
 
 }
