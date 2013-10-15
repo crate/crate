@@ -155,6 +155,11 @@ public class ParsedStatement {
         // Set routing value if found by planner
         request.routing((String)getPlannerResult(QueryPlanner.ROUTING_VALUE));
 
+        // Update request should only be executed on primary shards
+        if (statementNode.getNodeType() == NodeTypes.UPDATE_NODE) {
+            request.preference("_primary");
+        }
+
         return request;
     }
 
