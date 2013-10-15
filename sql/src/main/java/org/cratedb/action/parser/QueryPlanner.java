@@ -13,8 +13,7 @@ import java.util.Set;
 public class QueryPlanner {
 
     public static final String PRIMARY_KEY_VALUE = "primaryKeyValue";
-    public static final String ROUTING_VALUE = "routingValue";
-    public static final String MULTIPLE_PRIMARY_KEY_VALUES = "MultipleprimaryKeyValues";
+    public static final String ROUTING_VALUES = "routingValues";
 
     public static final String SETTINGS_OPTIMIZE_PK_QUERIES = "crate.planner.optimize_pk_queries";
 
@@ -56,21 +55,25 @@ public class QueryPlanner {
             return true;
         }
 
+        Set<String> routingValues = new HashSet<>();
+
         // Second check for a primary key in multi-operational nodes
         // If so we can set the routing value but won't return true, generators should finish.
         Object routingValue = extractRoutingValue(stmt, node);
         if (routingValue != null) {
-            stmt.setPlannerResult(ROUTING_VALUE, routingValue.toString());
+            routingValues.add(routingValue.toString());
         }
 
         // Third check for multiple operational nodes with the same primary key.
-        // if so we can set the "multiple primary key values" and return true, so any generator can stop.
-        Set<String> multiplePrimaryKeyValues = extractMultiplePrimaryKeyValues(stmt, node);
-        if (multiplePrimaryKeyValues != null && !multiplePrimaryKeyValues.isEmpty()) {
-            stmt.setPlannerResult(MULTIPLE_PRIMARY_KEY_VALUES, multiplePrimaryKeyValues);
-            return true;
+        // if so we can set the "multiple primary key values"
+        // we do not return here, as the generators should finish
+        Set<String> orRoutingValues = extractRoutingValuesFromOrClauses(stmt, node);
+        if (orRoutingValues != null) {
+            routingValues.addAll(orRoutingValues);
         }
-
+        if (!routingValues.isEmpty()) {
+            stmt.setPlannerResult(ROUTING_VALUES, routingValues);
+        }
         return false;
     }
 
@@ -90,22 +93,22 @@ public class QueryPlanner {
      * @return the set of primary key Values as Strings, if empty, we cannot optimize
      * @throws StandardException
      */
-    private Set<String> extractMultiplePrimaryKeyValues(ParsedStatement stmt, ValueNode node) throws StandardException {
+    private Set<String> extractRoutingValuesFromOrClauses(ParsedStatement stmt, ValueNode node) throws StandardException {
         // Hide recursion details
         Set<String> results = new HashSet<>();
-        extractMultiplePrimaryKeyValues(stmt, node, results);
+        extractRoutingValuesFromOrClauses(stmt, node, results);
 
         return results;
     }
 
-    private void extractMultiplePrimaryKeyValues(ParsedStatement stmt, ValueNode node, Set<String> results) throws StandardException {
+    private void extractRoutingValuesFromOrClauses(ParsedStatement stmt, ValueNode node, Set<String> results) throws StandardException {
 
         if (node instanceof OrNode) {
             ValueNode leftOperand = ((OrNode) node).getLeftOperand();
             ValueNode rightOperand = ((OrNode) node).getRightOperand();
 
             if (leftOperand instanceof OrNode || leftOperand instanceof InListOperatorNode) {
-                extractMultiplePrimaryKeyValues(stmt, leftOperand, results);
+                extractRoutingValuesFromOrClauses(stmt, leftOperand, results);
             } else {
                 Object leftValue = extractPrimaryKeyValue(stmt, leftOperand);
                 if (leftValue != null) {
@@ -123,7 +126,7 @@ public class QueryPlanner {
             }
 
             if (rightOperand instanceof OrNode || rightOperand instanceof InListOperatorNode) {
-                extractMultiplePrimaryKeyValues(stmt, rightOperand, results);
+                extractRoutingValuesFromOrClauses(stmt, rightOperand, results);
             } else {
                 Object rightValue = extractPrimaryKeyValue(stmt, rightOperand);
                 if (rightValue != null) {
@@ -135,7 +138,7 @@ public class QueryPlanner {
                 }
             }
         } else if (node instanceof InListOperatorNode) {
-            // WHERE pk_col IN (1,2,3,...)
+            // e.g. WHERE pk_col IN (1,2,3,...)
             Object value;
             List<String> primaryKeys = stmt.tableContext().primaryKeysIncludingDefault();
             RowConstructorNode leftOperand = ((InListOperatorNode) node).getLeftOperand();

@@ -19,7 +19,10 @@ import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
-import org.elasticsearch.action.get.*;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.get.MultiGetItemResponse;
+import org.elasticsearch.action.get.MultiGetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
@@ -59,7 +62,6 @@ public class ParsedStatement {
     public static final int GET_ACTION = 5;
     public static final int DELETE_ACTION = 6;
     public static final int UPDATE_ACTION = 7;
-    public static final int MULTI_GET_ACTION = 8;
 
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;
 
@@ -122,8 +124,6 @@ public class ParsedStatement {
             case NodeTypes.CURSOR_NODE:
                 if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null) {
                     return GET_ACTION;
-                } else if(getPlannerResult(QueryPlanner.MULTIPLE_PRIMARY_KEY_VALUES) != null) {
-                    return MULTI_GET_ACTION;
                 }
                 return SEARCH_ACTION;
             case NodeTypes.UPDATE_NODE:
@@ -151,8 +151,14 @@ public class ParsedStatement {
         request.source(builder.bytes().toBytes());
         request.indices(indices.toArray(new String[indices.size()]));
 
-        // Set routing value if found by planner
-        request.routing((String)getPlannerResult(QueryPlanner.ROUTING_VALUE));
+        // Set routing values if found by planner
+        @SuppressWarnings("unchecked")
+        Set<String> routingValues = (Set<String>)getPlannerResult(QueryPlanner.ROUTING_VALUES);
+        if (routingValues != null && !routingValues.isEmpty()) {
+            List<String> tmp = new ArrayList<>(routingValues.size());
+            tmp.addAll(routingValues);
+            request.routing(tmp.toArray(new String[tmp.size()]));
+        }
 
         // Update request should only be executed on primary shards
         if (statementNode.getNodeType() == NodeTypes.UPDATE_NODE) {
@@ -204,20 +210,6 @@ public class ParsedStatement {
                 NodeExecutionContext.DEFAULT_TYPE, id);
         request.routing(id);
         request.fields(cols());
-        request.realtime(true);
-        return request;
-    }
-
-    public MultiGetRequest buildMultiGetRequest() {
-        @SuppressWarnings("unchecked")
-        Set<String> ids = (Set<String>) getPlannerResult(QueryPlanner.MULTIPLE_PRIMARY_KEY_VALUES);
-        assert ids != null;
-        MultiGetRequest request = new MultiGetRequest();
-        for (String id: ids) {
-            MultiGetRequest.Item item = new MultiGetRequest.Item(indices().get(0),NodeExecutionContext.DEFAULT_TYPE, id);
-            item.fields(cols());
-            request.add(item);
-        }
         request.realtime(true);
         return request;
     }
@@ -348,8 +340,14 @@ public class ParsedStatement {
         request.query(builder.bytes().toBytes());
         request.indices(indices.toArray(new String[indices.size()]));
 
-        // Set routing value if found by planner
-        request.routing((String) getPlannerResult(QueryPlanner.ROUTING_VALUE));
+        // Set routing values if found by planner
+        @SuppressWarnings("unchecked") // should only be null or set of strings
+        Set<String> routingValues = (Set<String>) getPlannerResult(QueryPlanner.ROUTING_VALUES);
+        if (routingValues != null && !routingValues.isEmpty()) {
+            List<String> tmp = new ArrayList<>(routingValues.size());
+            tmp.addAll(routingValues);
+            request.routing(tmp.toArray(new String[tmp.size()]));
+        }
 
         return request;
     }
