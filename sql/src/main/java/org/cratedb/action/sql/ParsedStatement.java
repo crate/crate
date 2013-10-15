@@ -19,8 +19,7 @@ import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
@@ -36,10 +35,7 @@ import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.search.SearchHit;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ParsedStatement {
 
@@ -63,6 +59,7 @@ public class ParsedStatement {
     public static final int GET_ACTION = 5;
     public static final int DELETE_ACTION = 6;
     public static final int UPDATE_ACTION = 7;
+    public static final int MULTI_GET_ACTION = 8;
 
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;
 
@@ -125,6 +122,8 @@ public class ParsedStatement {
             case NodeTypes.CURSOR_NODE:
                 if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null) {
                     return GET_ACTION;
+                } else if(getPlannerResult(QueryPlanner.MULTIPLE_PRIMARY_KEY_VALUES) != null) {
+                    return MULTI_GET_ACTION;
                 }
                 return SEARCH_ACTION;
             case NodeTypes.UPDATE_NODE:
@@ -200,6 +199,20 @@ public class ParsedStatement {
                 NodeExecutionContext.DEFAULT_TYPE, id);
         request.routing(id);
         request.fields(cols());
+        request.realtime(true);
+        return request;
+    }
+
+    public MultiGetRequest buildMultiGetRequest() {
+        @SuppressWarnings("unchecked")
+        Set<String> ids = (Set<String>) getPlannerResult(QueryPlanner.MULTIPLE_PRIMARY_KEY_VALUES);
+        assert ids != null;
+        MultiGetRequest request = new MultiGetRequest();
+        for (String id: ids) {
+            MultiGetRequest.Item item = new MultiGetRequest.Item(indices().get(0),NodeExecutionContext.DEFAULT_TYPE, id);
+            item.fields(cols());
+            request.add(item);
+        }
         request.realtime(true);
         return request;
     }
@@ -309,7 +322,7 @@ public class ParsedStatement {
         Object[][] rows = new Object[1][outputFields.size()];
 
         // only works with one queried index/table
-        fields.applyGetResponse(context().tableContext(indices().get(0)), getResponse);
+        fields.applyGetResponse(tableContext(), getResponse);
         rows[0] = fields.getRowValues();
 
         response.cols(cols());
@@ -331,7 +344,7 @@ public class ParsedStatement {
         request.indices(indices.toArray(new String[indices.size()]));
 
         // Set routing value if found by planner
-        request.routing((String)getPlannerResult(QueryPlanner.ROUTING_VALUE));
+        request.routing((String) getPlannerResult(QueryPlanner.ROUTING_VALUE));
 
         return request;
     }
@@ -348,6 +361,29 @@ public class ParsedStatement {
 
     public SQLResponse buildResponse(UpdateResponse updateResponse) {
         return buildEmptyResponse(1);
+    }
+
+    public SQLResponse buildResponse(MultiGetResponse multiGetItemResponses) {
+        SQLResponse response = new SQLResponse();
+        SQLFields fields = new SQLFields(outputFields);
+        List<Object[]> rows = new ArrayList<>();
+        MultiGetItemResponse[] singleResponses = multiGetItemResponses.getResponses();
+        long successful = 0;
+        for (int i=0; i < singleResponses.length; i++) {
+            if (!singleResponses[i].isFailed()) {
+                if (singleResponses[i].getResponse().isExists()) {
+                    fields.applyGetResponse(tableContext(), singleResponses[i].getResponse());
+                    rows.add(fields.getRowValues());
+                    successful++;
+                }
+            } else if (!singleResponses[i].getFailure().getType().equals("blah")) {
+                throw new CrateException(singleResponses[i].getFailure().getMessage());
+            }
+        }
+        response.cols(cols());
+        response.rows(rows.toArray(new Object[rows.size()][outputFields.size()]));
+        response.rowCount(successful);
+        return response;
     }
 
     public SQLResponse buildMissingDocumentResponse() {

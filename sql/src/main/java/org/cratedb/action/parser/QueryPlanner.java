@@ -6,12 +6,15 @@ import org.cratedb.sql.parser.parser.*;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class QueryPlanner {
 
     public static final String PRIMARY_KEY_VALUE = "primaryKeyValue";
     public static final String ROUTING_VALUE = "routingValue";
+    public static final String MULTIPLE_PRIMARY_KEY_VALUES = "MultipleprimaryKeyValues";
 
     public static final String SETTINGS_OPTIMIZE_PK_QUERIES = "crate.planner.optimize_pk_queries";
 
@@ -60,12 +63,88 @@ public class QueryPlanner {
             stmt.setPlannerResult(ROUTING_VALUE, routingValue.toString());
         }
 
+        // Third check for multiple operational nodes with the same primary key.
+        // if so we can set the "multiple primary key values" and return true, so any generator can stop.
+        Set<String> multiplePrimaryKeyValues = extractMultiplePrimaryKeyValues(stmt, node);
+        if (multiplePrimaryKeyValues != null && !multiplePrimaryKeyValues.isEmpty()) {
+            stmt.setPlannerResult(MULTIPLE_PRIMARY_KEY_VALUES, multiplePrimaryKeyValues);
+            return true;
+        }
+
         return false;
     }
 
     /**
-     * If a primary key equals a constant value in the given node, and also is defined as the
-     * routing key, return this value.
+     * if we got any number of nested or flat nodes, that contains a primary_key equals a constant value
+     * which is also defined as the routing key, combined by OR, we collect all the constant values in a set
+     * and return them.
+     *
+     * This Optimization only returns the values if all nodes are valid, that is, are of the form:
+     *
+     *   pk=1 OR pk=2 OR pk=3 ...
+     *
+     * Else we return an empty set
+     *
+     * @param stmt the ParsedStatement that is checked for Optimization
+     * @param node the Parsetree-Node corresponding to the Statements WhereClause
+     * @return the set of primary key Values as Strings, if empty, we cannot optimize
+     * @throws StandardException
+     */
+    private Set<String> extractMultiplePrimaryKeyValues(ParsedStatement stmt, ValueNode node) throws StandardException {
+        // Hide recursion details
+        Set<String> results = new HashSet<>();
+        extractMultiplePrimaryKeyValues(stmt, node, results);
+
+        return results;
+    }
+
+    private void extractMultiplePrimaryKeyValues(ParsedStatement stmt, ValueNode node, Set<String> results) throws StandardException {
+
+        if (node instanceof OrNode) {
+            ValueNode leftOperand = ((OrNode) node).getLeftOperand();
+            ValueNode rightOperand = ((OrNode) node).getRightOperand();
+
+            if (leftOperand instanceof OrNode) {
+                extractMultiplePrimaryKeyValues(stmt, leftOperand, results);
+            } else {
+                Object leftValue = extractPrimaryKeyValue(stmt, leftOperand);
+                if (leftValue != null) {
+                    results.add(leftValue.toString());
+                } else {
+                    // some invalid node, clear results and quit
+                    results.clear();
+                    return;
+                }
+            }
+
+            // shortcut exit if left operand failed
+            if (results.isEmpty()) {
+                return;
+            }
+
+            if (rightOperand instanceof OrNode) {
+                extractMultiplePrimaryKeyValues(stmt, rightOperand, results);
+            } else {
+                Object rightValue = extractPrimaryKeyValue(stmt, rightOperand);
+                if (rightValue != null) {
+                    results.add(rightValue.toString());
+                } else {
+                    // some invalid node, clear results and quit
+                    results.clear();
+                    return;
+                }
+            }
+        }
+    }
+
+
+    /**
+     * If a primary_key equals a constant value in the given node, and also is defined as the
+     * routing key we return the constant value this statement asks for.
+     *
+     * The {@link org.cratedb.action.sql.TransportSQLAction} can then make decisions using
+     * this values if e.g. a {@link org.elasticsearch.action.get.GetRequest} should be used
+     * instead of a {@link org.elasticsearch.action.search.SearchRequest}.
      *
      * @param stmt
      * @param node
@@ -77,6 +156,7 @@ public class QueryPlanner {
         Object value = null;
         if (node.getNodeType() == NodeTypes.BINARY_EQUALS_OPERATOR_NODE) {
             List<String> primaryKeys = stmt.tableContext().primaryKeysIncludingDefault();
+
             ValueNode leftOperand = ((BinaryRelationalOperatorNode)node).getLeftOperand();
             ValueNode rightOperand = ((BinaryRelationalOperatorNode)node).getRightOperand();
             if (leftOperand instanceof ColumnReference) {
@@ -84,6 +164,7 @@ public class QueryPlanner {
                         primaryKeys.contains(leftOperand.getColumnName())) {
                     value = stmt.visitor().evaluateValueNode(
                             leftOperand.getColumnName(), rightOperand);
+
                 }
             }
             if (rightOperand instanceof ColumnReference) {
@@ -107,8 +188,7 @@ public class QueryPlanner {
      * @return
      * @throws StandardException
      */
-    private Object extractRoutingValue(ParsedStatement stmt,
-                                       ValueNode node) throws StandardException {
+    private Object extractRoutingValue(ParsedStatement stmt, ValueNode node) throws StandardException {
         Object value = null;
         if (node.getNodeType() == NodeTypes.AND_NODE) {
             AndNode andNode = (AndNode)node;
@@ -127,6 +207,7 @@ public class QueryPlanner {
         }
 
         return value;
+
     }
 
 }

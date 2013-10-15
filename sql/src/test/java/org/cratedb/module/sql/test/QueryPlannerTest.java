@@ -14,8 +14,12 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Set;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -219,5 +223,69 @@ public class QueryPlannerTest {
         assertEquals("1", stmt.buildSearchRequest().routing());
         assertEquals(1, stmt.plannerResults().size());
     }
+
+    @Test
+    public void testSelectMultiplePrimaryKeysSimpleOr() throws StandardException {
+        execStatement("SELECT pk_col, phrase FROM phrases WHERE pk_col=? OR pk_col=?", new Object[]{"1", "2"});
+        @SuppressWarnings("unchecked")
+        Set<String> primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.MULTIPLE_PRIMARY_KEY_VALUES);
+        assertThat(primaryKeyValues, is(notNullValue()));
+        assertThat(primaryKeyValues, hasItems("1", "2"));
+        assertEquals(1, stmt.plannerResults().size());
+        assertThat(stmt.type(), is(ParsedStatement.MULTI_GET_ACTION));
+    }
+
+    @Test
+    public void testSelectMultiplePrimaryKeysDoubleOr() throws StandardException {
+        execStatement("SELECT * FROM phrases WHERE pk_col=? OR pk_col=? OR pk_col=?", new Object[]{"foo", "bar", "baz"});
+        @SuppressWarnings("unchecked")
+        Set<String> primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.MULTIPLE_PRIMARY_KEY_VALUES);
+        assertThat(primaryKeyValues, is(notNullValue()));
+        assertThat(primaryKeyValues, hasItems("foo", "bar", "baz"));
+        assertEquals(1, stmt.plannerResults().size());
+        assertThat(stmt.type(), is(ParsedStatement.MULTI_GET_ACTION));
+    }
+
+    @Test
+    public void testSelectMultiplePrimaryKeysNestedOr() throws StandardException {
+        execStatement("SELECT * FROM phrases WHERE (pk_col=? OR pk_col=?) OR (pk_col=? OR (pk_col=? OR pk_col=?))",
+                new Object[]{"TinkyWinky", "Dipsy", "Lala", "Po", "Hallo"});
+        @SuppressWarnings("unchecked")
+        Set<String> primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.MULTIPLE_PRIMARY_KEY_VALUES);
+        assertThat(primaryKeyValues, is(notNullValue()));
+        assertThat(primaryKeyValues, hasItems("TinkyWinky", "Dipsy", "Lala", "Po", "Hallo"));
+        assertEquals(1, stmt.plannerResults().size());
+        assertThat(stmt.type(), is(ParsedStatement.MULTI_GET_ACTION));
+    }
+
+    @Test
+    public void testSelectMultiplePrimaryKeysInvalid() throws StandardException {
+        execStatement("SELECT * FROM phrases WHERE pk_col=? OR phrase=?",
+                new Object[]{"in", "valid"});
+        @SuppressWarnings("unchecked")
+        Set<String> primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.MULTIPLE_PRIMARY_KEY_VALUES);
+        assertThat(primaryKeyValues, is(nullValue()));
+        assertThat(stmt.type(), is(not(ParsedStatement.MULTI_GET_ACTION)));
+    }
+
+    @Test
+    public void testSelectMultiplePrimaryKeysInvalidWithAnd() throws StandardException {
+        execStatement("SELECT * FROM phrases WHERE pk_col=? OR (pk_col=? AND pk_col=?)",
+                new Object[]{"still", "in", "valid"});
+        @SuppressWarnings("unchecked")
+        Set<String> primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.MULTIPLE_PRIMARY_KEY_VALUES);
+        assertThat(primaryKeyValues, is(nullValue()));
+        assertThat(stmt.type(), is(not(ParsedStatement.MULTI_GET_ACTION)));
+    }
+
+    @Test
+    public void testSelectMultiplePrimaryKeysInvalidNested() throws StandardException {
+        execStatement("SELECT * FROM phrases WHERE (pk_col=? OR pk_col=?) OR (pk_col=? OR (phrase=? OR pk_col=?))",
+                new Object[]{"in", "va", "lid", "ne", "sted"});
+        assertThat(stmt.getPlannerResult(QueryPlanner.MULTIPLE_PRIMARY_KEY_VALUES), is(nullValue()));
+        assertThat(stmt.type(), is(not(ParsedStatement.MULTI_GET_ACTION)));
+    }
+
+
 
 }

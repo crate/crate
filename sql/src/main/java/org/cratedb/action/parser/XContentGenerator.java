@@ -451,7 +451,6 @@ public class XContentGenerator {
     }
 
     private void generate(ValueNode node) throws IOException, StandardException {
-
         if (node instanceof BinaryRelationalOperatorNode) {
             generate((BinaryRelationalOperatorNode) node);
         } else if (node instanceof IsNullNode) {
