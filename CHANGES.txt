@@ -5,6 +5,14 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Support for: WHERE <column_name> IN ( <value_1>, <value_2>, ..., <value_n>)
+
+ - Query Planner Optimizes Select / Update / Delete Queries where:
+
+   - Where clause is: <pk_col> = <constant_value>
+   - Where clause is like: <pk_col> = <constant_value> OR <pk_col> = <constant_value OR <pk_col> = ...
+   - Where clause is like: <pk_col> = <constant_value> AND ...
+   - Where clause is like: <pk_col> IN (<constant_value>) [ OR <pk_col> = <constant_value> ... ]
 
 2013/10/11 0.15.1
 =================
