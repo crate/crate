@@ -57,7 +57,7 @@ public class TableVisitorTest {
         // default values
         Map<String, Object> expectedSettings = new HashMap<String, Object>(){{
             put("number_of_shards", 5);
-            put("number_of_replicas", 0);
+            put("number_of_replicas", 1);
         }};
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
             put("_meta", new HashMap<String, String>(){{
