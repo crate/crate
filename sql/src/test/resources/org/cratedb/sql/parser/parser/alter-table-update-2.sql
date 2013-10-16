@@ -1,0 +1,1 @@
+ALTER TABLE t1 UPDATE statistics "PRIMARY"

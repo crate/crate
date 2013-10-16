@@ -1,0 +1,1 @@
+SELECT STRAIGHT_JOIN a,b,c FROM t1 INNER JOIN t2 ON t1.id = t2.pid INNER JOIN t3 ON p2.id = t3.pid

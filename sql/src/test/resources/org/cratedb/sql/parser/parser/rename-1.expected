@@ -1,0 +1,7 @@
+org.cratedb.sql.parser.parser.RenameNode@2d8941f7
+name: schema1.t1
+statementType: RENAME TABLE
+oldTableName: 
+t1
+newTableName: 
+t2

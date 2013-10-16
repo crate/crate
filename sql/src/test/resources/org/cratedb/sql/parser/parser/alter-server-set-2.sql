@@ -1,0 +1,1 @@
+ALTER SERVER SET instrumentation = 'true'

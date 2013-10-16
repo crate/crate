@@ -1,0 +1,91 @@
+org.cratedb.sql.parser.parser.CursorNode@6564dbd5
+name: null
+updateMode: UNSPECIFIED
+statementType: SELECT
+resultSet: 	
+	org.cratedb.sql.parser.parser.SelectNode@409cb0f4
+	isDistinct: false
+	resultColumns: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@6f25844f
+
+		[0]:		
+		org.cratedb.sql.parser.parser.AllResultColumn@811978b
+		tableName: null
+		exposedName: null
+		name: null
+		tableName: null
+		isDefaultColumn: false
+		type: null
+	fromList: 		
+		org.cratedb.sql.parser.parser.FromList@3af42ad0
+
+		[0]:		
+		org.cratedb.sql.parser.parser.FromBaseTable@7426dbec
+		tableName: t1
+		updateOrDelete: null
+		null
+		correlation Name: null
+		null
+		[1]:		
+		org.cratedb.sql.parser.parser.HalfOuterJoinNode@23309e87
+		rightOuterJoin: true
+		nestedInParens: false
+		correlation Name: null
+		null
+		leftResultSet: 			
+			org.cratedb.sql.parser.parser.HalfOuterJoinNode@4cf7c31d
+			rightOuterJoin: false
+			nestedInParens: false
+			correlation Name: null
+			null
+			leftResultSet: 				
+				org.cratedb.sql.parser.parser.FromBaseTable@1e2acc65
+				tableName: t2
+				updateOrDelete: null
+				null
+				correlation Name: null
+				null
+			rightResultSet: 				
+				org.cratedb.sql.parser.parser.FromBaseTable@bd10a5c
+				tableName: t3
+				updateOrDelete: null
+				null
+				correlation Name: null
+				null
+			joinClause: 				
+				org.cratedb.sql.parser.parser.BinaryRelationalOperatorNode@48ff2413
+				operator: =
+				methodName: equals
+				type: null
+				leftOperand: 					
+					org.cratedb.sql.parser.parser.ColumnReference@669980d5
+					columnName: x
+					tableName: t2
+					type: null
+				rightOperand: 					
+					org.cratedb.sql.parser.parser.ColumnReference@67d95492
+					columnName: x
+					tableName: t3
+					type: null
+		rightResultSet: 			
+			org.cratedb.sql.parser.parser.FromBaseTable@6d3f7281
+			tableName: t4
+			updateOrDelete: null
+			null
+			correlation Name: null
+			null
+		joinClause: 			
+			org.cratedb.sql.parser.parser.BinaryRelationalOperatorNode@6076ab2f
+			operator: =
+			methodName: equals
+			type: null
+			leftOperand: 				
+				org.cratedb.sql.parser.parser.ColumnReference@ee0cc23
+				columnName: x
+				tableName: t3
+				type: null
+			rightOperand: 				
+				org.cratedb.sql.parser.parser.ColumnReference@487a1576
+				columnName: x
+				tableName: t4
+				type: null

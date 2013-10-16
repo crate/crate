@@ -1,0 +1,1 @@
+update t1 set g = x * 2, f = 1 WHERE CURRENT OF t1 RETURNING g, f

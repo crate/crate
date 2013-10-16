@@ -1,0 +1,50 @@
+org.cratedb.sql.parser.parser.PrepareStatementNode@46edf730
+name: ps
+statementType: PREPARE
+statement: 	
+	org.cratedb.sql.parser.parser.CursorNode@30ff94b1
+	name: null
+	updateMode: UNSPECIFIED
+	statementType: SELECT
+	resultSet: 		
+		org.cratedb.sql.parser.parser.SelectNode@5b7b0998
+		isDistinct: false
+		resultColumns: 			
+			org.cratedb.sql.parser.parser.ResultColumnList@6ab30913
+
+			[0]:			
+			org.cratedb.sql.parser.parser.ResultColumn@1018f51f
+			exposedName: name
+			name: name
+			tableName: null
+			isDefaultColumn: false
+			type: null
+			expression: 				
+				org.cratedb.sql.parser.parser.ColumnReference@5684ce7a
+				columnName: name
+				tableName: null
+				type: null
+		fromList: 			
+			org.cratedb.sql.parser.parser.FromList@290fd7f6
+
+			[0]:			
+			org.cratedb.sql.parser.parser.FromBaseTable@4f2b6c89
+			tableName: customers
+			updateOrDelete: null
+			null
+			correlation Name: null
+			null
+		whereClause: 			
+			org.cratedb.sql.parser.parser.BinaryRelationalOperatorNode@2be2befa
+			operator: =
+			methodName: equals
+			type: null
+			leftOperand: 				
+				org.cratedb.sql.parser.parser.ColumnReference@33682598
+				columnName: cid
+				tableName: null
+				type: null
+			rightOperand: 				
+				org.cratedb.sql.parser.parser.ParameterNode@7a7c3885
+				number: 0
+				type: null

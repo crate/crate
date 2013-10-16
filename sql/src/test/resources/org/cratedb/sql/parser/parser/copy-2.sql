@@ -1,0 +1,1 @@
+COPY t2(c1,c2) TO '/tmp/t2.csv'

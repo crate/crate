@@ -1,0 +1,29 @@
+org.cratedb.sql.parser.parser.CreateIndexNode@26fd68b1
+name: g1
+statementType: CREATE INDEX
+unique: false
+indexType: null
+indexName: g1
+tableName: group_table
+joinType: LEFT_OUTER
+properties: null
+existenceCheck: NO_CONDITION
+storageLocation: IN_MEMORY
+	
+	org.cratedb.sql.parser.parser.IndexColumnList@46e45076
+
+	[0]:	
+	org.cratedb.sql.parser.parser.IndexColumn@375e9756
+	columnName: c1
+	tableName: schema1.t1
+	ascending
+	[1]:	
+	org.cratedb.sql.parser.parser.IndexColumn@2321ab80
+	columnName: c2
+	tableName: t2
+	ascending
+	[2]:	
+	org.cratedb.sql.parser.parser.IndexColumn@77827284
+	columnName: c3
+	tableName: null
+	ascending

@@ -1,0 +1,1 @@
+alter table t1 add Unique index idx2 (z_order_lat_lon(c1, c2))

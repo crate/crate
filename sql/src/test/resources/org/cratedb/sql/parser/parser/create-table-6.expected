@@ -1,0 +1,165 @@
+org.cratedb.sql.parser.parser.CreateTableNode@502cb49d
+name: t1
+statementType: CREATE TABLE
+lockGranularity: R
+existenceCheck: NO_CONDITION
+tableElementList: 	
+	org.cratedb.sql.parser.parser.TableElementList@2705d88a
+
+	[0]:	
+	org.cratedb.sql.parser.parser.ConstraintDefinitionNode@70cb6009
+	constraintName: null
+	constraintType: PRIMARY_KEY
+	properties: null
+	name: null
+	elementType: AT_DROP_CONSTRAINT
+	columnList: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@380e28b9
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ResultColumn@2993a66f
+		exposedName: c1
+		name: c1
+		tableName: null
+		isDefaultColumn: false
+		type: null
+	[1]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@1c93d6bc
+	type: INTEGER
+	name: c1
+	elementType: null
+	[2]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@2df6df4c
+	type: INTEGER NOT NULL
+	name: c2
+	elementType: null
+	[3]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@2abe0e27
+	type: INTEGER NOT NULL
+	name: c3
+	elementType: null
+	[4]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@2393385d
+	type: INTEGER NOT NULL
+	name: c4
+	elementType: null
+	[5]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@165973ea
+	type: INTEGER NOT NULL
+	name: c5
+	elementType: null
+	[6]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@4ac9131c
+	type: INTEGER NOT NULL
+	name: c6
+	elementType: null
+	[7]:	
+	org.cratedb.sql.parser.parser.ConstraintDefinitionNode@5705b99f
+	constraintName: null
+	constraintType: UNIQUE
+	properties: null
+	name: null
+	elementType: AT_DROP_CONSTRAINT
+	columnList: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@38dda25b
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ResultColumn@5ece2187
+		exposedName: c2
+		name: c2
+		tableName: null
+		isDefaultColumn: false
+		type: null
+	[8]:	
+	org.cratedb.sql.parser.parser.ConstraintDefinitionNode@2efb56b1
+	constraintName: key_c3
+	constraintType: UNIQUE
+	properties: null
+	name: key_c3
+	elementType: AT_DROP_CONSTRAINT
+	columnList: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@76f8968f
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ResultColumn@3a64c34e
+		exposedName: c3
+		name: c3
+		tableName: null
+		isDefaultColumn: false
+		type: null
+	[9]:	
+	org.cratedb.sql.parser.parser.FKConstraintDefinitionNode@2d5253d5
+	refTable name : t3
+	grouping: false
+	constraintName: null
+	constraintType: FOREIGN_KEY
+	properties: null
+	name: null
+	elementType: AT_DROP_CONSTRAINT
+	columnList: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@77fddc31
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ResultColumn@3b835282
+		exposedName: c4
+		name: c4
+		tableName: null
+		isDefaultColumn: false
+		type: null
+	[10]:	
+	org.cratedb.sql.parser.parser.FKConstraintDefinitionNode@2a9df354
+	refTable name : t2
+	grouping: true
+	constraintName: null
+	constraintType: FOREIGN_KEY
+	properties: null
+	name: null
+	elementType: AT_DROP_CONSTRAINT
+	columnList: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@67d225a7
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ResultColumn@15a62c31
+		exposedName: c2
+		name: c2
+		tableName: null
+		isDefaultColumn: false
+		type: null
+	[11]:	
+	org.cratedb.sql.parser.parser.FKConstraintDefinitionNode@509f5011
+	refTable name : other.t5
+	grouping: false
+	constraintName: fk_c5
+	constraintType: FOREIGN_KEY
+	properties: null
+	name: fk_c5
+	elementType: AT_DROP_CONSTRAINT
+	columnList: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@b41b571
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ResultColumn@6ef137d
+		exposedName: c5
+		name: c5
+		tableName: null
+		isDefaultColumn: false
+		type: null
+	[12]:	
+	org.cratedb.sql.parser.parser.FKConstraintDefinitionNode@39e87719
+	refTable name : t6
+	grouping: true
+	constraintName: fk_c6
+	constraintType: FOREIGN_KEY
+	properties: null
+	name: fk_c6
+	elementType: AT_DROP_CONSTRAINT
+	columnList: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@4ce32802
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ResultColumn@5557c2bd
+		exposedName: c6
+		name: c6
+		tableName: null
+		isDefaultColumn: false
+		type: null

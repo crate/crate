@@ -1,0 +1,1 @@
+DROP INDEX schema1.table1.bad_index

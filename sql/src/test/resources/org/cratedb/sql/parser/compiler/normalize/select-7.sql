@@ -1,0 +1,1 @@
+SELECT * FROM t WHERE NOT ( (1, 2) IN ((1, 2), (3, 4), (5, 6) ))

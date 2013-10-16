@@ -1,0 +1,1 @@
+insert into t1 (cid, iid) values (1, next value for test.new_sequence)

@@ -1,0 +1,32 @@
+org.cratedb.sql.parser.parser.CreateTableNode@47315d34
+name: t7
+statementType: CREATE TABLE
+lockGranularity: R
+existenceCheck: NO_CONDITION
+tableElementList: 	
+	org.cratedb.sql.parser.parser.TableElementList@79de256f
+
+	[0]:	
+	org.cratedb.sql.parser.parser.ConstraintDefinitionNode@676bd8ea
+	constraintName: null
+	constraintType: PRIMARY_KEY
+	properties: null
+	name: null
+	elementType: AT_DROP_CONSTRAINT
+	columnList: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@596e1fb1
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ResultColumn@4ce2cb55
+		exposedName: c1
+		name: c1
+		tableName: null
+		isDefaultColumn: false
+		type: null
+	[1]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@3d9360e2
+	type: INTEGER NOT NULL
+	autoIncrementStart: 1
+	autoIncrementIncrement: 1
+	name: c1
+	elementType: null

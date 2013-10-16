@@ -1,0 +1,8 @@
+org.cratedb.sql.parser.parser.CreateAliasNode@77925ae
+aliasType: PROCEDURE
+aliasInfo: (IN x INTEGER, OUT y DOUBLE) LANGUAGE java PARAMETER STYLE java
+createOrReplace: false
+javaClassName: org.cratedb.ProcTest
+methodName: fooBar
+name: test.foo_bar
+statementType: CREATE PROCEDURE
