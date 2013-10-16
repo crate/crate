@@ -241,7 +241,7 @@ public class QueryPlannerTest {
         assertThat(primaryKeyValues, is(notNullValue()));
         assertThat(primaryKeyValues, hasItems("1", "2"));
         assertEquals(1, stmt.plannerResults().size());
-        assertThat(stmt.type(), is(ParsedStatement.SEARCH_ACTION));
+        assertThat(stmt.buildSearchRequest().routing().split(","), arrayContainingInAnyOrder("2", "1"));
     }
 
     @Test
@@ -252,7 +252,7 @@ public class QueryPlannerTest {
         assertThat(primaryKeyValues, is(notNullValue()));
         assertThat(primaryKeyValues, hasItems("foo", "bar", "baz"));
         assertEquals(1, stmt.plannerResults().size());
-        assertThat(stmt.type(), is(ParsedStatement.SEARCH_ACTION));
+        assertThat(stmt.buildSearchRequest().routing().split(","), arrayContainingInAnyOrder("foo", "bar", "baz"));
     }
 
     @Test
@@ -264,12 +264,34 @@ public class QueryPlannerTest {
         assertThat(primaryKeyValues, is(notNullValue()));
         assertThat(primaryKeyValues, hasItems("TinkyWinky", "Dipsy", "Lala", "Po", "Hallo"));
         assertEquals(1, stmt.plannerResults().size());
-        assertThat(stmt.type(), is(ParsedStatement.SEARCH_ACTION));
+        assertThat(stmt.buildSearchRequest().routing().split(","), arrayContainingInAnyOrder("TinkyWinky", "Dipsy", "Lala", "Po", "Hallo"));
+    }
+
+    @Test
+    public void testUpdateMultiplePrimaryKeysOr() throws StandardException {
+        execStatement("UPDATE phrases SET phrase='blabla' WHERE pk_col=? OR pk_col=?",
+                new Object[]{"TinkyWinky", "Dipsy"});
+        @SuppressWarnings("unchecked")
+        Set<String> primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
+        assertThat(primaryKeyValues, is(notNullValue()));
+        assertThat(primaryKeyValues, hasItems("TinkyWinky", "Dipsy"));
+        assertThat(stmt.buildSearchRequest().routing().split(","), arrayContainingInAnyOrder("TinkyWinky", "Dipsy"));
+    }
+
+    @Test
+    public void testDeleteMultiplePrimaryKeysOr() throws StandardException {
+        execStatement("DELETE FROM phrases WHERE pk_col=? OR pk_col=?",
+                new Object[]{"TinkyWinky", "Dipsy"});
+        @SuppressWarnings("unchecked")
+        Set<String> primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
+        assertThat(primaryKeyValues, is(notNullValue()));
+        assertThat(primaryKeyValues, hasItems("TinkyWinky", "Dipsy"));
+        assertThat(stmt.buildDeleteByQueryRequest().routing().split(","), arrayContainingInAnyOrder("TinkyWinky", "Dipsy"));
     }
 
     @Test
     public void testSelectMultiplePrimaryKeysInvalid() throws StandardException {
-        execStatement("SELECT * FROM phrases WHERE pk_col=? OR phrase=?",
+        execStatement("UPDATE phrases SET phrase='invalid' WHERE pk_col=? OR phrase=?",
                 new Object[]{"in", "valid"});
         @SuppressWarnings("unchecked")
         Set<String> primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
@@ -301,7 +323,7 @@ public class QueryPlannerTest {
         assertThat(primaryKeyValues, is(notNullValue()));
         assertThat(primaryKeyValues, hasItems("foo", "bar", "baz"));
         assertEquals(1, stmt.plannerResults().size());
-        assertThat(stmt.type(), is(ParsedStatement.SEARCH_ACTION));
+        assertThat(stmt.buildSearchRequest().routing().split(","), arrayContainingInAnyOrder("foo", "bar", "baz"));
     }
 
     @Test
@@ -313,7 +335,7 @@ public class QueryPlannerTest {
         assertThat(primaryKeyValues, is(notNullValue()));
         assertThat(primaryKeyValues, hasItems("foo", "bar", "baz", "dunno"));
         assertEquals(1, stmt.plannerResults().size());
-        assertThat(stmt.type(), is(ParsedStatement.SEARCH_ACTION));
+        assertThat(stmt.buildSearchRequest().routing().split(","), arrayContainingInAnyOrder("foo", "bar", "baz", "dunno"));
 
         execStatement("SELECT * FROM phrases WHERE pk_col=? OR pk_col=? OR pk_col IN (?, ?)",
                 new Object[]{"foo", "bar", "baz", "dunno"});
@@ -321,7 +343,7 @@ public class QueryPlannerTest {
         assertThat(primaryKeyValues, is(notNullValue()));
         assertThat(primaryKeyValues, hasItems("foo", "bar", "baz", "dunno"));
         assertEquals(1, stmt.plannerResults().size());
-        assertThat(stmt.type(), is(ParsedStatement.SEARCH_ACTION));
+        assertThat(stmt.buildSearchRequest().routing().split(","), arrayContainingInAnyOrder("foo", "bar", "baz", "dunno"));
     }
 
     @Test
