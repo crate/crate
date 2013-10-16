@@ -84,6 +84,40 @@ public class TableVisitorTest {
     }
 
     @Test
+    public void testCrateTable() throws Exception {
+        execStatement("crate table phrases (pk_col int primary key, phrase string)");
+        TableVisitor visitor = (TableVisitor)stmt.visitor();
+
+        // default values
+        Map<String, Object> expectedSettings = new HashMap<String, Object>(){{
+            put("number_of_shards", 5);
+            put("number_of_replicas", 1);
+        }};
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("_meta", new HashMap<String, String>(){{
+                put("primary_keys", "pk_col");
+            }});
+            put("properties", new HashMap<String, Object>(){{
+                put("pk_col", new HashMap<String, Object>(){{
+                    put("type", "integer");
+                    put("index", "not_analyzed");
+                    put("store", "true");
+                }});
+                put("phrase", new HashMap<String, Object>(){{
+                    put("type", "string");
+                    put("index", "not_analyzed");
+                    put("store", "true");
+                }});
+            }});
+        }};
+
+        assertEquals(expectedSettings, visitor.settings());
+        assertEquals(expectedMapping, visitor.mapping());
+
+        assertNotNull(stmt.buildCreateIndexRequest());
+    }
+
+    @Test
     public void testCreateTableWithTableProperties() throws Exception {
         execStatement("create table phrases (pk_col int primary key, " +
                 "phrase string) replicas 2 clustered by(pk_col) into 10 shards");
