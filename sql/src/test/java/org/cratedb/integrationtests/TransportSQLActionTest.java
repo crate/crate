@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
 
 public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
@@ -1114,7 +1115,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     @Test
-    public void testSelectToMultiGetRequestByPlanner() throws Exception {
+    public void testSelectToRoutedRequestByPlanner() throws Exception {
         createTestIndexWithPkAndRoutingMapping();
 
         execute("insert into test (some_id, foo) values (1, 'foo')");
@@ -1134,7 +1135,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     @Test
-    public void testSelectToMultiGetRequestByPlannerMissingDocuments() throws Exception {
+    public void testSelectToRoutedRequestByPlannerMissingDocuments() throws Exception {
         createTestIndexWithPkAndRoutingMapping();
 
         execute("insert into test (some_id, foo) values (1, 'foo')");
@@ -1151,7 +1152,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     @Test
-    public void testSelectToMultiGetRequestByPlannerWhereIn() throws Exception {
+    public void testSelectToRoutedRequestByPlannerWhereIn() throws Exception {
         createTestIndexWithPkAndRoutingMapping();
 
         execute("insert into test (some_id, foo) values (1, 'foo')");
@@ -1161,6 +1162,24 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("SELECT * FROM test WHERE some_id IN (?,?,?)", new Object[]{"1", "2", "3"});
         assertEquals(3, response.rowCount());
+    }
+
+    @Test
+    public void testDeleteToRoutedRequestByPlannerWhereIn() throws Exception {
+        createTestIndexWithPkAndRoutingMapping();
+
+        execute("insert into test (some_id, foo) values (1, 'foo')");
+        execute("insert into test (some_id, foo) values (2, 'bar')");
+        execute("insert into test (some_id, foo) values (3, 'baz')");
+        refresh();
+
+        execute("DELETE FROM test WHERE some_Id IN (?, ?, ?)", new Object[]{"1", "2", "4"});
+        refresh();
+
+        execute("SELECT some_id FROM test");
+        assertThat(response.rowCount(), is(1L));
+        assertEquals(response.rows()[0][0], "3");
+
     }
 
 }
