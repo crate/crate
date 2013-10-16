@@ -1,0 +1,4 @@
+org.cratedb.sql.parser.parser.SetSchemaNode@97494c8
+statementType: SET SCHEMA
+schemaName: 
+test

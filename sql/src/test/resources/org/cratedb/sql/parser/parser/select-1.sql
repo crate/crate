@@ -1,0 +1,1 @@
+SELECT x,y FROM t WHERE z > 3.14 AND w IS NOT NULL

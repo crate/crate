@@ -1,0 +1,1 @@
+SELECT * FROM t WHERE (a = TRUE) AND ((b = TRUE) AND ((c = TRUE) AND ((d = FALSE) AND TRUE)))

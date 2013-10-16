@@ -1,0 +1,23 @@
+org.cratedb.sql.parser.parser.AlterTableNode@14dc6233
+name: t1
+statementType: ALTER TABLE
+objectName: t1
+compressTable: false
+sequential: false
+truncateTable: false
+purge: false
+defragment: false
+truncateEndOfTable: false
+updateStatistics: false
+updateStatisticsAll: false
+indexNameForUpdateStatistics: null
+tableElementList: 	
+	org.cratedb.sql.parser.parser.TableElementList@10b30cf8
+
+	[0]:	
+	org.cratedb.sql.parser.parser.ModifyColumnNode@5b187658
+	type: null
+	autoIncrementStart: 100
+	autoIncrementIncrement: 0
+	name: c
+	elementType: AT_MODIFY_COLUMN

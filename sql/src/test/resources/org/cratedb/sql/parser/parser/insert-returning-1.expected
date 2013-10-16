@@ -1,0 +1,100 @@
+org.cratedb.sql.parser.parser.InsertNode@7632efa7
+statementType: INSERT
+resultSet: 	
+	org.cratedb.sql.parser.parser.RowResultSetNode@6825c828
+	correlation Name: null
+	null
+	resultColumns: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@877ef83
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ResultColumn@7a0d85cc
+		exposedName: null
+		name: null
+		tableName: null
+		isDefaultColumn: true
+		type: null
+		expression: 			
+			org.cratedb.sql.parser.parser.DefaultNode@dcb52ae
+			columnName: null
+			defaultText: null
+			type: null
+		[1]:		
+		org.cratedb.sql.parser.parser.ResultColumn@1fa12495
+		exposedName: null
+		name: null
+		tableName: null
+		isDefaultColumn: false
+		type: null
+		expression: 			
+			org.cratedb.sql.parser.parser.CharConstantNode@c68c26c
+			value: fred
+			type: CHAR(4) NOT NULL
+		[2]:		
+		org.cratedb.sql.parser.parser.ResultColumn@31b446d1
+		exposedName: null
+		name: null
+		tableName: null
+		isDefaultColumn: false
+		type: null
+		expression: 			
+			org.cratedb.sql.parser.parser.CharConstantNode@32955cd5
+			value: last
+			type: CHAR(4) NOT NULL
+targetTableName: 	
+	org.cratedb.sql.parser.parser.TableName@e3d
+	t1
+returningList: 	
+	org.cratedb.sql.parser.parser.ResultColumnList@6c01bde4
+
+	[0]:	
+	org.cratedb.sql.parser.parser.ResultColumn@6659fb21
+	exposedName: id
+	name: id
+	tableName: null
+	isDefaultColumn: false
+	type: null
+	expression: 		
+		org.cratedb.sql.parser.parser.ColumnReference@1d766806
+		columnName: id
+		tableName: null
+		type: null
+targetColumnList: 	
+	org.cratedb.sql.parser.parser.ResultColumnList@48a77106
+
+	[0]:	
+	org.cratedb.sql.parser.parser.ResultColumn@68ed662d
+	exposedName: id
+	name: id
+	tableName: null
+	isDefaultColumn: false
+	type: null
+	reference: 		
+		org.cratedb.sql.parser.parser.ColumnReference@39cf4a2c
+		columnName: id
+		tableName: null
+		type: null
+	[1]:	
+	org.cratedb.sql.parser.parser.ResultColumn@580eac5a
+	exposedName: name
+	name: name
+	tableName: null
+	isDefaultColumn: false
+	type: null
+	reference: 		
+		org.cratedb.sql.parser.parser.ColumnReference@2b5575e0
+		columnName: name
+		tableName: null
+		type: null
+	[2]:	
+	org.cratedb.sql.parser.parser.ResultColumn@77addb59
+	exposedName: last_value
+	name: last_value
+	tableName: null
+	isDefaultColumn: false
+	type: null
+	reference: 		
+		org.cratedb.sql.parser.parser.ColumnReference@371bed71
+		columnName: last_value
+		tableName: null
+		type: null

@@ -1,0 +1,78 @@
+org.cratedb.sql.parser.parser.CursorNode@5f70bea5
+name: null
+updateMode: UNSPECIFIED
+statementType: SELECT
+resultSet: 	
+	org.cratedb.sql.parser.parser.SelectNode@62f47396
+	isDistinct: false
+	resultColumns: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@1ed0af9b
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ResultColumn@16b8f8eb
+		exposedName: x
+		name: x
+		tableName: null
+		isDefaultColumn: false
+		type: null
+		expression: 			
+			org.cratedb.sql.parser.parser.ColumnReference@49de17f4
+			columnName: x
+			tableName: null
+			type: null
+		[1]:		
+		org.cratedb.sql.parser.parser.ResultColumn@13f6ba0f
+		exposedName: y
+		name: y
+		tableName: null
+		isDefaultColumn: false
+		type: null
+		expression: 			
+			org.cratedb.sql.parser.parser.ColumnReference@2b313906
+			columnName: y
+			tableName: null
+			type: null
+	fromList: 		
+		org.cratedb.sql.parser.parser.FromList@2c96cf11
+
+		[0]:		
+		org.cratedb.sql.parser.parser.FromBaseTable@60f47bf5
+		tableName: t
+		updateOrDelete: null
+		null
+		correlation Name: null
+		null
+	whereClause: 		
+		org.cratedb.sql.parser.parser.AndNode@52f6438d
+		operator: and
+		methodName: and
+		type: null
+		leftOperand: 			
+			org.cratedb.sql.parser.parser.BinaryRelationalOperatorNode@25cd0888
+			operator: >
+			methodName: greaterThan
+			type: null
+			leftOperand: 				
+				org.cratedb.sql.parser.parser.ColumnReference@37eb2c1b
+				columnName: z
+				tableName: null
+				type: null
+			rightOperand: 				
+				org.cratedb.sql.parser.parser.NumericConstantNode@309cbd4b
+				value: 3.14
+				type: DECIMAL(3,2) NOT NULL
+		rightOperand: 			
+			org.cratedb.sql.parser.parser.NotNode@24f9fdc
+			operator: not
+			methodName: not
+			type: null
+			operand: 				
+				org.cratedb.sql.parser.parser.IsNullNode@398825b3
+				operator: is null
+				methodName: isNull
+				type: null
+				operand: 					
+					org.cratedb.sql.parser.parser.ColumnReference@19632847
+					columnName: w
+					tableName: null
+					type: null

@@ -1,0 +1,88 @@
+org.cratedb.sql.parser.parser.CursorNode@779b04e2
+name: null
+updateMode: UNSPECIFIED
+statementType: SELECT
+resultSet: 	
+	org.cratedb.sql.parser.parser.SelectNode@625dcec6
+	isDistinct: false
+	resultColumns: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@7cb25b9d
+
+		[0]:		
+		org.cratedb.sql.parser.parser.AllResultColumn@219ce060
+		tableName: null
+		exposedName: null
+		name: null
+		tableName: null
+		isDefaultColumn: false
+		type: null
+	fromList: 		
+		org.cratedb.sql.parser.parser.FromList@424ecfdd
+
+		[0]:		
+		org.cratedb.sql.parser.parser.FromBaseTable@4430d82d
+		tableName: t1
+		updateOrDelete: null
+		null
+		correlation Name: null
+		null
+	whereClause: 		
+		org.cratedb.sql.parser.parser.SubqueryNode@62c09554
+		subqueryType: EXISTS
+		type: null
+		resultSet: 			
+			org.cratedb.sql.parser.parser.IntersectOrExceptNode@518bf072
+			all: false
+			nestedInParens: false
+			correlation Name: null
+			null
+			resultColumns: 				
+				org.cratedb.sql.parser.parser.ResultColumnList@3a56f631
+
+				[0]:				
+				org.cratedb.sql.parser.parser.ResultColumn@233d28e3
+				exposedName: null
+				name: null
+				tableName: null
+				isDefaultColumn: false
+				type: null
+				expression: 					
+					org.cratedb.sql.parser.parser.NumericConstantNode@4476128
+					value: 1
+					type: INTEGER NOT NULL
+			leftResultSet: 				
+				org.cratedb.sql.parser.parser.RowResultSetNode@6a3b8b49
+				correlation Name: null
+				null
+				resultColumns: 					
+					org.cratedb.sql.parser.parser.ResultColumnList@6b359c1b
+
+					[0]:					
+					org.cratedb.sql.parser.parser.ResultColumn@c9be79a
+					exposedName: null
+					name: null
+					tableName: null
+					isDefaultColumn: false
+					type: null
+					expression: 						
+						org.cratedb.sql.parser.parser.NumericConstantNode@4f8235ed
+						value: 1
+						type: INTEGER NOT NULL
+			rightResultSet: 				
+				org.cratedb.sql.parser.parser.RowResultSetNode@6da28362
+				correlation Name: null
+				null
+				resultColumns: 					
+					org.cratedb.sql.parser.parser.ResultColumnList@485fcf29
+
+					[0]:					
+					org.cratedb.sql.parser.parser.ResultColumn@a19b1de
+					exposedName: null
+					name: null
+					tableName: null
+					isDefaultColumn: false
+					type: null
+					expression: 						
+						org.cratedb.sql.parser.parser.NumericConstantNode@1cec6b00
+						value: 2
+						type: INTEGER NOT NULL

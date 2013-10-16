@@ -1,0 +1,1 @@
+SELECT * FROM (SELECT z,y FROM t1) AS s

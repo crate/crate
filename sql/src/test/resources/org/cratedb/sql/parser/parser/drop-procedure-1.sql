@@ -1,0 +1,1 @@
+DROP PROCEDURE test.foo_bar

@@ -1,0 +1,4 @@
+org.cratedb.sql.parser.parser.FetchStatementNode@f5e0873
+name: pc
+count: 1
+statementType: FETCH

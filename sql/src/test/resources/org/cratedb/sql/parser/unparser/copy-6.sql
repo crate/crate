@@ -1,0 +1,1 @@
+COPY t1 FROM 't1.csv' WITH (HEADER false, COMMIT 10000)

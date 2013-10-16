@@ -1,0 +1,1 @@
+SELECT * FROM t1,t2 LEFT OUTER JOIN t3 ON t2.x = t3.x RIGHT OUTER JOIN t4 ON t3.x = t4.x

@@ -1,0 +1,1 @@
+UPDATE t1 SET id = next value for sequence1 where name = 'fred' returning id

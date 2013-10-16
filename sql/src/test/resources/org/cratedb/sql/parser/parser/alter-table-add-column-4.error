@@ -1,0 +1,1 @@
+org.cratedb.sql.parser.StandardException: Auto increment column not allowed in ALTER TABLE

@@ -1,0 +1,1 @@
+COPY t1 TO STDOUT

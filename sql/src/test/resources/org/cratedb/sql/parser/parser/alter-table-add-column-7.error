@@ -1,0 +1,3 @@
+org.cratedb.sql.parser.parser.SQLParserException: Encountered "" at line 1, column 39.
+Was expecting one of:
+    

@@ -1,0 +1,130 @@
+org.cratedb.sql.parser.parser.InsertNode@4090c06f
+statementType: INSERT
+resultSet: 	
+	org.cratedb.sql.parser.parser.RowResultSetNode@5f49d886
+	correlation Name: null
+	null
+	resultColumns: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@69267649
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ResultColumn@5c1fe88d
+		exposedName: null
+		name: null
+		tableName: null
+		isDefaultColumn: false
+		type: null
+		expression: 			
+			org.cratedb.sql.parser.parser.NextSequenceNode@32dcb03b
+			type: null
+			Sequence: sequence_1
+		[1]:		
+		org.cratedb.sql.parser.parser.ResultColumn@36b60b93
+		exposedName: null
+		name: null
+		tableName: null
+		isDefaultColumn: false
+		type: null
+		expression: 			
+			org.cratedb.sql.parser.parser.CharConstantNode@69b1fbf4
+			value: fred
+			type: CHAR(4) NOT NULL
+		[2]:		
+		org.cratedb.sql.parser.parser.ResultColumn@24148662
+		exposedName: null
+		name: null
+		tableName: null
+		isDefaultColumn: false
+		type: null
+		expression: 			
+			org.cratedb.sql.parser.parser.CharConstantNode@3f829e6f
+			value: last
+			type: CHAR(4) NOT NULL
+targetTableName: 	
+	org.cratedb.sql.parser.parser.TableName@74
+	t
+returningList: 	
+	org.cratedb.sql.parser.parser.ResultColumnList@186fa9fc
+
+	[0]:	
+	org.cratedb.sql.parser.parser.ResultColumn@4b00ebec
+	exposedName: null
+	name: null
+	tableName: null
+	isDefaultColumn: false
+	type: null
+	expression: 		
+		org.cratedb.sql.parser.parser.BinaryArithmeticOperatorNode@2980f96c
+		operator: +
+		methodName: plus
+		type: null
+		leftOperand: 			
+			org.cratedb.sql.parser.parser.ColumnReference@527736bd
+			columnName: id
+			tableName: null
+			type: null
+		rightOperand: 			
+			org.cratedb.sql.parser.parser.NumericConstantNode@10aadc97
+			value: 1000
+			type: INTEGER NOT NULL
+	[1]:	
+	org.cratedb.sql.parser.parser.ResultColumn@4178460d
+	exposedName: null
+	name: null
+	tableName: null
+	isDefaultColumn: false
+	type: null
+	expression: 		
+		org.cratedb.sql.parser.parser.ConcatenationOperatorNode@3f3f210f
+		operator: ||
+		methodName: concatenate
+		type: null
+		leftOperand: 			
+			org.cratedb.sql.parser.parser.ColumnReference@49938039
+			columnName: name
+			tableName: null
+			type: null
+		rightOperand: 			
+			org.cratedb.sql.parser.parser.ColumnReference@72c743eb
+			columnName: last_value
+			tableName: null
+			type: null
+targetColumnList: 	
+	org.cratedb.sql.parser.parser.ResultColumnList@783c342b
+
+	[0]:	
+	org.cratedb.sql.parser.parser.ResultColumn@388530b8
+	exposedName: id
+	name: id
+	tableName: null
+	isDefaultColumn: false
+	type: null
+	reference: 		
+		org.cratedb.sql.parser.parser.ColumnReference@30419d05
+		columnName: id
+		tableName: null
+		type: null
+	[1]:	
+	org.cratedb.sql.parser.parser.ResultColumn@23abcc03
+	exposedName: name
+	name: name
+	tableName: null
+	isDefaultColumn: false
+	type: null
+	reference: 		
+		org.cratedb.sql.parser.parser.ColumnReference@63deeb40
+		columnName: name
+		tableName: null
+		type: null
+	[2]:	
+	org.cratedb.sql.parser.parser.ResultColumn@4026e9f9
+	exposedName: last_value
+	name: last_value
+	tableName: null
+	isDefaultColumn: false
+	type: null
+	reference: 		
+		org.cratedb.sql.parser.parser.ColumnReference@3acafb56
+		columnName: last_value
+		tableName: null
+		type: null

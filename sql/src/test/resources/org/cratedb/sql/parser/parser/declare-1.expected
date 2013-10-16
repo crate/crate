@@ -1,0 +1,32 @@
+org.cratedb.sql.parser.parser.DeclareStatementNode@5de9ac4
+name: pc
+statementType: DECLARE
+statement: 	
+	org.cratedb.sql.parser.parser.CursorNode@5982bcde
+	name: null
+	updateMode: UNSPECIFIED
+	statementType: SELECT
+	resultSet: 		
+		org.cratedb.sql.parser.parser.SelectNode@163dc0bb
+		isDistinct: false
+		resultColumns: 			
+			org.cratedb.sql.parser.parser.ResultColumnList@30384065
+
+			[0]:			
+			org.cratedb.sql.parser.parser.AllResultColumn@3d0bbf9e
+			tableName: null
+			exposedName: null
+			name: null
+			tableName: null
+			isDefaultColumn: false
+			type: null
+		fromList: 			
+			org.cratedb.sql.parser.parser.FromList@4e513d61
+
+			[0]:			
+			org.cratedb.sql.parser.parser.FromBaseTable@3794d372
+			tableName: t1
+			updateOrDelete: null
+			null
+			correlation Name: null
+			null
