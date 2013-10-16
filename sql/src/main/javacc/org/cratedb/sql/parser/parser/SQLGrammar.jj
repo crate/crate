@@ -1056,7 +1056,6 @@ class SQLGrammar
         case INT:
         case SMALLINT:
         case LONGINT:
-        case FLOAT:
         case REAL:
         case DATE:
         case TIME:
@@ -1095,7 +1094,7 @@ class SQLGrammar
                 break;
             }
             else {
-                retval = true;
+                retval = false;
                 break;
             }
 
@@ -2140,7 +2139,6 @@ TOKEN [IGNORE_CASE] :
 | <FALSE: "false">
 | <FETCH: "fetch">
 | <FIRST: "first">
-| <FLOAT: "float">
 | <FOR: "for">
 | <FOREIGN: "foreign">
 | <FOUND: "found">
@@ -2274,6 +2272,10 @@ TOKEN [IGNORE_CASE] :
 | <WORK: "work">
 | <WRITE: "write">
 | <YEAR: "year">
+/* crate SQL reserved keywords */
+| <CLUSTERED: "clustered">
+| <REPLICAS: "replicas">
+| <SHARDS: "shards">
 }
 
 /* This list should contain only and all SQL92 keywords that are
@@ -2412,6 +2414,14 @@ TOKEN [IGNORE_CASE] :
 | <XMLQUERY:    "xmlquery">
 | <XMLSERIALIZE:    "xmlserialize">
 | <Z_ORDER_LAT_LON: "z_order_lat_lon">
+}
+
+/**
+ * CrateDB non-reserved keywords
+ */
+TOKEN [IGNORE_CASE] :
+{
+  <FLOAT: "float">
 }
 
 /* This list should contain non-SQL92 keywords that are not reserved.
@@ -3896,7 +3906,7 @@ dataTypeDDL() throws StandardException :
     DataTypeDescriptor typeDescriptor;
 }
 {
-    LOOKAHEAD( { commonDatatypeName(false) } )
+    LOOKAHEAD( { commonDatatypeName(true) } )
     typeDescriptor = dataTypeCommon()
     {
         return typeDescriptor;
@@ -3973,7 +3983,9 @@ dataTypeCommon() throws StandardException :
         typeDescriptor = new DataTypeDescriptor(TypeId.BOOLEAN_ID, true);
     }
 |
-    typeDescriptor = longType()
+    ( LOOKAHEAD( { (getToken(2).kind == VARCHAR) || (getToken(2).kind == NVARCHAR) } )
+        typeDescriptor = longType()
+    )
 |
     typeDescriptor = LOBType()
 |
@@ -10299,6 +10311,7 @@ tableDefinition() throws StandardException :
     TableName tableName;
     TableElementList tableElementList;
     Properties properties = null;
+    Properties crateProperties = null;
     char lockGranularity = CreateTableNode.DEFAULT_LOCK_GRANULARITY;
     ResultColumnList resultColumns = null;
     ResultSetNode queryExpression;
@@ -10313,20 +10326,28 @@ tableDefinition() throws StandardException :
         LOOKAHEAD( { getToken(1).kind == LEFT_PAREN && 
                      getToken(3).kind != COMMA && getToken(3).kind != RIGHT_PAREN } )
         tableElementList = tableElementList()
+        [ crateProperties = crateTableProperties()]
         [ properties = propertyList(false)<CHECK_PROPERTIES>]
     {
-        return (StatementNode)nodeFactory.getNode(NodeTypes.CREATE_TABLE_NODE,
+        StatementNode result = (StatementNode)nodeFactory.getNode(NodeTypes.CREATE_TABLE_NODE,
                                                   tableName,
                                                   tableElementList,
                                                   properties,
                                                   new Character(lockGranularity),
                                                   cond,
                                                   parserContext);
+
+        if (crateProperties != null) {
+            ((CreateTableNode)result).setCrateProperties(crateProperties);
+        }
+
+        return result;
     }
     |
         [ <LEFT_PAREN> resultColumns = tableColumnList() <RIGHT_PAREN> ]
         <AS> queryExpression = queryExpression(null, NO_SET_OP)
         <WITH> [ <NO> { withData = false; } ] <DATA>
+        [ crateProperties = crateTableProperties()]
     {
         /* Parameters not allowed in create table */
         HasNodeVisitor visitor =
@@ -10345,10 +10366,74 @@ tableDefinition() throws StandardException :
         if (withData) {
             ((CreateTableNode)result).markWithData();
         }
+
+        if (crateProperties != null) {
+            ((CreateTableNode)result).setCrateProperties(crateProperties);
+        }
+
         return result;
     }
     )
 }
+
+/* CRATE TABLE PROPERTIES START */
+
+Properties
+crateTableProperties() throws StandardException :
+{
+    Properties properties = new Properties();
+}
+{
+    crateTableProperty(properties)
+    ( crateTableProperty(properties) )*
+    {
+        return properties;
+    }
+}
+
+void
+crateTableProperty(Properties properties) throws StandardException :
+{
+    Integer replicasNumber = null;
+}
+{
+    (
+        <REPLICAS> replicasNumber = uint_value()
+    |
+        <CLUSTERED> crateTableClusterProperty(properties)
+        ( crateTableClusterProperty(properties) )*
+    )
+    {
+        if (replicasNumber != null) {
+            properties.put("replicas", replicasNumber);
+        }
+    }
+}
+
+void
+crateTableClusterProperty(Properties properties) throws StandardException :
+{
+    Integer shardsNumber = null;
+    ColumnReference routingColumn = null;
+}
+{
+    (
+        <BY> <LEFT_PAREN> routingColumn = columnReference() <RIGHT_PAREN>
+    |
+        <INTO> shardsNumber = uint_value() [<SHARDS>]
+    )
+    {
+        if (shardsNumber != null) {
+            properties.put("shards", shardsNumber);
+        }
+        if (routingColumn != null) {
+            properties.put("routingColumn", routingColumn);
+        }
+    }
+}
+
+/* CRATE TABLE PROPERTIES END */
+
 
 ResultColumnList
 tableColumnList() throws StandardException :
@@ -14826,7 +14911,7 @@ reservedKeyword() :
 | tok = <EXTERNAL>
 | tok = <FALSE>
 | tok = <FETCH>
-| tok = <FLOAT>
+//| tok = <FLOAT> // SQL reserved, CrateDB non-reserved
 | tok = <FOR>
 | tok = <FOREIGN>
 | tok = <FROM>
@@ -14956,6 +15041,12 @@ reservedKeyword() :
 | tok = <XMLEXISTS>
 | tok = <XMLQUERY>
 | tok = <Z_ORDER_LAT_LON>
+
+   /* CrateDB SQL reserved keywords */
+| tok = <CLUSTERED>
+| tok = <REPLICAS>
+| tok = <SHARDS>
+
 )
     {
         // Remember whether last token was a delimited identifier
@@ -15038,6 +15129,7 @@ nonReservedKeyword() :
 | tok = <EXTRACT>
 | tok = <FIRST> // SQL92 reserved, SQL2003 non-reserved
 | tok = <FN>
+| tok = <FLOAT> // SQL reserved, CrateDB non-reserved
 | tok = <FORCE>
 | tok = <FORMAT>
 | tok = <FORTRAN>

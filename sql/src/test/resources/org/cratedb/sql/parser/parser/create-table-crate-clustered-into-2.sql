@@ -1,0 +1,1 @@
+create table t1 (c1 int) clustered into 5 shards
