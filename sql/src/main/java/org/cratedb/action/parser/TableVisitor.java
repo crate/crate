@@ -1,7 +1,5 @@
 package org.cratedb.action.parser;
 
-import com.google.common.collect.ImmutableMap;
-import com.sun.org.apache.xalan.internal.xsltc.compiler.util.NodeType;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
@@ -11,10 +9,8 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
-import static com.google.common.collect.Maps.immutableEnumMap;
 import static com.google.common.collect.Maps.newHashMap;
 
 public class TableVisitor extends XContentVisitor {
@@ -114,15 +110,16 @@ public class TableVisitor extends XContentVisitor {
         return node;
     }
 
-    String getTypeName(ColumnDefinitionNode node) {
+    private String getTypeName(ColumnDefinitionNode node) {
         TypeId typeId = node.getType().getTypeId();
         if (typeId.isBooleanTypeId()) {
             return "boolean";
         } else if(typeId.isIntegerTypeId()) {
             // TODO: LONG, SHORT, BYTE ...
             return "integer";
+        } else {
+            throw new SQLParseException("Unsupported Type");
         }
-
     }
 
 
