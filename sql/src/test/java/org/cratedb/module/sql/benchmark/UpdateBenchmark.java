@@ -28,17 +28,18 @@ import java.util.Map;
 @BenchmarkMethodChart(filePrefix = "benchmark-update")
 public class UpdateBenchmark extends BenchmarkBase {
 
-    @Rule
-    public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
-
     public static final int NUM_REQUESTS_PER_TEST = 100;
     public static final int BENCHMARK_ROUNDS = 100;
 
-    public String updateId;
+    public String updateId = null;
+    public String updateIdqueryPlannerEnabled = null;
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
+
+    @Rule
+    public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
     @Override
     public boolean loadData() {
@@ -46,23 +47,28 @@ public class UpdateBenchmark extends BenchmarkBase {
     }
 
     @Before
-    public void getUpdateId() {
-        if (updateId == null) {
+    public void getUpdateIds() {
+        if (updateId == null || updateIdqueryPlannerEnabled == null) {
             SQLRequest request = new SQLRequest("SELECT \"_id\" FROM countries WHERE \"countryCode\"=?", new Object[]{"AT"});
-            SQLResponse response = client().execute(SQLAction.INSTANCE, request).actionGet();
+            SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, request).actionGet();
             assert response.rows().length == 1;
             updateId = (String)response.rows()[0][0];
+
+            request = new SQLRequest("SELECT \"_id\" FROM countries WHERE \"countryCode\"=?", new Object[]{"AT"});
+            response = getClient(true).execute(SQLAction.INSTANCE, request).actionGet();
+            assert response.rows().length == 1;
+            updateIdqueryPlannerEnabled = (String)response.rows()[0][0];
         }
     }
 
-    public SQLRequest getSqlUpdateByIdRequest() {
-        return new SQLRequest("UPDATE countries SET population=? WHERE \"_id\"=?", new Object[]{ Math.abs(getRandom().nextInt()), updateId });
+    public SQLRequest getSqlUpdateByIdRequest(boolean queryPlannerEnabled) {
+        return new SQLRequest("UPDATE countries SET population=? WHERE \"_id\"=?", new Object[]{ Math.abs(getRandom().nextInt()), queryPlannerEnabled ? updateIdqueryPlannerEnabled : updateId });
     }
 
-    public UpdateRequest getApiUpdateByIdRequest() {
+    public UpdateRequest getApiUpdateByIdRequest(boolean queryPlannerEnabled) {
         Map<String, Integer> updateDoc = new HashMap<>();
         updateDoc.put("population", Math.abs(getRandom().nextInt()));
-        return new UpdateRequest(INDEX_NAME, "default", updateId).doc(updateDoc);
+        return new UpdateRequest(INDEX_NAME, "default", queryPlannerEnabled ? updateIdqueryPlannerEnabled : updateId).doc(updateDoc);
     }
 
     public SQLRequest getSqlUpdateRequest() {
@@ -96,7 +102,19 @@ public class UpdateBenchmark extends BenchmarkBase {
     @Test
     public void testUpdateSql() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SQLResponse response = client().execute(SQLAction.INSTANCE, getSqlUpdateRequest()).actionGet();
+            SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getSqlUpdateRequest()).actionGet();
+            assertEquals(
+                    1,
+                    response.rowCount()
+            );
+        }
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void testUpdateSqlQueryPlannerEnabled() {
+        for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
+            SQLResponse response = getClient(true).execute(SQLAction.INSTANCE, getSqlUpdateRequest()).actionGet();
             assertEquals(
                     1,
                     response.rowCount()
@@ -108,7 +126,7 @@ public class UpdateBenchmark extends BenchmarkBase {
     @Test
     public void testUpdateApi() throws IOException {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SearchResponse response = client().execute(SearchAction.INSTANCE, getApiUpdateRequest()).actionGet();
+            SearchResponse response = getClient(false).execute(SearchAction.INSTANCE, getApiUpdateRequest()).actionGet();
             assertEquals(1, response.getHits().totalHits());
         }
     }
@@ -118,7 +136,19 @@ public class UpdateBenchmark extends BenchmarkBase {
     @Test
     public void testUpdateSqlById() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SQLResponse response = client().execute(SQLAction.INSTANCE, getSqlUpdateByIdRequest()).actionGet();
+            SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getSqlUpdateByIdRequest(false)).actionGet();
+            assertEquals(
+                    1,
+                    response.rowCount()
+            );
+        }
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void testUpdateSqlByIdQueryPlannerEnabled() {
+        for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
+            SQLResponse response = getClient(true).execute(SQLAction.INSTANCE, getSqlUpdateByIdRequest(true)).actionGet();
             assertEquals(
                     1,
                     response.rowCount()
@@ -130,8 +160,10 @@ public class UpdateBenchmark extends BenchmarkBase {
     @Test
     public void testUpdateApiById() {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            UpdateResponse response = client().execute(UpdateAction.INSTANCE, getApiUpdateByIdRequest()).actionGet();
+            UpdateResponse response = getClient(false).execute(UpdateAction.INSTANCE, getApiUpdateByIdRequest(false)).actionGet();
             assertEquals(updateId, response.getId());
         }
     }
+
+
 }

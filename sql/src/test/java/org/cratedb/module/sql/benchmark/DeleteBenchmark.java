@@ -26,14 +26,14 @@ import java.util.List;
 @BenchmarkMethodChart(filePrefix = "benchmark-delete")
 public class DeleteBenchmark extends BenchmarkBase {
 
-    @Rule
-    public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
-
     public static final int NUM_REQUESTS_PER_TEST = 100;
     public static final int BENCHMARK_ROUNDS = 24; // Don't exceed the number of deletable rows
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
+
+    @Rule
+    public TestRule benchmarkRun = RuleChain.outerRule(new BenchmarkRule()).around(super.ruleChain);
 
     private List<String> ids = new ArrayList<>(250);
     private List<String> countryCodes = new ArrayList<>(250);
@@ -49,7 +49,7 @@ public class DeleteBenchmark extends BenchmarkBase {
             doLoadData();
             // setupOnce non-static
             SQLRequest request = new SQLRequest("SELECT \"_id\", \"countryCode\" FROM countries");
-            SQLResponse response = client().execute(SQLAction.INSTANCE, request).actionGet();
+            SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, request).actionGet();
             for (int i=0; i<response.rows().length;i++ ) {
                 ids.add((String) response.rows()[i][0]);
                 countryCodes.add((String) response.rows()[i][1]);
@@ -99,7 +99,7 @@ public class DeleteBenchmark extends BenchmarkBase {
     @Test
     public void testDeleteApiById() throws Exception {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            DeleteResponse response = client().execute(DeleteAction.INSTANCE, getDeleteApiByIdRequest()).actionGet();
+            DeleteResponse response = getClient(false).execute(DeleteAction.INSTANCE, getDeleteApiByIdRequest()).actionGet();
             assertFalse(response.isNotFound());
         }
     }
@@ -108,7 +108,7 @@ public class DeleteBenchmark extends BenchmarkBase {
     @Test
     public void testDeleteApiByQuery() throws Exception {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            client().execute(DeleteByQueryAction.INSTANCE, getDeleteApiByQueryRequest()).actionGet();
+            getClient(false).execute(DeleteByQueryAction.INSTANCE, getDeleteApiByQueryRequest()).actionGet();
         }
     }
 
@@ -116,15 +116,32 @@ public class DeleteBenchmark extends BenchmarkBase {
     @Test
     public void testDeleteSqlById() throws Exception {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SQLResponse response = client().execute(SQLAction.INSTANCE, getDeleteSqlByIdRequest()).actionGet();
+            SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getDeleteSqlByIdRequest()).actionGet();
         }
     }
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
     @Test
+    public void testDeleteSqlByIdQueryPlannerEnabled() throws Exception {
+        for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
+            SQLResponse response = getClient(true).execute(SQLAction.INSTANCE, getDeleteSqlByIdRequest()).actionGet();
+        }
+    }
+
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
     public void testDeleteSQLByQuery() throws Exception {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
-            SQLResponse response = client().execute(SQLAction.INSTANCE, getDeleteSqlByQueryRequest()).actionGet();
+            SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getDeleteSqlByQueryRequest()).actionGet();
+        }
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void testDeleteSQLByQueryQueryPlannerEnabled() throws Exception {
+        for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
+            SQLResponse response = getClient(true).execute(SQLAction.INSTANCE, getDeleteSqlByQueryRequest()).actionGet();
         }
     }
 }
