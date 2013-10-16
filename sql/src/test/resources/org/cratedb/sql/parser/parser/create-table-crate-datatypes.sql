@@ -6,5 +6,6 @@ c4 double,
 c5 short,
 c6 byte,
 c7 float,
-c8 timestamp
+c8 timestamp,
+c9 boolean
 )

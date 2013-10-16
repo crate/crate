@@ -46,3 +46,8 @@ tableElementList:
 	type: TIMESTAMP
 	name: c8
 	elementType: null
+	[8]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@a8960c5
+	type: BOOLEAN
+	name: c9
+	elementType: null
