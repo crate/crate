@@ -1,5 +1,7 @@
 package org.cratedb.action.sql;
 
+import org.cratedb.action.DistributedSQLRequest;
+import org.cratedb.action.TransportDistributedSQLAction;
 import org.cratedb.sql.DuplicateKeyException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.VersionConflictException;
@@ -48,6 +50,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final TransportGetAction transportGetAction;
     private final TransportDeleteAction transportDeleteAction;
     private final TransportUpdateAction transportUpdateAction;
+    private final TransportDistributedSQLAction transportDistributedSQLAction;
 
     private final NodeExecutionContext executionContext;
 
@@ -59,10 +62,11 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             TransportDeleteByQueryAction transportDeleteByQueryAction,
             TransportIndexAction transportIndexAction,
             TransportBulkAction transportBulkAction,
-            TransportCountAction transportCountAction,
             TransportGetAction transportGetAction,
             TransportDeleteAction transportDeleteAction,
-            TransportUpdateAction transportUpdateAction) {
+            TransportUpdateAction transportUpdateAction,
+            TransportDistributedSQLAction transportDistributedSQLAction,
+            TransportCountAction transportCountAction) {
         super(settings, threadPool);
         this.executionContext = executionContext;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
@@ -74,6 +78,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         this.transportGetAction = transportGetAction;
         this.transportDeleteAction = transportDeleteAction;
         this.transportUpdateAction = transportUpdateAction;
+        this.transportDistributedSQLAction = transportDistributedSQLAction;
     }
 
     private class SearchResponseListener implements ActionListener<SearchResponse> {
@@ -216,11 +221,19 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                     transportUpdateAction.execute(updateRequest, new UpdateResponseListener(stmt, listener));
                     break;
                 default:
+                    if (stmt.hasGroupBy()) {
+                        transportDistributedSQLAction.execute(
+                            new DistributedSQLRequest(request, stmt),
+                            new DistributedSQLResponseListener(stmt, listener));
+                        break;
+                    }
+
                     if (stmt.countRequest()) {
                         CountRequest countRequest = stmt.buildCountRequest();
                         transportCountAction.execute(countRequest, new CountResponseListener(stmt, listener));
                         break;
                     }
+
                     searchRequest = stmt.buildSearchRequest();
                     transportSearchAction.execute(searchRequest, new SearchResponseListener(stmt, listener));
                     break;
@@ -339,6 +352,27 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
     }
 
+    private class DistributedSQLResponseListener implements ActionListener<SQLResponse> {
+
+        private final ActionListener<SQLResponse> delegate;
+        private final ParsedStatement stmt;
+
+        public DistributedSQLResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+            this.stmt = stmt;
+            this.delegate = listener;
+        }
+
+        @Override
+        public void onResponse(SQLResponse sqlResponse) {
+            delegate.onResponse(sqlResponse);
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            delegate.onFailure(reRaiseCrateException(e));
+        }
+    }
+
     private class UpdateResponseListener implements ActionListener<UpdateResponse> {
 
         private final ActionListener<SQLResponse> delegate;
@@ -363,5 +397,4 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             }
         }
     }
-
 }
