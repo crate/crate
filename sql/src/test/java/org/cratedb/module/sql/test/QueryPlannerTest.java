@@ -237,9 +237,9 @@ public class QueryPlannerTest {
     public void testSelectMultiplePrimaryKeysSimpleOr() throws StandardException {
         execStatement("SELECT pk_col, phrase FROM phrases WHERE pk_col=? OR pk_col=?", new Object[]{"1", "2"});
         @SuppressWarnings("unchecked")
-        Set<String> primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
-        assertThat(primaryKeyValues, is(notNullValue()));
-        assertThat(primaryKeyValues, hasItems("1", "2"));
+        Set<String> routingValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
+        assertThat(routingValues, is(notNullValue()));
+        assertThat(routingValues, hasItems("1", "2"));
         assertEquals(1, stmt.plannerResults().size());
         assertThat(stmt.buildSearchRequest().routing().split(","), arrayContainingInAnyOrder("2", "1"));
     }
@@ -248,9 +248,9 @@ public class QueryPlannerTest {
     public void testSelectMultiplePrimaryKeysDoubleOr() throws StandardException {
         execStatement("SELECT * FROM phrases WHERE pk_col=? OR pk_col=? OR pk_col=?", new Object[]{"foo", "bar", "baz"});
         @SuppressWarnings("unchecked")
-        Set<String> primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
-        assertThat(primaryKeyValues, is(notNullValue()));
-        assertThat(primaryKeyValues, hasItems("foo", "bar", "baz"));
+        Set<String> routingValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
+        assertThat(routingValues, is(notNullValue()));
+        assertThat(routingValues, hasItems("foo", "bar", "baz"));
         assertEquals(1, stmt.plannerResults().size());
         assertThat(stmt.buildSearchRequest().routing().split(","), arrayContainingInAnyOrder("foo", "bar", "baz"));
     }
@@ -260,9 +260,9 @@ public class QueryPlannerTest {
         execStatement("SELECT * FROM phrases WHERE (pk_col=? OR pk_col=?) OR (pk_col=? OR (pk_col=? OR pk_col=?))",
                 new Object[]{"TinkyWinky", "Dipsy", "Lala", "Po", "Hallo"});
         @SuppressWarnings("unchecked")
-        Set<String> primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
-        assertThat(primaryKeyValues, is(notNullValue()));
-        assertThat(primaryKeyValues, hasItems("TinkyWinky", "Dipsy", "Lala", "Po", "Hallo"));
+        Set<String> routingValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
+        assertThat(routingValues, is(notNullValue()));
+        assertThat(routingValues, hasItems("TinkyWinky", "Dipsy", "Lala", "Po", "Hallo"));
         assertEquals(1, stmt.plannerResults().size());
         assertThat(stmt.buildSearchRequest().routing().split(","), arrayContainingInAnyOrder("TinkyWinky", "Dipsy", "Lala", "Po", "Hallo"));
     }
@@ -272,9 +272,9 @@ public class QueryPlannerTest {
         execStatement("UPDATE phrases SET phrase='blabla' WHERE pk_col=? OR pk_col=?",
                 new Object[]{"TinkyWinky", "Dipsy"});
         @SuppressWarnings("unchecked")
-        Set<String> primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
-        assertThat(primaryKeyValues, is(notNullValue()));
-        assertThat(primaryKeyValues, hasItems("TinkyWinky", "Dipsy"));
+        Set<String> routingValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
+        assertThat(routingValues, is(notNullValue()));
+        assertThat(routingValues, hasItems("TinkyWinky", "Dipsy"));
         assertThat(stmt.buildSearchRequest().routing().split(","), arrayContainingInAnyOrder("TinkyWinky", "Dipsy"));
     }
 
@@ -283,9 +283,9 @@ public class QueryPlannerTest {
         execStatement("DELETE FROM phrases WHERE pk_col=? OR pk_col=?",
                 new Object[]{"TinkyWinky", "Dipsy"});
         @SuppressWarnings("unchecked")
-        Set<String> primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
-        assertThat(primaryKeyValues, is(notNullValue()));
-        assertThat(primaryKeyValues, hasItems("TinkyWinky", "Dipsy"));
+        Set<String> routingValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
+        assertThat(routingValues, is(notNullValue()));
+        assertThat(routingValues, hasItems("TinkyWinky", "Dipsy"));
         assertThat(stmt.buildDeleteByQueryRequest().routing().split(","), arrayContainingInAnyOrder("TinkyWinky", "Dipsy"));
     }
 
@@ -294,8 +294,8 @@ public class QueryPlannerTest {
         execStatement("UPDATE phrases SET phrase='invalid' WHERE pk_col=? OR phrase=?",
                 new Object[]{"in", "valid"});
         @SuppressWarnings("unchecked")
-        Set<String> primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
-        assertThat(primaryKeyValues, is(nullValue()));
+        Set<String> routingValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
+        assertThat(routingValues, is(nullValue()));
     }
 
     @Test
@@ -303,8 +303,8 @@ public class QueryPlannerTest {
         execStatement("SELECT * FROM phrases WHERE pk_col=? OR (pk_col=? AND pk_col=?)",
                 new Object[]{"still", "in", "valid"});
         @SuppressWarnings("unchecked")
-        Set<String> primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
-        assertThat(primaryKeyValues, is(nullValue()));
+        Set<String> routingValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
+        assertThat(routingValues, is(nullValue()));
     }
 
     @Test
@@ -319,9 +319,9 @@ public class QueryPlannerTest {
         execStatement("SELECT * FROM phrases WHERE pk_col IN (?, ?, ?)",
                 new Object[]{"foo", "bar", "baz"});
         @SuppressWarnings("unchecked")
-        Set<String> primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
-        assertThat(primaryKeyValues, is(notNullValue()));
-        assertThat(primaryKeyValues, hasItems("foo", "bar", "baz"));
+        Set<String> routingValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
+        assertThat(routingValues, is(notNullValue()));
+        assertThat(routingValues, hasItems("foo", "bar", "baz"));
         assertEquals(1, stmt.plannerResults().size());
         assertThat(stmt.buildSearchRequest().routing().split(","), arrayContainingInAnyOrder("foo", "bar", "baz"));
     }
@@ -331,17 +331,17 @@ public class QueryPlannerTest {
         execStatement("SELECT * FROM phrases WHERE pk_col IN (?, ?, ?) OR pk_col=?",
                 new Object[]{"foo", "bar", "baz", "dunno"});
         @SuppressWarnings("unchecked")
-        Set<String> primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
-        assertThat(primaryKeyValues, is(notNullValue()));
-        assertThat(primaryKeyValues, hasItems("foo", "bar", "baz", "dunno"));
+        Set<String> routingValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
+        assertThat(routingValues, is(notNullValue()));
+        assertThat(routingValues, hasItems("foo", "bar", "baz", "dunno"));
         assertEquals(1, stmt.plannerResults().size());
         assertThat(stmt.buildSearchRequest().routing().split(","), arrayContainingInAnyOrder("foo", "bar", "baz", "dunno"));
 
         execStatement("SELECT * FROM phrases WHERE pk_col=? OR pk_col=? OR pk_col IN (?, ?)",
                 new Object[]{"foo", "bar", "baz", "dunno"});
-        primaryKeyValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
-        assertThat(primaryKeyValues, is(notNullValue()));
-        assertThat(primaryKeyValues, hasItems("foo", "bar", "baz", "dunno"));
+        routingValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
+        assertThat(routingValues, is(notNullValue()));
+        assertThat(routingValues, hasItems("foo", "bar", "baz", "dunno"));
         assertEquals(1, stmt.plannerResults().size());
         assertThat(stmt.buildSearchRequest().routing().split(","), arrayContainingInAnyOrder("foo", "bar", "baz", "dunno"));
     }

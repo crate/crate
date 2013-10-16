@@ -21,8 +21,6 @@ import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.get.MultiGetItemResponse;
-import org.elasticsearch.action.get.MultiGetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
@@ -119,7 +117,7 @@ public class ParsedStatement {
             case NodeTypes.DELETE_NODE:
                 if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null) {
                     return DELETE_ACTION;
-                } else
+                }
                 return DELETE_BY_QUERY_ACTION;
             case NodeTypes.CURSOR_NODE:
                 if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null) {
@@ -364,29 +362,6 @@ public class ParsedStatement {
 
     public SQLResponse buildResponse(UpdateResponse updateResponse) {
         return buildEmptyResponse(1);
-    }
-
-    public SQLResponse buildResponse(MultiGetResponse multiGetItemResponses) {
-        SQLResponse response = new SQLResponse();
-        SQLFields fields = new SQLFields(outputFields);
-        List<Object[]> rows = new ArrayList<>();
-        MultiGetItemResponse[] singleResponses = multiGetItemResponses.getResponses();
-        long successful = 0;
-        for (int i=0; i < singleResponses.length; i++) {
-            if (!singleResponses[i].isFailed()) {
-                if (singleResponses[i].getResponse().isExists()) {
-                    fields.applyGetResponse(tableContext(), singleResponses[i].getResponse());
-                    rows.add(fields.getRowValues());
-                    successful++;
-                }
-            } else if (!singleResponses[i].getFailure().getType().equals("blah")) {
-                throw new CrateException(singleResponses[i].getFailure().getMessage());
-            }
-        }
-        response.cols(cols());
-        response.rows(rows.toArray(new Object[rows.size()][outputFields.size()]));
-        response.rowCount(successful);
-        return response;
     }
 
     public SQLResponse buildMissingDocumentResponse() {

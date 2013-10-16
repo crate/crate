@@ -103,11 +103,11 @@ public class QueryPlanner {
 
     private void extractRoutingValuesFromOrClauses(ParsedStatement stmt, ValueNode node, Set<String> results) throws StandardException {
 
-        if (node instanceof OrNode) {
+        if (node.getNodeType() == NodeTypes.OR_NODE) {
             ValueNode leftOperand = ((OrNode) node).getLeftOperand();
             ValueNode rightOperand = ((OrNode) node).getRightOperand();
 
-            if (leftOperand instanceof OrNode || leftOperand instanceof InListOperatorNode) {
+            if (leftOperand.getNodeType() == NodeTypes.OR_NODE || leftOperand.getNodeType() == NodeTypes.IN_LIST_OPERATOR_NODE) {
                 extractRoutingValuesFromOrClauses(stmt, leftOperand, results);
             } else {
                 Object leftValue = extractPrimaryKeyValue(stmt, leftOperand);
@@ -125,7 +125,7 @@ public class QueryPlanner {
                 return;
             }
 
-            if (rightOperand instanceof OrNode || rightOperand instanceof InListOperatorNode) {
+            if (rightOperand.getNodeType() == NodeTypes.OR_NODE || rightOperand.getNodeType() == NodeTypes.IN_LIST_OPERATOR_NODE) {
                 extractRoutingValuesFromOrClauses(stmt, rightOperand, results);
             } else {
                 Object rightValue = extractPrimaryKeyValue(stmt, rightOperand);
@@ -137,7 +137,7 @@ public class QueryPlanner {
                     return;
                 }
             }
-        } else if (node instanceof InListOperatorNode) {
+        } else if (node.getNodeType() == NodeTypes.IN_LIST_OPERATOR_NODE) {
             // e.g. WHERE pk_col IN (1,2,3,...)
             Object value;
             List<String> primaryKeys = stmt.tableContext().primaryKeysIncludingDefault();
@@ -162,10 +162,6 @@ public class QueryPlanner {
     /**
      * If a primary_key equals a constant value in the given node, and also is defined as the
      * routing key we return the constant value this statement asks for.
-     *
-     * The {@link org.cratedb.action.sql.TransportSQLAction} can then make decisions using
-     * this values if e.g. a {@link org.elasticsearch.action.get.GetRequest} should be used
-     * instead of a {@link org.elasticsearch.action.search.SearchRequest}.
      *
      * @param stmt
      * @param node

@@ -454,15 +454,9 @@ public class XContentGenerator {
             throw new SQLParseException("Invalid IN clause");
         }
         if (column instanceof ColumnReference) {
-            jsonBuilder.startObject("terms").startArray((column).getColumnName());
+            jsonBuilder.startObject("terms").startArray(column.getColumnName());
             for (ValueNode listNode : rightNodes.getNodeList()) {
-                if (listNode instanceof ConstantNode) {
-                    jsonBuilder.value(((ConstantNode) listNode).getValue());
-                } else if (listNode instanceof ParameterNode) {
-                    jsonBuilder.value(stmt.args()[((ParameterNode) listNode).getParameterNumber()]);
-                } else {
-                    throw new SQLParseException("Invalid IN clause");
-                }
+                jsonBuilder.value(stmt.visitor().evaluateValueNode(column.getColumnName(), listNode));
             }
             jsonBuilder.endArray().endObject();
         } else {
@@ -480,11 +474,11 @@ public class XContentGenerator {
     private void generate(ValueNode node) throws IOException, StandardException {
         if (node instanceof BinaryRelationalOperatorNode) {
             generate((BinaryRelationalOperatorNode) node);
-        } else if (node instanceof IsNullNode) {
+        } else if (node.getNodeType() == NodeTypes.IS_NULL_NODE) {
             generate((IsNullNode) node);
-        } else if (node instanceof InListOperatorNode) {
+        } else if (node.getNodeType() == NodeTypes.IN_LIST_OPERATOR_NODE) {
             generate((InListOperatorNode) node);
-        } else if (node instanceof NotNode) {
+        } else if (node.getNodeType() == NodeTypes.NOT_NODE) {
             generate((NotNode) node);
         } else if (node.getNodeType() == NodeTypes.AND_NODE) {
             generate((AndNode) node);

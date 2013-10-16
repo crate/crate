@@ -680,14 +680,14 @@ public class QueryVisitorTest {
 
     @Test
     public void testWhereClauseInList() throws StandardException {
-        execStatement("select * from locations where position in (3,5,6)");
+        execStatement("select * from locations where position in (?,?,?)", new Object[]{3, 5, 6});
         assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"terms\":{\"position\":[3,5,6]}},\"size\":1000}", getSource());
     }
 
     @Test
     public void testUpdateWhereClauseInList() throws StandardException {
-        execStatement("update locations set name='foobar' where position in (1,2,3)");
-        assertEquals("{\"query\":{\"terms\":{\"position\":[1,2,3]}},\"facets\":{\"sql\":{\"sql\":{\"stmt\":\"update locations set name='foobar' where position in (1,2,3)\"}}}}", getSource());
+        execStatement("update locations set name='foobar' where position in (?,?,?)", new Object[]{1,2,3});
+        assertEquals("{\"query\":{\"terms\":{\"position\":[1,2,3]}},\"facets\":{\"sql\":{\"sql\":{\"stmt\":\"update locations set name='foobar' where position in (?,?,?)\",\"args\":[1,2,3]}}}}", getSource());
     }
 
     @Test

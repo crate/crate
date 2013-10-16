@@ -46,7 +46,6 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final TransportBulkAction transportBulkAction;
     private final TransportCountAction transportCountAction;
     private final TransportGetAction transportGetAction;
-    private final TransportMultiGetAction transportMultiGetAction;
     private final TransportDeleteAction transportDeleteAction;
     private final TransportUpdateAction transportUpdateAction;
 
@@ -63,8 +62,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             TransportCountAction transportCountAction,
             TransportGetAction transportGetAction,
             TransportDeleteAction transportDeleteAction,
-            TransportUpdateAction transportUpdateAction,
-            TransportMultiGetAction transportMultiGetAction) {
+            TransportUpdateAction transportUpdateAction) {
         super(settings, threadPool);
         this.executionContext = executionContext;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
@@ -76,7 +74,6 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         this.transportGetAction = transportGetAction;
         this.transportDeleteAction = transportDeleteAction;
         this.transportUpdateAction = transportUpdateAction;
-        this.transportMultiGetAction = transportMultiGetAction;
     }
 
     private class SearchResponseListener implements ActionListener<SearchResponse> {
