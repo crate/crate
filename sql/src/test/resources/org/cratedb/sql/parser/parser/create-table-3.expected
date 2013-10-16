@@ -68,12 +68,12 @@ tableElementList:
 	elementType: null
 	[12]:	
 	org.cratedb.sql.parser.parser.ColumnDefinitionNode@46e45076
-	type: DOUBLE NOT NULL
+	type: float NOT NULL
 	name: col20
 	elementType: null
 	[13]:	
 	org.cratedb.sql.parser.parser.ColumnDefinitionNode@375e9756
-	type: DOUBLE
+	type: float
 	name: col21
 	elementType: null
 	[14]:	
