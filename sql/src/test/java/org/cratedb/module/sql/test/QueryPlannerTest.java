@@ -40,9 +40,7 @@ public class QueryPlannerTest {
         NodeExecutionContext.TableExecutionContext tec = mock(
                 NodeExecutionContext.TableExecutionContext.class);
         // Force enabling query planner
-        Settings settings = mock(ImmutableSettings.class);
-        when(settings.getAsBoolean(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES,
-                true)).thenReturn(true);
+        Settings settings = ImmutableSettings.builder().put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, true).build();
         QueryPlanner queryPlanner = new QueryPlanner(settings);
         when(nec.queryPlanner()).thenReturn(queryPlanner);
         when(nec.tableContext("phrases")).thenReturn(tec);

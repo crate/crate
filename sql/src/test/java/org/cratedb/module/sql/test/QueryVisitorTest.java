@@ -44,9 +44,7 @@ public class QueryVisitorTest {
         NodeExecutionContext.TableExecutionContext tec = mock(
                 NodeExecutionContext.TableExecutionContext.class);
         // Disable query planner here to save mocking
-        Settings settings = mock(ImmutableSettings.class);
-        when(settings.getAsBoolean(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES,
-                true)).thenReturn(false);
+        Settings settings = ImmutableSettings.builder().put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, false).build();
         QueryPlanner queryPlanner = new QueryPlanner(settings);
         when(nec.queryPlanner()).thenReturn(queryPlanner);
         when(nec.tableContext("locations")).thenReturn(tec);
