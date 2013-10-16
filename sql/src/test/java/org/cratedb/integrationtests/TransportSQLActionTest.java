@@ -11,10 +11,17 @@ import org.cratedb.sql.DuplicateKeyException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.VersionConflictException;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.client.Requests;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -1319,5 +1326,115 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("select count(*) from characters");
         assertEquals(6L, response.rows()[0][0]);
+    }
+
+    
+    private String getMapping(String index) throws IOException {
+        ClusterStateRequest request = Requests.clusterStateRequest()
+                .filterRoutingTable(true)
+                .filterNodes(true)
+                .filteredIndices(index);
+        ClusterStateResponse response = client().admin().cluster().state(request)
+                .actionGet();
+
+        MetaData metaData = response.getState().metaData();
+        XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
+
+        IndexMetaData indexMetaData = metaData.iterator().next();
+        for (MappingMetaData mappingMd : indexMetaData.mappings().values()) {
+            builder.field(mappingMd.type());
+            builder.map(mappingMd.sourceAsMap());
+        }
+        builder.endObject();
+
+        return builder.string();
+    }
+
+    private String getSettings(String index) throws IOException {
+        ClusterStateRequest request = Requests.clusterStateRequest()
+                .filterRoutingTable(true)
+                .filterNodes(true)
+                .filteredIndices(index);
+        ClusterStateResponse response = client().admin().cluster().state(request)
+                .actionGet();
+
+        MetaData metaData = response.getState().metaData();
+        XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
+
+        for (IndexMetaData indexMetaData : metaData) {
+            builder.startObject(indexMetaData.index(), XContentBuilder.FieldCaseConversion.NONE);
+            builder.startObject("settings");
+            Settings settings = indexMetaData.settings();
+            for (Map.Entry<String, String> entry : settings.getAsMap().entrySet()) {
+                builder.field(entry.getKey(), entry.getValue());
+            }
+            builder.endObject();
+
+            builder.endObject();
+        }
+
+        builder.endObject();
+
+        return builder.string();
+    }
+
+    @Test
+    public void testCreateTable() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string)");
+        ensureGreen();
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
+                .actionGet().isExists());
+
+        String expectedMapping = "{\"default\":{" +
+                "\"_meta\":{\"primary_keys\":\"col1\"}," +
+                "\"properties\":{" +
+                    "\"col1\":{\"type\":\"integer\",\"store\":true}," +
+                    "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"store\":true," +
+                                "\"omit_norms\":true,\"index_options\":\"docs\"}" +
+                "}}}";
+
+        String expectedSettings = "{\"test\":{" +
+                "\"settings\":{" +
+                "\"index.number_of_replicas\":\"0\"," +
+                "\"index.number_of_shards\":\"5\"," +
+                "\"index.version.created\":\"900599\"" +
+                "}}}";
+
+        assertEquals(expectedMapping, getMapping("test"));
+        assertEquals(expectedSettings, getSettings("test"));
+
+        // test index usage
+        execute("insert into test (col1, col2) values (1, 'foo')");
+        refresh();
+        execute("SELECT * FROM test");
+        assertEquals(1L, response.rowCount());
+    }
+
+    @Test
+    public void testCreateTableWithReplicasAndShards() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string) replicas 0" +
+                "clustered by (col1) into 10 shards");
+        ensureGreen();
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
+                .actionGet().isExists());
+
+        String expectedMapping = "{\"default\":{" +
+                "\"_meta\":{\"primary_keys\":\"col1\"}," +
+                "\"_routing\":{\"path\":\"col1\"}," +
+                "\"properties\":{" +
+                "\"col1\":{\"type\":\"integer\",\"store\":true}," +
+                "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"store\":true," +
+                "\"omit_norms\":true,\"index_options\":\"docs\"}" +
+                "}}}";
+
+        String expectedSettings = "{\"test\":{" +
+                "\"settings\":{" +
+                    "\"index.number_of_replicas\":\"0\"," +
+                    "\"index.number_of_shards\":\"10\"," +
+                    "\"index.version.created\":\"900599\"" +
+                "}}}";
+
+        assertEquals(expectedMapping, getMapping("test"));
+        assertEquals(expectedSettings, getSettings("test"));
     }
 }

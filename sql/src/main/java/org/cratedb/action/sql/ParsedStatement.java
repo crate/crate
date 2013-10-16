@@ -259,8 +259,13 @@ public class ParsedStatement {
     }
 
     public CreateIndexRequest buildCreateIndexRequest() {
-        // TODO: build
-        return null;
+        assert visitor instanceof TableVisitor;
+        CreateIndexRequest request = new CreateIndexRequest(indices.get(0));
+        TableVisitor tableVisitor = (TableVisitor)visitor;
+        request.settings(tableVisitor.settings());
+        request.mapping(NodeExecutionContext.DEFAULT_TYPE, tableVisitor.mapping());
+
+        return request;
     }
 
     public String[] cols() {

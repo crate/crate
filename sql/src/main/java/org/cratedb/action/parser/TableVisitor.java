@@ -4,11 +4,10 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
-import org.cratedb.sql.parser.types.TypeId;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 
-import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import static com.google.common.collect.Maps.newHashMap;
@@ -16,23 +15,23 @@ import static com.google.common.collect.Maps.newHashMap;
 public class TableVisitor extends XContentVisitor {
 
     private boolean stopTraversal;
-    private XContentBuilder mappingBuilder;
     private Map<String, Object> indexSettings = newHashMap();
     private Map<String, Object> mappingProperties = newHashMap();
     private Map<String, Object> mappingMeta = newHashMap();
+    private Map<String, Object> mapping = newHashMap();
+    private ColumnReference routingColumn = null;
+
+    private final String[] allowedColumnTypes = {"string", "integer", "long", "short", "double",
+                                                 "float", "byte", "boolean", "timestamp"};
 
     @Override
     public XContentBuilder getXContentBuilder() throws StandardException {
-        return mappingBuilder;
+        throw new UnsupportedOperationException("Use settings() or mappings() to get the " +
+                "results");
     }
 
     public TableVisitor(ParsedStatement stmt) throws StandardException {
         super(stmt);
-        try {
-            mappingBuilder = XContentFactory.jsonBuilder().startObject();
-        } catch (IOException ex) {
-            throw new StandardException(ex);
-        }
         stopTraversal = false;
     }
 
@@ -60,36 +59,42 @@ public class TableVisitor extends XContentVisitor {
         String tableName = node.getObjectName().getTableName();
         stmt.addIndex(tableName);
 
-        // TODO: get from CreateTableNode
-        indexSettings.put("number_of_replicas", 0);
-        indexSettings.put("number_of_shards", 5);
+        indexSettings.put("number_of_replicas", node.numberOfReplicas(0));
+        indexSettings.put("number_of_shards", node.numberOfShards(5));
 
-        try {
-            // build mapping
+        routingColumn = node.routingColumn();
 
-            for (TableElementNode tableElement : node.getTableElementList()) {
-                switch(tableElement.getNodeType()) {
-                    case NodeTypes.COLUMN_DEFINITION_NODE:
-                        visit((ColumnDefinitionNode) tableElement);
-                        break;
-                    case NodeTypes.CONSTRAINT_DEFINITION_NODE:
-                        visit((ConstraintDefinitionNode)tableElement);
-                }
+        // build mapping
+        for (TableElementNode tableElement : node.getTableElementList()) {
+            switch(tableElement.getNodeType()) {
+                case NodeTypes.COLUMN_DEFINITION_NODE:
+                    visit((ColumnDefinitionNode) tableElement);
+                    break;
+                case NodeTypes.CONSTRAINT_DEFINITION_NODE:
+                    visit((ConstraintDefinitionNode)tableElement);
             }
-            mappingBuilder.startObject("mappings").startObject("default");
-            mappingBuilder.field("_meta", mappingMeta);
-            mappingBuilder.field("properties", mappingProperties);
-            mappingBuilder.endObject().endObject();
-        } catch (IOException e) {
-            throw new StandardException(e);
         }
+        stopTraversal = true;
+
         return node;
     }
 
-    public Visitable visit(ColumnDefinitionNode node) {
+    public Visitable visit(ColumnDefinitionNode node) throws SQLParseException {
 
-        String columnName = node.getColumnName();
-        mappingProperties.put(columnName, newHashMap());
+        Map<String, String> columnDefinition = newHashMap();
+
+        String columnType = node.getType().getTypeName().toLowerCase();
+        List<String> allowedColumnTypeList = Arrays.asList(allowedColumnTypes);
+        if (!allowedColumnTypeList.contains(columnType)) {
+            throw new SQLParseException("Unsupported type");
+        }
+
+        columnDefinition.put("type", columnType);
+        // TODO: use parsed values (not yet supported by parser)
+        columnDefinition.put("index", "not_analyzed");
+        columnDefinition.put("store", "true");
+
+        mappingProperties.put(node.getColumnName(), columnDefinition);
         return node;
     }
 
@@ -110,19 +115,6 @@ public class TableVisitor extends XContentVisitor {
         return node;
     }
 
-    private String getTypeName(ColumnDefinitionNode node) {
-        TypeId typeId = node.getType().getTypeId();
-        if (typeId.isBooleanTypeId()) {
-            return "boolean";
-        } else if(typeId.isIntegerTypeId()) {
-            // TODO: LONG, SHORT, BYTE ...
-            return "integer";
-        } else {
-            throw new SQLParseException("Unsupported Type");
-        }
-    }
-
-
     @Override
     public boolean visitChildrenFirst(Visitable node) {
         return false;
@@ -136,5 +128,24 @@ public class TableVisitor extends XContentVisitor {
     @Override
     public boolean skipChildren(Visitable node) throws StandardException {
         return false;
+    }
+
+    public Map<String, Object> mapping() {
+        if (mapping != null) {
+            if (mappingMeta != null) {
+                mapping.put("_meta", mappingMeta);
+            }
+            if (routingColumn != null) {
+                Map<String, String> _routing = newHashMap();
+                _routing.put("path", routingColumn.getColumnName());
+                mapping.put("_routing", _routing);
+            }
+            mapping.put("properties", mappingProperties);
+        }
+        return mapping;
+    }
+
+    public Map<String, Object> settings() {
+        return indexSettings;
     }
 }

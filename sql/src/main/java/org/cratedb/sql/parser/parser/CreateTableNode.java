@@ -290,4 +290,25 @@ public class CreateTableNode extends DDLStatementNode
     public void setCrateProperties(Properties properties) {
         this.crateProperties = properties;
     }
+
+    public Integer numberOfShards(Integer defaultValue) {
+        if (crateProperties == null || !crateProperties.containsKey("shards")) {
+            return defaultValue;
+        }
+        return (Integer)crateProperties.get("shards");
+    }
+
+    public Integer numberOfReplicas(Integer defaultValue) {
+        if (crateProperties == null || !crateProperties.containsKey("replicas")) {
+            return defaultValue;
+        }
+        return (Integer)crateProperties.get("replicas");
+    }
+
+    public ColumnReference routingColumn() {
+        if (crateProperties == null) {
+            return null;
+        }
+        return (ColumnReference)crateProperties.get("routingColumn");
+    }
 }

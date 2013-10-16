@@ -228,6 +228,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                 case ParsedStatement.CREATE_INDEX_ACTION:
                     CreateIndexRequest createIndexRequest = stmt.buildCreateIndexRequest();
                     transportCreateIndexAction.execute(createIndexRequest, new CreateIndexResponseListener(stmt, listener));
+                    break;
                 default:
                     if (stmt.hasGroupBy()) {
                         transportDistributedSQLAction.execute(
