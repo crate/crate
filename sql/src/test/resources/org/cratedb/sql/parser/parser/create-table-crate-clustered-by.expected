@@ -1,0 +1,18 @@
+org.cratedb.sql.parser.parser.CreateTableNode@455ec9f
+name: t1
+statementType: CREATE TABLE
+crateProperties: 
+{routingColumn=columnName: c1
+tableName: null
+type: null
+}
+lockGranularity: R
+existenceCheck: NO_CONDITION
+tableElementList: 	
+	org.cratedb.sql.parser.parser.TableElementList@2521bcf2
+
+	[0]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@49fbc6e9
+	type: INTEGER
+	name: c1
+	elementType: null
