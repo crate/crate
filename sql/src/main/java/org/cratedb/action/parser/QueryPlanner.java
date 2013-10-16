@@ -110,13 +110,13 @@ public class QueryPlanner {
             ValueNode leftOperand = ((OrNode) node).getLeftOperand();
             ValueNode rightOperand = ((OrNode) node).getRightOperand();
             try {
-                extractOrClauseOperand(stmt, leftOperand, results);
+                extractFromOrNodeOperand(stmt, leftOperand, results);
             } catch (NonOptimizableOrClauseException e) {
                 return;
             }
 
             try {
-                extractOrClauseOperand(stmt, rightOperand, results);
+                extractFromOrNodeOperand(stmt, rightOperand, results);
             } catch(NonOptimizableOrClauseException e) {
                 return;
             }
@@ -150,7 +150,7 @@ public class QueryPlanner {
      * @throws StandardException
      * @throws NonOptimizableOrClauseException if or-node operand is not optimizable, stop recursion
      */
-    private void extractOrClauseOperand(ParsedStatement stmt, ValueNode operand, Set<String> results) throws StandardException, NonOptimizableOrClauseException {
+    private void extractFromOrNodeOperand(ParsedStatement stmt, ValueNode operand, Set<String> results) throws StandardException, NonOptimizableOrClauseException {
         if (operand.getNodeType() == NodeTypes.OR_NODE || operand.getNodeType() == NodeTypes.IN_LIST_OPERATOR_NODE) {
             extractRoutingValuesFromOrClauses(stmt, operand, results);
         } else {
