@@ -1,0 +1,1 @@
+SELECT a, NULL, b = 'B' OR b IS NULL, IF(c = 'C' OR c = 'c', 'YES', 'NO') FROM t

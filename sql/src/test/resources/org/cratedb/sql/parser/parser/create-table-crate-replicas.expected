@@ -1,0 +1,15 @@
+org.cratedb.sql.parser.parser.CreateTableNode@5f317944
+name: t1
+statementType: CREATE TABLE
+crateProperties: 
+{replicas=1}
+lockGranularity: R
+existenceCheck: NO_CONDITION
+tableElementList: 	
+	org.cratedb.sql.parser.parser.TableElementList@320ee1f2
+
+	[0]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@6152cff
+	type: INTEGER
+	name: c1
+	elementType: null

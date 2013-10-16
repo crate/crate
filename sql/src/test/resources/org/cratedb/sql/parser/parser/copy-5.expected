@@ -1,0 +1,12 @@
+org.cratedb.sql.parser.parser.CopyStatementNode@24f9fdc
+mode: FROM_TABLE
+tableName: t1
+filename: null
+format: CSV
+delimiter: |
+nullString: null
+quote: null
+escape: null
+encoding: null
+commitFrequency: 0
+statementType: COPY

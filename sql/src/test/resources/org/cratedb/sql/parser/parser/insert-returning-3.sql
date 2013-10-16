@@ -1,0 +1,1 @@
+insert into t1 select * from t2 RETURNING id, name

@@ -1,0 +1,1 @@
+INSERT INTO t1(a,b,c) SELECT x,y,z FROM t

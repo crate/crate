@@ -1,0 +1,9 @@
+org.cratedb.sql.parser.parser.CreateSequenceNode@244aeb52
+name: test.new_sequence
+statementType: CREATE SEQUENCE
+sequenceName: test.new_sequence
+initial value: -2147483648
+step value: 1
+maxValue: 2147483647
+minValue:-2147483648
+cycle: false

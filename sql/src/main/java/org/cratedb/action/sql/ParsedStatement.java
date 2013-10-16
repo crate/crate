@@ -35,10 +35,7 @@ import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.search.SearchHit;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ParsedStatement {
 
@@ -156,6 +153,21 @@ public class ParsedStatement {
         }
         request.source(builder.bytes().toBytes());
         request.indices(indices.toArray(new String[indices.size()]));
+
+        // Set routing values if found by planner
+        @SuppressWarnings("unchecked")
+        Set<String> routingValues = (Set<String>)getPlannerResult(QueryPlanner.ROUTING_VALUES);
+        if (routingValues != null && !routingValues.isEmpty()) {
+            List<String> tmp = new ArrayList<>(routingValues.size());
+            tmp.addAll(routingValues);
+            request.routing(tmp.toArray(new String[tmp.size()]));
+        }
+
+        // Update request should only be executed on primary shards
+        if (statementNode.getNodeType() == NodeTypes.UPDATE_NODE) {
+            request.preference("_primary");
+        }
+
         return request;
     }
 
@@ -315,7 +327,7 @@ public class ParsedStatement {
         Object[][] rows = new Object[1][outputFields.size()];
 
         // only works with one queried index/table
-        fields.applyGetResponse(context().tableContext(indices().get(0)), getResponse);
+        fields.applyGetResponse(tableContext(), getResponse);
         rows[0] = fields.getRowValues();
 
         response.cols(cols());
@@ -335,6 +347,15 @@ public class ParsedStatement {
         builder = visitor.getXContentBuilder();
         request.query(builder.bytes().toBytes());
         request.indices(indices.toArray(new String[indices.size()]));
+
+        // Set routing values if found by planner
+        @SuppressWarnings("unchecked") // should only be null or set of strings
+        Set<String> routingValues = (Set<String>) getPlannerResult(QueryPlanner.ROUTING_VALUES);
+        if (routingValues != null && !routingValues.isEmpty()) {
+            List<String> tmp = new ArrayList<>(routingValues.size());
+            tmp.addAll(routingValues);
+            request.routing(tmp.toArray(new String[tmp.size()]));
+        }
 
         return request;
     }
@@ -427,6 +448,10 @@ public class ParsedStatement {
 
     public Object getPlannerResult(String key) {
         return plannerResults.get(key);
+    }
+
+    public Map<String, Object> plannerResults() {
+        return plannerResults;
     }
 
     public XContentVisitor visitor() {

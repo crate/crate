@@ -1,0 +1,1 @@
+alter table netbeans1 drop index netbeansIDX

@@ -1,0 +1,4 @@
+org.cratedb.sql.parser.parser.AlterServerNode@3934f69a
+statementType: ALTER SERVER
+sessionType: INTERRUPT_SESSION
+sessionID: 42

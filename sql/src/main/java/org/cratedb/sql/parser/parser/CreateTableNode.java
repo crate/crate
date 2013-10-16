@@ -73,6 +73,8 @@ public class CreateTableNode extends DDLStatementNode
     private boolean withData;
     private ExistenceCheck existenceCheck;
 
+    private Properties crateProperties;
+
     /**
      * Initializer for a CreateTableNode for a base table
      *
@@ -136,6 +138,8 @@ public class CreateTableNode extends DDLStatementNode
         this.existenceCheck = (ExistenceCheck)existenceCheck;
         assert this.onRollbackDeleteRows;
     }
+
+
 
     /**
      * Initializer for a CreateTableNode for a base table create from a query
@@ -213,6 +217,7 @@ public class CreateTableNode extends DDLStatementNode
         else
             tempString = tempString +
                 (properties != null ? "properties: " + "\n" + properties + "\n" : "") +
+                (crateProperties != null ? "crateProperties: " + "\n" + crateProperties + "\n" : "") +
                 (withData ? "withData: " + withData + "\n" : "") +
                 "lockGranularity: " + lockGranularity + "\n";
         tempString += "existenceCheck: " + existenceCheck + "\n";
@@ -280,5 +285,9 @@ public class CreateTableNode extends DDLStatementNode
             queryExpression.accept(v);
         }
     }
-        
+
+
+    public void setCrateProperties(Properties properties) {
+        this.crateProperties = properties;
+    }
 }

@@ -1,0 +1,10 @@
+org.cratedb.sql.parser.parser.CreateSchemaNode@52b2a2d8
+statementType: CREATE SCHEMA
+schemaName: 
+test
+authorizationId: 
+null
+defaultChar: 
+null
+existenceCheck:
+NO_CONDITION

@@ -1,0 +1,4 @@
+org.cratedb.sql.parser.parser.AlterServerNode@46e45076
+statementType: ALTER SERVER
+sessionType: KILL_SESSION
+sessionID: -1

@@ -1,0 +1,1 @@
+SELECT * FROM t WHERE ((1 <> 5) OR ((2 <> 6) OR FALSE)) AND (((1 <> 3) OR ((2 <> 4) OR FALSE)) AND (((1 <> 1) OR ((2 <> 2) OR FALSE)) AND TRUE))

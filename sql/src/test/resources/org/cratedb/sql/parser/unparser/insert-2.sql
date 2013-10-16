@@ -1,0 +1,1 @@
+INSERT INTO t1(x,y,z) VALUES(1, X'DEADBEEF', 3 * 10)

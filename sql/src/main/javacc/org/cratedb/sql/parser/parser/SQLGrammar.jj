@@ -2274,6 +2274,10 @@ TOKEN [IGNORE_CASE] :
 | <WORK: "work">
 | <WRITE: "write">
 | <YEAR: "year">
+/* crate SQL reserved keywords */
+| <CLUSTERED: "clustered">
+| <REPLICAS: "replicas">
+| <SHARDS: "shards">
 }
 
 /* This list should contain only and all SQL92 keywords that are
@@ -10299,6 +10303,7 @@ tableDefinition() throws StandardException :
     TableName tableName;
     TableElementList tableElementList;
     Properties properties = null;
+    Properties crateProperties = null;
     char lockGranularity = CreateTableNode.DEFAULT_LOCK_GRANULARITY;
     ResultColumnList resultColumns = null;
     ResultSetNode queryExpression;
@@ -10313,20 +10318,28 @@ tableDefinition() throws StandardException :
         LOOKAHEAD( { getToken(1).kind == LEFT_PAREN && 
                      getToken(3).kind != COMMA && getToken(3).kind != RIGHT_PAREN } )
         tableElementList = tableElementList()
+        [ crateProperties = crateTableProperties()]
         [ properties = propertyList(false)<CHECK_PROPERTIES>]
     {
-        return (StatementNode)nodeFactory.getNode(NodeTypes.CREATE_TABLE_NODE,
+        StatementNode result = (StatementNode)nodeFactory.getNode(NodeTypes.CREATE_TABLE_NODE,
                                                   tableName,
                                                   tableElementList,
                                                   properties,
                                                   new Character(lockGranularity),
                                                   cond,
                                                   parserContext);
+
+        if (crateProperties != null) {
+            ((CreateTableNode)result).setCrateProperties(crateProperties);
+        }
+
+        return result;
     }
     |
         [ <LEFT_PAREN> resultColumns = tableColumnList() <RIGHT_PAREN> ]
         <AS> queryExpression = queryExpression(null, NO_SET_OP)
         <WITH> [ <NO> { withData = false; } ] <DATA>
+        [ crateProperties = crateTableProperties()]
     {
         /* Parameters not allowed in create table */
         HasNodeVisitor visitor =
@@ -10345,10 +10358,74 @@ tableDefinition() throws StandardException :
         if (withData) {
             ((CreateTableNode)result).markWithData();
         }
+
+        if (crateProperties != null) {
+            ((CreateTableNode)result).setCrateProperties(crateProperties);
+        }
+
         return result;
     }
     )
 }
+
+/* CRATE TABLE PROPERTIES START */
+
+Properties
+crateTableProperties() throws StandardException :
+{
+    Properties properties = new Properties();
+}
+{
+    crateTableProperty(properties)
+    ( crateTableProperty(properties) )*
+    {
+        return properties;
+    }
+}
+
+void
+crateTableProperty(Properties properties) throws StandardException :
+{
+    Integer replicasNumber = null;
+}
+{
+    (
+        <REPLICAS> replicasNumber = uint_value()
+    |
+        <CLUSTERED> crateTableClusterProperty(properties)
+        ( crateTableClusterProperty(properties) )*
+    )
+    {
+        if (replicasNumber != null) {
+            properties.put("replicas", replicasNumber);
+        }
+    }
+}
+
+void
+crateTableClusterProperty(Properties properties) throws StandardException :
+{
+    Integer shardsNumber = null;
+    ColumnReference routingColumn = null;
+}
+{
+    (
+        <BY> <LEFT_PAREN> routingColumn = columnReference() <RIGHT_PAREN>
+    |
+        <INTO> shardsNumber = uint_value() [<SHARDS>]
+    )
+    {
+        if (shardsNumber != null) {
+            properties.put("shards", shardsNumber);
+        }
+        if (routingColumn != null) {
+            properties.put("routingColumn", routingColumn);
+        }
+    }
+}
+
+/* CRATE TABLE PROPERTIES END */
+
 
 ResultColumnList
 tableColumnList() throws StandardException :
@@ -14956,6 +15033,12 @@ reservedKeyword() :
 | tok = <XMLEXISTS>
 | tok = <XMLQUERY>
 | tok = <Z_ORDER_LAT_LON>
+
+   /* Crate SQL reserved keywords */
+| tok = <CLUSTERED>
+| tok = <REPLICAS>
+| tok = <SHARDS>
+
 )
     {
         // Remember whether last token was a delimited identifier

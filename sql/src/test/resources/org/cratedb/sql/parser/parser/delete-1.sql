@@ -1,0 +1,1 @@
+DELETE FROM t WHERE x in (1,2,3)

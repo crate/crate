@@ -1,0 +1,4 @@
+org.cratedb.sql.parser.parser.DropGroupNode@7776cad3
+name: test.root_table_1
+statementType: DROP GROUP
+existenceCheck: NO_CONDITION

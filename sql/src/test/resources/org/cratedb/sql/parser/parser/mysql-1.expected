@@ -1,0 +1,52 @@
+org.cratedb.sql.parser.parser.CursorNode@424ecfdd
+name: null
+updateMode: UNSPECIFIED
+statementType: SELECT
+resultSet: 	
+	org.cratedb.sql.parser.parser.SelectNode@4430d82d
+	isDistinct: false
+	resultColumns: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@62c09554
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ResultColumn@518bf072
+		exposedName: null
+		name: null
+		tableName: null
+		isDefaultColumn: false
+		type: null
+		expression: 			
+			org.cratedb.sql.parser.parser.BinaryBitOperatorNode@3a56f631
+			operator: |
+			methodName: bitor
+			type: null
+			leftOperand: 				
+				org.cratedb.sql.parser.parser.BinaryBitOperatorNode@233d28e3
+				operator: &
+				methodName: bitand
+				type: null
+				leftOperand: 					
+					org.cratedb.sql.parser.parser.ColumnReference@4476128
+					columnName: z
+					tableName: null
+					type: null
+				rightOperand: 					
+					org.cratedb.sql.parser.parser.ColumnReference@6a3b8b49
+					columnName: y
+					tableName: null
+					type: null
+			rightOperand: 				
+				org.cratedb.sql.parser.parser.ColumnReference@6b359c1b
+				columnName: z
+				tableName: null
+				type: null
+	fromList: 		
+		org.cratedb.sql.parser.parser.FromList@c9be79a
+
+		[0]:		
+		org.cratedb.sql.parser.parser.FromBaseTable@4f8235ed
+		tableName: bits
+		updateOrDelete: null
+		null
+		correlation Name: null
+		null

@@ -1,0 +1,6 @@
+org.cratedb.sql.parser.parser.DropSchemaNode@626f50a8
+statementType: DROP SCHEMA
+schemaName: 
+tjoneslo
+dropBehavior: 
+1

@@ -1,0 +1,29 @@
+org.cratedb.sql.parser.parser.DeleteNode@2d8941f7
+statementType: DELETE
+resultSet: 	
+	org.cratedb.sql.parser.parser.SelectNode@e49d67c
+	isDistinct: false
+	fromList: 		
+		org.cratedb.sql.parser.parser.FromList@11a06e38
+
+		[0]:		
+		org.cratedb.sql.parser.parser.FromBaseTable@3ba42792
+		tableName: t1
+		updateOrDelete: DELETE
+		null
+		correlation Name: null
+		null
+targetTableName: 	
+	org.cratedb.sql.parser.parser.TableName@e3d
+	t1
+returningList: 	
+	org.cratedb.sql.parser.parser.ResultColumnList@162200d5
+
+	[0]:	
+	org.cratedb.sql.parser.parser.AllResultColumn@1264ab4d
+	tableName: null
+	exposedName: null
+	name: null
+	tableName: null
+	isDefaultColumn: false
+	type: null
