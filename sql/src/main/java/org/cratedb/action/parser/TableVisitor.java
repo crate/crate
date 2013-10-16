@@ -59,7 +59,7 @@ public class TableVisitor extends XContentVisitor {
         String tableName = node.getObjectName().getTableName();
         stmt.addIndex(tableName);
 
-        indexSettings.put("number_of_replicas", node.numberOfReplicas(0));
+        indexSettings.put("number_of_replicas", node.numberOfReplicas(1));
         indexSettings.put("number_of_shards", node.numberOfShards(5));
 
         routingColumn = node.routingColumn();

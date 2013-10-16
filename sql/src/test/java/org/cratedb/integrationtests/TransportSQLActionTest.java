@@ -1328,7 +1328,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(6L, response.rows()[0][0]);
     }
 
-    
+
     private String getMapping(String index) throws IOException {
         ClusterStateRequest request = Requests.clusterStateRequest()
                 .filterRoutingTable(true)
@@ -1381,7 +1381,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     @Test
     public void testCreateTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
-        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());
 
@@ -1395,7 +1394,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         String expectedSettings = "{\"test\":{" +
                 "\"settings\":{" +
-                "\"index.number_of_replicas\":\"0\"," +
+                "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
                 "\"index.version.created\":\"900599\"" +
                 "}}}";
@@ -1412,9 +1411,8 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     @Test
     public void testCreateTableWithReplicasAndShards() throws Exception {
-        execute("create table test (col1 integer primary key, col2 string) replicas 0" +
+        execute("create table test (col1 integer primary key, col2 string) replicas 2" +
                 "clustered by (col1) into 10 shards");
-        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());
 
@@ -1429,7 +1427,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         String expectedSettings = "{\"test\":{" +
                 "\"settings\":{" +
-                    "\"index.number_of_replicas\":\"0\"," +
+                    "\"index.number_of_replicas\":\"2\"," +
                     "\"index.number_of_shards\":\"10\"," +
                     "\"index.version.created\":\"900599\"" +
                 "}}}";
