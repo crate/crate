@@ -2,6 +2,8 @@ package org.cratedb.integrationtests;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Ordering;
+import org.cratedb.action.TransportDistributedSQLAction;
+import org.cratedb.action.TransportSQLReduceHandler;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
@@ -12,6 +14,7 @@ import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -1210,37 +1213,86 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals("Human", result.get(2).v2());
     }
 
-    // TODO: support order by and limit
-    //public void testCountWithGroupByOrderOnAggFuncAndLimit() throws Exception {
-    //    groupBySetup();
+    @Test
+    public void testCountWithGroupByOrderOnAggAscFuncAndLimit() throws Exception {
+        groupBySetup();
 
-    //    execute("select count(*), race from characters group by race order by count(*) desc limit 2");
+        execute("select count(*), race from characters group by race order by count(*) asc limit 2");
 
-    //    assertEquals(2, response.rows().length);
-    //    assertEquals(3, response.rows()[0][0]);
-    //    assertEquals("Human", response.rows()[0][1]);
-    //    assertEquals(2, response.rows()[1][0]);
-    //    assertEquals("Vogon", response.rows()[1][1]);
-    //}
+        assertEquals(2, response.rows().length);
+        assertEquals(1L, response.rows()[0][0]);
+        assertEquals("Android", response.rows()[0][1]);
+        assertEquals(2L, response.rows()[1][0]);
+        assertEquals("Vogon", response.rows()[1][1]);
+    }
 
-    //// TODO: support order by and limit
-    //public void testCountWithGroupByOrderOnKeyAndLimit() throws Exception {
-    //    groupBySetup();
+    @Test
+    public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimit() throws Exception {
+        groupBySetup();
 
-    //    execute("select count(*), race from characters group by race order by race desc limit 2");
+        Loggers.getLogger(TransportDistributedSQLAction.class).setLevel("TRACE");
+        Loggers.getLogger(TransportSQLReduceHandler.class).setLevel("TRACE");
 
-    //    assertEquals(2, response.rows().length);
-    //    assertEquals(2, response.rows()[0][0]);
-    //    assertEquals("Vogon", response.rows()[0][1]);
-    //    assertEquals(3, response.rows()[1][0]);
-    //    assertEquals("Human", response.rows()[1][1]);
-    //}
+        execute("select count(*), gender, race from characters group by race, gender order by count(*) desc, race asc limit 2");
+
+        assertEquals(2, response.rows().length);
+        assertEquals(2L, response.rows()[0][0]);
+        assertEquals("male", response.rows()[0][1]);
+        assertEquals("Human", response.rows()[0][2]);
+        assertEquals(2L, response.rows()[1][0]);
+        assertEquals("male", response.rows()[1][1]);
+        assertEquals("Vogon", response.rows()[1][2]);
+    }
+
+    @Test
+    public void testCountWithGroupByOrderOnAggDescFuncAndLimit() throws Exception {
+        groupBySetup();
+
+        execute("select count(*), race from characters group by race order by count(*) desc limit 2");
+
+        assertEquals(2, response.rows().length);
+        assertEquals(3L, response.rows()[0][0]);
+        assertEquals("Human", response.rows()[0][1]);
+        assertEquals(2L, response.rows()[1][0]);
+        assertEquals("Vogon", response.rows()[1][1]);
+    }
+
+    @Test
+    public void testCountWithGroupByOrderOnKeyAscAndLimit() throws Exception {
+        groupBySetup();
+
+        execute("select count(*), race from characters group by race order by race asc limit 2");
+
+        assertEquals(2, response.rows().length);
+        assertEquals(1L, response.rows()[0][0]);
+        assertEquals("Android", response.rows()[0][1]);
+        assertEquals(3L, response.rows()[1][0]);
+        assertEquals("Human", response.rows()[1][1]);
+    }
+
+    @Test
+    public void testCountWithGroupByOrderOnKeyDescAndLimit() throws Exception {
+        groupBySetup();
+
+        execute("select count(*), race from characters group by race order by race desc limit 2");
+
+        assertEquals(2, response.rows().length);
+        assertEquals(2L, response.rows()[0][0]);
+        assertEquals("Vogon", response.rows()[0][1]);
+        assertEquals(3L, response.rows()[1][0]);
+        assertEquals("Human", response.rows()[1][1]);
+    }
 
     private void groupBySetup() throws Exception {
         XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
             .startObject("default")
             .startObject("properties")
                 .startObject("race")
+                    .field("type", "string")
+                    .field("store", "true")
+                    .field("index", "not_analyzed")
+                .endObject()
+                .startObject("gender")
                     .field("type", "string")
                     .field("store", "true")
                     .field("index", "not_analyzed")
@@ -1257,12 +1309,12 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         prepareCreate("characters").addMapping("default", mapping).execute().actionGet();
         ensureGreen();
-        execute("insert into characters (race, name) values ('Human', 'Arthur Dent')");
-        execute("insert into characters (race, name) values ('Human', 'Trillian')");
-        execute("insert into characters (race, name) values ('Human', 'Ford Perfect')");
-        execute("insert into characters (race, name) values ('Android', 'Marving')");
-        execute("insert into characters (race, name) values ('Vogon', 'Jeltz')");
-        execute("insert into characters (race, name) values ('Vogon', 'Kwaltz')");
+        execute("insert into characters (race, gender, name) values ('Human', 'male', 'Arthur Dent')");
+        execute("insert into characters (race, gender, name) values ('Human', 'female', 'Trillian')");
+        execute("insert into characters (race, gender, name) values ('Human', 'male', 'Ford Perfect')");
+        execute("insert into characters (race, gender, name) values ('Android', 'male', 'Marving')");
+        execute("insert into characters (race, gender, name) values ('Vogon', 'male', 'Jeltz')");
+        execute("insert into characters (race, gender, name) values ('Vogon', 'male', 'Kwaltz')");
         refresh();
 
         execute("select count(*) from characters");

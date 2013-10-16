@@ -32,6 +32,16 @@ public class AvgAggState extends AggState {
 
     @Override
     public Object value() {
-        return sum / count;
+        return (double)sum / count;
+    }
+
+    @Override
+    public int compareTo(AggState o) {
+        // let it fail if other isn't of type AvgAggState since it is not comparable.
+        AvgAggState other = (AvgAggState)o;
+        double thisValue = (double)value();
+        double otherValue = (double)other.value();
+
+        return Double.compare(thisValue, otherValue);
     }
 }

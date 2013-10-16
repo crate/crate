@@ -67,6 +67,15 @@ public class GroupByRow implements Streamable {
         return row;
     }
 
+    public Object get(int columnIndex) {
+        AggState aggState = aggregateStates.get(columnIndex);
+        if (aggState == null) {
+            return regularColumns.get(columnIndex);
+        }
+
+        return aggState;
+    }
+
     public int size() {
         return aggregateStates.size() + regularColumns.size();
     }
@@ -108,6 +117,15 @@ public class GroupByRow implements Streamable {
         for (Map.Entry<Integer, Object> entry : regularColumns.entrySet()) {
             out.writeVInt(entry.getKey());
             out.writeGenericValue(entry.getValue());
+        }
+    }
+
+    public void merge(GroupByRow otherRow) {
+        for (Map.Entry<Integer, AggState> thisEntry : aggregateStates.entrySet()) {
+            AggState currentValue = thisEntry.getValue();
+            AggState otherValue = otherRow.aggregateStates.get(thisEntry.getKey());
+            currentValue.merge(otherValue);
+            thisEntry.setValue(currentValue);
         }
     }
 }

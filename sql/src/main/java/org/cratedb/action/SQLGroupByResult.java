@@ -34,6 +34,13 @@ public class SQLGroupByResult implements Streamable {
         merge(otherResult.result);
     }
 
+    /**
+     * merge the content of "mapperResult" into "result"
+     *
+     * a an entry (identified by key) in mapperResult that is missing in result is added to result
+     * if the entry is in result the values are merged.
+     * @param mapperResult
+     */
     protected void merge(Map<Object, GroupByRow> mapperResult) {
         for (Map.Entry<Object, GroupByRow> entry : mapperResult.entrySet()) {
             GroupByRow currentRow = result.get(entry.getKey());

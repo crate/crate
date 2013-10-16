@@ -83,7 +83,7 @@ public class SQLGroupingCollector extends Collector {
 
         }
 
-        Object key = keyGenerator.getKey();
+        String key = keyGenerator.getKey();
         String reducer = partitionByKey(reducers, key);
         Map<Object, GroupByRow> resultMap = partitionedResult.get(reducer);
 
@@ -119,8 +119,8 @@ public class SQLGroupingCollector extends Collector {
         resultMap.put(key, row);
     }
 
-    private String partitionByKey(String[] reducers, Object key) {
-        return reducers[key.hashCode() % reducers.length];
+    private String partitionByKey(String[] reducers, String key) {
+        return reducers[Math.abs(key.hashCode()) % reducers.length];
     }
 
     @Override
@@ -154,7 +154,7 @@ public class SQLGroupingCollector extends Collector {
             keyMap.clear();
         }
 
-        public Object getKey() {
+        public String getKey() {
             return Joiner.on(KEY_SEPARATOR).join(keyMap.values());
         }
     }

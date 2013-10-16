@@ -1,6 +1,8 @@
 package org.cratedb.action;
 
+import com.google.common.collect.MinMaxPriorityQueue;
 import org.cratedb.action.groupby.GroupByRow;
+import org.cratedb.action.groupby.GroupByRowComparator;
 import org.cratedb.action.groupby.aggregate.AggState;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
@@ -22,6 +24,8 @@ import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
@@ -76,10 +80,13 @@ import static com.google.common.collect.Sets.newHashSet;
  */
 public class TransportDistributedSQLAction extends TransportAction<DistributedSQLRequest, SQLResponse>
 {
+    private final ESLogger logger = Loggers.getLogger(getClass());
+
     private final ClusterService clusterService;
     private final TransportService transportService;
     private final NodeExecutionContext executionContext;
     private final SQLQueryService sqlQueryService;
+    private final TransportSQLReduceHandler transportSQLReduceHandler;
     final String executor = ThreadPool.Names.SEARCH;
     final String transportShardAction = "crate/sql/shard/gather";
 
@@ -89,12 +96,14 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                                             ClusterService clusterService,
                                             TransportService transportService,
                                             NodeExecutionContext executionContext,
+                                            TransportSQLReduceHandler transportSQLReduceHandler,
                                             SQLQueryService sqlQueryService) {
         super(settings, threadPool);
         this.executionContext = executionContext;
         this.sqlQueryService = sqlQueryService;
         this.clusterService = clusterService;
         this.transportService = transportService;
+        this.transportSQLReduceHandler = transportSQLReduceHandler;
     }
 
     @Override
@@ -127,7 +136,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             throw new SQLParseException("Couldn't parse SQL Statement", e);
         }
 
-        System.out.println("shard operation on: " +  clusterService.localNode().getId() + " shard: " + request.shardId);
+        logger.trace("shard operation on: {} shard: {}", clusterService.localNode().getId(), request.shardId);
 
         try {
             Map<String, Map<Object, GroupByRow>> distributedCollectResult =
@@ -178,13 +187,20 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         private final int expectedShardResponses;
         private final DiscoveryNodes nodes;
         private final AtomicLong reduceResponseCounter;
-        private final SQLGroupByResult groupByResult;
+        private final MinMaxPriorityQueue<GroupByRow> groupByResult;
 
         AsyncBroadcastAction(DistributedSQLRequest request, ActionListener<SQLResponse> listener) {
             this.parsedStatement = request.parsedStatement;
             this.sqlRequest = request.sqlRequest;
             this.listener = listener;
-            this.groupByResult = new SQLGroupByResult();
+
+            MinMaxPriorityQueue.Builder<GroupByRow> rowBuilder =
+                MinMaxPriorityQueue.orderedBy(new GroupByRowComparator(parsedStatement.orderByIndices()));
+
+            if (parsedStatement.limit != null) {
+                rowBuilder.maximumSize(parsedStatement.limit);
+            }
+            this.groupByResult = rowBuilder.create();
             clusterState = clusterService.state();
 
             // TODO: TransportBroadcastOperationAction does checkGlobalBlock, required?
@@ -226,7 +242,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 listener.onResponse(
                     new SQLResponse(parsedStatement.cols(),
                         groupbyResultToRows(parsedStatement, groupByResult),
-                        groupByResult.result.size()
+                        groupByResult.size()
                     )
                 );
             } catch (Throwable e) {
@@ -235,18 +251,19 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         }
 
         private Object[][] groupbyResultToRows(ParsedStatement parsedStatement,
-                                               SQLGroupByResult groupByResult) {
+                                               MinMaxPriorityQueue<GroupByRow> groupByResult) {
             Object[][] rows = new Object[groupByResult.size()][parsedStatement.outputFields().size()];
 
+            GroupByRow row;
             int currentRow = -1;
-            for (Map.Entry<Object, GroupByRow> rowEntry : groupByResult.result.entrySet()) {
+            while ( (row = groupByResult.pollFirst()) != null) {
                 currentRow++;
 
-                for (Map.Entry<Integer, AggState> aggStateEntry : rowEntry.getValue().aggregateStates.entrySet()) {
+                for (Map.Entry<Integer, AggState> aggStateEntry : row.aggregateStates.entrySet()) {
                     rows[currentRow][aggStateEntry.getKey()] = aggStateEntry.getValue().value();
                 }
 
-                for (Map.Entry<Integer, Object> objectEntry : rowEntry.getValue().regularColumns.entrySet()) {
+                for (Map.Entry<Integer, Object> objectEntry : row.regularColumns.entrySet()) {
                     rows[currentRow][objectEntry.getKey()] = objectEntry.getValue();
                 }
             }
@@ -279,13 +296,27 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             if (node == null) {
                 throw new NodeNotConnectedException(node, "Can't perform reduce operation on node");
             }
-
-            transportService.sendRequest(node,
-                TransportSQLReduceHandler.Actions.START_REDUCE_JOB,
-                new SQLReduceJobRequest(contextId, expectedShardResponses),
-                TransportRequestOptions.options(),
-                new ReduceTransportResponseHandler()
+            final SQLReduceJobRequest request = new SQLReduceJobRequest(
+                contextId, expectedShardResponses, parsedStatement.limit,
+                parsedStatement.orderByIndices()
             );
+
+            if (reducer.equals(nodes.getLocalNodeId())) {
+                threadPool.executor(executor).execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        onReduceJobResponse(
+                            transportSQLReduceHandler.reduceOperationStart(request));
+                    }
+                });
+            } else {
+                transportService.sendRequest(node,
+                    TransportSQLReduceHandler.Actions.START_REDUCE_JOB,
+                    request,
+                    TransportRequestOptions.options(),
+                    new ReduceTransportResponseHandler()
+                );
+            }
         }
 
         private void sendShardRequests(UUID contextId) {
@@ -367,11 +398,22 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         }
 
         private void onMapperOperation(ShardRouting shard, int shardIndex, Throwable e) {
+            logger.error("Error from shard {}", e, shard.id());
             // TODO: set shard failure
         }
 
         private boolean shardOnLocalNode(ShardRouting shard) {
             return shard.currentNodeId().equals(nodes.getLocalNodeId());
+        }
+
+        private void onReduceJobResponse(SQLReduceJobResponse response) {
+            synchronized (groupByResult) {
+                Collections.addAll(groupByResult, response.result);
+            }
+
+            if (reduceResponseCounter.decrementAndGet() == 0) {
+                sendSqlResponse();
+            }
         }
 
         class ReduceTransportResponseHandler extends BaseTransportResponseHandler<SQLReduceJobResponse> {
@@ -386,17 +428,12 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
             @Override
             public void handleResponse(SQLReduceJobResponse response) {
-                // TODO: lock for merge
-                groupByResult.merge(response.result);
-
-                if (reduceResponseCounter.decrementAndGet() == 0) {
-                    sendSqlResponse();
-                }
+                onReduceJobResponse(response);
             }
 
             @Override
             public void handleException(TransportException exp) {
-                // TODO:
+                exp.printStackTrace();
             }
 
             @Override

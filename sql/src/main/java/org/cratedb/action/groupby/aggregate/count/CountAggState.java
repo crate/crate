@@ -31,4 +31,11 @@ public class CountAggState extends AggState {
     public Object value() {
         return value;
     }
+
+    @Override
+    public int compareTo(AggState o) {
+        // let it crash if AggState isn't a CountAggState since it's not comparable
+        CountAggState countAggState = (CountAggState)o;
+        return Long.compare(value, countAggState.value);
+    }
 }

@@ -174,8 +174,7 @@ Query for a property of an inner object::
 Data Aggregation
 ----------------
 
-Currently the only supported aggregation function in `crate` is `count(*)`
-without any groupings::
+Currently the only supported aggregation function in `crate` is `count(*)`::
 
     cr> select count(*) from locations
     +----------+
@@ -183,6 +182,30 @@ without any groupings::
     +----------+
     | 13       |
     +----------+
+
+Group by
+--------
+
+Crate supports the `group by` clause. This clause can be used to group the
+resulting rows by the value(s) of one or more columns. That means that rows
+that contain duplicate values will be merged together.
+
+This is useful if used in conjunction with aggregation functions::
+
+    cr> select count(*), kind from locations group by kind order by count(*) desc, kind asc
+    +----------+-------------+
+    | COUNT(*) | kind        |
+    +----------+-------------+
+    | 5        | Planet      |
+    | 4        | Galaxy      |
+    | 4        | Star System |
+    +----------+-------------+
+
+.. note::
+
+    All columns that are used either as result column or in the order by clause
+    have to be used within the group by clause. Otherwise the statement won't
+    execute.
 
 Inserting data
 ==============

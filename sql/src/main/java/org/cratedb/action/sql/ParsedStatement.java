@@ -75,6 +75,14 @@ public class ParsedStatement {
 
     public Integer limit = null;
     public Integer offset = null;
+    public List<OrderByColumnIdx> orderByIndices;
+    public OrderByColumnIdx[] orderByIndices() {
+        if (orderByIndices != null) {
+            return orderByIndices.toArray(new OrderByColumnIdx[orderByIndices.size()]);
+        }
+
+        return new OrderByColumnIdx[0];
+    }
 
     public ParsedStatement(String stmt, Object[] args, NodeExecutionContext context) throws
             StandardException {

@@ -13,4 +13,25 @@ public class AggExpr extends ColumnDescription {
         this.functionName = functionName;
         this.parameterInfo = parameterInfo;
     }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof AggExpr)) return false;
+
+        AggExpr aggExpr = (AggExpr) o;
+
+        if (!functionName.equals(aggExpr.functionName)) return false;
+        if (!parameterInfo.equals(aggExpr.parameterInfo)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = functionName.hashCode();
+        result = 31 * result + parameterInfo.hashCode();
+        return result;
+    }
 }

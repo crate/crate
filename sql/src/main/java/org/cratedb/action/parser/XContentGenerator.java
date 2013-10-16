@@ -2,8 +2,10 @@ package org.cratedb.action.parser;
 
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.ParameterInfo;
+import org.cratedb.action.groupby.aggregate.AggExprFactory;
 import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
 import org.cratedb.action.sql.NodeExecutionContext;
+import org.cratedb.action.sql.OrderByColumnIdx;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
@@ -13,6 +15,8 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
 import java.util.*;
+
+import static com.google.common.collect.Lists.newArrayList;
 
 /**
  * This class is responsible for generating XContent from the SQL Syntax Tree.
@@ -168,8 +172,30 @@ public class XContentGenerator {
 
     private void generate(OrderByList node) throws IOException {
         if (stmt.hasGroupBy()) {
-            // TODO: add sorting info to parsedStatement
-            return; // no need to generate sort XContent
+            stmt.orderByIndices = newArrayList();
+            int idx;
+            for (OrderByColumn column : node) {
+                if (column.getExpression() instanceof AggregateNode) {
+                    AggExpr aggExpr = AggExprFactory.createAggExpr(
+                        ((AggregateNode) column.getExpression()).getAggregateName());
+
+                    idx = stmt.resultColumnList.indexOf(aggExpr);
+                } else {
+                    ColumnReferenceDescription colrefDesc = new ColumnReferenceDescription(
+                        column.getExpression().getColumnName()
+                    );
+                    idx = stmt.resultColumnList.indexOf(colrefDesc);
+                }
+
+                if (idx < 0) {
+                    throw new SQLParseException(
+                        "column in order by is also required in the result column list"
+                    );
+                }
+
+                stmt.orderByIndices.add(new OrderByColumnIdx(idx, column.isAscending()));
+            }
+            return;
         }
 
         jsonBuilder.startArray("sort");
@@ -282,9 +308,7 @@ public class XContentGenerator {
         AggregateNode node = (AggregateNode)column.getExpression();
         if (node.getAggregateName().equals("COUNT(*)")) {
             if (stmt.hasGroupBy()) {
-                ParameterInfo parameterInfo = new ParameterInfo();
-                parameterInfo.isAllColumn = true;
-                stmt.resultColumnList.add(new AggExpr(CountAggFunction.NAME, parameterInfo));
+                stmt.resultColumnList.add(AggExprFactory.createAggExpr(node.getAggregateName()));
             }
             String alias = column.getName() != null ? column.getName() : node.getAggregateName();
             stmt.countRequest(true);
