@@ -116,7 +116,6 @@ public class SQLParserTest extends TestBase implements TestBase.GenerateAndCheck
 
     @Override
     public void checkResult(String result) throws IOException {
-        System.out.println("Testing " + caseName);
         assertEqualsWithoutHashes(caseName, expected, result);
     }
 
