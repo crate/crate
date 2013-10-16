@@ -12,6 +12,9 @@ import java.util.Set;
 
 public class QueryPlanner {
 
+    // used to mark an exit condition for recursing through or-nodes
+    public static class NonOptimizableOrClauseException extends Exception {}
+
     public static final String PRIMARY_KEY_VALUE = "primaryKeyValue";
     public static final String ROUTING_VALUES = "routingValues";
 
@@ -106,36 +109,16 @@ public class QueryPlanner {
         if (node.getNodeType() == NodeTypes.OR_NODE) {
             ValueNode leftOperand = ((OrNode) node).getLeftOperand();
             ValueNode rightOperand = ((OrNode) node).getRightOperand();
-
-            if (leftOperand.getNodeType() == NodeTypes.OR_NODE || leftOperand.getNodeType() == NodeTypes.IN_LIST_OPERATOR_NODE) {
-                extractRoutingValuesFromOrClauses(stmt, leftOperand, results);
-            } else {
-                Object leftValue = extractPrimaryKeyValue(stmt, leftOperand);
-                if (leftValue != null) {
-                    results.add(leftValue.toString());
-                } else {
-                    // some invalid node, clear results and quit
-                    results.clear();
-                    return;
-                }
-            }
-
-            // shortcut exit if left operand failed
-            if (results.isEmpty()) {
+            try {
+                extractOrClauseOperand(stmt, leftOperand, results);
+            } catch (NonOptimizableOrClauseException e) {
                 return;
             }
 
-            if (rightOperand.getNodeType() == NodeTypes.OR_NODE || rightOperand.getNodeType() == NodeTypes.IN_LIST_OPERATOR_NODE) {
-                extractRoutingValuesFromOrClauses(stmt, rightOperand, results);
-            } else {
-                Object rightValue = extractPrimaryKeyValue(stmt, rightOperand);
-                if (rightValue != null) {
-                    results.add(rightValue.toString());
-                } else {
-                    // some invalid node, clear results and quit
-                    results.clear();
-                    return;
-                }
+            try {
+                extractOrClauseOperand(stmt, rightOperand, results);
+            } catch(NonOptimizableOrClauseException e) {
+                return;
             }
         } else if (node.getNodeType() == NodeTypes.IN_LIST_OPERATOR_NODE) {
             // e.g. WHERE pk_col IN (1,2,3,...)
@@ -154,6 +137,29 @@ public class QueryPlanner {
                     results.clear();
                     return;
                 }
+            }
+        }
+    }
+
+    /**
+     * extract routing-values from or-node operands, left and right side
+     *
+     * @param stmt the statement we operate on
+     * @param operand the valueNode to extract values from, will recurse further into extracting from this node if necessary
+     * @param results set of routing values, result-argument
+     * @throws StandardException
+     * @throws NonOptimizableOrClauseException if or-node operand is not optimizable, stop recursion
+     */
+    private void extractOrClauseOperand(ParsedStatement stmt, ValueNode operand, Set<String> results) throws StandardException, NonOptimizableOrClauseException {
+        if (operand.getNodeType() == NodeTypes.OR_NODE || operand.getNodeType() == NodeTypes.IN_LIST_OPERATOR_NODE) {
+            extractRoutingValuesFromOrClauses(stmt, operand, results);
+        } else {
+            Object leftValue = extractPrimaryKeyValue(stmt, operand);
+            if (leftValue != null) {
+                results.add(leftValue.toString());
+            } else {
+                results.clear(); // cannot use routing
+                throw new NonOptimizableOrClauseException();
             }
         }
     }
