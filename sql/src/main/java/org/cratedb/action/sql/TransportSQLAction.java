@@ -5,6 +5,9 @@ import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.VersionConflictException;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.bulk.TransportBulkAction;
@@ -50,7 +53,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final TransportGetAction transportGetAction;
     private final TransportDeleteAction transportDeleteAction;
     private final TransportUpdateAction transportUpdateAction;
-
+    private final TransportCreateIndexAction transportCreateIndexAction;
     private final NodeExecutionContext executionContext;
 
     @Inject
@@ -64,7 +67,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             TransportCountAction transportCountAction,
             TransportGetAction transportGetAction,
             TransportDeleteAction transportDeleteAction,
-            TransportUpdateAction transportUpdateAction) {
+            TransportUpdateAction transportUpdateAction,
+            TransportCreateIndexAction transportCreateIndexAction) {
         super(settings, threadPool);
         this.executionContext = executionContext;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
@@ -76,6 +80,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         this.transportGetAction = transportGetAction;
         this.transportDeleteAction = transportDeleteAction;
         this.transportUpdateAction = transportUpdateAction;
+        this.transportCreateIndexAction = transportCreateIndexAction;
     }
 
     private class SearchResponseListener implements ActionListener<SearchResponse> {
@@ -217,6 +222,9 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                     UpdateRequest updateRequest = stmt.buildUpdateRequest();
                     transportUpdateAction.execute(updateRequest, new UpdateResponseListener(stmt, listener));
                     break;
+                case ParsedStatement.CREATE_INDEX_ACTION:
+                    CreateIndexRequest createIndexRequest = stmt.buildCreateIndexRequest();
+                    transportCreateIndexAction.execute(createIndexRequest, new CreateIndexResponseListener(stmt, listener));
                 default:
                     if (stmt.countRequest()) {
                         CountRequest countRequest = stmt.buildCountRequest();
@@ -363,6 +371,30 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             } else {
                 delegate.onFailure(reRaiseCrateException(e));
             }
+        }
+    }
+
+    /**
+     * TODO: how to signal failure (index exists, does not exist ...) ?
+     */
+    private class CreateIndexResponseListener implements ActionListener<CreateIndexResponse> {
+
+        private final ActionListener<SQLResponse> delegate;
+        private final ParsedStatement stmt;
+
+        private CreateIndexResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> delegate) {
+            this.delegate = delegate;
+            this.stmt = stmt;
+        }
+
+        @Override
+        public void onResponse(CreateIndexResponse createIndexResponse) {
+            delegate.onResponse(stmt.buildResponse(createIndexResponse));
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            delegate.onFailure(e);
         }
     }
 

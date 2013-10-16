@@ -1,9 +1,6 @@
 package org.cratedb.action.sql;
 
-import org.cratedb.action.parser.InsertVisitor;
-import org.cratedb.action.parser.QueryPlanner;
-import org.cratedb.action.parser.QueryVisitor;
-import org.cratedb.action.parser.XContentVisitor;
+import org.cratedb.action.parser.*;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.VersionConflictException;
 import org.cratedb.sql.facet.InternalSQLFacet;
@@ -11,6 +8,8 @@ import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.NodeTypes;
 import org.cratedb.sql.parser.parser.SQLParser;
 import org.cratedb.sql.parser.parser.StatementNode;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.count.CountRequest;
@@ -63,6 +62,7 @@ public class ParsedStatement {
     public static final int GET_ACTION = 5;
     public static final int DELETE_ACTION = 6;
     public static final int UPDATE_ACTION = 7;
+    public static final int CREATE_INDEX_ACTION = 8;
 
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;
 
@@ -83,6 +83,9 @@ public class ParsedStatement {
         switch (statementNode.getNodeType()) {
             case NodeTypes.INSERT_NODE:
                 visitor = new InsertVisitor(this);
+                break;
+            case NodeTypes.CREATE_TABLE_NODE:
+                visitor = new TableVisitor(this);
                 break;
             default:
                 visitor = new QueryVisitor(this);
@@ -132,6 +135,8 @@ public class ParsedStatement {
                     return UPDATE_ACTION;
                 }
                 return SEARCH_ACTION;
+            case NodeTypes.CREATE_TABLE_NODE:
+                return CREATE_INDEX_ACTION;
             default:
                 return SEARCH_ACTION;
         }
@@ -219,6 +224,11 @@ public class ParsedStatement {
         request.retryOnConflict(UPDATE_RETRY_ON_CONFLICT);
 
         return request;
+    }
+
+    public CreateIndexRequest buildCreateIndexRequest() {
+        // TODO: build
+        return null;
     }
 
     public String[] cols() {
@@ -341,6 +351,10 @@ public class ParsedStatement {
 
     public SQLResponse buildResponse(UpdateResponse updateResponse) {
         return buildEmptyResponse(1);
+    }
+
+    public SQLResponse buildResponse(CreateIndexResponse createIndexResponse) {
+        return buildEmptyResponse(0);
     }
 
     public SQLResponse buildMissingDocumentResponse() {
