@@ -1,0 +1,4 @@
+org.cratedb.sql.parser.parser.DropGroupNode@47d62270
+name: t2
+statementType: DROP GROUP
+existenceCheck: IF_EXISTS

@@ -1,0 +1,1 @@
+RENAME INDEX index1 TO index2

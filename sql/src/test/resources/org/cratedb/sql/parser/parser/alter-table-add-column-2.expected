@@ -1,0 +1,21 @@
+org.cratedb.sql.parser.parser.AlterTableNode@267fbe19
+name: t
+statementType: ALTER TABLE
+objectName: t
+compressTable: false
+sequential: false
+truncateTable: false
+purge: false
+defragment: false
+truncateEndOfTable: false
+updateStatistics: false
+updateStatisticsAll: false
+indexNameForUpdateStatistics: null
+tableElementList: 	
+	org.cratedb.sql.parser.parser.TableElementList@c996f0e
+
+	[0]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@2d4a0698
+	type: DOUBLE
+	name: c
+	elementType: null

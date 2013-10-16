@@ -1,0 +1,7 @@
+org.cratedb.sql.parser.parser.CreateAliasNode@258b678c
+aliasType: PROCEDURE
+aliasInfo: (IN x INTEGER, OUT y DOUBLE) LANGUAGE SQL PARAMETER STYLE row
+createOrReplace: true
+definition: SELECT $1 * 3.0
+name: test.foo_too
+statementType: CREATE PROCEDURE

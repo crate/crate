@@ -1,0 +1,27 @@
+org.cratedb.sql.parser.parser.CreateIndexNode@32e4445e
+name: idx1
+statementType: CREATE INDEX
+unique: false
+indexType: null
+indexName: idx1
+tableName: table1
+joinType: null
+properties: null
+existenceCheck: IF_NOT_EXISTS
+storageLocation: null
+	
+	org.cratedb.sql.parser.parser.IndexColumnList@2844916c
+	
+	methodName: Z_ORDER_LAT_LON
+	firstArg: 0
+	lastArg: 1
+	[0]:	
+	org.cratedb.sql.parser.parser.IndexColumn@2da75e1b
+	columnName: c1
+	tableName: null
+	ascending
+	[1]:	
+	org.cratedb.sql.parser.parser.IndexColumn@47135607
+	columnName: c2
+	tableName: null
+	ascending

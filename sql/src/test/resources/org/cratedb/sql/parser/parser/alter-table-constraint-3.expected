@@ -1,0 +1,42 @@
+org.cratedb.sql.parser.parser.AlterTableNode@1d5a0305
+name: t3
+statementType: ALTER TABLE
+objectName: t3
+compressTable: false
+sequential: false
+truncateTable: false
+purge: false
+defragment: false
+truncateEndOfTable: false
+updateStatistics: false
+updateStatisticsAll: false
+indexNameForUpdateStatistics: null
+tableElementList: 	
+	org.cratedb.sql.parser.parser.TableElementList@7c4c51
+
+	[0]:	
+	org.cratedb.sql.parser.parser.FKConstraintDefinitionNode@60765a16
+	refTable name : t2
+	grouping: true
+	constraintName: gfk1
+	constraintType: FOREIGN_KEY
+	properties: null
+	name: gfk1
+	elementType: AT_DROP_CONSTRAINT
+	columnList: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@7a148bd3
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ResultColumn@5ae80842
+		exposedName: c2
+		name: c2
+		tableName: null
+		isDefaultColumn: false
+		type: null
+		[1]:		
+		org.cratedb.sql.parser.parser.ResultColumn@377653ae
+		exposedName: c3
+		name: c3
+		tableName: null
+		isDefaultColumn: false
+		type: null

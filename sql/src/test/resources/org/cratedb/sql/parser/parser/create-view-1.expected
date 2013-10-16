@@ -1,0 +1,78 @@
+org.cratedb.sql.parser.parser.CreateViewNode@58d9660d
+name: v1
+statementType: CREATE VIEW
+checkOption: 0
+qeText: CREATE VIEW v1(x,y) AS (SELECT y,z FROM t1 WHERE y IS NOT NULL)
+existenceCheck: NO_CONDITION
+resultColumns: 	
+	org.cratedb.sql.parser.parser.ResultColumnList@28bb0d0d
+
+	[0]:	
+	org.cratedb.sql.parser.parser.ResultColumn@1055e55f
+	exposedName: x
+	name: x
+	tableName: null
+	isDefaultColumn: false
+	type: null
+	[1]:	
+	org.cratedb.sql.parser.parser.ResultColumn@7745c859
+	exposedName: y
+	name: y
+	tableName: null
+	isDefaultColumn: false
+	type: null
+queryExpression: 	
+	org.cratedb.sql.parser.parser.SelectNode@664883c
+	isDistinct: false
+	resultColumns: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@322c1e6b
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ResultColumn@6e811c88
+		exposedName: y
+		name: y
+		tableName: null
+		isDefaultColumn: false
+		type: null
+		expression: 			
+			org.cratedb.sql.parser.parser.ColumnReference@5e785d65
+			columnName: y
+			tableName: null
+			type: null
+		[1]:		
+		org.cratedb.sql.parser.parser.ResultColumn@303bc257
+		exposedName: z
+		name: z
+		tableName: null
+		isDefaultColumn: false
+		type: null
+		expression: 			
+			org.cratedb.sql.parser.parser.ColumnReference@2353f67e
+			columnName: z
+			tableName: null
+			type: null
+	fromList: 		
+		org.cratedb.sql.parser.parser.FromList@5d5bdc50
+
+		[0]:		
+		org.cratedb.sql.parser.parser.FromBaseTable@39dd3812
+		tableName: t1
+		updateOrDelete: null
+		null
+		correlation Name: null
+		null
+	whereClause: 		
+		org.cratedb.sql.parser.parser.NotNode@6a8c436b
+		operator: not
+		methodName: not
+		type: null
+		operand: 			
+			org.cratedb.sql.parser.parser.IsNullNode@1e9e5c73
+			operator: is null
+			methodName: isNull
+			type: null
+			operand: 				
+				org.cratedb.sql.parser.parser.ColumnReference@2ec791b9
+				columnName: y
+				tableName: null
+				type: null

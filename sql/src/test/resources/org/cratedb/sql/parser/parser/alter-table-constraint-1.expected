@@ -1,0 +1,40 @@
+org.cratedb.sql.parser.parser.AlterTableNode@4bdb699b
+name: t1
+statementType: ALTER TABLE
+objectName: t1
+compressTable: false
+sequential: false
+truncateTable: false
+purge: false
+defragment: false
+truncateEndOfTable: false
+updateStatistics: false
+updateStatisticsAll: false
+indexNameForUpdateStatistics: null
+tableElementList: 	
+	org.cratedb.sql.parser.parser.TableElementList@31f26605
+
+	[0]:	
+	org.cratedb.sql.parser.parser.ConstraintDefinitionNode@2107ebe1
+	constraintName: ux1
+	constraintType: UNIQUE
+	properties: null
+	name: ux1
+	elementType: AT_DROP_CONSTRAINT
+	columnList: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@26544ec1
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ResultColumn@68fe748f
+		exposedName: c1
+		name: c1
+		tableName: null
+		isDefaultColumn: false
+		type: null
+		[1]:		
+		org.cratedb.sql.parser.parser.ResultColumn@19968e23
+		exposedName: c2
+		name: c2
+		tableName: null
+		isDefaultColumn: false
+		type: null

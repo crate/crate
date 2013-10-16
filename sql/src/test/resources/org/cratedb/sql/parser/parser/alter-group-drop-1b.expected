@@ -1,0 +1,26 @@
+org.cratedb.sql.parser.parser.AlterTableNode@1a1c1f5
+name: t1
+statementType: ALTER TABLE
+objectName: t1
+compressTable: false
+sequential: false
+truncateTable: false
+purge: false
+defragment: false
+truncateEndOfTable: false
+updateStatistics: false
+updateStatisticsAll: false
+indexNameForUpdateStatistics: null
+tableElementList: 	
+	org.cratedb.sql.parser.parser.TableElementList@22c4bca9
+
+	[0]:	
+	org.cratedb.sql.parser.parser.FKConstraintDefinitionNode@223e0d14
+	refTable name : null
+	grouping: true
+	constraintName: null
+	constraintType: DROP
+	verifyType: FOREIGN_KEY
+	properties: null
+	name: null
+	elementType: AT_DROP_CONSTRAINT

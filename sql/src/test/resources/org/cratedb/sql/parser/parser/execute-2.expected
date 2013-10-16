@@ -1,0 +1,14 @@
+org.cratedb.sql.parser.parser.ExecuteStatementNode@789934d4
+name: ps
+statementType: EXECUTE
+parameterList: 	
+	org.cratedb.sql.parser.parser.ValueNodeList@125b8827
+
+	[0]:	
+	org.cratedb.sql.parser.parser.NumericConstantNode@3747c1db
+	value: 100
+	type: INTEGER NOT NULL
+	[1]:	
+	org.cratedb.sql.parser.parser.CharConstantNode@48082d37
+	value: Smith
+	type: CHAR(5) NOT NULL

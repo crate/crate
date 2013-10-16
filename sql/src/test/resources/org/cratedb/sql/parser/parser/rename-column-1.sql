@@ -1,0 +1,1 @@
+RENAME COLUMN t.c TO d

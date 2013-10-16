@@ -1,0 +1,1 @@
+create Unique index idx2 on table2 (c1 asc, c2 desc, c3 asc)

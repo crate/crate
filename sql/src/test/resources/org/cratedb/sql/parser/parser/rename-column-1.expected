@@ -1,0 +1,20 @@
+org.cratedb.sql.parser.parser.AlterTableNode@71172d81
+name: t
+statementType: ALTER TABLE
+objectName: t
+compressTable: false
+sequential: false
+truncateTable: false
+purge: false
+defragment: false
+truncateEndOfTable: false
+updateStatistics: false
+updateStatisticsAll: false
+indexNameForUpdateStatistics: null
+tableElementList: 	
+	org.cratedb.sql.parser.parser.TableElementList@28acaa28
+
+	[0]:	
+	org.cratedb.sql.parser.parser.AlterTableRenameColumnNode@5fd73cf4
+	name: c
+	elementType: AT_RENAME_COLUMN

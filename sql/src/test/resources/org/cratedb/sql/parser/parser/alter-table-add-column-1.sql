@@ -1,0 +1,1 @@
+ALTER TABLE t1 add column c double, d bigint

@@ -1,0 +1,13 @@
+org.cratedb.sql.parser.parser.AlterTableNode@68861f24
+name: test.t1
+statementType: ALTER TABLE
+objectName: test.t1
+compressTable: false
+sequential: false
+truncateTable: false
+purge: false
+defragment: false
+truncateEndOfTable: false
+updateStatistics: true
+updateStatisticsAll: true
+indexNameForUpdateStatistics: null

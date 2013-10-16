@@ -1,0 +1,248 @@
+org.cratedb.sql.parser.parser.CreateTableNode@5ae80842
+name: t1
+statementType: CREATE TABLE
+lockGranularity: R
+existenceCheck: NO_CONDITION
+tableElementList: 	
+	org.cratedb.sql.parser.parser.TableElementList@377653ae
+
+	[0]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@396fe0f4
+	type: INTEGER NOT NULL
+	name: col1
+	elementType: null
+	[1]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@6019d0a1
+	type: INTEGER
+	name: col2
+	elementType: null
+	[2]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@3ed02b51
+	type: SMALLINT NOT NULL
+	name: col3
+	elementType: null
+	[3]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@54cbf30e
+	type: SMALLINT
+	name: col4
+	elementType: null
+	[4]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@19c247a0
+	type: BIGINT NOT NULL
+	name: col5
+	elementType: null
+	[5]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@21ec6696
+	type: BIGINT
+	name: col6
+	elementType: null
+	[6]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@27431340
+	type: CHAR(1) NOT NULL
+	name: col10
+	elementType: null
+	[7]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@24a4e2e3
+	type: CHAR(1)
+	name: col11
+	elementType: null
+	[8]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@452bb7e0
+	type: VARCHAR(1) NOT NULL
+	name: col12
+	elementType: null
+	[9]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@3934f69a
+	type: VARCHAR(1)
+	name: col13
+	elementType: null
+	[10]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@442a15cd
+	type: LONG VARCHAR NOT NULL
+	name: col14
+	elementType: null
+	[11]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@26fd68b1
+	type: LONG VARCHAR
+	name: col15
+	elementType: null
+	[12]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@46e45076
+	type: DOUBLE NOT NULL
+	name: col20
+	elementType: null
+	[13]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@375e9756
+	type: DOUBLE
+	name: col21
+	elementType: null
+	[14]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@2321ab80
+	type: REAL NOT NULL
+	name: col22
+	elementType: null
+	[15]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@77827284
+	type: REAL
+	name: col23
+	elementType: null
+	[16]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@152c7568
+	type: DOUBLE NOT NULL
+	name: col24
+	elementType: null
+	[17]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@19d009b4
+	type: DOUBLE
+	name: col25
+	elementType: null
+	[18]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@292d15a9
+	type: DATE NOT NULL
+	name: col30
+	elementType: null
+	[19]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@4ee91f5d
+	type: DATE
+	name: col31
+	elementType: null
+	[20]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@2b0a3b24
+	type: TIME NOT NULL
+	name: col32
+	elementType: null
+	[21]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@2cb0ce8f
+	type: TIME
+	name: col33
+	elementType: null
+	[22]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@bc92535
+	type: TIMESTAMP NOT NULL
+	name: col34
+	elementType: null
+	[23]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@42a9c09e
+	type: TIMESTAMP
+	name: col35
+	elementType: null
+	[24]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@464c4975
+	type: DATETIME
+	name: col36
+	elementType: null
+	[25]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@3a6ac461
+	type: DATETIME NOT NULL
+	name: col37
+	elementType: null
+	[26]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@3782da3d
+	type: YEAR
+	name: col38
+	elementType: null
+	[27]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@6fc5f743
+	type: YEAR NOT NULL
+	name: col39
+	elementType: null
+	[28]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@16a4e743
+	type: CLOB(2147483647) NOT NULL
+	name: col40
+	elementType: null
+	[29]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@244aeb52
+	type: CLOB(2147483647)
+	name: col41
+	elementType: null
+	[30]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@329f671b
+	type: BLOB(2147483647) NOT NULL
+	name: col42
+	elementType: null
+	[31]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@7f2a3793
+	type: BLOB(2147483647)
+	name: col43
+	elementType: null
+	[32]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@2ca6d51e
+	type: DECIMAL(5,0) NOT NULL
+	name: col50
+	elementType: null
+	[33]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@7cf1bb78
+	type: DECIMAL(5,0)
+	name: col51
+	elementType: null
+	[34]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@624b035d
+	type: DECIMAL(1,0) NOT NULL
+	name: col52
+	elementType: null
+	[35]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@2aca0115
+	type: DECIMAL(1,0)
+	name: col53
+	elementType: null
+	[36]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@340d1fa5
+	type: DECIMAL(10,0) NOT NULL
+	name: col54
+	elementType: null
+	[37]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@4998a455
+	type: DECIMAL(10,0)
+	name: col55
+	elementType: null
+	[38]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@444cee32
+	type: DECIMAL(1,1) NOT NULL
+	name: col56
+	elementType: null
+	[39]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@16aa37a6
+	type: DECIMAL(1,1)
+	name: col57
+	elementType: null
+	[40]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@12b7eea
+	type: DECIMAL(10,1) NOT NULL
+	name: col58
+	elementType: null
+	[41]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@4e99353f
+	type: DECIMAL(10,1)
+	name: col59
+	elementType: null
+	[42]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@2c76e369
+	type: DECIMAL(10,10) NOT NULL
+	name: col60
+	elementType: null
+	[43]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@314c194d
+	type: DECIMAL(10,10)
+	name: col61
+	elementType: null
+	[44]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@7b112783
+	type: DECIMAL(30,10) NOT NULL
+	name: col62
+	elementType: null
+	[45]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@23394894
+	type: DECIMAL(30,10)
+	name: col63
+	elementType: null
+	[46]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@5cbfe9d
+	type: NUMERIC NOT NULL
+	name: col70
+	elementType: null
+	[47]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@13b8f864
+	type: NUMERIC
+	name: col71
+	elementType: null

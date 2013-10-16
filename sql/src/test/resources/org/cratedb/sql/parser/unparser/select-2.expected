@@ -1,0 +1,1 @@
+SELECT x, (y || y) AS yy FROM t WHERE (((z > 3.14) AND (NOT (w IS NULL))) OR (y LIKE 'f%')) OR (y LIKE '_%%' ESCAPE '%')

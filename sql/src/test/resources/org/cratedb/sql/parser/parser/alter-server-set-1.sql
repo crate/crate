@@ -1,0 +1,1 @@
+ALTER SERVER SET cbo to default

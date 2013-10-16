@@ -1,0 +1,1 @@
+ALTER TABLE t add c double

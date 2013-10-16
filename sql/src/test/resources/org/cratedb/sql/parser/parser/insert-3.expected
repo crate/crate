@@ -1,0 +1,59 @@
+org.cratedb.sql.parser.parser.InsertNode@fd49c56
+statementType: INSERT
+resultSet: 	
+	org.cratedb.sql.parser.parser.RowsResultSetNode@4f63da38
+	correlation Name: null
+	null
+	resultColumns: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@248bbb40
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ResultColumn@51b2797e
+		exposedName: null
+		name: null
+		tableName: null
+		isDefaultColumn: false
+		type: null
+		expression: 			
+			org.cratedb.sql.parser.parser.NumericConstantNode@1c466919
+			value: 0.123
+			type: DECIMAL(4,3) NOT NULL
+	[0]:	
+	org.cratedb.sql.parser.parser.RowResultSetNode@529df6cf
+	correlation Name: null
+	null
+	resultColumns: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@b6ba69
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ResultColumn@5c8843dc
+		exposedName: null
+		name: null
+		tableName: null
+		isDefaultColumn: false
+		type: null
+		expression: 			
+			org.cratedb.sql.parser.parser.NumericConstantNode@761f4ff9
+			value: 0.123
+			type: DECIMAL(4,3) NOT NULL
+	[1]:	
+	org.cratedb.sql.parser.parser.RowResultSetNode@1bba105
+	correlation Name: null
+	null
+	resultColumns: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@45485026
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ResultColumn@e861253
+		exposedName: null
+		name: null
+		tableName: null
+		isDefaultColumn: false
+		type: null
+		expression: 			
+			org.cratedb.sql.parser.parser.NumericConstantNode@41d0e98
+			value: 0.123
+			type: DECIMAL(3,3) NOT NULL
+targetTableName: 	
+	org.cratedb.sql.parser.parser.TableName@e3d
+	t1

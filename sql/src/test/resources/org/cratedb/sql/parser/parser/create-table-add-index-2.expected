@@ -1,0 +1,37 @@
+org.cratedb.sql.parser.parser.CreateTableNode@6f86e8cb
+name: t1
+statementType: CREATE TABLE
+lockGranularity: R
+existenceCheck: NO_CONDITION
+tableElementList: 	
+	org.cratedb.sql.parser.parser.TableElementList@21da0a1
+
+	[0]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@671cab1c
+	type: INTEGER
+	name: c1
+	elementType: null
+	[1]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@b25f027
+	type: DOUBLE
+	name: c2
+	elementType: null
+	[2]:	
+	org.cratedb.sql.parser.parser.IndexConstraintDefinitionNode@67b99628
+	constraintName: null
+	constraintType: INDEX
+	properties: null
+	name: null
+	elementType: AT_DROP_CONSTRAINT
+	
+	indexName: indx1
+	joinType: null
+	location: BTREE
+	indexColumnList: 		
+		org.cratedb.sql.parser.parser.IndexColumnList@114beb40
+
+		[0]:		
+		org.cratedb.sql.parser.parser.IndexColumn@f41bf9f
+		columnName: c1
+		tableName: null
+		descending

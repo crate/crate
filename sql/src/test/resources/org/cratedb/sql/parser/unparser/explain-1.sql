@@ -1,0 +1,1 @@
+EXPLAIN SELECT x,y FROM t

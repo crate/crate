@@ -1,0 +1,13 @@
+org.cratedb.sql.parser.parser.CreateTableNode@43f46f3b
+name: t8
+statementType: CREATE TABLE
+lockGranularity: R
+existenceCheck: NO_CONDITION
+tableElementList: 	
+	org.cratedb.sql.parser.parser.TableElementList@64b2ad57
+
+	[0]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@e925e67
+	type: VARCHAR(10) CHARACTER SET latin1 COLLATE en_GB NOT NULL
+	name: s
+	elementType: null

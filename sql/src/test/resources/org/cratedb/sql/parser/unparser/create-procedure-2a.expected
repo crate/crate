@@ -1,0 +1,1 @@
+CREATE OR REPLACE PROCEDURE test.foo_too(IN x INTEGER, OUT y DOUBLE) LANGUAGE javascript PARAMETER STYLE variables NO SQL AS 'y = x;'

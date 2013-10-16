@@ -1,0 +1,47 @@
+org.cratedb.sql.parser.parser.DeleteNode@6b359c1b
+statementType: DELETE
+resultSet: 	
+	org.cratedb.sql.parser.parser.SelectNode@c9be79a
+	isDistinct: false
+	fromList: 		
+		org.cratedb.sql.parser.parser.FromList@4f8235ed
+
+		[0]:		
+		org.cratedb.sql.parser.parser.FromBaseTable@6da28362
+		tableName: t1
+		updateOrDelete: DELETE
+		null
+		correlation Name: null
+		null
+	whereClause: 		
+		org.cratedb.sql.parser.parser.BinaryRelationalOperatorNode@485fcf29
+		operator: =
+		methodName: equals
+		type: null
+		leftOperand: 			
+			org.cratedb.sql.parser.parser.ColumnReference@a19b1de
+			columnName: name
+			tableName: null
+			type: null
+		rightOperand: 			
+			org.cratedb.sql.parser.parser.CharConstantNode@1cec6b00
+			value: fred
+			type: CHAR(4) NOT NULL
+targetTableName: 	
+	org.cratedb.sql.parser.parser.TableName@e3d
+	t1
+returningList: 	
+	org.cratedb.sql.parser.parser.ResultColumnList@6564dbd5
+
+	[0]:	
+	org.cratedb.sql.parser.parser.ResultColumn@409cb0f4
+	exposedName: id
+	name: id
+	tableName: null
+	isDefaultColumn: false
+	type: null
+	expression: 		
+		org.cratedb.sql.parser.parser.ColumnReference@6f25844f
+		columnName: id
+		tableName: null
+		type: null

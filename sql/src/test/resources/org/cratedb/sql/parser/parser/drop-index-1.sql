@@ -1,0 +1,1 @@
+DROP INDEX table1.bad_index
