@@ -85,6 +85,7 @@ final class GeneratorUtils
             case Types.DOUBLE:
             case Types.FLOAT:
                 return String.format("%.6f", val).replace(',', '.');
+
             case Types.NUMERIC:
             case Types.INTEGER:
             case Types.SMALLINT:
