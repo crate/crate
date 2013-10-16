@@ -23,6 +23,12 @@ allprojects {
     }
 }
 
+idea {
+    project {
+        languageLevel = 'JDK_1_7'
+    }
+}
+
 
 task wrapper(type: Wrapper) {
     gradleVersion = '1.7'

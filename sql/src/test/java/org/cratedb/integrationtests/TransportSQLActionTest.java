@@ -22,6 +22,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.collect.Maps.newHashMap;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
 
 public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
@@ -1110,6 +1112,74 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("select foo from test where some_id='123'");
         assertEquals(1, response.rowCount());
         assertEquals("bar1", response.rows()[0][0]);
+    }
+
+    @Test
+    public void testSelectToRoutedRequestByPlanner() throws Exception {
+        createTestIndexWithPkAndRoutingMapping();
+
+        execute("insert into test (some_id, foo) values (1, 'foo')");
+        execute("insert into test (some_id, foo) values (2, 'bar')");
+        execute("insert into test (some_id, foo) values (3, 'baz')");
+        refresh();
+
+        execute("SELECT * FROM test WHERE some_id='1' OR some_id='2'");
+        assertEquals(2, response.rowCount());
+
+        execute("SELECT * FROM test WHERE some_id=? OR some_id=?", new Object[]{"1", "2"});
+        assertEquals(2, response.rowCount());
+
+        execute("SELECT * FROM test WHERE (some_id=? OR some_id=?) OR some_id=?", new Object[]{"1", "2", "3"});
+        assertEquals(3, response.rowCount());
+        assertThat(Arrays.asList(response.cols()), hasItems("some_id", "foo"));
+    }
+
+    @Test
+    public void testSelectToRoutedRequestByPlannerMissingDocuments() throws Exception {
+        createTestIndexWithPkAndRoutingMapping();
+
+        execute("insert into test (some_id, foo) values (1, 'foo')");
+        execute("insert into test (some_id, foo) values (2, 'bar')");
+        execute("insert into test (some_id, foo) values (3, 'baz')");
+        refresh();
+
+        execute("SELECT some_id, foo FROM test WHERE some_id='4' OR some_id='3'");
+        assertEquals(1, response.rowCount());
+        assertThat(Arrays.asList(response.rows()[0]), hasItems(new Object[]{"3", "baz"}));
+
+        execute("SELECT some_id, foo FROM test WHERE some_id='4' OR some_id='99'");
+        assertEquals(0, response.rowCount());
+    }
+
+    @Test
+    public void testSelectToRoutedRequestByPlannerWhereIn() throws Exception {
+        createTestIndexWithPkAndRoutingMapping();
+
+        execute("insert into test (some_id, foo) values (1, 'foo')");
+        execute("insert into test (some_id, foo) values (2, 'bar')");
+        execute("insert into test (some_id, foo) values (3, 'baz')");
+        refresh();
+
+        execute("SELECT * FROM test WHERE some_id IN (?,?,?)", new Object[]{"1", "2", "3"});
+        assertEquals(3, response.rowCount());
+    }
+
+    @Test
+    public void testDeleteToRoutedRequestByPlannerWhereIn() throws Exception {
+        createTestIndexWithPkAndRoutingMapping();
+
+        execute("insert into test (some_id, foo) values (1, 'foo')");
+        execute("insert into test (some_id, foo) values (2, 'bar')");
+        execute("insert into test (some_id, foo) values (3, 'baz')");
+        refresh();
+
+        execute("DELETE FROM test WHERE some_Id IN (?, ?, ?)", new Object[]{"1", "2", "4"});
+        refresh();
+
+        execute("SELECT some_id FROM test");
+        assertThat(response.rowCount(), is(1L));
+        assertEquals(response.rows()[0][0], "3");
+
     }
 
 }

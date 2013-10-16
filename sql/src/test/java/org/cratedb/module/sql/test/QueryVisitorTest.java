@@ -14,7 +14,6 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,20 +43,12 @@ public class QueryVisitorTest {
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
         NodeExecutionContext.TableExecutionContext tec = mock(
                 NodeExecutionContext.TableExecutionContext.class);
-        Settings settings = mock(ImmutableSettings.class);
-        when(settings.getAsBoolean(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES,
-                true)).thenReturn(true);
+        // Disable query planner here to save mocking
+        Settings settings = ImmutableSettings.builder().put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, false).build();
         QueryPlanner queryPlanner = new QueryPlanner(settings);
         when(nec.queryPlanner()).thenReturn(queryPlanner);
         when(nec.tableContext("locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("a", "b"));
-        when(tec.isRouting("pk_col")).thenReturn(true);
-        when(tec.primaryKeys()).thenReturn(new ArrayList<String>(1) {{
-            add("pk_col");
-        }});
-        when(tec.primaryKeysIncludingDefault()).thenReturn(new ArrayList<String>(1) {{
-            add("pk_col");
-        }});
         stmt = new ParsedStatement(sql, args, nec);
         return stmt;
     }
@@ -686,6 +677,18 @@ public class QueryVisitorTest {
     }
 
     @Test
+    public void testWhereClauseInList() throws StandardException {
+        execStatement("select * from locations where position in (?,?,?)", new Object[]{3, 5, 6});
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"terms\":{\"position\":[3,5,6]}},\"size\":1000}", getSource());
+    }
+
+    @Test
+    public void testUpdateWhereClauseInList() throws StandardException {
+        execStatement("update locations set name='foobar' where position in (?,?,?)", new Object[]{1,2,3});
+        assertEquals("{\"query\":{\"terms\":{\"position\":[1,2,3]}},\"facets\":{\"sql\":{\"sql\":{\"stmt\":\"update locations set name='foobar' where position in (?,?,?)\",\"args\":[1,2,3]}}}}", getSource());
+    }
+
+    @Test
     public void testDeleteQuery() throws Exception {
         execStatement("delete from locations where 4 < position");
         assertEquals("{\"range\":{\"position\":{\"gt\":4}}}",
@@ -734,28 +737,6 @@ public class QueryVisitorTest {
         expected.put("a", null);
         assertEquals(expected, stmt.updateDoc());
 
-    }
-
-    @Test
-    public void testSelectWithPlannerEnabled() throws Exception {
-        execStatement("select pk_col, a from locations where pk_col=?", new Object[]{1});
-        assertEquals(ParsedStatement.GET_ACTION, stmt.type());
-        assertEquals("1", stmt.getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE));
-    }
-
-    @Test
-    public void testDeleteWithPlannerEnabled() throws Exception {
-        execStatement("delete from locations where ?=pk_col", new Object[]{1});
-        assertEquals(ParsedStatement.DELETE_ACTION, stmt.type());
-        assertEquals("1", stmt.getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE));
-    }
-
-    @Test
-    public void testUpdateWithPlannerEnabled() throws Exception {
-        execStatement("update locations set message=? where pk_col=?",
-                new Object[]{"don't panic", 1});
-        assertEquals(ParsedStatement.UPDATE_ACTION, stmt.type());
-        assertEquals("1", stmt.getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE));
     }
 
 }
