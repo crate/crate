@@ -4,9 +4,13 @@ import org.cratedb.action.DistributedSQLRequest;
 import org.cratedb.action.TransportDistributedSQLAction;
 import org.cratedb.sql.DuplicateKeyException;
 import org.cratedb.sql.SQLParseException;
+import org.cratedb.sql.TableAlreadyExistsException;
 import org.cratedb.sql.VersionConflictException;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.bulk.TransportBulkAction;
@@ -19,7 +23,9 @@ import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
 import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
-import org.elasticsearch.action.get.*;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.get.TransportGetAction;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.index.TransportIndexAction;
@@ -35,8 +41,10 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.engine.DocumentMissingException;
+import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportRequestHandler;
+import org.elasticsearch.transport.RemoteTransportException;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
@@ -51,7 +59,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final TransportDeleteAction transportDeleteAction;
     private final TransportUpdateAction transportUpdateAction;
     private final TransportDistributedSQLAction transportDistributedSQLAction;
-
+    private final TransportCreateIndexAction transportCreateIndexAction;
     private final NodeExecutionContext executionContext;
 
     @Inject
@@ -66,7 +74,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             TransportDeleteAction transportDeleteAction,
             TransportUpdateAction transportUpdateAction,
             TransportDistributedSQLAction transportDistributedSQLAction,
-            TransportCountAction transportCountAction) {
+            TransportCountAction transportCountAction,
+            TransportCreateIndexAction transportCreateIndexAction) {
         super(settings, threadPool);
         this.executionContext = executionContext;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
@@ -79,6 +88,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         this.transportDeleteAction = transportDeleteAction;
         this.transportUpdateAction = transportUpdateAction;
         this.transportDistributedSQLAction = transportDistributedSQLAction;
+        this.transportCreateIndexAction = transportCreateIndexAction;
     }
 
     private class SearchResponseListener implements ActionListener<SearchResponse> {
@@ -220,6 +230,10 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                     UpdateRequest updateRequest = stmt.buildUpdateRequest();
                     transportUpdateAction.execute(updateRequest, new UpdateResponseListener(stmt, listener));
                     break;
+                case ParsedStatement.CREATE_INDEX_ACTION:
+                    CreateIndexRequest createIndexRequest = stmt.buildCreateIndexRequest();
+                    transportCreateIndexAction.execute(createIndexRequest, new CreateIndexResponseListener(stmt, listener));
+                    break;
                 default:
                     if (stmt.hasGroupBy()) {
                         transportDistributedSQLAction.execute(
@@ -249,6 +263,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         if (e instanceof DocumentAlreadyExistsException) {
             return new DuplicateKeyException(
                 "A document with the same primary key exists already", e);
+        } else if (e instanceof RemoteTransportException && e.getCause() instanceof IndexAlreadyExistsException) {
+            return new TableAlreadyExistsException(e.getCause());
         } else if (e instanceof ReduceSearchPhaseException && e.getCause() instanceof VersionConflictException) {
             /**
              * For update or search requests we use upstream ES SearchRequests
@@ -397,4 +413,26 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             }
         }
     }
+
+    private class CreateIndexResponseListener implements ActionListener<CreateIndexResponse> {
+
+        private final ActionListener<SQLResponse> delegate;
+        private final ParsedStatement stmt;
+
+        private CreateIndexResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> delegate) {
+            this.delegate = delegate;
+            this.stmt = stmt;
+        }
+
+        @Override
+        public void onResponse(CreateIndexResponse createIndexResponse) {
+            delegate.onResponse(stmt.buildResponse(createIndexResponse));
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            delegate.onFailure(reRaiseCrateException(e));
+        }
+    }
+
 }
