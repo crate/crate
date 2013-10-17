@@ -2,6 +2,7 @@ package org.cratedb.integrationtests;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Ordering;
+import org.cratedb.action.SQLQueryService;
 import org.cratedb.action.TransportDistributedSQLAction;
 import org.cratedb.action.TransportSQLReduceHandler;
 import org.cratedb.action.sql.SQLAction;
@@ -1194,6 +1195,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     }
 
+    @Test
     public void testCountWithGroupBy() throws Exception {
         groupBySetup();
 
@@ -1222,6 +1224,14 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     @Test
+    public void testCountWithGroupByWithWhereClause() throws Exception {
+        groupBySetup();
+
+        execute("select count(*), race from characters where race = 'Human' group by race");
+        assertEquals(1, response.rows().length);
+    }
+
+    @Test
     public void testCountWithGroupByOrderOnAggAscFuncAndLimit() throws Exception {
         groupBySetup();
 
@@ -1237,9 +1247,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     @Test
     public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimit() throws Exception {
         groupBySetup();
-
-        Loggers.getLogger(TransportDistributedSQLAction.class).setLevel("TRACE");
-        Loggers.getLogger(TransportSQLReduceHandler.class).setLevel("TRACE");
 
         execute("select count(*), gender, race from characters group by race, gender order by count(*) desc, race asc limit 2");
 

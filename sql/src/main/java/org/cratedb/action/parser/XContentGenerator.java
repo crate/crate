@@ -298,7 +298,14 @@ public class XContentGenerator {
             stmt.addOutputField(columnAlias, columnName);
         }
 
-        if (fields.size() > 0) {
+        /**
+         * In case of GroupBy the {@link org.cratedb.action.groupby.SQLGroupingCollector}
+         * handles the field lookup
+         *
+         * only the "query" key of the generated XContent can be parsed by the parser used in
+         * {@link org.cratedb.action.SQLQueryService}
+         */
+        if (fields.size() > 0 && !stmt.hasGroupBy()) {
             jsonBuilder.field("fields", fields);
         }
     }

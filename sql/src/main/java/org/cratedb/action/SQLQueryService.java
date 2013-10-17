@@ -55,7 +55,7 @@ public class SQLQueryService {
     }
 
     public Map<String, Map<Object, GroupByRow>> query(String[] reducers, ParsedStatement stmt, int shardId)
-        throws StandardException, InstantiationException, IllegalAccessException, IOException
+        throws Exception
     {
         SearchContext context = buildSearchContext(stmt, shardId);
         SearchContext.setCurrent(context);
