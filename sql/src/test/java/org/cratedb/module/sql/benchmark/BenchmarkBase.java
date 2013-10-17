@@ -4,11 +4,13 @@ import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
+import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
@@ -44,12 +46,13 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
             }
         }
         if (!indexExists()) {
-            getClient(true).admin().indices().prepareCreate(INDEX_NAME).setSettings(
-                    ImmutableSettings.builder().loadFromClasspath(SETTINGS).build())
-                    .addMapping("default", stringFromPath(MAPPING, InsertBenchmark.class)).execute().actionGet();
             getClient(false).admin().indices().prepareCreate(INDEX_NAME).setSettings(
                     ImmutableSettings.builder().loadFromClasspath(SETTINGS).build())
                     .addMapping("default", stringFromPath(MAPPING, InsertBenchmark.class)).execute().actionGet();
+            ClusterHealthResponse actionGet = client().admin().cluster()
+                    .health(Requests.clusterHealthRequest().waitForGreenStatus().waitForEvents(Priority.LANGUID).waitForRelocatingShards(0)).actionGet();
+            assertThat(actionGet.isTimedOut(), equalTo(false));
+            assertThat(actionGet.getStatus(), equalTo(ClusterHealthStatus.GREEN));
             if (loadData()) {
                 doLoadData();
             }
@@ -71,7 +74,7 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
     }
 
     public boolean indexExists() {
-        return client().admin().indices().exists(new IndicesExistsRequest(INDEX_NAME)).actionGet().isExists();
+        return getClient(false).admin().indices().exists(new IndicesExistsRequest(INDEX_NAME)).actionGet().isExists();
     }
 
     public boolean loadData() {
@@ -79,7 +82,7 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
     }
 
     public void doLoadData() throws Exception {
-        loadBulk(DATA);
+        loadBulk(DATA, false);
         ClusterHealthRequest request = Requests.clusterHealthRequest().waitForRelocatingShards(0);
 
         ClusterHealthResponse actionGet = getClient(false).admin().cluster().health(request).actionGet();
@@ -90,17 +93,17 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
 
     public Settings getNodeSettings(String nodeId) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder()
-                .put("network.host", "127.0.0.1")
+                //.put("network.host", "127.0.0.1")
                 .put("index.store.type", "memory");
         switch (nodeId) {
             case NODE1:
-                builder.put("transport.tcp.port", 9301);
-                builder.put("http.port", 9201);
+                //builder.put("transport.tcp.port", 9301);
+                //builder.put("http.port", 9201);
                 builder.put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, true);
                 break;
             case NODE2:
-                builder.put("transport.tcp.port", 9402);
-                builder.put("http.port", 9202);
+                //builder.put("transport.tcp.port", 9402);
+                //builder.put("http.port", 9202);
                 builder.put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, false);
                 break;
         }
@@ -111,15 +114,9 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
         return client(queryPlannerEnabled ? NODE1: NODE2);
     }
 
-
-
-    public void loadBulk(String path) throws Exception {
+    public void loadBulk(String path, boolean queryPlannerEnabled) throws Exception {
         byte[] bulkPayload = bytesFromPath(path, this.getClass());
-        BulkResponse bulk = getClient(false).prepareBulk().add(bulkPayload, 0, bulkPayload.length, false, null, null).execute().actionGet();
-        for (BulkItemResponse item : bulk.getItems()) {
-            assert !item.isFailed() : String.format("unable to index data {}", item);
-        }
-        bulk = getClient(true).prepareBulk().add(bulkPayload, 0, bulkPayload.length, false, null, null).execute().actionGet();
+        BulkResponse bulk = getClient(queryPlannerEnabled).prepareBulk().add(bulkPayload, 0, bulkPayload.length, false, null, null).execute().actionGet();
         for (BulkItemResponse item : bulk.getItems()) {
             assert !item.isFailed() : String.format("unable to index data {}", item);
         }

@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-@AxisRange(min = 0, max = 1)
+@AxisRange(min = 0)
 @BenchmarkMethodChart(filePrefix = "benchmark-update")
 public class UpdateBenchmark extends BenchmarkBase {
 

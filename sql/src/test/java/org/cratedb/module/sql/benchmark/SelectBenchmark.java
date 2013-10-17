@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-@AxisRange(min = 0, max = 1)
+@AxisRange(min = 0)
 @BenchmarkMethodChart(filePrefix = "benchmark-select")
 public class SelectBenchmark extends BenchmarkBase {
 

@@ -19,7 +19,7 @@ import org.junit.rules.TestRule;
 
 import java.io.IOException;
 
-@AxisRange(min = 0, max = 1)
+@AxisRange(min = 0)
 @BenchmarkMethodChart(filePrefix = "benchmark-insert")
 public class InsertBenchmark extends BenchmarkBase {
 
