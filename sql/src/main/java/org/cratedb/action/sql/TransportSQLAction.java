@@ -264,8 +264,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             return new DuplicateKeyException(
                 "A document with the same primary key exists already", e);
         } else if (e instanceof RemoteTransportException && e.getCause() instanceof IndexAlreadyExistsException) {
-            return new TableAlreadyExistsException(
-                "A table with the same name exists already", e.getCause());
+            return new TableAlreadyExistsException(e.getCause());
         } else if (e instanceof ReduceSearchPhaseException && e.getCause() instanceof VersionConflictException) {
             /**
              * For update or search requests we use upstream ES SearchRequests

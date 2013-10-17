@@ -4,8 +4,8 @@ import org.elasticsearch.rest.RestStatus;
 
 public class TableAlreadyExistsException extends CrateException {
 
-    public TableAlreadyExistsException(String msg, Throwable e) {
-        super(msg, e);
+    public TableAlreadyExistsException(Throwable e) {
+        super("A table with the same name exists already", e);
     }
 
     @Override
