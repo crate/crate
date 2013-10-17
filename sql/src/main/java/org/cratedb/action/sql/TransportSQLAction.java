@@ -1,7 +1,10 @@
 package org.cratedb.action.sql;
 
+import org.cratedb.action.DistributedSQLRequest;
+import org.cratedb.action.TransportDistributedSQLAction;
 import org.cratedb.sql.DuplicateKeyException;
 import org.cratedb.sql.SQLParseException;
+import org.cratedb.sql.TableAlreadyExistsException;
 import org.cratedb.sql.VersionConflictException;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.action.ActionListener;
@@ -20,7 +23,9 @@ import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
 import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
-import org.elasticsearch.action.get.*;
+import org.elasticsearch.action.get.GetRequest;
+import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.get.TransportGetAction;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.index.TransportIndexAction;
@@ -36,8 +41,10 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.engine.DocumentMissingException;
+import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportRequestHandler;
+import org.elasticsearch.transport.RemoteTransportException;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
@@ -51,6 +58,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final TransportGetAction transportGetAction;
     private final TransportDeleteAction transportDeleteAction;
     private final TransportUpdateAction transportUpdateAction;
+    private final TransportDistributedSQLAction transportDistributedSQLAction;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final NodeExecutionContext executionContext;
 
@@ -62,10 +70,11 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             TransportDeleteByQueryAction transportDeleteByQueryAction,
             TransportIndexAction transportIndexAction,
             TransportBulkAction transportBulkAction,
-            TransportCountAction transportCountAction,
             TransportGetAction transportGetAction,
             TransportDeleteAction transportDeleteAction,
             TransportUpdateAction transportUpdateAction,
+            TransportDistributedSQLAction transportDistributedSQLAction,
+            TransportCountAction transportCountAction,
             TransportCreateIndexAction transportCreateIndexAction) {
         super(settings, threadPool);
         this.executionContext = executionContext;
@@ -78,6 +87,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         this.transportGetAction = transportGetAction;
         this.transportDeleteAction = transportDeleteAction;
         this.transportUpdateAction = transportUpdateAction;
+        this.transportDistributedSQLAction = transportDistributedSQLAction;
         this.transportCreateIndexAction = transportCreateIndexAction;
     }
 
@@ -223,12 +233,21 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                 case ParsedStatement.CREATE_INDEX_ACTION:
                     CreateIndexRequest createIndexRequest = stmt.buildCreateIndexRequest();
                     transportCreateIndexAction.execute(createIndexRequest, new CreateIndexResponseListener(stmt, listener));
+                    break;
                 default:
+                    if (stmt.hasGroupBy()) {
+                        transportDistributedSQLAction.execute(
+                            new DistributedSQLRequest(request, stmt),
+                            new DistributedSQLResponseListener(stmt, listener));
+                        break;
+                    }
+
                     if (stmt.countRequest()) {
                         CountRequest countRequest = stmt.buildCountRequest();
                         transportCountAction.execute(countRequest, new CountResponseListener(stmt, listener));
                         break;
                     }
+
                     searchRequest = stmt.buildSearchRequest();
                     transportSearchAction.execute(searchRequest, new SearchResponseListener(stmt, listener));
                     break;
@@ -244,6 +263,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         if (e instanceof DocumentAlreadyExistsException) {
             return new DuplicateKeyException(
                 "A document with the same primary key exists already", e);
+        } else if (e instanceof RemoteTransportException && e.getCause() instanceof IndexAlreadyExistsException) {
+            return new TableAlreadyExistsException(e.getCause());
         } else if (e instanceof ReduceSearchPhaseException && e.getCause() instanceof VersionConflictException) {
             /**
              * For update or search requests we use upstream ES SearchRequests
@@ -347,6 +368,27 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
     }
 
+    private class DistributedSQLResponseListener implements ActionListener<SQLResponse> {
+
+        private final ActionListener<SQLResponse> delegate;
+        private final ParsedStatement stmt;
+
+        public DistributedSQLResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+            this.stmt = stmt;
+            this.delegate = listener;
+        }
+
+        @Override
+        public void onResponse(SQLResponse sqlResponse) {
+            delegate.onResponse(sqlResponse);
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            delegate.onFailure(reRaiseCrateException(e));
+        }
+    }
+
     private class UpdateResponseListener implements ActionListener<UpdateResponse> {
 
         private final ActionListener<SQLResponse> delegate;
@@ -372,9 +414,6 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
     }
 
-    /**
-     * TODO: how to signal failure (index exists, does not exist ...) ?
-     */
     private class CreateIndexResponseListener implements ActionListener<CreateIndexResponse> {
 
         private final ActionListener<SQLResponse> delegate;
@@ -392,7 +431,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onFailure(Throwable e) {
-            delegate.onFailure(e);
+            delegate.onFailure(reRaiseCrateException(e));
         }
     }
 

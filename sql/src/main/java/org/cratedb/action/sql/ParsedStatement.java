@@ -27,6 +27,7 @@ import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.ShardSearchFailure;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -36,6 +37,7 @@ import org.elasticsearch.search.SearchHit;
 
 import java.io.IOException;
 import java.util.*;
+
 
 public class ParsedStatement {
 
@@ -67,6 +69,20 @@ public class ParsedStatement {
     private Map<String, Object> updateDoc;
     private Map<String, Object> plannerResults;
     private boolean countRequest;
+
+    public List<String> groupByColumnNames;
+    public List<ColumnDescription> resultColumnList;
+
+    public Integer limit = null;
+    public Integer offset = null;
+    public List<OrderByColumnIdx> orderByIndices;
+    public OrderByColumnIdx[] orderByIndices() {
+        if (orderByIndices != null) {
+            return orderByIndices.toArray(new OrderByColumnIdx[orderByIndices.size()]);
+        }
+
+        return new OrderByColumnIdx[0];
+    }
 
     public ParsedStatement(String stmt, Object[] args, NodeExecutionContext context) throws
             StandardException {
@@ -171,6 +187,10 @@ public class ParsedStatement {
         return request;
     }
 
+    public BytesReference getXContentAsBytesRef() throws StandardException {
+        return visitor.getXContentBuilder().bytes();
+    }
+
     public CountRequest buildCountRequest() throws StandardException {
         CountRequest request = new CountRequest();
         builder = visitor.getXContentBuilder();
@@ -239,8 +259,13 @@ public class ParsedStatement {
     }
 
     public CreateIndexRequest buildCreateIndexRequest() {
-        // TODO: build
-        return null;
+        assert visitor instanceof TableVisitor;
+        CreateIndexRequest request = new CreateIndexRequest(indices.get(0));
+        TableVisitor tableVisitor = (TableVisitor)visitor;
+        request.settings(tableVisitor.settings());
+        request.mapping(NodeExecutionContext.DEFAULT_TYPE, tableVisitor.mapping());
+
+        return request;
     }
 
     public String[] cols() {
@@ -439,6 +464,10 @@ public class ParsedStatement {
     }
 
     public boolean countRequest() {
+        if (hasGroupBy()) {
+            return false;
+        }
+
         return countRequest;
     }
 
@@ -456,5 +485,9 @@ public class ParsedStatement {
 
     public XContentVisitor visitor() {
         return visitor;
+    }
+
+    public boolean hasGroupBy() {
+        return (groupByColumnNames != null && groupByColumnNames.size() > 0);
     }
 }

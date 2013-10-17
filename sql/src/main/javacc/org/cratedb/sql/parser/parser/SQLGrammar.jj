@@ -1056,7 +1056,6 @@ class SQLGrammar
         case INT:
         case SMALLINT:
         case LONGINT:
-        case FLOAT:
         case REAL:
         case DATE:
         case TIME:
@@ -1095,7 +1094,7 @@ class SQLGrammar
                 break;
             }
             else {
-                retval = true;
+                retval = false;
                 break;
             }
 
@@ -2140,7 +2139,6 @@ TOKEN [IGNORE_CASE] :
 | <FALSE: "false">
 | <FETCH: "fetch">
 | <FIRST: "first">
-| <FLOAT: "float">
 | <FOR: "for">
 | <FOREIGN: "foreign">
 | <FOUND: "found">
@@ -2275,6 +2273,7 @@ TOKEN [IGNORE_CASE] :
 | <WRITE: "write">
 | <YEAR: "year">
 /* crate SQL reserved keywords */
+| <CRATE: "crate">
 | <CLUSTERED: "clustered">
 | <REPLICAS: "replicas">
 | <SHARDS: "shards">
@@ -2416,6 +2415,14 @@ TOKEN [IGNORE_CASE] :
 | <XMLQUERY:    "xmlquery">
 | <XMLSERIALIZE:    "xmlserialize">
 | <Z_ORDER_LAT_LON: "z_order_lat_lon">
+}
+
+/**
+ * CrateDB non-reserved keywords
+ */
+TOKEN [IGNORE_CASE] :
+{
+  <FLOAT: "float">
 }
 
 /* This list should contain non-SQL92 keywords that are not reserved.
@@ -3100,7 +3107,11 @@ createStatements() throws StandardException :
     Boolean createOrReplace = Boolean.FALSE;
 }
 {
-    beginToken = <CREATE> 
+    (
+        beginToken = <CREATE>
+    |
+        beginToken = <CRATE>
+    )
     [ LOOKAHEAD ( { getToken(1).kind == OR &&
                     getToken(2).kind == REPLACE &&
                   ( getToken(3).kind == SYNONYM || 
@@ -3900,7 +3911,7 @@ dataTypeDDL() throws StandardException :
     DataTypeDescriptor typeDescriptor;
 }
 {
-    LOOKAHEAD( { commonDatatypeName(false) } )
+    LOOKAHEAD( { commonDatatypeName(true) } )
     typeDescriptor = dataTypeCommon()
     {
         return typeDescriptor;
@@ -3977,7 +3988,9 @@ dataTypeCommon() throws StandardException :
         typeDescriptor = new DataTypeDescriptor(TypeId.BOOLEAN_ID, true);
     }
 |
-    typeDescriptor = longType()
+    ( LOOKAHEAD( { (getToken(2).kind == VARCHAR) || (getToken(2).kind == NVARCHAR) } )
+        typeDescriptor = longType()
+    )
 |
     typeDescriptor = LOBType()
 |
@@ -14903,7 +14916,7 @@ reservedKeyword() :
 | tok = <EXTERNAL>
 | tok = <FALSE>
 | tok = <FETCH>
-| tok = <FLOAT>
+//| tok = <FLOAT> // SQL reserved, CrateDB non-reserved
 | tok = <FOR>
 | tok = <FOREIGN>
 | tok = <FROM>
@@ -15034,7 +15047,8 @@ reservedKeyword() :
 | tok = <XMLQUERY>
 | tok = <Z_ORDER_LAT_LON>
 
-   /* Crate SQL reserved keywords */
+   /* CrateDB SQL reserved keywords */
+| tok = <CRATE>
 | tok = <CLUSTERED>
 | tok = <REPLICAS>
 | tok = <SHARDS>
@@ -15121,6 +15135,7 @@ nonReservedKeyword() :
 | tok = <EXTRACT>
 | tok = <FIRST> // SQL92 reserved, SQL2003 non-reserved
 | tok = <FN>
+| tok = <FLOAT> // SQL reserved, CrateDB non-reserved
 | tok = <FORCE>
 | tok = <FORMAT>
 | tok = <FORTRAN>

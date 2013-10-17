@@ -50,6 +50,6 @@ tableElementList:
 	elementType: null
 	[6]:	
 	org.cratedb.sql.parser.parser.ColumnDefinitionNode@2abe0e27
-	type: DOUBLE UNSIGNED
+	type: float
 	name: c6
 	elementType: null

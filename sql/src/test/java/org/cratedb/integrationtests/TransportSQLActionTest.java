@@ -1,25 +1,38 @@
 package org.cratedb.integrationtests;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Ordering;
+import org.cratedb.action.TransportDistributedSQLAction;
+import org.cratedb.action.TransportSQLReduceHandler;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.DuplicateKeyException;
 import org.cratedb.sql.SQLParseException;
+import org.cratedb.sql.TableAlreadyExistsException;
 import org.cratedb.sql.VersionConflictException;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.client.Requests;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.hamcrest.Matchers.hasItems;
@@ -32,7 +45,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     @Override
     protected int numberOfNodes() {
-        return 1;
+        return 2;
     }
 
     private void execute(String stmt, Object[] args) {
@@ -1046,7 +1059,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("insert into test (message) values (?)", args);
     }
 
-
     private void createTestIndexWithPkAndRoutingMapping() throws IOException {
         XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
                 .startObject("default")
@@ -1182,4 +1194,252 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     }
 
+    public void testCountWithGroupBy() throws Exception {
+        groupBySetup();
+
+        execute("select count(*), race from characters group by race");
+        assertEquals(3, response.rows().length);
+
+        List<Tuple<Long, String>> result = newArrayList();
+
+        for (int i = 0; i < response.rows().length; i++) {
+            result.add(new Tuple<>((Long)response.rows()[i][0], (String)response.rows()[i][1]));
+        }
+
+        Ordering ordering = Ordering.natural().onResultOf(
+            new Function<Tuple<Long, String>, Comparable>() {
+
+            @Override
+            public Comparable apply(@Nullable Tuple<Long, String> input) {
+                return input.v1();
+            }
+        });
+
+        Collections.sort(result, ordering);
+        assertEquals("Android", result.get(0).v2());
+        assertEquals("Vogon", result.get(1).v2());
+        assertEquals("Human", result.get(2).v2());
+    }
+
+    @Test
+    public void testCountWithGroupByOrderOnAggAscFuncAndLimit() throws Exception {
+        groupBySetup();
+
+        execute("select count(*), race from characters group by race order by count(*) asc limit 2");
+
+        assertEquals(2, response.rows().length);
+        assertEquals(1L, response.rows()[0][0]);
+        assertEquals("Android", response.rows()[0][1]);
+        assertEquals(2L, response.rows()[1][0]);
+        assertEquals("Vogon", response.rows()[1][1]);
+    }
+
+    @Test
+    public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimit() throws Exception {
+        groupBySetup();
+
+        Loggers.getLogger(TransportDistributedSQLAction.class).setLevel("TRACE");
+        Loggers.getLogger(TransportSQLReduceHandler.class).setLevel("TRACE");
+
+        execute("select count(*), gender, race from characters group by race, gender order by count(*) desc, race asc limit 2");
+
+        assertEquals(2, response.rows().length);
+        assertEquals(2L, response.rows()[0][0]);
+        assertEquals("male", response.rows()[0][1]);
+        assertEquals("Human", response.rows()[0][2]);
+        assertEquals(2L, response.rows()[1][0]);
+        assertEquals("male", response.rows()[1][1]);
+        assertEquals("Vogon", response.rows()[1][2]);
+    }
+
+    @Test
+    public void testCountWithGroupByOrderOnAggDescFuncAndLimit() throws Exception {
+        groupBySetup();
+
+        execute("select count(*), race from characters group by race order by count(*) desc limit 2");
+
+        assertEquals(2, response.rows().length);
+        assertEquals(3L, response.rows()[0][0]);
+        assertEquals("Human", response.rows()[0][1]);
+        assertEquals(2L, response.rows()[1][0]);
+        assertEquals("Vogon", response.rows()[1][1]);
+    }
+
+    @Test
+    public void testCountWithGroupByOrderOnKeyAscAndLimit() throws Exception {
+        groupBySetup();
+
+        execute("select count(*), race from characters group by race order by race asc limit 2");
+
+        assertEquals(2, response.rows().length);
+        assertEquals(1L, response.rows()[0][0]);
+        assertEquals("Android", response.rows()[0][1]);
+        assertEquals(3L, response.rows()[1][0]);
+        assertEquals("Human", response.rows()[1][1]);
+    }
+
+    @Test
+    public void testCountWithGroupByOrderOnKeyDescAndLimit() throws Exception {
+        groupBySetup();
+
+        execute("select count(*), race from characters group by race order by race desc limit 2");
+
+        assertEquals(2, response.rows().length);
+        assertEquals(2L, response.rows()[0][0]);
+        assertEquals("Vogon", response.rows()[0][1]);
+        assertEquals(3L, response.rows()[1][0]);
+        assertEquals("Human", response.rows()[1][1]);
+    }
+
+    private void groupBySetup() throws Exception {
+        XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
+            .startObject("default")
+            .startObject("properties")
+                .startObject("race")
+                    .field("type", "string")
+                    .field("store", "true")
+                    .field("index", "not_analyzed")
+                .endObject()
+                .startObject("gender")
+                    .field("type", "string")
+                    .field("store", "true")
+                    .field("index", "not_analyzed")
+                .endObject()
+                .startObject("name")
+                    .field("type", "string")
+                    .field("store", "true")
+                    .field("index", "not_analyzed")
+                .endObject()
+            .endObject()
+            .endObject()
+            .endObject();
+
+
+        prepareCreate("characters").addMapping("default", mapping).execute().actionGet();
+        ensureGreen();
+        execute("insert into characters (race, gender, name) values ('Human', 'male', 'Arthur Dent')");
+        execute("insert into characters (race, gender, name) values ('Human', 'female', 'Trillian')");
+        execute("insert into characters (race, gender, name) values ('Human', 'male', 'Ford Perfect')");
+        execute("insert into characters (race, gender, name) values ('Android', 'male', 'Marving')");
+        execute("insert into characters (race, gender, name) values ('Vogon', 'male', 'Jeltz')");
+        execute("insert into characters (race, gender, name) values ('Vogon', 'male', 'Kwaltz')");
+        refresh();
+
+        execute("select count(*) from characters");
+        assertEquals(6L, response.rows()[0][0]);
+    }
+
+
+    private String getMapping(String index) throws IOException {
+        ClusterStateRequest request = Requests.clusterStateRequest()
+                .filterRoutingTable(true)
+                .filterNodes(true)
+                .filteredIndices(index);
+        ClusterStateResponse response = client().admin().cluster().state(request)
+                .actionGet();
+
+        MetaData metaData = response.getState().metaData();
+        XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
+
+        IndexMetaData indexMetaData = metaData.iterator().next();
+        for (MappingMetaData mappingMd : indexMetaData.mappings().values()) {
+            builder.field(mappingMd.type());
+            builder.map(mappingMd.sourceAsMap());
+        }
+        builder.endObject();
+
+        return builder.string();
+    }
+
+    private String getSettings(String index) throws IOException {
+        ClusterStateRequest request = Requests.clusterStateRequest()
+                .filterRoutingTable(true)
+                .filterNodes(true)
+                .filteredIndices(index);
+        ClusterStateResponse response = client().admin().cluster().state(request)
+                .actionGet();
+
+        MetaData metaData = response.getState().metaData();
+        XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
+
+        for (IndexMetaData indexMetaData : metaData) {
+            builder.startObject(indexMetaData.index(), XContentBuilder.FieldCaseConversion.NONE);
+            builder.startObject("settings");
+            Settings settings = indexMetaData.settings();
+            for (Map.Entry<String, String> entry : settings.getAsMap().entrySet()) {
+                builder.field(entry.getKey(), entry.getValue());
+            }
+            builder.endObject();
+
+            builder.endObject();
+        }
+
+        builder.endObject();
+
+        return builder.string();
+    }
+
+    @Test
+    public void testCreateTable() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string)");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
+                .actionGet().isExists());
+
+        String expectedMapping = "{\"default\":{" +
+                "\"_meta\":{\"primary_keys\":\"col1\"}," +
+                "\"properties\":{" +
+                    "\"col1\":{\"type\":\"integer\",\"store\":true}," +
+                    "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"store\":true," +
+                                "\"omit_norms\":true,\"index_options\":\"docs\"}" +
+                "}}}";
+
+        String expectedSettings = "{\"test\":{" +
+                "\"settings\":{" +
+                "\"index.number_of_replicas\":\"1\"," +
+                "\"index.number_of_shards\":\"5\"," +
+                "\"index.version.created\":\"900599\"" +
+                "}}}";
+
+        assertEquals(expectedMapping, getMapping("test"));
+        assertEquals(expectedSettings, getSettings("test"));
+
+        // test index usage
+        execute("insert into test (col1, col2) values (1, 'foo')");
+        refresh();
+        execute("SELECT * FROM test");
+        assertEquals(1L, response.rowCount());
+    }
+
+    @Test(expected = TableAlreadyExistsException.class)
+    public void testCreateTableAlreadyExistsException() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string)");
+        execute("create table test (col1 integer primary key, col2 string)");
+    }
+
+    @Test
+    public void testCreateTableWithReplicasAndShards() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string) replicas 2" +
+                "clustered by (col1) into 10 shards");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
+                .actionGet().isExists());
+
+        String expectedMapping = "{\"default\":{" +
+                "\"_meta\":{\"primary_keys\":\"col1\"}," +
+                "\"_routing\":{\"path\":\"col1\"}," +
+                "\"properties\":{" +
+                "\"col1\":{\"type\":\"integer\",\"store\":true}," +
+                "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"store\":true," +
+                "\"omit_norms\":true,\"index_options\":\"docs\"}" +
+                "}}}";
+
+        String expectedSettings = "{\"test\":{" +
+                "\"settings\":{" +
+                    "\"index.number_of_replicas\":\"2\"," +
+                    "\"index.number_of_shards\":\"10\"," +
+                    "\"index.version.created\":\"900599\"" +
+                "}}}";
+
+        assertEquals(expectedMapping, getMapping("test"));
+        assertEquals(expectedSettings, getSettings("test"));
+    }
 }

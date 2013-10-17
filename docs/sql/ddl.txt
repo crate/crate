@@ -4,45 +4,156 @@
 Data Definition in Crate
 ========================
 
-Currently Crate doesn't support any DDL SQL Statements.  Meanwhile it is
-possible to create tables using the `HTTP REST` interface.
 
-.. note::
+Table Basics
+============
 
-    This will be deprecated as soon as the DDL statements are available.
+To create a table use the ``CREATE TABLE`` command. You must at least specify a name for the
+table and names and types of the columns.
+See `Data Types` for information about the supported data types.
 
-In order to create a table simply call the `<servername:port>/<tablename>`
-endpoint using a `PUT` request. In the body should be the schema definition in
-`JSON` format::
+Let's create a simple table with two columns of type ``integer`` and ``string``::
 
-    sh$ curl -sSX PUT 'localhost:9200/ships?pretty' -d @- <<EOF
-    ... {
-    ... "mappings" : {
-    ...  "default": {
-    ...   "_meta": {
-    ...     "primary_keys": "id"
-    ...   },
-    ...   "properties": {
-    ...     "id": {
-    ...       "type": "string",
-    ...       "index": "not_analyzed"
-    ...     },
-    ...     "name": {
-    ...       "type": "string",
-    ...       "index": "not_analyzed"
-    ...     },
-    ...     "description": {
-    ...      "type": "string"
-    ... }}}}}
-    ... EOF
-    {
-      "ok" : true,
-      "acknowledged" : true
-    }
+    cr> create table my_table (
+    ...   first_column integer,
+    ...   second_column string
+    ... )
+
+
+Constraints
+===========
+
+Primary Key
+-----------
+
+The primary key constraint combines a unique constraint and a not-null constraint. It also defines
+the default routing value used for sharding. Example::
+
+    cr> create table my_table1 (
+    ...   first_column integer primary key,
+    ...   second_column string
+    ... )
 
 Currently primary key's cannot be auto generated and have to be specified if
 data is inserted, otherwise an error is returned.
 
 .. note::
 
-    Multi-column primary keys are currently not supported.
+  Multiple primary keys are not supported yet.
+
+Data Types
+==========
+
+string
+------
+
+A text-based basic type containing one or more character. Example::
+
+    cr> create table my_table2 (
+    ...   first_column string,
+    ... )
+
+
+number
+------
+
+Crate supports a set of number types: ``integer``,``long``, ``short``, ``double``,
+``float`` and ``byte``. All types have the same ranges as corresponding `Java types`_.
+Example::
+
+    cr> create table my_table3 (
+    ...   first_column integer,
+    ...   second_column long,
+    ...   third_column short,
+    ...   fourth_column double,
+    ...   fifth_column float,
+    ...   sixth_column byte
+    ... )
+
+timestamp
+---------
+
+The timestamp type is a special type which maps to a formatted string. Internally it maps to
+a ``long``, adding the parsing from long to string and vice versa. All timestamps a treat as UTC.
+The default format is dateOptionalTime_ and cannot be changed currently. It will also accept a
+``long`` representing UTC milliseconds since the epoch. Example::
+
+    cr> create table my_table4 (
+    ...   first_column timestamp
+    ... )
+
+
+Sharding
+========
+
+Number of shards
+----------------
+
+Crate supports sharding natively, it even uses *5* shards by default if not further defined.
+The number of shards can be defined by using the ``CLUSTERED INTO <number> SHARDS`` statement on
+table creation. Example::
+
+    cr> create table my_table5 (
+    ...   first_column int
+    ... ) clustered into 10 shards
+
+.. note::
+
+  The number of shards can only be set on table creation, it cannot be changed later on.
+
+Routing
+-------
+
+The column used for routing can be freely defined using the ``CLUSTERED BY (<column>)``
+statement and is used to route a row to a particular shard. Example::
+
+    cr> create table my_table6 (
+    ...   first_column int,
+    ...   second_column string
+    ... ) clustered by (second_column)
+
+
+By default Crate is using the primary keys for routing the request to the involved shards. So
+following two examples resulting in the same behaviour::
+
+    cr> create table my_table7 (
+    ...   first_column int primary key,
+    ...   second_column string
+    ... )
+
+    cr> create table my_table8 (
+    ...   first_column int,
+    ...   second_column string
+    ... ) clustered by (first_column)
+
+If no primary is defined an internal generated unique id is used for routing.
+
+Example for combining custom routing and shard definition::
+
+    cr> create table my_table9 (
+    ...   first_column int,
+    ...   second_column string
+    ... ) clustered by (first_column) into 10 shards
+
+
+Replication
+===========
+
+By default Crate uses an replication factor of 1. If e.g. a cluster with 2 nodes is set up and
+an index is created using 5 shards, each node will have 5 shards.
+Defining the number of replicas is done using the ``REPLICAS <number_of_replicas>`` statement.
+Example::
+
+    cr> create table my_table10 (
+    ...   first_column int,
+    ...   second_column string
+    ... ) replicas 1
+
+.. note::
+
+  The number of replicas can be changed at any time.
+
+
+
+.. _Java types: http://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html
+.. _dateOptionalTime: http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateOptionalTimeParser()
