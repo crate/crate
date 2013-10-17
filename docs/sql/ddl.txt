@@ -99,13 +99,13 @@ table creation. Example::
 
 .. note::
 
-  The number of shard can only be set on table creation, it cannot be changed later on.
+  The number of shards can only be set on table creation, it cannot be changed later on.
 
 Routing
 -------
 
 The column used for routing can be freely defined using the ``CLUSTERED BY (<column>)``
-statement. Example::
+statement and is used to route a row to a particular shard. Example::
 
     cr> create table my_table6 (
     ...   first_column int,

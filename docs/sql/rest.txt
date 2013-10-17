@@ -128,6 +128,8 @@ Currently the defined error codes are:
     ----- ---------------------------------------------------------------------
     4000  The statement contains an invalid syntax or unsupported SQL statement
     ----- ---------------------------------------------------------------------
+    4090  A table with the same name exists already.
+    ----- ---------------------------------------------------------------------
     4091  A document with the same primary key exists already.
     ----- ---------------------------------------------------------------------
     4092  A VersionConflict. Might be thrown if an attempt was made to update

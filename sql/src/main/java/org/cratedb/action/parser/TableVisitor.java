@@ -92,7 +92,7 @@ public class TableVisitor extends XContentVisitor {
         columnDefinition.put("type", columnType);
         // TODO: use parsed values (not yet supported by parser)
         columnDefinition.put("index", "not_analyzed");
-        columnDefinition.put("store", "true");
+        columnDefinition.put("store", "false");
 
         mappingProperties.put(node.getColumnName(), columnDefinition);
         return node;
@@ -136,9 +136,9 @@ public class TableVisitor extends XContentVisitor {
                 mapping.put("_meta", mappingMeta);
             }
             if (routingColumn != null) {
-                Map<String, String> _routing = newHashMap();
-                _routing.put("path", routingColumn.getColumnName());
-                mapping.put("_routing", _routing);
+                Map<String, String> routing = newHashMap();
+                routing.put("path", routingColumn.getColumnName());
+                mapping.put("_routing", routing);
             }
             mapping.put("properties", mappingProperties);
         }
