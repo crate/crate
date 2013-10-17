@@ -8,8 +8,8 @@ Data Definition in Crate
 Table Basics
 ============
 
-To create a table use the ``CREATE TABLE`` command. You must specify at least specify a name for
-the table and names and types of the columns.
+To create a table use the ``CREATE TABLE`` command. You must at least specify a name for the
+table and names and types of the columns.
 See `Data Types` for information about the supported data types.
 
 Let's create a simple table with two columns of type ``integer`` and ``string``::
