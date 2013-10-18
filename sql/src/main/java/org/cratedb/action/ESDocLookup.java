@@ -34,7 +34,7 @@ public class ESDocLookup implements GroupByFieldLookup {
     public Object lookupField(String columnName) {
         ScriptDocValues docValues = (ScriptDocValues)docLookup.get(columnName);
         if (docValues.isEmpty())
-            return "";
+            return null;
         return docValues.getValues().get(0);
     }
 }

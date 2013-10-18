@@ -1473,6 +1473,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1L, response.rows()[1][0]);
         assertEquals("Sandwitch Maker", response.rows()[1][1]);
         assertEquals(4L, response.rows()[2][0]);
-        assertEquals("", response.rows()[2][1]);
+        assertNull(null, response.rows()[2][1]);
     }
 }
