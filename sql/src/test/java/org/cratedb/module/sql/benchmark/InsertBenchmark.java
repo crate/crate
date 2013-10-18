@@ -19,7 +19,7 @@ import org.junit.rules.TestRule;
 
 import java.io.IOException;
 
-@AxisRange(min = 0, max = 1)
+@AxisRange(min = 0)
 @BenchmarkMethodChart(filePrefix = "benchmark-insert")
 public class InsertBenchmark extends BenchmarkBase {
 
@@ -114,7 +114,7 @@ public class InsertBenchmark extends BenchmarkBase {
     @Test
     public void testInsertSingleSql() {
         for (int i=0;i<NUM_REQUESTS_PER_TEST;i++) {
-            client().execute(SQLAction.INSTANCE, getSingleSqlInsertRequest()).actionGet();
+            getClient(false).execute(SQLAction.INSTANCE, getSingleSqlInsertRequest()).actionGet();
         }
     }
 
@@ -122,7 +122,7 @@ public class InsertBenchmark extends BenchmarkBase {
     @Test
     public void testInsertBulkSql() {
         for (int i=0;i<NUM_REQUESTS_PER_TEST;i++) {
-            client().execute(SQLAction.INSTANCE, getBulkSqlInsertRequest()).actionGet();
+            getClient(false).execute(SQLAction.INSTANCE, getBulkSqlInsertRequest()).actionGet();
         }
     }
 
@@ -130,7 +130,7 @@ public class InsertBenchmark extends BenchmarkBase {
     @Test
     public void testInsertSingleApi() {
         for (int i=0;i<NUM_REQUESTS_PER_TEST;i++) {
-            client().execute(IndexAction.INSTANCE, getSingleApiInsertRequest()).actionGet();
+            getClient(false).execute(IndexAction.INSTANCE, getSingleApiInsertRequest()).actionGet();
         }
     }
 
@@ -138,7 +138,7 @@ public class InsertBenchmark extends BenchmarkBase {
     @Test
     public void testInsertBulkApi() {
         for (int i=0;i<NUM_REQUESTS_PER_TEST;i++) {
-            client().execute(BulkAction.INSTANCE, getBulkApiInsertRequest()).actionGet();
+            getClient(false).execute(BulkAction.INSTANCE, getBulkApiInsertRequest()).actionGet();
         }
     }
 }

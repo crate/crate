@@ -4,20 +4,21 @@ import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
+import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.test.hamcrest.ElasticsearchAssertions;
 import org.junit.AfterClass;
-import org.junit.Assume;
 import org.junit.Before;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.cratedb.test.integration.PathAccessor.bytesFromPath;
@@ -35,27 +36,8 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
     public static final String DATA = "/essetup/data/bench.json";
     public static List<Node> startedNodes = new ArrayList<>(2);
 
-
-    /**
-     * whether or not to use the query planner
-     * will be overriden in subclasses
-     */
-    public boolean isQueryPlannerEnabled() {
-        return false;
-    }
-
-    /**
-     * determine whether we are in a benchmark run or not
-     * @return true if we are in a benchmark-run, false otherwise
-     */
-    public static boolean isBenchmarkRun() {
-        return Arrays.asList("on", "true", "yes", "enabled").contains(System.getProperty("crate.test.benchmark", "off").toLowerCase());
-    }
-
     @Before
     public void prepareBenchmarkRun() throws Exception {
-        // ignore if not in benchmark run
-        Assume.assumeTrue("Not in Benchmark Run", isBenchmarkRun());
 
         for (String nodeId : new String[]{NODE1, NODE2}) {
             Node insertNode = node(nodeId);
@@ -64,10 +46,13 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
             }
         }
         if (!indexExists()) {
-            client().admin().indices().prepareCreate(INDEX_NAME).setSettings(
+            getClient(false).admin().indices().prepareCreate(INDEX_NAME).setSettings(
                     ImmutableSettings.builder().loadFromClasspath(SETTINGS).build())
                     .addMapping("default", stringFromPath(MAPPING, InsertBenchmark.class)).execute().actionGet();
-
+            ClusterHealthResponse actionGet = client().admin().cluster()
+                    .health(Requests.clusterHealthRequest().waitForGreenStatus().waitForEvents(Priority.LANGUID).waitForRelocatingShards(0)).actionGet();
+            assertThat(actionGet.isTimedOut(), equalTo(false));
+            assertThat(actionGet.getStatus(), equalTo(ClusterHealthStatus.GREEN));
             if (loadData()) {
                 doLoadData();
             }
@@ -89,7 +74,7 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
     }
 
     public boolean indexExists() {
-        return client().admin().indices().exists(new IndicesExistsRequest(INDEX_NAME)).actionGet().isExists();
+        return getClient(false).admin().indices().exists(new IndicesExistsRequest(INDEX_NAME)).actionGet().isExists();
     }
 
     public boolean loadData() {
@@ -97,37 +82,37 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
     }
 
     public void doLoadData() throws Exception {
-        loadBulk(DATA);
+        loadBulk(DATA, false);
         ClusterHealthRequest request = Requests.clusterHealthRequest().waitForRelocatingShards(0);
 
-        ClusterHealthResponse actionGet = client().admin().cluster().health(request).actionGet();
+        ClusterHealthResponse actionGet = getClient(false).admin().cluster().health(request).actionGet();
         assertThat(actionGet.isTimedOut(), equalTo(false));
-        ElasticsearchAssertions.assertNoFailures(client().admin().indices().prepareRefresh().execute().actionGet());
+        ElasticsearchAssertions.assertNoFailures(getClient(false).admin().indices().prepareRefresh().execute().actionGet());
+        ElasticsearchAssertions.assertNoFailures(getClient(true).admin().indices().prepareRefresh().execute().actionGet());
     }
 
     public Settings getNodeSettings(String nodeId) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder().put("network.host", "127.0.0.1");
-        builder.put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, isQueryPlannerEnabled()).put("index.store.type", "memory");
+        ImmutableSettings.Builder builder = ImmutableSettings.builder().put("index.store.type", "memory");
         switch (nodeId) {
             case NODE1:
-                builder.put("transport.tcp.port", 9301);
-                builder.put("http.port", 9201);
+                builder.put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, true);
                 break;
             case NODE2:
-                builder.put("transport.tcp.port", 9402);
-                builder.put("http.port", 9202);
+                builder.put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, false);
                 break;
         }
         return builder.build();
     }
 
-    // TODO: copy & paste from AbstractSharedClusterTest
-    public BulkResponse loadBulk(String path) throws Exception {
+    public Client getClient(boolean queryPlannerEnabled) {
+        return client(queryPlannerEnabled ? NODE1: NODE2);
+    }
+
+    public void loadBulk(String path, boolean queryPlannerEnabled) throws Exception {
         byte[] bulkPayload = bytesFromPath(path, this.getClass());
-        BulkResponse bulk = client().prepareBulk().add(bulkPayload, 0, bulkPayload.length, false, null, null).execute().actionGet();
+        BulkResponse bulk = getClient(queryPlannerEnabled).prepareBulk().add(bulkPayload, 0, bulkPayload.length, false, null, null).execute().actionGet();
         for (BulkItemResponse item : bulk.getItems()) {
             assert !item.isFailed() : String.format("unable to index data {}", item);
         }
-        return bulk;
     }
 }

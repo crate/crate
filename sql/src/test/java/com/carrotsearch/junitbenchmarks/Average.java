@@ -2,7 +2,11 @@ package com.carrotsearch.junitbenchmarks;
 
 import java.util.Locale;
 
-public final class Average {
+/**
+ * Average with standard deviation.
+ */
+public final class Average
+{
     /**
      * Average (in milliseconds).
      */
@@ -14,7 +18,7 @@ public final class Average {
     public final double stddev;
 
     /**
-     *
+     * 
      */
     Average(double avg, double stddev)
     {
@@ -24,9 +28,8 @@ public final class Average {
 
     public String toString()
     {
-
-        return String.format(Locale.ENGLISH, "%.6g [+- %.6g]",
-                avg, stddev);
+        return String.format(Locale.ENGLISH, "%g [+- %g]",
+            avg, stddev);
     }
 
     static Average from(long [] values)
@@ -42,7 +45,7 @@ public final class Average {
 
         double avg = sum / (double) values.length;
         return new Average(
-                (sum / (double) values.length) / 1000.0,
-                Math.sqrt(sumSquares / (double) values.length - avg * avg) / 1000.0);
+            (sum / (double) values.length) / 1000.0, 
+            Math.sqrt(sumSquares / (double) values.length - avg * avg) / 1000.0);
     }
 }
