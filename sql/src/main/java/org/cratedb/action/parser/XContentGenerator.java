@@ -149,7 +149,7 @@ public class XContentGenerator {
             stmt.groupByColumnNames = new ArrayList<>(node.getGroupByList().size());
 
             for (GroupByColumn groupByColumn : node.getGroupByList()) {
-                if (groupByColumn.getColumnExpression() instanceof NestedColumnReference) {
+                if (groupByColumn.getColumnExpression().getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE) {
                     stmt.groupByColumnNames.add(
                         ((NestedColumnReference) groupByColumn.getColumnExpression()).xcontentPathString());
                 } else {
@@ -188,7 +188,7 @@ public class XContentGenerator {
                 } else {
                     ColumnReferenceDescription colrefDesc = null;
                     ValueNode columnExpression = column.getExpression();
-                    if (columnExpression instanceof NestedColumnReference) {
+                    if (columnExpression.getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE) {
                         colrefDesc = new ColumnReferenceDescription(
                             ((NestedColumnReference) columnExpression).xcontentPathString());
                     } else {
@@ -279,7 +279,7 @@ public class XContentGenerator {
                 if (columnName.equals("_version")) {
                     requireVersion = true;
                 }
-            } else if (column.getExpression() instanceof NestedColumnReference) {
+            } else if (column.getExpression().getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE) {
                 // resolve XContent input and SQL output path from nested column path nodes
                 NestedColumnReference nestedColumnReference = (NestedColumnReference) column
                         .getExpression();
@@ -359,7 +359,7 @@ public class XContentGenerator {
             throws IOException, StandardException {
 
         String columnName = left.getColumnName();
-        if (left instanceof NestedColumnReference) {
+        if (left.getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE) {
             NestedColumnReference nestedColumnReference = (NestedColumnReference) left;
             if (nestedColumnReference.pathContainsNumeric()) {
                 throw new SQLParseException("Filtering by nested column array indexes is not " +
@@ -394,7 +394,7 @@ public class XContentGenerator {
         // if an operator is added here the swapOperator method should also be extended.
 
         String columnName = left.getColumnName();
-        if (left instanceof NestedColumnReference) {
+        if (left.getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE) {
             NestedColumnReference nestedColumnReference = (NestedColumnReference) left;
             if (nestedColumnReference.pathContainsNumeric()) {
                 throw new SQLParseException("Filtering by nested column array index is not " +
