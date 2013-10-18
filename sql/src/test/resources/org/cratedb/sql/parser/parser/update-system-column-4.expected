@@ -1,0 +1,51 @@
+org.cratedb.sql.parser.parser.UpdateNode@25a97638
+statementType: UPDATE
+resultSet: 	
+	org.cratedb.sql.parser.parser.SelectNode@189069d9
+	isDistinct: false
+	resultColumns: 		
+		org.cratedb.sql.parser.parser.ResultColumnList@31153228
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ResultColumn@668ff944
+		exposedName: foo
+		name: foo
+		tableName: null
+		isDefaultColumn: false
+		type: null
+		expression: 			
+			org.cratedb.sql.parser.parser.CharConstantNode@763613f6
+			value: bar
+			type: CHAR(3) NOT NULL
+		reference: 			
+			org.cratedb.sql.parser.parser.ColumnReference@5858b81b
+			columnName: foo
+			tableName: null
+			type: null
+	fromList: 		
+		org.cratedb.sql.parser.parser.FromList@289f21ed
+
+		[0]:		
+		org.cratedb.sql.parser.parser.FromBaseTable@676c6370
+		tableName: _t4
+		updateOrDelete: UPDATE
+		null
+		correlation Name: null
+		null
+	whereClause: 		
+		org.cratedb.sql.parser.parser.BinaryRelationalOperatorNode@7cf4831b
+		operator: =
+		methodName: equals
+		type: null
+		leftOperand: 			
+			org.cratedb.sql.parser.parser.ColumnReference@18cba1b4
+			columnName: non_system_column
+			tableName: _t4
+			type: null
+		rightOperand: 			
+			org.cratedb.sql.parser.parser.NumericConstantNode@60e53d23
+			value: 1
+			type: INTEGER NOT NULL
+targetTableName: 	
+	org.cratedb.sql.parser.parser.TableName@172df
+	_t4

@@ -1,0 +1,1 @@
+update "_t4" set foo='bar' where "_t4".non_system_column = 1
