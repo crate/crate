@@ -20,13 +20,13 @@ import static com.google.common.collect.Maps.newHashMap;
  */
 public class SQLGroupByResult implements Streamable {
 
-    public Map<Object, GroupByRow> result = newHashMap();
+    public Map<Integer, GroupByRow> result = newHashMap();
 
     public SQLGroupByResult() {
         // empty ctor - serialization
     }
 
-    public SQLGroupByResult(Map<Object, GroupByRow> result) {
+    public SQLGroupByResult(Map<Integer, GroupByRow> result) {
         this.result = result;
     }
 
@@ -41,8 +41,8 @@ public class SQLGroupByResult implements Streamable {
      * if the entry is in result the values are merged.
      * @param mapperResult
      */
-    protected void merge(Map<Object, GroupByRow> mapperResult) {
-        for (Map.Entry<Object, GroupByRow> entry : mapperResult.entrySet()) {
+    protected void merge(Map<Integer, GroupByRow> mapperResult) {
+        for (Map.Entry<Integer, GroupByRow> entry : mapperResult.entrySet()) {
             GroupByRow currentRow = result.get(entry.getKey());
             if (currentRow == null) {
                 result.put(entry.getKey(), entry.getValue());
@@ -67,7 +67,7 @@ public class SQLGroupByResult implements Streamable {
         int mapSize = in.readVInt();
         result = new HashMap<>(mapSize);
         for (int i = 0; i < mapSize; i++) {
-            Object key = in.readGenericValue();
+            int key = in.readInt();
             result.put(key, GroupByRow.readGroupByRow(in));
         }
     }
@@ -75,8 +75,8 @@ public class SQLGroupByResult implements Streamable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(result.size());
-        for (Map.Entry<Object, GroupByRow> entry : result.entrySet()) {
-            out.writeGenericValue(entry.getKey());
+        for (Map.Entry<Integer, GroupByRow> entry : result.entrySet()) {
+            out.writeInt(entry.getKey());
             entry.getValue().writeTo(out);
         }
     }
