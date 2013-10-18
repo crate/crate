@@ -2423,6 +2423,10 @@ TOKEN [IGNORE_CASE] :
 TOKEN [IGNORE_CASE] :
 {
   <FLOAT: "float">
+| <UNDER_VERSION: "_version">
+| <UNDER_SOURCE: "_source">
+| <UNDER_TTL: "_ttl">
+| <UNDER_TIMESTAMP: "_timestamp">
 }
 
 /* This list should contain non-SQL92 keywords that are not reserved.
@@ -7800,6 +7804,7 @@ columnReference() throws StandardException :
     String schemaName = null;
     TableName tabName = null;
     NestedColumnReference nestedColumn = null;
+    SystemColumnReference systemColumn = null;
 }
 {
     firstName = identifierDeferCheckLength()
@@ -7866,10 +7871,17 @@ columnReference() throws StandardException :
             return nestedColumn;
 
         }
-
     |
-
         {
+            if (columnName.startsWith("_")) {
+                systemColumn = (SystemColumnReference)nodeFactory.getNode(NodeTypes.SYSTEM_COLUMN_REFERENCE,
+                                                                columnName,
+                                                                tabName,
+                                                                new Integer(lastIdentifierToken.beginOffset),
+                                                                new Integer(lastIdentifierToken.endOffset),
+                                                                parserContext);
+                return systemColumn;
+            }
             return (ColumnReference)nodeFactory.getNode(NodeTypes.COLUMN_REFERENCE,
                                                 columnName,
                                                 tabName,
@@ -7927,7 +7939,6 @@ nestedColumnPathElement(NestedColumnReference column) throws StandardException :
         column.addPathElement((ConstantNode)element);
     }
 }
-
 
 OrderByList
 orderByClause() throws StandardException :
