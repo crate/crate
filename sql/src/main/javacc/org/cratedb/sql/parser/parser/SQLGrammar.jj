@@ -1776,6 +1776,25 @@ class SQLGrammar
          }
     }
 
+    /**
+     * SYSTEM COLUMN NAMES
+     */
+    private static final List<String> SYSTEM_COLUMN_NAMES = Arrays.asList(new String[]{"_version", "_ttl"});
+
+    /**
+     * return true if the next token is a System Column Name
+     **/
+    boolean systemColumnFollows()
+    {
+        Token tok = getToken(1);
+        switch (tok.kind) {
+            case DOUBLEQUOTED_IDENTIFIER:
+                return SYSTEM_COLUMN_NAMES.contains(tok.image.replace("\"", "").toLowerCase());
+            default:
+                return false;
+        }
+    }
+
     void setParserContext(SQLParserContext parserContext) {
         this.parserContext = parserContext;
         this.nodeFactory = parserContext.getNodeFactory();
@@ -2423,10 +2442,6 @@ TOKEN [IGNORE_CASE] :
 TOKEN [IGNORE_CASE] :
 {
   <FLOAT: "float">
-| <UNDER_VERSION: "_version">
-| <UNDER_SOURCE: "_source">
-| <UNDER_TTL: "_ttl">
-| <UNDER_TIMESTAMP: "_timestamp">
 }
 
 /* This list should contain non-SQL92 keywords that are not reserved.
@@ -7804,14 +7819,16 @@ columnReference() throws StandardException :
     String schemaName = null;
     TableName tabName = null;
     NestedColumnReference nestedColumn = null;
-    SystemColumnReference systemColumn = null;
+    boolean systemColumn = false;
 }
 {
+    systemColumn = systemColumnIdentifier()
     firstName = identifierDeferCheckLength()
     [
         // This LOOKAHEAD is needed to ensure that, if the identifier
         // after the PERIOD is a method name, we don't treat it as part of
         // the column reference.
+
         LOOKAHEAD( { getToken(1).kind == PERIOD && getToken(3).kind != LEFT_PAREN } )
         <PERIOD> secondName = identifierDeferCheckLength()
         [
@@ -7822,6 +7839,9 @@ columnReference() throws StandardException :
             <PERIOD> thirdName = identifierDeferCheckLength()
         ]
     ]
+
+
+
     {
         // Figure out what each name stands for
         if (thirdName == null) {
@@ -7859,7 +7879,7 @@ columnReference() throws StandardException :
     }
 
     (
-        LOOKAHEAD( { getToken(1).kind == LEFT_BRACKET } )
+        LOOKAHEAD( <LEFT_BRACKET> )
         {
             nestedColumn =  (NestedColumnReference)nodeFactory.getNode(NodeTypes.NESTED_COLUMN_REFERENCE,
                                                     columnName,
@@ -7873,21 +7893,21 @@ columnReference() throws StandardException :
         }
     |
         {
-            if (columnName.startsWith("_")) {
-                systemColumn = (SystemColumnReference)nodeFactory.getNode(NodeTypes.SYSTEM_COLUMN_REFERENCE,
-                                                                columnName,
-                                                                tabName,
-                                                                new Integer(lastIdentifierToken.beginOffset),
-                                                                new Integer(lastIdentifierToken.endOffset),
-                                                                parserContext);
-                return systemColumn;
+            if (systemColumn == true) {
+                return (SystemColumnReference)nodeFactory.getNode(NodeTypes.SYSTEM_COLUMN_REFERENCE,
+                                                        columnName,
+                                                        tabName,
+                                                        new Integer(lastIdentifierToken.beginOffset),
+                                                        new Integer(lastIdentifierToken.endOffset),
+                                                        parserContext);
+            } else {
+                return (ColumnReference)nodeFactory.getNode(NodeTypes.COLUMN_REFERENCE,
+                                                        columnName,
+                                                        tabName,
+                                                        new Integer(lastIdentifierToken.beginOffset),
+                                                        new Integer(lastIdentifierToken.endOffset),
+                                                        parserContext);
             }
-            return (ColumnReference)nodeFactory.getNode(NodeTypes.COLUMN_REFERENCE,
-                                                columnName,
-                                                tabName,
-                                                new Integer(lastIdentifierToken.beginOffset),
-                                                new Integer(lastIdentifierToken.endOffset),
-                                                parserContext);
         }
     )
 }
@@ -7937,6 +7957,20 @@ nestedColumnPathElement(NestedColumnReference column) throws StandardException :
     element = literal()
     {
         column.addPathElement((ConstantNode)element);
+    }
+}
+
+boolean
+systemColumnIdentifier() :
+{}
+{
+    LOOKAHEAD( ( identifierDeferCheckLength() <PERIOD> ( identifierDeferCheckLength() <PERIOD> )? )?, {systemColumnFollows()} )
+    {
+        return true;
+    }
+|
+    {
+    return false;
     }
 }
 
