@@ -2,9 +2,6 @@ package org.cratedb.integrationtests;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Ordering;
-import org.cratedb.action.SQLQueryService;
-import org.cratedb.action.TransportDistributedSQLAction;
-import org.cratedb.action.TransportSQLReduceHandler;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
@@ -23,7 +20,6 @@ import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -1392,8 +1388,8 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         String expectedMapping = "{\"default\":{" +
                 "\"_meta\":{\"primary_keys\":\"col1\"}," +
                 "\"properties\":{" +
-                    "\"col1\":{\"type\":\"integer\",\"store\":true}," +
-                    "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"store\":true," +
+                    "\"col1\":{\"type\":\"integer\"}," +
+                    "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"," +
                                 "\"omit_norms\":true,\"index_options\":\"docs\"}" +
                 "}}}";
 
@@ -1431,8 +1427,8 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 "\"_meta\":{\"primary_keys\":\"col1\"}," +
                 "\"_routing\":{\"path\":\"col1\"}," +
                 "\"properties\":{" +
-                "\"col1\":{\"type\":\"integer\",\"store\":true}," +
-                "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"store\":true," +
+                "\"col1\":{\"type\":\"integer\"}," +
+                "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"," +
                 "\"omit_norms\":true,\"index_options\":\"docs\"}" +
                 "}}}";
 
