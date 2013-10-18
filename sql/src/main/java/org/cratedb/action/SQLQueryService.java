@@ -3,9 +3,7 @@ package org.cratedb.action;
 import org.apache.lucene.search.Query;
 import org.cratedb.action.groupby.*;
 import org.cratedb.action.groupby.aggregate.AggFunction;
-import org.cratedb.action.groupby.aggregate.AggState;
 import org.cratedb.action.sql.ParsedStatement;
-import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -19,7 +17,6 @@ import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.internal.ShardSearchRequest;
 
-import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -66,7 +63,7 @@ public class SQLQueryService {
         Query query = context.query();
         SQLGroupingCollector collector = new SQLGroupingCollector(
             stmt,
-            new ESSearchLookup(context.lookup()),
+            new ESDocLookup(context.lookup().doc()),
             aggFunctionMap,
             reducers
         );
