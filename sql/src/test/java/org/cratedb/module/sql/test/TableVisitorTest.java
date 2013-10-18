@@ -5,10 +5,13 @@ import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.parser.TableVisitor;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,6 +26,8 @@ public class TableVisitorTest {
 
     private ParsedStatement stmt;
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     private ParsedStatement execStatement(String stmt) throws StandardException {
         return execStatement(stmt, new Object[]{});
@@ -154,4 +159,11 @@ public class TableVisitorTest {
         assertNotNull(stmt.buildCreateIndexRequest());
     }
 
+
+    @Test
+    public void testCreateTableThrowUnsupportedTypeException() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Unsupported type");
+        execStatement("create table phrases (pk_col real, phrase varchar(10))");
+    }
 }
