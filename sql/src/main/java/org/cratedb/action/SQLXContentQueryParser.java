@@ -31,7 +31,7 @@ public class SQLXContentQueryParser {
         this.elementParsers = ImmutableMap.copyOf(elementParsers);
     }
 
-    public void parse(SearchContext context, BytesReference xcontentQuery) {
+    public void parse(SearchContext context, BytesReference xcontentQuery) throws Exception {
         XContentParser parser = null;
 
         try {
@@ -54,8 +54,6 @@ public class SQLXContentQueryParser {
                     break;
                 }
             }
-        } catch (Exception e) {
-            // TODO:
         } finally {
             if (parser != null) {
                 parser.close();

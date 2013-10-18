@@ -2,6 +2,9 @@ package org.cratedb.action;
 
 import org.apache.lucene.index.AtomicReaderContext;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.index.fielddata.AtomicFieldData;
+import org.elasticsearch.index.fielddata.ScriptDocValues;
+import org.elasticsearch.search.lookup.DocLookup;
 import org.elasticsearch.search.lookup.FieldLookup;
 import org.elasticsearch.search.lookup.SearchLookup;
 
@@ -11,24 +14,24 @@ import org.elasticsearch.search.lookup.SearchLookup;
  * This is used in the {@link org.cratedb.action.groupby.SQLGroupingCollector} and done so
  * that the GroupingCollector can be tested without depending on SearchLookup.
  */
-public class ESSearchLookup implements GroupByFieldLookup {
+public class ESDocLookup implements GroupByFieldLookup {
 
-    SearchLookup searchLookupDelegate;
+    DocLookup docLookup;
 
     @Inject
-    public ESSearchLookup(SearchLookup searchLookup) {
-        this.searchLookupDelegate = searchLookup;
+    public ESDocLookup(DocLookup searchLookup) {
+        this.docLookup = searchLookup;
     }
 
     public void setNextDocId(int doc) {
-        searchLookupDelegate.setNextDocId(doc);
+        docLookup.setNextDocId(doc);
     }
 
     public void setNextReader(AtomicReaderContext context) {
-        searchLookupDelegate.setNextReader(context);
+        docLookup.setNextReader(context);
     }
 
     public Object lookupField(String columnName) {
-        return ((FieldLookup)searchLookupDelegate.fields().get(columnName)).getValue();
+        return ((ScriptDocValues)docLookup.get(columnName)).getValues().get(0);
     }
 }

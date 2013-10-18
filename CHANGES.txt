@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Implemented the `group by` sql clause.
+
  - Implemented ``CREATE TABLE`` with core data types, replicas, routing and shard settings.
 
  - Support for: WHERE <column_name> IN ( <value_1>, <value_2>, ..., <value_n>)
