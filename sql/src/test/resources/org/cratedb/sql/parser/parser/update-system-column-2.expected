@@ -38,7 +38,7 @@ resultSet:
 		methodName: equals
 		type: null
 		leftOperand: 			
-			org.cratedb.sql.parser.parser.ColumnReference@189069d9
+			org.cratedb.sql.parser.parser.SystemColumnReference@4cedd1e2
 			columnName: _version
 			tableName: t1
 			type: null

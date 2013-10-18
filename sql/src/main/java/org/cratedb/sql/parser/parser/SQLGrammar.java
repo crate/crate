@@ -1710,19 +1710,24 @@ class SQLGrammar implements SQLGrammarConstants {
      */
     private static final List<String> SYSTEM_COLUMN_NAMES = Arrays.asList(new String[]{"_version", "_ttl"});
 
-    /**
-     * return true if the next token is a System Column Name
-     **/
     boolean systemColumnFollows()
     {
-        Token tok = getToken(1);
-        switch (tok.kind) {
-            case DOUBLEQUOTED_IDENTIFIER:
-                return SYSTEM_COLUMN_NAMES.contains(tok.image.replace("\u005c"", "").toLowerCase());
-            default:
-                return false;
+        Token tok = null;
+        if (getToken(1).kind == DOUBLEQUOTED_IDENTIFIER) {
+            tok = getToken(1);
+        } else if(getToken(2).kind == PERIOD && getToken(3).kind == DOUBLEQUOTED_IDENTIFIER) {
+            tok = getToken(3);
+        } else if(getToken(2).kind == PERIOD && getToken(4).kind == PERIOD && getToken(5).kind == DOUBLEQUOTED_IDENTIFIER) {
+            tok = getToken(5);
         }
+
+        if (tok != null) {
+            return SYSTEM_COLUMN_NAMES.contains(trimAndCompressQuotes(tok.image, DOUBLEQUOTES, false));
+        }
+        return false;
     }
+
+
 
     void setParserContext(SQLParserContext parserContext) {
         this.parserContext = parserContext;
@@ -18783,21 +18788,6 @@ List<String> list = new ArrayList<String>();
     finally { jj_save(116, xla); }
   }
 
-  private boolean jj_3R_290() {
-    if (jj_3R_363()) return true;
-    return false;
-  }
-
-  private boolean jj_3R_289() {
-    if (jj_3R_362()) return true;
-    return false;
-  }
-
-  private boolean jj_3R_288() {
-    if (jj_3R_361()) return true;
-    return false;
-  }
-
   private boolean jj_3R_287() {
     if (jj_3R_360()) return true;
     return false;
@@ -24366,6 +24356,21 @@ List<String> list = new ArrayList<String>();
 
   private boolean jj_3R_291() {
     if (jj_3R_364()) return true;
+    return false;
+  }
+
+  private boolean jj_3R_290() {
+    if (jj_3R_363()) return true;
+    return false;
+  }
+
+  private boolean jj_3R_289() {
+    if (jj_3R_362()) return true;
+    return false;
+  }
+
+  private boolean jj_3R_288() {
+    if (jj_3R_361()) return true;
     return false;
   }
 

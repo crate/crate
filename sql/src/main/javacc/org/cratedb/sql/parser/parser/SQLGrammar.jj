@@ -1781,19 +1781,24 @@ class SQLGrammar
      */
     private static final List<String> SYSTEM_COLUMN_NAMES = Arrays.asList(new String[]{"_version", "_ttl"});
 
-    /**
-     * return true if the next token is a System Column Name
-     **/
     boolean systemColumnFollows()
     {
-        Token tok = getToken(1);
-        switch (tok.kind) {
-            case DOUBLEQUOTED_IDENTIFIER:
-                return SYSTEM_COLUMN_NAMES.contains(tok.image.replace("\"", "").toLowerCase());
-            default:
-                return false;
+        Token tok = null;
+        if (getToken(1).kind == DOUBLEQUOTED_IDENTIFIER) {
+            tok = getToken(1);
+        } else if(getToken(2).kind == PERIOD && getToken(3).kind == DOUBLEQUOTED_IDENTIFIER) {
+            tok = getToken(3);
+        } else if(getToken(2).kind == PERIOD && getToken(4).kind == PERIOD && getToken(5).kind == DOUBLEQUOTED_IDENTIFIER) {
+            tok = getToken(5);
         }
+
+        if (tok != null) {
+            return SYSTEM_COLUMN_NAMES.contains(trimAndCompressQuotes(tok.image, DOUBLEQUOTES, false));
+        }
+        return false;
     }
+
+
 
     void setParserContext(SQLParserContext parserContext) {
         this.parserContext = parserContext;
@@ -7964,7 +7969,7 @@ boolean
 systemColumnIdentifier() :
 {}
 {
-    LOOKAHEAD( ( identifierDeferCheckLength() <PERIOD> ( identifierDeferCheckLength() <PERIOD> )? )?, {systemColumnFollows()} )
+    LOOKAHEAD({systemColumnFollows()} )
     {
         return true;
     }
