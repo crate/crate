@@ -2,10 +2,8 @@ package org.cratedb.action.sql;
 
 import org.cratedb.action.DistributedSQLRequest;
 import org.cratedb.action.TransportDistributedSQLAction;
-import org.cratedb.sql.DuplicateKeyException;
+import org.cratedb.sql.ExceptionHelper;
 import org.cratedb.sql.SQLParseException;
-import org.cratedb.sql.TableAlreadyExistsException;
-import org.cratedb.sql.VersionConflictException;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -29,7 +27,6 @@ import org.elasticsearch.action.get.TransportGetAction;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.index.TransportIndexAction;
-import org.elasticsearch.action.search.ReduceSearchPhaseException;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.TransportSearchAction;
@@ -39,12 +36,9 @@ import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.engine.DocumentMissingException;
-import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportRequestHandler;
-import org.elasticsearch.transport.RemoteTransportException;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
@@ -108,7 +102,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onFailure(Throwable e) {
-            delegate.onFailure(reRaiseCrateException(e));
+            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
         }
     }
 
@@ -129,7 +123,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onFailure(Throwable e) {
-            delegate.onFailure(reRaiseCrateException(e));
+            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
         }
     }
 
@@ -150,7 +144,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onFailure(Throwable e) {
-            delegate.onFailure(reRaiseCrateException(e));
+            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
         }
     }
 
@@ -171,7 +165,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onFailure(Throwable e) {
-            delegate.onFailure(reRaiseCrateException(e));
+            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
         }
     }
 
@@ -192,7 +186,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onFailure(Throwable e) {
-            delegate.onFailure(reRaiseCrateException(e));
+            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
         }
     }
 
@@ -253,41 +247,10 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                     break;
             }
         } catch (StandardException e) {
-            listener.onFailure(standardExceptionToParseException(e));
+            listener.onFailure(new SQLParseException(e.getMessage(), e));
         } catch (Exception e) {
             listener.onFailure(e);
         }
-    }
-
-    private Throwable reRaiseCrateException(Throwable e) {
-        if (e instanceof RemoteTransportException) {
-            // if its a transport exception get the real cause throwable
-            e = e.getCause();
-        }
-
-        if (e instanceof DocumentAlreadyExistsException) {
-            return new DuplicateKeyException(
-                "A document with the same primary key exists already", e);
-        } else if (e instanceof IndexAlreadyExistsException) {
-            return new TableAlreadyExistsException(e.getCause());
-        } else if (e instanceof ReduceSearchPhaseException && e.getCause() instanceof VersionConflictException) {
-            /**
-             * For update or search requests we use upstream ES SearchRequests
-             * These requests are executed using the transportSearchAction.
-             *
-             * The transportSearchAction (or the more specific QueryThenFetch/../ Action inside it
-             * executes the TransportSQLAction.SearchResponseListener onResponse/onFailure
-             * but adds its own error handling around it.
-             * By doing so it wraps every exception raised inside our onResponse in its own ReduceSearchPhaseException
-             * Here we unwrap it to get the original exception.
-             */
-            return e.getCause();
-        }
-        return e;
-    }
-
-    private SQLParseException standardExceptionToParseException(StandardException e) {
-        return new SQLParseException(e.getMessage(), e);
     }
 
     private class TransportHandler extends BaseTransportRequestHandler<SQLRequest> {
@@ -348,7 +311,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onFailure(Throwable e) {
-            delegate.onFailure(reRaiseCrateException(e));
+            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
         }
     }
 
@@ -369,7 +332,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onFailure(Throwable e) {
-            delegate.onFailure(reRaiseCrateException(e));
+            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
         }
     }
 
@@ -390,7 +353,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onFailure(Throwable e) {
-            delegate.onFailure(reRaiseCrateException(e));
+            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
         }
     }
 
@@ -414,7 +377,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             if (e instanceof DocumentMissingException) {
                 delegate.onResponse(stmt.buildMissingDocumentResponse());
             } else {
-                delegate.onFailure(reRaiseCrateException(e));
+                delegate.onFailure(ExceptionHelper.transformToCrateException(e));
             }
         }
     }
@@ -436,7 +399,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onFailure(Throwable e) {
-            delegate.onFailure(reRaiseCrateException(e));
+            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
         }
     }
 
