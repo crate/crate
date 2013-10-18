@@ -33,7 +33,7 @@ public class SystemColumnReference extends ColumnReference {
         if (!SystemColumnName.contains((String)columnName)) {
             throw new SQLParseException("Invalid SystemColumnReference");
         }
-        super.init(columnName, tableName);    //To change body of overridden methods use File | Settings | File Templates.
+        super.init(columnName, tableName);
     }
 
     @Override
@@ -41,6 +41,6 @@ public class SystemColumnReference extends ColumnReference {
         if (!SystemColumnName.contains((String)columnName)) {
             throw new SQLParseException("Invalid SystemColumnReference");
         }
-        super.init(columnName, tableName, tokBeginOffset, tokEndOffset);    //To change body of overridden methods use File | Settings | File Templates.
+        super.init(columnName, tableName, tokBeginOffset, tokEndOffset);
     }
 }
