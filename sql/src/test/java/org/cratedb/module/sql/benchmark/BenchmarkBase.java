@@ -92,9 +92,7 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
     }
 
     public Settings getNodeSettings(String nodeId) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder()
-                //.put("network.host", "127.0.0.1")
-                .put("index.store.type", "memory");
+        ImmutableSettings.Builder builder = ImmutableSettings.builder().put("index.store.type", "memory");
         switch (nodeId) {
             case NODE1:
                 builder.put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, true);
