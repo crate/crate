@@ -887,7 +887,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("insert into test (key, col1) values (1, 0), (2, 0)");
         refresh();
 
-        int numberOfThreads = 5;
+        int numberOfThreads = 10;
         final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(numberOfThreads);
         final int numberOfUpdatesPerThread = 100;
         final AtomicReference<Exception> lastException = new AtomicReference<Exception>();

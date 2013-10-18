@@ -260,10 +260,15 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     }
 
     private Throwable reRaiseCrateException(Throwable e) {
+        if (e instanceof RemoteTransportException) {
+            // if its a transport exception get the real cause throwable
+            e = e.getCause();
+        }
+
         if (e instanceof DocumentAlreadyExistsException) {
             return new DuplicateKeyException(
                 "A document with the same primary key exists already", e);
-        } else if (e instanceof RemoteTransportException && e.getCause() instanceof IndexAlreadyExistsException) {
+        } else if (e instanceof IndexAlreadyExistsException) {
             return new TableAlreadyExistsException(e.getCause());
         } else if (e instanceof ReduceSearchPhaseException && e.getCause() instanceof VersionConflictException) {
             /**
