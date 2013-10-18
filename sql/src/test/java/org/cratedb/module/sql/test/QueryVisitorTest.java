@@ -745,6 +745,6 @@ public class QueryVisitorTest {
         // limit and offset shouldn't be set in the xcontent because the limit has to be applied
         // after the grouping is done
         execStatement("select count(*), kind from locations group by kind limit 4 offset 3");
-        assertEquals("{\"fields\":[\"kind\"],\"query\":{\"match_all\":{}}}", getSource());
+        assertEquals("{\"query\":{\"match_all\":{}}}", getSource());
     }
 }
