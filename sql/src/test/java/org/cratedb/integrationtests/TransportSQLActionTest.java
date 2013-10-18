@@ -743,9 +743,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-        execute("select coolness from test");
+        execute("select coolness['x'], coolness['y'] from test");
         assertEquals(1, response.rows().length);
-        assertEquals("{y=2, x=3}", response.rows()[0][0].toString());
+        assertEquals("3", response.rows()[0][0]);
+        assertEquals(2, response.rows()[0][1]);
     }
 
     @Test
@@ -780,11 +781,15 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-        execute("select coolness, firstcol, othercol from test");
+        execute("select coolness['x']['b'], coolness['x']['a'], coolness['x']['y']['z'], " +
+                "firstcol, othercol from test");
         assertEquals(1, response.rows().length);
-        assertEquals("{x={b=b, a=a, y={z=3}}}", response.rows()[0][0].toString());
-        assertEquals(1, response.rows()[0][1]);
-        assertEquals(2, response.rows()[0][2]);
+        Object[] firstRow = response.rows()[0];
+        assertEquals("b", firstRow[0]);
+        assertEquals("a", firstRow[1]);
+        assertEquals(3, firstRow[2]);
+        assertEquals(1, firstRow[3]);
+        assertEquals(2, firstRow[4]);
     }
 
     @Test
@@ -813,9 +818,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-        execute("select a from test");
+        execute("select a['x']['y'], a['x']['z'] from test");
         assertEquals(1, response.rows().length);
-        assertEquals("{x={z=null, y=2}}", response.rows()[0][0].toString());
+        assertEquals(2, response.rows()[0][0]);
+        assertNull(response.rows()[0][1]);
     }
 
     @Test
@@ -844,9 +850,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-        execute("select a from test");
+        execute("select a['x']['z'], a['x']['y'] from test");
         assertEquals(1, response.rows().length);
-        assertEquals("{x={z=null, y=2}}", response.rows()[0][0].toString());
+        assertNull(response.rows()[0][0]);
+        assertEquals(2, response.rows()[0][1]);
     }
 
     @Test(expected = SQLParseException.class)
