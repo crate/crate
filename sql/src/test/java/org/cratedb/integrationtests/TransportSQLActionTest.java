@@ -355,10 +355,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     @Test
     public void testSelectObject() throws Exception {
         createIndex("test");
-        client().prepareIndex("test", "default", "id1").setRefresh(true)
+        client().prepareIndex("test", "default", "id1")
                 .setSource("{\"a\":{\"nested\":2}}")
                 .execute().actionGet();
-        ensureGreen();
+        refresh();
 
         execute("select a from test");
         assertArrayEquals(new String[]{"a"}, response.cols());
