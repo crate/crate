@@ -149,7 +149,12 @@ public class XContentGenerator {
             stmt.groupByColumnNames = new ArrayList<>(node.getGroupByList().size());
 
             for (GroupByColumn groupByColumn : node.getGroupByList()) {
-                stmt.groupByColumnNames.add(groupByColumn.getColumnName());
+                if (groupByColumn.getColumnExpression() instanceof NestedColumnReference) {
+                    stmt.groupByColumnNames.add(
+                        ((NestedColumnReference) groupByColumn.getColumnExpression()).xcontentPathString());
+                } else {
+                    stmt.groupByColumnNames.add(groupByColumn.getColumnName());
+                }
             }
         }
 
@@ -170,7 +175,7 @@ public class XContentGenerator {
         }
     }
 
-    private void generate(OrderByList node) throws IOException {
+    private void generate(OrderByList node) throws IOException, StandardException {
         if (stmt.hasGroupBy()) {
             stmt.orderByIndices = newArrayList();
             int idx;
@@ -181,9 +186,15 @@ public class XContentGenerator {
 
                     idx = stmt.resultColumnList.indexOf(aggExpr);
                 } else {
-                    ColumnReferenceDescription colrefDesc = new ColumnReferenceDescription(
-                        column.getExpression().getColumnName()
-                    );
+                    ColumnReferenceDescription colrefDesc = null;
+                    ValueNode columnExpression = column.getExpression();
+                    if (columnExpression instanceof NestedColumnReference) {
+                        colrefDesc = new ColumnReferenceDescription(
+                            ((NestedColumnReference) columnExpression).xcontentPathString());
+                    } else {
+                         colrefDesc = new ColumnReferenceDescription(columnExpression.getColumnName());
+                    }
+
                     idx = stmt.resultColumnList.indexOf(colrefDesc);
                 }
 
@@ -284,6 +295,10 @@ public class XContentGenerator {
                     // if no alias ("AS") is defined, use the SQL syntax for the output column
                     // name
                     columnAlias = nestedColumnReference.sqlPathString();
+                }
+
+                if (stmt.hasGroupBy()) {
+                    stmt.resultColumnList.add(new ColumnReferenceDescription(columnName));
                 }
             } else {
                 // this should be a normal field which will also be extracted from the source for

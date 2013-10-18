@@ -1317,6 +1317,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                     .field("type", "string")
                     .field("index", "not_analyzed")
                 .endObject()
+                .startObject("details")
+                    .field("type", "object")
+                    .field("index", "not_analyzed")
+                .endObject()
             .endObject()
             .endObject()
             .endObject();
@@ -1324,12 +1328,20 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         prepareCreate("characters").addMapping("default", mapping).execute().actionGet();
         ensureGreen();
-        execute("insert into characters (race, gender, name) values ('Human', 'male', 'Arthur Dent')");
-        execute("insert into characters (race, gender, name) values ('Human', 'female', 'Trillian')");
-        execute("insert into characters (race, gender, name) values ('Human', 'male', 'Ford Perfect')");
-        execute("insert into characters (race, gender, name) values ('Android', 'male', 'Marving')");
-        execute("insert into characters (race, gender, name) values ('Vogon', 'male', 'Jeltz')");
-        execute("insert into characters (race, gender, name) values ('Vogon', 'male', 'Kwaltz')");
+
+        Map<String, String> details = newHashMap();
+        details.put("job", "Sandwitch Maker");
+        execute("insert into characters (race, gender, name, details) values (?, ?, ?, ?)",
+            new Object[] {"Human", "male", "Arthur Dent", details});
+
+        details = newHashMap();
+        details.put("job", "Mathematician");
+        execute("insert into characters (race, gender, name, details) values (?, ?, ?, ?)",
+            new Object[] {"Human", "female", "Trillian", details});
+        execute("insert into characters (race, gender, name, details) values ('Human', 'male', 'Ford Perfect')");
+        execute("insert into characters (race, gender, name, details) values ('Android', 'male', 'Marving')");
+        execute("insert into characters (race, gender, name, details) values ('Vogon', 'male', 'Jeltz')");
+        execute("insert into characters (race, gender, name, detials) values ('Vogon', 'male', 'Kwaltz')");
         refresh();
 
         execute("select count(*) from characters");
@@ -1448,5 +1460,19 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         assertEquals(expectedMapping, getMapping("test"));
         assertEquals(expectedSettings, getSettings("test"));
+    }
+
+    @Test
+    public void testGroupByNestedObject() throws Exception {
+        groupBySetup();
+
+        execute("select count(*), details['job'] from characters group by details['job'] order by count(*), details['job']");
+        assertEquals(3, response.rows().length);
+        assertEquals(1L, response.rows()[0][0]);
+        assertEquals("Mathematician", response.rows()[0][1]);
+        assertEquals(1L, response.rows()[1][0]);
+        assertEquals("Sandwitch Maker", response.rows()[1][1]);
+        assertEquals(4L, response.rows()[2][0]);
+        assertEquals("", response.rows()[2][1]);
     }
 }
