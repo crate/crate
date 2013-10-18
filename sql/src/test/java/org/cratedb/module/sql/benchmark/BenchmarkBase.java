@@ -97,13 +97,9 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
                 .put("index.store.type", "memory");
         switch (nodeId) {
             case NODE1:
-                //builder.put("transport.tcp.port", 9301);
-                //builder.put("http.port", 9201);
                 builder.put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, true);
                 break;
             case NODE2:
-                //builder.put("transport.tcp.port", 9402);
-                //builder.put("http.port", 9202);
                 builder.put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, false);
                 break;
         }
