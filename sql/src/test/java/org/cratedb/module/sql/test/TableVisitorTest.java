@@ -67,12 +67,12 @@ public class TableVisitorTest {
                 put("pk_col", new HashMap<String, Object>(){{
                     put("type", "integer");
                     put("index", "not_analyzed");
-                    put("store", "true");
+                    put("store", "false");
                 }});
                 put("phrase", new HashMap<String, Object>(){{
                     put("type", "string");
                     put("index", "not_analyzed");
-                    put("store", "true");
+                    put("store", "false");
                 }});
             }});
         }};
@@ -101,12 +101,12 @@ public class TableVisitorTest {
                 put("pk_col", new HashMap<String, Object>(){{
                     put("type", "integer");
                     put("index", "not_analyzed");
-                    put("store", "true");
+                    put("store", "false");
                 }});
                 put("phrase", new HashMap<String, Object>(){{
                     put("type", "string");
                     put("index", "not_analyzed");
-                    put("store", "true");
+                    put("store", "false");
                 }});
             }});
         }};
@@ -138,12 +138,12 @@ public class TableVisitorTest {
                 put("pk_col", new HashMap<String, Object>(){{
                     put("type", "integer");
                     put("index", "not_analyzed");
-                    put("store", "true");
+                    put("store", "false");
                 }});
                 put("phrase", new HashMap<String, Object>(){{
                     put("type", "string");
                     put("index", "not_analyzed");
-                    put("store", "true");
+                    put("store", "false");
                 }});
             }});
         }};
