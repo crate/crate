@@ -8,7 +8,6 @@ import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.DuplicateKeyException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.TableAlreadyExistsException;
-import org.cratedb.sql.VersionConflictException;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -27,7 +26,6 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
@@ -874,53 +872,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("select coolness from test");
         assertEquals(1, response.rows().length);
         assertEquals(3.3, response.rows()[0][0]);
-    }
-
-    @Test
-    public void testConcurrentUpdateWithRetryOnConflict() throws Exception {
-        prepareCreate("test")
-            .addMapping("default",
-                "key", "type=integer,index=not_analyzed",
-                "col1", "type=integer,index=not_analyzed")
-            .execute().actionGet();
-
-        execute("insert into test (key, col1) values (1, 0), (2, 0)");
-        refresh();
-
-        int numberOfThreads = 10;
-        final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(numberOfThreads);
-        final int numberOfUpdatesPerThread = 100;
-        final AtomicReference<Exception> lastException = new AtomicReference<Exception>();
-
-        for (int i = 0; i < numberOfThreads; i++) {
-            Runnable r = new Runnable() {
-
-                @Override
-                public void run() {
-                    try {
-                        for (int i = 0; i < numberOfUpdatesPerThread; i++) {
-                            SQLRequest request = new SQLRequest("update test set col1 = ?", new Object[] { i });
-                            client().execute(SQLAction.INSTANCE, request).actionGet();
-                        }
-                    } catch (Exception e) {
-                        lastException.set(e);
-                    } finally {
-                        latch.countDown();
-                    }
-                }
-
-            };
-            new Thread(r).start();
-        }
-        latch.await();
-
-        assertNotNull(lastException.get());
-        assertTrue(lastException.get() instanceof VersionConflictException);
-
-        SQLResponse response = client().execute(
-            SQLAction.INSTANCE, new SQLRequest("select \"_version\", field from test")).actionGet();
-
-        assertTrue(Integer.parseInt(response.rows()[0][0].toString()) < 500);
     }
 
     @Test
