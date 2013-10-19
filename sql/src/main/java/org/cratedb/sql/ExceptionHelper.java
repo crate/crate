@@ -5,6 +5,7 @@ import org.elasticsearch.action.search.ShardSearchFailure;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
+import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.transport.RemoteTransportException;
 
 public class ExceptionHelper {
@@ -27,7 +28,9 @@ public class ExceptionHelper {
             return new DuplicateKeyException(
                     "A document with the same primary key exists already", e);
         } else if (e instanceof IndexAlreadyExistsException) {
-            return new TableAlreadyExistsException(e.getCause());
+            return new TableAlreadyExistsException(((IndexAlreadyExistsException)e).index().name(), e);
+        } else if (e instanceof IndexMissingException) {
+            return new TableUnknownException(((IndexMissingException)e).index().name(), e);
         } else if (e instanceof ReduceSearchPhaseException && e.getCause() instanceof VersionConflictException) {
             /**
              * For update or search requests we use upstream ES SearchRequests

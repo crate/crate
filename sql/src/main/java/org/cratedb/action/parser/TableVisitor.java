@@ -42,6 +42,9 @@ public class TableVisitor extends XContentVisitor {
             case NodeTypes.CREATE_TABLE_NODE:
                 stopTraversal = true;
                 return visit((CreateTableNode)node);
+            case NodeTypes.DROP_TABLE_NODE:
+                stopTraversal = true;
+                return visit((DropTableNode)node);
             default:
                 throw new SQLParseException("Unsupported DDL Statement");
         }
@@ -75,6 +78,13 @@ public class TableVisitor extends XContentVisitor {
             }
         }
         stopTraversal = true;
+
+        return node;
+    }
+
+    public Visitable visit(DropTableNode node) throws StandardException {
+        String tableName = node.getObjectName().getTableName();
+        stmt.addIndex(tableName);
 
         return node;
     }

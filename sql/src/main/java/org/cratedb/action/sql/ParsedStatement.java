@@ -9,6 +9,8 @@ import org.cratedb.sql.parser.parser.SQLParser;
 import org.cratedb.sql.parser.parser.StatementNode;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.count.CountRequest;
@@ -59,6 +61,7 @@ public class ParsedStatement {
     public static final int DELETE_ACTION = 6;
     public static final int UPDATE_ACTION = 7;
     public static final int CREATE_INDEX_ACTION = 8;
+    public static final int DELETE_INDEX_ACTION = 9;
 
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;
 
@@ -95,6 +98,7 @@ public class ParsedStatement {
                 visitor = new InsertVisitor(this);
                 break;
             case NodeTypes.CREATE_TABLE_NODE:
+            case NodeTypes.DROP_TABLE_NODE:
                 visitor = new TableVisitor(this);
                 break;
             default:
@@ -147,6 +151,8 @@ public class ParsedStatement {
                 return SEARCH_ACTION;
             case NodeTypes.CREATE_TABLE_NODE:
                 return CREATE_INDEX_ACTION;
+            case NodeTypes.DROP_TABLE_NODE:
+                return DELETE_INDEX_ACTION;
             default:
                 return SEARCH_ACTION;
         }
@@ -261,6 +267,13 @@ public class ParsedStatement {
         TableVisitor tableVisitor = (TableVisitor)visitor;
         request.settings(tableVisitor.settings());
         request.mapping(NodeExecutionContext.DEFAULT_TYPE, tableVisitor.mapping());
+
+        return request;
+    }
+
+    public DeleteIndexRequest buildDeleteIndexRequest() {
+        assert visitor instanceof TableVisitor;
+        DeleteIndexRequest request = new DeleteIndexRequest(indices.get(0));
 
         return request;
     }
@@ -389,6 +402,10 @@ public class ParsedStatement {
     }
 
     public SQLResponse buildResponse(CreateIndexResponse createIndexResponse) {
+        return buildEmptyResponse(0);
+    }
+
+    public SQLResponse buildResponse(DeleteIndexResponse deleteIndexResponse) {
         return buildEmptyResponse(0);
     }
 

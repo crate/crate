@@ -8,6 +8,7 @@ import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.DuplicateKeyException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.TableAlreadyExistsException;
+import org.cratedb.sql.TableUnknownException;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -1426,4 +1427,21 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(4L, response.rows()[2][0]);
         assertNull(null, response.rows()[2][1]);
     }
+
+    @Test
+    public void testDropTable() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string)");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
+                .actionGet().isExists());
+
+        execute("drop table test");
+        assertFalse(client().admin().indices().exists(new IndicesExistsRequest("test"))
+                .actionGet().isExists());
+    }
+
+    @Test (expected = TableUnknownException.class)
+    public void testDropUnknownTable() throws Exception {
+        execute("drop table test");
+    }
+
 }
