@@ -158,20 +158,28 @@ The following wildcard operators are available:
 
     == ========================================
     %  A substitute for zero or more characters
-    *  An alias for %
-    ?  A substitute for a single character
-    _  An alias for ?
+    _  A substitute for a single character
     == ========================================
 
 The wildcard operators may be used at any point in the string literal. For
 example a more complicated like clause could look like this::
 
-    cr> select name from locations where name like '?r*a*' order by name asc
+    cr> select name from locations where name like '_r%a%' order by name asc
     +------------+
     | name       |
     +------------+
     | Argabuthon |
     +------------+
+
+In order so search for the wildcard characters themselves it is possible to
+escape them using a backslash::
+
+    cr> select description from locations where description like '%\%' order by description asc
+    +-------------------------+
+    | description             |
+    +-------------------------+
+    | The end of the Galaxy.% |
+    +-------------------------+
 
 .. note::
 
