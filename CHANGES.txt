@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/10/21 0.16.0
+=================
+
  - Added support for the SQL `LIKE` operand.
 
  - Implemented ``drop table``.
