@@ -1317,7 +1317,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
 
-    private String getMapping(String index) throws IOException {
+    private String getIndexMapping(String index) throws IOException {
         ClusterStateRequest request = Requests.clusterStateRequest()
                 .filterRoutingTable(true)
                 .filterNodes(true)
@@ -1338,7 +1338,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         return builder.string();
     }
 
-    private String getSettings(String index) throws IOException {
+    private String getIndexSettings(String index) throws IOException {
         ClusterStateRequest request = Requests.clusterStateRequest()
                 .filterRoutingTable(true)
                 .filterNodes(true)
@@ -1387,8 +1387,8 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 "\"index.version.created\":\"900599\"" +
                 "}}}";
 
-        assertEquals(expectedMapping, getMapping("test"));
-        assertEquals(expectedSettings, getSettings("test"));
+        assertEquals(expectedMapping, getIndexMapping("test"));
+        assertEquals(expectedSettings, getIndexSettings("test"));
 
         // test index usage
         execute("insert into test (col1, col2) values (1, 'foo')");
@@ -1426,8 +1426,8 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                     "\"index.version.created\":\"900599\"" +
                 "}}}";
 
-        assertEquals(expectedMapping, getMapping("test"));
-        assertEquals(expectedSettings, getSettings("test"));
+        assertEquals(expectedMapping, getIndexMapping("test"));
+        assertEquals(expectedSettings, getIndexSettings("test"));
     }
 
     @Test

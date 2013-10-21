@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Prevent table creation with routing definition on non-primary key columns.
+
  - Optimize simple Select Queries with where clauses like <pk_col>=<constant_value> OR <pk_col>=<constant_value> 
    and without order-by- or group-by-clauses to use MultiGetRequests
 

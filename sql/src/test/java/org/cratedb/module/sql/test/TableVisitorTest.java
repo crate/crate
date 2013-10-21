@@ -173,4 +173,12 @@ public class TableVisitorTest {
         assertNotNull(stmt.buildDeleteIndexRequest());
     }
 
+    @Test
+    public void testCreateTableThrowRoutingColumnNotInPrimaryKeysException() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Only columns declared as primary key can be used for routing");
+        execStatement("create table phrases (pk_col int primary key, col2 string)" +
+                "clustered by(col2)");
+    }
+
 }
