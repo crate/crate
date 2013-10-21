@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Optimize simple Select Queries with where clauses like <pk_col>=<constant_value> OR <pk_col>=<constant_value> 
+   and without order-by- or group-by-clauses to use MultiGetRequests
+
  - Implemented ``drop table``.
 
  - Implemented the `group by` sql clause.
@@ -16,7 +19,7 @@ Unreleased
  - Query Planner Optimizes Select / Update / Delete Queries where:
 
    - Where clause is: <pk_col> = <constant_value>
-   - Where clause is like: <pk_col> = <constant_value> OR <pk_col> = <constant_value OR <pk_col> = ...
+   - Where clause is like: <pk_col> = <constant_value> OR <pk_col> = <constant_value> OR <pk_col> = ...
    - Where clause is like: <pk_col> = <constant_value> AND ...
    - Where clause is like: <pk_col> IN (<constant_value>) [ OR <pk_col> = <constant_value> ... ]
 
