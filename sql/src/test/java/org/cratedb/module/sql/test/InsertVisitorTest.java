@@ -39,7 +39,7 @@ public class InsertVisitorTest {
         Object[] params = new Object[]{"North West Ripple", "Galaxy"};
 
         ParsedStatement statement = getParsedStatement(sql, params);
-        assertEquals(statement.type(), ParsedStatement.INSERT_ACTION);
+        assertEquals(statement.type(), ParsedStatement.ActionType.INSERT_ACTION);
 
         IndexRequest indexRequest = statement.buildIndexRequest();
 
@@ -56,7 +56,7 @@ public class InsertVisitorTest {
         Object[] params = new Object[]{"North West Ripple", "Galaxy", "Bartledan", "Planet"};
 
         ParsedStatement statement = getParsedStatement(sql, params);
-        assertEquals(statement.type(), ParsedStatement.BULK_ACTION);
+        assertEquals(statement.type(), ParsedStatement.ActionType.BULK_ACTION);
 
         BulkRequest bulkRequest = statement.buildBulkRequest();
 

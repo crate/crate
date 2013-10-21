@@ -1,9 +1,7 @@
 package org.cratedb.action.parser;
 
 import org.cratedb.action.groupby.aggregate.AggExpr;
-import org.cratedb.action.groupby.ParameterInfo;
 import org.cratedb.action.groupby.aggregate.AggExprFactory;
-import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.OrderByColumnIdx;
 import org.cratedb.action.sql.ParsedStatement;
@@ -210,8 +208,8 @@ public class XContentGenerator {
         }
 
         jsonBuilder.startArray("sort");
-
         for (OrderByColumn column : node) {
+
             jsonBuilder.startObject()
                     .startObject(column.getExpression().getColumnName())
                     .field("order", column.isAscending() ? "asc" : "desc")
@@ -221,6 +219,7 @@ public class XContentGenerator {
         }
 
         jsonBuilder.endArray();
+        stmt.setHasOrderBy(true);
     }
 
     private void generate(FromList fromList) throws StandardException {

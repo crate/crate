@@ -8,9 +8,7 @@ import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLRequestBuilder;
 import org.cratedb.action.sql.SQLResponse;
-import org.elasticsearch.action.get.GetAction;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.search.SearchAction;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -101,6 +99,11 @@ public class SelectBenchmark extends BenchmarkBase {
         return l.get(getRandom().nextInt(l.size()));
     }
 
+    public String getGetId(boolean queryPlannerEnabled, int idx) {
+        List<String> l = queryPlannerEnabled ? someIdsQueryPlannerEnabled : someIds;
+        return l.get(idx % l.size());
+    }
+
 
     public GetRequest getApiGetRequest(boolean queryPlannerEnabled) {
         return new GetRequest(INDEX_NAME, "default", getGetId(queryPlannerEnabled));
@@ -121,6 +124,24 @@ public class SelectBenchmark extends BenchmarkBase {
         return new SQLRequest(
             "SELECT * from " + INDEX_NAME + " WHERE \"countryCode\" IN (?,?,?)",
             new Object[]{"CU", "KP", "RU"}
+        );
+    }
+
+    public MultiGetRequest getMultiGetApiRequest() {
+        MultiGetRequest request = new MultiGetRequest();
+        for (int i = 0; i<3;i++) {
+            request.add(
+                    new MultiGetRequest.Item(INDEX_NAME, "default", getGetId(false, i))
+            );
+        }
+        return request;
+    }
+
+    public SQLRequest getMultiGetSqlRequest(boolean queryPlannerEnabled) {
+
+        return new SQLRequest(
+                "SELECT * FROM " + INDEX_NAME + " WHERE \"_id\"=? OR \"_id\"=? OR \"_id\"=?",
+                new Object[]{getGetId(queryPlannerEnabled, 0), getGetId(queryPlannerEnabled, 1), getGetId(queryPlannerEnabled, 2) }
         );
     }
 
@@ -185,7 +206,7 @@ public class SelectBenchmark extends BenchmarkBase {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getSqlSearchRequest()).actionGet();
             assertEquals(
-                    "Did not find the two wanted rows (SQL).",
+                    "Did not find the three wanted rows (SQL).",
                     3,
                     response.rows().length
             );
@@ -198,9 +219,48 @@ public class SelectBenchmark extends BenchmarkBase {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getSqlSearchRequest()).actionGet();
             assertEquals(
-                    "Did not find the two wanted rows (SQL).",
+                    "Did not find the three wanted rows (SQL).",
                     3,
                     response.rows().length
+            );
+        }
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void testGetMultiGetApi() {
+        for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
+            MultiGetResponse response = getClient(false).execute(MultiGetAction.INSTANCE, getMultiGetApiRequest()).actionGet();
+            assertEquals(
+                    "Did not find the three wanted rows (API, MultiGet)",
+                    3,
+                    response.getResponses().length
+            );
+        }
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void testGetMultiGetSql() {
+        for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
+            SQLResponse response = getClient(false).execute(SQLAction.INSTANCE, getMultiGetSqlRequest(false)).actionGet();
+            assertEquals(
+                    "Did not find the three wanted rows (SQL, MultiGet)",
+                    3,
+                    response.rowCount()
+            );
+        }
+    }
+
+    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = 1)
+    @Test
+    public void testGetMultiGetSqlQueryPlannerEnabled() {
+        for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
+            SQLResponse response = getClient(true).execute(SQLAction.INSTANCE, getMultiGetSqlRequest(true)).actionGet();
+            assertEquals(
+                    "Did not find the three wanted rows (SQL, MultiGet)",
+                    3,
+                    response.rowCount()
             );
         }
     }

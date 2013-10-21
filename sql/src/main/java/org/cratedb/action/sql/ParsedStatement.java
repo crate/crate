@@ -21,8 +21,7 @@ import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
@@ -55,15 +54,17 @@ public class ParsedStatement {
     private final StatementNode statementNode;
     private final XContentVisitor visitor;
 
-    public static final int SEARCH_ACTION = 1;
-    public static final int INSERT_ACTION = 2;
-    public static final int DELETE_BY_QUERY_ACTION = 3;
-    public static final int BULK_ACTION = 4;
-    public static final int GET_ACTION = 5;
-    public static final int DELETE_ACTION = 6;
-    public static final int UPDATE_ACTION = 7;
-    public static final int CREATE_INDEX_ACTION = 8;
-    public static final int DELETE_INDEX_ACTION = 9;
+    public static enum ActionType {
+        SEARCH_ACTION,
+        INSERT_ACTION,
+        DELETE_BY_QUERY_ACTION,
+        BULK_ACTION, GET_ACTION,
+        DELETE_ACTION,
+        UPDATE_ACTION,
+        CREATE_INDEX_ACTION,
+        DELETE_INDEX_ACTION,
+        MULTI_GET_ACTION
+    }
 
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;
 
@@ -71,12 +72,14 @@ public class ParsedStatement {
     private Map<String, Object> updateDoc;
     private Map<String, Object> plannerResults;
     private boolean countRequest;
+    private boolean hasOrderBy = false;
 
     public List<String> groupByColumnNames;
     public List<ColumnDescription> resultColumnList;
 
     public Integer limit = null;
     public Integer offset = null;
+
     public List<OrderByColumnIdx> orderByIndices;
     public OrderByColumnIdx[] orderByIndices() {
         if (orderByIndices != null) {
@@ -160,35 +163,41 @@ public class ParsedStatement {
         return tableContext;
     }
 
-    public int type() {
+    public ActionType type() {
         switch (statementNode.getNodeType()) {
             case NodeTypes.INSERT_NODE:
                 if (((InsertVisitor)visitor).isBulk()) {
-                    return BULK_ACTION;
+                    return ActionType.BULK_ACTION;
                 }
-                return INSERT_ACTION;
+                return ActionType.INSERT_ACTION;
             case NodeTypes.DELETE_NODE:
                 if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null) {
-                    return DELETE_ACTION;
+                    return ActionType.DELETE_ACTION;
                 }
-                return DELETE_BY_QUERY_ACTION;
+                return ActionType.DELETE_BY_QUERY_ACTION;
             case NodeTypes.CURSOR_NODE:
                 if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null) {
-                    return GET_ACTION;
+                    return ActionType.GET_ACTION;
+                } else if(getPlannerResult(QueryPlanner.MULTIGET_PRIMARY_KEY_VALUES) != null && !hasGroupBy() && ! hasOrderBy()) {
+                    return ActionType.MULTI_GET_ACTION;
                 }
-                return SEARCH_ACTION;
+                return ActionType.SEARCH_ACTION;
             case NodeTypes.UPDATE_NODE:
                 if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null) {
-                    return UPDATE_ACTION;
+                    return ActionType.UPDATE_ACTION;
                 }
-                return SEARCH_ACTION;
+                return ActionType.SEARCH_ACTION;
             case NodeTypes.CREATE_TABLE_NODE:
-                return CREATE_INDEX_ACTION;
+                return ActionType.CREATE_INDEX_ACTION;
             case NodeTypes.DROP_TABLE_NODE:
-                return DELETE_INDEX_ACTION;
+                return ActionType.DELETE_INDEX_ACTION;
             default:
-                return SEARCH_ACTION;
+                return ActionType.SEARCH_ACTION;
         }
+    }
+
+    public int nodeType() {
+        return statementNode.getNodeType();
     }
 
     public SearchRequest buildSearchRequest() throws StandardException {
@@ -268,10 +277,26 @@ public class ParsedStatement {
         GetRequest request = new GetRequest(indices.get(0),
                 NodeExecutionContext.DEFAULT_TYPE, id);
         request.routing(id);
-        request.fields(cols());
+        request.fields(columnNames());
         request.realtime(true);
         return request;
     }
+
+    public MultiGetRequest buildMultiGetRequest() {
+        @SuppressWarnings("unchecked")
+        Set<String> ids = (Set<String>) getPlannerResult(QueryPlanner.MULTIGET_PRIMARY_KEY_VALUES);
+        assert ids != null;
+        MultiGetRequest request = new MultiGetRequest();
+        for (String id: ids) {
+            MultiGetRequest.Item item = new MultiGetRequest.Item(indices().get(0),NodeExecutionContext.DEFAULT_TYPE, id);
+            item.fields(columnNames());
+            request.add(item);
+        }
+        request.realtime(true);
+        return request;
+    }
+
+
 
     public DeleteRequest buildDeleteRequest() {
         String id = (String)getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE);
@@ -311,12 +336,29 @@ public class ParsedStatement {
         return request;
     }
 
+    /**
+     * Get the result column-names as listed in the SELECT Statement,
+     * eventually including aliases, not real column-names
+     * @return Array of Column-Name or -Alias Strings
+     */
     public String[] cols() {
         String[] cols = new String[outputFields.size()];
         for (int i = 0; i < outputFields.size(); i++) {
             cols[i] = outputFields.get(i).v1();
         }
         return cols;
+    }
+
+    /**
+     * Get the ColumnNames that are actually fetched from the table for this statement
+     * @return Array of Column-Name Strings
+     */
+    public String[] columnNames() {
+        String[] colNames = new String[outputFields.size()];
+        for (int i=0; i < outputFields.size(); i++) {
+            colNames[i] = outputFields.get(i).v2();
+        }
+        return colNames;
     }
 
     public SQLResponse buildResponse(SearchResponse searchResponse, InternalSQLFacet facet) {
@@ -394,6 +436,30 @@ public class ParsedStatement {
         response.rows(rows);
         response.rowCount(1);
 
+        return response;
+    }
+
+    public SQLResponse buildResponse(MultiGetResponse multiGetItemResponses) {
+        SQLResponse response = new SQLResponse();
+        SQLFields fields = new SQLFields(outputFields);
+        List<Object[]> rows = new ArrayList<>();
+        MultiGetItemResponse[] singleResponses = multiGetItemResponses.getResponses();
+        long successful = 0;
+        for (int i=0; i < singleResponses.length; i++) {
+            if (!singleResponses[i].isFailed()) {
+                if (singleResponses[i].getResponse().isExists()) {
+                    fields.applyGetResponse(tableContext(), singleResponses[i].getResponse());
+                    rows.add(fields.getRowValues());
+                    successful++;
+                }
+            } else {
+                // failure on at least one shard
+                throw new CrateException(singleResponses[i].getFailure().getMessage());
+            }
+        }
+        response.cols(cols());
+        response.rows(rows.toArray(new Object[rows.size()][outputFields.size()]));
+        response.rowCount(successful);
         return response;
     }
 
@@ -517,6 +583,9 @@ public class ParsedStatement {
     public Object getPlannerResult(String key) {
         return plannerResults.get(key);
     }
+    public Object removePlannerResult(String key) {
+        return plannerResults.remove(key);
+    }
 
     public Map<String, Object> plannerResults() {
         return plannerResults;
@@ -528,5 +597,13 @@ public class ParsedStatement {
 
     public boolean hasGroupBy() {
         return (groupByColumnNames != null && groupByColumnNames.size() > 0);
+    }
+
+    public boolean hasOrderBy() {
+        return hasOrderBy;
+    }
+
+    public void setHasOrderBy(boolean hasOrderBy) {
+        this.hasOrderBy = hasOrderBy;
     }
 }

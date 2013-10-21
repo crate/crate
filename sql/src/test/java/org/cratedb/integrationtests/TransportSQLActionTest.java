@@ -5,10 +5,7 @@ import com.google.common.collect.Ordering;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.sql.DuplicateKeyException;
-import org.cratedb.sql.SQLParseException;
-import org.cratedb.sql.TableAlreadyExistsException;
-import org.cratedb.sql.TableUnknownException;
+import org.cratedb.sql.*;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -31,8 +28,7 @@ import java.util.*;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
-import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
@@ -1462,6 +1458,24 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     @Test (expected = TableUnknownException.class)
     public void testDropUnknownTable() throws Exception {
         execute("drop table test");
+    }
+
+    @Test
+    public void selectMultiGetRequestWithColumnAlias() throws IOException {
+        createTestIndexWithPkAndRoutingMapping();
+        execute("insert into test (some_id, foo) values (1, 'foo')");
+        execute("insert into test (some_id, foo) values (2, 'bar')");
+        execute("insert into test (some_id, foo) values (3, 'baz')");
+        refresh();
+        execute("SELECT some_id as id, foo from test where some_id IN (?,?)", new Object[]{'1', '2'});
+        assertThat(response.rowCount(), is(2L));
+        assertThat(response.cols(), arrayContainingInAnyOrder("id", "foo"));
+        assertThat(new String[]{(String)response.rows()[0][0], (String)response.rows()[1][0]}, arrayContainingInAnyOrder("1", "2"));
+    }
+
+    @Test (expected = TableUnknownException.class)
+    public void selectMultiGetRequestFromNonExistentTable() throws IOException {
+        execute("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"});
     }
 
 }
