@@ -1,6 +1,7 @@
 package org.cratedb.action.sql;
 
 import org.cratedb.action.parser.*;
+import org.cratedb.sql.CrateException;
 import org.cratedb.sql.ExceptionHelper;
 import org.cratedb.sql.facet.InternalSQLFacet;
 import org.cratedb.sql.parser.StandardException;
@@ -24,7 +25,6 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.search.ShardSearchFailure;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -32,9 +32,7 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.search.SearchHit;
-
 import java.io.IOException;
 import java.util.*;
 

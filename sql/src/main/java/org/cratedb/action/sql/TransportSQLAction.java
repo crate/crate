@@ -43,6 +43,7 @@ import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
+
 public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse> {
 
     private final TransportSearchAction transportSearchAction;
@@ -367,7 +368,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onFailure(Throwable e) {
-            delegate.onFailure(reRaiseCrateException(e));
+            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
         }
     }
 
