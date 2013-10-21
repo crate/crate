@@ -74,7 +74,6 @@ public class InsertVisitor extends XContentVisitor {
         ResultColumnList targetColumnList = node.getTargetColumnList();
 
         stmt.addIndex(tableName);
-        stmt.tableContext(stmt.context().tableContext(tableName));
 
         // Get column names from index if not defined by query
         // NOTE: returned column name list is alphabetic ordered!
