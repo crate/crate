@@ -70,6 +70,7 @@ public class ParsedStatement {
     private Map<String, Object> updateDoc;
     private Map<String, Object> plannerResults;
     private boolean countRequest;
+    private boolean hasOrderBy = false;
 
     public List<String> groupByColumnNames;
     public List<ColumnDescription> resultColumnList;
@@ -77,7 +78,6 @@ public class ParsedStatement {
     public Integer limit = null;
     public Integer offset = null;
 
-    public List<String> orderByColumnNames;
     public List<OrderByColumnIdx> orderByIndices;
     public OrderByColumnIdx[] orderByIndices() {
         if (orderByIndices != null) {
@@ -564,6 +564,10 @@ public class ParsedStatement {
     }
 
     public boolean hasOrderBy() {
-        return (orderByIndices != null && orderByIndices.size() > 0) || (orderByColumnNames != null && orderByColumnNames.size() > 0);
+        return hasOrderBy;
+    }
+
+    public void setHasOrderBy(boolean hasOrderBy) {
+        this.hasOrderBy = hasOrderBy;
     }
 }

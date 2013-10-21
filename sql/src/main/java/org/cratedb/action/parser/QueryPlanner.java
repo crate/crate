@@ -30,6 +30,12 @@ public class QueryPlanner {
 
     /**
      * take final actions on statement
+     *
+     * These are actions that can or should only be executed
+     * when the ParsedStatement has been fully built.
+     *
+     * E.g. decide on an optimization based on whether a 'group by' or 'order by' clause
+     * is present in the Statement
      */
     public void finalizeWhereClause(ParsedStatement stmt) {
         if ( settings.getAsBoolean(SETTINGS_OPTIMIZE_PK_QUERIES, true)) {

@@ -205,12 +205,6 @@ public class XContentGenerator {
                 stmt.orderByIndices.add(new OrderByColumnIdx(idx, column.isAscending()));
             }
             return;
-        } else {
-            // used in order-by without group by
-            stmt.orderByColumnNames = new ArrayList<>();
-            for (OrderByColumn column : node) {
-                stmt.orderByColumnNames.add(column.getExpression().getColumnName());
-            }
         }
 
         jsonBuilder.startArray("sort");
@@ -225,6 +219,7 @@ public class XContentGenerator {
         }
 
         jsonBuilder.endArray();
+        stmt.setHasOrderBy(true);
     }
 
     private void generate(FromList fromList) throws StandardException {
