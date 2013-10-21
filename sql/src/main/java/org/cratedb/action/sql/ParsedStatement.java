@@ -316,6 +316,10 @@ public class ParsedStatement {
         DeleteRequest request = new DeleteRequest(indices.get(0),
                 NodeExecutionContext.DEFAULT_TYPE, id);
         request.routing(id);
+        // Set version if found by planner
+        if (getPlannerResult(QueryPlanner.VERSION_VALUE) != null) {
+            request.version((Long)getPlannerResult(QueryPlanner.VERSION_VALUE));
+        }
 
         return request;
     }

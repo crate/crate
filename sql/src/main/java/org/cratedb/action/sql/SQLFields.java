@@ -145,9 +145,12 @@ public class SQLFields {
             source = getResponse.getSourceAsBytesRef();
         }
 
-        return new InternalSearchHit(0, getResponse.getId(),
+        InternalSearchHit searchHit = new InternalSearchHit(0, getResponse.getId(),
                 new StringAndBytesText(getResponse.getType()), source,
                 searchFields);
+        searchHit.version(getResponse.getVersion());
+
+        return searchHit;
     }
 }
 
