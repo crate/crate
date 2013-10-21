@@ -3,6 +3,7 @@ package org.cratedb.action.parser;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 
@@ -76,8 +77,6 @@ public class QueryPlanner {
             return false;
         }
 
-        assert stmt.tableContext() != null;
-
         // First check if we found only one operational node with a primary key.
         // If so we can set the primary key value and return true, so any generator can stop.
         Object primaryKeyValue = extractPrimaryKeyValue(stmt, node);
@@ -86,13 +85,14 @@ public class QueryPlanner {
             return true;
         }
 
-        Set<String> routingValues = new HashSet<>();
 
         // Second check for a primary key in multi-operational nodes
         // If so we can set the routing value but won't return true, generators should finish.
         Object routingValue = extractRoutingValue(stmt, node);
         if (routingValue != null) {
+            Set<String> routingValues = new HashSet<>();
             routingValues.add(routingValue.toString());
+            stmt.setPlannerResult(ROUTING_VALUES, routingValues);
         }
 
         // Third check for multiple operational nodes with the same primary key.
@@ -102,9 +102,6 @@ public class QueryPlanner {
         Set<String> orPrimaryKeyValues = extractFromOrClauses(stmt, node);
         if (orPrimaryKeyValues != null && !orPrimaryKeyValues.isEmpty()) {
             stmt.setPlannerResult(MULTIGET_PRIMARY_KEY_VALUES, orPrimaryKeyValues);
-        }
-        if (!routingValues.isEmpty()) {
-            stmt.setPlannerResult(ROUTING_VALUES, routingValues);
         }
         return false;
     }
@@ -139,25 +136,24 @@ public class QueryPlanner {
             ValueNode leftOperand = ((OrNode) node).getLeftOperand();
             ValueNode rightOperand = ((OrNode) node).getRightOperand();
             try {
-                extractFromOrNodeOperand(stmt, leftOperand, results);
+                extractRoutingValueFromOrNodeOperand(stmt, leftOperand, results);
             } catch (NonOptimizableOrClauseException e) {
                 return;
             }
 
             try {
-                extractFromOrNodeOperand(stmt, rightOperand, results);
+                extractRoutingValueFromOrNodeOperand(stmt, rightOperand, results);
             } catch(NonOptimizableOrClauseException e) {
                 return;
             }
         } else if (node.getNodeType() == NodeTypes.IN_LIST_OPERATOR_NODE) {
             // e.g. WHERE pk_col IN (1,2,3,...)
             Object value;
-            List<String> primaryKeys = stmt.tableContext().primaryKeysIncludingDefault();
             RowConstructorNode leftOperand = ((InListOperatorNode) node).getLeftOperand();
             RowConstructorNode rightOperandList = ((InListOperatorNode) node).getRightOperandList();
             if (leftOperand.getNodeList().size() == 1 && leftOperand.getNodeList().get(0) instanceof ColumnReference) {
                 String columnName = leftOperand.getNodeList().get(0).getColumnName();
-                if (stmt.tableContext().isRouting(columnName) && primaryKeys.contains(columnName)) {
+                if (stmt.tableContextSafe().isRouting(columnName)) {
                     for (ValueNode listValue : rightOperandList.getNodeList()) {
                         value = stmt.visitor().evaluateValueNode(columnName, listValue);
                         results.add(value.toString());
@@ -179,24 +175,29 @@ public class QueryPlanner {
      * @throws StandardException
      * @throws NonOptimizableOrClauseException if or-node operand is not optimizable, stop recursion
      */
-    private void extractFromOrNodeOperand(ParsedStatement stmt, ValueNode operand, Set<String> results) throws StandardException, NonOptimizableOrClauseException {
+    private void extractRoutingValueFromOrNodeOperand(ParsedStatement stmt, ValueNode operand, Set<String> results) throws StandardException, NonOptimizableOrClauseException {
         if (operand.getNodeType() == NodeTypes.OR_NODE || operand.getNodeType() == NodeTypes.IN_LIST_OPERATOR_NODE) {
             extractFromOrClauses(stmt, operand, results);
         } else {
-            Object leftValue = extractPrimaryKeyValue(stmt, operand);
-            if (leftValue != null) {
-                results.add(leftValue.toString());
+            Object value = null;
+            if (operand.getNodeType() == NodeTypes.BINARY_EQUALS_OPERATOR_NODE) {
+                value = extractRoutingValueFromOperatorNode(stmt,
+                            (BinaryRelationalOperatorNode)operand);
+            }
+            if (value != null) {
+                results.add(value.toString());
             } else {
                 results.clear(); // cannot use routing
                 throw new NonOptimizableOrClauseException();
             }
         }
+
     }
 
 
     /**
-     * If a primary_key equals a constant value in the given node, and also is defined as the
-     * routing key we return the constant value this statement asks for.
+     * If a primary_key equals a constant value in the given node,
+     * we return a Tuple of the constant value and column name this statement asks for.
      *
      * @param stmt
      * @param node
@@ -205,30 +206,18 @@ public class QueryPlanner {
      */
     private Object extractPrimaryKeyValue(ParsedStatement stmt,
                                           ValueNode node) throws StandardException {
-        Object value = null;
         if (node.getNodeType() == NodeTypes.BINARY_EQUALS_OPERATOR_NODE) {
-            List<String> primaryKeys = stmt.tableContext().primaryKeysIncludingDefault();
+            List<String> primaryKeys = stmt.tableContextSafe().primaryKeysIncludingDefault();
 
-            ValueNode leftOperand = ((BinaryRelationalOperatorNode)node).getLeftOperand();
-            ValueNode rightOperand = ((BinaryRelationalOperatorNode)node).getRightOperand();
-            if (leftOperand instanceof ColumnReference) {
-                if (stmt.tableContext().isRouting(leftOperand.getColumnName()) &&
-                        primaryKeys.contains(leftOperand.getColumnName())) {
-                    value = stmt.visitor().evaluateValueNode(
-                            leftOperand.getColumnName(), rightOperand);
 
-                }
-            }
-            if (rightOperand instanceof ColumnReference) {
-                if (stmt.tableContext().isRouting(rightOperand.getColumnName()) &&
-                        primaryKeys.contains(rightOperand.getColumnName())) {
-                    value = stmt.visitor().evaluateValueNode(
-                            rightOperand.getColumnName(), leftOperand);
-                }
+            Tuple<String, Object> nameAndValue= extractNameAndValueFromOperatorNode(stmt,
+                    (BinaryRelationalOperatorNode) node);
+            if (nameAndValue != null && primaryKeys.contains(nameAndValue.v1())) {
+                return nameAndValue.v2();
             }
         }
 
-        return value;
+        return null;
     }
 
     /**
@@ -242,16 +231,19 @@ public class QueryPlanner {
      */
     private Object extractRoutingValue(ParsedStatement stmt, ValueNode node) throws StandardException {
         Object value = null;
+        // check an AndNode
         if (node.getNodeType() == NodeTypes.AND_NODE) {
             AndNode andNode = (AndNode)node;
             if (andNode.getLeftOperand().getNodeType() == NodeTypes.BINARY_EQUALS_OPERATOR_NODE) {
-                value = extractPrimaryKeyValue(stmt, andNode.getLeftOperand());
+                value = extractRoutingValueFromOperatorNode(stmt,
+                        (BinaryRelationalOperatorNode)andNode.getLeftOperand());
             } else if (andNode.getLeftOperand().getNodeType() == NodeTypes.AND_NODE) {
                 value = extractRoutingValue(stmt, andNode.getLeftOperand());
             }
             if (value == null) {
                 if (andNode.getRightOperand().getNodeType() == NodeTypes.BINARY_EQUALS_OPERATOR_NODE) {
-                    value = extractPrimaryKeyValue(stmt, andNode.getRightOperand());
+                    value = extractRoutingValueFromOperatorNode(stmt,
+                            (BinaryRelationalOperatorNode)andNode.getRightOperand());
                 } else if (andNode.getRightOperand().getNodeType() == NodeTypes.AND_NODE) {
                     value = extractRoutingValue(stmt, andNode.getRightOperand());
                 }
@@ -259,7 +251,56 @@ public class QueryPlanner {
         }
 
         return value;
+    }
 
+    /**
+     * Extracts the routing value of a {@link BinaryRelationalOperatorNode} if found.
+     *
+     * @param stmt
+     * @param node
+     * @return
+     * @throws StandardException
+     */
+    private Object extractRoutingValueFromOperatorNode(ParsedStatement stmt,
+                                                       BinaryRelationalOperatorNode node) throws StandardException {
+
+        Object value = null;
+        Tuple<String, Object> nameAndValue= extractNameAndValueFromOperatorNode(stmt, node);
+        if (nameAndValue != null && stmt.tableContextSafe().isRouting(nameAndValue.v1())) {
+            value = nameAndValue.v2();
+        }
+
+        return value;
+    }
+
+    /**
+     * Returns a Tuple of column name and value of a {@link BinaryRelationalOperatorNode}.
+     *
+     * @param stmt
+     * @param node
+     * @return
+     * @throws StandardException
+     */
+    private Tuple<String, Object> extractNameAndValueFromOperatorNode(ParsedStatement stmt,
+                                                                      BinaryRelationalOperatorNode node
+                                                                     ) throws StandardException
+    {
+        ValueNode left = node.getLeftOperand();
+        ValueNode right = node.getRightOperand();
+
+        if (right.getNodeType() == NodeTypes.COLUMN_REFERENCE) {
+            ValueNode tmp = left;
+            left = right;
+            right = tmp;
+        }
+        if (!(left.getNodeType() == NodeTypes.COLUMN_REFERENCE)
+                || (!(right instanceof ConstantNode) && !(right.getNodeType() == NodeTypes.PARAMETER_NODE))
+        ) {
+            return null;
+        }
+        Object value = stmt.visitor().evaluateValueNode( left.getColumnName(), right);
+
+        return new Tuple<>(left.getColumnName(), value);
     }
 
 }

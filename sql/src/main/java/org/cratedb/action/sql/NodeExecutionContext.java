@@ -142,9 +142,6 @@ public class NodeExecutionContext {
 
         /**
          * Check if given name is equal to defined routing name.
-         * First check against {@link FieldMapper.Names(String).fullName()},
-         * then against {@link FieldMapper.Names(String).indexName()},
-         * and last against {@link FieldMapper.Names(String).name()}.
          *
          * @param name
          * @return
@@ -152,6 +149,11 @@ public class NodeExecutionContext {
         public Boolean isRouting(String name) {
             String routingPath = mappingMetaData.routing().path();
             if (routingPath == null) {
+                // the primary key(s) values are saved under _id, so they are used as default
+                // routing values
+                if (primaryKeys().contains(name)) {
+                    return true;
+                }
                 routingPath = "_id";
             }
             return routingPath.equals(name);
