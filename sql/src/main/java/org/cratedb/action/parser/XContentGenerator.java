@@ -1,9 +1,7 @@
 package org.cratedb.action.parser;
 
 import org.cratedb.action.groupby.aggregate.AggExpr;
-import org.cratedb.action.groupby.ParameterInfo;
 import org.cratedb.action.groupby.aggregate.AggExprFactory;
-import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.OrderByColumnIdx;
 import org.cratedb.action.sql.ParsedStatement;
@@ -196,11 +194,17 @@ public class XContentGenerator {
                 stmt.orderByIndices.add(new OrderByColumnIdx(idx, column.isAscending()));
             }
             return;
+        } else {
+            // used in order-by without group by
+            stmt.orderByColumnNames = new ArrayList<>();
+            for (OrderByColumn column : node) {
+                stmt.orderByColumnNames.add(column.getExpression().getColumnName());
+            }
         }
 
         jsonBuilder.startArray("sort");
-
         for (OrderByColumn column : node) {
+
             jsonBuilder.startObject()
                     .startObject(column.getExpression().getColumnName())
                     .field("order", column.isAscending() ? "asc" : "desc")

@@ -160,20 +160,27 @@ public class QueryVisitor extends XContentVisitor {
          * This is done in the XContentGenerator.
          */
         QueryTreeNode treeNode = (QueryTreeNode)node;
+        Visitable visited;
         switch (treeNode.getNodeType()) {
             case NodeTypes.CURSOR_NODE:
                 stopTraverse = true;
-                return visit((CursorNode)node);
+                visited = visit((CursorNode)node);
+                break;
             case NodeTypes.UPDATE_NODE:
                 stopTraverse = true;
-                return visit((UpdateNode)node);
+                visited = visit((UpdateNode)node);
+                break;
             case NodeTypes.DELETE_NODE:
                 stopTraverse = true;
-                return visit((DeleteNode)node);
+                visited = visit((DeleteNode)node);
+                break;
             default:
                 throw new SQLParseException(
                     "First node wasn't a CURSOR_NODE or DELETE_NODE. Unsupported Statement");
         }
+        // take final steps after statement has been fully parsed
+        stmt.context().queryPlanner().finalizeWhereClause(stmt);
+        return visited;
     }
 
     @Override

@@ -18,8 +18,7 @@ import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
@@ -62,6 +61,7 @@ public class ParsedStatement {
     public static final int DELETE_ACTION = 6;
     public static final int UPDATE_ACTION = 7;
     public static final int CREATE_INDEX_ACTION = 8;
+    public static final int MULTI_GET_ACTION = 9;
 
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;
 
@@ -75,7 +75,10 @@ public class ParsedStatement {
 
     public Integer limit = null;
     public Integer offset = null;
+
+    public List<String> orderByColumnNames;
     public List<OrderByColumnIdx> orderByIndices;
+
     public OrderByColumnIdx[] orderByIndices() {
         if (orderByIndices != null) {
             return orderByIndices.toArray(new OrderByColumnIdx[orderByIndices.size()]);
@@ -141,6 +144,8 @@ public class ParsedStatement {
             case NodeTypes.CURSOR_NODE:
                 if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null) {
                     return GET_ACTION;
+                } else if(getPlannerResult(QueryPlanner.MULTIGET_PRIMARY_KEY_VALUES) != null && !hasGroupBy() && ! hasOrderBy()) {
+                    return MULTI_GET_ACTION;
                 }
                 return SEARCH_ACTION;
             case NodeTypes.UPDATE_NODE:
@@ -153,6 +158,10 @@ public class ParsedStatement {
             default:
                 return SEARCH_ACTION;
         }
+    }
+
+    public int nodeType() {
+        return statementNode.getNodeType();
     }
 
     public SearchRequest buildSearchRequest() throws StandardException {
@@ -236,6 +245,22 @@ public class ParsedStatement {
         request.realtime(true);
         return request;
     }
+
+    public MultiGetRequest buildMultiGetRequest() {
+        @SuppressWarnings("unchecked")
+        Set<String> ids = (Set<String>) getPlannerResult(QueryPlanner.MULTIGET_PRIMARY_KEY_VALUES);
+        assert ids != null;
+        MultiGetRequest request = new MultiGetRequest();
+        for (String id: ids) {
+            MultiGetRequest.Item item = new MultiGetRequest.Item(indices().get(0),NodeExecutionContext.DEFAULT_TYPE, id);
+            item.fields(cols());
+            request.add(item);
+        }
+        request.realtime(true);
+        return request;
+    }
+
+
 
     public DeleteRequest buildDeleteRequest() {
         String id = (String)getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE);
@@ -362,6 +387,29 @@ public class ParsedStatement {
         return response;
     }
 
+    public SQLResponse buildResponse(MultiGetResponse multiGetItemResponses) {
+        SQLResponse response = new SQLResponse();
+        SQLFields fields = new SQLFields(outputFields);
+        List<Object[]> rows = new ArrayList<>();
+        MultiGetItemResponse[] singleResponses = multiGetItemResponses.getResponses();
+        long successful = 0;
+        for (int i=0; i < singleResponses.length; i++) {
+            if (!singleResponses[i].isFailed()) {
+                if (singleResponses[i].getResponse().isExists()) {
+                    fields.applyGetResponse(tableContext(), singleResponses[i].getResponse());
+                    rows.add(fields.getRowValues());
+                    successful++;
+                }
+            } else if (!singleResponses[i].getFailure().getType().equals("blah")) {
+                throw new CrateException(singleResponses[i].getFailure().getMessage());
+            }
+        }
+        response.cols(cols());
+        response.rows(rows.toArray(new Object[rows.size()][outputFields.size()]));
+        response.rowCount(successful);
+        return response;
+    }
+
     public SQLResponse buildResponse(DeleteByQueryResponse deleteByQueryResponse) {
         // TODO: add rows affected
         return buildEmptyResponse(0);
@@ -478,6 +526,9 @@ public class ParsedStatement {
     public Object getPlannerResult(String key) {
         return plannerResults.get(key);
     }
+    public Object removePlannerResult(String key) {
+        return plannerResults.remove(key);
+    }
 
     public Map<String, Object> plannerResults() {
         return plannerResults;
@@ -489,5 +540,9 @@ public class ParsedStatement {
 
     public boolean hasGroupBy() {
         return (groupByColumnNames != null && groupByColumnNames.size() > 0);
+    }
+
+    public boolean hasOrderBy() {
+        return (orderByIndices != null && orderByIndices.size() > 0) || (orderByColumnNames != null && orderByColumnNames.size() > 0);
     }
 }

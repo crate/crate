@@ -23,9 +23,7 @@ import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
 import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.get.TransportGetAction;
+import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.index.TransportIndexAction;
@@ -56,6 +54,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final TransportBulkAction transportBulkAction;
     private final TransportCountAction transportCountAction;
     private final TransportGetAction transportGetAction;
+    private final TransportMultiGetAction transportMultiGetAction;
     private final TransportDeleteAction transportDeleteAction;
     private final TransportUpdateAction transportUpdateAction;
     private final TransportDistributedSQLAction transportDistributedSQLAction;
@@ -71,6 +70,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             TransportIndexAction transportIndexAction,
             TransportBulkAction transportBulkAction,
             TransportGetAction transportGetAction,
+            TransportMultiGetAction transportMultiGetAction,
             TransportDeleteAction transportDeleteAction,
             TransportUpdateAction transportUpdateAction,
             TransportDistributedSQLAction transportDistributedSQLAction,
@@ -85,6 +85,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         this.transportBulkAction = transportBulkAction;
         this.transportCountAction = transportCountAction;
         this.transportGetAction = transportGetAction;
+        this.transportMultiGetAction = transportMultiGetAction;
         this.transportDeleteAction = transportDeleteAction;
         this.transportUpdateAction = transportUpdateAction;
         this.transportDistributedSQLAction = transportDistributedSQLAction;
@@ -226,6 +227,10 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                     GetRequest getRequest = stmt.buildGetRequest();
                     transportGetAction.execute(getRequest, new GetResponseListener(stmt, listener));
                     break;
+                case ParsedStatement.MULTI_GET_ACTION:
+                    MultiGetRequest multiGetRequest = stmt.buildMultiGetRequest();
+                    transportMultiGetAction.execute(multiGetRequest, new MultiGetResponseListener(stmt, listener));
+                    break;
                 case ParsedStatement.UPDATE_ACTION:
                     UpdateRequest updateRequest = stmt.buildUpdateRequest();
                     transportUpdateAction.execute(updateRequest, new UpdateResponseListener(stmt, listener));
@@ -360,6 +365,26 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         @Override
         public void onResponse(GetResponse getResponse) {
             delegate.onResponse(stmt.buildResponse(getResponse));
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            delegate.onFailure(reRaiseCrateException(e));
+        }
+    }
+
+    private class MultiGetResponseListener implements ActionListener<MultiGetResponse> {
+        private final ActionListener<SQLResponse> delegate;
+        private final ParsedStatement stmt;
+
+        public MultiGetResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+            this.delegate = listener;
+            this.stmt = stmt;
+        }
+
+        @Override
+        public void onResponse(MultiGetResponse multiGetItemResponses) {
+            delegate.onResponse(stmt.buildResponse(multiGetItemResponses));
         }
 
         @Override

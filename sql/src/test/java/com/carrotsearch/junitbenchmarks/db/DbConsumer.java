@@ -148,7 +148,7 @@ public abstract class DbConsumer extends AutocloseConsumer implements Closeable
     }
     
     /**
-     * Close the database connection and finalize transaction.
+     * Close the database connection and finalizeWhereClause transaction.
      */
     @Override
     public void close()
@@ -312,7 +312,7 @@ public abstract class DbConsumer extends AutocloseConsumer implements Closeable
     }
     
     /**
-     * Do finalize the consumer; close db connection and emit reports.
+     * Do finalizeWhereClause the consumer; close db connection and emit reports.
      */
     private void doClose() throws Exception
     {

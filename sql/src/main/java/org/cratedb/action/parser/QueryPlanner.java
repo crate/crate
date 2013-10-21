@@ -17,6 +17,7 @@ public class QueryPlanner {
 
     public static final String PRIMARY_KEY_VALUE = "primaryKeyValue";
     public static final String ROUTING_VALUES = "routingValues";
+    public static final String MULTIGET_PRIMARY_KEY_VALUES = "multiGetPrimaryKeyValues";
 
     public static final String SETTINGS_OPTIMIZE_PK_QUERIES = "crate.planner.optimize_pk_queries";
 
@@ -25,6 +26,27 @@ public class QueryPlanner {
     @Inject
     public QueryPlanner(Settings settings) {
         this.settings = settings;
+    }
+
+    /**
+     * take final actions on statement
+     */
+    public void finalizeWhereClause(ParsedStatement stmt) {
+        if ( settings.getAsBoolean(SETTINGS_OPTIMIZE_PK_QUERIES, true)) {
+            finalizeMultiGet(stmt);
+
+        }
+    }
+
+    /**
+     * move MULTIGET_PRIMRY_KEY_VALUES to ROUTING_VALUES if MultiGetRequest is not possible
+     * @param stmt the ParsedStatement to operate on
+     */
+    public void finalizeMultiGet(ParsedStatement stmt) {
+        // only leave MULTIGET_PRIMARY_KEY_VALUES as is when we can make a MultiGetRequest
+        if ((stmt.getPlannerResult(MULTIGET_PRIMARY_KEY_VALUES) != null && (stmt.nodeType() != NodeTypes.CURSOR_NODE || stmt.hasOrderBy() || stmt.hasGroupBy()))) {
+            stmt.setPlannerResult(ROUTING_VALUES, stmt.removePlannerResult(MULTIGET_PRIMARY_KEY_VALUES));
+        }
     }
 
     /**
@@ -70,9 +92,10 @@ public class QueryPlanner {
         // Third check for multiple operational nodes with the same primary key.
         // if so we can set the "multiple primary key values"
         // we do not return here, as the generators should finish
-        Set<String> orRoutingValues = extractRoutingValuesFromOrClauses(stmt, node);
-        if (orRoutingValues != null) {
-            routingValues.addAll(orRoutingValues);
+        // We put these values in a special plannerResult-slot as we can only decide later what to do with it
+        Set<String> orPrimaryKeyValues = extractFromOrClauses(stmt, node);
+        if (orPrimaryKeyValues != null && !orPrimaryKeyValues.isEmpty()) {
+            stmt.setPlannerResult(MULTIGET_PRIMARY_KEY_VALUES, orPrimaryKeyValues);
         }
         if (!routingValues.isEmpty()) {
             stmt.setPlannerResult(ROUTING_VALUES, routingValues);
@@ -96,15 +119,15 @@ public class QueryPlanner {
      * @return the set of primary key Values as Strings, if empty, we cannot optimize
      * @throws StandardException
      */
-    private Set<String> extractRoutingValuesFromOrClauses(ParsedStatement stmt, ValueNode node) throws StandardException {
+    private Set<String> extractFromOrClauses(ParsedStatement stmt, ValueNode node) throws StandardException {
         // Hide recursion details
         Set<String> results = new HashSet<>();
-        extractRoutingValuesFromOrClauses(stmt, node, results);
+        extractFromOrClauses(stmt, node, results);
 
         return results;
     }
 
-    private void extractRoutingValuesFromOrClauses(ParsedStatement stmt, ValueNode node, Set<String> results) throws StandardException {
+    private void extractFromOrClauses(ParsedStatement stmt, ValueNode node, Set<String> results) throws StandardException {
 
         if (node.getNodeType() == NodeTypes.OR_NODE) {
             ValueNode leftOperand = ((OrNode) node).getLeftOperand();
@@ -152,7 +175,7 @@ public class QueryPlanner {
      */
     private void extractFromOrNodeOperand(ParsedStatement stmt, ValueNode operand, Set<String> results) throws StandardException, NonOptimizableOrClauseException {
         if (operand.getNodeType() == NodeTypes.OR_NODE || operand.getNodeType() == NodeTypes.IN_LIST_OPERATOR_NODE) {
-            extractRoutingValuesFromOrClauses(stmt, operand, results);
+            extractFromOrClauses(stmt, operand, results);
         } else {
             Object leftValue = extractPrimaryKeyValue(stmt, operand);
             if (leftValue != null) {
