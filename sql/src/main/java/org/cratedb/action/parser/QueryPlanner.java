@@ -77,8 +77,6 @@ public class QueryPlanner {
             return false;
         }
 
-        assert stmt.tableContext() != null;
-
         // First check if we found only one operational node with a primary key.
         // If so we can set the primary key value and return true, so any generator can stop.
         Object primaryKeyValue = extractPrimaryKeyValue(stmt, node);
@@ -155,7 +153,7 @@ public class QueryPlanner {
             RowConstructorNode rightOperandList = ((InListOperatorNode) node).getRightOperandList();
             if (leftOperand.getNodeList().size() == 1 && leftOperand.getNodeList().get(0) instanceof ColumnReference) {
                 String columnName = leftOperand.getNodeList().get(0).getColumnName();
-                if (stmt.tableContext().isRouting(columnName)) {
+                if (stmt.tableContextSafe().isRouting(columnName)) {
                     for (ValueNode listValue : rightOperandList.getNodeList()) {
                         value = stmt.visitor().evaluateValueNode(columnName, listValue);
                         results.add(value.toString());
@@ -209,7 +207,7 @@ public class QueryPlanner {
     private Object extractPrimaryKeyValue(ParsedStatement stmt,
                                           ValueNode node) throws StandardException {
         if (node.getNodeType() == NodeTypes.BINARY_EQUALS_OPERATOR_NODE) {
-            List<String> primaryKeys = stmt.tableContext().primaryKeysIncludingDefault();
+            List<String> primaryKeys = stmt.tableContextSafe().primaryKeysIncludingDefault();
 
 
             Tuple<String, Object> nameAndValue= extractNameAndValueFromOperatorNode(stmt,
@@ -268,7 +266,7 @@ public class QueryPlanner {
 
         Object value = null;
         Tuple<String, Object> nameAndValue= extractNameAndValueFromOperatorNode(stmt, node);
-        if (nameAndValue != null && stmt.tableContext().isRouting(nameAndValue.v1())) {
+        if (nameAndValue != null && stmt.tableContextSafe().isRouting(nameAndValue.v1())) {
             value = nameAndValue.v2();
         }
 
