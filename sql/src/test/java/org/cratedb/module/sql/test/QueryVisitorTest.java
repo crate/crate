@@ -12,7 +12,9 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -27,6 +29,9 @@ import static org.mockito.Mockito.when;
 public class QueryVisitorTest {
 
     private ParsedStatement stmt;
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test(expected = SQLParseException.class)
     public void testUnsupportedStatement() throws StandardException, IOException {
@@ -748,6 +753,42 @@ public class QueryVisitorTest {
         // after the grouping is done
         execStatement("select count(*), kind from locations group by kind limit 4 offset 3");
         assertEquals("{\"query\":{\"match_all\":{}}}", getSource());
+    }
+
+    @Test
+    public void testSelectWithWhereLikePrefixQuery() throws Exception {
+        execStatement("select kind from locations where kind like 'P%'");
+        assertEquals(
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P*\"}},\"size\":1000}",
+            getSource()
+        );
+    }
+
+    @Test
+    public void testSelectWithWhereLikeWithoutWildcards() throws Exception {
+        execStatement("select kind from locations where kind like 'P'");
+        assertEquals(
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\"}},\"size\":1000}",
+            getSource()
+        );
+    }
+
+    @Test
+    public void testSelectWithWhereLikePrefixQueryUnderscore() throws Exception {
+        execStatement("select kind from locations where kind like 'P_'");
+        assertEquals(
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P?\"}},\"size\":1000}",
+            getSource()
+        );
+    }
+
+    @Test
+    public void testSelectWithWhereLikeReversed() throws Exception {
+        execStatement("select kind from locations where 'P_' like kind");
+        assertEquals(
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P?\"}},\"size\":1000}",
+            getSource()
+        );
     }
 
     @Test

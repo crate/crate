@@ -8,6 +8,11 @@ Unreleased
  - Optimize simple Select Queries with where clauses like <pk_col>=<constant_value> OR <pk_col>=<constant_value> 
    and without order-by- or group-by-clauses to use MultiGetRequests
 
+2013/10/21 0.16.0
+=================
+
+ - Added support for the SQL `LIKE` operand.
+
  - Implemented ``drop table``.
 
  - Implemented the `group by` sql clause.

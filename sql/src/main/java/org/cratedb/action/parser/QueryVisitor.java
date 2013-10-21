@@ -39,7 +39,6 @@ public class QueryVisitor extends XContentVisitor {
 
     private void setTable(String tableName){
         stmt.addIndex(tableName);
-        stmt.tableContext(stmt.context().tableContext(tableName));
     }
 
     public Visitable visit(UpdateNode node) throws StandardException {

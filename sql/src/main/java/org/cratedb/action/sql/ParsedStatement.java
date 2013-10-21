@@ -3,6 +3,7 @@ package org.cratedb.action.sql;
 import org.cratedb.action.parser.*;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.ExceptionHelper;
+import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.facet.InternalSQLFacet;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.NodeTypes;
@@ -119,15 +120,46 @@ public class ParsedStatement {
         return indices.add(index);
     }
 
+    public String tableName() {
+        return indices().get(0);
+    }
+
     public NodeExecutionContext context(){
         return context;
     }
 
-    public void tableContext(NodeExecutionContext.TableExecutionContext tableContext) {
-        this.tableContext = tableContext;
+    /**
+     * Access the tableContext for {@link #tableName()} lazily.
+     * The tableName has to be set with {@link #addIndex(String)} before this method can be used.
+     *
+     * Note that for tables that use dynamic mapping without any explicit columns this will always
+     * throw an exception.
+     *
+     * @return TableExecutionContext for the table {@link #tableName()}
+     * @throws SQLParseException in case the TableExecutionContext couldn't be loaded.
+     */
+    public NodeExecutionContext.TableExecutionContext tableContextSafe() throws SQLParseException {
+        if (tableContext == null) {
+            assert tableName() != null;
+            tableContext = context().tableContext(tableName());
+            if (tableContext == null) {
+                throw new SQLParseException("No table definition found for " + tableName());
+            }
+        }
+        return tableContext;
     }
 
+    /**
+     * Same as {@link #tableContextSafe()} but doesn't throw an Exception if the tableContext
+     * cannot be loaded.
+     *
+     * @return TableExecutionContext for the table {@link #tableName()}
+     */
     public NodeExecutionContext.TableExecutionContext tableContext() {
+        if (tableContext == null) {
+            assert tableName() != null;
+            tableContext = context().tableContext(tableName());
+        }
         return tableContext;
     }
 
