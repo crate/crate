@@ -1292,7 +1292,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("insert into characters (race, gender, name, details) values ('Human', 'male', 'Ford Perfect')");
         execute("insert into characters (race, gender, name, details) values ('Android', 'male', 'Marving')");
         execute("insert into characters (race, gender, name, details) values ('Vogon', 'male', 'Jeltz')");
-        execute("insert into characters (race, gender, name, detials) values ('Vogon', 'male', 'Kwaltz')");
+        execute("insert into characters (race, gender, name, details) values ('Vogon', 'male', 'Kwaltz')");
         refresh();
 
         execute("select count(*) from characters");
@@ -1303,14 +1303,39 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     public void testSelectWithWhereLike() throws Exception {
         groupBySetup();
 
-        execute("select name from characters where name like '*ltz'");
+        execute("select name from characters where name like '%ltz'");
         assertEquals(2L, response.rowCount());
 
         execute("select count(*) from characters where name like 'Jeltz'");
         assertEquals(1L, response.rows()[0][0]);
 
-        execute("select count(*) from characters where race like '%o*'");
+        execute("select count(*) from characters where race like '%o%'");
         assertEquals(3L, response.rows()[0][0]);
+
+        execute("insert into characters (race, gender, name, details) values ('Vo*', 'male', 'Kwaltzz')");
+        execute("insert into characters (race, gender, name, details) values ('Vo?', 'male', 'Kwaltzzz')");
+        execute("insert into characters (race, gender, name, details) values ('Vo!', 'male', 'Kwaltzzzz')");
+        execute("insert into characters (race, gender, name, details) values ('Vo%', 'male', 'Kwaltzzzz')");
+        refresh();
+
+        execute("select race from characters where race like 'Vo*'");
+        assertEquals(1L, response.rowCount());
+        assertEquals("Vo*", response.rows()[0][0]);
+
+        execute("select race from characters where race like 'Vo?'");
+        assertEquals(1L, response.rowCount());
+        assertEquals("Vo?", response.rows()[0][0]);
+
+        execute("select race from characters where race like 'Vo!'");
+        assertEquals(1L, response.rowCount());
+        assertEquals("Vo!", response.rows()[0][0]);
+
+        execute("select race from characters where race like 'Vo\\%'");
+        assertEquals(1L, response.rowCount());
+        assertEquals("Vo%", response.rows()[0][0]);
+
+        execute("select race from characters where race like 'Vo_'");
+        assertEquals(4L, response.rowCount());
 
         execute("select count(*) from characters where age like 32");
         assertEquals(1L, response.rows()[0][0]);
