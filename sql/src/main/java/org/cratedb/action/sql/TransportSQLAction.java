@@ -6,6 +6,7 @@ import org.cratedb.sql.ExceptionHelper;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -93,108 +94,75 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         this.transportDeleteIndexAction = transportDeleteIndexAction;
     }
 
-    private class SearchResponseListener implements ActionListener<SearchResponse> {
+    private abstract class ESResponseToSQLResponseListener<T extends ActionResponse> implements ActionListener<T> {
 
-        private final ActionListener<SQLResponse> delegate;
-        private final ParsedStatement stmt;
+        protected final ActionListener<SQLResponse> listener;
+        protected final ParsedStatement stmt;
 
+        public ESResponseToSQLResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+            this.listener = listener;
+            this.stmt = stmt;
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            listener.onFailure(ExceptionHelper.transformToCrateException(e));
+        }
+    }
+
+    private class SearchResponseListener extends ESResponseToSQLResponseListener<SearchResponse> {
         public SearchResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            delegate = listener;
-            this.stmt = stmt;
+            super(stmt, listener);
         }
 
         @Override
-        public void onResponse(SearchResponse searchResponse) {
-            delegate.onResponse(stmt.buildResponse(searchResponse));
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
+        public void onResponse(SearchResponse response) {
+            this.listener.onResponse(this.stmt.buildResponse(response));
         }
     }
 
-    private class IndexResponseListener implements ActionListener<IndexResponse> {
-
-        private final ActionListener<SQLResponse> delegate;
-        private final ParsedStatement stmt;
-
+    private class IndexResponseListener extends ESResponseToSQLResponseListener<IndexResponse> {
         public IndexResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            delegate = listener;
-            this.stmt = stmt;
+            super(stmt, listener);
         }
 
         @Override
-        public void onResponse(IndexResponse indexResponse) {
-            delegate.onResponse(stmt.buildResponse(indexResponse));
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
+        public void onResponse(IndexResponse response) {
+            this.listener.onResponse(this.stmt.buildResponse(response));
         }
     }
 
-    private class DeleteByQueryResponseListener implements ActionListener<DeleteByQueryResponse> {
-
-        private final ActionListener<SQLResponse> delegate;
-        private final ParsedStatement stmt;
-
+    private class DeleteByQueryResponseListener extends ESResponseToSQLResponseListener<DeleteByQueryResponse> {
         public DeleteByQueryResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            this.delegate = listener;
-            this.stmt = stmt;
+            super(stmt, listener);
         }
 
         @Override
-        public void onResponse(DeleteByQueryResponse deleteByQueryResponses) {
-            delegate.onResponse(stmt.buildResponse(deleteByQueryResponses));
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
+        public void onResponse(DeleteByQueryResponse response) {
+            this.listener.onResponse(this.stmt.buildResponse(response));
         }
     }
 
-    private class DeleteResponseListener implements ActionListener<DeleteResponse> {
-
-        private final ActionListener<SQLResponse> delegate;
-        private final ParsedStatement stmt;
+    private class DeleteResponseListener extends ESResponseToSQLResponseListener<DeleteResponse> {
 
         public DeleteResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            this.delegate = listener;
-            this.stmt = stmt;
+            super(stmt, listener);
         }
 
         @Override
-        public void onResponse(DeleteResponse deleteResponse) {
-            delegate.onResponse(stmt.buildResponse(deleteResponse));
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
+        public void onResponse(DeleteResponse response) {
+            this.listener.onResponse(stmt.buildResponse(response));
         }
     }
 
-    private class BulkResponseListener implements ActionListener<BulkResponse> {
-
-        private final ActionListener<SQLResponse> delegate;
-        private final ParsedStatement stmt;
-
+    private class BulkResponseListener extends ESResponseToSQLResponseListener<BulkResponse> {
         public BulkResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            delegate = listener;
-            this.stmt = stmt;
+            super(stmt, listener);
         }
 
         @Override
-        public void onResponse(BulkResponse bulkResponse) {
-            delegate.onResponse(stmt.buildResponse(bulkResponse));
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
+        public void onResponse(BulkResponse response) {
+            listener.onResponse(stmt.buildResponse(response));
         }
     }
 
@@ -309,66 +277,39 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
     }
 
-    private class CountResponseListener implements ActionListener<CountResponse> {
-
-        private final ActionListener<SQLResponse> delegate;
-        private final ParsedStatement stmt;
-
-
+    private class CountResponseListener extends ESResponseToSQLResponseListener<CountResponse> {
         public CountResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            this.stmt = stmt;
-            this.delegate = listener;
+            super(stmt, listener);
         }
 
         @Override
         public void onResponse(CountResponse countResponse) {
-            delegate.onResponse(stmt.buildResponse(countResponse));
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
+            listener.onResponse(stmt.buildResponse(countResponse));
         }
     }
 
-    private class GetResponseListener implements ActionListener<GetResponse> {
 
-        private final ActionListener<SQLResponse> delegate;
-        private final ParsedStatement stmt;
+    private class GetResponseListener extends ESResponseToSQLResponseListener<GetResponse> {
 
         public GetResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            delegate = listener;
-            this.stmt = stmt;
+            super(stmt, listener);
         }
 
         @Override
-        public void onResponse(GetResponse getResponse) {
-            delegate.onResponse(stmt.buildResponse(getResponse));
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
+        public void onResponse(GetResponse response) {
+            listener.onResponse(stmt.buildResponse(response));
         }
     }
 
-    private class MultiGetResponseListener implements ActionListener<MultiGetResponse> {
-        private final ActionListener<SQLResponse> delegate;
-        private final ParsedStatement stmt;
+    private class MultiGetResponseListener extends ESResponseToSQLResponseListener<MultiGetResponse> {
 
         public MultiGetResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            this.delegate = listener;
-            this.stmt = stmt;
+            super(stmt, listener);
         }
 
         @Override
-        public void onResponse(MultiGetResponse multiGetItemResponses) {
-            delegate.onResponse(stmt.buildResponse(multiGetItemResponses));
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
+        public void onResponse(MultiGetResponse response) {
+            listener.onResponse(stmt.buildResponse(response));
         }
     }
 
@@ -418,45 +359,27 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
     }
 
-    private class CreateIndexResponseListener implements ActionListener<CreateIndexResponse> {
+    private class CreateIndexResponseListener extends ESResponseToSQLResponseListener<CreateIndexResponse> {
 
-        private final ActionListener<SQLResponse> delegate;
-        private final ParsedStatement stmt;
-
-        private CreateIndexResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> delegate) {
-            this.delegate = delegate;
-            this.stmt = stmt;
+        public CreateIndexResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+            super(stmt, listener);
         }
 
         @Override
         public void onResponse(CreateIndexResponse createIndexResponse) {
-            delegate.onResponse(stmt.buildResponse(createIndexResponse));
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
+            listener.onResponse(stmt.buildResponse(createIndexResponse));
         }
     }
 
-    private class DeleteIndexResponseListener implements ActionListener<DeleteIndexResponse> {
+    private class DeleteIndexResponseListener extends ESResponseToSQLResponseListener<DeleteIndexResponse> {
 
-        private final ActionListener<SQLResponse> delegate;
-        private final ParsedStatement stmt;
-
-        private DeleteIndexResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> delegate) {
-            this.delegate = delegate;
-            this.stmt = stmt;
+        public DeleteIndexResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+            super(stmt, listener);
         }
 
         @Override
         public void onResponse(DeleteIndexResponse deleteIndexResponse) {
-            delegate.onResponse(stmt.buildResponse(deleteIndexResponse));
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
+            listener.onResponse(stmt.buildResponse(deleteIndexResponse));
         }
     }
 
