@@ -8,6 +8,7 @@ import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
+import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.transport.RemoteTransportException;
 import org.junit.Test;
 
@@ -77,5 +78,10 @@ public class ExceptionHelperTest {
         ExceptionHelper.exceptionOnSearchShardFailures(shardSearchFailures);
     }
 
+    @Test (expected = TableUnknownException.class)
+    public void testReRaiseCrateExceptionIndexMissing() throws Throwable {
+        Throwable throwable = new IndexMissingException(new Index("test"));
+        throw ExceptionHelper.transformToCrateException(throwable);
+    }
 
 }

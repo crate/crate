@@ -166,4 +166,11 @@ public class TableVisitorTest {
         expectedException.expectMessage("Unsupported type");
         execStatement("create table phrases (pk_col real, phrase varchar(10))");
     }
+
+    @Test
+    public void testDropTable() throws Exception {
+        execStatement("drop table phrases");
+        assertNotNull(stmt.buildDeleteIndexRequest());
+    }
+
 }

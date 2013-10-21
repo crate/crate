@@ -9,6 +9,9 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
+import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.bulk.TransportBulkAction;
@@ -54,6 +57,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final TransportUpdateAction transportUpdateAction;
     private final TransportDistributedSQLAction transportDistributedSQLAction;
     private final TransportCreateIndexAction transportCreateIndexAction;
+    private final TransportDeleteIndexAction transportDeleteIndexAction;
     private final NodeExecutionContext executionContext;
 
     @Inject
@@ -69,7 +73,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             TransportUpdateAction transportUpdateAction,
             TransportDistributedSQLAction transportDistributedSQLAction,
             TransportCountAction transportCountAction,
-            TransportCreateIndexAction transportCreateIndexAction) {
+            TransportCreateIndexAction transportCreateIndexAction,
+            TransportDeleteIndexAction transportDeleteIndexAction) {
         super(settings, threadPool);
         this.executionContext = executionContext;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
@@ -83,6 +88,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         this.transportUpdateAction = transportUpdateAction;
         this.transportDistributedSQLAction = transportDistributedSQLAction;
         this.transportCreateIndexAction = transportCreateIndexAction;
+        this.transportDeleteIndexAction = transportDeleteIndexAction;
     }
 
     private class SearchResponseListener implements ActionListener<SearchResponse> {
@@ -228,6 +234,10 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                     CreateIndexRequest createIndexRequest = stmt.buildCreateIndexRequest();
                     transportCreateIndexAction.execute(createIndexRequest, new CreateIndexResponseListener(stmt, listener));
                     break;
+                case ParsedStatement.DELETE_INDEX_ACTION:
+                    DeleteIndexRequest deleteIndexRequest = stmt.buildDeleteIndexRequest();
+                    transportDeleteIndexAction.execute(deleteIndexRequest, new DeleteIndexResponseListener(stmt, listener));
+                    break;
                 default:
                     if (stmt.hasGroupBy()) {
                         transportDistributedSQLAction.execute(
@@ -249,7 +259,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         } catch (StandardException e) {
             listener.onFailure(new SQLParseException(e.getMessage(), e));
         } catch (Exception e) {
-            listener.onFailure(e);
+            listener.onFailure(ExceptionHelper.transformToCrateException(e));
         }
     }
 
@@ -395,6 +405,27 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         @Override
         public void onResponse(CreateIndexResponse createIndexResponse) {
             delegate.onResponse(stmt.buildResponse(createIndexResponse));
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            delegate.onFailure(ExceptionHelper.transformToCrateException(e));
+        }
+    }
+
+    private class DeleteIndexResponseListener implements ActionListener<DeleteIndexResponse> {
+
+        private final ActionListener<SQLResponse> delegate;
+        private final ParsedStatement stmt;
+
+        private DeleteIndexResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> delegate) {
+            this.delegate = delegate;
+            this.stmt = stmt;
+        }
+
+        @Override
+        public void onResponse(DeleteIndexResponse deleteIndexResponse) {
+            delegate.onResponse(stmt.buildResponse(deleteIndexResponse));
         }
 
         @Override

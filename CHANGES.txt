@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Implemented ``drop table``.
+
  - Implemented the `group by` sql clause.
 
  - Implemented ``CREATE TABLE`` with core data types, replicas, routing and shard settings.
