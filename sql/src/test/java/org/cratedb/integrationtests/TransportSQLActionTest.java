@@ -31,6 +31,7 @@ import java.util.*;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 
@@ -1442,6 +1443,19 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     @Test (expected = TableUnknownException.class)
     public void testDropUnknownTable() throws Exception {
         execute("drop table test");
+    }
+
+    @Test
+    public void selectMultiGetRequestWithColumnAlias() throws IOException {
+        createTestIndexWithPkAndRoutingMapping();
+        execute("insert into test (some_id, foo) values (1, 'foo')");
+        execute("insert into test (some_id, foo) values (2, 'bar')");
+        execute("insert into test (some_id, foo) values (3, 'baz')");
+        refresh();
+        execute("SELECT some_id as id, foo from test where some_id IN (?,?)", new Object[]{'1', '2'});
+        assertThat(response.rowCount(), is(2L));
+        assertThat(response.cols(), arrayContainingInAnyOrder("id", "foo"));
+        assertThat(new String[]{(String)response.rows()[0][0], (String)response.rows()[1][0]}, arrayContainingInAnyOrder("1", "2"));
     }
 
 }
