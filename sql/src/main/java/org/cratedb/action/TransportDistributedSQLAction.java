@@ -31,6 +31,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static com.google.common.collect.Sets.newHashSet;
@@ -187,6 +188,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         private final int expectedShardResponses;
         private final DiscoveryNodes nodes;
         private final AtomicLong reduceResponseCounter;
+        private final AtomicBoolean done;
         private final MinMaxPriorityQueue<GroupByRow> groupByResult;
 
         AsyncBroadcastAction(DistributedSQLRequest request, ActionListener<SQLResponse> listener) {
@@ -218,6 +220,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             shardsIts = shards(clusterState, indices, concreteIndices);
             expectedShardResponses = shardsIts.size();
             reducers = extractNodes(shardsIts);
+            done = new AtomicBoolean(false);
 
             reduceResponseCounter = new AtomicLong(reducers.length);
         }
@@ -394,12 +397,17 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
         private void onMapperOperation(ShardRouting shard, int shardIndex,
                                        SQLShardResponse sqlShardResponse) {
-            // TODO: ack shard response
+            // response with result is sent from the reducers. Nothing to do here.
         }
 
         private void onMapperOperation(ShardRouting shard, int shardIndex, Throwable e) {
+            // if one shard fails the reducer will run in a timeout because it waits for all shard results
+            // here we can return early so the client doesn't have to wait.
+            if (!done.get()) {
+                done.set(true);
+                listener.onFailure(e);
+            }
             logger.error("Error from shard {}", e, shard.id());
-            // TODO: set shard failure
         }
 
         private boolean shardOnLocalNode(ShardRouting shard) {
@@ -433,7 +441,11 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
             @Override
             public void handleException(TransportException exp) {
-                exp.printStackTrace();
+                if (!done.get()) {
+                    done.set(true);
+                    listener.onFailure(exp.getRootCause());
+                }
+                logger.error("Failure while reducing group by result", exp.getRootCause());
             }
 
             @Override
