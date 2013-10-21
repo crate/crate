@@ -234,11 +234,6 @@ public class XContentGenerator {
                     "From type " + table.getClass().getName() + " not supported");
         }
         String name = table.getTableName().getTableName();
-        NodeExecutionContext.TableExecutionContext tableContext = stmt.context().tableContext(name);
-        if (tableContext == null) {
-            throw new SQLParseException("No table definition found for " + name);
-        }
-        stmt.tableContext(tableContext);
         stmt.addIndex(name);
     }
 
@@ -258,7 +253,7 @@ public class XContentGenerator {
                     throw new SQLParseException(
                         "select * with group by not allowed. It is required to specify the columns explicitly");
                 }
-                for (String name : stmt.tableContext().allCols()) {
+                for (String name : stmt.tableContextSafe().allCols()) {
                     stmt.addOutputField(name, name);
                     fields.add(name);
                 }
