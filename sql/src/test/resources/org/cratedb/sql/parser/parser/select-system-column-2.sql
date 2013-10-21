@@ -1,0 +1,1 @@
+select "_version" from t1

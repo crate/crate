@@ -1776,6 +1776,30 @@ class SQLGrammar
          }
     }
 
+    /**
+     * SYSTEM COLUMN NAMES
+     */
+    private static final List<String> SYSTEM_COLUMN_NAMES = Arrays.asList(new String[]{"_version", "_ttl"});
+
+    boolean systemColumnFollows()
+    {
+        Token tok = null;
+        if (getToken(1).kind == DOUBLEQUOTED_IDENTIFIER) {
+            tok = getToken(1);
+        } else if(getToken(2).kind == PERIOD && getToken(3).kind == DOUBLEQUOTED_IDENTIFIER) {
+            tok = getToken(3);
+        } else if(getToken(2).kind == PERIOD && getToken(4).kind == PERIOD && getToken(5).kind == DOUBLEQUOTED_IDENTIFIER) {
+            tok = getToken(5);
+        }
+
+        if (tok != null) {
+            return SYSTEM_COLUMN_NAMES.contains(trimAndCompressQuotes(tok.image, DOUBLEQUOTES, false));
+        }
+        return false;
+    }
+
+
+
     void setParserContext(SQLParserContext parserContext) {
         this.parserContext = parserContext;
         this.nodeFactory = parserContext.getNodeFactory();
@@ -7800,13 +7824,16 @@ columnReference() throws StandardException :
     String schemaName = null;
     TableName tabName = null;
     NestedColumnReference nestedColumn = null;
+    boolean systemColumn = false;
 }
 {
+    systemColumn = systemColumnIdentifier()
     firstName = identifierDeferCheckLength()
     [
         // This LOOKAHEAD is needed to ensure that, if the identifier
         // after the PERIOD is a method name, we don't treat it as part of
         // the column reference.
+
         LOOKAHEAD( { getToken(1).kind == PERIOD && getToken(3).kind != LEFT_PAREN } )
         <PERIOD> secondName = identifierDeferCheckLength()
         [
@@ -7817,6 +7844,9 @@ columnReference() throws StandardException :
             <PERIOD> thirdName = identifierDeferCheckLength()
         ]
     ]
+
+
+
     {
         // Figure out what each name stands for
         if (thirdName == null) {
@@ -7854,7 +7884,7 @@ columnReference() throws StandardException :
     }
 
     (
-        LOOKAHEAD( { getToken(1).kind == LEFT_BRACKET } )
+        LOOKAHEAD( <LEFT_BRACKET> )
         {
             nestedColumn =  (NestedColumnReference)nodeFactory.getNode(NodeTypes.NESTED_COLUMN_REFERENCE,
                                                     columnName,
@@ -7866,16 +7896,23 @@ columnReference() throws StandardException :
             return nestedColumn;
 
         }
-
     |
-
         {
-            return (ColumnReference)nodeFactory.getNode(NodeTypes.COLUMN_REFERENCE,
-                                                columnName,
-                                                tabName,
-                                                new Integer(lastIdentifierToken.beginOffset),
-                                                new Integer(lastIdentifierToken.endOffset),
-                                                parserContext);
+            if (systemColumn == true) {
+                return (SystemColumnReference)nodeFactory.getNode(NodeTypes.SYSTEM_COLUMN_REFERENCE,
+                                                        columnName,
+                                                        tabName,
+                                                        new Integer(lastIdentifierToken.beginOffset),
+                                                        new Integer(lastIdentifierToken.endOffset),
+                                                        parserContext);
+            } else {
+                return (ColumnReference)nodeFactory.getNode(NodeTypes.COLUMN_REFERENCE,
+                                                        columnName,
+                                                        tabName,
+                                                        new Integer(lastIdentifierToken.beginOffset),
+                                                        new Integer(lastIdentifierToken.endOffset),
+                                                        parserContext);
+            }
         }
     )
 }
@@ -7928,6 +7965,19 @@ nestedColumnPathElement(NestedColumnReference column) throws StandardException :
     }
 }
 
+boolean
+systemColumnIdentifier() :
+{}
+{
+    LOOKAHEAD({systemColumnFollows()} )
+    {
+        return true;
+    }
+|
+    {
+    return false;
+    }
+}
 
 OrderByList
 orderByClause() throws StandardException :

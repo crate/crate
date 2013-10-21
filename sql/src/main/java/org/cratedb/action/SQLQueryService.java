@@ -51,7 +51,8 @@ public class SQLQueryService {
         this.aggFunctionMap = aggFunctionMap;
     }
 
-    public Map<String, Map<Object, GroupByRow>> query(String[] reducers, ParsedStatement stmt, int shardId)
+    public Map<String, Map<Integer, GroupByRow>> query(String[] reducers,
+                                                       ParsedStatement stmt, int shardId)
         throws Exception
     {
         SearchContext context = buildSearchContext(stmt, shardId);

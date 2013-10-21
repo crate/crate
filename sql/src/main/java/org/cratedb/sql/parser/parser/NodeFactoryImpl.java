@@ -665,6 +665,8 @@ public final class NodeFactoryImpl extends NodeFactory
         case NodeTypes.NESTED_COLUMN_REFERENCE:
             return NodeNames.NESTED_COLUMN_REFERENCE_NAME;
 
+        case NodeTypes.SYSTEM_COLUMN_REFERENCE:
+            return NodeNames.SYSTEM_COLUMN_REFERENCE_NAME;
 
         default:
             throw new StandardException("Not implemented");

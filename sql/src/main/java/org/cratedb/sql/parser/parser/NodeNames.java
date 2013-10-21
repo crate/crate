@@ -347,6 +347,8 @@ public interface NodeNames
 
     static final String SUBQUERY_NODE_NAME = "org.cratedb.sql.parser.parser.SubqueryNode";
 
+    static final String SYSTEM_COLUMN_REFERENCE_NAME = "org.cratedb.sql.parser.parser.SystemColumnReference";
+
     static final String TABLE_ELEMENT_LIST_NAME = "org.cratedb.sql.parser.parser.TableElementList";
 
     static final String TABLE_ELEMENT_NODE_NAME = "org.cratedb.sql.parser.parser.TableElementNode";

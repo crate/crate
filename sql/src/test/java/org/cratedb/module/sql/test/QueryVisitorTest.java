@@ -1,6 +1,7 @@
 package org.cratedb.module.sql.test;
 
 import com.google.common.collect.ImmutableSet;
+import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.parser.XContentGenerator;
 import org.cratedb.action.sql.NodeExecutionContext;
@@ -19,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -746,5 +748,13 @@ public class QueryVisitorTest {
         // after the grouping is done
         execStatement("select count(*), kind from locations group by kind limit 4 offset 3");
         assertEquals("{\"query\":{\"match_all\":{}}}", getSource());
+    }
+
+    @Test
+    public void testGroupByWithNestedColumn() throws Exception {
+        ParsedStatement stmt = execStatement("select count(*), kind['x'] from locations group by kind['x']");
+
+        assertTrue(stmt.groupByColumnNames.contains("kind.x"));
+        assertTrue(stmt.resultColumnList.contains(new ColumnReferenceDescription("kind.x")));
     }
 }

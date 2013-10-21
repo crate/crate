@@ -8,7 +8,7 @@ import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.DuplicateKeyException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.TableAlreadyExistsException;
-import org.cratedb.sql.VersionConflictException;
+import org.cratedb.sql.TableUnknownException;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -27,7 +27,6 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
@@ -357,10 +356,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     @Test
     public void testSelectObject() throws Exception {
         createIndex("test");
-        client().prepareIndex("test", "default", "id1").setRefresh(true)
+        client().prepareIndex("test", "default", "id1")
                 .setSource("{\"a\":{\"nested\":2}}")
                 .execute().actionGet();
-        ensureGreen();
+        refresh();
 
         execute("select a from test");
         assertArrayEquals(new String[]{"a"}, response.cols());
@@ -743,9 +742,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-        execute("select coolness from test");
+        execute("select coolness['x'], coolness['y'] from test");
         assertEquals(1, response.rows().length);
-        assertEquals("{y=2, x=3}", response.rows()[0][0].toString());
+        assertEquals("3", response.rows()[0][0]);
+        assertEquals(2, response.rows()[0][1]);
     }
 
     @Test
@@ -780,11 +780,15 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-        execute("select coolness, firstcol, othercol from test");
+        execute("select coolness['x']['b'], coolness['x']['a'], coolness['x']['y']['z'], " +
+                "firstcol, othercol from test");
         assertEquals(1, response.rows().length);
-        assertEquals("{x={b=b, a=a, y={z=3}}}", response.rows()[0][0].toString());
-        assertEquals(1, response.rows()[0][1]);
-        assertEquals(2, response.rows()[0][2]);
+        Object[] firstRow = response.rows()[0];
+        assertEquals("b", firstRow[0]);
+        assertEquals("a", firstRow[1]);
+        assertEquals(3, firstRow[2]);
+        assertEquals(1, firstRow[3]);
+        assertEquals(2, firstRow[4]);
     }
 
     @Test
@@ -813,9 +817,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-        execute("select a from test");
+        execute("select a['x']['y'], a['x']['z'] from test");
         assertEquals(1, response.rows().length);
-        assertEquals("{x={z=null, y=2}}", response.rows()[0][0].toString());
+        assertEquals(2, response.rows()[0][0]);
+        assertNull(response.rows()[0][1]);
     }
 
     @Test
@@ -844,9 +849,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-        execute("select a from test");
+        execute("select a['x']['z'], a['x']['y'] from test");
         assertEquals(1, response.rows().length);
-        assertEquals("{x={z=null, y=2}}", response.rows()[0][0].toString());
+        assertNull(response.rows()[0][0]);
+        assertEquals(2, response.rows()[0][1]);
     }
 
     @Test(expected = SQLParseException.class)
@@ -867,53 +873,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("select coolness from test");
         assertEquals(1, response.rows().length);
         assertEquals(3.3, response.rows()[0][0]);
-    }
-
-    @Test
-    public void testConcurrentUpdateWithRetryOnConflict() throws Exception {
-        prepareCreate("test")
-            .addMapping("default",
-                "key", "type=integer,index=not_analyzed",
-                "col1", "type=integer,index=not_analyzed")
-            .execute().actionGet();
-
-        execute("insert into test (key, col1) values (1, 0), (2, 0)");
-        refresh();
-
-        int numberOfThreads = 5;
-        final java.util.concurrent.CountDownLatch latch = new java.util.concurrent.CountDownLatch(numberOfThreads);
-        final int numberOfUpdatesPerThread = 100;
-        final AtomicReference<Exception> lastException = new AtomicReference<Exception>();
-
-        for (int i = 0; i < numberOfThreads; i++) {
-            Runnable r = new Runnable() {
-
-                @Override
-                public void run() {
-                    try {
-                        for (int i = 0; i < numberOfUpdatesPerThread; i++) {
-                            SQLRequest request = new SQLRequest("update test set col1 = ?", new Object[] { i });
-                            client().execute(SQLAction.INSTANCE, request).actionGet();
-                        }
-                    } catch (Exception e) {
-                        lastException.set(e);
-                    } finally {
-                        latch.countDown();
-                    }
-                }
-
-            };
-            new Thread(r).start();
-        }
-        latch.await();
-
-        assertNotNull(lastException.get());
-        assertTrue(lastException.get() instanceof VersionConflictException);
-
-        SQLResponse response = client().execute(
-            SQLAction.INSTANCE, new SQLRequest("select \"_version\", field from test")).actionGet();
-
-        assertTrue(Integer.parseInt(response.rows()[0][0].toString()) < 500);
     }
 
     @Test
@@ -1310,6 +1269,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                     .field("type", "string")
                     .field("index", "not_analyzed")
                 .endObject()
+                .startObject("details")
+                    .field("type", "object")
+                    .field("index", "not_analyzed")
+                .endObject()
             .endObject()
             .endObject()
             .endObject();
@@ -1317,12 +1280,20 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         prepareCreate("characters").addMapping("default", mapping).execute().actionGet();
         ensureGreen();
-        execute("insert into characters (race, gender, name) values ('Human', 'male', 'Arthur Dent')");
-        execute("insert into characters (race, gender, name) values ('Human', 'female', 'Trillian')");
-        execute("insert into characters (race, gender, name) values ('Human', 'male', 'Ford Perfect')");
-        execute("insert into characters (race, gender, name) values ('Android', 'male', 'Marving')");
-        execute("insert into characters (race, gender, name) values ('Vogon', 'male', 'Jeltz')");
-        execute("insert into characters (race, gender, name) values ('Vogon', 'male', 'Kwaltz')");
+
+        Map<String, String> details = newHashMap();
+        details.put("job", "Sandwitch Maker");
+        execute("insert into characters (race, gender, name, details) values (?, ?, ?, ?)",
+            new Object[] {"Human", "male", "Arthur Dent", details});
+
+        details = newHashMap();
+        details.put("job", "Mathematician");
+        execute("insert into characters (race, gender, name, details) values (?, ?, ?, ?)",
+            new Object[] {"Human", "female", "Trillian", details});
+        execute("insert into characters (race, gender, name, details) values ('Human', 'male', 'Ford Perfect')");
+        execute("insert into characters (race, gender, name, details) values ('Android', 'male', 'Marving')");
+        execute("insert into characters (race, gender, name, details) values ('Vogon', 'male', 'Jeltz')");
+        execute("insert into characters (race, gender, name, detials) values ('Vogon', 'male', 'Kwaltz')");
         refresh();
 
         execute("select count(*) from characters");
@@ -1442,4 +1413,35 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(expectedMapping, getMapping("test"));
         assertEquals(expectedSettings, getSettings("test"));
     }
+
+    @Test
+    public void testGroupByNestedObject() throws Exception {
+        groupBySetup();
+
+        execute("select count(*), details['job'] from characters group by details['job'] order by count(*), details['job']");
+        assertEquals(3, response.rows().length);
+        assertEquals(1L, response.rows()[0][0]);
+        assertEquals("Mathematician", response.rows()[0][1]);
+        assertEquals(1L, response.rows()[1][0]);
+        assertEquals("Sandwitch Maker", response.rows()[1][1]);
+        assertEquals(4L, response.rows()[2][0]);
+        assertNull(null, response.rows()[2][1]);
+    }
+
+    @Test
+    public void testDropTable() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string)");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
+                .actionGet().isExists());
+
+        execute("drop table test");
+        assertFalse(client().admin().indices().exists(new IndicesExistsRequest("test"))
+                .actionGet().isExists());
+    }
+
+    @Test (expected = TableUnknownException.class)
+    public void testDropUnknownTable() throws Exception {
+        execute("drop table test");
+    }
+
 }

@@ -292,8 +292,13 @@ public interface NodeTypes
     // Nested Columns (e.g. for column type ``array`` or ``object``
     public static final int NESTED_COLUMN_REFERENCE = 240;
 
+    // System Columns (e.g. for _version or _ttl)
+    public static final int SYSTEM_COLUMN_REFERENCE = 241;
+
     // Final value in set, keep up to date!
-    public static final int FINAL_VALUE = NESTED_COLUMN_REFERENCE;
+    public static final int FINAL_VALUE = SYSTEM_COLUMN_REFERENCE;
+
+
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

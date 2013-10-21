@@ -139,7 +139,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         logger.trace("shard operation on: {} shard: {}", clusterService.localNode().getId(), request.shardId);
 
         try {
-            Map<String, Map<Object, GroupByRow>> distributedCollectResult =
+            Map<String, Map<Integer, GroupByRow>> distributedCollectResult =
                 sqlQueryService.query(request.reducers, stmt, request.shardId);
 
             for (String reducer : request.reducers) {

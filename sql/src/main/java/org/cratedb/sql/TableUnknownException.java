@@ -2,23 +2,23 @@ package org.cratedb.sql;
 
 import org.elasticsearch.rest.RestStatus;
 
-public class TableAlreadyExistsException extends CrateException {
+public class TableUnknownException extends CrateException {
 
-    String tableName;
+    private String tableName;
 
-    public TableAlreadyExistsException(String tableName, Throwable e) {
-        super("A table with the same name exists already", e);
+    public TableUnknownException(String tableName, Throwable e) {
+        super("Unknown table", e);
         this.tableName = tableName;
     }
 
     @Override
     public int errorCode() {
-        return 4093;
+        return 4041;
     }
 
     @Override
     public RestStatus status() {
-        return RestStatus.CONFLICT;
+        return RestStatus.NOT_FOUND;
     }
 
     @Override

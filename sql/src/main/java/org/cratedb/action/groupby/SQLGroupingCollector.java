@@ -42,15 +42,15 @@ public class SQLGroupingCollector extends Collector {
      *
      * partitionedResult = {
      *     "node1": {
-     *         "(object) Human": (GroupByRow)[AvgAggState, "Human", CountAggState],
-     *         "(object) Vogon": (GroupByRow)[AvgAggState, "Vogon", CountAggState]
+     *         "hash Human": (GroupByRow)[AvgAggState, "Human", CountAggState],
+     *         "hash Vogon": (GroupByRow)[AvgAggState, "Vogon", CountAggState]
      *     },
      *     "node2": {
-     *         "(object) Android": (GroupByRow)[AvgAggState, "Android", CountAggState]
+     *         "hash Android": (GroupByRow)[AvgAggState, "Android", CountAggState]
      *     }
      * }
      */
-    public Map<String, Map<Object, GroupByRow>> partitionedResult = newHashMap();
+    public Map<String, Map<Integer, GroupByRow>> partitionedResult = newHashMap();
 
     public SQLGroupingCollector(ParsedStatement parsedStatement,
                                 GroupByFieldLookup groupByFieldLookup,
@@ -65,7 +65,7 @@ public class SQLGroupingCollector extends Collector {
         keyGenerator = new GroupingKeyGenerator(parsedStatement.groupByColumnNames.size());
 
         for (String reducer : reducers) {
-            partitionedResult.put(reducer, new HashMap<Object, GroupByRow>());
+            partitionedResult.put(reducer, new HashMap<Integer, GroupByRow>());
         }
     }
 
@@ -83,9 +83,9 @@ public class SQLGroupingCollector extends Collector {
 
         }
 
-        String key = keyGenerator.getKey();
+        int key = keyGenerator.getKey();
         String reducer = partitionByKey(reducers, key);
-        Map<Object, GroupByRow> resultMap = partitionedResult.get(reducer);
+        Map<Integer, GroupByRow> resultMap = partitionedResult.get(reducer);
 
         GroupByRow row = resultMap.get(key);
         if (row == null) {
@@ -119,8 +119,8 @@ public class SQLGroupingCollector extends Collector {
         resultMap.put(key, row);
     }
 
-    private String partitionByKey(String[] reducers, String key) {
-        return reducers[Math.abs(key.hashCode()) % reducers.length];
+    private String partitionByKey(String[] reducers, int key) {
+        return reducers[key % reducers.length];
     }
 
     @Override
@@ -135,7 +135,6 @@ public class SQLGroupingCollector extends Collector {
 
     private class GroupingKeyGenerator {
 
-        private final String KEY_SEPARATOR = "#";
         Map<String, Object> keyMap;
 
         public GroupingKeyGenerator(Integer size) {
@@ -154,8 +153,13 @@ public class SQLGroupingCollector extends Collector {
             keyMap.clear();
         }
 
-        public String getKey() {
-            return Joiner.on(KEY_SEPARATOR).join(keyMap.values());
+        public int getKey() {
+            int result = 1;
+            for (Object o : keyMap.values()) {
+                result = result * 31 + (o != null ? o.hashCode() : 0);
+            }
+
+            return result;
         }
     }
 }

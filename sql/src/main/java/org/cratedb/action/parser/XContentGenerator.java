@@ -147,7 +147,12 @@ public class XContentGenerator {
             stmt.groupByColumnNames = new ArrayList<>(node.getGroupByList().size());
 
             for (GroupByColumn groupByColumn : node.getGroupByList()) {
-                stmt.groupByColumnNames.add(groupByColumn.getColumnName());
+                if (groupByColumn.getColumnExpression().getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE) {
+                    stmt.groupByColumnNames.add(
+                        ((NestedColumnReference) groupByColumn.getColumnExpression()).xcontentPathString());
+                } else {
+                    stmt.groupByColumnNames.add(groupByColumn.getColumnName());
+                }
             }
         }
 
@@ -168,7 +173,7 @@ public class XContentGenerator {
         }
     }
 
-    private void generate(OrderByList node) throws IOException {
+    private void generate(OrderByList node) throws IOException, StandardException {
         if (stmt.hasGroupBy()) {
             stmt.orderByIndices = newArrayList();
             int idx;
@@ -179,9 +184,15 @@ public class XContentGenerator {
 
                     idx = stmt.resultColumnList.indexOf(aggExpr);
                 } else {
-                    ColumnReferenceDescription colrefDesc = new ColumnReferenceDescription(
-                        column.getExpression().getColumnName()
-                    );
+                    ColumnReferenceDescription colrefDesc = null;
+                    ValueNode columnExpression = column.getExpression();
+                    if (columnExpression.getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE) {
+                        colrefDesc = new ColumnReferenceDescription(
+                            ((NestedColumnReference) columnExpression).xcontentPathString());
+                    } else {
+                         colrefDesc = new ColumnReferenceDescription(columnExpression.getColumnName());
+                    }
+
                     idx = stmt.resultColumnList.indexOf(colrefDesc);
                 }
 
@@ -272,7 +283,7 @@ public class XContentGenerator {
                 if (columnName.equals("_version")) {
                     requireVersion = true;
                 }
-            } else if (column.getExpression() instanceof NestedColumnReference) {
+            } else if (column.getExpression().getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE) {
                 // resolve XContent input and SQL output path from nested column path nodes
                 NestedColumnReference nestedColumnReference = (NestedColumnReference) column
                         .getExpression();
@@ -288,6 +299,10 @@ public class XContentGenerator {
                     // if no alias ("AS") is defined, use the SQL syntax for the output column
                     // name
                     columnAlias = nestedColumnReference.sqlPathString();
+                }
+
+                if (stmt.hasGroupBy()) {
+                    stmt.resultColumnList.add(new ColumnReferenceDescription(columnName));
                 }
             } else {
                 // this should be a normal field which will also be extracted from the source for
@@ -348,7 +363,7 @@ public class XContentGenerator {
             throws IOException, StandardException {
 
         String columnName = left.getColumnName();
-        if (left instanceof NestedColumnReference) {
+        if (left.getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE) {
             NestedColumnReference nestedColumnReference = (NestedColumnReference) left;
             if (nestedColumnReference.pathContainsNumeric()) {
                 throw new SQLParseException("Filtering by nested column array indexes is not " +
@@ -383,7 +398,7 @@ public class XContentGenerator {
         // if an operator is added here the swapOperator method should also be extended.
 
         String columnName = left.getColumnName();
-        if (left instanceof NestedColumnReference) {
+        if (left.getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE) {
             NestedColumnReference nestedColumnReference = (NestedColumnReference) left;
             if (nestedColumnReference.pathContainsNumeric()) {
                 throw new SQLParseException("Filtering by nested column array index is not " +
