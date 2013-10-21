@@ -23,5 +23,5 @@
 { "index" : { "_index" : "locations", "_type" : "default", "_id" : "12" } }
 { "name": "", "date":"2013-07-16", "kind": "Planet", "position": 5, "description": "This Planet doesn't really exist"}
 { "index" : { "_index" : "locations", "_type" : "default", "_id" : "13" } }
-{ "name": null, "date":"2013-07-16", "kind": "Galaxy", "position": 6, "description": "The end of the Galaxy."}
+{ "name": null, "date":"2013-07-16", "kind": "Galaxy", "position": 6, "description": "The end of the Galaxy.%"}
 { "index" : { "_index" : "locations", "_type" : "default", "_id" : "13" } }

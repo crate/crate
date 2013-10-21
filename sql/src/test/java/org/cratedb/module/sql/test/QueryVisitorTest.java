@@ -765,6 +765,24 @@ public class QueryVisitorTest {
     }
 
     @Test
+    public void testSelectWithWhereLikePrefixQueryEscaped() throws Exception {
+        execStatement("select kind from locations where kind like 'P\\%'");
+        assertEquals(
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P%\"}},\"size\":1000}",
+            getSource()
+        );
+    }
+
+    @Test
+    public void testSelectWithWhereLikeWithEscapedStar() throws Exception {
+        execStatement("select kind from locations where kind like 'P*'");
+        assertEquals(
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\\\\*\"}},\"size\":1000}",
+            getSource()
+        );
+    }
+
+    @Test
     public void testSelectWithWhereLikeWithoutWildcards() throws Exception {
         execStatement("select kind from locations where kind like 'P'");
         assertEquals(
@@ -778,6 +796,24 @@ public class QueryVisitorTest {
         execStatement("select kind from locations where kind like 'P_'");
         assertEquals(
             "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P?\"}},\"size\":1000}",
+            getSource()
+        );
+    }
+
+    @Test
+    public void testSelectWithWhereLikePrefixQueryUnderscoreEscaped() throws Exception {
+        execStatement("select kind from locations where kind like 'P\\_'");
+        assertEquals(
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P_\"}},\"size\":1000}",
+            getSource()
+        );
+    }
+
+    @Test
+    public void testSelectWithWhereLikePrefixQueryQuestionmark() throws Exception {
+        execStatement("select kind from locations where kind like 'P?'");
+        assertEquals(
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\\\\?\"}},\"size\":1000}",
             getSource()
         );
     }

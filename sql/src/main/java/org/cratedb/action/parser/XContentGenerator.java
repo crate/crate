@@ -553,8 +553,16 @@ public class XContentGenerator {
         }
 
         String like = ((ConstantNode)right).getValue().toString();
-        like = like.replace("%", "*");
-        like = like.replace("_", "?");
+        // lucene uses * and ? as wildcard characters
+        // but via SQL they are used as % and _
+        // here they are converted back.
+        like = like.replaceAll("(?<!\\\\)\\*", "\\\\*");
+        like = like.replaceAll("(?<!\\\\)%", "*");
+        like = like.replaceAll("\\\\%", "%");
+
+        like = like.replaceAll("(?<!\\\\)\\?", "\\\\?");
+        like = like.replaceAll("(?<!\\\\)_", "?");
+        like = like.replaceAll("\\\\_", "_");
         jsonBuilder.startObject("wildcard").field(left.getColumnName(), like).endObject();
     }
 
