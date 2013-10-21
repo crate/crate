@@ -1,7 +1,6 @@
 package org.cratedb.action.sql;
 
 import org.cratedb.action.parser.*;
-import org.cratedb.sql.CrateException;
 import org.cratedb.sql.ExceptionHelper;
 import org.cratedb.sql.facet.InternalSQLFacet;
 import org.cratedb.sql.parser.StandardException;
@@ -33,6 +32,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.search.SearchHit;
+
 import java.io.IOException;
 import java.util.*;
 
@@ -244,7 +244,7 @@ public class ParsedStatement {
         GetRequest request = new GetRequest(indices.get(0),
                 NodeExecutionContext.DEFAULT_TYPE, id);
         request.routing(id);
-        request.fields(cols());
+        request.fields(columnNames());
         request.realtime(true);
         return request;
     }
@@ -256,7 +256,7 @@ public class ParsedStatement {
         MultiGetRequest request = new MultiGetRequest();
         for (String id: ids) {
             MultiGetRequest.Item item = new MultiGetRequest.Item(indices().get(0),NodeExecutionContext.DEFAULT_TYPE, id);
-            item.fields(cols());
+            item.fields(columnNames());
             request.add(item);
         }
         request.realtime(true);
@@ -303,12 +303,29 @@ public class ParsedStatement {
         return request;
     }
 
+    /**
+     * Get the result column-names as listed in the SELECT Statement,
+     * eventually including aliases, not real column-names
+     * @return Array of Column-Name or -Alias Strings
+     */
     public String[] cols() {
         String[] cols = new String[outputFields.size()];
         for (int i = 0; i < outputFields.size(); i++) {
             cols[i] = outputFields.get(i).v1();
         }
         return cols;
+    }
+
+    /**
+     * Get the ColumnNames that are actually fetched from the table for this statement
+     * @return Array of Column-Name Strings
+     */
+    public String[] columnNames() {
+        String[] colNames = new String[outputFields.size()];
+        for (int i=0; i < outputFields.size(); i++) {
+            colNames[i] = outputFields.get(i).v2();
+        }
+        return colNames;
     }
 
     public SQLResponse buildResponse(SearchResponse searchResponse, InternalSQLFacet facet) {
@@ -402,8 +419,6 @@ public class ParsedStatement {
                     rows.add(fields.getRowValues());
                     successful++;
                 }
-            } else if (!singleResponses[i].getFailure().getType().equals("blah")) {
-                throw new CrateException(singleResponses[i].getFailure().getMessage());
             }
         }
         response.cols(cols());

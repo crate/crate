@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.hasItems;
 import static org.junit.Assert.assertEquals;
@@ -385,6 +386,13 @@ public class QueryPlannerTest {
                 new Object[]{"foo", "bar", "baz"});
         assertThat(stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES), is(nullValue()));
         assertThat(stmt.getPlannerResult(QueryPlanner.MULTIGET_PRIMARY_KEY_VALUES), is(nullValue()));
+    }
+
+    @Test
+    public void selectGetRequestWithColumnAlias() throws StandardException {
+        execStatement("SELECT phrase as satz FROM phrases WHERE pk_col=?",
+                new Object[]{"foo"});
+        assertThat(stmt.buildGetRequest().fields(), arrayContaining("phrase"));
     }
 
 }

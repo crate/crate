@@ -1444,4 +1444,34 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("drop table test");
     }
 
+    @Test
+    public void selectSearchRequestWithColumnAlias() throws IOException {
+        createTestIndexWithPkAndRoutingMapping();
+
+        execute("insert into test (some_id, foo) values ('1', 'foo')");
+        execute("insert into test (some_id, foo) values ('2', 'bar')");
+        execute("insert into test (some_id, foo) values ('3', 'baz')");
+        refresh();
+
+        execute("SELECT foo as bar FROM test WHERE bar='baz'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.cols()[0], is("baz"));
+        assertThat((String)response.rows()[0][0], is("baz"));
+    }
+
+    @Test
+    public void selectMultiGetRequestWithColumnAlias() throws IOException {
+        createTestIndexWithPkAndRoutingMapping();
+
+        execute("insert into test (some_id, foo) values ('1', 'foo')");
+        execute("insert into test (some_id, foo) values ('2', 'bar')");
+        execute("insert into test (some_id, foo) values ('3', 'baz')");
+        refresh();
+
+        execute("SELECT some_id as bar FROM test WHERE bar='1'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.cols()[0], is("1"));
+        assertThat((String)response.rows()[0][0], is("1"));
+    }
+
 }
