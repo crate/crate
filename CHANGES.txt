@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for the SQL `LIKE` operand.
+
  - Implemented ``drop table``.
 
  - Implemented the `group by` sql clause.

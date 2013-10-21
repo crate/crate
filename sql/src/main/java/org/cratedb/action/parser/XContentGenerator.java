@@ -547,21 +547,50 @@ public class XContentGenerator {
         jsonBuilder.endObject().endObject();
     }
 
+    public void generate(LikeEscapeOperatorNode node) throws IOException, StandardException {
+        ValueNode tmp;
+        ValueNode left = node.getReceiver();
+        ValueNode right = node.getLeftOperand();
+
+        if (left.getNodeType() != NodeTypes.COLUMN_REFERENCE) {
+            tmp = left;
+            left = right;
+            right = tmp;
+        }
+
+        String like = ((ConstantNode)right).getValue().toString();
+        like = like.replace("%", "*");
+        like = like.replace("_", "?");
+        jsonBuilder.startObject("wildcard").field(left.getColumnName(), like).endObject();
+    }
+
     private void generate(ValueNode node) throws IOException, StandardException {
         if (node instanceof BinaryRelationalOperatorNode) {
             generate((BinaryRelationalOperatorNode) node);
-        } else if (node.getNodeType() == NodeTypes.IS_NULL_NODE) {
-            generate((IsNullNode) node);
-        } else if (node.getNodeType() == NodeTypes.IN_LIST_OPERATOR_NODE) {
-            generate((InListOperatorNode) node);
-        } else if (node.getNodeType() == NodeTypes.NOT_NODE) {
-            generate((NotNode) node);
-        } else if (node.getNodeType() == NodeTypes.AND_NODE) {
-            generate((AndNode) node);
-        } else if (node.getNodeType() == NodeTypes.OR_NODE) {
-            generate((OrNode) node);
-        } else {
-            throw new SQLParseException("Unhandled node " + node.toString());
+            return;
+        }
+
+        switch (node.getNodeType()) {
+            case NodeTypes.IS_NULL_NODE:
+                generate((IsNullNode) node);
+                break;
+            case NodeTypes.IN_LIST_OPERATOR_NODE:
+                generate((InListOperatorNode) node);
+                break;
+            case NodeTypes.NOT_NODE:
+                generate((NotNode) node);
+                break;
+            case NodeTypes.AND_NODE:
+                generate((AndNode) node);
+                break;
+            case NodeTypes.OR_NODE:
+                generate((OrNode) node);
+                break;
+            case NodeTypes.LIKE_OPERATOR_NODE:
+                generate((LikeEscapeOperatorNode)node);
+                break;
+            default:
+                throw new SQLParseException("Unhandled node " + node.toString());
         }
     }
 
