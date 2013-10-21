@@ -1265,6 +1265,9 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                     .field("type", "string")
                     .field("index", "not_analyzed")
                 .endObject()
+                .startObject("age")
+                    .field("type", "integer")
+                .endObject()
                 .startObject("name")
                     .field("type", "string")
                     .field("index", "not_analyzed")
@@ -1283,13 +1286,13 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         Map<String, String> details = newHashMap();
         details.put("job", "Sandwitch Maker");
-        execute("insert into characters (race, gender, name, details) values (?, ?, ?, ?)",
-            new Object[] {"Human", "male", "Arthur Dent", details});
+        execute("insert into characters (race, gender, age, name, details) values (?, ?, ?, ?, ?)",
+            new Object[] {"Human", "male", 34, "Arthur Dent", details});
 
         details = newHashMap();
         details.put("job", "Mathematician");
-        execute("insert into characters (race, gender, name, details) values (?, ?, ?, ?)",
-            new Object[] {"Human", "female", "Trillian", details});
+        execute("insert into characters (race, gender, age, name, details) values (?, ?, ?, ?, ?)",
+            new Object[] {"Human", "female", 32, "Trillian", details});
         execute("insert into characters (race, gender, name, details) values ('Human', 'male', 'Ford Perfect')");
         execute("insert into characters (race, gender, name, details) values ('Android', 'male', 'Marving')");
         execute("insert into characters (race, gender, name, details) values ('Vogon', 'male', 'Jeltz')");
@@ -1298,6 +1301,23 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("select count(*) from characters");
         assertEquals(6L, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testSelectWithWhereLike() throws Exception {
+        groupBySetup();
+
+        execute("select name from characters where name like '*ltz'");
+        assertEquals(2L, response.rowCount());
+
+        execute("select count(*) from characters where name like 'Jeltz'");
+        assertEquals(1L, response.rows()[0][0]);
+
+        execute("select count(*) from characters where race like '%o*'");
+        assertEquals(3L, response.rows()[0][0]);
+
+        execute("select count(*) from characters where age like 32");
+        assertEquals(1L, response.rows()[0][0]);
     }
 
 
