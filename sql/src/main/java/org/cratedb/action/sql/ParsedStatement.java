@@ -1,6 +1,7 @@
 package org.cratedb.action.sql;
 
 import org.cratedb.action.parser.*;
+import org.cratedb.sql.CrateException;
 import org.cratedb.sql.ExceptionHelper;
 import org.cratedb.sql.facet.InternalSQLFacet;
 import org.cratedb.sql.parser.StandardException;
@@ -419,6 +420,9 @@ public class ParsedStatement {
                     rows.add(fields.getRowValues());
                     successful++;
                 }
+            } else {
+                // failure on at least one shard
+                throw new CrateException(singleResponses[i].getFailure().getMessage());
             }
         }
         response.cols(cols());
