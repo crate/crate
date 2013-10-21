@@ -89,6 +89,11 @@ import java.util.*;
 class SQLGrammar
 {
 
+    /**
+     * SYSTEM COLUMN NAMES
+     */
+    private static final List<String> SYSTEM_COLUMN_NAMES = Arrays.asList(new String[]{"_version", "_ttl"});
+
     /* SAVEPOINT variations */
     // TODO: I think these should be constants in the savepoint node. ***
     private static final int SAVEPOINT_UNIQUE = 0;
@@ -1776,11 +1781,6 @@ class SQLGrammar
          }
     }
 
-    /**
-     * SYSTEM COLUMN NAMES
-     */
-    private static final List<String> SYSTEM_COLUMN_NAMES = Arrays.asList(new String[]{"_version", "_ttl"});
-
     boolean systemColumnFollows()
     {
         Token tok = null;
@@ -2447,6 +2447,12 @@ TOKEN [IGNORE_CASE] :
 TOKEN [IGNORE_CASE] :
 {
   <FLOAT: "float">
+| <FULLTEXT: "fulltext">
+| <ANALYZER: "analyzer">
+| <TOKENIZER: "tokenizer">
+| <TOKEN_FILTERS: "token_filters">
+| <CHAR_FILTERS: "char_filters">
+| <EXTENDS: "extends">
 }
 
 /* This list should contain non-SQL92 keywords that are not reserved.
@@ -3165,6 +3171,8 @@ createStatements() throws StandardException :
     statementNode = udtDefinition(createOrReplace)
 |
     statementNode = indexDefinition()
+|
+    statementNode = analyzerDefinition()
 )
     {
         return statementNode;
@@ -9213,8 +9221,9 @@ void
 indexItemList(IndexColumnList columnList) throws StandardException :
 {}
 {
-    indexItem(columnList) 
-    ( <COMMA> indexItem(columnList) )*
+    // support adding tablename and schemaname
+    unorderedGroupIndexColumnItem(columnList)
+    ( <COMMA> unorderedGroupIndexColumnItem(columnList) )*
 }
 
 void indexItem(IndexColumnList columnList) throws StandardException :
@@ -10593,35 +10602,29 @@ lockGranularity() throws StandardException :
 StatementNode
 indexDefinition() throws StandardException :
 {
-    Boolean unique = Boolean.FALSE;
     Properties properties = null;
     TableName indexName;
     TableName tableName;
+    String indexMethod;
     IndexColumnList indexColumnList = null;
-    boolean groupFormat = hasFeature(SQLParserFeature.GROUPING);
-    JoinNode.JoinType joinType = null;
+    IndexProperties indexProperties = null;
     ExistenceCheck cond;
-    StorageLocation location = null;
 }
 {
-    [ unique = unique() ] 
     <INDEX>
     cond = createCondition()
     indexName = qualifiedName() 
     <ON> tableName = qualifiedName()
-    <LEFT_PAREN>
-    (
-      LOOKAHEAD ( { groupFormat } )
-      groupIndexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext))
-    |
-      LOOKAHEAD ( { !groupFormat } )
-      indexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext))
-    )
+    <USING>
+    indexMethod = indexMethod() <LEFT_PAREN>
+       indexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext))
     <RIGHT_PAREN>
-    [ LOOKAHEAD ( { groupFormat && getToken(1).kind == USING } )
-      <USING> joinType = joinType() <JOIN> ]
-    [ properties = propertyList(false) <CHECK_PROPERTIES>]
-    [ <AS> location = getLocation() ]
+    [
+        <WITH>
+        <LEFT_PAREN>
+            indexProperties = indexProperties()
+        <RIGHT_PAREN>
+    ]
     {
         /* User allowed to specify schema name on table and index.
          * If no schema name specified for index, then it "inherits" 
@@ -10645,16 +10648,19 @@ indexDefinition() throws StandardException :
                                             indexName + ", " + tableName);
             }
         }
+        for (IndexColumn column: indexColumnList) {
+            if (column.getTableName() != null && !column.getTableName().equals(tableName)) {
+                throw new StandardException("Specified tables do not match: " + column.getTableName() + ", " + tableName);
+            }
+        }
         return (StatementNode)nodeFactory.getNode(NodeTypes.CREATE_INDEX_NODE,
-                                                  unique,
-                                                  null,
+                                                  false,
                                                   indexName,
                                                   tableName,
+                                                  indexMethod,
                                                   indexColumnList,
-                                                  joinType,
-                                                  properties,
+                                                  indexProperties,
                                                   cond,
-                                                  location,
                                                   parserContext);
     }
 }
@@ -10667,6 +10673,57 @@ unique() throws StandardException :
     {
         return Boolean.TRUE;
     }
+}
+
+String
+indexMethod() throws StandardException :
+{
+    Token tok = null;
+}
+{
+    tok = <FULLTEXT>
+    {
+        return tok.image;
+    }
+}
+
+IndexProperties
+indexProperties() throws StandardException :
+{
+    IndexProperties indexProperties = new IndexProperties();
+}
+{
+    indexProperty(indexProperties)
+    ( <COMMA> indexProperty(indexProperties) )*
+    {
+        return indexProperties;
+    }
+}
+
+void
+indexProperty(IndexProperties indexProperties) throws StandardException :
+{
+    String key;
+    ValueNode value;
+}
+{
+    key=identifier()
+    <EQUALS_OPERATOR>
+    value=literal()
+    {
+        indexProperties.put(key, value);
+    }
+}
+
+StatementNode
+analyzerDefinition() throws StandardException :
+{}
+{
+    <ANALYZER>
+    {
+        return null;
+    }
+
 }
 
 /**
@@ -15366,6 +15423,12 @@ nonReservedKeyword() :
 | tok = <WHEN>
 | tok = <WHITESPACE>
 | tok = <YEAR_MONTH>
+// CRATE non-reserved keywords
+| tok = <ANALYZER>
+| tok = <TOKENIZER>
+| tok = <TOKEN_FILTERS>
+| tok = <CHAR_FILTERS>
+| tok = <EXTENDS>
 )
     {
         // Remember last identifier token and whether it was delimited.

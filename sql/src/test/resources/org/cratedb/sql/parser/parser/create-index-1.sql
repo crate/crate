@@ -1,1 +1,1 @@
-create index idx1 on table1 (c1)
+create index idx1 on table1 using fulltext(c1)

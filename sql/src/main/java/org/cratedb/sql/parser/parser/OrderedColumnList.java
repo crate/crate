@@ -43,7 +43,8 @@ package org.cratedb.sql.parser.parser;
  * List of OrderedColumns
  *
  */
-public abstract class OrderedColumnList<N extends OrderedColumn> 
+public abstract class
+        OrderedColumnList<N extends OrderedColumn>
     extends QueryTreeNodeList<N>
 {
 }

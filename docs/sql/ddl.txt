@@ -44,6 +44,70 @@ data is inserted, otherwise an error is returned.
 
   Multiple primary keys are not supported yet.
 
+
+Indexes and Fulltext Search
+===========================
+
+Indexes for fulltextsearch are created using an analyzer that consists of
+one tokenizer and zero or more token filters and char filters.
+Existing Analyzers can be used to create custom Analyzers by means of extending them.
+
+
+Create Analyzer Syntax::
+
+    CREATE ANALYZER <analyzer_name> [EXTENDS <analyzer_name>] (
+        [TOKENIZER [WITH] (
+            <tokenizer_property>=<value>,
+            ...
+        )]
+        [TOKEN_FILTERS [WITH] (
+            <builtin_token_filter_name> [WITH] (
+                <token_filter_property>=<value>,
+                ...
+            ),
+            ...
+        )]
+        [CHAR_FILTERS [WITH] (
+            <builtin_char_filter_name> [WITH] (
+                <char_filter_property>=<value>,
+                ...
+            ),
+            ...
+        )]
+    )
+
+Built-in and self-made Analyzers can be used to create iundices by referencing them by name.
+
+Create a Fulltext Index::
+
+    CREATE INDEX <index_name> ON <table_name> USING <method>(<column_name>, ...)
+    [
+        WITH (
+            <index_property>=<value>
+        )
+    ]
+
+Where possible ``index_property`` values are::
+
+    analyzer=<analyzer_name>
+
+And possible ``methods`` are::
+
+    fulltext
+
+This is the only index-method currently supported. It uses the given analyzer to create a fulltext-searchable
+representation of the fields it is defined for.
+
+Defining Indexes on Columns within ``CREATE TABLE``-Statements.
+This way only a single column can be indexed, no combination of columns as with the ``CREATE INDEX`` statement::
+
+    CREATE TABLE t1 (
+        field string INDEX [ USING <method> [WITH] (<index_property>=<value>) | OFF ]
+    )
+
+
+
+
 Data Types
 ==========
 

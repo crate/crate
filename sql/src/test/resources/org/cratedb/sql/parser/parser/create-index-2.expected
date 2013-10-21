@@ -1,29 +1,26 @@
-org.cratedb.sql.parser.parser.CreateIndexNode@5289cf1e
-name: idx2
+org.cratedb.sql.parser.parser.CreateIndexNode@231ae15a
+name: index2
 statementType: CREATE INDEX
-unique: true
-indexType: null
-indexName: idx2
+unique: false
+indexName: index2
 tableName: table2
-joinType: null
-properties: null
+indexMethod: FulLteXt
+indexColumns: 
+indexProperties: {prop2=value: true
+type: BOOLEAN NOT NULL
+, prop1=value: abc
+type: CHAR(3) NOT NULL
+, prop3=value: 12
+type: INTEGER NOT NULL
+, prop4=value: 12.567
+type: DECIMAL(5,3) NOT NULL
+}
 existenceCheck: NO_CONDITION
-storageLocation: null
 	
-	org.cratedb.sql.parser.parser.IndexColumnList@557ce4e7
+	org.cratedb.sql.parser.parser.IndexColumnList@4db50639
 
 	[0]:	
-	org.cratedb.sql.parser.parser.IndexColumn@7a982589
-	columnName: c1
-	tableName: null
-	ascending
-	[1]:	
-	org.cratedb.sql.parser.parser.IndexColumn@1ac88440
-	columnName: c2
-	tableName: null
-	descending
-	[2]:	
-	org.cratedb.sql.parser.parser.IndexColumn@6262937c
-	columnName: c3
-	tableName: null
+	org.cratedb.sql.parser.parser.IndexColumn@27abb00a
+	columnName: column2
+	tableName: table2
 	ascending
