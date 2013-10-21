@@ -52,16 +52,17 @@ public class ParsedStatement {
     private final StatementNode statementNode;
     private final XContentVisitor visitor;
 
-    public static final int SEARCH_ACTION = 1;
-    public static final int INSERT_ACTION = 2;
-    public static final int DELETE_BY_QUERY_ACTION = 3;
-    public static final int BULK_ACTION = 4;
-    public static final int GET_ACTION = 5;
-    public static final int DELETE_ACTION = 6;
-    public static final int UPDATE_ACTION = 7;
-    public static final int CREATE_INDEX_ACTION = 8;
-    public static final int DELETE_INDEX_ACTION = 9;
-    public static final int MULTI_GET_ACTION = 10;
+    public static enum ActionType {
+        SEARCH_ACTION,
+        INSERT_ACTION,
+        DELETE_BY_QUERY_ACTION,
+        BULK_ACTION, GET_ACTION,
+        DELETE_ACTION,
+        UPDATE_ACTION,
+        CREATE_INDEX_ACTION,
+        DELETE_INDEX_ACTION,
+        MULTI_GET_ACTION
+    }
 
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;
 
@@ -129,36 +130,36 @@ public class ParsedStatement {
         return tableContext;
     }
 
-    public int type() {
+    public ActionType type() {
         switch (statementNode.getNodeType()) {
             case NodeTypes.INSERT_NODE:
                 if (((InsertVisitor)visitor).isBulk()) {
-                    return BULK_ACTION;
+                    return ActionType.BULK_ACTION;
                 }
-                return INSERT_ACTION;
+                return ActionType.INSERT_ACTION;
             case NodeTypes.DELETE_NODE:
                 if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null) {
-                    return DELETE_ACTION;
+                    return ActionType.DELETE_ACTION;
                 }
-                return DELETE_BY_QUERY_ACTION;
+                return ActionType.DELETE_BY_QUERY_ACTION;
             case NodeTypes.CURSOR_NODE:
                 if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null) {
-                    return GET_ACTION;
+                    return ActionType.GET_ACTION;
                 } else if(getPlannerResult(QueryPlanner.MULTIGET_PRIMARY_KEY_VALUES) != null && !hasGroupBy() && ! hasOrderBy()) {
-                    return MULTI_GET_ACTION;
+                    return ActionType.MULTI_GET_ACTION;
                 }
-                return SEARCH_ACTION;
+                return ActionType.SEARCH_ACTION;
             case NodeTypes.UPDATE_NODE:
                 if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null) {
-                    return UPDATE_ACTION;
+                    return ActionType.UPDATE_ACTION;
                 }
-                return SEARCH_ACTION;
+                return ActionType.SEARCH_ACTION;
             case NodeTypes.CREATE_TABLE_NODE:
-                return CREATE_INDEX_ACTION;
+                return ActionType.CREATE_INDEX_ACTION;
             case NodeTypes.DROP_TABLE_NODE:
-                return DELETE_INDEX_ACTION;
+                return ActionType.DELETE_INDEX_ACTION;
             default:
-                return SEARCH_ACTION;
+                return ActionType.SEARCH_ACTION;
         }
     }
 

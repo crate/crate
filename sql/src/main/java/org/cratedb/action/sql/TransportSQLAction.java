@@ -208,39 +208,39 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         try {
             stmt = new ParsedStatement(request.stmt(), request.args(), executionContext);
             switch (stmt.type()) {
-                case ParsedStatement.INSERT_ACTION:
+                case INSERT_ACTION:
                     indexRequest = stmt.buildIndexRequest();
                     transportIndexAction.execute(indexRequest, new IndexResponseListener(stmt, listener));
                     break;
-                case ParsedStatement.DELETE_BY_QUERY_ACTION:
+                case DELETE_BY_QUERY_ACTION:
                     deleteByQueryRequest = stmt.buildDeleteByQueryRequest();
                     transportDeleteByQueryAction.execute(deleteByQueryRequest, new DeleteByQueryResponseListener(stmt, listener));
                     break;
-                case ParsedStatement.DELETE_ACTION:
+                case DELETE_ACTION:
                     DeleteRequest deleteRequest = stmt.buildDeleteRequest();
                     transportDeleteAction.execute(deleteRequest, new DeleteResponseListener(stmt, listener));
                     break;
-                case ParsedStatement.BULK_ACTION:
+                case BULK_ACTION:
                     BulkRequest bulkRequest = stmt.buildBulkRequest();
                     transportBulkAction.execute(bulkRequest, new BulkResponseListener(stmt, listener));
                     break;
-                case ParsedStatement.GET_ACTION:
+                case GET_ACTION:
                     GetRequest getRequest = stmt.buildGetRequest();
                     transportGetAction.execute(getRequest, new GetResponseListener(stmt, listener));
                     break;
-                case ParsedStatement.MULTI_GET_ACTION:
+                case MULTI_GET_ACTION:
                     MultiGetRequest multiGetRequest = stmt.buildMultiGetRequest();
                     transportMultiGetAction.execute(multiGetRequest, new MultiGetResponseListener(stmt, listener));
                     break;
-                case ParsedStatement.UPDATE_ACTION:
+                case UPDATE_ACTION:
                     UpdateRequest updateRequest = stmt.buildUpdateRequest();
                     transportUpdateAction.execute(updateRequest, new UpdateResponseListener(stmt, listener));
                     break;
-                case ParsedStatement.CREATE_INDEX_ACTION:
+                case CREATE_INDEX_ACTION:
                     CreateIndexRequest createIndexRequest = stmt.buildCreateIndexRequest();
                     transportCreateIndexAction.execute(createIndexRequest, new CreateIndexResponseListener(stmt, listener));
                     break;
-                case ParsedStatement.DELETE_INDEX_ACTION:
+                case DELETE_INDEX_ACTION:
                     DeleteIndexRequest deleteIndexRequest = stmt.buildDeleteIndexRequest();
                     transportDeleteIndexAction.execute(deleteIndexRequest, new DeleteIndexResponseListener(stmt, listener));
                     break;

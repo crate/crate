@@ -60,7 +60,7 @@ public class QueryPlannerTest {
     @Test
     public void testSelectWherePrimaryKey() throws Exception {
         execStatement("select pk_col, phrase from phrases where pk_col=?", new Object[]{1});
-        assertEquals(ParsedStatement.GET_ACTION, stmt.type());
+        assertEquals(ParsedStatement.ActionType.GET_ACTION, stmt.type());
         assertEquals("1", stmt.getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE));
         assertEquals(1, stmt.plannerResults().size());
     }
@@ -68,7 +68,7 @@ public class QueryPlannerTest {
     @Test
     public void testDeleteWherePrimaryKey() throws Exception {
         execStatement("delete from phrases where ?=pk_col", new Object[]{1});
-        assertEquals(ParsedStatement.DELETE_ACTION, stmt.type());
+        assertEquals(ParsedStatement.ActionType.DELETE_ACTION, stmt.type());
         assertEquals("1", stmt.getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE));
         assertEquals(1, stmt.plannerResults().size());
     }
@@ -77,7 +77,7 @@ public class QueryPlannerTest {
     public void testUpdateWherePrimaryKey() throws Exception {
         execStatement("update phrases set phrase=? where pk_col=?",
                 new Object[]{"don't panic", 1});
-        assertEquals(ParsedStatement.UPDATE_ACTION, stmt.type());
+        assertEquals(ParsedStatement.ActionType.UPDATE_ACTION, stmt.type());
         assertEquals("1", stmt.getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE));
         assertEquals(1, stmt.plannerResults().size());
     }
@@ -106,7 +106,7 @@ public class QueryPlannerTest {
                         .string();
 
         assertEquals(expected, getSource());
-        assertEquals(ParsedStatement.SEARCH_ACTION, stmt.type());
+        assertEquals(ParsedStatement.ActionType.SEARCH_ACTION, stmt.type());
         @SuppressWarnings("unchecked")
         Set<String> routingValues = (Set<String>) stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
         assertThat(routingValues.contains("1"), is(true));
@@ -148,7 +148,7 @@ public class QueryPlannerTest {
                         .string();
 
         assertEquals(expected, getSource());
-        assertEquals(ParsedStatement.SEARCH_ACTION, stmt.type());
+        assertEquals(ParsedStatement.ActionType.SEARCH_ACTION, stmt.type());
         @SuppressWarnings("unchecked")
         Set<String> routingValues = (Set<String>) stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
         assertThat(routingValues.contains("1"), is(true));
@@ -175,7 +175,7 @@ public class QueryPlannerTest {
                         .endObject()
                         .string();
 
-        assertEquals(ParsedStatement.DELETE_BY_QUERY_ACTION, stmt.type());
+        assertEquals(ParsedStatement.ActionType.DELETE_BY_QUERY_ACTION, stmt.type());
 
         assertEquals("[[phrases]][[]], querySource["+expected+"]",
                 stmt.buildDeleteByQueryRequest().toString());
@@ -221,7 +221,7 @@ public class QueryPlannerTest {
                         .endObject()
                         .string();
 
-        assertEquals(ParsedStatement.SEARCH_ACTION, stmt.type());
+        assertEquals(ParsedStatement.ActionType.SEARCH_ACTION, stmt.type());
 
         assertEquals(expected, getSource());
 
@@ -240,7 +240,7 @@ public class QueryPlannerTest {
         assertThat(primaryKeyValues, is(notNullValue()));
         assertThat(primaryKeyValues, hasItems("1", "2"));
         assertEquals(1, stmt.plannerResults().size());
-        assertThat(stmt.type(), is(ParsedStatement.MULTI_GET_ACTION));
+        assertThat(stmt.type(), is(ParsedStatement.ActionType.MULTI_GET_ACTION));
     }
 
     @Test
@@ -251,7 +251,7 @@ public class QueryPlannerTest {
         assertThat(primaryKeyValues, is(notNullValue()));
         assertThat(primaryKeyValues, hasItems("foo", "bar", "baz"));
         assertEquals(1, stmt.plannerResults().size());
-        assertThat(stmt.type(), is(ParsedStatement.MULTI_GET_ACTION));
+        assertThat(stmt.type(), is(ParsedStatement.ActionType.MULTI_GET_ACTION));
     }
 
     @Test
@@ -263,7 +263,7 @@ public class QueryPlannerTest {
         assertThat(primaryKeyValues, is(notNullValue()));
         assertThat(primaryKeyValues, hasItems("TinkyWinky", "Dipsy", "Lala", "Po", "Hallo"));
         assertEquals(1, stmt.plannerResults().size());
-        assertThat(stmt.type(), is(ParsedStatement.MULTI_GET_ACTION));
+        assertThat(stmt.type(), is(ParsedStatement.ActionType.MULTI_GET_ACTION));
     }
 
     @Test
@@ -274,7 +274,7 @@ public class QueryPlannerTest {
         Set<String> routingValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
         assertThat(routingValues, hasItems("foo", "bar", "baz"));
         assertEquals(1, stmt.plannerResults().size());
-        assertThat(stmt.type(), is(ParsedStatement.SEARCH_ACTION));
+        assertThat(stmt.type(), is(ParsedStatement.ActionType.SEARCH_ACTION));
         assertThat(stmt.buildSearchRequest().routing().split(","), arrayContainingInAnyOrder("foo", "bar", "baz"));
     }
 
@@ -286,7 +286,7 @@ public class QueryPlannerTest {
         Set<String> routingValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
         assertThat(routingValues, hasItems("foo", "bar", "baz"));
         assertEquals(1, stmt.plannerResults().size());
-        assertThat(stmt.type(), is(ParsedStatement.SEARCH_ACTION));
+        assertThat(stmt.type(), is(ParsedStatement.ActionType.SEARCH_ACTION));
     }
 
     @Test
@@ -297,7 +297,7 @@ public class QueryPlannerTest {
         Set<String> routingValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
         assertThat(routingValues, hasItems("foo", "bar", "baz"));
         assertEquals(1, stmt.plannerResults().size());
-        assertThat(stmt.type(), is(ParsedStatement.SEARCH_ACTION));
+        assertThat(stmt.type(), is(ParsedStatement.ActionType.SEARCH_ACTION));
     }
 
     @Test
@@ -356,7 +356,7 @@ public class QueryPlannerTest {
         assertThat(multiGetPrimaryKeyValues, is(notNullValue()));
         assertThat(multiGetPrimaryKeyValues, hasItems("foo", "bar", "baz"));
         assertEquals(1, stmt.plannerResults().size());
-        assertThat(stmt.type(), is(ParsedStatement.MULTI_GET_ACTION));
+        assertThat(stmt.type(), is(ParsedStatement.ActionType.MULTI_GET_ACTION));
     }
 
     @Test
@@ -368,7 +368,7 @@ public class QueryPlannerTest {
         assertThat(multiGetPrimaryKeyValues, is(notNullValue()));
         assertThat(multiGetPrimaryKeyValues, hasItems("foo", "bar", "baz", "dunno"));
         assertEquals(1, stmt.plannerResults().size());
-        assertThat(stmt.type(), is(ParsedStatement.MULTI_GET_ACTION));
+        assertThat(stmt.type(), is(ParsedStatement.ActionType.MULTI_GET_ACTION));
 
         execStatement("SELECT * FROM phrases WHERE pk_col=? OR pk_col=? OR pk_col IN (?, ?)",
                 new Object[]{"foo", "bar", "baz", "dunno"});
@@ -376,7 +376,7 @@ public class QueryPlannerTest {
         assertThat(multiGetPrimaryKeyValues, is(notNullValue()));
         assertThat(multiGetPrimaryKeyValues, hasItems("foo", "bar", "baz", "dunno"));
         assertEquals(1, stmt.plannerResults().size());
-        assertThat(stmt.type(), is(ParsedStatement.MULTI_GET_ACTION));
+        assertThat(stmt.type(), is(ParsedStatement.ActionType.MULTI_GET_ACTION));
     }
 
     @Test
