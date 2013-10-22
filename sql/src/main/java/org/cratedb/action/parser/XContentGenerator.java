@@ -232,8 +232,10 @@ public class XContentGenerator {
             throw new SQLParseException(
                     "From type " + table.getClass().getName() + " not supported");
         }
-        String name = table.getTableName().getTableName();
-        stmt.addIndex(name);
+
+        TableName tableName = table.getTableName();
+        stmt.schemaName(tableName.getSchemaName());
+        stmt.addIndex(tableName.getTableName());
     }
 
     private void generate(ResultColumnList columnList) throws IOException, StandardException {

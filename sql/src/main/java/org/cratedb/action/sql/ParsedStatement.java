@@ -53,6 +53,7 @@ public class ParsedStatement {
     private final Object[] args;
     private final StatementNode statementNode;
     private final XContentVisitor visitor;
+    private String schemaName;
 
     public static enum ActionType {
         SEARCH_ACTION,
@@ -63,12 +64,13 @@ public class ParsedStatement {
         UPDATE_ACTION,
         CREATE_INDEX_ACTION,
         DELETE_INDEX_ACTION,
-        MULTI_GET_ACTION
+        MULTI_GET_ACTION,
+        INFORMATION_SCHEMA_TABLES,
     }
 
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;
 
-    private NodeExecutionContext.TableExecutionContext tableContext;
+    private ITableExecutionContext tableContext;
     private Map<String, Object> updateDoc;
     private Map<String, Object> plannerResults;
     private boolean countRequest;
@@ -87,6 +89,10 @@ public class ParsedStatement {
         }
 
         return new OrderByColumnIdx[0];
+    }
+
+    public void schemaName(String schemaName) {
+        this.schemaName = schemaName;
     }
 
     public ParsedStatement(String stmt, Object[] args, NodeExecutionContext context) throws
@@ -138,10 +144,10 @@ public class ParsedStatement {
      * @return TableExecutionContext for the table {@link #tableName()}
      * @throws SQLParseException in case the TableExecutionContext couldn't be loaded.
      */
-    public NodeExecutionContext.TableExecutionContext tableContextSafe() throws SQLParseException {
+    public ITableExecutionContext tableContextSafe() throws SQLParseException {
         if (tableContext == null) {
             assert tableName() != null;
-            tableContext = context().tableContext(tableName());
+            tableContext = context().tableContext(schemaName, tableName());
             if (tableContext == null) {
                 throw new SQLParseException("No table definition found for " + tableName());
             }
@@ -155,7 +161,7 @@ public class ParsedStatement {
      *
      * @return TableExecutionContext for the table {@link #tableName()}
      */
-    public NodeExecutionContext.TableExecutionContext tableContext() {
+    public ITableExecutionContext tableContext() {
         if (tableContext == null) {
             assert tableName() != null;
             tableContext = context().tableContext(tableName());
@@ -164,6 +170,12 @@ public class ParsedStatement {
     }
 
     public ActionType type() {
+        if (schemaName != null
+            && schemaName.equalsIgnoreCase(InformationSchemaTableExecutionContext.SCHEMA_NAME)
+            && tableName().equalsIgnoreCase(InformationSchemaTableExecutionContext.TablesTable.NAME))
+        {
+            return ActionType.INFORMATION_SCHEMA_TABLES;
+        }
         switch (statementNode.getNodeType()) {
             case NodeTypes.INSERT_NODE:
                 if (((InsertVisitor)visitor).isBulk()) {

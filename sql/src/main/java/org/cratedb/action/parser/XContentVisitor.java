@@ -30,8 +30,7 @@ public abstract class XContentVisitor implements Visitor {
     protected Object evaluateValueNode(String name, ValueNode node) throws StandardException {
         Object value;
         if (node instanceof ConstantNode) {
-            assert stmt.tableContext() != null;
-            value = stmt.tableContext().mappedValue(name, ((ConstantNode) node).getValue());
+            value = stmt.tableContextSafe().mappedValue(name, ((ConstantNode) node).getValue());
         } else if (node instanceof ParameterNode) {
             Object[] args = stmt.args();
             if (args.length == 0) {
