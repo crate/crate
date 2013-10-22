@@ -1,0 +1,60 @@
+org.cratedb.sql.parser.parser.CreateTableNode@45ef3510
+name: t4
+statementType: CREATE TABLE
+lockGranularity: R
+existenceCheck: NO_CONDITION
+tableElementList: 	
+	org.cratedb.sql.parser.parser.TableElementList@5b84d14e
+
+	[0]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@6cc986d2
+	type: INTEGER
+	name: c1
+	elementType: null
+	[1]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@741ec391
+	type: string
+	name: c2
+	elementType: null
+	[2]:	
+	org.cratedb.sql.parser.parser.IndexConstraintDefinitionNode@fb9a026
+	constraintName: null
+	constraintType: INDEX
+	properties: null
+	name: null
+	elementType: AT_DROP_CONSTRAINT
+	
+	indexName: c3
+	indexOff: true
+	indexMethod: null
+	indexProperties: null
+	[3]:	
+	org.cratedb.sql.parser.parser.ColumnDefinitionNode@63c126da
+	type: string
+	name: c3
+	elementType: null
+	[4]:	
+	org.cratedb.sql.parser.parser.IndexConstraintDefinitionNode@72607cad
+	constraintName: null
+	constraintType: INDEX
+	properties: null
+	name: null
+	elementType: AT_DROP_CONSTRAINT
+	
+	indexName: ft
+	indexOff: false
+	indexMethod: fulltext
+	indexProperties: null
+	indexColumnList: 		
+		org.cratedb.sql.parser.parser.IndexColumnList@20be0e6e
+
+		[0]:		
+		org.cratedb.sql.parser.parser.IndexColumn@1da5688d
+		columnName: c2
+		tableName: t4
+		ascending
+		[1]:		
+		org.cratedb.sql.parser.parser.IndexColumn@5673102f
+		columnName: c3
+		tableName: null
+		ascending

@@ -55,7 +55,7 @@ public class CreateIndexNode extends DDLStatementNode implements IndexDefinition
     TableName tableName;
     String indexMethod;
     IndexColumnList columnList;
-    IndexProperties indexPropertyList;
+    IndexProperties indexProperties;
     ExistenceCheck existenceCheck;
 
     /**
@@ -74,7 +74,7 @@ public class CreateIndexNode extends DDLStatementNode implements IndexDefinition
                      Object tableName,
                      Object indexMethod,
                      Object columnList,
-                     Object indexPropertyList,
+                     Object indexProperties,
                      Object existenceCheck)
             throws StandardException {
         initAndCheck(indexName);
@@ -83,7 +83,7 @@ public class CreateIndexNode extends DDLStatementNode implements IndexDefinition
         this.tableName = (TableName)tableName;
         this.indexMethod = (String)indexMethod;
         this.columnList = (IndexColumnList)columnList;
-        this.indexPropertyList = (IndexProperties)indexPropertyList;
+        this.indexProperties = (IndexProperties)indexProperties;
         this.existenceCheck = (ExistenceCheck)existenceCheck;
 
     }
@@ -103,7 +103,7 @@ public class CreateIndexNode extends DDLStatementNode implements IndexDefinition
         this.indexMethod = other.indexMethod;
         this.columnList = (IndexColumnList)
             getNodeFactory().copyNode(other.columnList, getParserContext());
-        this.indexPropertyList = (IndexProperties) getNodeFactory().copyNode(other.indexPropertyList, getParserContext());
+        this.indexProperties = (IndexProperties) getNodeFactory().copyNode(other.indexProperties, getParserContext());
         this.existenceCheck = other.existenceCheck;
     }
 
@@ -121,7 +121,7 @@ public class CreateIndexNode extends DDLStatementNode implements IndexDefinition
             "tableName: " + tableName + "\n" +
             "indexMethod: " + indexMethod + "\n" +
             "indexColumns: " + columnList + "\n" +
-            "indexProperties: " + indexPropertyList + "\n" +
+            "indexProperties: " + indexProperties + "\n" +
             "existenceCheck: " + existenceCheck + "\n";
     }
 
@@ -146,6 +146,14 @@ public class CreateIndexNode extends DDLStatementNode implements IndexDefinition
     public TableName getIndexName() {
         return indexName; 
     }
+
+    public String getIndexMethod() {
+        return indexMethod;
+    }
+    public IndexProperties getIndexProperties() {
+        return indexProperties;
+    }
+
     public IndexColumnList getColumnList() {
         return columnList;
     }

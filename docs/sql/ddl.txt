@@ -105,6 +105,14 @@ This way only a single column can be indexed, no combination of columns as with 
         field string INDEX [ USING <method> [WITH] (<index_property>=<value>) | OFF ]
     )
 
+Indexes over multiple columns can be defined using a Table-Constraint inside the ``CREATE TABLE`` statement::
+
+    CREATE TABLE t2 (
+        title string,
+        content string INDEX OFF,
+        INDEX ft USING fulltext(title, content) WITH (analyzer='vorarlbergerisch')
+    )
+
 
 
 

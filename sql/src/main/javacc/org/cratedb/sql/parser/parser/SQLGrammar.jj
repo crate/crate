@@ -12990,40 +12990,98 @@ tableConstraint(TableName constraintName) throws StandardException :
 }
 
 ConstraintDefinitionNode
-indexConstraintDefinition(TableName constraintName) throws StandardException : 
+indexConstraintDefinition(TableName constraintName) throws StandardException :
 {
-    boolean groupFormat = hasFeature(SQLParserFeature.GROUPING);
-
     String indexName = null;
+    String indexMethod = null;
     IndexColumnList indexColumnList = null;
-    JoinNode.JoinType joinType = null;
-    StorageLocation location = null;
+    IndexProperties indexProperties = null;
 }
 {
-    <INDEX> [indexName = identifier()]
+    <INDEX>
+    [indexName = identifier()]
+    <USING>
+    indexMethod = indexMethod()
     <LEFT_PAREN>
-    ( 
-      LOOKAHEAD ( { groupFormat } )
-      groupIndexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext))
-    |
-      LOOKAHEAD ( { !groupFormat } )
-      indexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext))
-    )
+       indexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext))
     <RIGHT_PAREN>
-    [ LOOKAHEAD ( { groupFormat && getToken(1).kind == USING } )
-      <USING> joinType = joinType() <JOIN> ]
-    [ <AS> location = getLocation() ]
+    [
+        <WITH>
+        <LEFT_PAREN>
+            indexProperties = indexProperties()
+        <RIGHT_PAREN>
+    ]
     {
         return (ConstraintDefinitionNode)nodeFactory.getNode(NodeTypes.INDEX_CONSTRAINT_NODE,
-                                                             constraintName,
-                                                             indexColumnList,
-                                                             indexName,
-                                                             joinType,
-                                                             location,
-                                                             parserContext);
+                                                                     constraintName,
+                                                                     indexName,
+                                                                     indexMethod,
+                                                                     indexColumnList,
+                                                                     indexProperties,
+                                                                     Boolean.FALSE,
+                                                                     parserContext);
     }
     
 }
+
+
+ConstraintDefinitionNode
+columnIndexConstraintDefinition(TableName constraintName, String columnName) throws StandardException :
+{
+    String indexMethod = null;
+    IndexColumnList indexColumnList = null;
+    IndexProperties indexProperties = null;
+    Boolean indexOff = Boolean.FALSE;
+}
+{
+    <INDEX>
+    (
+        <USING>
+        indexMethod = indexMethod()
+        [
+            LOOKAHEAD({getToken(2).kind != _DEFAULT}) // prevent collision with defaultClause()
+            <WITH>
+            <LEFT_PAREN>
+                indexProperties = indexProperties()
+            <RIGHT_PAREN>
+        ]
+    |
+        <OFF>
+        {
+            indexOff = Boolean.TRUE;
+        }
+    )
+    {
+        // add column to ColumnList
+        indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext);
+        IndexColumn indexColumn = (IndexColumn)
+                    nodeFactory.getNode(NodeTypes.INDEX_COLUMN,
+                                        null, // no TableName in this case
+                                        columnName,
+                                        Boolean.TRUE,
+                                        parserContext);
+        indexColumnList.add(indexColumn);
+
+        if (indexOff) {
+            // INDEX OFF CONSTRAINT
+            return (ConstraintDefinitionNode)nodeFactory.getNode(NodeTypes.INDEX_CONSTRAINT_NODE,
+                                                                                    constraintName,
+                                                                                    columnName,
+                                                                                    indexOff,
+                                                                                    parserContext);
+        } else {
+            return (ConstraintDefinitionNode)nodeFactory.getNode(NodeTypes.INDEX_CONSTRAINT_NODE,
+                                                                                    constraintName,
+                                                                                    columnName,
+                                                                                    indexMethod,
+                                                                                    indexColumnList,
+                                                                                    indexProperties,
+                                                                                    Boolean.TRUE,
+                                                                                    parserContext);
+        }
+    }
+}
+
 
 
 ConstraintDefinitionNode
@@ -13325,6 +13383,11 @@ columnConstraint(TableName constraintName,
     }
 |
     tcdn = checkConstraintDefinition(constraintName, columnName)
+    {
+        return tcdn;
+    }
+|
+    tcdn = columnIndexConstraintDefinition(constraintName, columnName)
     {
         return tcdn;
     }

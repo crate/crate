@@ -26,6 +26,10 @@ public class IndexProperties extends QueryTreeNode{
         return (String)analyzerProperty.getConstantValueAsObject();
     }
 
+    public Iterable<Map.Entry<String, ValueNode>> iterator() {
+        return keyValues.entrySet();
+    }
+
     @Override
     public String toString() {
         return keyValues.toString();

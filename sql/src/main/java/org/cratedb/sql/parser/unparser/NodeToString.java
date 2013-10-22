@@ -16,9 +16,10 @@
 
 package org.cratedb.sql.parser.unparser;
 
+import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
 
-import org.cratedb.sql.parser.StandardException;
+import java.util.Map;
 
 public class NodeToString
 {
@@ -287,20 +288,30 @@ public class NodeToString
     protected String indexConstraint(IndexConstraintDefinitionNode node) throws StandardException
     {
         StringBuilder builder = new StringBuilder("INDEX ");
-        
-        String indexName = node.getIndexName();
-        
-        if (indexName != null)
-            builder.append(indexName).append(' ');
-        
-        builder.append('(')
-               .append(indexColumnList(node.getIndexColumnList()))
-               .append(')');
-        
-        StorageLocation loc = node.getLocation();
-        if (loc != null)
-            builder.append(" AS ").append(loc);
-        
+        if (node.isIndexOff()) {
+            builder.append("OFF");
+        } else {
+            if (!node.isInlineColumnIndex()) {
+                String indexName = node.getIndexName();
+                if (indexName != null) { builder.append(indexName).append(' '); }
+            }
+            builder.append("USING ").append(node.getIndexMethod());
+            if (!node.isInlineColumnIndex()) {
+                builder.append("(")
+                       .append(indexColumnList(node.getIndexColumnList()))
+                       .append(")");
+            }
+            if (node.getIndexProperties() != null) {
+                builder.append(" WITH (");
+                for (Map.Entry<String, ValueNode> property : node.getIndexProperties().iterator()) {
+                    builder.append(String.format("\"%s\"", property.getKey()))
+                           .append("=")
+                           .append(toString(property.getValue()));
+                }
+                builder.append(")");
+            }
+        }
+
         return builder.toString();
     }
 
@@ -374,8 +385,6 @@ public class NodeToString
 
     protected String createIndexNode(CreateIndexNode node) throws StandardException {
         StringBuilder str = new StringBuilder("CREATE ");
-        if (node.getUniqueness())
-            str.append("UNIQUE ");
         str.append("INDEX");
         str.append(" ");
         
@@ -392,12 +401,18 @@ public class NodeToString
         str.append(toString(node.getIndexName()));
         str.append(" ON ");
         str.append(node.getIndexTableName());
+        str.append(" USING ");
+        str.append(node.getIndexMethod());
         str.append("(");
         str.append(toString(node.getColumnList()));
         str.append(")");
-        if (node.getJoinType() != null) {
-            str.append(String.format(" USING %s JOIN",
-                                     node.getJoinType() == JoinNode.JoinType.LEFT_OUTER ? "LEFT" : "RIGHT"));
+        if (node.getIndexProperties() != null) {
+            str.append(" WITH (");
+            for (Map.Entry<String, ValueNode> entry : node.getIndexProperties().iterator()) {
+                str.append("\"" + entry.getKey() + "\"=");
+                str.append(toString(entry.getValue()));
+            }
+            str.append(")");
         }
         return str.toString();
     }

@@ -1,1 +1,1 @@
-create table t1 (c1 int, c2 double, index indx1 (c1 DESC) AS BTREE)
+create table t1 (c1 int, c2 double, index indx1 using fulltext(c1) )
