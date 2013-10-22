@@ -26,7 +26,7 @@ public class IndexConstraintDefinitionNode extends ConstraintDefinitionNode impl
     private boolean indexOff;
     private boolean inlineColumnIndex;
     private IndexColumnList indexColumnList;
-    private IndexProperties indexProperties;
+    private GenericProperties indexProperties;
 
 
     @Override
@@ -49,7 +49,7 @@ public class IndexConstraintDefinitionNode extends ConstraintDefinitionNode impl
         this.indexName = (String) indexName;
         this.indexMethod = (String) indexMethod;
         this.indexColumnList = (IndexColumnList) indexColumnList;
-        this.indexProperties = (IndexProperties) indexProperties;
+        this.indexProperties = (GenericProperties) indexProperties;
         this.indexOff = false;
         this.inlineColumnIndex = (Boolean)inlineColumnIndex;
     }
@@ -91,7 +91,7 @@ public class IndexConstraintDefinitionNode extends ConstraintDefinitionNode impl
         return indexColumnList;
     }
 
-    public IndexProperties getIndexProperties() {
+    public GenericProperties getIndexProperties() {
         return indexProperties;
     }
 
