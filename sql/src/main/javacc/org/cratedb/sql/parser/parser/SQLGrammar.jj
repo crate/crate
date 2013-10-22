@@ -3171,6 +3171,8 @@ createStatements() throws StandardException :
     statementNode = udtDefinition(createOrReplace)
 |
     statementNode = indexDefinition()
+|
+    statementNode = analyzerDefinition()
 )
     {
         return statementNode;
@@ -10605,7 +10607,7 @@ indexDefinition() throws StandardException :
     TableName tableName;
     String indexMethod;
     IndexColumnList indexColumnList = null;
-    IndexProperties indexProperties = null;
+    GenericProperties indexProperties = null;
     ExistenceCheck cond;
 }
 {
@@ -10621,7 +10623,7 @@ indexDefinition() throws StandardException :
     [
         <WITH>
         <LEFT_PAREN>
-            indexProperties = indexProperties()
+            indexProperties = genericProperties()
         <RIGHT_PAREN>
     ]
     {
@@ -10686,21 +10688,25 @@ indexMethod() throws StandardException :
     }
 }
 
-IndexProperties
-indexProperties() throws StandardException :
+
+/**
+ * Generic Key Value Pairs
+ */
+GenericProperties
+genericProperties() throws StandardException :
 {
-    IndexProperties indexProperties = new IndexProperties();
+    GenericProperties genericProperties = (GenericProperties)nodeFactory.getNode(NodeTypes.GENERIC_PROPERTIES, parserContext);
 }
 {
-    indexProperty(indexProperties)
-    ( <COMMA> indexProperty(indexProperties) )*
+    genericProperty(genericProperties)
+    ( <COMMA> genericProperty(genericProperties) )*
     {
-        return indexProperties;
+        return genericProperties;
     }
 }
 
 void
-indexProperty(IndexProperties indexProperties) throws StandardException :
+genericProperty(GenericProperties genericProperties) throws StandardException :
 {
     String key;
     ValueNode value;
@@ -10710,7 +10716,149 @@ indexProperty(IndexProperties indexProperties) throws StandardException :
     <EQUALS_OPERATOR>
     value=literal()
     {
-        indexProperties.put(key, value);
+        genericProperties.put(key, value);
+    }
+}
+
+NamedNodeWithOptionalProperties
+namedNodeWithOptionalProperties() throws StandardException :
+{
+    String name = null;
+    GenericProperties properties = null;
+}
+{
+    name = identifier()
+    [
+        [<WITH>]
+        <LEFT_PAREN>
+            properties = genericProperties()
+        <RIGHT_PAREN>
+    ]
+    {
+        return (NamedNodeWithOptionalProperties)nodeFactory.getNode(NodeTypes.NAMED_NODE_WITH_OPTIONAL_PROPERTIES,
+                                                                        name,
+                                                                        properties,
+                                                                        parserContext);
+    }
+}
+
+/**
+ * CREATE ANALYZER
+ */
+StatementNode
+analyzerDefinition() throws StandardException :
+{
+    TableName analyzerName = null;
+    TableName extendedAnalyzerName = null;
+    AnalyzerElements analyzerElements = (AnalyzerElements)nodeFactory.getNode(NodeTypes.ANALYZER_ELEMENTS,
+                                                            (TokenFilterList)nodeFactory.getNode(NodeTypes.TOKEN_FILTER_LIST, parserContext),
+                                                            (CharFilterList)nodeFactory.getNode(NodeTypes.CHAR_FILTER_LIST, parserContext),
+                                                            parserContext);
+}
+{
+    <ANALYZER> analyzerName = qualifiedName()
+    [ <EXTENDS> extendedAnalyzerName = qualifiedName() ]
+    [<WITH>]
+    <LEFT_PAREN>
+        analyzerElement(analyzerElements)
+        (analyzerElement(analyzerElements))*
+    <RIGHT_PAREN>
+    {
+        if (extendedAnalyzerName == null && analyzerElements.getTokenizer() == null) {
+            throw new StandardException("Tokenizer missing from non-extended analyzer");
+        }
+
+        return (StatementNode)nodeFactory.getNode(NodeTypes.CREATE_ANALYZER_NODE,
+                                                    analyzerName,
+                                                    extendedAnalyzerName,
+                                                    analyzerElements,
+                                                    parserContext);
+    }
+}
+
+void analyzerElement(AnalyzerElements analyzerElements) throws StandardException :
+{}
+{
+    tokenizer(analyzerElements)
+    |
+    charFilterList(analyzerElements)
+    |
+    tokenFilterList(analyzerElements)
+}
+
+void tokenizer(AnalyzerElements analyzerElements) throws StandardException :
+{
+    GenericProperties tokenizerProperties = null;
+}
+{
+    <TOKENIZER>
+    [<WITH>]
+    <LEFT_PAREN>
+        tokenizerProperties = genericProperties()
+    <RIGHT_PAREN>
+    {
+        TokenizerNode tokenizerNode = (TokenizerNode)nodeFactory.getNode(NodeTypes.TOKENIZER_NODE,
+                                                                            tokenizerProperties,
+                                                                            parserContext);
+        analyzerElements.setTokenizer(tokenizerNode);
+    }
+}
+
+void charFilterList(AnalyzerElements analyzerElements) throws StandardException :
+{}
+{
+    <CHAR_FILTERS>
+    [<WITH>]
+    <LEFT_PAREN>
+        charFilter(analyzerElements)
+        (<COMMA> charFilter(analyzerElements))*
+    <RIGHT_PAREN>
+    {
+        return;
+    }
+}
+
+void charFilter(AnalyzerElements analyzerElements) throws StandardException :
+{
+    NamedNodeWithOptionalProperties namedNode = null;
+}
+{
+    namedNode = namedNodeWithOptionalProperties()
+    {
+        CharFilterNode charFilterNode = (CharFilterNode)nodeFactory.getNode(NodeTypes.CHAR_FILTER_NODE,
+                                                                                namedNode.getName(),
+                                                                                namedNode.getProperties(),
+                                                                                parserContext);
+        analyzerElements.addCharFilter(charFilterNode);
+    }
+}
+
+void tokenFilterList(AnalyzerElements analyzerElements) throws StandardException :
+{}
+{
+    <TOKEN_FILTERS>
+    [<WITH>]
+    <LEFT_PAREN>
+        tokenFilter(analyzerElements)
+        (<COMMA> tokenFilter(analyzerElements))*
+    <RIGHT_PAREN>
+    {
+        return;
+    }
+}
+
+void tokenFilter(AnalyzerElements analyzerElements) throws StandardException :
+{
+    NamedNodeWithOptionalProperties namedNode = null;
+}
+{
+    namedNode = namedNodeWithOptionalProperties()
+    {
+        TokenFilterNode tokenFilterNode = (TokenFilterNode)nodeFactory.getNode(NodeTypes.TOKEN_FILTER_NODE,
+                                                                                namedNode.getName(),
+                                                                                namedNode.getProperties(),
+                                                                                parserContext);
+        analyzerElements.addTokenFilter(tokenFilterNode);
     }
 }
 
@@ -12983,7 +13131,7 @@ indexConstraintDefinition(TableName constraintName) throws StandardException :
     String indexName = null;
     String indexMethod = null;
     IndexColumnList indexColumnList = null;
-    IndexProperties indexProperties = null;
+    GenericProperties indexProperties = null;
 }
 {
     <INDEX>
@@ -12996,7 +13144,7 @@ indexConstraintDefinition(TableName constraintName) throws StandardException :
     [
         <WITH>
         <LEFT_PAREN>
-            indexProperties = indexProperties()
+            indexProperties = genericProperties()
         <RIGHT_PAREN>
     ]
     {
@@ -13018,7 +13166,7 @@ columnIndexConstraintDefinition(TableName constraintName, String columnName) thr
 {
     String indexMethod = null;
     IndexColumnList indexColumnList = null;
-    IndexProperties indexProperties = null;
+    GenericProperties indexProperties = null;
     Boolean indexOff = Boolean.FALSE;
 }
 {
@@ -13030,7 +13178,7 @@ columnIndexConstraintDefinition(TableName constraintName, String columnName) thr
             LOOKAHEAD({getToken(2).kind != _DEFAULT}) // prevent collision with defaultClause()
             <WITH>
             <LEFT_PAREN>
-                indexProperties = indexProperties()
+                indexProperties = genericProperties()
             <RIGHT_PAREN>
         ]
     |

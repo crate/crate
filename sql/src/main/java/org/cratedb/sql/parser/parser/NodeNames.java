@@ -61,14 +61,14 @@ public interface NodeNames
 
     static final String AGGREGATE_WINDOW_FUNCTION_NAME = "org.cratedb.sql.parser.parser.AggregateWindowFunctionNode";
 
-    static final String INDEX_CONSTRAINT_NAME = "org.cratedb.sql.parser.parser.IndexConstraintDefinitionNode";
-
     static final String ALL_RESULT_COLUMN_NAME = "org.cratedb.sql.parser.parser.AllResultColumn";
 
     static final String ALTER_SERVER_NODE_NAME = "org.cratedb.sql.parser.parser.AlterServerNode";
     
     static final String ALTER_TABLE_NODE_NAME = "org.cratedb.sql.parser.parser.AlterTableNode";
-    
+
+    static final String ANALYZER_ELEMENTS_NAME = "org.cratedb.sql.parser.parser.AnalyzerElements";
+
     static final String AT_DROP_INDEX_NODE_NAME = "org.cratedb.sql.parser.parser.AlterDropIndexNode";
     
     static final String AT_ADD_INDEX_NODE_NAME = "org.cratedb.sql.parser.parser.AlterAddIndexNode";
@@ -105,6 +105,10 @@ public interface NodeNames
 
     static final String CHAR_CONSTANT_NODE_NAME = "org.cratedb.sql.parser.parser.CharConstantNode";
 
+    static final String CHAR_FILTER_LIST_NAME = "org.cratedb.sql.parser.parser.CharFilterList";
+
+    static final String CHAR_FILTER_NODE_NAME = "org.cratedb.sql.parser.parser.CharFilterNode";
+
     static final String CLOSE_STATEMENT_NODE_NAME = "org.cratedb.sql.parser.parser.CloseStatementNode";
 
     static final String COALESCE_FUNCTION_NODE_NAME = "org.cratedb.sql.parser.parser.CoalesceFunctionNode";
@@ -122,6 +126,8 @@ public interface NodeNames
     static final String COPY_STATEMENT_NODE_NAME = "org.cratedb.sql.parser.parser.CopyStatementNode";
 
     static final String CREATE_ALIAS_NODE_NAME = "org.cratedb.sql.parser.parser.CreateAliasNode";
+
+    static final String CREATE_ANALYZER_NODE_NAME = "org.cratedb.sql.parser.parser.CreateAnalyzerNode";
 
     static final String CREATE_INDEX_NODE_NAME = "org.cratedb.sql.parser.parser.CreateIndexNode";
 
@@ -201,6 +207,8 @@ public interface NodeNames
 
     static final String GENERATION_CLAUSE_NODE_NAME = "org.cratedb.sql.parser.parser.GenerationClauseNode";
 
+    static final String GENERIC_PROPERTIES_NAME = "org.cratedb.sql.parser.parser.GenericProperties";
+
     static final String GET_CURRENT_CONNECTION_NODE_NAME = "org.cratedb.sql.parser.parser.GetCurrentConnectionNode";
 
     static final String GRANT_NODE_NAME = "org.cratedb.sql.parser.parser.GrantNode";
@@ -222,6 +230,8 @@ public interface NodeNames
     static final String INDEX_COLUMN_NAME = "org.cratedb.sql.parser.parser.IndexColumn";
 
     static final String INDEX_COLUMN_LIST_NAME = "org.cratedb.sql.parser.parser.IndexColumnList";
+
+    static final String INDEX_CONSTRAINT_NAME = "org.cratedb.sql.parser.parser.IndexConstraintDefinitionNode";
 
     static final String INDEX_HINT_NODE_NAME = "org.cratedb.sql.parser.parser.IndexHintNode";
 
@@ -252,6 +262,8 @@ public interface NodeNames
     static final String MATERIALIZE_RESULT_SET_NODE_NAME = "org.cratedb.sql.parser.parser.MaterializeResultSetNode";
 
     static final String MODIFY_COLUMN_NODE_NAME = "org.cratedb.sql.parser.parser.ModifyColumnNode";
+
+    static final String NAMED_NODE_WITH_OPTIONAL_PROPERTIES_NAME = "org.cratedb.sql.parser.parser.NamedNodeWithOptionalProperties";
 
     static final String NESTED_COLUMN_REFERENCE_NAME = "org.cratedb.sql.parser.parser.NestedColumnReference";
 
@@ -362,6 +374,12 @@ public interface NodeNames
     static final String TEST_CONSTRAINT_NODE_NAME = "org.cratedb.sql.parser.parser.TestConstraintNode";
 
     static final String TIMESTAMP_OPERATOR_NODE_NAME = "org.cratedb.sql.parser.parser.TimestampOperatorNode";
+
+    static final String TOKEN_FILTER_LIST_NAME = "org.cratedb.sql.parser.parser.TokenFilterList";
+
+    static final String TOKEN_FILTER_NODE_NAME = "org.cratedb.sql.parser.parser.TokenFilterNode";
+
+    static final String TOKENIZER_NODE_NAME = "org.cratedb.sql.parser.parser.TokenizerNode";
 
     static final String TRANSACTION_CONTROL_NODE_NAME = "org.cratedb.sql.parser.parser.TransactionControlNode";
 
