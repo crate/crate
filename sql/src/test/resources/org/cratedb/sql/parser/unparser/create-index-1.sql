@@ -1,1 +1,1 @@
-CREATE INDEX idx1 ON t1(c1, c2 DESC)
+CREATE INDEX idx1 ON t1 using fulltext(c1, c2)

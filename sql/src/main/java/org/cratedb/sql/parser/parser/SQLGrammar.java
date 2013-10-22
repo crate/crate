@@ -13634,6 +13634,7 @@ columnReference() throws StandardException :
                                                                      indexMethod,
                                                                      indexColumnList,
                                                                      indexProperties,
+                                                                     Boolean.FALSE,
                                                                      parserContext);}
     throw new Error("Missing return statement in function");
   }
@@ -13690,6 +13691,7 @@ columnReference() throws StandardException :
                                                                                     indexMethod,
                                                                                     indexColumnList,
                                                                                     indexProperties,
+                                                                                    Boolean.TRUE,
                                                                                     parserContext);}
         }
     throw new Error("Missing return statement in function");
@@ -18924,11 +18926,6 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
-  private boolean jj_3_41() {
-    if (jj_3R_98()) return true;
-    return false;
-  }
-
   private boolean jj_3R_143() {
     Token xsp;
     xsp = jj_scanpos;
@@ -18937,8 +18934,8 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
-  private boolean jj_3R_359() {
-    if (jj_scan_token(RENAME)) return true;
+  private boolean jj_3_41() {
+    if (jj_3R_98()) return true;
     return false;
   }
 
@@ -18949,6 +18946,11 @@ List<String> list = new ArrayList<String>();
     jj_scanpos = xsp;
     if (jj_scan_token(72)) return true;
     }
+    return false;
+  }
+
+  private boolean jj_3R_359() {
+    if (jj_scan_token(RENAME)) return true;
     return false;
   }
 
@@ -18977,11 +18979,6 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
-  private boolean jj_3R_538() {
-    if (jj_scan_token(HOUR)) return true;
-    return false;
-  }
-
   private boolean jj_3_107() {
     Token xsp;
     xsp = jj_scanpos;
@@ -18989,6 +18986,11 @@ List<String> list = new ArrayList<String>();
     xsp = jj_scanpos;
     if (jj_3R_145()) jj_scanpos = xsp;
     if (jj_3R_69()) return true;
+    return false;
+  }
+
+  private boolean jj_3R_538() {
+    if (jj_scan_token(HOUR)) return true;
     return false;
   }
 
@@ -19061,13 +19063,18 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
+  private boolean jj_3_104() {
+    if (jj_3R_74()) return true;
+    return false;
+  }
+
   private boolean jj_3R_242() {
     if (jj_scan_token(NEW)) return true;
     return false;
   }
 
-  private boolean jj_3_104() {
-    if (jj_3R_74()) return true;
+  private boolean jj_3_103() {
+    if (jj_3R_142()) return true;
     return false;
   }
 
@@ -19078,11 +19085,6 @@ List<String> list = new ArrayList<String>();
 
   private boolean jj_3_71() {
     if (jj_3R_69()) return true;
-    return false;
-  }
-
-  private boolean jj_3_103() {
-    if (jj_3R_142()) return true;
     return false;
   }
 
@@ -21125,6 +21127,11 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
+  private boolean jj_3R_71() {
+    if (jj_3R_161()) return true;
+    return false;
+  }
+
   private boolean jj_3R_108() {
     Token xsp;
     xsp = jj_scanpos;
@@ -21140,11 +21147,6 @@ List<String> list = new ArrayList<String>();
 
   private boolean jj_3R_232() {
     if (jj_scan_token(BY)) return true;
-    return false;
-  }
-
-  private boolean jj_3R_71() {
-    if (jj_3R_161()) return true;
     return false;
   }
 
@@ -21203,23 +21205,23 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
-  private boolean jj_3R_524() {
-    if (jj_scan_token(BINARY)) return true;
-    return false;
-  }
-
   private boolean jj_3_112() {
     if (jj_3R_146()) return true;
     return false;
   }
 
-  private boolean jj_3R_523() {
-    if (jj_scan_token(NCLOB)) return true;
+  private boolean jj_3R_524() {
+    if (jj_scan_token(BINARY)) return true;
     return false;
   }
 
   private boolean jj_3R_301() {
     if (jj_3R_358()) return true;
+    return false;
+  }
+
+  private boolean jj_3R_523() {
+    if (jj_scan_token(NCLOB)) return true;
     return false;
   }
 
@@ -21374,6 +21376,14 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
+  private boolean jj_3_102() {
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_scan_token(380)) jj_scanpos = xsp;
+    if (jj_3R_141()) return true;
+    return false;
+  }
+
   private boolean jj_3R_129() {
     if (jj_scan_token(MINVALUE)) return true;
     return false;
@@ -21381,14 +21391,6 @@ List<String> list = new ArrayList<String>();
 
   private boolean jj_3R_384() {
     if (jj_scan_token(CARET)) return true;
-    return false;
-  }
-
-  private boolean jj_3_102() {
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_scan_token(380)) jj_scanpos = xsp;
-    if (jj_3R_141()) return true;
     return false;
   }
 
@@ -21472,13 +21474,13 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
-  private boolean jj_3R_184() {
-    if (jj_3R_314()) return true;
+  private boolean jj_3R_308() {
+    if (jj_3R_377()) return true;
     return false;
   }
 
-  private boolean jj_3R_308() {
-    if (jj_3R_377()) return true;
+  private boolean jj_3R_184() {
+    if (jj_3R_314()) return true;
     return false;
   }
 
@@ -21554,28 +21556,6 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
-  private boolean jj_3R_126() {
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3R_247()) {
-    jj_scanpos = xsp;
-    if (jj_3R_248()) {
-    jj_scanpos = xsp;
-    if (jj_3R_249()) {
-    jj_scanpos = xsp;
-    if (jj_3_83()) {
-    jj_scanpos = xsp;
-    if (jj_3_84()) {
-    jj_scanpos = xsp;
-    if (jj_3R_250()) return true;
-    }
-    }
-    }
-    }
-    }
-    return false;
-  }
-
   private boolean jj_3R_169() {
     Token xsp;
     xsp = jj_scanpos;
@@ -21600,6 +21580,28 @@ List<String> list = new ArrayList<String>();
     xsp = jj_scanpos;
     if (jj_scan_token(193)) jj_scanpos = xsp;
     if (jj_scan_token(NULL)) return true;
+    return false;
+  }
+
+  private boolean jj_3R_126() {
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3R_247()) {
+    jj_scanpos = xsp;
+    if (jj_3R_248()) {
+    jj_scanpos = xsp;
+    if (jj_3R_249()) {
+    jj_scanpos = xsp;
+    if (jj_3_83()) {
+    jj_scanpos = xsp;
+    if (jj_3_84()) {
+    jj_scanpos = xsp;
+    if (jj_3R_250()) return true;
+    }
+    }
+    }
+    }
+    }
     return false;
   }
 
@@ -21704,13 +21706,13 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
-  private boolean jj_3R_170() {
-    if (jj_scan_token(VARCHAR)) return true;
+  private boolean jj_3R_368() {
+    if (jj_scan_token(EXPLAIN)) return true;
     return false;
   }
 
-  private boolean jj_3R_368() {
-    if (jj_scan_token(EXPLAIN)) return true;
+  private boolean jj_3R_170() {
+    if (jj_scan_token(VARCHAR)) return true;
     return false;
   }
 
@@ -21864,13 +21866,13 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
-  private boolean jj_3R_261() {
-    if (jj_3R_348()) return true;
+  private boolean jj_3R_461() {
+    if (jj_scan_token(DEALLOCATE)) return true;
     return false;
   }
 
-  private boolean jj_3R_461() {
-    if (jj_scan_token(DEALLOCATE)) return true;
+  private boolean jj_3R_261() {
+    if (jj_3R_348()) return true;
     return false;
   }
 
@@ -21932,13 +21934,13 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
-  private boolean jj_3R_133() {
-    if (jj_3R_253()) return true;
+  private boolean jj_3R_141() {
+    if (jj_scan_token(REFERENCES)) return true;
     return false;
   }
 
-  private boolean jj_3R_141() {
-    if (jj_scan_token(REFERENCES)) return true;
+  private boolean jj_3R_133() {
+    if (jj_3R_253()) return true;
     return false;
   }
 
@@ -21954,11 +21956,6 @@ List<String> list = new ArrayList<String>();
 
   private boolean jj_3R_343() {
     if (jj_3R_77()) return true;
-    return false;
-  }
-
-  private boolean jj_3_34() {
-    if (jj_3R_90()) return true;
     return false;
   }
 
@@ -21983,6 +21980,11 @@ List<String> list = new ArrayList<String>();
 
   private boolean jj_3R_457() {
     if (jj_scan_token(DECLARE)) return true;
+    return false;
+  }
+
+  private boolean jj_3_34() {
+    if (jj_3R_90()) return true;
     return false;
   }
 
@@ -22132,11 +22134,6 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
-  private boolean jj_3_80() {
-    if (jj_3R_125()) return true;
-    return false;
-  }
-
   private boolean jj_3R_377() {
     Token xsp;
     xsp = jj_scanpos;
@@ -22149,6 +22146,11 @@ List<String> list = new ArrayList<String>();
 
   private boolean jj_3R_467() {
     if (jj_scan_token(UNIQUE)) return true;
+    return false;
+  }
+
+  private boolean jj_3_80() {
+    if (jj_3R_125()) return true;
     return false;
   }
 
@@ -22320,6 +22322,11 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
+  private boolean jj_3R_378() {
+    if (jj_scan_token(INDEX)) return true;
+    return false;
+  }
+
   private boolean jj_3R_333() {
     Token xsp;
     xsp = jj_scanpos;
@@ -22332,11 +22339,6 @@ List<String> list = new ArrayList<String>();
 
   private boolean jj_3R_414() {
     if (jj_scan_token(CHAR)) return true;
-    return false;
-  }
-
-  private boolean jj_3R_378() {
-    if (jj_scan_token(INDEX)) return true;
     return false;
   }
 
@@ -23203,21 +23205,6 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
-  private boolean jj_3R_329() {
-    Token xsp;
-    xsp = jj_scanpos;
-    if (jj_3R_406()) {
-    jj_scanpos = xsp;
-    if (jj_3R_407()) return true;
-    }
-    return false;
-  }
-
-  private boolean jj_3R_406() {
-    if (jj_3R_474()) return true;
-    return false;
-  }
-
   private boolean jj_3R_153() {
     if (jj_scan_token(GRANT)) return true;
     return false;
@@ -23246,6 +23233,21 @@ List<String> list = new ArrayList<String>();
     jj_lookingAhead = false;
     if (!jj_semLA || jj_3R_154()) return true;
     }
+    return false;
+  }
+
+  private boolean jj_3R_329() {
+    Token xsp;
+    xsp = jj_scanpos;
+    if (jj_3R_406()) {
+    jj_scanpos = xsp;
+    if (jj_3R_407()) return true;
+    }
+    return false;
+  }
+
+  private boolean jj_3R_406() {
+    if (jj_3R_474()) return true;
     return false;
   }
 
@@ -23348,6 +23350,11 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
+  private boolean jj_3R_367() {
+    if (jj_scan_token(TRUNCATE)) return true;
+    return false;
+  }
+
   private boolean jj_3R_227() {
     if (jj_scan_token(POSITION)) return true;
     return false;
@@ -23355,11 +23362,6 @@ List<String> list = new ArrayList<String>();
 
   private boolean jj_3R_220() {
     if (jj_scan_token(CURRENT)) return true;
-    return false;
-  }
-
-  private boolean jj_3R_367() {
-    if (jj_scan_token(TRUNCATE)) return true;
     return false;
   }
 
@@ -23665,13 +23667,13 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
-  private boolean jj_3R_423() {
-    if (jj_3R_478()) return true;
+  private boolean jj_3_117() {
+    if (jj_3R_149()) return true;
     return false;
   }
 
-  private boolean jj_3_117() {
-    if (jj_3R_149()) return true;
+  private boolean jj_3R_423() {
+    if (jj_3R_478()) return true;
     return false;
   }
 
@@ -23726,6 +23728,11 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
+  private boolean jj_3R_279() {
+    if (jj_scan_token(UNIQUE)) return true;
+    return false;
+  }
+
   private boolean jj_3R_491() {
     if (jj_scan_token(DELETE)) return true;
     return false;
@@ -23747,11 +23754,6 @@ List<String> list = new ArrayList<String>();
     xsp = jj_scanpos;
     if (jj_3R_252()) jj_scanpos = xsp;
     if (jj_3R_253()) return true;
-    return false;
-  }
-
-  private boolean jj_3R_279() {
-    if (jj_scan_token(UNIQUE)) return true;
     return false;
   }
 
@@ -23817,6 +23819,11 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
+  private boolean jj_3_116() {
+    if (jj_3R_148()) return true;
+    return false;
+  }
+
   private boolean jj_3R_541() {
     if (jj_scan_token(RIGHT)) return true;
     return false;
@@ -23829,11 +23836,6 @@ List<String> list = new ArrayList<String>();
 
   private boolean jj_3_86() {
     if (jj_3R_131()) return true;
-    return false;
-  }
-
-  private boolean jj_3_116() {
-    if (jj_3R_148()) return true;
     return false;
   }
 
@@ -23904,8 +23906,18 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
+  private boolean jj_3_115() {
+    if (jj_3R_146()) return true;
+    return false;
+  }
+
   private boolean jj_3R_452() {
     if (jj_3R_491()) return true;
+    return false;
+  }
+
+  private boolean jj_3R_277() {
+    if (jj_scan_token(PRIMARY)) return true;
     return false;
   }
 
@@ -23924,18 +23936,13 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
-  private boolean jj_3_115() {
-    if (jj_3R_146()) return true;
-    return false;
-  }
-
   private boolean jj_3R_509() {
     if (jj_3R_519()) return true;
     return false;
   }
 
-  private boolean jj_3R_277() {
-    if (jj_scan_token(PRIMARY)) return true;
+  private boolean jj_3R_282() {
+    if (jj_3R_358()) return true;
     return false;
   }
 
@@ -23955,11 +23962,6 @@ List<String> list = new ArrayList<String>();
     }
     }
     }
-    return false;
-  }
-
-  private boolean jj_3R_282() {
-    if (jj_3R_358()) return true;
     return false;
   }
 
@@ -24058,13 +24060,13 @@ List<String> list = new ArrayList<String>();
     return false;
   }
 
-  private boolean jj_3R_448() {
-    if (jj_scan_token(CS)) return true;
+  private boolean jj_3_114() {
+    if (jj_3R_71()) return true;
     return false;
   }
 
-  private boolean jj_3_114() {
-    if (jj_3R_71()) return true;
+  private boolean jj_3R_448() {
+    if (jj_scan_token(CS)) return true;
     return false;
   }
 

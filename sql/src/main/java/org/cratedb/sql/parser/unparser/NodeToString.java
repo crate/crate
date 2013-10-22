@@ -287,20 +287,19 @@ public class NodeToString
 
     protected String indexConstraint(IndexConstraintDefinitionNode node) throws StandardException
     {
+
         StringBuilder builder = new StringBuilder("INDEX ");
+        String indexName = node.getIndexName();
+        if (indexName != null) { builder.append(indexName).append(' '); }
         if (node.isIndexOff()) {
             builder.append("OFF");
         } else {
-            if (!node.isInlineColumnIndex()) {
-                String indexName = node.getIndexName();
-                if (indexName != null) { builder.append(indexName).append(' '); }
-            }
             builder.append("USING ").append(node.getIndexMethod());
-            if (!node.isInlineColumnIndex()) {
-                builder.append("(")
-                       .append(indexColumnList(node.getIndexColumnList()))
-                       .append(")");
-            }
+
+            builder.append("(")
+                   .append(indexColumnList(node.getIndexColumnList()))
+                   .append(")");
+
             if (node.getIndexProperties() != null) {
                 builder.append(" WITH (");
                 for (Map.Entry<String, ValueNode> property : node.getIndexProperties().iterator()) {
@@ -311,7 +310,6 @@ public class NodeToString
                 builder.append(")");
             }
         }
-
         return builder.toString();
     }
 
@@ -363,6 +361,8 @@ public class NodeToString
             return "PRIMARY KEY(" + toString(node.getColumnList()) + ")";
         case UNIQUE:
             return "UNIQUE(" + toString(node.getColumnList()) + ")";
+        case INDEX:
+            return indexConstraint((IndexConstraintDefinitionNode)node);
         default:
             return "**UNKNOWN(" + node.getConstraintType() + ")";
         }

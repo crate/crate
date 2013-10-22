@@ -1,1 +1,0 @@
-CREATE INDEX IF NOT EXISTS idx1 ON table1(p.a, p.b, Z_ORDER_LAT_LON(c.c1, c.c2), c.d, c.e) USING LEFT JOIN

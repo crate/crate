@@ -1,1 +1,0 @@
-CREATE INDEX IF NOT EXISTS idx1 ON table1(a, b, Z_ORDER_LAT_LON(c1, c2), d, e)

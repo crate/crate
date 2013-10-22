@@ -1,1 +1,1 @@
-create table t1 (c1 int, c2 double, index indx1 (c1 ASC), c3 int)
+create table t1 (c1 int, c2 double, c3 int, index "ft" using fulltext(c1, c2, c3) with (analyzer='german'))
