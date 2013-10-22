@@ -1489,6 +1489,87 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1L, response.rows()[0][0]);
     }
 
+    @Test
+    public void testSelectFromInformationSchemaTable() throws Exception {
+        execute("select TABLE_NAME from INFORMATION_SCHEMA.Tables");
+        assertEquals(0L, response.rowCount());
+
+        execute("create table test (col1 integer primary key, col2 string)");
+
+        execute("select table_name, number_of_shards, number_of_replicas from INFORMATION_SCHEMA.Tables");
+        assertEquals(1L, response.rowCount());
+        assertEquals("test", response.rows()[0][0]);
+        assertEquals(5, response.rows()[0][1]);
+        assertEquals(1, response.rows()[0][2]);
+    }
+
+    @Test
+    public void testSelectStarFromInformationSchemaTable() throws Exception {
+        execute("select * from INFORMATION_SCHEMA.Tables");
+        assertEquals(0L, response.rowCount());
+        execute("create table test (col1 integer primary key, col2 string)");
+
+        execute("select * from INFORMATION_SCHEMA.Tables");
+        assertEquals(1L, response.rowCount());
+        assertEquals("test", response.rows()[0][0]);
+        assertEquals(5, response.rows()[0][1]);
+        assertEquals(1, response.rows()[0][2]);
+    }
+
+    @Test
+    public void testSelectStarFromInformationSchemaTableWithOrderBy() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string)");
+        execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
+
+        execute("select * from INFORMATION_SCHEMA.Tables order by table_name asc");
+        assertEquals(2L, response.rowCount());
+        assertEquals("foo", response.rows()[0][0]);
+        assertEquals(3, response.rows()[0][1]);
+        assertEquals(1, response.rows()[0][2]);
+
+        assertEquals("test", response.rows()[1][0]);
+        assertEquals(5, response.rows()[1][1]);
+        assertEquals(1, response.rows()[1][2]);
+    }
+
+    @Test
+    public void testSelectStarFromInformationSchemaTableWithOrderByAndLimit() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string)");
+        execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
+
+        execute("select * from INFORMATION_SCHEMA.Tables order by table_name asc limit 1");
+        assertEquals(1L, response.rowCount());
+        assertEquals("foo", response.rows()[0][0]);
+        assertEquals(3, response.rows()[0][1]);
+        assertEquals(1, response.rows()[0][2]);
+    }
+
+    @Test
+    public void testSelectStarFromInformationSchemaTableWithOrderByTwoColumnsAndLimit() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string) clustered into 1 shards");
+        execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
+        execute("create table bar (col1 integer primary key, col2 string) clustered into 3 shards");
+
+        execute("select table_name, number_of_shards from INFORMATION_SCHEMA.Tables order by number_of_shards desc, table_name asc limit 2");
+        assertEquals(2L, response.rowCount());
+
+        assertEquals("bar", response.rows()[0][0]);
+        assertEquals(3, response.rows()[0][1]);
+        assertEquals("foo", response.rows()[1][0]);
+        assertEquals(3, response.rows()[1][1]);
+    }
+
+    @Test
+    public void testSelectStarFromInformationSchemaTableWithOrderByAndLimitOffset() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string)");
+        execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
+
+        execute("select * from INFORMATION_SCHEMA.Tables order by table_name asc limit 1 offset 1");
+        assertEquals(1L, response.rowCount());
+        assertEquals("test", response.rows()[0][0]);
+        assertEquals(5, response.rows()[0][1]);
+        assertEquals(1, response.rows()[0][2]);
+    }
 
     private String getIndexMapping(String index) throws IOException {
         ClusterStateRequest request = Requests.clusterStateRequest()

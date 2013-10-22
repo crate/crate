@@ -21,13 +21,13 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
                 public static final String NUMBER_OF_REPLICAS = "number_of_replicas";
             }
 
-            public TablesTable() {
+            TablesTable() {
                 cols.add(Columns.TABLE_NAME);
                 cols.add(Columns.NUMBER_OF_SHARDS);
                 cols.add(Columns.NUMBER_OF_REPLICAS);
             }
 
-            public Iterable<String> cols() {
+            Iterable<String> cols() {
                 return cols;
             }
         }

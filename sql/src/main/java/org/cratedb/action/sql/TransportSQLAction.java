@@ -11,6 +11,9 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.action.admin.cluster.state.TransportClusterStateAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -83,7 +86,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             TransportCountAction transportCountAction,
             TransportCreateIndexAction transportCreateIndexAction,
             TransportDeleteIndexAction transportDeleteIndexAction,
-            TransportClusterUpdateCrateSettingsAction transportClusterUpdateCrateSettingsAction) {
+            TransportClusterUpdateCrateSettingsAction transportClusterUpdateCrateSettingsAction,
+            TransportClusterStateAction transportClusterStateAction) {
         super(settings, threadPool);
         this.sqlParseService = sqlParseService;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
@@ -100,6 +104,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.transportDeleteIndexAction = transportDeleteIndexAction;
         this.transportClusterUpdateCrateSettingsAction = transportClusterUpdateCrateSettingsAction;
+        this.transportClusterStateAction = transportClusterStateAction;
     }
 
     private abstract class ESResponseToSQLResponseListener<T extends ActionResponse> implements ActionListener<T> {
@@ -191,6 +196,11 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             ParsedStatement stmt = sqlParseService.parse(request.stmt(), request.args());
             ESRequestBuilder builder = new ESRequestBuilder(stmt);
             switch (stmt.type()) {
+                case INFORMATION_SCHEMA_TABLES:
+                    ClusterStateRequest clusterStateRequest = stmt.buildClusterStateRequest();
+                    transportClusterStateAction.execute(clusterStateRequest,
+                        new ClusterStateResponseListener(stmt, listener));
+                    break;
                 case INSERT_ACTION:
                     IndexRequest indexRequest = builder.buildIndexRequest();
                     transportIndexAction.execute(indexRequest, new IndexResponseListener(stmt, listener));
