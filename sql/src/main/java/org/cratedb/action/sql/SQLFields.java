@@ -78,7 +78,7 @@ public class SQLFields {
         this.hit = hit;
     }
 
-    public void applyGetResponse(NodeExecutionContext.TableExecutionContext tableContext, GetResponse getResponse) {
+    public void applyGetResponse(ITableExecutionContext tableContext, GetResponse getResponse) {
         this.hit = searchHitFromGetResponse(tableContext, getResponse);
     }
 
@@ -119,7 +119,7 @@ public class SQLFields {
      * build a SearchHit out of a GetResponse
      * Apply DocumentMapping again as Realtime-GetRequests only fetch from source
      */
-    private SearchHit searchHitFromGetResponse(NodeExecutionContext.TableExecutionContext tableContext, GetResponse getResponse) {
+    private SearchHit searchHitFromGetResponse(ITableExecutionContext tableContext, GetResponse getResponse) {
 
         Map<String, SearchHitField> searchFields = new HashMap<>(getResponse.getFields().size());
         for (Map.Entry<String, GetField> entry : getResponse.getFields().entrySet()) {

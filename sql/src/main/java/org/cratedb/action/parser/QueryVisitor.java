@@ -2,6 +2,7 @@ package org.cratedb.action.parser;
 
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.action.sql.TableExecutionContext;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
@@ -30,7 +31,7 @@ public class QueryVisitor extends XContentVisitor {
 
 
     private Object getMappedValue(
-            NodeExecutionContext.TableExecutionContext tc,
+            TableExecutionContext tc,
             ValueNode value,
             String columnName){
 

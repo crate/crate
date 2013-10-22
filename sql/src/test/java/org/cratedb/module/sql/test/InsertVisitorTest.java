@@ -3,6 +3,7 @@ package org.cratedb.module.sql.test;
 import com.google.common.collect.ImmutableSet;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.action.sql.TableExecutionContext;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -23,8 +24,7 @@ public class InsertVisitorTest {
             StandardException {
 
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
-        NodeExecutionContext.TableExecutionContext tec = mock(
-                NodeExecutionContext.TableExecutionContext.class);
+        TableExecutionContext tec = mock(TableExecutionContext.class);
         when(nec.tableContext("locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("name", "kind"));
 

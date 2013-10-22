@@ -5,6 +5,7 @@ import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.parser.TableVisitor;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.action.sql.TableExecutionContext;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -35,8 +36,7 @@ public class TableVisitorTest {
 
     private ParsedStatement execStatement(String sql, Object[] args) throws StandardException {
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
-        NodeExecutionContext.TableExecutionContext tec = mock(
-                NodeExecutionContext.TableExecutionContext.class);
+        TableExecutionContext tec = mock(TableExecutionContext.class);
         // Force enabling query planner
         Settings settings = ImmutableSettings.builder().put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, true).build();
         QueryPlanner queryPlanner = new QueryPlanner(settings);
