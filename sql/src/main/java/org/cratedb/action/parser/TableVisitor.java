@@ -20,6 +20,7 @@ public class TableVisitor extends XContentVisitor {
     private Map<String, Object> mappingMeta = newHashMap();
     private Map<String, Object> mapping = newHashMap();
     private ColumnReference routingColumn = null;
+    private List<String> primaryKeyColumns = null;
 
     private final String[] allowedColumnTypes = {"string", "integer", "long", "short", "double",
                                                  "float", "byte", "boolean", "timestamp"};
@@ -65,8 +66,6 @@ public class TableVisitor extends XContentVisitor {
         indexSettings.put("number_of_replicas", node.numberOfReplicas(1));
         indexSettings.put("number_of_shards", node.numberOfShards(5));
 
-        routingColumn = node.routingColumn();
-
         // build mapping
         for (TableElementNode tableElement : node.getTableElementList()) {
             switch(tableElement.getNodeType()) {
@@ -77,6 +76,16 @@ public class TableVisitor extends XContentVisitor {
                     visit((ConstraintDefinitionNode)tableElement);
             }
         }
+
+        routingColumn = node.routingColumn();
+        // currently it's not supported to set the routing column different to the
+        // primary key column
+        if (routingColumn != null && !primaryKeyColumns.contains(routingColumn.getColumnName())) {
+            throw new SQLParseException("Only columns declared as primary key can be used for " +
+                    "routing");
+        }
+
+
         stopTraversal = true;
 
         return node;
@@ -112,11 +121,11 @@ public class TableVisitor extends XContentVisitor {
     public Visitable visit(ConstraintDefinitionNode node) {
         switch(node.getConstraintType()) {
             case PRIMARY_KEY:
-                String[] pkColumnNames = node.getColumnList().getColumnNames();
-                if (pkColumnNames.length > 1) {
+                primaryKeyColumns = Arrays.asList(node.getColumnList().getColumnNames());
+                if (primaryKeyColumns.size() > 1) {
                     throw new SQLParseException("Multiple Primary Key Columns not Supported.");
                 }
-                mappingMeta.put("primary_keys", pkColumnNames[0]);
+                mappingMeta.put("primary_keys", primaryKeyColumns.get(0));
                 break;
             // TODO: handle INDEX-DEFINITION
             default:

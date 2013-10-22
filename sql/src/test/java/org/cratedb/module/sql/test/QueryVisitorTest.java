@@ -6,13 +6,16 @@ import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.parser.XContentGenerator;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.action.sql.TableExecutionContext;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -27,6 +30,9 @@ import static org.mockito.Mockito.when;
 public class QueryVisitorTest {
 
     private ParsedStatement stmt;
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test(expected = SQLParseException.class)
     public void testUnsupportedStatement() throws StandardException, IOException {
@@ -43,13 +49,12 @@ public class QueryVisitorTest {
 
     private ParsedStatement execStatement(String sql, Object[] args) throws StandardException {
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
-        NodeExecutionContext.TableExecutionContext tec = mock(
-                NodeExecutionContext.TableExecutionContext.class);
+        TableExecutionContext tec = mock(TableExecutionContext.class);
         // Disable query planner here to save mocking
         Settings settings = ImmutableSettings.builder().put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, false).build();
         QueryPlanner queryPlanner = new QueryPlanner(settings);
         when(nec.queryPlanner()).thenReturn(queryPlanner);
-        when(nec.tableContext("locations")).thenReturn(tec);
+        when(nec.tableContext(null, "locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("a", "b"));
         stmt = new ParsedStatement(sql, args, nec);
         return stmt;
@@ -247,11 +252,10 @@ public class QueryVisitorTest {
     public void testSelectNestedColumnsFromTable() throws StandardException, IOException {
 
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
-        NodeExecutionContext.TableExecutionContext tec = mock(
-                NodeExecutionContext.TableExecutionContext.class);
+        TableExecutionContext tec = mock(TableExecutionContext.class);
         QueryPlanner queryPlanner = mock(QueryPlanner.class);
         when(nec.queryPlanner()).thenReturn(queryPlanner);
-        when(nec.tableContext("persons")).thenReturn(tec);
+        when(nec.tableContext(null, "persons")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("message", "person"));
 
         String sql = "select persons.message, persons.person['addresses'] from persons " +
@@ -282,11 +286,10 @@ public class QueryVisitorTest {
             IOException {
 
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
-        NodeExecutionContext.TableExecutionContext tec = mock(
-                NodeExecutionContext.TableExecutionContext.class);
+        TableExecutionContext tec = mock(TableExecutionContext.class);
         QueryPlanner queryPlanner = mock(QueryPlanner.class);
         when(nec.queryPlanner()).thenReturn(queryPlanner);
-        when(nec.tableContext("persons")).thenReturn(tec);
+        when(nec.tableContext(null, "persons")).thenReturn(tec);
         String sql = "select persons.message, person['name'] from persons " +
                 "where person['addresses'][0]['city'] = 'Berlin'";
         stmt = new ParsedStatement(sql, new Object[0], nec);
@@ -297,9 +300,8 @@ public class QueryVisitorTest {
             IOException {
 
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
-        NodeExecutionContext.TableExecutionContext tec = mock(
-                NodeExecutionContext.TableExecutionContext.class);
-        when(nec.tableContext("persons")).thenReturn(tec);
+        TableExecutionContext tec = mock(TableExecutionContext.class);
+        when(nec.tableContext(null, "persons")).thenReturn(tec);
         String sql = "select persons.message, person['name'], person['addresses'][0] from persons";
         stmt = new ParsedStatement(sql, new Object[0], nec);
     }
@@ -748,6 +750,78 @@ public class QueryVisitorTest {
         // after the grouping is done
         execStatement("select count(*), kind from locations group by kind limit 4 offset 3");
         assertEquals("{\"query\":{\"match_all\":{}}}", getSource());
+    }
+
+    @Test
+    public void testSelectWithWhereLikePrefixQuery() throws Exception {
+        execStatement("select kind from locations where kind like 'P%'");
+        assertEquals(
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P*\"}},\"size\":1000}",
+            getSource()
+        );
+    }
+
+    @Test
+    public void testSelectWithWhereLikePrefixQueryEscaped() throws Exception {
+        execStatement("select kind from locations where kind like 'P\\%'");
+        assertEquals(
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P%\"}},\"size\":1000}",
+            getSource()
+        );
+    }
+
+    @Test
+    public void testSelectWithWhereLikeWithEscapedStar() throws Exception {
+        execStatement("select kind from locations where kind like 'P*'");
+        assertEquals(
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\\\\*\"}},\"size\":1000}",
+            getSource()
+        );
+    }
+
+    @Test
+    public void testSelectWithWhereLikeWithoutWildcards() throws Exception {
+        execStatement("select kind from locations where kind like 'P'");
+        assertEquals(
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\"}},\"size\":1000}",
+            getSource()
+        );
+    }
+
+    @Test
+    public void testSelectWithWhereLikePrefixQueryUnderscore() throws Exception {
+        execStatement("select kind from locations where kind like 'P_'");
+        assertEquals(
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P?\"}},\"size\":1000}",
+            getSource()
+        );
+    }
+
+    @Test
+    public void testSelectWithWhereLikePrefixQueryUnderscoreEscaped() throws Exception {
+        execStatement("select kind from locations where kind like 'P\\_'");
+        assertEquals(
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P_\"}},\"size\":1000}",
+            getSource()
+        );
+    }
+
+    @Test
+    public void testSelectWithWhereLikePrefixQueryQuestionmark() throws Exception {
+        execStatement("select kind from locations where kind like 'P?'");
+        assertEquals(
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\\\\?\"}},\"size\":1000}",
+            getSource()
+        );
+    }
+
+    @Test
+    public void testSelectWithWhereLikeReversed() throws Exception {
+        execStatement("select kind from locations where 'P_' like kind");
+        assertEquals(
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P?\"}},\"size\":1000}",
+            getSource()
+        );
     }
 
     @Test

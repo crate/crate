@@ -5,6 +5,7 @@ import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.parser.TableVisitor;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.action.sql.TableExecutionContext;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -35,8 +36,7 @@ public class TableVisitorTest {
 
     private ParsedStatement execStatement(String sql, Object[] args) throws StandardException {
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
-        NodeExecutionContext.TableExecutionContext tec = mock(
-                NodeExecutionContext.TableExecutionContext.class);
+        TableExecutionContext tec = mock(TableExecutionContext.class);
         // Force enabling query planner
         Settings settings = ImmutableSettings.builder().put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, true).build();
         QueryPlanner queryPlanner = new QueryPlanner(settings);
@@ -171,6 +171,14 @@ public class TableVisitorTest {
     public void testDropTable() throws Exception {
         execStatement("drop table phrases");
         assertNotNull(stmt.buildDeleteIndexRequest());
+    }
+
+    @Test
+    public void testCreateTableThrowRoutingColumnNotInPrimaryKeysException() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Only columns declared as primary key can be used for routing");
+        execStatement("create table phrases (pk_col int primary key, col2 string)" +
+                "clustered by(col2)");
     }
 
 }

@@ -1,7 +1,9 @@
 package org.cratedb.action.sql;
 
 import org.cratedb.action.parser.*;
+import org.cratedb.sql.CrateException;
 import org.cratedb.sql.ExceptionHelper;
+import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.facet.InternalSQLFacet;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.NodeTypes;
@@ -51,6 +53,7 @@ public class ParsedStatement {
     private final Object[] args;
     private final StatementNode statementNode;
     private final XContentVisitor visitor;
+    private String schemaName;
 
     public static enum ActionType {
         SEARCH_ACTION,
@@ -61,12 +64,13 @@ public class ParsedStatement {
         UPDATE_ACTION,
         CREATE_INDEX_ACTION,
         DELETE_INDEX_ACTION,
-        MULTI_GET_ACTION
+        MULTI_GET_ACTION,
+        INFORMATION_SCHEMA_TABLES,
     }
 
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;
 
-    private NodeExecutionContext.TableExecutionContext tableContext;
+    private ITableExecutionContext tableContext;
     private Map<String, Object> updateDoc;
     private Map<String, Object> plannerResults;
     private boolean countRequest;
@@ -85,6 +89,10 @@ public class ParsedStatement {
         }
 
         return new OrderByColumnIdx[0];
+    }
+
+    public void schemaName(String schemaName) {
+        this.schemaName = schemaName;
     }
 
     public ParsedStatement(String stmt, Object[] args, NodeExecutionContext context) throws
@@ -118,19 +126,56 @@ public class ParsedStatement {
         return indices.add(index);
     }
 
+    public String tableName() {
+        return indices().get(0);
+    }
+
     public NodeExecutionContext context(){
         return context;
     }
 
-    public void tableContext(NodeExecutionContext.TableExecutionContext tableContext) {
-        this.tableContext = tableContext;
+    /**
+     * Access the tableContext for {@link #tableName()} lazily.
+     * The tableName has to be set with {@link #addIndex(String)} before this method can be used.
+     *
+     * Note that for tables that use dynamic mapping without any explicit columns this will always
+     * throw an exception.
+     *
+     * @return TableExecutionContext for the table {@link #tableName()}
+     * @throws SQLParseException in case the TableExecutionContext couldn't be loaded.
+     */
+    public ITableExecutionContext tableContextSafe() throws SQLParseException {
+        if (tableContext == null) {
+            assert tableName() != null;
+            tableContext = context().tableContext(schemaName, tableName());
+            if (tableContext == null) {
+                throw new SQLParseException("No table definition found for " + tableName());
+            }
+        }
+        return tableContext;
     }
 
-    public NodeExecutionContext.TableExecutionContext tableContext() {
+    /**
+     * Same as {@link #tableContextSafe()} but doesn't throw an Exception if the tableContext
+     * cannot be loaded.
+     *
+     * @return TableExecutionContext for the table {@link #tableName()}
+     */
+    public ITableExecutionContext tableContext() {
+        if (tableContext == null) {
+            assert tableName() != null;
+            tableContext = context().tableContext(tableName());
+        }
         return tableContext;
     }
 
     public ActionType type() {
+        if (schemaName != null
+            && schemaName.equalsIgnoreCase(InformationSchemaTableExecutionContext.SCHEMA_NAME)
+            && tableName().equalsIgnoreCase(InformationSchemaTableExecutionContext.TablesTable.NAME))
+        {
+            return ActionType.INFORMATION_SCHEMA_TABLES;
+        }
         switch (statementNode.getNodeType()) {
             case NodeTypes.INSERT_NODE:
                 if (((InsertVisitor)visitor).isBulk()) {
@@ -419,6 +464,9 @@ public class ParsedStatement {
                     rows.add(fields.getRowValues());
                     successful++;
                 }
+            } else {
+                // failure on at least one shard
+                throw new CrateException(singleResponses[i].getFailure().getMessage());
             }
         }
         response.cols(cols());

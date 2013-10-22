@@ -69,6 +69,7 @@ string, integer/long, float/double and date type:
     !=           not equal - same as <>
     is not null  field is not null and not missing
     is null      field is null or missing
+    like         matches a part of the given value
     ===========  =================================
 
 .. note::
@@ -136,6 +137,56 @@ For a full list please refer to the `elasticsearch date-format`_ site.
 For custom date types, or defined date formats in the object mapping
 the corresponding format should be used for a comparison. Otherwise
 the operation may fail.
+
+Like
+----
+
+`Crate` supports the `LIKE` operator. This operator can be used to query for
+rows where only part of a columns value should match something. For example to
+get all locations where the name starts with 'Ar' the following query can be
+used::
+
+    cr> select name from locations where name like 'Ar%' order by name asc
+    +-------------------+
+    | name              |
+    +-------------------+
+    | Argabuthon        |
+    | Arkintoofle Minor |
+    +-------------------+
+
+The following wildcard operators are available:
+
+    == ========================================
+    %  A substitute for zero or more characters
+    _  A substitute for a single character
+    == ========================================
+
+The wildcard operators may be used at any point in the string literal. For
+example a more complicated like clause could look like this::
+
+    cr> select name from locations where name like '_r%a%' order by name asc
+    +------------+
+    | name       |
+    +------------+
+    | Argabuthon |
+    +------------+
+
+In order so search for the wildcard characters themselves it is possible to
+escape them using a backslash::
+
+    cr> select description from locations where description like '%\%' order by description asc
+    +-------------------------+
+    | description             |
+    +-------------------------+
+    | The end of the Galaxy.% |
+    +-------------------------+
+
+.. note::
+
+    Queries with a like clause can be quite slow. Especially if the like clause
+    starts with a wildcard character. Because in that case CRATE has to iterate
+    over all rows and can't utilize the index. For better performance consider
+    using a fulltext index.
 
 Limits
 ------

@@ -5,6 +5,7 @@ import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.parser.XContentGenerator;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.action.sql.TableExecutionContext;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -39,13 +40,12 @@ public class QueryPlannerTest {
 
     private ParsedStatement execStatement(String sql, Object[] args) throws StandardException {
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
-        NodeExecutionContext.TableExecutionContext tec = mock(
-                NodeExecutionContext.TableExecutionContext.class);
+        TableExecutionContext tec = mock(TableExecutionContext.class);
         // Force enabling query planner
         Settings settings = ImmutableSettings.builder().put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, true).build();
         QueryPlanner queryPlanner = new QueryPlanner(settings);
         when(nec.queryPlanner()).thenReturn(queryPlanner);
-        when(nec.tableContext("phrases")).thenReturn(tec);
+        when(nec.tableContext(null, "phrases")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("pk_col", "phrase"));
         when(tec.isRouting("pk_col")).thenReturn(true);
         when(tec.primaryKeys()).thenReturn(new ArrayList<String>(1) {{

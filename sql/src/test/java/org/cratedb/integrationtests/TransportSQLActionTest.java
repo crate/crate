@@ -5,10 +5,7 @@ import com.google.common.collect.Ordering;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.sql.DuplicateKeyException;
-import org.cratedb.sql.SQLParseException;
-import org.cratedb.sql.TableAlreadyExistsException;
-import org.cratedb.sql.TableUnknownException;
+import org.cratedb.sql.*;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -31,9 +28,7 @@ import java.util.*;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Maps.newHashMap;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
@@ -1266,6 +1261,9 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                     .field("type", "string")
                     .field("index", "not_analyzed")
                 .endObject()
+                .startObject("age")
+                    .field("type", "integer")
+                .endObject()
                 .startObject("name")
                     .field("type", "string")
                     .field("index", "not_analyzed")
@@ -1284,25 +1282,67 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         Map<String, String> details = newHashMap();
         details.put("job", "Sandwitch Maker");
-        execute("insert into characters (race, gender, name, details) values (?, ?, ?, ?)",
-            new Object[] {"Human", "male", "Arthur Dent", details});
+        execute("insert into characters (race, gender, age, name, details) values (?, ?, ?, ?, ?)",
+            new Object[] {"Human", "male", 34, "Arthur Dent", details});
 
         details = newHashMap();
         details.put("job", "Mathematician");
-        execute("insert into characters (race, gender, name, details) values (?, ?, ?, ?)",
-            new Object[] {"Human", "female", "Trillian", details});
+        execute("insert into characters (race, gender, age, name, details) values (?, ?, ?, ?, ?)",
+            new Object[] {"Human", "female", 32, "Trillian", details});
         execute("insert into characters (race, gender, name, details) values ('Human', 'male', 'Ford Perfect')");
         execute("insert into characters (race, gender, name, details) values ('Android', 'male', 'Marving')");
         execute("insert into characters (race, gender, name, details) values ('Vogon', 'male', 'Jeltz')");
-        execute("insert into characters (race, gender, name, detials) values ('Vogon', 'male', 'Kwaltz')");
+        execute("insert into characters (race, gender, name, details) values ('Vogon', 'male', 'Kwaltz')");
         refresh();
 
         execute("select count(*) from characters");
         assertEquals(6L, response.rows()[0][0]);
     }
 
+    @Test
+    public void testSelectWithWhereLike() throws Exception {
+        groupBySetup();
 
-    private String getMapping(String index) throws IOException {
+        execute("select name from characters where name like '%ltz'");
+        assertEquals(2L, response.rowCount());
+
+        execute("select count(*) from characters where name like 'Jeltz'");
+        assertEquals(1L, response.rows()[0][0]);
+
+        execute("select count(*) from characters where race like '%o%'");
+        assertEquals(3L, response.rows()[0][0]);
+
+        execute("insert into characters (race, gender, name, details) values ('Vo*', 'male', 'Kwaltzz')");
+        execute("insert into characters (race, gender, name, details) values ('Vo?', 'male', 'Kwaltzzz')");
+        execute("insert into characters (race, gender, name, details) values ('Vo!', 'male', 'Kwaltzzzz')");
+        execute("insert into characters (race, gender, name, details) values ('Vo%', 'male', 'Kwaltzzzz')");
+        refresh();
+
+        execute("select race from characters where race like 'Vo*'");
+        assertEquals(1L, response.rowCount());
+        assertEquals("Vo*", response.rows()[0][0]);
+
+        execute("select race from characters where race like 'Vo?'");
+        assertEquals(1L, response.rowCount());
+        assertEquals("Vo?", response.rows()[0][0]);
+
+        execute("select race from characters where race like 'Vo!'");
+        assertEquals(1L, response.rowCount());
+        assertEquals("Vo!", response.rows()[0][0]);
+
+        execute("select race from characters where race like 'Vo\\%'");
+        assertEquals(1L, response.rowCount());
+        assertEquals("Vo%", response.rows()[0][0]);
+
+        execute("select race from characters where race like 'Vo_'");
+        assertEquals(4L, response.rowCount());
+
+        execute("select count(*) from characters where age like 32");
+        assertEquals(1L, response.rows()[0][0]);
+    }
+
+
+    private String getIndexMapping(String index) throws IOException {
         ClusterStateRequest request = Requests.clusterStateRequest()
                 .filterRoutingTable(true)
                 .filterNodes(true)
@@ -1323,7 +1363,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         return builder.string();
     }
 
-    private String getSettings(String index) throws IOException {
+    private String getIndexSettings(String index) throws IOException {
         ClusterStateRequest request = Requests.clusterStateRequest()
                 .filterRoutingTable(true)
                 .filterNodes(true)
@@ -1372,8 +1412,8 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 "\"index.version.created\":\"900599\"" +
                 "}}}";
 
-        assertEquals(expectedMapping, getMapping("test"));
-        assertEquals(expectedSettings, getSettings("test"));
+        assertEquals(expectedMapping, getIndexMapping("test"));
+        assertEquals(expectedSettings, getIndexSettings("test"));
 
         // test index usage
         execute("insert into test (col1, col2) values (1, 'foo')");
@@ -1411,8 +1451,8 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                     "\"index.version.created\":\"900599\"" +
                 "}}}";
 
-        assertEquals(expectedMapping, getMapping("test"));
-        assertEquals(expectedSettings, getSettings("test"));
+        assertEquals(expectedMapping, getIndexMapping("test"));
+        assertEquals(expectedSettings, getIndexSettings("test"));
     }
 
     @Test
@@ -1456,6 +1496,11 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertThat(response.rowCount(), is(2L));
         assertThat(response.cols(), arrayContainingInAnyOrder("id", "foo"));
         assertThat(new String[]{(String)response.rows()[0][0], (String)response.rows()[1][0]}, arrayContainingInAnyOrder("1", "2"));
+    }
+
+    @Test (expected = TableUnknownException.class)
+    public void selectMultiGetRequestFromNonExistentTable() throws IOException {
+        execute("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"});
     }
 
 }
