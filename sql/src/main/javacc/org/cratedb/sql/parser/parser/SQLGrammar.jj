@@ -3171,8 +3171,6 @@ createStatements() throws StandardException :
     statementNode = udtDefinition(createOrReplace)
 |
     statementNode = indexDefinition()
-|
-    statementNode = analyzerDefinition()
 )
     {
         return statementNode;
@@ -10616,7 +10614,8 @@ indexDefinition() throws StandardException :
     indexName = qualifiedName() 
     <ON> tableName = qualifiedName()
     <USING>
-    indexMethod = indexMethod() <LEFT_PAREN>
+    indexMethod = indexMethod()
+    <LEFT_PAREN>
        indexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext))
     <RIGHT_PAREN>
     [
@@ -10713,17 +10712,6 @@ indexProperty(IndexProperties indexProperties) throws StandardException :
     {
         indexProperties.put(key, value);
     }
-}
-
-StatementNode
-analyzerDefinition() throws StandardException :
-{}
-{
-    <ANALYZER>
-    {
-        return null;
-    }
-
 }
 
 /**

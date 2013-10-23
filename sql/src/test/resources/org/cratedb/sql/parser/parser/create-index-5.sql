@@ -1,0 +1,1 @@
+CREATE INDEX i1 ON t1 USING fulltext("c1", c2) with (analyzer='german')

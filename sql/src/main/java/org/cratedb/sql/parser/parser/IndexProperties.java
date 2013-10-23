@@ -5,7 +5,7 @@ import org.cratedb.sql.parser.StandardException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class IndexProperties extends QueryTreeNode{
+public class IndexProperties extends QueryTreeNode {
     public static final String ANALYZER_PROPERTY = "analyzer";
 
     private final Map<String, ValueNode> keyValues = new HashMap<>();

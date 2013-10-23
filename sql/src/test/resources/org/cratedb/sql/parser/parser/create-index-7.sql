@@ -1,1 +1,0 @@
-create index myIndex on myTable using fulltext(myTable.myColumn) with (analyzer='myanalyzer')

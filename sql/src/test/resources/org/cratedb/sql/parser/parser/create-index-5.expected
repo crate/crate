@@ -1,0 +1,25 @@
+org.cratedb.sql.parser.parser.CreateIndexNode@51827002
+name: i1
+statementType: CREATE INDEX
+unique: false
+indexName: i1
+tableName: t1
+indexMethod: fulltext
+indexColumns: 
+indexProperties: {analyzer=value: german
+type: CHAR(6) NOT NULL
+}
+existenceCheck: NO_CONDITION
+	
+	org.cratedb.sql.parser.parser.IndexColumnList@4a87bd1c
+
+	[0]:	
+	org.cratedb.sql.parser.parser.IndexColumn@15909f7e
+	columnName: c1
+	tableName: null
+	ascending
+	[1]:	
+	org.cratedb.sql.parser.parser.IndexColumn@49d71441
+	columnName: c2
+	tableName: null
+	ascending
