@@ -13,6 +13,7 @@ import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
+import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.count.CountRequest;
@@ -426,8 +427,17 @@ public class ParsedStatement {
     }
 
     public SQLResponse buildResponse(BulkResponse bulkResponse) {
-        // TODO: add rows affected
-        return buildEmptyResponse(0);
+        // Pseudo row count by counting non-failed responses
+        // This assumes one document was hit by each request, which is only true for e.g.
+        // multiple IndexRequests.
+        BulkItemResponse[] responses = bulkResponse.getItems();
+        int rowsAffected = 0;
+        for (BulkItemResponse response : responses) {
+            if (!response.isFailed()) {
+                rowsAffected++;
+            }
+        }
+        return buildEmptyResponse(rowsAffected);
     }
 
     public SQLResponse buildResponse(GetResponse getResponse) {
@@ -477,7 +487,7 @@ public class ParsedStatement {
 
     public SQLResponse buildResponse(DeleteByQueryResponse deleteByQueryResponse) {
         // TODO: add rows affected
-        return buildEmptyResponse(0);
+        return buildEmptyResponse(-1);
     }
 
     public DeleteByQueryRequest buildDeleteByQueryRequest() throws StandardException {
