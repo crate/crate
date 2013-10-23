@@ -22,16 +22,20 @@ import org.cratedb.sql.parser.parser.JoinNode.JoinType;
 public class IndexConstraintDefinitionNode extends ConstraintDefinitionNode implements IndexDefinition
 {
     private String indexName;
+    private String indexMethod;
+    private boolean indexOff;
+    private boolean inlineColumnIndex;
     private IndexColumnList indexColumnList;
-    private JoinType joinType;
-    private StorageLocation location;
-    
+    private IndexProperties indexProperties;
+
+
     @Override
     public void init(Object tableName,
-                     Object indexColumnList,
                      Object indexName,
-                     Object joinType,
-                     Object location)
+                     Object indexMethod,
+                     Object indexColumnList,
+                     Object indexProperties,
+                     Object inlineColumnIndex)
     {
         super.init(tableName,
                    ConstraintType.INDEX,
@@ -43,14 +47,43 @@ public class IndexConstraintDefinitionNode extends ConstraintDefinitionNode impl
                    ConstraintType.INDEX);
         
         this.indexName = (String) indexName;
+        this.indexMethod = (String) indexMethod;
         this.indexColumnList = (IndexColumnList) indexColumnList;
-        this.joinType = (JoinType) joinType;
-        this.location = (StorageLocation) location;
+        this.indexProperties = (IndexProperties) indexProperties;
+        this.indexOff = false;
+        this.inlineColumnIndex = (Boolean)inlineColumnIndex;
     }
-    
+
+    /**
+     * INITIALIZED AS "INDEX OFF"
+     *
+     * @param tableName the name of the constraint, nearly always null
+     * @param indexName this is the column name
+     * @param indexOff if field should not be indexed
+     */
+    @Override
+    public void init(Object tableName, Object indexName, Object indexOff) {
+        super.init(tableName,
+                ConstraintType.INDEX,
+                null,
+                null,
+                null,
+                null,
+                StatementType.UNKNOWN,
+                ConstraintType.INDEX
+                );
+        this.indexOff = (Boolean)indexOff;
+        this.indexName = (String)indexName;
+        this.inlineColumnIndex = true;
+    }
+
     public String getIndexName()
     {
         return indexName;
+    }
+
+    public String getIndexMethod() {
+        return indexMethod;
     }
     
     public IndexColumnList getIndexColumnList()
@@ -58,14 +91,18 @@ public class IndexConstraintDefinitionNode extends ConstraintDefinitionNode impl
         return indexColumnList;
     }
 
+    public IndexProperties getIndexProperties() {
+        return indexProperties;
+    }
+
+    @Override
     public JoinType getJoinType()
     {
-        return joinType;
+        throw new UnsupportedOperationException();
     }
-    
-    public StorageLocation getLocation()
-    {
-        return location;
+
+    public boolean isInlineColumnIndex() {
+        return inlineColumnIndex;
     }
     
     // This is used for the non-unique "INDEX" defintions only
@@ -86,9 +123,9 @@ public class IndexConstraintDefinitionNode extends ConstraintDefinitionNode impl
         
         IndexConstraintDefinitionNode other = (IndexConstraintDefinitionNode) node;
         this.indexName = other.indexName;
+        this.indexMethod = other.indexMethod;
         this.indexColumnList = other.indexColumnList;
-        this.joinType = other.joinType;
-        this.location = other.location;
+        this.indexProperties = other.indexProperties; // TODO: deepcopy?
     }
     
     @Override
@@ -96,8 +133,9 @@ public class IndexConstraintDefinitionNode extends ConstraintDefinitionNode impl
     {
         return super.toString()
                 + "\nindexName: " + indexName
-                + "\njoinType: " + joinType
-                + "\nlocation: " + location
+                + "\nindexOff: " + indexOff
+                + "\nindexMethod: " + indexMethod
+                + "\nindexProperties: " + indexProperties
                 ;
     }
 
@@ -109,5 +147,7 @@ public class IndexConstraintDefinitionNode extends ConstraintDefinitionNode impl
             indexColumnList.treePrint(depth + 1);
         }
     }
+
+    public boolean isIndexOff() { return indexOff; }
     
 }

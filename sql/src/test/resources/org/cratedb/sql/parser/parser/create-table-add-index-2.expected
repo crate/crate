@@ -25,13 +25,14 @@ tableElementList:
 	elementType: AT_DROP_CONSTRAINT
 	
 	indexName: indx1
-	joinType: null
-	location: BTREE
+	indexOff: false
+	indexMethod: fulltext
+	indexProperties: null
 	indexColumnList: 		
-		org.cratedb.sql.parser.parser.IndexColumnList@114beb40
+		org.cratedb.sql.parser.parser.IndexColumnList@1594af77
 
 		[0]:		
-		org.cratedb.sql.parser.parser.IndexColumn@f41bf9f
+		org.cratedb.sql.parser.parser.IndexColumn@548bb8b2
 		columnName: c1
 		tableName: null
-		descending
+		ascending

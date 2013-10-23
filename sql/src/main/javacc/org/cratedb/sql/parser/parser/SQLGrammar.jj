@@ -89,6 +89,11 @@ import java.util.*;
 class SQLGrammar
 {
 
+    /**
+     * SYSTEM COLUMN NAMES
+     */
+    private static final List<String> SYSTEM_COLUMN_NAMES = Arrays.asList(new String[]{"_version", "_ttl"});
+
     /* SAVEPOINT variations */
     // TODO: I think these should be constants in the savepoint node. ***
     private static final int SAVEPOINT_UNIQUE = 0;
@@ -1776,11 +1781,6 @@ class SQLGrammar
          }
     }
 
-    /**
-     * SYSTEM COLUMN NAMES
-     */
-    private static final List<String> SYSTEM_COLUMN_NAMES = Arrays.asList(new String[]{"_version", "_ttl"});
-
     boolean systemColumnFollows()
     {
         Token tok = null;
@@ -2447,6 +2447,12 @@ TOKEN [IGNORE_CASE] :
 TOKEN [IGNORE_CASE] :
 {
   <FLOAT: "float">
+| <FULLTEXT: "fulltext">
+| <ANALYZER: "analyzer">
+| <TOKENIZER: "tokenizer">
+| <TOKEN_FILTERS: "token_filters">
+| <CHAR_FILTERS: "char_filters">
+| <EXTENDS: "extends">
 }
 
 /* This list should contain non-SQL92 keywords that are not reserved.
@@ -9213,8 +9219,9 @@ void
 indexItemList(IndexColumnList columnList) throws StandardException :
 {}
 {
-    indexItem(columnList) 
-    ( <COMMA> indexItem(columnList) )*
+    // support adding tablename and schemaname
+    unorderedGroupIndexColumnItem(columnList)
+    ( <COMMA> unorderedGroupIndexColumnItem(columnList) )*
 }
 
 void indexItem(IndexColumnList columnList) throws StandardException :
@@ -10593,35 +10600,30 @@ lockGranularity() throws StandardException :
 StatementNode
 indexDefinition() throws StandardException :
 {
-    Boolean unique = Boolean.FALSE;
     Properties properties = null;
     TableName indexName;
     TableName tableName;
+    String indexMethod;
     IndexColumnList indexColumnList = null;
-    boolean groupFormat = hasFeature(SQLParserFeature.GROUPING);
-    JoinNode.JoinType joinType = null;
+    IndexProperties indexProperties = null;
     ExistenceCheck cond;
-    StorageLocation location = null;
 }
 {
-    [ unique = unique() ] 
     <INDEX>
     cond = createCondition()
     indexName = qualifiedName() 
     <ON> tableName = qualifiedName()
+    <USING>
+    indexMethod = indexMethod()
     <LEFT_PAREN>
-    (
-      LOOKAHEAD ( { groupFormat } )
-      groupIndexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext))
-    |
-      LOOKAHEAD ( { !groupFormat } )
-      indexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext))
-    )
+       indexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext))
     <RIGHT_PAREN>
-    [ LOOKAHEAD ( { groupFormat && getToken(1).kind == USING } )
-      <USING> joinType = joinType() <JOIN> ]
-    [ properties = propertyList(false) <CHECK_PROPERTIES>]
-    [ <AS> location = getLocation() ]
+    [
+        <WITH>
+        <LEFT_PAREN>
+            indexProperties = indexProperties()
+        <RIGHT_PAREN>
+    ]
     {
         /* User allowed to specify schema name on table and index.
          * If no schema name specified for index, then it "inherits" 
@@ -10645,16 +10647,19 @@ indexDefinition() throws StandardException :
                                             indexName + ", " + tableName);
             }
         }
+        for (IndexColumn column: indexColumnList) {
+            if (column.getTableName() != null && !column.getTableName().equals(tableName)) {
+                throw new StandardException("Specified tables do not match: " + column.getTableName() + ", " + tableName);
+            }
+        }
         return (StatementNode)nodeFactory.getNode(NodeTypes.CREATE_INDEX_NODE,
-                                                  unique,
-                                                  null,
+                                                  false,
                                                   indexName,
                                                   tableName,
+                                                  indexMethod,
                                                   indexColumnList,
-                                                  joinType,
-                                                  properties,
+                                                  indexProperties,
                                                   cond,
-                                                  location,
                                                   parserContext);
     }
 }
@@ -10666,6 +10671,46 @@ unique() throws StandardException :
     <UNIQUE>
     {
         return Boolean.TRUE;
+    }
+}
+
+String
+indexMethod() throws StandardException :
+{
+    Token tok = null;
+}
+{
+    tok = <FULLTEXT>
+    {
+        return tok.image;
+    }
+}
+
+IndexProperties
+indexProperties() throws StandardException :
+{
+    IndexProperties indexProperties = new IndexProperties();
+}
+{
+    indexProperty(indexProperties)
+    ( <COMMA> indexProperty(indexProperties) )*
+    {
+        return indexProperties;
+    }
+}
+
+void
+indexProperty(IndexProperties indexProperties) throws StandardException :
+{
+    String key;
+    ValueNode value;
+}
+{
+    key=identifier()
+    <EQUALS_OPERATOR>
+    value=literal()
+    {
+        indexProperties.put(key, value);
     }
 }
 
@@ -12933,40 +12978,98 @@ tableConstraint(TableName constraintName) throws StandardException :
 }
 
 ConstraintDefinitionNode
-indexConstraintDefinition(TableName constraintName) throws StandardException : 
+indexConstraintDefinition(TableName constraintName) throws StandardException :
 {
-    boolean groupFormat = hasFeature(SQLParserFeature.GROUPING);
-
     String indexName = null;
+    String indexMethod = null;
     IndexColumnList indexColumnList = null;
-    JoinNode.JoinType joinType = null;
-    StorageLocation location = null;
+    IndexProperties indexProperties = null;
 }
 {
-    <INDEX> [indexName = identifier()]
+    <INDEX>
+    [indexName = identifier()]
+    <USING>
+    indexMethod = indexMethod()
     <LEFT_PAREN>
-    ( 
-      LOOKAHEAD ( { groupFormat } )
-      groupIndexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext))
-    |
-      LOOKAHEAD ( { !groupFormat } )
-      indexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext))
-    )
+       indexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext))
     <RIGHT_PAREN>
-    [ LOOKAHEAD ( { groupFormat && getToken(1).kind == USING } )
-      <USING> joinType = joinType() <JOIN> ]
-    [ <AS> location = getLocation() ]
+    [
+        <WITH>
+        <LEFT_PAREN>
+            indexProperties = indexProperties()
+        <RIGHT_PAREN>
+    ]
     {
         return (ConstraintDefinitionNode)nodeFactory.getNode(NodeTypes.INDEX_CONSTRAINT_NODE,
-                                                             constraintName,
-                                                             indexColumnList,
-                                                             indexName,
-                                                             joinType,
-                                                             location,
-                                                             parserContext);
+                                                                     constraintName,
+                                                                     indexName,
+                                                                     indexMethod,
+                                                                     indexColumnList,
+                                                                     indexProperties,
+                                                                     Boolean.FALSE,
+                                                                     parserContext);
     }
     
 }
+
+
+ConstraintDefinitionNode
+columnIndexConstraintDefinition(TableName constraintName, String columnName) throws StandardException :
+{
+    String indexMethod = null;
+    IndexColumnList indexColumnList = null;
+    IndexProperties indexProperties = null;
+    Boolean indexOff = Boolean.FALSE;
+}
+{
+    <INDEX>
+    (
+        <USING>
+        indexMethod = indexMethod()
+        [
+            LOOKAHEAD({getToken(2).kind != _DEFAULT}) // prevent collision with defaultClause()
+            <WITH>
+            <LEFT_PAREN>
+                indexProperties = indexProperties()
+            <RIGHT_PAREN>
+        ]
+    |
+        <OFF>
+        {
+            indexOff = Boolean.TRUE;
+        }
+    )
+    {
+        // add column to ColumnList
+        indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext);
+        IndexColumn indexColumn = (IndexColumn)
+                    nodeFactory.getNode(NodeTypes.INDEX_COLUMN,
+                                        null, // no TableName in this case
+                                        columnName,
+                                        Boolean.TRUE,
+                                        parserContext);
+        indexColumnList.add(indexColumn);
+
+        if (indexOff) {
+            // INDEX OFF CONSTRAINT
+            return (ConstraintDefinitionNode)nodeFactory.getNode(NodeTypes.INDEX_CONSTRAINT_NODE,
+                                                                                    constraintName,
+                                                                                    columnName,
+                                                                                    indexOff,
+                                                                                    parserContext);
+        } else {
+            return (ConstraintDefinitionNode)nodeFactory.getNode(NodeTypes.INDEX_CONSTRAINT_NODE,
+                                                                                    constraintName,
+                                                                                    columnName,
+                                                                                    indexMethod,
+                                                                                    indexColumnList,
+                                                                                    indexProperties,
+                                                                                    Boolean.TRUE,
+                                                                                    parserContext);
+        }
+    }
+}
+
 
 
 ConstraintDefinitionNode
@@ -13268,6 +13371,11 @@ columnConstraint(TableName constraintName,
     }
 |
     tcdn = checkConstraintDefinition(constraintName, columnName)
+    {
+        return tcdn;
+    }
+|
+    tcdn = columnIndexConstraintDefinition(constraintName, columnName)
     {
         return tcdn;
     }
@@ -15366,6 +15474,12 @@ nonReservedKeyword() :
 | tok = <WHEN>
 | tok = <WHITESPACE>
 | tok = <YEAR_MONTH>
+// CRATE non-reserved keywords
+| tok = <ANALYZER>
+| tok = <TOKENIZER>
+| tok = <TOKEN_FILTERS>
+| tok = <CHAR_FILTERS>
+| tok = <EXTENDS>
 )
     {
         // Remember last identifier token and whether it was delimited.

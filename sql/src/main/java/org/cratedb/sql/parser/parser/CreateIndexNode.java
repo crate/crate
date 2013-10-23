@@ -39,11 +39,8 @@
 
 package org.cratedb.sql.parser.parser;
 
-import org.cratedb.sql.parser.parser.JoinNode.JoinType;
-
 import org.cratedb.sql.parser.StandardException;
-
-import java.util.Properties;
+import org.cratedb.sql.parser.parser.JoinNode.JoinType;
 
 /**
  * A CreateIndexNode is the root of a QueryTree that represents a CREATE INDEX
@@ -54,48 +51,41 @@ import java.util.Properties;
 public class CreateIndexNode extends DDLStatementNode implements IndexDefinition
 {
     boolean unique;
-    String indexType;
     TableName indexName;
     TableName tableName;
+    String indexMethod;
     IndexColumnList columnList;
-    JoinType joinType;
-    Properties properties;
+    IndexProperties indexProperties;
     ExistenceCheck existenceCheck;
-    StorageLocation storageLocation;
-    
+
     /**
      * Initializer for a CreateIndexNode
      *
      * @param unique True means it's a unique index
-     * @param indexType The type of index
      * @param indexName The name of the index
      * @param tableName The name of the table the index will be on
      * @param columnList A list of columns, in the order they
      *                   appear in the index.
-     * @param properties The optional properties list associated with the index.
      *
      * @exception StandardException Thrown on error
      */
     public void init(Object unique,
-                     Object indexType,
                      Object indexName,
                      Object tableName,
+                     Object indexMethod,
                      Object columnList,
-                     Object joinType,
-                     Object properties,
-                     Object existenceCheck,
-                     Object storageLocation) 
+                     Object indexProperties,
+                     Object existenceCheck)
             throws StandardException {
         initAndCheck(indexName);
-        this.unique = ((Boolean)unique).booleanValue();
-        this.indexType = (String)indexType;
+        this.unique = (Boolean)unique;
         this.indexName = (TableName)indexName;
         this.tableName = (TableName)tableName;
+        this.indexMethod = (String)indexMethod;
         this.columnList = (IndexColumnList)columnList;
-        this.joinType = (JoinType)joinType;
-        this.properties = (Properties)properties;
+        this.indexProperties = (IndexProperties)indexProperties;
         this.existenceCheck = (ExistenceCheck)existenceCheck;
-        this.storageLocation = (StorageLocation) storageLocation;
+
     }
 
     /**
@@ -106,17 +96,15 @@ public class CreateIndexNode extends DDLStatementNode implements IndexDefinition
 
         CreateIndexNode other = (CreateIndexNode)node;
         this.unique = other.unique;
-        this.indexType = other.indexType;
         this.indexName = (TableName)
             getNodeFactory().copyNode(other.indexName, getParserContext());
         this.tableName = (TableName)
             getNodeFactory().copyNode(other.tableName, getParserContext());
+        this.indexMethod = other.indexMethod;
         this.columnList = (IndexColumnList)
             getNodeFactory().copyNode(other.columnList, getParserContext());
-        this.joinType = other.joinType;
-        this.properties = other.properties; // TODO: Clone?
+        this.indexProperties = (IndexProperties) getNodeFactory().copyNode(other.indexProperties, getParserContext());
         this.existenceCheck = other.existenceCheck;
-        this.storageLocation = other.storageLocation;
     }
 
     /**
@@ -129,13 +117,12 @@ public class CreateIndexNode extends DDLStatementNode implements IndexDefinition
     public String toString() {
         return super.toString() +
             "unique: " + unique + "\n" +
-            "indexType: " + indexType + "\n" +
             "indexName: " + indexName + "\n" +
             "tableName: " + tableName + "\n" +
-            "joinType: " + joinType + "\n" +
-            "properties: " + properties + "\n" +
-            "existenceCheck: " + existenceCheck + "\n" +
-            "storageLocation: " + storageLocation + "\n";
+            "indexMethod: " + indexMethod + "\n" +
+            "indexColumns: " + columnList + "\n" +
+            "indexProperties: " + indexProperties + "\n" +
+            "existenceCheck: " + existenceCheck + "\n";
     }
 
     public void printSubNodes(int depth) {
@@ -150,24 +137,30 @@ public class CreateIndexNode extends DDLStatementNode implements IndexDefinition
     public boolean getUniqueness() { 
         return unique; 
     }
-    public String getIndexType() { 
-        return indexType;
+
+    @Override
+    public JoinType getJoinType() {
+        throw new UnsupportedOperationException("JoinType not supported on Crate Index");
     }
-    public TableName getIndexName() { 
+
+    public TableName getIndexName() {
         return indexName; 
     }
+
+    public String getIndexMethod() {
+        return indexMethod;
+    }
+    public IndexProperties getIndexProperties() {
+        return indexProperties;
+    }
+
     public IndexColumnList getColumnList() {
         return columnList;
     }
     public IndexColumnList getIndexColumnList() {
         return columnList;
     }
-    public JoinType getJoinType() {
-        return joinType;
-    }
-    public Properties getProperties() { 
-        return properties; 
-    }
+
     public TableName getIndexTableName() {
         return tableName; 
     }
@@ -175,10 +168,5 @@ public class CreateIndexNode extends DDLStatementNode implements IndexDefinition
     public ExistenceCheck getExistenceCheck()
     {
         return existenceCheck;
-    }
-    
-    public StorageLocation getStorageLocation()
-    {
-        return storageLocation;
     }
 }

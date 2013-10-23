@@ -2,13 +2,12 @@ org.cratedb.sql.parser.parser.CreateIndexNode@68e6ff0d
 name: idx1
 statementType: CREATE INDEX
 unique: false
-indexType: null
 indexName: idx1
 tableName: table1
-joinType: null
-properties: null
+indexMethod: fulltext
+indexColumns: 
+indexProperties: null
 existenceCheck: NO_CONDITION
-storageLocation: null
 	
 	org.cratedb.sql.parser.parser.IndexColumnList@1572e449
 

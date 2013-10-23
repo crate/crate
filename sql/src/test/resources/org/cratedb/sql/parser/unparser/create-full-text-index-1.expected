@@ -1,1 +1,1 @@
-CREATE INDEX text1 ON t1(FULL_TEXT(c1, c2, t2.c3))
+CREATE INDEX text1 ON t1 USING FULLTEXT(c1, c2, t1.c3, t1.c4)

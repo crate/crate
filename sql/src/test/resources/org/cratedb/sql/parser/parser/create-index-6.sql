@@ -1,1 +1,1 @@
-create index if not exists idx1 on table1 (c1) AS BTREE
+create index myIndex on myTable using fulltext(myTable.myColumn) with (analyzer='myanalyzer')

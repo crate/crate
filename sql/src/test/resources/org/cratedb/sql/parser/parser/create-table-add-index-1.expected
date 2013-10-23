@@ -25,8 +25,9 @@ tableElementList:
 	elementType: AT_DROP_CONSTRAINT
 	
 	indexName: indx1
-	joinType: null
-	location: null
+	indexOff: false
+	indexMethod: fulltext
+	indexProperties: null
 	indexColumnList: 		
 		org.cratedb.sql.parser.parser.IndexColumnList@3138554d
 
