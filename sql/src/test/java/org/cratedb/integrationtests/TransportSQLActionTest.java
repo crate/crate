@@ -588,6 +588,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("select * from test order by \"name\"");
 
         assertEquals(2, response.rows().length);
+        assertEquals(2, response.rowCount());
         assertArrayEquals(new Object[]{42, "Ruben"}, response.rows()[0]);
         assertArrayEquals(new Object[]{32, "Youri"}, response.rows()[1]);
     }
@@ -653,7 +654,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     @Test
-    public void testUpdateObject() throws Exception {
+    public void testUpdate() throws Exception {
         prepareCreate("test")
                 .addMapping("default",
                         "message", "type=string,index=not_analyzed")
@@ -669,6 +670,27 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("select message from test where message='b'");
         assertEquals(1, response.rows().length);
+        assertEquals("b", response.rows()[0][0]);
+
+    }
+
+    @Test
+    public void testUpdateMultipleDocuments() throws Exception {
+        prepareCreate("test")
+                .addMapping("default",
+                        "message", "type=string,index=not_analyzed")
+                .execute().actionGet();
+
+        execute("insert into test values('hello'),('again'),('hello')");
+        refresh();
+
+        execute("update test set message='b' where message = 'hello'");
+
+        assertEquals(2, response.rowCount());
+        refresh();
+
+        execute("select message from test where message='b'");
+        assertEquals(2, response.rowCount());
         assertEquals("b", response.rows()[0][0]);
 
     }
@@ -697,7 +719,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     @Test
-    public void testUpdateObjectWithArgs() throws Exception {
+    public void testUpdateWithArgs() throws Exception {
         prepareCreate("test")
                 .addMapping("default",
                         "coolness", "type=float,index=not_analyzed")
