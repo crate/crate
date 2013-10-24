@@ -1,6 +1,7 @@
 package org.cratedb.module.sql.test;
 
 import org.cratedb.sql.*;
+import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.search.ReduceSearchPhaseException;
 import org.elasticsearch.action.search.ShardSearchFailure;
 import org.elasticsearch.index.Index;
@@ -11,6 +12,10 @@ import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.transport.RemoteTransportException;
 import org.junit.Test;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class ExceptionHelperTest {
 
@@ -82,6 +87,32 @@ public class ExceptionHelperTest {
     public void testReRaiseCrateExceptionIndexMissing() throws Throwable {
         Throwable throwable = new IndexMissingException(new Index("test"));
         throw ExceptionHelper.transformToCrateException(throwable);
+    }
+
+    @Test
+    public void deleteResponseFromVersionConflictException() throws Throwable {
+        VersionConflictEngineException e =
+                new VersionConflictEngineException(new ShardId("test",1), "default", "1", 1, 1);
+        DeleteResponse deleteResponse =  ExceptionHelper.deleteResponseFromVersionConflictException(e);
+        assertTrue(deleteResponse instanceof DeleteResponse);
+        assertNotNull(deleteResponse);
+    }
+
+    @Test
+    public void deleteResponseFromVersionConflictRemoteException() throws Throwable {
+        VersionConflictEngineException versionConflictEngineException =
+                new VersionConflictEngineException(new ShardId("test",1), "default", "1", 1, 1);
+        Exception e = new RemoteTransportException("failed", versionConflictEngineException);
+        DeleteResponse deleteResponse =  ExceptionHelper.deleteResponseFromVersionConflictException(e);
+        assertTrue(deleteResponse instanceof DeleteResponse);
+        assertNotNull(deleteResponse);
+    }
+
+    @Test
+    public void deleteResponseFromVersionConflictExceptionNone() throws Throwable {
+        Exception e = new Exception();
+        DeleteResponse deleteResponse =  ExceptionHelper.deleteResponseFromVersionConflictException(e);
+        assertNull(deleteResponse);
     }
 
 }

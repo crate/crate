@@ -19,6 +19,7 @@ public class QueryPlanner {
     public static final String PRIMARY_KEY_VALUE = "primaryKeyValue";
     public static final String ROUTING_VALUES = "routingValues";
     public static final String MULTIGET_PRIMARY_KEY_VALUES = "multiGetPrimaryKeyValues";
+    public static final String VERSION_VALUE = "versionValue";
 
     public static final String SETTINGS_OPTIMIZE_PK_QUERIES = "crate.planner.optimize_pk_queries";
 
@@ -83,6 +84,22 @@ public class QueryPlanner {
         if (primaryKeyValue != null) {
             stmt.setPlannerResult(PRIMARY_KEY_VALUE, primaryKeyValue.toString());
             return true;
+        }
+        // If a SystemColumnReference ``_version`` is found, set it's value and do same as
+        // above. Except for UPDATE stmt, as it's uses the SQL facet,
+        // xContent generation must finish.
+        Tuple<Object, Long> primaryKeyValueAndVersion = extractPrimaryKeyValueAndVersion(stmt, node);
+        if (primaryKeyValueAndVersion != null) {
+            stmt.setPlannerResult(VERSION_VALUE, primaryKeyValueAndVersion.v2());
+            if (primaryKeyValueAndVersion.v1() != null) {
+                stmt.setPlannerResult(PRIMARY_KEY_VALUE, primaryKeyValueAndVersion.v1().toString());
+            }
+            if (stmt.nodeType() != NodeTypes.UPDATE_NODE
+                    && primaryKeyValueAndVersion.v1() != null) {
+                return true;
+            }
+            // skip further optimizations
+            return false;
         }
 
 
@@ -288,12 +305,12 @@ public class QueryPlanner {
         ValueNode left = node.getLeftOperand();
         ValueNode right = node.getRightOperand();
 
-        if (right.getNodeType() == NodeTypes.COLUMN_REFERENCE) {
+        if (right instanceof ColumnReference) {
             ValueNode tmp = left;
             left = right;
             right = tmp;
         }
-        if (!(left.getNodeType() == NodeTypes.COLUMN_REFERENCE)
+        if (!(left instanceof ColumnReference)
                 || (!(right instanceof ConstantNode) && !(right.getNodeType() == NodeTypes.PARAMETER_NODE))
         ) {
             return null;
@@ -301,6 +318,64 @@ public class QueryPlanner {
         Object value = stmt.visitor().evaluateValueNode( left.getColumnName(), right);
 
         return new Tuple<>(left.getColumnName(), value);
+    }
+
+    /**
+     * Trying to extract the primary key value and a system column ``_version`` value.
+     *
+     * @param stmt
+     * @param node
+     * @return
+     * @throws StandardException
+     */
+    private Tuple<Object, Long> extractPrimaryKeyValueAndVersion(ParsedStatement stmt,
+                                                                   ValueNode node) throws
+            StandardException {
+        Tuple<Object, Long> values = null;
+        if (node.getNodeType() == NodeTypes.AND_NODE) {
+            AndNode andNode = (AndNode)node;
+            if (andNode.getLeftOperand().getNodeType() == NodeTypes.BINARY_EQUALS_OPERATOR_NODE
+                    && andNode.getRightOperand().getNodeType() == NodeTypes.BINARY_EQUALS_OPERATOR_NODE) {
+                Object primaryKeyValue = extractPrimaryKeyValue(stmt, andNode.getLeftOperand());
+                Long version = extractVersionValueFromOperatorNode(
+                        stmt,
+                        (BinaryRelationalOperatorNode)andNode.getRightOperand()
+                );
+                if (primaryKeyValue == null && version == null) {
+                    primaryKeyValue = extractPrimaryKeyValue(stmt, andNode.getRightOperand());
+                    version = extractVersionValueFromOperatorNode(
+                            stmt,
+                            (BinaryRelationalOperatorNode) andNode.getLeftOperand()
+                    );
+                }
+                if (version != null) {
+                    values = new Tuple<>(primaryKeyValue, version);
+                }
+            }
+        }
+
+        return values;
+    }
+
+    /**
+     * Trying to extract a system column ``_version`` value out of a
+     * {@link BinaryRelationalOperatorNode}
+     *
+     * @param stmt
+     * @param node
+     * @return
+     * @throws StandardException
+     */
+    private Long extractVersionValueFromOperatorNode(ParsedStatement stmt,
+                                                     BinaryRelationalOperatorNode node)
+            throws StandardException {
+        Long value = null;
+        Tuple<String, Object> nameAndValue = extractNameAndValueFromOperatorNode(stmt, node);
+        if (nameAndValue != null && nameAndValue.v1().toLowerCase().equals("_version")) {
+            value = new Long(nameAndValue.v2().toString());
+        }
+
+        return value;
     }
 
 }

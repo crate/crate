@@ -1,0 +1,64 @@
+.. _sql_occ:
+
+=========================================
+Optimistic Concurrency Control with Crate
+=========================================
+
+Even though Crate does not support transactions, `Optimistic Concurrency Control`_ can be achieved
+by using the internal system column :ref:`_version <sql_ddl_system_column_version>`.
+
+It's possible to fetch the ``_version`` by selecting it::
+
+    cr> select name, "_id", "_version" from locations where kind = 'Star System'
+    +----------------+-----+----------+
+    | name           | _id | _version |
+    +----------------+-----+----------+
+    | Algol          | 5   | 3        |
+    | Altair         | 7   | 1        |
+    | Aldebaran      | 4   | 3        |
+    | Alpha Centauri | 6   | 3        |
+    +----------------+-----+----------+
+    SELECT 4 rows in set (... sec)
+
+
+Optimistic Update
+=================
+
+The ``_version`` can now be used on updates to ensure no concurrent update has taken place::
+
+    cr> update locations set description = 'Updated description' where name = 'Algol' and "_version" = 3
+    UPDATE OK, 1 row affected (... sec)
+
+Updating a row with an wrong or outdated version number will not update and results in 0
+affected rows::
+
+    cr> update locations set description = 'Updated description' where name = 'Algol' and "_version" = 2
+    UPDATE OK, 0 rows affected (... sec)
+
+Optimistic Delete
+=================
+
+Of course the same can be done when deleting a row::
+
+    cr> delete from locations where "_id" = 6 and "_version" = 3
+    DELETE OK, 1 row affected (... sec)
+
+
+Known Limitations
+-----------------
+
+ - On deletes, this can only be done when using a primary key query (the primary key has to be
+   included inside the ``WHERE`` clause). For example, the query below is not possible with our
+   used testing data because ``name`` is not declared as a primary key and results in an error::
+
+    cr> delete from locations where name = 'Aldebaran' and "_version" = 3
+    SQLParseException[Deleting by _version is only possible using a primary key in WHERE clause.]
+
+
+.. note::
+
+  Both, ``DELETE`` and ``UPDATE``, commands will return a row count of 0 if the given required
+  version does not match the actual version of the relevant row.
+
+
+.. _Optimistic Concurrency Control: http://en.wikipedia.org/wiki/Optimistic_concurrency_control

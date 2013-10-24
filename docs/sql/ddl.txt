@@ -162,6 +162,25 @@ Example::
   The number of replicas can be changed at any time.
 
 
+.. _sql_ddl_system_columns:
+
+System Columns
+==============
+
+On every table Crate implements several implicitly defined system columns. Their names are
+reserved and cannot be used as user-defined column names. All system columns are prefixed with
+an underscore and therefore must be quoted on usage.
+
+.. _sql_ddl_system_column_version:
+
+``_version``
+  Crate uses an internal versioning for every row, the version number is increased on every write.
+  This column can be used for `Optimistic Concurrency Control`_, see :ref:`sql_occ` for usage
+  details.
+
+
+
 
 .. _Java types: http://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html
 .. _dateOptionalTime: http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateOptionalTimeParser()
+.. _Optimistic Concurrency Control: http://en.wikipedia.org/wiki/Optimistic_concurrency_control

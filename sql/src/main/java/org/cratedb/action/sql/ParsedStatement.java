@@ -196,7 +196,8 @@ public class ParsedStatement {
                 }
                 return ActionType.SEARCH_ACTION;
             case NodeTypes.UPDATE_NODE:
-                if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null) {
+                if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null
+                        && getPlannerResult(QueryPlanner.VERSION_VALUE) == null) {
                     return ActionType.UPDATE_ACTION;
                 }
                 return ActionType.SEARCH_ACTION;
@@ -316,6 +317,10 @@ public class ParsedStatement {
         DeleteRequest request = new DeleteRequest(indices.get(0),
                 NodeExecutionContext.DEFAULT_TYPE, id);
         request.routing(id);
+        // Set version if found by planner
+        if (getPlannerResult(QueryPlanner.VERSION_VALUE) != null) {
+            request.version((Long)getPlannerResult(QueryPlanner.VERSION_VALUE));
+        }
 
         return request;
     }

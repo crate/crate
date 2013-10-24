@@ -6,11 +6,14 @@ import org.cratedb.action.parser.XContentGenerator;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
+import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -22,6 +25,7 @@ import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.hasItems;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -29,6 +33,9 @@ import static org.mockito.Mockito.when;
 public class QueryPlannerTest {
 
     private ParsedStatement stmt;
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     private String getSource() throws StandardException {
         return stmt.buildSearchRequest().source().toUtf8();
@@ -393,6 +400,44 @@ public class QueryPlannerTest {
         execStatement("SELECT phrase as satz FROM phrases WHERE pk_col=?",
                 new Object[]{"foo"});
         assertThat(stmt.buildGetRequest().fields(), arrayContaining("phrase"));
+    }
+
+    @Test
+    public void testDeleteWhereVersion() throws Exception {
+        execStatement("delete from phrases where pk_col = ? and \"_version\" = ?",
+                new Object[]{112, 1});
+        assertEquals(ParsedStatement.ActionType.DELETE_ACTION, stmt.type());
+        assertEquals("112", stmt.getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE));
+        assertEquals(1L, stmt.getPlannerResult(QueryPlanner.VERSION_VALUE));
+        assertEquals(2, stmt.plannerResults().size());
+    }
+
+    @Test
+    public void testDeleteByQueryWhereVersionException() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Deleting by _version is only possible using a primary " +
+                "key in WHERE clause");
+        execStatement("delete from phrases where phrase = ? and \"_version\" = ?",
+                new Object[]{"don't panic", 1});
+    }
+
+    @Test
+    public void testUpdateWhereVersion() throws Exception {
+        execStatement("update phrases set phrase = ? where pk_col = ? and \"_version\" = ?",
+                new Object[]{"don't panic", 112, 1});
+        assertEquals(ParsedStatement.ActionType.SEARCH_ACTION, stmt.type());
+        assertEquals("112", stmt.getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE));
+        assertEquals(1L, stmt.getPlannerResult(QueryPlanner.VERSION_VALUE));
+        assertEquals(2, stmt.plannerResults().size());
+    }
+
+    @Test
+    public void testUpdateByQueryWhereVersion() throws Exception {
+        execStatement("update phrases set phrase = ? where phrase = ? and \"_version\" = ?",
+                new Object[]{"now panic", "don't panic", 1});
+        assertEquals(ParsedStatement.ActionType.SEARCH_ACTION, stmt.type());
+        assertNull(stmt.getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE));
+        assertEquals(1L, stmt.getPlannerResult(QueryPlanner.VERSION_VALUE));
     }
 
 }
