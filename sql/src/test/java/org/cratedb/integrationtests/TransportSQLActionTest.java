@@ -21,7 +21,9 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.*;
@@ -50,6 +52,9 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         request = new SQLRequest(stmt);
         response = client().execute(SQLAction.INSTANCE, new SQLRequest(stmt)).actionGet();
     }
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Override
     public Settings getSettings() {
@@ -1495,6 +1500,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(0L, response.rowCount());
 
         execute("create table test (col1 integer primary key, col2 string)");
+        Thread.sleep(800);
 
         execute("select table_name, number_of_shards, number_of_replicas from INFORMATION_SCHEMA.Tables");
         assertEquals(1L, response.rowCount());
@@ -1520,6 +1526,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     public void testSelectStarFromInformationSchemaTableWithOrderBy() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
+        refresh();
 
         execute("select * from INFORMATION_SCHEMA.Tables order by table_name asc");
         assertEquals(2L, response.rowCount());
@@ -1536,12 +1543,29 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     public void testSelectStarFromInformationSchemaTableWithOrderByAndLimit() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
+        refresh();
 
         execute("select * from INFORMATION_SCHEMA.Tables order by table_name asc limit 1");
         assertEquals(1L, response.rowCount());
         assertEquals("foo", response.rows()[0][0]);
         assertEquals(3, response.rows()[0][1]);
         assertEquals(1, response.rows()[0][2]);
+    }
+
+    @Test
+    public void testUpdateInformationSchema() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage(
+            "INFORMATION_SCHEMA tables are virtual and read-only. Only SELECT statements are supported");
+        execute("update INFORMATION_SCHEMA.Tables set table_name = 'x'");
+    }
+
+    @Test
+    public void testDeleteInformationSchema() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage(
+            "INFORMATION_SCHEMA tables are virtual and read-only. Only SELECT statements are supported");
+        execute("delete from INFORMATION_SCHEMA.Tables");
     }
 
     @Test

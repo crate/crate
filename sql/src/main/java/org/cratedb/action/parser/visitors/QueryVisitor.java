@@ -7,6 +7,7 @@ import org.cratedb.action.groupby.aggregate.AggExprFactory;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.OrderByColumnIdx;
+import org.cratedb.action.sql.OrderByColumnName;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.SQLParseException;
@@ -73,7 +74,12 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         stmt.query = rootQuery;
         stmt.xcontent = jsonBuilder.bytes();
 
-        queryPlanner.finalizeWhereClause(stmt);
+        if (stmt.schemaName() != null && stmt.schemaName().equalsIgnoreCase("information_schema")) {
+            stmt.type(ParsedStatement.ActionType.INFORMATION_SCHEMA);
+        } else {
+            // only non-information schema queries can be optimized
+            queryPlanner.finalizeWhereClause(stmt);
+        }
     }
 
     private void xcontent(UpdateNode node) throws Exception {
@@ -170,12 +176,11 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     }
 
     private void visit(OrderByList node) throws IOException, StandardException {
-        // TODO lucene ?
-
         if (stmt.hasGroupBy()) {
             stmt.orderByIndices = new ArrayList<>();
             int idx;
             for (OrderByColumn column : node) {
+
                 if (column.getExpression() instanceof AggregateNode) {
                     AggExpr aggExpr = AggExprFactory.createAggExpr(
                         ((AggregateNode) column.getExpression()).getAggregateName());
@@ -198,7 +203,13 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         }
 
         jsonBuilder.startArray("sort");
+        int count = 0;
         for (OrderByColumn column : node) {
+            count++;
+            // orderByColumns are used to query the InformationSchema
+            stmt.orderByColumns.add(
+                new OrderByColumnName(column.getExpression().getColumnName(), count, column.isAscending())
+            );
             jsonBuilder.startObject()
                 .startObject(column.getExpression().getColumnName())
                 .field("order", column.isAscending() ? "asc" : "desc")
@@ -207,8 +218,6 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 .endObject();
         }
         jsonBuilder.endArray();
-
-        stmt.setHasOrderBy(true);
     }
 
     private void visit(ResultColumnList columnList) throws Exception {
