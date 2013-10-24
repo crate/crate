@@ -831,4 +831,19 @@ public class QueryVisitorTest {
         assertTrue(stmt.groupByColumnNames.contains("kind.x"));
         assertTrue(stmt.resultColumnList.contains(new ColumnReferenceDescription("kind.x")));
     }
+
+    @Test
+    public void testSelectByVersionException() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Selecting by '_version' is not supported");
+        execStatement("select kind from locations where \"_version\" = 1");
+    }
+
+    @Test
+    public void testDeleteByVersionWithoutPlannerException() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Deleting by '_version' is only possible using a " +
+                "primary key in WHERE clause and with crate.planner.optimize_pk_queries enabled.");
+        execStatement("delete from locations where \"_id\" = 1 and \"_version\" = 1");
+    }
 }

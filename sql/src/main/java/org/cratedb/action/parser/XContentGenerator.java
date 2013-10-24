@@ -2,7 +2,6 @@ package org.cratedb.action.parser;
 
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggExprFactory;
-import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.OrderByColumnIdx;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
@@ -77,6 +76,11 @@ public class XContentGenerator {
         whereClause(((SelectNode) node.getResultSetNode()).getWhereClause());
         jsonBuilder.endObject();
 
+        // only include the version if it was explicitly selected.
+        if (requireVersion) {
+            jsonBuilder.field("version", true);
+        }
+
         jsonBuilder.startObject("facets");
         jsonBuilder.startObject("sql");
         jsonBuilder.startObject("sql");
@@ -136,6 +140,15 @@ public class XContentGenerator {
                 // instead of Search/DeleteByQueryRequest if planner checks succeeded
                 return;
             }
+            if (stmt.getPlannerResult(QueryPlanner.VERSION_VALUE) != null) {
+                if (stmt.getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) == null
+                        && stmt.nodeType() == NodeTypes.DELETE_NODE) {
+                    throw new SQLParseException("Deleting by _version is only possible using a " +
+                            "primary key in WHERE clause.");
+                }
+                requireVersion = true;
+            }
+
             generate(node);
         } else {
             jsonBuilder.field("match_all", new HashMap<>());
@@ -478,12 +491,16 @@ public class XContentGenerator {
                 .field("minimum_should_match", 1)
                 .startArray("should");
 
-        jsonBuilder.startObject();
-        generate(node.getLeftOperand());
-        jsonBuilder.endObject();
-        jsonBuilder.startObject();
-        generate(node.getRightOperand());
-        jsonBuilder.endObject();
+        if (!checkForSystemColumnReferenceInOperatorNode(node.getLeftOperand())) {
+            jsonBuilder.startObject();
+            generate(node.getLeftOperand());
+            jsonBuilder.endObject();
+        }
+        if (!checkForSystemColumnReferenceInOperatorNode(node.getRightOperand())) {
+            jsonBuilder.startObject();
+            generate(node.getRightOperand());
+            jsonBuilder.endObject();
+        }
 
         jsonBuilder.endArray().endObject();
     }
@@ -493,12 +510,16 @@ public class XContentGenerator {
                 .field("minimum_should_match", 1)
                 .startArray("must");
 
-        jsonBuilder.startObject();
-        generate(node.getLeftOperand());
-        jsonBuilder.endObject();
-        jsonBuilder.startObject();
-        generate(node.getRightOperand());
-        jsonBuilder.endObject();
+        if (!checkForSystemColumnReferenceInOperatorNode(node.getLeftOperand())) {
+            jsonBuilder.startObject();
+            generate(node.getLeftOperand());
+            jsonBuilder.endObject();
+        }
+        if (!checkForSystemColumnReferenceInOperatorNode(node.getRightOperand())) {
+            jsonBuilder.startObject();
+            generate(node.getRightOperand());
+            jsonBuilder.endObject();
+        }
 
         jsonBuilder.endArray().endObject();
     }
@@ -570,6 +591,7 @@ public class XContentGenerator {
 
     private void generate(ValueNode node) throws IOException, StandardException {
         if (node instanceof BinaryRelationalOperatorNode) {
+            checkForSystemColumnReferenceInOperatorNode(node);
             generate((BinaryRelationalOperatorNode) node);
             return;
         }
@@ -600,6 +622,54 @@ public class XContentGenerator {
 
     public XContentBuilder getXContentBuilder() throws StandardException {
         return jsonBuilder;
+    }
+
+    private Boolean checkForSystemColumnReferenceInOperatorNode(ValueNode  node) {
+        if (node instanceof BinaryRelationalOperatorNode) {
+            BinaryRelationalOperatorNode binNode = (BinaryRelationalOperatorNode)node;
+            if (binNode.getLeftOperand().getNodeType() == NodeTypes.SYSTEM_COLUMN_REFERENCE
+                    || binNode.getRightOperand().getNodeType() == NodeTypes.SYSTEM_COLUMN_REFERENCE) {
+                // If QueryPlanner is disabled, we only support updates using the version system
+                // column. Otherwise an exception is already thrown earlier.
+                // Also throw an exception if filtered by version system column on SELECT in any
+                // case.
+                if (stmt.nodeType() != NodeTypes.UPDATE_NODE) {
+                    String columnName;
+                    if (binNode.getLeftOperand().getNodeType() == NodeTypes
+                            .SYSTEM_COLUMN_REFERENCE) {
+                        columnName = ((SystemColumnReference) binNode.getLeftOperand())
+                                .getColumnName();
+                    } else {
+                        columnName = ((SystemColumnReference) binNode.getRightOperand())
+                                .getColumnName();
+                    }
+                    if (columnName.toLowerCase().equals("_version")) {
+                        if (stmt.nodeType() == NodeTypes.DELETE_NODE) {
+                            throw new SQLParseException("Deleting by '_version' is only possible using a " +
+                                    "primary key in WHERE clause and with crate.planner" +
+                                    ".optimize_pk_queries enabled.");
+                        } else {
+                            throw new SQLParseException("Selecting by '_version' is not " +
+                                    "supported");
+                        }
+                    }
+                }
+
+                return true;
+            } else {
+                return false;
+            }
+        } else if (node instanceof BinaryLogicalOperatorNode) {
+            Boolean subValue = checkForSystemColumnReferenceInOperatorNode((
+                    (BinaryLogicalOperatorNode) node).getLeftOperand());
+            if (!subValue) {
+                subValue = checkForSystemColumnReferenceInOperatorNode((
+                        (BinaryLogicalOperatorNode) node).getRightOperand());
+            }
+            return subValue;
+        }
+
+        return false;
     }
 
 

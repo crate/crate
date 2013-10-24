@@ -85,12 +85,21 @@ public class QueryPlanner {
             stmt.setPlannerResult(PRIMARY_KEY_VALUE, primaryKeyValue.toString());
             return true;
         }
-        // If a SystemColumnReference ``_version`` is found, set it's value and do same as above.
+        // If a SystemColumnReference ``_version`` is found, set it's value and do same as
+        // above. Except for UPDATE stmt, as it's uses the SQL facet,
+        // xContent generation must finish.
         Tuple<Object, Long> primaryKeyValueAndVersion = extractPrimaryKeyValueAndVersion(stmt, node);
         if (primaryKeyValueAndVersion != null) {
-            stmt.setPlannerResult(PRIMARY_KEY_VALUE, primaryKeyValueAndVersion.v1().toString());
             stmt.setPlannerResult(VERSION_VALUE, primaryKeyValueAndVersion.v2());
-            return true;
+            if (primaryKeyValueAndVersion.v1() != null) {
+                stmt.setPlannerResult(PRIMARY_KEY_VALUE, primaryKeyValueAndVersion.v1().toString());
+            }
+            if (stmt.nodeType() != NodeTypes.UPDATE_NODE
+                    && primaryKeyValueAndVersion.v1() != null) {
+                return true;
+            }
+            // skip further optimizations
+            return false;
         }
 
 
@@ -327,23 +336,19 @@ public class QueryPlanner {
             AndNode andNode = (AndNode)node;
             if (andNode.getLeftOperand().getNodeType() == NodeTypes.BINARY_EQUALS_OPERATOR_NODE
                     && andNode.getRightOperand().getNodeType() == NodeTypes.BINARY_EQUALS_OPERATOR_NODE) {
-                Long version = null;
                 Object primaryKeyValue = extractPrimaryKeyValue(stmt, andNode.getLeftOperand());
-                if (primaryKeyValue != null) {
+                Long version = extractVersionValueFromOperatorNode(
+                        stmt,
+                        (BinaryRelationalOperatorNode)andNode.getRightOperand()
+                );
+                if (primaryKeyValue == null && version == null) {
+                    primaryKeyValue = extractPrimaryKeyValue(stmt, andNode.getRightOperand());
                     version = extractVersionValueFromOperatorNode(
                             stmt,
-                            (BinaryRelationalOperatorNode)andNode.getRightOperand()
+                            (BinaryRelationalOperatorNode) andNode.getLeftOperand()
                     );
-                } else {
-                    primaryKeyValue = extractPrimaryKeyValue(stmt, andNode.getRightOperand());
-                    if (primaryKeyValue != null) {
-                        version = extractVersionValueFromOperatorNode(
-                                stmt,
-                                (BinaryRelationalOperatorNode) andNode.getLeftOperand()
-                        );
-                    }
                 }
-                if (primaryKeyValue != null && version != null) {
+                if (version != null) {
                     values = new Tuple<>(primaryKeyValue, version);
                 }
             }

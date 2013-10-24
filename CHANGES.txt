@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Implemented support for optimistic concurrent updates and deletes.
+
  - Use new crate-cli (crash) version with row count output at doctests.
 
  - Prevent table creation with routing definition on non-primary key columns.

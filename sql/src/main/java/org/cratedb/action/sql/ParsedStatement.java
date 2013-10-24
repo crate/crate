@@ -196,7 +196,8 @@ public class ParsedStatement {
                 }
                 return ActionType.SEARCH_ACTION;
             case NodeTypes.UPDATE_NODE:
-                if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null) {
+                if (getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE) != null
+                        && getPlannerResult(QueryPlanner.VERSION_VALUE) == null) {
                     return ActionType.UPDATE_ACTION;
                 }
                 return ActionType.SEARCH_ACTION;

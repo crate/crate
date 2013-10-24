@@ -1549,14 +1549,16 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureGreen();
 
-        execute("insert into test (col1, col2) values (1, 'nice weather')");
+        execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
         refresh();
 
         execute("select \"_version\" from test where col1 = 1");
         assertEquals(1L, response.rowCount());
         assertEquals(1L, response.rows()[0][0]);
+        Long version = (Long)response.rows()[0][0];
 
-        execute("delete from test where col1 = 1 and \"_version\" = 1");
+        execute("delete from test where col1 = 1 and \"_version\" = ?",
+                new Object[]{version});
         assertEquals(1L, response.rowCount());
 
         // Validate that the row is really deleted
@@ -1564,6 +1566,77 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("select * from test where col1 = 1");
         assertEquals(0, response.rowCount());
 
+    }
+
+    @Test
+    public void testDeleteWhereVersionWithConflict() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string)");
+        ensureGreen();
+
+        execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
+        refresh();
+
+        execute("select \"_version\" from test where col1 = 1");
+        assertEquals(1L, response.rowCount());
+        assertEquals(1L, response.rows()[0][0]);
+
+        execute("update test set col2 = ? where col1 = ?", new Object[]{"ok now panic", 1});
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("delete from test where col1 = 1 and \"_version\" = 1");
+        assertEquals(0, response.rowCount());
+    }
+
+    @Test
+    public void testUpdateWhereVersion() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string)");
+        ensureGreen();
+
+        execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
+        refresh();
+
+        execute("select \"_version\" from test where col1 = 1");
+        assertEquals(1L, response.rowCount());
+        assertEquals(1L, response.rows()[0][0]);
+
+        execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
+                new Object[]{"ok now panic", 1, 1});
+        assertEquals(1L, response.rowCount());
+
+        // Validate that the row is really updated
+        refresh();
+        execute("select col2 from test where col1 = 1");
+        assertEquals(1L, response.rowCount());
+        assertEquals("ok now panic", response.rows()[0][0]);
+    }
+
+    @Test
+    public void testUpdateWhereVersionWithConflict() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string)");
+        ensureGreen();
+
+        execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
+        refresh();
+
+        execute("select \"_version\" from test where col1 = 1");
+        assertEquals(1L, response.rowCount());
+        assertEquals(1L, response.rows()[0][0]);
+
+        execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
+                new Object[]{"ok now panic", 1, 1});
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
+                new Object[]{"already in panic", 1, 1});
+        assertEquals(0, response.rowCount());
+
+        // Validate that the row is really NOT updated
+        refresh();
+        execute("select col2 from test where col1 = 1");
+        assertEquals(1L, response.rowCount());
+        assertEquals("ok now panic", response.rows()[0][0]);
     }
 
 }

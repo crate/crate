@@ -153,6 +153,17 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         public void onResponse(DeleteResponse response) {
             this.listener.onResponse(stmt.buildResponse(response));
         }
+
+        @Override
+        public void onFailure(Throwable e) {
+            DeleteResponse deleteResponse = ExceptionHelper
+                    .deleteResponseFromVersionConflictException(e);
+            if (deleteResponse != null) {
+                listener.onResponse(stmt.buildResponse(deleteResponse));
+            } else {
+                listener.onFailure(ExceptionHelper.transformToCrateException(e));
+            }
+        }
     }
 
     private class BulkResponseListener extends ESResponseToSQLResponseListener<BulkResponse> {
