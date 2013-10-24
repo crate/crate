@@ -264,7 +264,7 @@ This is useful if used in conjunction with aggregation functions::
     | 4        | Galaxy      |
     | 4        | Star System |
     +----------+-------------+
-    SELECT 0 rows in set (... sec)
+    SELECT 3 rows in set (... sec)
 
 .. note::
 

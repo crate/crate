@@ -241,11 +241,12 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         }
 
         public void sendSqlResponse() {
+            long rowCount = groupByResult.size();
             try {
                 listener.onResponse(
                     new SQLResponse(parsedStatement.cols(),
                         groupbyResultToRows(parsedStatement, groupByResult),
-                        groupByResult.size()
+                        rowCount
                     )
                 );
             } catch (Throwable e) {
