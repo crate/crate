@@ -4,16 +4,13 @@ statementType: CREATE ANALYZER
 	
 	org.cratedb.sql.parser.parser.AnalyzerElements@b24acca
 
-	Tokenizer:
-		
+	Tokenizer: 		
 		org.cratedb.sql.parser.parser.TokenizerNode@14cc077d
 		{answer=value: 42
 		type: INTEGER NOT NULL
 		}
-	TokenFilters:
-		
+	TokenFilters: 		
 		org.cratedb.sql.parser.parser.TokenFilterList@5effaa35
 
-	CharFilters:
-		
+	CharFilters: 		
 		org.cratedb.sql.parser.parser.CharFilterList@62ffae4c

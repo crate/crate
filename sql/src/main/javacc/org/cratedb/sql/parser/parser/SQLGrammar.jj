@@ -10825,11 +10825,8 @@ void charFilter(AnalyzerElements analyzerElements) throws StandardException :
 {
     namedNode = namedNodeWithOptionalProperties()
     {
-        CharFilterNode charFilterNode = (CharFilterNode)nodeFactory.getNode(NodeTypes.CHAR_FILTER_NODE,
-                                                                                namedNode.getName(),
-                                                                                namedNode.getProperties(),
-                                                                                parserContext);
-        analyzerElements.addCharFilter(charFilterNode);
+
+        analyzerElements.addCharFilter(namedNode);
     }
 }
 
@@ -10854,11 +10851,7 @@ void tokenFilter(AnalyzerElements analyzerElements) throws StandardException :
 {
     namedNode = namedNodeWithOptionalProperties()
     {
-        TokenFilterNode tokenFilterNode = (TokenFilterNode)nodeFactory.getNode(NodeTypes.TOKEN_FILTER_NODE,
-                                                                                namedNode.getName(),
-                                                                                namedNode.getProperties(),
-                                                                                parserContext);
-        analyzerElements.addTokenFilter(tokenFilterNode);
+        analyzerElements.addTokenFilter(namedNode);
     }
 }
 

@@ -21,11 +21,11 @@ public class AnalyzerElements extends QueryTreeNode {
         this.tokenizer = tokenizerNode;
     }
 
-    public void addTokenFilter(TokenFilterNode tokenFilterNode) {
+    public void addTokenFilter(NamedNodeWithOptionalProperties tokenFilterNode) {
         this.tokenFilters.add(tokenFilterNode);
     }
 
-    public void addCharFilter(CharFilterNode charFilterNode) {
+    public void addCharFilter(NamedNodeWithOptionalProperties charFilterNode) {
         this.charFilters.add(charFilterNode);
     }
 
@@ -33,11 +33,11 @@ public class AnalyzerElements extends QueryTreeNode {
         return tokenizer;
     }
 
-    public Iterable<CharFilterNode> getCharFilters() {
+    public Iterable<NamedNodeWithOptionalProperties> getCharFilters() {
         return this.charFilters;
     }
 
-    public Iterable<TokenFilterNode> getTokenFilters() {
+    public Iterable<NamedNodeWithOptionalProperties> getTokenFilters() {
         return this.tokenFilters;
     }
 
@@ -48,13 +48,13 @@ public class AnalyzerElements extends QueryTreeNode {
         tokenizer = (TokenizerNode)getNodeFactory().copyNode(elements.getTokenizer(), getParserContext());
 
         tokenFilters = new TokenFilterList();
-        for (TokenFilterNode node : elements.getTokenFilters()) {
-            tokenFilters.add((TokenFilterNode)getNodeFactory().copyNode(node, getParserContext()));
+        for (NamedNodeWithOptionalProperties node : elements.getTokenFilters()) {
+            tokenFilters.add((NamedNodeWithOptionalProperties)getNodeFactory().copyNode(node, getParserContext()));
         }
 
         charFilters = new CharFilterList();
-        for (CharFilterNode node : elements.getCharFilters()) {
-            charFilters.add((CharFilterNode)getNodeFactory().copyNode(node, getParserContext()));
+        for (NamedNodeWithOptionalProperties node : elements.getCharFilters()) {
+            charFilters.add((NamedNodeWithOptionalProperties)getNodeFactory().copyNode(node, getParserContext()));
         }
     }
 
@@ -62,13 +62,13 @@ public class AnalyzerElements extends QueryTreeNode {
     public void printSubNodes(int depth) {
         super.printSubNodes(depth);
         if (tokenizer != null) {
-            printLabel(depth, "Tokenizer:\n");
+            printLabel(depth, "Tokenizer: ");
             tokenizer.treePrint(depth + 1);
         }
-        printLabel(depth, "TokenFilters:\n");
+        printLabel(depth, "TokenFilters: ");
         tokenFilters.treePrint(depth + 1);
 
-        printLabel(depth, "CharFilters:\n");
+        printLabel(depth, "CharFilters: ");
         charFilters.treePrint(depth + 1);
 
     }

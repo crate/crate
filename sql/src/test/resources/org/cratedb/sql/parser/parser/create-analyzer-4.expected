@@ -1,40 +1,37 @@
 org.cratedb.sql.parser.parser.CreateAnalyzerNode@20bdf463
 name: a4
 statementType: CREATE ANALYZER
-	extends: 	
+extends: 	
 	org.cratedb.sql.parser.parser.TableName@bf2
 	a3
 	
 	org.cratedb.sql.parser.parser.AnalyzerElements@593b8970
 
-	Tokenizer:
-		
+	Tokenizer: 		
 		org.cratedb.sql.parser.parser.TokenizerNode@53bc45d4
 		{c=value: d
 		type: CHAR(1) NOT NULL
 		, a=value: b
 		type: CHAR(1) NOT NULL
 		}
-	TokenFilters:
-		
+	TokenFilters: 		
 		org.cratedb.sql.parser.parser.TokenFilterList@264b72a2
 
 		[0]:		
-		org.cratedb.sql.parser.parser.TokenFilterNode@2f0e73ba
+		org.cratedb.sql.parser.parser.NamedNodeWithOptionalProperties@3047bebb
 		mytokenfilter
 		Properties: 			null		[1]:		
-		org.cratedb.sql.parser.parser.TokenFilterNode@5dcfd078
+		org.cratedb.sql.parser.parser.NamedNodeWithOptionalProperties@363affc0
 		blubb
 		Properties: 			
 			org.cratedb.sql.parser.parser.GenericProperties@767fa665
 			{stopwords=value: bla, blubb
 			type: CHAR(10) NOT NULL
 			}
-	CharFilters:
-		
+	CharFilters: 		
 		org.cratedb.sql.parser.parser.CharFilterList@36856daa
 
 		[0]:		
-		org.cratedb.sql.parser.parser.CharFilterNode@71e2cfdc
+		org.cratedb.sql.parser.parser.NamedNodeWithOptionalProperties@1711db25
 		html_strip
 		Properties: 			null

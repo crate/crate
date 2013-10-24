@@ -44,7 +44,7 @@ public class CreateAnalyzerNode extends DDLStatementNode {
         super.printSubNodes(depth);
 
         if (extendsName != null) {
-            printLabel(depth + 1, "extends: ");
+            printLabel(depth, "extends: ");
             extendsName.treePrint(depth+1);
         }
         if (analyzerElements != null) {
