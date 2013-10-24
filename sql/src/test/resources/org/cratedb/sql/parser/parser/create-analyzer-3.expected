@@ -1,0 +1,32 @@
+org.cratedb.sql.parser.parser.CreateAnalyzerNode@59a6acb9
+name: myanalyzer
+statementType: CREATE ANALYZER
+extends: 	
+	org.cratedb.sql.parser.parser.TableName@8e9abbb6
+	otheranalyzer
+	
+	org.cratedb.sql.parser.parser.AnalyzerElements@54266750
+
+	TokenFilters: 		
+		org.cratedb.sql.parser.parser.TokenFilterList@2548e059
+
+		[0]:		
+		org.cratedb.sql.parser.parser.NamedNodeWithOptionalProperties@ea8388e
+		my_filter
+		Properties: 			
+			org.cratedb.sql.parser.parser.GenericProperties@5381062e
+			{bla=value: blubb
+			type: CHAR(5) NOT NULL
+			}
+		[1]:		
+		org.cratedb.sql.parser.parser.NamedNodeWithOptionalProperties@11cef8be
+		myothertokenfilter
+		Properties: 			
+			org.cratedb.sql.parser.parser.GenericProperties@6d4d203d
+			{one=value: 1
+			type: INTEGER NOT NULL
+			, false=value: true
+			type: BOOLEAN NOT NULL
+			}
+	CharFilters: 		
+		org.cratedb.sql.parser.parser.CharFilterList@627fbcda
