@@ -42,7 +42,7 @@ public class UpdateCollector extends FacetExecutor.Collector {
             super(shardId.getIndex(), uid.type(), uid.id());
             this.shardId = shardId.id();
             retryOnConflict(ParsedStatement.UPDATE_RETRY_ON_CONFLICT);
-            doc(updateDoc);
+            paths(updateDoc);
         }
     }
 

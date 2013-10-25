@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - On update, values of kind `object` or `nested` will be overwritten instead of merged.
+
  - fixed sigar library loading which broke os stats of nodes
 
 2013/10/25 0.17.0
@@ -17,7 +19,7 @@ Unreleased
  - Prevent table creation with routing definition on non-primary key columns.
 
  - removed `*` and `?` as wildcard characters for the `LIKE` clause to be more
-   consistend with the SQL standard.
+   consistent with the SQL standard.
 
  - Optimize simple Select Queries with where clauses like <pk_col>=<constant_value> OR <pk_col>=<constant_value> 
    and without order-by- or group-by-clauses to use MultiGetRequests
