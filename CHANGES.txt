@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/10/25 0.17.1
+=================
+
  - On update, values of kind `object` or `nested` will be overwritten instead of merged.
 
  - fixed sigar library loading which broke os stats of nodes
