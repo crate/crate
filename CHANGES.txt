@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fixed sigar library loading which broke os stats of nodes
+
 2013/10/25 0.17.0
 =================
 

@@ -36,9 +36,11 @@ dependencies {
     compile 'org.apache.lucene:lucene-sandbox:4.4.0'
     compile 'org.apache.lucene:lucene-spatial:4.4.0'
     compile 'org.apache.lucene:lucene-suggest:4.4.0'
-    compile 'org.fusesource:sigar:1.6.4'
     compile 'org.mvel:mvel2:2.1.5.Final'
     compile 'org.slf4j:slf4j-api:1.6.2'
+
+    // we add the sigar libs as system dep since it is checked in
+    compile fileTree(dir: 'upstream/lib/sigar/', include: '*.jar')
 
     // by hand
     testCompile 'org.hamcrest:hamcrest-all:1.3'
