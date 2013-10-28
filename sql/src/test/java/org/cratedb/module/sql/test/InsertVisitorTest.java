@@ -27,7 +27,7 @@ public class InsertVisitorTest {
 
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
         TableExecutionContext tec = mock(TableExecutionContext.class);
-        when(nec.tableContext("locations")).thenReturn(tec);
+        when(nec.tableContext(null, "locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("name", "kind"));
 
         SQLParseService parseService = new SQLParseService(nec);

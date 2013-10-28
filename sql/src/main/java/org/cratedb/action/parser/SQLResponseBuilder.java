@@ -63,7 +63,7 @@ public class SQLResponseBuilder {
         Object[][] rows = new Object[1][stmt.outputFields.size()];
 
         // only works with one queried index/table
-        fields.applyGetResponse(context.tableContext(stmt.tableName()), getResponse);
+        fields.applyGetResponse(context.tableContext(stmt.schemaName(), stmt.tableName()), getResponse);
         rows[0] = fields.getRowValues();
 
         response.cols(stmt.cols());
@@ -83,7 +83,7 @@ public class SQLResponseBuilder {
             if (!singleResponses[i].isFailed()) {
                 if (singleResponses[i].getResponse().isExists()) {
                     fields.applyGetResponse(
-                        context.tableContext(stmt.tableName()), singleResponses[i].getResponse());
+                        context.tableContext(stmt.schemaName(), stmt.tableName()), singleResponses[i].getResponse());
                     rows.add(fields.getRowValues());
                     successful++;
                 }

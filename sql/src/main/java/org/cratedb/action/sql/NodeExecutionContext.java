@@ -32,15 +32,6 @@ public class NodeExecutionContext {
         return null;
     }
 
-    /**
-     *
-     * @param name the name of the table
-     * @return the table
-     */
-    public ITableExecutionContext tableContext(String name) {
-        return tableContext(null, name);
-    }
-
     public QueryPlanner queryPlanner() {
         return queryPlanner;
     }

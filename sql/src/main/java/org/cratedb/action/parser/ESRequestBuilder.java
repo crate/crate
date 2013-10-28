@@ -31,15 +31,10 @@ public class ESRequestBuilder {
         request.source(stmt.xcontent.toBytes());
         request.indices(stmt.indices());
 
-        // TODO:
-        // Set routing values if found by planner
-        // @SuppressWarnings("unchecked")
-        // Set<String> routingValues = (Set<String>)stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
-        // if (routingValues != null && !routingValues.isEmpty()) {
-        //     List<String> tmp = new ArrayList<>(routingValues.size());
-        //     tmp.addAll(routingValues);
-        //     request.routing(tmp.toArray(new String[tmp.size()]));
-        // }
+        // // Set routing values if found by planner
+        if (stmt.routingValues != null && !stmt.routingValues.isEmpty()) {
+            request.routing(stmt.getRoutingValues());
+        }
 
         // Update request should only be executed on primary shards
         if (stmt.nodeType() == NodeTypes.UPDATE_NODE) {
@@ -72,18 +67,15 @@ public class ESRequestBuilder {
     }
 
     public GetRequest buildGetRequest() {
-        String id = (String)stmt.getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE);
-        GetRequest request =
-            new GetRequest(stmt.tableName(), NodeExecutionContext.DEFAULT_TYPE, id);
-        request.routing(id);
+        GetRequest request = new GetRequest(
+            stmt.tableName(), NodeExecutionContext.DEFAULT_TYPE, stmt.primaryKeyLookupValue);
         request.fields(stmt.columnNames());
         request.realtime(true);
         return request;
     }
 
     public MultiGetRequest buildMultiGetRequest() {
-        @SuppressWarnings("unchecked")
-        Set<String> ids = (Set<String>) stmt.getPlannerResult(QueryPlanner.MULTIGET_PRIMARY_KEY_VALUES);
+        Set<String> ids = stmt.primaryKeyValues;
         assert ids != null;
         MultiGetRequest request = new MultiGetRequest();
         for (String id: ids) {
@@ -101,38 +93,30 @@ public class ESRequestBuilder {
         request.query(stmt.xcontent.toBytes());
         request.indices(stmt.indices());
 
-        // TODO:
         // // Set routing values if found by planner
-        // @SuppressWarnings("unchecked") // should only be null or set of strings
-        // Set<String> routingValues = (Set<String>) getPlannerResult(QueryPlanner.ROUTING_VALUES);
-        // if (routingValues != null && !routingValues.isEmpty()) {
-        //     List<String> tmp = new ArrayList<>(routingValues.size());
-        //     tmp.addAll(routingValues);
-        //     request.routing(tmp.toArray(new String[tmp.size()]));
-        // }
+        if (stmt.routingValues != null && !stmt.routingValues.isEmpty()) {
+            request.routing(stmt.getRoutingValues());
+        }
 
         return request;
     }
 
 
     public DeleteRequest buildDeleteRequest() {
-        String id = (String)stmt.getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE);
-        DeleteRequest request = new DeleteRequest(stmt.tableName(),
-            NodeExecutionContext.DEFAULT_TYPE, id);
-        request.routing(id);
+        DeleteRequest request = new DeleteRequest(
+            stmt.tableName(), NodeExecutionContext.DEFAULT_TYPE, stmt.primaryKeyLookupValue);
+
         // Set version if found by planner
-        if (stmt.getPlannerResult(QueryPlanner.VERSION_VALUE) != null) {
-            request.version((Long)stmt.getPlannerResult(QueryPlanner.VERSION_VALUE));
+        if (stmt.versionFilter != null) {
+            request.version(stmt.versionFilter);
         }
 
         return request;
     }
 
     public UpdateRequest buildUpdateRequest() {
-        String id = (String)stmt.getPlannerResult(QueryPlanner.PRIMARY_KEY_VALUE);
-        UpdateRequest request = new UpdateRequest(stmt.tableName(),
-            NodeExecutionContext.DEFAULT_TYPE, id);
-        request.routing(id);
+        UpdateRequest request = new UpdateRequest(
+            stmt.tableName(), NodeExecutionContext.DEFAULT_TYPE, stmt.primaryKeyLookupValue);
         request.fields(stmt.cols());
         request.doc(stmt.updateDoc());
         request.retryOnConflict(ParsedStatement.UPDATE_RETRY_ON_CONFLICT);

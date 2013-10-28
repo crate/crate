@@ -55,7 +55,6 @@ public class QueryVisitorTest {
         QueryPlanner queryPlanner = new QueryPlanner(settings);
         when(nec.queryPlanner()).thenReturn(queryPlanner);
         when(nec.tableContext(null, "locations")).thenReturn(tec);
-        when(nec.tableContext("locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("a", "b"));
 
         SQLParseService parseService = new SQLParseService(nec);
@@ -282,7 +281,7 @@ public class QueryVisitorTest {
                 stmt.outputFields().get(1));
     }
 
-    @Test(expected = StandardException.class)
+    @Test(expected = SQLParseException.class)
     public void testUnsuportedNestedColumnIndexInWhereClause() throws StandardException,
             IOException {
 
@@ -838,15 +837,16 @@ public class QueryVisitorTest {
     @Test
     public void testSelectByVersionException() throws Exception {
         expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("Selecting by '_version' is not supported");
+        expectedException.expectMessage(
+            "_version is only valid in the WHERE clause if paired with a single primary key column and crate.planner.optimize.pk_queries enabled");
         execStatement("select kind from locations where \"_version\" = 1");
     }
 
     @Test
     public void testDeleteByVersionWithoutPlannerException() throws Exception {
         expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("Deleting by '_version' is only possible using a " +
-            "primary key in WHERE clause and with crate.planner.optimize_pk_queries enabled.");
+        expectedException.expectMessage(
+            "_version is only valid in the WHERE clause if paired with a single primary key column and crate.planner.optimize.pk_queries enabled");
         execStatement("delete from locations where \"_id\" = 1 and \"_version\" = 1");
     }
 }

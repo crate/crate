@@ -17,23 +17,48 @@ import java.util.*;
 public class ParsedStatement {
 
     private ESLogger logger = Loggers.getLogger(ParsedStatement.class);
-    private String schemaName;
+
     public final ArrayList<Tuple<String, String>> outputFields = new ArrayList<>();
+
+    private String schemaName;
     private String[] indices = null;
-    private boolean useFacet;
+
     private ActionType type;
     private int nodeType;
 
     private Map<String, Object> updateDoc;
-    private Map<String, Object> plannerResults;
     private boolean countRequest;
     private boolean hasOrderBy = false;
 
-    public IndexRequest[] indexRequests;
-    public boolean hasVersionSysColumn;
+    public boolean versionSysColumnSelected = false;
 
+    public IndexRequest[] indexRequests;
+
+    public Long versionFilter;
     public String stmt;
     public Query query;
+
+    /**
+     * set if the where clause contains a single pk column.
+     * E.g.:
+     *      pk_col = 1
+     */
+    public String primaryKeyLookupValue;
+
+    /**
+     * set if the where clause contains multiple pk columns.
+     * E.g.:
+     *      pk_col = 1 or pk_col = 2
+     */
+    public Set<String> primaryKeyValues;
+
+    public Set<String> routingValues;
+
+    public Set<String> columnsWithFilter = new HashSet<>();
+
+    public String[] getRoutingValues() {
+        return routingValues.toArray(new String[routingValues.size()]);
+    }
 
     public ParsedStatement(String stmt) {
         this.stmt = stmt;
@@ -180,21 +205,6 @@ public class ParsedStatement {
 
     public boolean countRequest() {
         return !hasGroupBy() && countRequest;
-    }
-
-    public void setPlannerResult(String key, Object value) {
-        plannerResults.put(key, value);
-    }
-
-    public Object getPlannerResult(String key) {
-        return plannerResults.get(key);
-    }
-    public Object removePlannerResult(String key) {
-        return plannerResults.remove(key);
-    }
-
-    public Map<String, Object> plannerResults() {
-        return plannerResults;
     }
 
     public boolean hasGroupBy() {

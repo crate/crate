@@ -63,7 +63,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
         stmt.updateDoc(updateDoc);
 
-        // TODO CHECK PLANNER
+        // optimization to UPDATE_ACTION is done in #afterVisit()
         stmt.type(ParsedStatement.ActionType.SEARCH_ACTION);
     }
 
@@ -73,8 +73,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         stmt.query = rootQuery;
         stmt.xcontent = jsonBuilder.bytes();
 
-        // TODO:
-        //     stmt.context().queryPlanner().finalizeWhereClause(stmt);
+        queryPlanner.finalizeWhereClause(stmt);
     }
 
     private void xcontent(UpdateNode node) throws Exception {
@@ -84,7 +83,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         jsonBuilder.endObject();
 
         // only include the version if it was explicitly selected.
-        if (stmt.hasVersionSysColumn) {
+        if (stmt.versionSysColumnSelected) {
             jsonBuilder.field("version", true);
         }
 
@@ -126,7 +125,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             jsonBuilder.field("size", limit);
         }
 
-        // TODO: check planner, GET/MGET
+        // if query can be optimized to GET or MULTI_GET its done in #afterVisit
         stmt.type(ParsedStatement.ActionType.SEARCH_ACTION);
     }
 
@@ -147,7 +146,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         }
 
         // only include the version if it was explicitly selected.
-        if (stmt.hasVersionSysColumn) {
+        if (stmt.versionSysColumnSelected) {
             jsonBuilder.field("version", true);
         }
     }
@@ -245,7 +244,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                     raiseUnsupportedSelectFromConstantNode(column);
                 }
             } else if (columnName.equals("_version")) {
-                stmt.hasVersionSysColumn = true;
+                stmt.versionSysColumnSelected = true;
             } else if (column.getExpression().getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE) {
                 NestedColumnReference nestedColumnReference =
                     (NestedColumnReference) column.getExpression();
@@ -305,21 +304,21 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         visit(selectNode.getFromList());
         whereClause(selectNode.getWhereClause());
 
-        // TODO: check planner
         stmt.type(ParsedStatement.ActionType.DELETE_BY_QUERY_ACTION);
+        // optimization to DELETE_ACTION is done in #afterVisit() if possible.
     }
 
 
     @Override
     public void visit(ValueNode parentNode, BinaryRelationalOperatorNode node) throws IOException {
         if (parentNode == null) {
-            rootQuery = queryFromNode(node);
+            rootQuery = queryFromNode(parentNode, node);
             return;
         }
 
         BooleanQuery parentQuery = queryStack.peek();
         parentQuery.add(
-            queryFromNode(node),
+            queryFromNode(parentNode, node),
             isAndNode(parentNode) ? BooleanClause.Occur.MUST : BooleanClause.Occur.SHOULD
         );
     }
@@ -348,7 +347,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             right = tmp;
         }
 
-        String like = ((ConstantNode)right).getValue().toString();
+        String like = valueFromNode(right).toString();
         // lucene uses * and ? as wildcard characters
         // but via SQL they are used as % and _
         // here they are converted back.
@@ -428,7 +427,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         return node.getNodeType() == NodeTypes.AND_NODE;
     }
 
-    private Query queryFromNode(BinaryRelationalOperatorNode node) throws IOException {
+    private Query queryFromNode(ValueNode parentNode, BinaryRelationalOperatorNode node) throws IOException {
         int operator = node.getOperatorType();
         String columnName;
         Object value;
@@ -442,7 +441,13 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             value = valueFromNode(node.getLeftOperand());
         }
 
-        //queryPlanner.checkWhereClauseElement(stmt, columnName, value);
+        if  (queryPlanner.checkColumn(tableContext, stmt, parentNode, operator, columnName, value)) {
+            // _version column that shouldn't be included in the query
+            // this is kind of like:
+            //      where pk_col = 1 and 1 = 1
+            jsonBuilder.field("match_all", new HashMap<>());
+            return new MatchAllDocsQuery();
+        }
 
         Object from = null;
         Object to = null;

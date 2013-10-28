@@ -44,7 +44,7 @@ public class TableVisitorTest {
         Settings settings = ImmutableSettings.builder().put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, true).build();
         QueryPlanner queryPlanner = new QueryPlanner(settings);
         when(nec.queryPlanner()).thenReturn(queryPlanner);
-        when(nec.tableContext("phrases")).thenReturn(tec);
+        when(nec.tableContext(null, "phrases")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("pk_col", "phrase"));
         when(tec.isRouting("pk_col")).thenReturn(true);
         when(tec.primaryKeys()).thenReturn(new ArrayList<String>(1) {{

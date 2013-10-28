@@ -1144,7 +1144,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     public void testSelectToGetRequestByPlanner() throws Exception {
         createTestIndexWithPkAndRoutingMapping();
 
-        execute("insert into test (some_id, foo) values (124, 'bar1')");
+        execute("insert into test (some_id, foo) values ('124', 'bar1')");
         assertEquals(1, response.rowCount());
         refresh();
 
@@ -1211,9 +1211,9 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     public void testSelectToRoutedRequestByPlannerMissingDocuments() throws Exception {
         createTestIndexWithPkAndRoutingMapping();
 
-        execute("insert into test (some_id, foo) values (1, 'foo')");
-        execute("insert into test (some_id, foo) values (2, 'bar')");
-        execute("insert into test (some_id, foo) values (3, 'baz')");
+        execute("insert into test (some_id, foo) values ('1', 'foo')");
+        execute("insert into test (some_id, foo) values ('2', 'bar')");
+        execute("insert into test (some_id, foo) values ('3', 'baz')");
         refresh();
 
         execute("SELECT some_id, foo FROM test WHERE some_id='4' OR some_id='3'");
