@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/10/28 0.17.2
+=================
+
  - bugfix: the `LIKE` operand only worked with literals, not with parameter
    substitution.
 
