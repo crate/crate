@@ -7965,11 +7965,17 @@ void
 nestedColumnPathElement(NestedColumnReference column) throws StandardException :
 {
     ValueNode element;
+    String sign = "";
 }
 {
-    element = literal()
+    element = stringLiteral()
     {
         column.addPathElement((ConstantNode)element);
+    }
+|
+    [ sign = sign() ] element = numericLiteral(sign)
+    {
+        throw new StandardException("Accessing nested columns by numeric index is not supported");
     }
 }
 

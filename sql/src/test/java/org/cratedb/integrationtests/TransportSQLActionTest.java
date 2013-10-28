@@ -6,6 +6,7 @@ import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.*;
+import org.cratedb.sql.parser.StandardException;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -886,7 +887,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(2, response.rows()[0][1]);
     }
 
-    @Test(expected = SQLParseException.class)
+    @Test(expected = StandardException.class)
     public void testUpdateWithNestedObjectArrayIdxAccess() throws Exception {
         prepareCreate("test")
             .addMapping("default",
@@ -898,13 +899,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
 
         execute("update test set coolness[0] = 3.3");
-
-        assertEquals(1, response.rowCount());
-        refresh();
-
-        execute("select coolness from test");
-        assertEquals(1, response.rowCount());
-        assertEquals(3.3, response.rows()[0][0]);
     }
 
     @Test

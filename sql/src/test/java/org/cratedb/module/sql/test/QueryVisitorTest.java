@@ -282,7 +282,7 @@ public class QueryVisitorTest {
                 stmt.outputFields().get(1));
     }
 
-    @Test(expected = SQLParseException.class)
+    @Test(expected = StandardException.class)
     public void testUnsuportedNestedColumnIndexInWhereClause() throws StandardException,
             IOException {
 
