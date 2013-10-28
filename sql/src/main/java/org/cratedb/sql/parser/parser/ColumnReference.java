@@ -51,7 +51,7 @@ import org.cratedb.sql.parser.StandardException;
 
 public class ColumnReference extends ValueNode
 {
-    private String columnName;
+    protected String columnName;
 
     /*
     ** This is the user-specified table name.    It will be null if the

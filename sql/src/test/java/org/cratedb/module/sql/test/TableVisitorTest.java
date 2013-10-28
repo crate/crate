@@ -1,11 +1,13 @@
 package org.cratedb.module.sql.test;
 
 import com.google.common.collect.ImmutableSet;
+import org.cratedb.action.parser.ESRequestBuilder;
 import org.cratedb.action.parser.QueryPlanner;
-import org.cratedb.action.parser.TableVisitor;
+import org.cratedb.action.parser.visitors.TableVisitor;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
+import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -26,6 +28,7 @@ import static org.mockito.Mockito.when;
 public class TableVisitorTest {
 
     private ParsedStatement stmt;
+    private ESRequestBuilder requestBuilder;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -50,14 +53,17 @@ public class TableVisitorTest {
         when(tec.primaryKeysIncludingDefault()).thenReturn(new ArrayList<String>(1) {{
             add("pk_col");
         }});
-        stmt = new ParsedStatement(sql, args, nec);
+
+
+        SQLParseService parseService = new SQLParseService(nec);
+        stmt = parseService.parse(sql, args);
+        requestBuilder = new ESRequestBuilder(stmt);
         return stmt;
     }
 
     @Test
     public void testCreateTable() throws Exception {
         execStatement("create table phrases (pk_col int primary key, phrase string)");
-        TableVisitor visitor = (TableVisitor)stmt.visitor();
 
         // default values
         Map<String, Object> expectedSettings = new HashMap<String, Object>(){{
@@ -82,16 +88,15 @@ public class TableVisitorTest {
             }});
         }};
 
-        assertEquals(expectedSettings, visitor.settings());
-        assertEquals(expectedMapping, visitor.mapping());
+        assertEquals(expectedSettings, stmt.indexSettings);
+        assertEquals(expectedMapping, stmt.indexMapping);
 
-        assertNotNull(stmt.buildCreateIndexRequest());
+        assertNotNull(requestBuilder.buildCreateIndexRequest());
     }
 
     @Test
     public void testCrateTable() throws Exception {
         execStatement("crate table phrases (pk_col int primary key, phrase string)");
-        TableVisitor visitor = (TableVisitor)stmt.visitor();
 
         // default values
         Map<String, Object> expectedSettings = new HashMap<String, Object>(){{
@@ -116,17 +121,16 @@ public class TableVisitorTest {
             }});
         }};
 
-        assertEquals(expectedSettings, visitor.settings());
-        assertEquals(expectedMapping, visitor.mapping());
+        assertEquals(expectedSettings, stmt.indexSettings);
+        assertEquals(expectedMapping, stmt.indexMapping);
 
-        assertNotNull(stmt.buildCreateIndexRequest());
+        assertNotNull(requestBuilder.buildCreateIndexRequest());
     }
 
     @Test
     public void testCreateTableWithTableProperties() throws Exception {
         execStatement("create table phrases (pk_col int primary key, " +
                 "phrase string) replicas 2 clustered by(pk_col) into 10 shards");
-        TableVisitor visitor = (TableVisitor)stmt.visitor();
 
         Map<String, Object> expectedSettings = new HashMap<String, Object>(){{
             put("number_of_shards", 10);
@@ -153,10 +157,10 @@ public class TableVisitorTest {
             }});
         }};
 
-        assertEquals(expectedSettings, visitor.settings());
-        assertEquals(expectedMapping, visitor.mapping());
+        assertEquals(expectedSettings, stmt.indexSettings);
+        assertEquals(expectedMapping, stmt.indexMapping);
 
-        assertNotNull(stmt.buildCreateIndexRequest());
+        assertNotNull(requestBuilder.buildCreateIndexRequest());
     }
 
 
@@ -170,7 +174,7 @@ public class TableVisitorTest {
     @Test
     public void testDropTable() throws Exception {
         execStatement("drop table phrases");
-        assertNotNull(stmt.buildDeleteIndexRequest());
+        assertNotNull(requestBuilder.buildDeleteIndexRequest());
     }
 
     @Test

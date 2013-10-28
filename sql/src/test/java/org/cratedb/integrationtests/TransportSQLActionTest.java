@@ -563,7 +563,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-
         execute("select * from test");
 
         assertEquals(1, response.rowCount());

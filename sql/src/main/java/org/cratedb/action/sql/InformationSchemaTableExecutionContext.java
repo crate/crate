@@ -41,16 +41,6 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
         }
 
         @Override
-        public DocumentMapper mapper() {
-            throw new UnsupportedOperationException("Mapper not available for pseudo tables");
-        }
-
-        @Override
-        public Object mappedValue(String name, Object value) {
-            throw new UnsupportedOperationException("Mapper not available for pseudo tables");
-        }
-
-        @Override
         public List<String> primaryKeys() {
             return new ArrayList<>(0);
         }

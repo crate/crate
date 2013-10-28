@@ -123,14 +123,15 @@ public class SQLFields {
 
         Map<String, SearchHitField> searchFields = new HashMap<>(getResponse.getFields().size());
         for (Map.Entry<String, GetField> entry : getResponse.getFields().entrySet()) {
-            FieldMapper<?> mapper = tableContext.mapper().mappers().smartNameFieldMapper(entry.getKey());
+            //FieldMapper<?> mapper = tableContext.mapper().mappers().smartNameFieldMapper(entry.getKey());
             List<Object> searchFieldValues = new ArrayList<>(1);
             for (Object value: entry.getValue().getValues()) {
-                if (mapper instanceof DateFieldMapper) {
-                    searchFieldValues.add(mapper.valueForSearch(((DateFieldMapper) mapper).value(entry.getValue().getValue())));
-                } else {
-                    searchFieldValues.add(mapper.valueForSearch(entry.getValue().getValue()));
-                }
+                searchFieldValues.add(value);
+                //if (mapper instanceof DateFieldMapper) {
+                //    searchFieldValues.add(mapper.valueForSearch(((DateFieldMapper) mapper).value(entry.getValue().getValue())));
+                //} else {
+                //    searchFieldValues.add(mapper.valueForSearch(entry.getValue().getValue()));
+                //}
             }
 
             searchFields.put(entry.getKey(), new InternalSearchHitField(

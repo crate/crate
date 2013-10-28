@@ -1,5 +1,6 @@
 package org.cratedb.action.parser;
 
+import org.cratedb.action.parser.visitors.QueryVisitor;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
@@ -149,38 +150,38 @@ public class QueryPlanner {
 
     private void extractFromOrClauses(ParsedStatement stmt, ValueNode node, Set<String> results) throws StandardException {
 
-        if (node.getNodeType() == NodeTypes.OR_NODE) {
-            ValueNode leftOperand = ((OrNode) node).getLeftOperand();
-            ValueNode rightOperand = ((OrNode) node).getRightOperand();
-            try {
-                extractRoutingValueFromOrNodeOperand(stmt, leftOperand, results);
-            } catch (NonOptimizableOrClauseException e) {
-                return;
-            }
+        // if (node.getNodeType() == NodeTypes.OR_NODE) {
+        //     ValueNode leftOperand = ((OrNode) node).getLeftOperand();
+        //     ValueNode rightOperand = ((OrNode) node).getRightOperand();
+        //     try {
+        //         extractRoutingValueFromOrNodeOperand(stmt, leftOperand, results);
+        //     } catch (NonOptimizableOrClauseException e) {
+        //         return;
+        //     }
 
-            try {
-                extractRoutingValueFromOrNodeOperand(stmt, rightOperand, results);
-            } catch(NonOptimizableOrClauseException e) {
-                return;
-            }
-        } else if (node.getNodeType() == NodeTypes.IN_LIST_OPERATOR_NODE) {
-            // e.g. WHERE pk_col IN (1,2,3,...)
-            Object value;
-            RowConstructorNode leftOperand = ((InListOperatorNode) node).getLeftOperand();
-            RowConstructorNode rightOperandList = ((InListOperatorNode) node).getRightOperandList();
-            if (leftOperand.getNodeList().size() == 1 && leftOperand.getNodeList().get(0) instanceof ColumnReference) {
-                String columnName = leftOperand.getNodeList().get(0).getColumnName();
-                if (stmt.tableContextSafe().isRouting(columnName)) {
-                    for (ValueNode listValue : rightOperandList.getNodeList()) {
-                        value = stmt.visitor().evaluateValueNode(columnName, listValue);
-                        results.add(value.toString());
-                    }
-                } else {
-                    results.clear();
-                    return;
-                }
-            }
-        }
+        //     try {
+        //         extractRoutingValueFromOrNodeOperand(stmt, rightOperand, results);
+        //     } catch(NonOptimizableOrClauseException e) {
+        //         return;
+        //     }
+        // } else if (node.getNodeType() == NodeTypes.IN_LIST_OPERATOR_NODE) {
+        //     // e.g. WHERE pk_col IN (1,2,3,...)
+        //     Object value;
+        //     RowConstructorNode leftOperand = ((InListOperatorNode) node).getLeftOperand();
+        //     RowConstructorNode rightOperandList = ((InListOperatorNode) node).getRightOperandList();
+        //     if (leftOperand.getNodeList().size() == 1 && leftOperand.getNodeList().get(0) instanceof ColumnReference) {
+        //         String columnName = leftOperand.getNodeList().get(0).getColumnName();
+        //         if (stmt.tableContextSafe().isRouting(columnName)) {
+        //             for (ValueNode listValue : rightOperandList.getNodeList()) {
+        //                 value = ((QueryVisitor)stmt.visitor()).valueFromNode(columnName, listValue);
+        //                 results.add(value.toString());
+        //             }
+        //         } else {
+        //             results.clear();
+        //             return;
+        //         }
+        //     }
+        // }
     }
 
     /**
@@ -223,16 +224,17 @@ public class QueryPlanner {
      */
     private Object extractPrimaryKeyValue(ParsedStatement stmt,
                                           ValueNode node) throws StandardException {
-        if (node.getNodeType() == NodeTypes.BINARY_EQUALS_OPERATOR_NODE) {
-            List<String> primaryKeys = stmt.tableContextSafe().primaryKeysIncludingDefault();
+
+        // if (node.getNodeType() == NodeTypes.BINARY_EQUALS_OPERATOR_NODE) {
+        //     List<String> primaryKeys = stmt.tableContextSafe().primaryKeysIncludingDefault();
 
 
-            Tuple<String, Object> nameAndValue= extractNameAndValueFromOperatorNode(stmt,
-                    (BinaryRelationalOperatorNode) node);
-            if (nameAndValue != null && primaryKeys.contains(nameAndValue.v1())) {
-                return nameAndValue.v2();
-            }
-        }
+        //     Tuple<String, Object> nameAndValue= extractNameAndValueFromOperatorNode(stmt,
+        //             (BinaryRelationalOperatorNode) node);
+        //     if (nameAndValue != null && primaryKeys.contains(nameAndValue.v1())) {
+        //         return nameAndValue.v2();
+        //     }
+        // }
 
         return null;
     }
@@ -282,10 +284,10 @@ public class QueryPlanner {
                                                        BinaryRelationalOperatorNode node) throws StandardException {
 
         Object value = null;
-        Tuple<String, Object> nameAndValue= extractNameAndValueFromOperatorNode(stmt, node);
-        if (nameAndValue != null && stmt.tableContextSafe().isRouting(nameAndValue.v1())) {
-            value = nameAndValue.v2();
-        }
+        // Tuple<String, Object> nameAndValue= extractNameAndValueFromOperatorNode(stmt, node);
+        // if (nameAndValue != null && stmt.tableContextSafe().isRouting(nameAndValue.v1())) {
+        //     value = nameAndValue.v2();
+        // }
 
         return value;
     }
@@ -305,17 +307,19 @@ public class QueryPlanner {
         ValueNode left = node.getLeftOperand();
         ValueNode right = node.getRightOperand();
 
-        if (right instanceof ColumnReference) {
-            ValueNode tmp = left;
-            left = right;
-            right = tmp;
-        }
-        if (!(left instanceof ColumnReference)
-                || (!(right instanceof ConstantNode) && !(right.getNodeType() == NodeTypes.PARAMETER_NODE))
-        ) {
-            return null;
-        }
-        Object value = stmt.visitor().evaluateValueNode( left.getColumnName(), right);
+        // if (right instanceof ColumnReference) {
+        //     ValueNode tmp = left;
+        //     left = right;
+        //     right = tmp;
+        // }
+        // if (!(left instanceof ColumnReference)
+        //         || (!(right instanceof ConstantNode) && !(right.getNodeType() == NodeTypes.PARAMETER_NODE))
+        // ) {
+        //     return null;
+        // }
+        // Object value = ((QueryVisitor)stmt.visitor()).valueFromNode(left.getColumnName(), right);
+
+        Object value = null;
 
         return new Tuple<>(left.getColumnName(), value);
     }

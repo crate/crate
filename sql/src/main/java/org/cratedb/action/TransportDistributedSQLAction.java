@@ -8,6 +8,7 @@ import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
@@ -85,7 +86,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
     private final ClusterService clusterService;
     private final TransportService transportService;
-    private final NodeExecutionContext executionContext;
+    private final SQLParseService sqlParseService;
     private final SQLQueryService sqlQueryService;
     private final TransportSQLReduceHandler transportSQLReduceHandler;
     final String executor = ThreadPool.Names.SEARCH;
@@ -96,11 +97,11 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                                             ThreadPool threadPool,
                                             ClusterService clusterService,
                                             TransportService transportService,
-                                            NodeExecutionContext executionContext,
+                                            SQLParseService sqlParseService,
                                             TransportSQLReduceHandler transportSQLReduceHandler,
                                             SQLQueryService sqlQueryService) {
         super(settings, threadPool);
-        this.executionContext = executionContext;
+        this.sqlParseService = sqlParseService;
         this.sqlQueryService = sqlQueryService;
         this.clusterService = clusterService;
         this.transportService = transportService;
@@ -129,14 +130,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
     }
 
     protected SQLShardResponse shardOperation(SQLShardRequest request) throws ElasticSearchException {
-        ParsedStatement stmt;
-        try {
-            stmt = new ParsedStatement(request.sqlRequest.stmt(), request.sqlRequest.args(),
-                executionContext);
-        } catch (StandardException e) {
-            throw new SQLParseException("Couldn't parse SQL Statement", e);
-        }
-
+        ParsedStatement stmt = sqlParseService.parse(request.sqlRequest.stmt(), request.sqlRequest.args());
         logger.trace("shard operation on: {} shard: {}", clusterService.localNode().getId(), request.shardId);
 
         try {
@@ -207,17 +201,13 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
             // TODO: TransportBroadcastOperationAction does checkGlobalBlock, required?
 
-            String[] indices = parsedStatement.indices().toArray(
-                new String[parsedStatement.indices().size()]
-            );
-
             // resolve aliases to the concreteIndices
             String[] concreteIndices = clusterState.metaData().concreteIndices(
-                indices, IgnoreIndices.NONE, true
+                parsedStatement.indices(), IgnoreIndices.NONE, true
             );
 
             nodes = clusterState.nodes();
-            shardsIts = shards(clusterState, indices, concreteIndices);
+            shardsIts = shards(clusterState, parsedStatement.indices(), concreteIndices);
             expectedShardResponses = shardsIts.size();
             reducers = extractNodes(shardsIts);
             done = new AtomicBoolean(false);

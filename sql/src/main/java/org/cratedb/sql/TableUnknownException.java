@@ -11,6 +11,11 @@ public class TableUnknownException extends CrateException {
         this.tableName = tableName;
     }
 
+    public TableUnknownException(String tableName) {
+        super("Unknown table");
+        this.tableName = tableName;
+    }
+
     @Override
     public int errorCode() {
         return 4041;

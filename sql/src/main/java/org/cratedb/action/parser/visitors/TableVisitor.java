@@ -1,10 +1,10 @@
-package org.cratedb.action.parser;
+package org.cratedb.action.parser.visitors;
 
+import com.google.common.collect.ImmutableMap;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.util.Arrays;
 import java.util.List;
@@ -12,46 +12,31 @@ import java.util.Map;
 
 import static com.google.common.collect.Maps.newHashMap;
 
-public class TableVisitor extends XContentVisitor {
-
-    private boolean stopTraversal;
-    private Map<String, Object> indexSettings = newHashMap();
-    private Map<String, Object> mappingProperties = newHashMap();
-    private Map<String, Object> mappingMeta = newHashMap();
-    private Map<String, Object> mapping = newHashMap();
-    private ColumnReference routingColumn = null;
-    private List<String> primaryKeyColumns = null;
+public class TableVisitor extends BaseVisitor {
 
     private final String[] allowedColumnTypes = {"string", "integer", "long", "short", "double",
                                                  "float", "byte", "boolean", "timestamp"};
-
-    @Override
-    public XContentBuilder getXContentBuilder() throws StandardException {
-        throw new UnsupportedOperationException("Use settings() or mappings() to get the " +
-                "results");
-    }
+    private ColumnReference routingColumn;
+    private List<String> primaryKeyColumns;
+    private Map<String, Object> mappingProperties = newHashMap();
+    private Map<String, Object> mappingMeta = newHashMap();
+    private Map<String, Object> mapping = newHashMap();
+    private Map<String, Object> indexSettings = newHashMap();
 
     public TableVisitor(ParsedStatement stmt) throws StandardException {
-        super(stmt);
-        stopTraversal = false;
+        super(null, stmt, new Object[0]);
     }
 
     @Override
-    public Visitable visit(Visitable node) throws StandardException {
-        DDLStatementNode ddlNode = (DDLStatementNode) node;
-        switch(ddlNode.getNodeType()) {
-            case NodeTypes.CREATE_TABLE_NODE:
-                stopTraversal = true;
-                return visit((CreateTableNode)node);
-            case NodeTypes.DROP_TABLE_NODE:
-                stopTraversal = true;
-                return visit((DropTableNode)node);
-            default:
-                throw new SQLParseException("Unsupported DDL Statement");
-        }
+    protected void afterVisit() {
+        super.afterVisit();
+
+        stmt.indexSettings = ImmutableMap.copyOf(this.indexSettings);
+        stmt.indexMapping = ImmutableMap.copyOf(this.mapping());
     }
 
-    public Visitable visit(CreateTableNode node) throws StandardException {
+    @Override
+    public void visit(CreateTableNode node) throws Exception {
         // validation
         if (node.isWithData()) {
             throw new SQLParseException("Create Table With Data is not Supported.");
@@ -61,20 +46,14 @@ public class TableVisitor extends XContentVisitor {
         }
         // TODO handle existence checks (IF NOT EXISTS, IF EXISTS ...)
         String tableName = node.getObjectName().getTableName();
-        stmt.addIndex(tableName);
+        stmt.tableName(tableName);
 
         indexSettings.put("number_of_replicas", node.numberOfReplicas(1));
         indexSettings.put("number_of_shards", node.numberOfShards(5));
 
         // build mapping
         for (TableElementNode tableElement : node.getTableElementList()) {
-            switch(tableElement.getNodeType()) {
-                case NodeTypes.COLUMN_DEFINITION_NODE:
-                    visit((ColumnDefinitionNode) tableElement);
-                    break;
-                case NodeTypes.CONSTRAINT_DEFINITION_NODE:
-                    visit((ConstraintDefinitionNode)tableElement);
-            }
+            visit(tableElement);
         }
 
         routingColumn = node.routingColumn();
@@ -85,20 +64,17 @@ public class TableVisitor extends XContentVisitor {
                     "routing");
         }
 
-
-        stopTraversal = true;
-
-        return node;
+        stmt.type(ParsedStatement.ActionType.CREATE_INDEX_ACTION);
     }
 
-    public Visitable visit(DropTableNode node) throws StandardException {
-        String tableName = node.getObjectName().getTableName();
-        stmt.addIndex(tableName);
-
-        return node;
+    @Override
+    public void visit(DropTableNode node) throws StandardException {
+        stmt.tableName(node.getObjectName().getTableName());
+        stmt.type(ParsedStatement.ActionType.DELETE_INDEX_ACTION);
     }
 
-    public Visitable visit(ColumnDefinitionNode node) throws SQLParseException {
+    @Override
+    public void visit(ColumnDefinitionNode node) throws SQLParseException {
 
         Map<String, String> columnDefinition = newHashMap();
 
@@ -114,11 +90,11 @@ public class TableVisitor extends XContentVisitor {
         columnDefinition.put("store", "false");
 
         mappingProperties.put(node.getColumnName(), columnDefinition);
-        return node;
     }
 
 
-    public Visitable visit(ConstraintDefinitionNode node) {
+    @Override
+    public void visit(ConstraintDefinitionNode node) {
         switch(node.getConstraintType()) {
             case PRIMARY_KEY:
                 primaryKeyColumns = Arrays.asList(node.getColumnList().getColumnNames());
@@ -131,25 +107,9 @@ public class TableVisitor extends XContentVisitor {
             default:
                 throw new SQLParseException("Unsupported Constraint");
         }
-        return node;
     }
 
-    @Override
-    public boolean visitChildrenFirst(Visitable node) {
-        return false;
-    }
-
-    @Override
-    public boolean stopTraversal() {
-        return stopTraversal;
-    }
-
-    @Override
-    public boolean skipChildren(Visitable node) throws StandardException {
-        return false;
-    }
-
-    public Map<String, Object> mapping() {
+    private Map<String, Object> mapping() {
         if (mapping != null) {
             if (mappingMeta != null) {
                 mapping.put("_meta", mappingMeta);
@@ -162,9 +122,5 @@ public class TableVisitor extends XContentVisitor {
             mapping.put("properties", mappingProperties);
         }
         return mapping;
-    }
-
-    public Map<String, Object> settings() {
-        return indexSettings;
     }
 }

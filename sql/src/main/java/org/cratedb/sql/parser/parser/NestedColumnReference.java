@@ -41,6 +41,15 @@ public class NestedColumnReference extends ColumnReference {
         pathContainsNumeric = false;
     }
 
+    @Override
+    public String getColumnName() {
+        try {
+            return xcontentPathString();
+        } catch (StandardException e) {
+            return columnName;
+        }
+    }
+
     /**
      * Fill this node with a deep copy of the given node.
      */
@@ -115,8 +124,8 @@ public class NestedColumnReference extends ColumnReference {
      * @throws StandardException
      */
     private void generatePathStrings() throws StandardException {
-        StringBuilder xcontentBuilder = new StringBuilder().append(getColumnName());
-        StringBuilder sqlBuilder = new StringBuilder().append(getColumnName());
+        StringBuilder xcontentBuilder = new StringBuilder().append(columnName);
+        StringBuilder sqlBuilder = new StringBuilder().append(columnName);
         for (ValueNode node : path) {
             Object value = null;
             if (node instanceof CharConstantNode) {

@@ -2,6 +2,8 @@ package org.cratedb.action.parser;
 
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
+import org.cratedb.action.parser.visitors.QueryVisitor;
+import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.SQLParser;
 import org.cratedb.sql.parser.parser.StatementNode;
@@ -41,21 +43,21 @@ public class LuceneQueryVisitorTest {
 
     @Test
     public void testMatchAllQueryGeneration() throws Exception {
-        WhereClauseVisitor visitor = getLuceneQueryVisitor(
+        ParsedStatement stmt = parse(
             "select mycol from mytable"
         );
 
-        Query query = visitor.query();
+        Query query = stmt.query;
         assertTrue(query instanceof MatchAllDocsQuery);
     }
 
     @Test
     public void testSimpleTermQueryGeneration() throws Exception {
-        WhereClauseVisitor visitor = getLuceneQueryVisitor(
+        ParsedStatement stmt = parse(
             "select mycol from mytable where othercol = 1"
         );
 
-        Query query = visitor.query();
+        Query query = stmt.query;
         assertTrue(query instanceof TermQuery);
         Term term = ((TermQuery) query).getTerm();
         assertEquals("othercol", term.field());
@@ -77,12 +79,10 @@ public class LuceneQueryVisitorTest {
 
     @Test
     public void testBoolQueryGeneration() throws Exception {
-        WhereClauseVisitor visitor = getLuceneQueryVisitor(
-            "select 1 from t where x = 1 and (y = 2 or y = 3 or y = 4)"
+        String tree = queryTree(
+            "select c from t where x = 1 and (y = 2 or y = 3 or y = 4)"
         );
 
-        Query query = visitor.query();
-        String tree = createTree(query);
         String expected = "BooleanQuery/1:\n" +
             "  MUST\n" +
             "  TermQuery: x:1\n" +
@@ -101,12 +101,10 @@ public class LuceneQueryVisitorTest {
 
     @Test
     public void testBoolQueryGeneration2() throws Exception {
-        WhereClauseVisitor visitor = getLuceneQueryVisitor(
-            "select 1 from t where x = 1 and y = 2 or y = 3 or y = 4"
+        String tree = queryTree(
+            "select c from t where x = 1 and y = 2 or y = 3 or y = 4"
         );
 
-        Query query = visitor.query();
-        String tree = createTree(query);
         String expected = "BooleanQuery/1:\n" +
             "  SHOULD\n" +
             "  BooleanQuery/1:\n" +
@@ -125,130 +123,125 @@ public class LuceneQueryVisitorTest {
 
     @Test
     public void testRangeQueryGenerationLt() throws Exception {
-        WhereClauseVisitor visitor = getLuceneQueryVisitor(
-            "select 1 from t where long_field < 1"
+        String tree = queryTree(
+            "select c from t where long_field < 1"
         );
 
-        Query query = visitor.query();
-        String tree = createTree(query);
         String expected = "NumericRangeQuery: null to 1\n";
         assertEquals(expected, tree);
     }
 
     @Test
     public void testRangeQueryGenerationInt() throws Exception {
-        WhereClauseVisitor visitor = getLuceneQueryVisitor(
-            "select 1 from t where int_field < 1"
+        String tree = queryTree(
+            "select c from t where int_field < 1"
         );
 
-        Query query = visitor.query();
-        String tree = createTree(query);
         String expected = "NumericRangeQuery: null to 1\n";
         assertEquals(expected, tree);
     }
 
     @Test
     public void testRangeQueryGenerationFloat() throws Exception {
-        WhereClauseVisitor visitor = getLuceneQueryVisitor(
-            "select 1 from t where float_field < 1.2"
+        String tree = queryTree(
+            "select c from t where float_field < 1.2"
         );
-
-        Query query = visitor.query();
-        String tree = createTree(query);
         String expected = "NumericRangeQuery: null to 1.2\n";
         assertEquals(expected, tree);
     }
 
     @Test
     public void testRangeQueryGenerationLte() throws Exception {
-        WhereClauseVisitor visitor = getLuceneQueryVisitor(
-            "select 1 from t where long_field <= 1"
+        String tree = queryTree(
+            "select c from t where long_field <= 1"
         );
 
-        Query query = visitor.query();
-        String tree = createTree(query);
         String expected = "NumericRangeQuery: null to (incl) 1\n";
         assertEquals(expected, tree);
     }
 
     @Test
     public void testRangeQueryGenerationGt() throws Exception {
-        WhereClauseVisitor visitor = getLuceneQueryVisitor(
-            "select 1 from t where long_field > 1"
+        String tree = queryTree(
+            "select c from t where long_field > 1"
         );
 
-        Query query = visitor.query();
-        String tree = createTree(query);
         String expected = "NumericRangeQuery: 1 to null\n";
         assertEquals(expected, tree);
     }
 
     @Test
     public void testRangeQueryGenerationGte() throws Exception {
-        WhereClauseVisitor visitor = getLuceneQueryVisitor(
-            "select 1 from t where long_field >= 1"
+        String tree = queryTree(
+            "select c from t where long_field >= 1"
         );
 
-        Query query = visitor.query();
-        String tree = createTree(query);
         String expected = "NumericRangeQuery: (incl) 1 to null\n";
         assertEquals(expected, tree);
     }
 
     @Test
     public void testRangeQueryGenerationLtYoda() throws Exception {
-        WhereClauseVisitor visitor = getLuceneQueryVisitor(
-            "select 1 from t where 1 > long_field"
+        String tree = queryTree(
+            "select c from t where 1 > long_field"
         );
 
-        Query query = visitor.query();
-        String tree = createTree(query);
         String expected = "NumericRangeQuery: null to 1\n";
         assertEquals(expected, tree);
     }
 
     @Test
+    public void testNotEqual() throws Exception {
+        assertEquals(
+            "BooleanQuery/0:\n" +
+            "  MUST\n" +
+            "  *:*  MUST\n" +
+            "  BooleanQuery/0:\n" +
+            "    MUST_NOT\n" +
+            "    TermQuery: x:1\n",
+            queryTree("select c from t where x != 1")
+        );
+    }
+
+    @Test
     public void testRangeQueryGenerationLteYoda() throws Exception {
-        WhereClauseVisitor visitor = getLuceneQueryVisitor(
-            "select 1 from t where 1 >= long_field"
+        String tree = queryTree(
+            "select c from t where 1 >= long_field"
         );
 
-        Query query = visitor.query();
-        String tree = createTree(query);
         String expected = "NumericRangeQuery: null to (incl) 1\n";
         assertEquals(expected, tree);
     }
 
     @Test
     public void testRangeQueryGenerationGtYoda() throws Exception {
-        WhereClauseVisitor visitor = getLuceneQueryVisitor(
-            "select 1 from t where 1 < long_field"
+        String tree = queryTree(
+            "select c from t where 1 < long_field"
         );
 
-        Query query = visitor.query();
-        String tree = createTree(query);
         String expected = "NumericRangeQuery: 1 to null\n";
         assertEquals(expected, tree);
     }
 
     @Test
     public void testRangeQueryGenerationGteYoda() throws Exception {
-        WhereClauseVisitor visitor = getLuceneQueryVisitor(
-            "select 1 from t where 1 <= long_field"
-        );
-
-        Query query = visitor.query();
-        String tree = createTree(query);
+        String tree = queryTree("select c from t where 1 <= long_field");
         String expected = "NumericRangeQuery: (incl) 1 to null\n";
         assertEquals(expected, tree);
     }
 
-    private WhereClauseVisitor getLuceneQueryVisitor(String statement) throws StandardException {
-        WhereClauseVisitor visitor = new WhereClauseVisitor(documentFieldMappers);
+    private String queryTree(String statement) throws StandardException {
+        ParsedStatement stmt = parse(statement);
+        return createTree(stmt.query);
+    }
+
+    private ParsedStatement parse(String statement) throws StandardException {
+        ParsedStatement stmt = new ParsedStatement(statement);
+        QueryVisitor visitor = new QueryVisitor(null, stmt, new Object[0]);
         SQLParser parser = new SQLParser();
         StatementNode statementNode = parser.parseStatement(statement);
         statementNode.accept(visitor);
-        return visitor;
+        return stmt;
     }
 
     private String createTree(Query query) {
