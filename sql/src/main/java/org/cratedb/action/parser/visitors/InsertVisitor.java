@@ -83,7 +83,7 @@ public class InsertVisitor extends BaseVisitor {
 
         for (ResultColumn column : resultColumnList) {
             String columnName = columnNameList.get(resultColumnList.indexOf(column));
-            Object value = valueFromNode(column.getExpression());
+            Object value = mappedValueFromNode(columnName, column.getExpression());
 
             source.put(columnName, value);
             if (primaryKeys.contains(columnName)) {

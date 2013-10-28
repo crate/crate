@@ -7,6 +7,8 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.TableUnknownException;
 import org.cratedb.sql.parser.parser.*;
+import org.elasticsearch.index.mapper.DocumentMapper;
+import org.elasticsearch.index.mapper.DocumentMapperParser;
 
 public class BaseVisitor extends DispatchingVisitor {
 
@@ -47,6 +49,14 @@ public class BaseVisitor extends DispatchingVisitor {
         }
 
         tableName(table.getTableName());
+    }
+
+    @Deprecated
+    protected Object mappedValueFromNode(String name, ValueNode node) {
+        if (node instanceof ConstantNode) {
+            return tableContext.mappedValue(name, ((ConstantNode) node).getValue());
+        }
+        return valueFromNode(node);
     }
 
     protected Object valueFromNode(ValueNode node) {

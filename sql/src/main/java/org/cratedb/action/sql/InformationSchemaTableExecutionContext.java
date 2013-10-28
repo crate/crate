@@ -40,7 +40,17 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
             this.tableName = tableName;
         }
 
-        @Override
+    @Override
+    public DocumentMapper mapper() {
+        throw new UnsupportedOperationException("Information Schema currently has no DocumentMapper");
+    }
+
+    @Override
+    public Object mappedValue(String name, Object value) {
+        return value;
+    }
+
+    @Override
         public List<String> primaryKeys() {
             return new ArrayList<>(0);
         }

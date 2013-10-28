@@ -3,6 +3,8 @@ package org.cratedb.action.sql;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.index.mapper.DocumentMapper;
+import org.elasticsearch.index.mapper.FieldMapper;
 
 import java.io.IOException;
 import java.util.*;
@@ -14,7 +16,15 @@ public class TableExecutionContext implements ITableExecutionContext {
     private final String tableName;
     private Map<String, Object> mapping;
     private Map<String, Object> mappingMeta;
+    private DocumentMapper documentMapper;
 
+
+    @Deprecated
+    TableExecutionContext(String name, MappingMetaData mappingMetaData, DocumentMapper documentMapper) {
+        this.mappingMetaData = mappingMetaData;
+        this.tableName = name;
+        this.documentMapper = documentMapper;
+    }
 
     TableExecutionContext(String name, MappingMetaData mappingMetaData) {
         this.mappingMetaData = mappingMetaData;
@@ -58,14 +68,27 @@ public class TableExecutionContext implements ITableExecutionContext {
         return mappingMeta;
     }
 
+    @Override
+    public DocumentMapper mapper() {
+        return documentMapper;
+    }
+
     /**
      *
      * @param name the name of the column
      * @param value the value to be mapped
      * @return the value converted to the proper type
      */
+    @Deprecated
     public Object mappedValue(String name, Object value){
-        // TODO: convert decimal
+        if (documentMapper == null) {
+            return value;
+        }
+
+        FieldMapper fieldMapper = documentMapper.mappers().smartNameFieldMapper(name);
+        if (fieldMapper != null) {
+            return fieldMapper.value(value);
+        }
         return value;
     }
 

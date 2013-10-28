@@ -6,6 +6,7 @@ import org.cratedb.action.parser.visitors.QueryVisitor;
 import org.cratedb.action.parser.visitors.TableVisitor;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.sql.CrateException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.NodeTypes;
@@ -47,7 +48,9 @@ public class SQLParseService {
             }
             statementNode.accept(visitor);
             return stmt;
-        } catch (StandardException ex) {
+        } catch (CrateException ex) {
+            throw ex;
+        } catch (Exception ex) {
             throw new SQLParseException(ex.getMessage(), ex);
         }
     }

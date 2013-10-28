@@ -3,6 +3,7 @@ package org.cratedb.action.parser.visitors;
 
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.CrateException;
+import org.cratedb.sql.ExceptionHelper;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;

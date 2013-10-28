@@ -58,7 +58,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 NestedColumnReference nestedColumn = (NestedColumnReference)rc.getReference();
                 columnName = nestedColumn.xcontentPathString();
             }
-            updateDoc.put(columnName, valueFromNode(rc.getExpression()));
+            updateDoc.put(columnName, mappedValueFromNode(columnName, rc.getExpression()));
         }
 
         stmt.updateDoc(updateDoc);
