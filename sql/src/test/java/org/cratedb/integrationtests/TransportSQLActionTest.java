@@ -1263,6 +1263,14 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     @Test
+    public void testCountWithGroupByNullArgs() throws Exception {
+        groupBySetup();
+
+        execute("select count(*), race from characters group by race", null);
+        assertEquals(3, response.rowCount());
+    }
+
+    @Test
     public void testCountWithGroupBy() throws Exception {
         groupBySetup();
 

@@ -120,7 +120,7 @@ public class SQLGroupingCollector extends Collector {
     }
 
     private String partitionByKey(String[] reducers, int key) {
-        return reducers[key % reducers.length];
+        return reducers[Math.abs(key) % reducers.length];
     }
 
     @Override
