@@ -887,7 +887,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(2, response.rows()[0][1]);
     }
 
-    @Test(expected = StandardException.class)
+    @Test(expected = SQLParseException.class)
     public void testUpdateWithNestedObjectArrayIdxAccess() throws Exception {
         prepareCreate("test")
             .addMapping("default",

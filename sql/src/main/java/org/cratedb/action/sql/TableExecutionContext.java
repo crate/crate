@@ -25,7 +25,11 @@ public class TableExecutionContext implements ITableExecutionContext {
     protected Map<String, Object> mapping() {
         if (mapping == null) {
             try {
-                mapping = mappingMetaData.sourceAsMap();
+                if (mappingMetaData == null) {
+                    mapping = new HashMap<>();
+                } else {
+                    mapping = mappingMetaData.sourceAsMap();
+                }
             } catch (IOException ex) {
                 logger.error(ex.getMessage(), ex);
                 // :/
