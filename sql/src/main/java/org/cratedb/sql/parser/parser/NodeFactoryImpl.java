@@ -673,12 +673,10 @@ public final class NodeFactoryImpl extends NodeFactory
             return NodeNames.CREATE_ANALYZER_NODE_NAME;
         case NodeTypes.ANALYZER_ELEMENTS:
             return NodeNames.ANALYZER_ELEMENTS_NAME;
-        case NodeTypes.TOKEN_FILTER_NODE:
-            return NodeNames.TOKEN_FILTER_NODE_NAME;
+        case NodeTypes.TOKENIZER_NODE:
+            return NodeNames.TOKENIZER_NODE_NAME;
         case NodeTypes.TOKEN_FILTER_LIST:
             return NodeNames.TOKEN_FILTER_LIST_NAME;
-        case NodeTypes.CHAR_FILTER_NODE:
-            return NodeNames.CHAR_FILTER_NODE_NAME;
         case NodeTypes.CHAR_FILTER_LIST:
             return NodeNames.CHAR_FILTER_LIST_NAME;
         case NodeTypes.NAMED_NODE_WITH_OPTIONAL_PROPERTIES:

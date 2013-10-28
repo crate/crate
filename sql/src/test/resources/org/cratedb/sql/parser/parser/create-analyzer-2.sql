@@ -1,5 +1,5 @@
 create analyzer "schema_name"."analyzer_name" with (
-    tokenizer "ultimateThruth" with (
+    tokenizer "ultimateTruth" with (
         answer=42
     )
 )

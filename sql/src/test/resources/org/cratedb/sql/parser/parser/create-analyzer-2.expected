@@ -4,8 +4,7 @@ statementType: CREATE ANALYZER
 	
 	org.cratedb.sql.parser.parser.AnalyzerElements@b24acca
 
-	Tokenizer:
-		
+	Tokenizer:	
 		org.cratedb.sql.parser.parser.NamedNodeWithOptionalProperties@5b420a67
 		ultimateThruth
 		Properties: 			
@@ -14,9 +13,7 @@ statementType: CREATE ANALYZER
 			type: INTEGER NOT NULL
 			}
 	TokenFilters:
-		
 		org.cratedb.sql.parser.parser.TokenFilterList@5effaa35
 
 	CharFilters:
-		
 		org.cratedb.sql.parser.parser.CharFilterList@62ffae4c

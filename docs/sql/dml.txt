@@ -22,6 +22,7 @@ A simple select::
     | North West Ripple | 1        |
     | Arkintoofle Minor | 3        |
     +-------------------+----------+
+    SELECT 2 rows in set (... sec)
 
 If the '*' operator is used, all properties defined in the schema are returned
 for each object::
@@ -32,6 +33,7 @@ for each object::
     +--------------------------+--------------...---+--------+-------------------+----------+------+
     | 1979-10-12T00:00:00.000Z | Motivated by ...s. | Planet | Arkintoofle Minor | 3        | None |
     +--------------------------+--------------...---+--------+-------------------+----------+------+
+    SELECT 1 row in set (... sec)
 
 Aliases can be used to change the output name of the columns::
 
@@ -41,6 +43,7 @@ Aliases can be used to change the output name of the columns::
     +-------------------+
     | North West Ripple |
     +-------------------+
+    SELECT 1 row in set (... sec)
 
 Where Clause
 ------------
@@ -53,6 +56,7 @@ A simple where clause example using an equality operator::
     +-----------------------------------------...-------------------------------------------+
     | Relative to life on NowWhat, living on a...er by a factor of about seventeen million. |
     +-----------------------------------------...-------------------------------------------+
+    SELECT 1 row in set (... sec)
 
 Usual comparison operators to be used in filters are available for
 string, integer/long, float/double and date type:
@@ -95,6 +99,7 @@ Lucene TermRangeQuery::
     | North West Ripple                  |
     | Outer Eastern Rim                  |
     +------------------------------------+
+    SELECT 5 rows in set (... sec)
 
 For details please refer to the `Apache Lucene`_ site.
 
@@ -116,6 +121,7 @@ specified::
     | North West Ripple |
     | Arkintoofle Minor |
     +-------------------+
+    SELECT 2 rows in set (... sec)
 
 Number and date field comparison behave as expected from standard SQL.
 The following example uses one of the supported ISO date formats::
@@ -128,6 +134,7 @@ The following example uses one of the supported ISO date formats::
     | 1979-10-12T00:00:00.000Z | 1        |
     | 1979-10-12T00:00:00.000Z | 2        |
     +--------------------------+----------+
+    SELECT 2 rows in set (... sec)
 
 All supported default ISO date formats are comparable.
 For a full list please refer to the `elasticsearch date-format`_ site.
@@ -153,6 +160,7 @@ used::
     | Argabuthon        |
     | Arkintoofle Minor |
     +-------------------+
+    SELECT 2 rows in set (... sec)
 
 The following wildcard operators are available:
 
@@ -170,6 +178,7 @@ example a more complicated like clause could look like this::
     +------------+
     | Argabuthon |
     +------------+
+    SELECT 1 row in set (... sec)
 
 In order so search for the wildcard characters themselves it is possible to
 escape them using a backslash::
@@ -180,6 +189,7 @@ escape them using a backslash::
     +-------------------------+
     | The end of the Galaxy.% |
     +-------------------------+
+    SELECT 1 row in set (... sec)
 
 .. note::
 
@@ -211,6 +221,7 @@ Select a property of an inner object::
     +-----------+----------------+
     | Bartledan | Bartledannians |
     +-----------+----------------+
+    SELECT 1 row in set (... sec)
 
 
 Query for a property of an inner object::
@@ -221,6 +232,7 @@ Query for a property of an inner object::
     +-----------+----------------+
     | Bartledan | Bartledannians |
     +-----------+----------------+
+    SELECT 1 row in set (... sec)
 
 Data Aggregation
 ----------------
@@ -233,6 +245,7 @@ Currently the only supported aggregation function in `crate` is `count(*)`::
     +----------+
     | 13       |
     +----------+
+    SELECT 1 row in set (... sec)
 
 Group by
 --------
@@ -251,6 +264,7 @@ This is useful if used in conjunction with aggregation functions::
     | 4        | Galaxy      |
     | 4        | Star System |
     +----------+-------------+
+    SELECT 3 rows in set (... sec)
 
 .. note::
 
@@ -271,6 +285,7 @@ Inserting data to ``Crate`` is done by using the SQL ``INSERT`` statement.
 Inserting a row::
 
     cr> insert into locations values ('2013-09-12T21:43:59.000Z', 'Blagulon Kappa is the planet to which the police are native.', 'Planet', 'Blagulon Kappa', 7)
+    INSERT OK, 1 row affected (... sec)
 
 Inserting multiple rows at once (aka. bulk insert) can be done by defining
 multiple values for the ``INSERT`` statement::
@@ -278,6 +293,7 @@ multiple values for the ``INSERT`` statement::
     cr> insert into locations (date, description, kind, name, position) values
     ... ('2013-09-12T21:43:59.000Z', 'Blagulon Kappa is the planet to which the police are native.', 'Planet', 'Blagulon Kappa', 7),
     ... ('2013-09-13T16:43:59.000Z', 'Brontitall is a planet with a warm, rich atmosphere and no mountains.', 'Planet', 'Brontitall', 10)
+    INSERT OK, 2 rows affected (... sec)
 
 
 Updating data
@@ -286,11 +302,13 @@ Updating data
 In order to update documents in `Crate` the SQL `UPDATE` statement can be
 used::
 
-    cr> update locations set description = 'Updated description' where name = 'Blagulon Kappa'
+    cr> update locations set description = 'Updated description' where name = 'Bartledan'
+    UPDATE OK, 1 row affected (... sec)
 
 Updating nested objects is also supported::
 
     cr> update locations set race['name'] = 'Human' where name = 'Bartledan'
+    UPDATE OK, 1 row affected (... sec)
 
 .. note::
 
@@ -305,3 +323,4 @@ Deleting data
 Deleting rows in Crate is done using the SQL ``DELETE`` statement::
 
     cr> delete from locations where position > 3
+    DELETE OK, ... rows affected (... sec)

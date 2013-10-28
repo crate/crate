@@ -298,9 +298,7 @@ public interface NodeTypes
     // Crate Analyzer
     public static final int CREATE_ANALYZER_NODE = 242;
     public static final int ANALYZER_ELEMENTS = 243;
-    public static final int TOKEN_FILTER_NODE = 244;
     public static final int TOKEN_FILTER_LIST = 245;
-    public static final int CHAR_FILTER_NODE = 246;
     public static final int CHAR_FILTER_LIST = 247;
     public static final int GENERIC_PROPERTIES = 248;
     public static final int NAMED_NODE_WITH_OPTIONAL_PROPERTIES = 249;

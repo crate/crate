@@ -61,6 +61,8 @@ public interface NodeNames
 
     static final String AGGREGATE_WINDOW_FUNCTION_NAME = "org.cratedb.sql.parser.parser.AggregateWindowFunctionNode";
 
+    static final String INDEX_CONSTRAINT_NAME = "org.cratedb.sql.parser.parser.IndexConstraintDefinitionNode";
+
     static final String ALL_RESULT_COLUMN_NAME = "org.cratedb.sql.parser.parser.AllResultColumn";
 
     static final String ALTER_SERVER_NODE_NAME = "org.cratedb.sql.parser.parser.AlterServerNode";
@@ -106,8 +108,6 @@ public interface NodeNames
     static final String CHAR_CONSTANT_NODE_NAME = "org.cratedb.sql.parser.parser.CharConstantNode";
 
     static final String CHAR_FILTER_LIST_NAME = "org.cratedb.sql.parser.parser.CharFilterList";
-
-    static final String CHAR_FILTER_NODE_NAME = "org.cratedb.sql.parser.parser.CharFilterNode";
 
     static final String CLOSE_STATEMENT_NODE_NAME = "org.cratedb.sql.parser.parser.CloseStatementNode";
 
@@ -377,7 +377,7 @@ public interface NodeNames
 
     static final String TOKEN_FILTER_LIST_NAME = "org.cratedb.sql.parser.parser.TokenFilterList";
 
-    static final String TOKEN_FILTER_NODE_NAME = "org.cratedb.sql.parser.parser.TokenFilterNode";
+    static final String TOKENIZER_NODE_NAME = "org.cratedb.sql.parser.parser.TokenizerNode";
 
     static final String TRANSACTION_CONTROL_NODE_NAME = "org.cratedb.sql.parser.parser.TransactionControlNode";
 

@@ -71,7 +71,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
         execute("select \"_id\" as b, \"_version\" as a from test");
         assertArrayEquals(new String[]{"b", "a"}, response.cols());
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
     }
 
     @Test
@@ -81,7 +81,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
         refresh();
         execute("select count(*) from test");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals(2L, response.rows()[0][0]);
     }
 
@@ -93,7 +93,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         client().prepareIndex("test", "default", "id2").setSource("{\"name\": \"Trillian\"}").execute().actionGet();
         refresh();
         execute("select count(*) from test where name = 'Trillian'");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals(1L, response.rows()[0][0]);
     }
 
@@ -106,7 +106,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 .execute().actionGet();
         execute("select * from test");
         assertArrayEquals(new String[]{"firstName", "lastName"}, response.cols());
-        assertEquals(0, response.rows().length);
+        assertEquals(0, response.rowCount());
     }
 
     @Test
@@ -122,7 +122,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("select \"_version\", *, \"_id\" from test");
         assertArrayEquals(new String[]{"_version", "firstName", "lastName", "_id"},
                 response.cols());
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertArrayEquals(new Object[]{1L, "Youri", "Zoon", "id1"}, response.rows()[0]);
     }
 
@@ -168,7 +168,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("select *, \"_version\", \"_version\" as v from test");
         assertArrayEquals(new String[]{"firstName", "lastName", "_version", "v"},
                 response.cols());
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertArrayEquals(new Object[]{"Youri", "Zoon", 1L, 1L}, response.rows()[0]);
     }
 
@@ -191,7 +191,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         assertArrayEquals(new String[]{"message", "person['name']", "person['addresses']['city']"},
                 response.cols());
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertArrayEquals(new Object[]{"I'm addicted to kite", "Youri",
                 new ArrayList<String>(){{add("Dirksland");}}},
                 response.rows()[0]);
@@ -211,11 +211,11 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 .execute().actionGet();
 
         execute("select name from test where name = ''");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals("", response.rows()[0][0]);
 
         execute("select name from test where name != ''");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals("Ruben Lenten", response.rows()[0][0]);
 
     }
@@ -237,19 +237,19 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 .execute().actionGet();
 
         execute("select \"_id\" from test where name is null");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals("id1", response.rows()[0][0]);
 
         execute("select \"_id\" from test where name is not null order by \"_uid\"");
-        assertEquals(2, response.rows().length);
+        assertEquals(2, response.rowCount());
         assertEquals("id2", response.rows()[0][0]);
 
         // missing field is null
         execute("select \"_id\" from test where invalid is null");
-        assertEquals(3, response.rows().length);
+        assertEquals(3, response.rowCount());
 
         execute("select name from test where name is not null and name!=''");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals("Ruben Lenten", response.rows()[0][0]);
 
     }
@@ -265,7 +265,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
 
         execute("select sunshine from test where sunshine = true");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals(true, response.rows()[0][0]);
 
         execute("update test set sunshine=false where sunshine = true");
@@ -273,7 +273,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
 
         execute("select sunshine from test where sunshine = ?", new Object[]{false});
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals(false, response.rows()[0][0]);
     }
 
@@ -300,7 +300,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute(
                 "select FIRSTNAME, \"firstname\", \"firstName\" from test");
         assertArrayEquals(new String[]{"firstname", "firstname", "firstName"}, response.cols());
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals("LowerCase", response.rows()[0][0]);
         assertEquals("LowerCase", response.rows()[0][1]);
         assertEquals("CamelCase", response.rows()[0][2]);
@@ -314,7 +314,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
         execute("select \"_id\" from test");
         assertArrayEquals(new String[]{"_id"}, response.cols());
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals(1, response.rows()[0].length);
         assertEquals("id1", response.rows()[0][0]);
     }
@@ -325,9 +325,9 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
         refresh();
         execute("delete from test");
-        assertEquals(0, response.rows().length);
+        assertEquals(-1, response.rowCount());
         execute("select \"_id\" from test");
-        assertEquals(0, response.rows().length);
+        assertEquals(0, response.rowCount());
     }
 
     @Test
@@ -338,10 +338,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         client().prepareIndex("test", "default", "id3").setSource("{}").execute().actionGet();
         refresh();
         execute("delete from test where \"_id\" = 'id1'");
-        assertEquals(0, response.rows().length);
+        assertEquals(1, response.rowCount());
         refresh();
         execute("select \"_id\" from test");
-        assertEquals(2, response.rows().length);
+        assertEquals(2, response.rowCount());
     }
 
     @Test
@@ -352,7 +352,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
         execute("select \"_source\" from test");
         assertArrayEquals(new String[]{"_source"}, response.cols());
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals(1, response.rows()[0].length);
         assertEquals(1, (long) ((Map<String, Integer>) response.rows()[0][0]).get("a"));
     }
@@ -367,7 +367,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("select a from test");
         assertArrayEquals(new String[]{"a"}, response.cols());
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals(1, response.rows()[0].length);
         assertEquals(2, (long) ((Map<String, Integer>) response.rows()[0][0]).get("nested"));
     }
@@ -380,7 +380,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
         refresh();
         execute("select \"_id\" from test limit 1");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
     }
 
 
@@ -392,7 +392,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         client().prepareIndex("test", "default", "id3").setSource("{}").execute().actionGet();
         refresh();
         execute("select \"_id\" from test limit 1 offset 1");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
     }
 
 
@@ -403,7 +403,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
         refresh();
         execute("select \"_id\" from test where \"_id\"='id1'");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals("id1", response.rows()[0][0]);
     }
 
@@ -414,7 +414,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
         refresh();
         execute("select \"_id\" from test where \"_id\"!='id1'");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals("id2", response.rows()[0][0]);
     }
 
@@ -429,7 +429,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute(
                 "select \"_id\" from test where \"_id\"='id1' or \"_id\"='id3' order by " +
                         "\"_uid\"");
-        assertEquals(2, response.rows().length);
+        assertEquals(2, response.rowCount());
         assertEquals("id1", response.rows()[0][0]);
         assertEquals("id3", response.rows()[1][0]);
     }
@@ -446,7 +446,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 "select \"_id\" from test where " +
                         "\"_id\"='id1' or \"_id\"='id2' or \"_id\"='id4' " +
                         "order by \"_uid\"");
-        assertEquals(3, response.rows().length);
+        assertEquals(3, response.rowCount());
         System.out.println(Arrays.toString(response.rows()[0]));
         System.out.println(Arrays.toString(response.rows()[1]));
         System.out.println(Arrays.toString(response.rows()[2]));
@@ -470,7 +470,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
         execute(
                 "select date from test where date = '2013-10-01'");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals("2013-10-01", response.rows()[0][0]);
     }
 
@@ -489,7 +489,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
         execute(
                 "select date from test where date > '2013-10-01'");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals("2013-10-02", response.rows()[0][0]);
     }
 
@@ -508,7 +508,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
         execute(
                 "select i from test where i > 10");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals(20, response.rows()[0][0]);
     }
 
@@ -524,11 +524,12 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 .execute().actionGet();
 
         execute("insert into test (\"firstName\", \"lastName\") values('Youri', 'Zoon')");
+        assertEquals(1, response.rowCount());
         refresh();
 
         execute("select * from test where \"firstName\" = 'Youri'");
 
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals("Youri", response.rows()[0][0]);
         assertEquals("Zoon", response.rows()[0][1]);
     }
@@ -542,11 +543,12 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 .execute().actionGet();
 
         execute("insert into test values('Youri', 'Zoon')");
+        assertEquals(1, response.rowCount());
         refresh();
 
         execute("select * from test where \"firstName\" = 'Youri'");
 
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals("Youri", response.rows()[0][0]);
         assertEquals("Zoon", response.rows()[0][1]);
     }
@@ -566,12 +568,13 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 .execute().actionGet();
 
         execute("insert into test values(true, '2013-09-10T21:51:43', 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775807, 32767, 'Youri')");
+        assertEquals(1, response.rowCount());
         refresh();
 
 
         execute("select * from test");
 
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals(true, response.rows()[0][0]);
         assertEquals(1378849903000L, response.rows()[0][1]);
         assertEquals(1.79769313486231570e+308, response.rows()[0][2]);
@@ -591,11 +594,12 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 .execute().actionGet();
 
         execute("insert into test values(32, 'Youri'), (42, 'Ruben')");
+        assertEquals(2, response.rowCount());
         refresh();
 
         execute("select * from test order by \"name\"");
 
-        assertEquals(2, response.rows().length);
+        assertEquals(2, response.rowCount());
         assertArrayEquals(new Object[]{42, "Ruben"}, response.rows()[0]);
         assertArrayEquals(new Object[]{32, "Youri"}, response.rows()[1]);
     }
@@ -610,11 +614,12 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         Object[] args = new Object[] {32, "Youri"};
         execute("insert into test values(?, ?)", args);
+        assertEquals(1, response.rowCount());
         refresh();
 
         execute("select * from test where name = 'Youri'");
 
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals(32, response.rows()[0][0]);
         assertEquals("Youri", response.rows()[0][1]);
     }
@@ -629,11 +634,12 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         Object[] args = new Object[] {32, "Youri", 42, "Ruben"};
         execute("insert into test values(?, ?), (?, ?)", args);
+        assertEquals(2, response.rowCount());
         refresh();
 
         execute("select * from test order by \"name\"");
 
-        assertEquals(2, response.rows().length);
+        assertEquals(2, response.rowCount());
         assertArrayEquals(new Object[]{42, "Ruben"}, response.rows()[0]);
         assertArrayEquals(new Object[]{32, "Youri"}, response.rows()[1]);
     }
@@ -652,22 +658,24 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         Object[] args = new Object[] {"I'm addicted to kite", person};
 
         execute("insert into test values(?, ?)", args);
+        assertEquals(1, response.rowCount());
         refresh();
 
         execute("select * from test");
 
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertArrayEquals(args, response.rows()[0]);
     }
 
     @Test
-    public void testUpdateObject() throws Exception {
+    public void testUpdate() throws Exception {
         prepareCreate("test")
                 .addMapping("default",
                         "message", "type=string,index=not_analyzed")
                 .execute().actionGet();
 
         execute("insert into test values('hello'),('again')");
+        assertEquals(2, response.rowCount());
         refresh();
 
         execute("update test set message='b' where message = 'hello'");
@@ -676,7 +684,29 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
 
         execute("select message from test where message='b'");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
+        assertEquals("b", response.rows()[0][0]);
+
+    }
+
+    @Test
+    public void testUpdateMultipleDocuments() throws Exception {
+        prepareCreate("test")
+                .addMapping("default",
+                        "message", "type=string,index=not_analyzed")
+                .execute().actionGet();
+
+        execute("insert into test values('hello'),('again'),('hello')");
+        assertEquals(3, response.rowCount());
+        refresh();
+
+        execute("update test set message='b' where message = 'hello'");
+
+        assertEquals(2, response.rowCount());
+        refresh();
+
+        execute("select message from test where message='b'");
+        assertEquals(2, response.rowCount());
         assertEquals("b", response.rows()[0][0]);
 
     }
@@ -690,6 +720,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
             .execute().actionGet();
 
         execute("insert into test values('hello', 'hallo'), ('again', 'nochmal')");
+        assertEquals(2, response.rowCount());
         refresh();
 
         execute("update test set col1='b' where col1 = 'hello'");
@@ -698,20 +729,21 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
 
         execute("select col1, col2 from test where col1='b'");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals("b", response.rows()[0][0]);
         assertEquals("hallo", response.rows()[0][1]);
 
     }
 
     @Test
-    public void testUpdateObjectWithArgs() throws Exception {
+    public void testUpdateWithArgs() throws Exception {
         prepareCreate("test")
                 .addMapping("default",
                         "coolness", "type=float,index=not_analyzed")
                 .execute().actionGet();
 
         execute("insert into test values(1.1),(2.2)");
+        assertEquals(2, response.rowCount());
         refresh();
 
         execute("update test set coolness=3.3 where coolness = ?", new Object[]{2.2});
@@ -720,7 +752,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
 
         execute("select coolness from test where coolness=3.3");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals(3.3, response.rows()[0][0]);
 
     }
@@ -739,6 +771,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         Object[] args = new Object[] { map };
 
         execute("insert into test values (?)", args);
+        assertEquals(1, response.rowCount());
         refresh();
 
         execute("update test set coolness['x'] = 3");
@@ -747,7 +780,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
 
         execute("select coolness['x'], coolness['y'] from test");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals("3", response.rows()[0][0]);
         assertEquals(2, response.rows()[0][1]);
     }
@@ -777,7 +810,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
 
         execute("select coolness['x'] from test");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals("{y={z=3}}", response.rows()[0][0].toString());
 
         execute("update test set firstcol = 1, coolness['x']['a'] = 'a', coolness['x']['b'] = 'b', othercol = 2");
@@ -786,7 +819,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("select coolness['x']['b'], coolness['x']['a'], coolness['x']['y']['z'], " +
                 "firstcol, othercol from test");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         Object[] firstRow = response.rows()[0];
         assertEquals("b", firstRow[0]);
         assertEquals("a", firstRow[1]);
@@ -814,6 +847,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         Object[] args = new Object[] { map };
 
         execute("insert into test (a) values (?)", args);
+        assertEquals(1, response.rowCount());
         refresh();
 
         execute("update test set a['x']['z'] = ?", new Object[] { null });
@@ -822,7 +856,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
 
         execute("select a['x']['y'], a['x']['z'] from test");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals(2, response.rows()[0][0]);
         assertNull(response.rows()[0][1]);
     }
@@ -846,6 +880,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         Object[] args = new Object[] { map };
 
         execute("insert into test (a) values (?)", args);
+        assertEquals(1, response.rowCount());
         refresh();
 
         execute("update test set a['x']['z'] = null");
@@ -854,7 +889,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
 
         execute("select a['x']['z'], a['x']['y'] from test");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertNull(response.rows()[0][0]);
         assertEquals(2, response.rows()[0][1]);
     }
@@ -867,6 +902,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
             .execute().actionGet();
 
         execute("insert into test values (?)", new Object[]{new Object[]{2.2, 2.3, 2.4}});
+        assertEquals(1, response.rowCount());
         refresh();
 
         execute("update test set coolness[0] = 3.3");
@@ -875,7 +911,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
 
         execute("select coolness from test");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals(3.3, response.rows()[0][0]);
     }
 
@@ -909,6 +945,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         Object[] args = new Object[] { map };
 
         execute("insert into test values (?)", args);
+        assertEquals(1, response.rowCount());
         refresh();
 
         execute("update test set coolness['x'] = 3");
@@ -917,7 +954,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
 
         execute("select coolness from test");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals("{y=2, x=3}", response.rows()[0][0].toString());
     }
 
@@ -1047,10 +1084,11 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         createTestIndexWithPkAndRoutingMapping();
 
         execute("insert into test (some_id, foo) values (124, 'bar1')");
+        assertEquals(1, response.rowCount());
         refresh();
 
         execute("select some_id, foo from test where some_id='124'");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
         assertEquals("124", response.rows()[0][0]);
     }
 
@@ -1060,6 +1098,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         createTestIndexWithPkAndRoutingMapping();
 
         execute("insert into test (some_id, foo) values (123, 'bar')");
+        assertEquals(1, response.rowCount());
         refresh();
 
         execute("delete from test where some_id='123'");
@@ -1075,6 +1114,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         createTestIndexWithPkAndRoutingMapping();
 
         execute("insert into test (some_id, foo) values (123, 'bar')");
+        assertEquals(1, response.rowCount());
         refresh();
 
         execute("update test set foo='bar1' where some_id='123'");
@@ -1159,7 +1199,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         groupBySetup();
 
         execute("select count(*), race from characters group by race");
-        assertEquals(3, response.rows().length);
+        assertEquals(3, response.rowCount());
 
         List<Tuple<Long, String>> result = newArrayList();
 
@@ -1187,7 +1227,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         groupBySetup();
 
         execute("select count(*), race from characters where race = 'Human' group by race");
-        assertEquals(1, response.rows().length);
+        assertEquals(1, response.rowCount());
     }
 
     @Test
@@ -1196,7 +1236,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("select count(*), race from characters group by race order by count(*) asc limit 2");
 
-        assertEquals(2, response.rows().length);
+        assertEquals(2, response.rowCount());
         assertEquals(1L, response.rows()[0][0]);
         assertEquals("Android", response.rows()[0][1]);
         assertEquals(2L, response.rows()[1][0]);
@@ -1209,7 +1249,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("select count(*), gender, race from characters group by race, gender order by count(*) desc, race asc limit 2");
 
-        assertEquals(2, response.rows().length);
+        assertEquals(2, response.rowCount());
         assertEquals(2L, response.rows()[0][0]);
         assertEquals("male", response.rows()[0][1]);
         assertEquals("Human", response.rows()[0][2]);
@@ -1224,7 +1264,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("select count(*), race from characters group by race order by count(*) desc limit 2");
 
-        assertEquals(2, response.rows().length);
+        assertEquals(2, response.rowCount());
         assertEquals(3L, response.rows()[0][0]);
         assertEquals("Human", response.rows()[0][1]);
         assertEquals(2L, response.rows()[1][0]);
@@ -1237,7 +1277,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("select count(*), race from characters group by race order by race asc limit 2");
 
-        assertEquals(2, response.rows().length);
+        assertEquals(2, response.rowCount());
         assertEquals(1L, response.rows()[0][0]);
         assertEquals("Android", response.rows()[0][1]);
         assertEquals(3L, response.rows()[1][0]);
@@ -1250,7 +1290,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("select count(*), race from characters group by race order by race desc limit 2");
 
-        assertEquals(2, response.rows().length);
+        assertEquals(2, response.rowCount());
         assertEquals(2L, response.rows()[0][0]);
         assertEquals("Vogon", response.rows()[0][1]);
         assertEquals(3L, response.rows()[1][0]);
@@ -1425,6 +1465,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         // test index usage
         execute("insert into test (col1, col2) values (1, 'foo')");
+        assertEquals(1, response.rowCount());
         refresh();
         execute("SELECT * FROM test");
         assertEquals(1L, response.rowCount());
@@ -1468,7 +1509,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         groupBySetup();
 
         execute("select count(*), details['job'] from characters group by details['job'] order by count(*), details['job']");
-        assertEquals(3, response.rows().length);
+        assertEquals(3, response.rowCount());
         assertEquals(1L, response.rows()[0][0]);
         assertEquals("Mathematician", response.rows()[0][1]);
         assertEquals(1L, response.rows()[1][0]);

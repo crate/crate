@@ -21,14 +21,6 @@ public class AnalyzerElements extends QueryTreeNode {
         this.tokenizer = tokenizerNode;
     }
 
-    public void addTokenFilter(TokenFilterNode tokenFilterNode) {
-        this.tokenFilters.add(tokenFilterNode);
-    }
-
-    public void addCharFilter(CharFilterNode charFilterNode) {
-        this.charFilters.add(charFilterNode);
-    }
-
     public NamedNodeWithOptionalProperties getTokenizer() {
         return tokenizer;
     }
@@ -39,6 +31,14 @@ public class AnalyzerElements extends QueryTreeNode {
 
     public TokenFilterList getTokenFilters() {
         return this.tokenFilters;
+    }
+    
+    public void addTokenFilter(NamedNodeWithOptionalProperties tokenFilterNode) {
+        this.tokenFilters.add(tokenFilterNode);
+    }
+
+    public void addCharFilter(NamedNodeWithOptionalProperties charFilterNode) {
+        this.charFilters.add(charFilterNode);
     }
 
     @Override
