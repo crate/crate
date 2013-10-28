@@ -1438,7 +1438,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1L, response.rowCount());
         assertEquals("Vo*", response.rows()[0][0]);
 
-        execute("select race from characters where race like 'Vo?'");
+        execute("select race from characters where race like ?", new Object[] { "Vo?"});
         assertEquals(1L, response.rowCount());
         assertEquals("Vo?", response.rows()[0][0]);
 

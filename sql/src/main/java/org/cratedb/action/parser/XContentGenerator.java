@@ -575,7 +575,7 @@ public class XContentGenerator {
             right = tmp;
         }
 
-        String like = ((ConstantNode)right).getValue().toString();
+        String like = getValueFromNode(right).toString();
         // lucene uses * and ? as wildcard characters
         // but via SQL they are used as % and _
         // here they are converted back.
