@@ -8,6 +8,13 @@ import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
 
+/**
+ * Visitor that dispatches generic calls to {@link #visit(org.cratedb.sql.parser.parser.Visitable)}
+ * and {@link #visit(org.cratedb.sql.parser.parser.ValueNode, org.cratedb.sql.parser.parser.ValueNode)}
+ * into more specific method calls.
+ *
+ * E.g. visit(ValueNode, ValueNode) might become visit(ValueNode, AndNode) depending on the exact nodeType
+ */
 public abstract class DispatchingVisitor implements Visitor {
 
     protected final ParsedStatement stmt;

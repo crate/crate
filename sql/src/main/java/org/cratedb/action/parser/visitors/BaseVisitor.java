@@ -26,6 +26,11 @@ public class BaseVisitor extends DispatchingVisitor {
         }
     }
 
+    /**
+     * set the table and schemaName from the {@link TableName}
+     * This will also load the tableContext for the table.
+     * @param tableName
+     */
     protected void tableName(TableName tableName) {
         stmt.schemaName(tableName.getSchemaName());
         stmt.tableName(tableName.getTableName());
@@ -59,6 +64,15 @@ public class BaseVisitor extends DispatchingVisitor {
         return valueFromNode(node);
     }
 
+    /**
+     * extract the value from the Node.
+     * This works for ConstantNode and ParameterNodes
+     *
+     * Note that the returned value is unmapped. Use {@link #mappedValueFromNode(String, org.cratedb.sql.parser.parser.ValueNode)}
+     * to get the mapped value.
+     * @param node
+     * @return
+     */
     protected Object valueFromNode(ValueNode node) {
         if (node == null) {
             return null;

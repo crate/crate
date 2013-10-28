@@ -17,6 +17,9 @@ import org.elasticsearch.action.update.UpdateRequest;
 
 import java.util.Set;
 
+/**
+ * The ESRequestBuilder can be used to build all sorts of ES Request from a {@link ParsedStatement}
+ */
 public class ESRequestBuilder {
 
     private final ParsedStatement stmt;

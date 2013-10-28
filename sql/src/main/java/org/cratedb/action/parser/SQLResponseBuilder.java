@@ -25,6 +25,9 @@ import org.elasticsearch.search.SearchHit;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * The SQLResponseBuilder can be used to convert ES Responses into a {@link SQLResponse}
+ */
 public class SQLResponseBuilder {
 
     private final ParsedStatement stmt;
@@ -102,26 +105,6 @@ public class SQLResponseBuilder {
         // TODO: add rows affected
         return buildEmptyResponse(-1);
     }
-
-    // TODO:
-    //public DeleteByQueryRequest buildDeleteByQueryRequest() throws StandardException {
-    //    DeleteByQueryRequest request = new DeleteByQueryRequest();
-    //    builder = ((QueryVisitor)visitor).getXContentBuilder();
-    //    request.query(builder.bytes().toBytes());
-    //    request.indices(stmt.indices());
-
-    //    // Set routing values if found by planner
-    //    @SuppressWarnings("unchecked") // should only be null or set of strings
-    //        Set<String> routingValues = (Set<String>) stmt.getPlannerResult(QueryPlanner.ROUTING_VALUES);
-    //    if (routingValues != null && !routingValues.isEmpty()) {
-    //        List<String> tmp = new ArrayList<>(routingValues.size());
-    //        tmp.addAll(routingValues);
-    //        request.routing(tmp.toArray(new String[tmp.size()]));
-    //    }
-
-    //    return request;
-    //}
-
 
     public SQLResponse buildResponse(DeleteResponse deleteResponse) {
         int rowCount = 0;
