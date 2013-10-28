@@ -6,10 +6,13 @@ statementType: CREATE ANALYZER
 
 	Tokenizer:
 		
-		org.cratedb.sql.parser.parser.TokenizerNode@56a1fd57
-		{bla=value: blubb
-		type: CHAR(5) NOT NULL
-		}
+		org.cratedb.sql.parser.parser.NamedNodeWithOptionalProperties@9736e99
+		myTokenizer
+		Properties: 			
+			org.cratedb.sql.parser.parser.GenericProperties@796203a7
+			{bla=value: blubb
+			type: CHAR(5) NOT NULL
+			}
 	TokenFilters:
 		
 		org.cratedb.sql.parser.parser.TokenFilterList@24ff8730

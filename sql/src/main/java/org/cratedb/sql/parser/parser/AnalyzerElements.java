@@ -5,7 +5,7 @@ import org.cratedb.sql.parser.StandardException;
 
 public class AnalyzerElements extends QueryTreeNode {
 
-    TokenizerNode tokenizer = null;
+    NamedNodeWithOptionalProperties tokenizer = null;
     TokenFilterList tokenFilters = new TokenFilterList();
     CharFilterList charFilters = new CharFilterList();
 
@@ -14,7 +14,7 @@ public class AnalyzerElements extends QueryTreeNode {
         charFilters = (CharFilterList)charFilterList;
     }
 
-    public void setTokenizer(TokenizerNode tokenizerNode) {
+    public void setTokenizer(NamedNodeWithOptionalProperties tokenizerNode) {
         if (this.tokenizer != null) {
             throw new SQLParseException("Double tokenizer");
         }
@@ -29,15 +29,15 @@ public class AnalyzerElements extends QueryTreeNode {
         this.charFilters.add(charFilterNode);
     }
 
-    public TokenizerNode getTokenizer() {
+    public NamedNodeWithOptionalProperties getTokenizer() {
         return tokenizer;
     }
 
-    public Iterable<CharFilterNode> getCharFilters() {
+    public CharFilterList getCharFilters() {
         return this.charFilters;
     }
 
-    public Iterable<TokenFilterNode> getTokenFilters() {
+    public TokenFilterList getTokenFilters() {
         return this.tokenFilters;
     }
 
@@ -45,7 +45,7 @@ public class AnalyzerElements extends QueryTreeNode {
     public void copyFrom(QueryTreeNode other) throws StandardException {
         super.copyFrom(other);
         AnalyzerElements elements = (AnalyzerElements) other;
-        tokenizer = (TokenizerNode)getNodeFactory().copyNode(elements.getTokenizer(), getParserContext());
+        tokenizer = (NamedNodeWithOptionalProperties)getNodeFactory().copyNode(elements.getTokenizer(), getParserContext());
 
         tokenFilters = new TokenFilterList();
         for (TokenFilterNode node : elements.getTokenFilters()) {

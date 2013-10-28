@@ -1,30 +1,30 @@
 package org.cratedb.action.sql;
 
+import org.cratedb.action.AnalyzerService;
 import org.cratedb.action.parser.QueryPlanner;
-import org.cratedb.sql.parser.parser.ColumnReference;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.FieldMapper;
-import org.elasticsearch.index.mapper.object.ObjectMapper;
-import org.elasticsearch.index.mapper.object.RootObjectMapper;
 import org.elasticsearch.indices.IndicesService;
-
-import java.util.*;
 
 public class NodeExecutionContext {
 
     private final IndicesService indicesService;
     private final ClusterService clusterService;
+    private final AnalyzerService analyzerService;
     private final QueryPlanner queryPlanner;
+
     public static final String DEFAULT_TYPE = "default";
 
     @Inject
-    public NodeExecutionContext(IndicesService indicesService, ClusterService clusterService,
+    public NodeExecutionContext(IndicesService indicesService,
+                                ClusterService clusterService,
+                                AnalyzerService analyzerService,
                                 QueryPlanner queryPlanner) {
         this.indicesService = indicesService;
         this.clusterService = clusterService;
+        this.analyzerService = analyzerService;
         this.queryPlanner = queryPlanner;
     }
 
@@ -53,5 +53,9 @@ public class NodeExecutionContext {
 
     public QueryPlanner queryPlanner() {
         return queryPlanner;
+    }
+
+    public AnalyzerService analyzerService() {
+        return analyzerService;
     }
 }

@@ -379,8 +379,6 @@ public interface NodeNames
 
     static final String TOKEN_FILTER_NODE_NAME = "org.cratedb.sql.parser.parser.TokenFilterNode";
 
-    static final String TOKENIZER_NODE_NAME = "org.cratedb.sql.parser.parser.TokenizerNode";
-
     static final String TRANSACTION_CONTROL_NODE_NAME = "org.cratedb.sql.parser.parser.TransactionControlNode";
 
     static final String TRIM_OPERATOR_NODE_NAME = "org.cratedb.sql.parser.parser.TrimOperatorNode";

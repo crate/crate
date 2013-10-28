@@ -7,7 +7,7 @@ import java.util.Map;
 
 public class GenericProperties extends QueryTreeNode {
 
-    private final Map<String, ValueNode> keyValues = new HashMap<>();
+    private final Map<String, QueryTreeNode> keyValues = new HashMap<>();
 
     public void init() {}
 
@@ -25,22 +25,22 @@ public class GenericProperties extends QueryTreeNode {
         GenericProperties properties = (GenericProperties) other;
         this.keyValues.clear();
         if (properties.hasProperties()) {
-            for (Map.Entry<String, ValueNode> entry : properties.iterator()) {
+            for (Map.Entry<String, QueryTreeNode> entry : properties.iterator()) {
                 this.put(entry.getKey(), entry.getValue());
             }
         }
     }
 
-    public void put(String key, ValueNode value) {
+    public void put(String key, QueryTreeNode value) {
         keyValues.put(key, value);
     }
 
-    public ValueNode get(String key) {
+    public QueryTreeNode get(String key) {
         return keyValues.get(key);
     }
 
 
-    public Iterable<Map.Entry<String, ValueNode>> iterator() {
+    public Iterable<Map.Entry<String, QueryTreeNode>> iterator() {
         return keyValues.entrySet();
     }
     public boolean hasProperties() {

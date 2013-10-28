@@ -9,12 +9,15 @@ statementType: CREATE ANALYZER
 
 	Tokenizer:
 		
-		org.cratedb.sql.parser.parser.TokenizerNode@53bc45d4
-		{c=value: d
-		type: CHAR(1) NOT NULL
-		, a=value: b
-		type: CHAR(1) NOT NULL
-		}
+		org.cratedb.sql.parser.parser.NamedNodeWithOptionalProperties@60c90207
+		alphabet
+		Properties: 			
+			org.cratedb.sql.parser.parser.GenericProperties@2ca44b35
+			{c=value: d
+			type: CHAR(1) NOT NULL
+			, a=value: b
+			type: CHAR(1) NOT NULL
+			}
 	TokenFilters:
 		
 		org.cratedb.sql.parser.parser.TokenFilterList@264b72a2

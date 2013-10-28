@@ -9,6 +9,8 @@ import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.NodeTypes;
 import org.cratedb.sql.parser.parser.SQLParser;
 import org.cratedb.sql.parser.parser.StatementNode;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -66,6 +68,7 @@ public class ParsedStatement {
         DELETE_INDEX_ACTION,
         MULTI_GET_ACTION,
         INFORMATION_SCHEMA_TABLES,
+        CREATE_ANALYZER_ACTION
     }
 
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;
@@ -111,6 +114,9 @@ public class ParsedStatement {
             case NodeTypes.CREATE_TABLE_NODE:
             case NodeTypes.DROP_TABLE_NODE:
                 visitor = new TableVisitor(this);
+                break;
+            case NodeTypes.CREATE_ANALYZER_NODE:
+                visitor = new AnalyzerVisitor(this);
                 break;
             default:
                 visitor = new QueryVisitor(this);
@@ -203,6 +209,8 @@ public class ParsedStatement {
                 return ActionType.CREATE_INDEX_ACTION;
             case NodeTypes.DROP_TABLE_NODE:
                 return ActionType.DELETE_INDEX_ACTION;
+            case NodeTypes.CREATE_ANALYZER_NODE:
+                return ActionType.CREATE_ANALYZER_ACTION;
             default:
                 return ActionType.SEARCH_ACTION;
         }
@@ -345,6 +353,18 @@ public class ParsedStatement {
         assert visitor instanceof TableVisitor;
         DeleteIndexRequest request = new DeleteIndexRequest(indices.get(0));
 
+        return request;
+    }
+
+    /**
+     * Used for setting custom analyzers
+     * @return
+     * @throws StandardException
+     */
+    public ClusterUpdateSettingsRequest buildClusterUpdateSettingsRequest() throws StandardException, IOException {
+        assert visitor instanceof AnalyzerVisitor;
+        ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
+        request.persistentSettings(((AnalyzerVisitor) visitor).buildSettings());
         return request;
     }
 
@@ -517,6 +537,10 @@ public class ParsedStatement {
     }
 
     public SQLResponse buildResponse(DeleteIndexResponse deleteIndexResponse) {
+        return buildEmptyResponse(0);
+    }
+
+    public SQLResponse buildResponse(ClusterUpdateSettingsResponse clusterUpdateSettingsResponse) {
         return buildEmptyResponse(0);
     }
 

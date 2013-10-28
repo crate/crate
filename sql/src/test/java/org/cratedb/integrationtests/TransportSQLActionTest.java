@@ -5,7 +5,10 @@ import com.google.common.collect.Ordering;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.sql.*;
+import org.cratedb.sql.DuplicateKeyException;
+import org.cratedb.sql.SQLParseException;
+import org.cratedb.sql.TableAlreadyExistsException;
+import org.cratedb.sql.TableUnknownException;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -54,6 +57,11 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     public Settings getSettings() {
         // set number of replicas to 0 for getting a green cluster when using only one node
         return randomSettingsBuilder().put("number_of_replicas", 0).build();
+    }
+
+    public Settings getPersistentClusterSettings() {
+        ClusterStateResponse response = client().admin().cluster().prepareState().execute().actionGet();
+        return response.getState().metaData().persistentSettings();
     }
 
     @Test
@@ -1501,6 +1509,20 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     @Test (expected = TableUnknownException.class)
     public void selectMultiGetRequestFromNonExistentTable() throws IOException {
         execute("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"});
+    }
+
+    @Test
+    public void createSimpleAnalyzer() {
+        execute("CREATE ANALYZER a1 WITH (" +
+                "  TOKENIZER standard" +
+                ")");
+        Settings customAnalyzerSettings = getPersistentClusterSettings();
+
+        assertThat(
+                customAnalyzerSettings.getAsMap(),
+                hasEntry("crate.analyzer.custom.index.analysis.analyzer.a1.tokenizer", "standard")
+        );
+
     }
 
 }

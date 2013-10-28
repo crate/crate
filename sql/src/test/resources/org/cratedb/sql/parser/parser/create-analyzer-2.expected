@@ -6,10 +6,13 @@ statementType: CREATE ANALYZER
 
 	Tokenizer:
 		
-		org.cratedb.sql.parser.parser.TokenizerNode@14cc077d
-		{answer=value: 42
-		type: INTEGER NOT NULL
-		}
+		org.cratedb.sql.parser.parser.NamedNodeWithOptionalProperties@5b420a67
+		ultimateThruth
+		Properties: 			
+			org.cratedb.sql.parser.parser.GenericProperties@4cb91eff
+			{answer=value: 42
+			type: INTEGER NOT NULL
+			}
 	TokenFilters:
 		
 		org.cratedb.sql.parser.parser.TokenFilterList@5effaa35

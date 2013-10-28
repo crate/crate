@@ -26,22 +26,32 @@ public abstract class XContentVisitor implements Visitor {
         this.stmt = stmt;
     }
 
+    protected Object getParameter(int parameterNumber) throws StandardException {
+        Object[] args = stmt.args();
+        if (args.length == 0) {
+            throw new StandardException("Missing statement parameters");
+        }
+        try {
+            return args[parameterNumber];
+        } catch (IndexOutOfBoundsException e) {
+            throw new StandardException("Statement parameter value not found");
+        }
+    }
 
     protected Object evaluateValueNode(String name, ValueNode node) throws StandardException {
+        return evaluateValueNode(name, node, true);
+    }
+
+    protected Object evaluateValueNode(String name, ValueNode node, boolean mapped) throws StandardException {
         Object value;
         if (node instanceof ConstantNode) {
-            value = stmt.tableContextSafe().mappedValue(name, ((ConstantNode) node).getValue());
+            if (mapped) {
+                value = stmt.tableContextSafe().mappedValue(name, ((ConstantNode) node).getValue());
+            } else {
+                value = ((ConstantNode) node).getValue();
+            }
         } else if (node instanceof ParameterNode) {
-            Object[] args = stmt.args();
-            if (args.length == 0) {
-                throw new StandardException("Missing statement parameters");
-            }
-            int parameterNumber = ((ParameterNode)node).getParameterNumber();
-            try {
-                value = args[parameterNumber];
-            } catch (IndexOutOfBoundsException e) {
-                throw new StandardException("Statement parameter value not found");
-            }
+            value = getParameter(((ParameterNode) node).getParameterNumber());
         } else {
             throw new SQLParseException(
                 "ValueNode type not supported " + node.getClass().getName());

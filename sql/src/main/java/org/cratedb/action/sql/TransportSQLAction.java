@@ -7,6 +7,9 @@ import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
+import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -59,6 +62,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final TransportDistributedSQLAction transportDistributedSQLAction;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final TransportDeleteIndexAction transportDeleteIndexAction;
+    private final TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction;
     private final NodeExecutionContext executionContext;
 
     @Inject
@@ -76,7 +80,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             TransportDistributedSQLAction transportDistributedSQLAction,
             TransportCountAction transportCountAction,
             TransportCreateIndexAction transportCreateIndexAction,
-            TransportDeleteIndexAction transportDeleteIndexAction) {
+            TransportDeleteIndexAction transportDeleteIndexAction,
+            TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction) {
         super(settings, threadPool);
         this.executionContext = executionContext;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
@@ -92,6 +97,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         this.transportDistributedSQLAction = transportDistributedSQLAction;
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.transportDeleteIndexAction = transportDeleteIndexAction;
+        this.transportClusterUpdateSettingsAction = transportClusterUpdateSettingsAction;
     }
 
     private abstract class ESResponseToSQLResponseListener<T extends ActionResponse> implements ActionListener<T> {
@@ -211,6 +217,10 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                 case DELETE_INDEX_ACTION:
                     DeleteIndexRequest deleteIndexRequest = stmt.buildDeleteIndexRequest();
                     transportDeleteIndexAction.execute(deleteIndexRequest, new DeleteIndexResponseListener(stmt, listener));
+                    break;
+                case CREATE_ANALYZER_ACTION:
+                    ClusterUpdateSettingsRequest clusterUpdateSettingsRequest = stmt.buildClusterUpdateSettingsRequest();
+                    transportClusterUpdateSettingsAction.execute(clusterUpdateSettingsRequest, new ClusterUpdateSettingsResponseListener(stmt, listener));
                     break;
                 default:
                     if (stmt.hasGroupBy()) {
@@ -380,6 +390,18 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         @Override
         public void onResponse(DeleteIndexResponse deleteIndexResponse) {
             listener.onResponse(stmt.buildResponse(deleteIndexResponse));
+        }
+    }
+
+    private class ClusterUpdateSettingsResponseListener extends ESResponseToSQLResponseListener<ClusterUpdateSettingsResponse> {
+
+        public ClusterUpdateSettingsResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+            super(stmt, listener);
+        }
+
+        @Override
+        public void onResponse(ClusterUpdateSettingsResponse clusterUpdateSettingsResponse) {
+            listener.onResponse(stmt.buildResponse(clusterUpdateSettingsResponse));
         }
     }
 
