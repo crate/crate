@@ -162,6 +162,107 @@ Example::
   The number of replicas can be changed at any time.
 
 
+Indices and fullltext search
+============================
+
+Indices for fulltext search are created using an analyzer that consists of
+one tokenizer and zero or more token filters and char filters.
+
+Create Analyzer Syntax::
+
+    CREATE ANALYZER <analyzer_name> [EXTENDS <analyzer_name>] (
+        [
+          TOKENIZER <tokenizer_name> [WITH] (
+            <tokenizer_property>=<value>,
+            ...
+          ),
+        ]
+        [
+          TOKEN_FILTERS [WITH] (
+            <token_filter_name>
+            [ [WITH] (
+                <token_filter_property>=<value>,
+                ...
+              )
+            ],
+            ...
+          ),
+        ]
+        [
+          CHAR_FILTERS [WITH] (
+            <char_filter_name>
+            [ [WITH] (
+                <char_filter_property>=<value>,
+                ...
+              )
+            ],
+            ...
+          )
+        ]
+    )
+
+Multiple char filters and token filters are allowed but at maximum one tokenizer. Order does not matter.
+A simple Example::
+
+    CREATE ANALYZER myanalyzer (
+      TOKENIZER whitespace,
+      TOKEN_FILTERS WITH (
+        lowercase,
+        kstem
+      ),
+      CHAR_FILTERS (
+        html_strip,
+        mymapping WITH (
+          type='mapping',
+          mapping = ['ph=>f', 'qu=>q', 'foo=>bar']
+        )
+      )
+    )
+
+This example creates an analyzer called ``myanalyzer`` to be used in index-definitions and index-constraints.
+It will use a whitespace-tokenizer, a lowercase- and a kstem-token-filter, html_strip char-filter and a custom char-filter that extends
+one of the ``mapping`` type.
+
+You can use :ref:`builtin-tokenizer`, :ref:`builtin-token-filter` and :ref:`builtin-char-filter` by just writing their names and you can extend and parameterize them,
+see for example the ``mymapping``char-filter above. You have to give these extended ones a unique name.
+
+Custom tokenizers, token-filters and char-filters can be reused in other analyzer-definitions,
+but cannot be further extended, this is only possible for builtin ones.
+
+Extending
+---------
+
+Existing Analyzers can be used to create custom Analyzers by means of extending them.
+
+You can extend and parameterize :ref:`builtin-analyzer` like this::
+
+    CREATE ANALYZER "german_snowball" extends snowball WITH (
+      language='german'
+    )
+
+If you extend :ref:`builtin-analyzer`, you cannot give tokenizer, char-filter or token-filter.
+But you have to provide mandatory configuration-options for these extended analyzers.
+
+If you extend custom-analyzers, every part of the analyzer that is ommitted will be taken from the extended one.
+Example::
+
+    CREATE ANALYZER e2 EXTENDS myanalyzer (
+        TOKENIZER mypattern (
+          type='pattern',
+          pattern='.*'
+        )
+    )
+
+This analyzer will use the char-filters and token-filters from ``myanalyzer`` and will override the tokenizer with ``mypattern``.
+
+Reference
+---------
+
+.. toctree::
+  :maxdepth: 1
+
+  analyzer
+
 
 .. _Java types: http://docs.oracle.com/javase/tutorial/java/nutsandbolts/datatypes.html
 .. _dateOptionalTime: http://joda-time.sourceforge.net/apidocs/org/joda/time/format/ISODateTimeFormat.html#dateOptionalTimeParser()

@@ -13,3 +13,4 @@ For general information about SQL please refer to `Wikipedia SQL`_.
    ddl
    dml
    rest
+   analyzer
