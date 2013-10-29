@@ -8,8 +8,8 @@ resultSet:
 
 		[0]:		
 		org.cratedb.sql.parser.parser.ResultColumn@41883161
-		exposedName: a
-		name: a
+		exposedName: a.b.c.d
+		name: a.b.c.d
 		tableName: null
 		isDefaultColumn: false
 		type: null
@@ -19,7 +19,7 @@ resultSet:
 			type: INTEGER NOT NULL
 		reference: 			
 			org.cratedb.sql.parser.parser.NestedColumnReference@6b7a3576
-			columnName: a
+			columnName: a.b.c.d
 			tableName: null
 			type: null
 			path:

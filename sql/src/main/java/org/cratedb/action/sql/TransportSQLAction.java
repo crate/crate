@@ -2,9 +2,10 @@ package org.cratedb.action.sql;
 
 import org.cratedb.action.DistributedSQLRequest;
 import org.cratedb.action.TransportDistributedSQLAction;
+import org.cratedb.action.parser.ESRequestBuilder;
+import org.cratedb.action.parser.SQLResponseBuilder;
+import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.ExceptionHelper;
-import org.cratedb.sql.SQLParseException;
-import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -59,11 +60,11 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final TransportDistributedSQLAction transportDistributedSQLAction;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final TransportDeleteIndexAction transportDeleteIndexAction;
-    private final NodeExecutionContext executionContext;
+    private final SQLParseService sqlParseService;
 
     @Inject
     protected TransportSQLAction(Settings settings, ThreadPool threadPool,
-            NodeExecutionContext executionContext,
+            SQLParseService sqlParseService,
             TransportService transportService,
             TransportSearchAction transportSearchAction,
             TransportDeleteByQueryAction transportDeleteByQueryAction,
@@ -78,7 +79,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             TransportCreateIndexAction transportCreateIndexAction,
             TransportDeleteIndexAction transportDeleteIndexAction) {
         super(settings, threadPool);
-        this.executionContext = executionContext;
+        this.sqlParseService = sqlParseService;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
         this.transportSearchAction = transportSearchAction;
         this.transportIndexAction = transportIndexAction;
@@ -97,11 +98,11 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private abstract class ESResponseToSQLResponseListener<T extends ActionResponse> implements ActionListener<T> {
 
         protected final ActionListener<SQLResponse> listener;
-        protected final ParsedStatement stmt;
+        protected final SQLResponseBuilder builder;
 
         public ESResponseToSQLResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
             this.listener = listener;
-            this.stmt = stmt;
+            this.builder = new SQLResponseBuilder(sqlParseService.context, stmt);
         }
 
         @Override
@@ -117,7 +118,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onResponse(SearchResponse response) {
-            this.listener.onResponse(this.stmt.buildResponse(response));
+            this.listener.onResponse(builder.buildResponse(response));
         }
     }
 
@@ -128,7 +129,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onResponse(IndexResponse response) {
-            this.listener.onResponse(this.stmt.buildResponse(response));
+            this.listener.onResponse(builder.buildResponse(response));
         }
     }
 
@@ -139,7 +140,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onResponse(DeleteByQueryResponse response) {
-            this.listener.onResponse(this.stmt.buildResponse(response));
+            this.listener.onResponse(builder.buildResponse(response));
         }
     }
 
@@ -151,15 +152,14 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onResponse(DeleteResponse response) {
-            this.listener.onResponse(stmt.buildResponse(response));
+            this.listener.onResponse(builder.buildResponse(response));
         }
 
         @Override
         public void onFailure(Throwable e) {
-            DeleteResponse deleteResponse = ExceptionHelper
-                    .deleteResponseFromVersionConflictException(e);
-            if (deleteResponse != null) {
-                listener.onResponse(stmt.buildResponse(deleteResponse));
+            DeleteResponse response = ExceptionHelper.deleteResponseFromVersionConflictException(e);
+            if (response != null) {
+                this.listener.onResponse(builder.buildResponse(response));
             } else {
                 listener.onFailure(ExceptionHelper.transformToCrateException(e));
             }
@@ -173,54 +173,51 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onResponse(BulkResponse response) {
-            listener.onResponse(stmt.buildResponse(response));
+            this.listener.onResponse(builder.buildResponse(response));
         }
     }
 
     @Override
     protected void doExecute(SQLRequest request, ActionListener<SQLResponse> listener) {
         logger.trace("doExecute: " + request);
-        ParsedStatement stmt;
-        SearchRequest searchRequest;
-        IndexRequest indexRequest;
-        DeleteByQueryRequest deleteByQueryRequest;
         try {
-            stmt = new ParsedStatement(request.stmt(), request.args(), executionContext);
+            ParsedStatement stmt = sqlParseService.parse(request.stmt(), request.args());
+            ESRequestBuilder builder = new ESRequestBuilder(stmt);
             switch (stmt.type()) {
                 case INSERT_ACTION:
-                    indexRequest = stmt.buildIndexRequest();
+                    IndexRequest indexRequest = builder.buildIndexRequest();
                     transportIndexAction.execute(indexRequest, new IndexResponseListener(stmt, listener));
                     break;
                 case DELETE_BY_QUERY_ACTION:
-                    deleteByQueryRequest = stmt.buildDeleteByQueryRequest();
+                    DeleteByQueryRequest deleteByQueryRequest = builder.buildDeleteByQueryRequest();
                     transportDeleteByQueryAction.execute(deleteByQueryRequest, new DeleteByQueryResponseListener(stmt, listener));
                     break;
                 case DELETE_ACTION:
-                    DeleteRequest deleteRequest = stmt.buildDeleteRequest();
+                    DeleteRequest deleteRequest = builder.buildDeleteRequest();
                     transportDeleteAction.execute(deleteRequest, new DeleteResponseListener(stmt, listener));
                     break;
                 case BULK_ACTION:
-                    BulkRequest bulkRequest = stmt.buildBulkRequest();
+                    BulkRequest bulkRequest = builder.buildBulkRequest();
                     transportBulkAction.execute(bulkRequest, new BulkResponseListener(stmt, listener));
                     break;
                 case GET_ACTION:
-                    GetRequest getRequest = stmt.buildGetRequest();
+                    GetRequest getRequest = builder.buildGetRequest();
                     transportGetAction.execute(getRequest, new GetResponseListener(stmt, listener));
                     break;
                 case MULTI_GET_ACTION:
-                    MultiGetRequest multiGetRequest = stmt.buildMultiGetRequest();
+                    MultiGetRequest multiGetRequest = builder.buildMultiGetRequest();
                     transportMultiGetAction.execute(multiGetRequest, new MultiGetResponseListener(stmt, listener));
                     break;
                 case UPDATE_ACTION:
-                    UpdateRequest updateRequest = stmt.buildUpdateRequest();
+                    UpdateRequest updateRequest = builder.buildUpdateRequest();
                     transportUpdateAction.execute(updateRequest, new UpdateResponseListener(stmt, listener));
                     break;
                 case CREATE_INDEX_ACTION:
-                    CreateIndexRequest createIndexRequest = stmt.buildCreateIndexRequest();
+                    CreateIndexRequest createIndexRequest = builder.buildCreateIndexRequest();
                     transportCreateIndexAction.execute(createIndexRequest, new CreateIndexResponseListener(stmt, listener));
                     break;
                 case DELETE_INDEX_ACTION:
-                    DeleteIndexRequest deleteIndexRequest = stmt.buildDeleteIndexRequest();
+                    DeleteIndexRequest deleteIndexRequest = builder.buildDeleteIndexRequest();
                     transportDeleteIndexAction.execute(deleteIndexRequest, new DeleteIndexResponseListener(stmt, listener));
                     break;
                 default:
@@ -228,28 +225,21 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                         transportDistributedSQLAction.execute(
                             new DistributedSQLRequest(request, stmt),
                             new DistributedSQLResponseListener(stmt, listener));
-                        break;
-                    }
-
-                    if (stmt.countRequest()) {
-                        CountRequest countRequest = stmt.buildCountRequest();
+                    } else if (stmt.countRequest()) {
+                        CountRequest countRequest = builder.buildCountRequest();
                         transportCountAction.execute(countRequest, new CountResponseListener(stmt, listener));
-                        break;
+                    } else {
+                        SearchRequest searchRequest = builder.buildSearchRequest();
+                        transportSearchAction.execute(searchRequest, new SearchResponseListener(stmt, listener));
                     }
-
-                    searchRequest = stmt.buildSearchRequest();
-                    transportSearchAction.execute(searchRequest, new SearchResponseListener(stmt, listener));
                     break;
             }
-        } catch (StandardException e) {
-            listener.onFailure(new SQLParseException(e.getMessage(), e));
         } catch (Exception e) {
             listener.onFailure(ExceptionHelper.transformToCrateException(e));
         }
     }
 
     private class TransportHandler extends BaseTransportRequestHandler<SQLRequest> {
-
 
         @Override
         public SQLRequest newInstance() {
@@ -281,7 +271,6 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             });
         }
 
-
         @Override
         public String executor() {
             return ThreadPool.Names.SAME;
@@ -294,8 +283,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
 
         @Override
-        public void onResponse(CountResponse countResponse) {
-            listener.onResponse(stmt.buildResponse(countResponse));
+        public void onResponse(CountResponse response) {
+            listener.onResponse(builder.buildResponse(response));
         }
     }
 
@@ -308,7 +297,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onResponse(GetResponse response) {
-            listener.onResponse(stmt.buildResponse(response));
+            listener.onResponse(builder.buildResponse(response));
         }
     }
 
@@ -320,7 +309,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onResponse(MultiGetResponse response) {
-            listener.onResponse(stmt.buildResponse(response));
+            listener.onResponse(builder.buildResponse(response));
         }
     }
 
@@ -348,22 +337,22 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private class UpdateResponseListener implements ActionListener<UpdateResponse> {
 
         private final ActionListener<SQLResponse> delegate;
-        private final ParsedStatement stmt;
+        private final SQLResponseBuilder builder;
 
         public UpdateResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
             delegate = listener;
-            this.stmt = stmt;
+            builder = new SQLResponseBuilder(sqlParseService.context, stmt);
         }
 
         @Override
         public void onResponse(UpdateResponse updateResponse) {
-            delegate.onResponse(stmt.buildResponse(updateResponse));
+            delegate.onResponse(builder.buildResponse(updateResponse));
         }
 
         @Override
         public void onFailure(Throwable e) {
             if (e instanceof DocumentMissingException) {
-                delegate.onResponse(stmt.buildMissingDocumentResponse());
+                delegate.onResponse(builder.buildMissingDocumentResponse());
             } else {
                 delegate.onFailure(ExceptionHelper.transformToCrateException(e));
             }
@@ -377,8 +366,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
 
         @Override
-        public void onResponse(CreateIndexResponse createIndexResponse) {
-            listener.onResponse(stmt.buildResponse(createIndexResponse));
+        public void onResponse(CreateIndexResponse response) {
+            listener.onResponse(builder.buildResponse(response));
         }
     }
 
@@ -389,9 +378,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
 
         @Override
-        public void onResponse(DeleteIndexResponse deleteIndexResponse) {
-            listener.onResponse(stmt.buildResponse(deleteIndexResponse));
+        public void onResponse(DeleteIndexResponse response) {
+            listener.onResponse(builder.buildResponse(response));
         }
     }
-
 }

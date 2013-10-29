@@ -22,13 +22,12 @@ public class SQLFacetExecutor extends FacetExecutor {
         this.stmt = stmt;
         this.updateAction = updateAction;
         this.searchContext = searchContext;
-        Long requiredVersion = (Long)this.stmt.getPlannerResult(QueryPlanner.VERSION_VALUE);
         // TODO: remove hard coded update collector, look at stmt
         this.collector = new UpdateCollector(
                 stmt.updateDoc(),
                 updateAction,
                 searchContext,
-                requiredVersion);
+                stmt.versionFilter);
     }
 
     /**

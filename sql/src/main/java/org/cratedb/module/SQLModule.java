@@ -6,6 +6,7 @@ import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.TransportSQLAction;
+import org.cratedb.service.SQLParseService;
 import org.elasticsearch.action.GenericAction;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -15,6 +16,7 @@ public class SQLModule extends AbstractModule {
 
     @Override
     protected void configure() {
+        bind(SQLParseService.class).asEagerSingleton();
         bind(TransportSQLAction.class).asEagerSingleton();
         bind(NodeExecutionContext.class).asEagerSingleton();
         bind(TransportSQLReduceHandler.class).asEagerSingleton();

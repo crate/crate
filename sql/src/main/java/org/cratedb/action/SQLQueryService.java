@@ -57,8 +57,8 @@ public class SQLQueryService {
     {
         SearchContext context = buildSearchContext(stmt, shardId);
         SearchContext.setCurrent(context);
-        logger.trace("Parsing xcontentQuery:\n " + stmt.getXContentAsBytesRef().toUtf8());
-        parser.parse(context, stmt.getXContentAsBytesRef());
+        logger.trace("Parsing xcontentQuery:\n " + stmt.xcontent.toUtf8());
+        parser.parse(context, stmt.xcontent);
         context.preProcess();
 
         Query query = context.query();
@@ -77,12 +77,11 @@ public class SQLQueryService {
     }
 
     private SearchContext buildSearchContext(ParsedStatement stmt, int shardId) {
-        assert stmt.indices().size() == 1;
         SearchShardTarget shardTarget = new SearchShardTarget(
-            clusterService.localNode().id(), stmt.indices().get(0), shardId
+            clusterService.localNode().id(), stmt.tableName(), shardId
         );
 
-        IndexService indexService = indicesService.indexServiceSafe(stmt.indices().get(0));
+        IndexService indexService = indicesService.indexServiceSafe(stmt.tableName());
         IndexShard indexShard = indexService.shardSafe(shardId);
 
         return new SearchContext(0,
