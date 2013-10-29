@@ -1,14 +1,10 @@
 package org.cratedb.service;
 
-import org.cratedb.action.parser.visitors.BaseVisitor;
-import org.cratedb.action.parser.visitors.InsertVisitor;
-import org.cratedb.action.parser.visitors.QueryVisitor;
-import org.cratedb.action.parser.visitors.TableVisitor;
+import org.cratedb.action.parser.visitors.*;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.SQLParseException;
-import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.NodeTypes;
 import org.cratedb.sql.parser.parser.SQLParser;
 import org.cratedb.sql.parser.parser.StatementNode;
@@ -41,6 +37,9 @@ public class SQLParseService {
                 case NodeTypes.CREATE_TABLE_NODE:
                 case NodeTypes.DROP_TABLE_NODE:
                     visitor = new TableVisitor(stmt);
+                    break;
+                case NodeTypes.CREATE_ANALYZER_NODE:
+                    visitor = new AnalyzerVisitor(context, stmt, args);
                     break;
                 default:
                     visitor = new QueryVisitor(context, stmt, args);

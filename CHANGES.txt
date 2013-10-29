@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+- Implemented ``CREATE ANALYZER`` to create custom analyzers for fulltext-search
+
 2013/10/29 0.17.3
 =================
 

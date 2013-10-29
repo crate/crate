@@ -1,8 +1,8 @@
 create analyzer ae1 with (
-    tokenizer with (
+    tokenizer once with (
         key='value'
-    )
-    tokenizer with (
+    ),
+    tokenizer again with (
         awesome=true
     )
 )

@@ -3,7 +3,6 @@ package org.cratedb.action.parser.visitors;
 
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.CrateException;
-import org.cratedb.sql.ExceptionHelper;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
@@ -35,8 +34,9 @@ public abstract class DispatchingVisitor implements Visitor {
     protected void visit(DropTableNode node) throws Exception {}
     protected void visit(ColumnDefinitionNode node) throws Exception {}
     protected void visit(ConstraintDefinitionNode node) throws Exception {}
+    protected void visit(CreateAnalyzerNode node) throws Exception {}
 
-    protected void afterVisit() {}
+    protected void afterVisit() throws SQLParseException {}
 
     public DispatchingVisitor(ParsedStatement parsedStatement) {
         this.stmt = parsedStatement;
@@ -69,6 +69,10 @@ public abstract class DispatchingVisitor implements Visitor {
                 case NodeTypes.DROP_TABLE_NODE:
                     stopTraversal = true;
                     visit((DropTableNode)node);
+                    break;
+                case NodeTypes.CREATE_ANALYZER_NODE:
+                    stopTraversal = true;
+                    visit((CreateAnalyzerNode)node);
                     break;
                 default:
                     throw new SQLParseException("Unsupported SQL Statement");

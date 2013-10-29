@@ -55,7 +55,9 @@ public class CreateAnalyzerNode extends DDLStatementNode {
     @Override
     void acceptChildren(Visitor v) throws StandardException {
         super.acceptChildren(v);
-        extendsName.accept(v);
+        if (extendsName != null) {
+            extendsName.accept(v);
+        }
         analyzerElements.accept(v);
     }
 }

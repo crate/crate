@@ -985,6 +985,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(empty_map, response.rows()[0][0]);
     }
 
+    @Test
     public void testGetResponseWithObjectColumn() throws Exception {
         XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
             .startObject("default")

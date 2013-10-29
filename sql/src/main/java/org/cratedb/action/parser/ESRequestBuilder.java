@@ -3,6 +3,7 @@ package org.cratedb.action.parser;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.parser.parser.NodeTypes;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -137,5 +138,15 @@ public class ESRequestBuilder {
 
      public DeleteIndexRequest buildDeleteIndexRequest() {
          return new DeleteIndexRequest(stmt.tableName());
+     }
+
+     /**
+      * Used for setting custom analyzers
+      * @return
+      */
+     public ClusterUpdateSettingsRequest buildClusterUpdateSettingsRequest() {
+         ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
+         request.persistentSettings(stmt.createAnalyzerSettings);
+         return request;
      }
 }

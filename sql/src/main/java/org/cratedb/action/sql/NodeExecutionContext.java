@@ -1,5 +1,6 @@
 package org.cratedb.action.sql;
 
+import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.sql.TableUnknownException;
 import org.elasticsearch.cluster.ClusterService;
@@ -9,19 +10,22 @@ import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 
-
 public class NodeExecutionContext {
 
+    private final IndicesService indicesService;
     private final ClusterService clusterService;
+    private final AnalyzerService analyzerService;
     private final QueryPlanner queryPlanner;
     public static final String DEFAULT_TYPE = "default";
-    private final IndicesService indicesService;
-
+ 
     @Inject
-    public NodeExecutionContext(ClusterService clusterService,
-                                IndicesService indicesService, QueryPlanner queryPlanner) {
-        this.clusterService = clusterService;
+    public NodeExecutionContext(IndicesService indicesService,
+                                ClusterService clusterService,
+                                AnalyzerService analyzerService,
+                                QueryPlanner queryPlanner) {
         this.indicesService = indicesService;
+        this.clusterService = clusterService;
+        this.analyzerService = analyzerService;
         this.queryPlanner = queryPlanner;
     }
 
@@ -51,5 +55,9 @@ public class NodeExecutionContext {
 
     public QueryPlanner queryPlanner() {
         return queryPlanner;
+    }
+
+    public AnalyzerService analyzerService() {
+        return analyzerService;
     }
 }

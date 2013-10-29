@@ -5,22 +5,40 @@ import org.cratedb.sql.parser.StandardException;
 
 public class AnalyzerElements extends QueryTreeNode {
 
-    TokenizerNode tokenizer = null;
+    NamedNodeWithOptionalProperties tokenizer = null;
+    GenericProperties properties = null;
     TokenFilterList tokenFilters = new TokenFilterList();
     CharFilterList charFilters = new CharFilterList();
 
-    public void init(Object tokenFilterList, Object charFilterList) {
+    public void init(Object genericProperties, Object tokenFilterList, Object charFilterList) {
+        properties = (GenericProperties) genericProperties;
         tokenFilters = (TokenFilterList)tokenFilterList;
         charFilters = (CharFilterList)charFilterList;
     }
 
-    public void setTokenizer(TokenizerNode tokenizerNode) {
+    public void setTokenizer(NamedNodeWithOptionalProperties tokenizerNode) {
         if (this.tokenizer != null) {
             throw new SQLParseException("Double tokenizer");
         }
         this.tokenizer = tokenizerNode;
     }
 
+    public NamedNodeWithOptionalProperties getTokenizer() {
+        return tokenizer;
+    }
+
+    public GenericProperties getProperties() {
+        return this.properties;
+    }
+
+    public CharFilterList getCharFilters() {
+        return this.charFilters;
+    }
+
+    public TokenFilterList getTokenFilters() {
+        return this.tokenFilters;
+    }
+    
     public void addTokenFilter(NamedNodeWithOptionalProperties tokenFilterNode) {
         this.tokenFilters.add(tokenFilterNode);
     }
@@ -29,23 +47,13 @@ public class AnalyzerElements extends QueryTreeNode {
         this.charFilters.add(charFilterNode);
     }
 
-    public TokenizerNode getTokenizer() {
-        return tokenizer;
-    }
-
-    public Iterable<NamedNodeWithOptionalProperties> getCharFilters() {
-        return this.charFilters;
-    }
-
-    public Iterable<NamedNodeWithOptionalProperties> getTokenFilters() {
-        return this.tokenFilters;
-    }
-
     @Override
     public void copyFrom(QueryTreeNode other) throws StandardException {
         super.copyFrom(other);
         AnalyzerElements elements = (AnalyzerElements) other;
-        tokenizer = (TokenizerNode)getNodeFactory().copyNode(elements.getTokenizer(), getParserContext());
+        tokenizer = (NamedNodeWithOptionalProperties)getNodeFactory().copyNode(elements.getTokenizer(), getParserContext());
+
+        properties = (GenericProperties)getNodeFactory().copyNode(elements.getProperties(), getParserContext());
 
         tokenFilters = new TokenFilterList();
         for (NamedNodeWithOptionalProperties node : elements.getTokenFilters()) {
@@ -65,6 +73,10 @@ public class AnalyzerElements extends QueryTreeNode {
             printLabel(depth, "Tokenizer: ");
             tokenizer.treePrint(depth + 1);
         }
+
+        printLabel(depth, "Properties: ");
+        properties.treePrint(depth + 1);
+
         printLabel(depth, "TokenFilters: ");
         tokenFilters.treePrint(depth + 1);
 
@@ -79,6 +91,7 @@ public class AnalyzerElements extends QueryTreeNode {
         if (tokenizer != null) {
             tokenizer.accept(v);
         }
+        properties.accept(v);
         tokenFilters.accept(v);
         charFilters.accept(v);
     }

@@ -5,9 +5,12 @@ import org.cratedb.action.TransportDistributedSQLAction;
 import org.cratedb.action.parser.ESRequestBuilder;
 import org.cratedb.action.parser.SQLResponseBuilder;
 import org.cratedb.service.SQLParseService;
+import org.cratedb.action.sql.analyzer.TransportClusterUpdateCrateSettingsAction;
 import org.cratedb.sql.ExceptionHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionResponse;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -61,6 +64,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final TransportDeleteIndexAction transportDeleteIndexAction;
     private final SQLParseService sqlParseService;
+    private final TransportClusterUpdateCrateSettingsAction transportClusterUpdateCrateSettingsAction;
+  
 
     @Inject
     protected TransportSQLAction(Settings settings, ThreadPool threadPool,
@@ -77,7 +82,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             TransportDistributedSQLAction transportDistributedSQLAction,
             TransportCountAction transportCountAction,
             TransportCreateIndexAction transportCreateIndexAction,
-            TransportDeleteIndexAction transportDeleteIndexAction) {
+            TransportDeleteIndexAction transportDeleteIndexAction,
+            TransportClusterUpdateCrateSettingsAction transportClusterUpdateCrateSettingsAction) {
         super(settings, threadPool);
         this.sqlParseService = sqlParseService;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
@@ -93,6 +99,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         this.transportDistributedSQLAction = transportDistributedSQLAction;
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.transportDeleteIndexAction = transportDeleteIndexAction;
+        this.transportClusterUpdateCrateSettingsAction = transportClusterUpdateCrateSettingsAction;
     }
 
     private abstract class ESResponseToSQLResponseListener<T extends ActionResponse> implements ActionListener<T> {
@@ -219,6 +226,10 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                 case DELETE_INDEX_ACTION:
                     DeleteIndexRequest deleteIndexRequest = builder.buildDeleteIndexRequest();
                     transportDeleteIndexAction.execute(deleteIndexRequest, new DeleteIndexResponseListener(stmt, listener));
+                    break;
+                case CREATE_ANALYZER_ACTION:
+                    ClusterUpdateSettingsRequest clusterUpdateSettingsRequest = builder.buildClusterUpdateSettingsRequest();
+                    transportClusterUpdateCrateSettingsAction.execute(clusterUpdateSettingsRequest, new ClusterUpdateSettingsResponseListener(stmt, listener));
                     break;
                 default:
                     if (stmt.hasGroupBy()) {
@@ -382,4 +393,17 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             listener.onResponse(builder.buildResponse(response));
         }
     }
+
+    private class ClusterUpdateSettingsResponseListener extends ESResponseToSQLResponseListener<ClusterUpdateSettingsResponse> {
+
+        public ClusterUpdateSettingsResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+            super(stmt, listener);
+        }
+
+        @Override
+        public void onResponse(ClusterUpdateSettingsResponse clusterUpdateSettingsResponse) {
+            listener.onResponse(builder.buildResponse(clusterUpdateSettingsResponse));
+        }
+    }
+
 }

@@ -10705,9 +10705,35 @@ genericProperties() throws StandardException :
 }
 {
     genericProperty(genericProperties)
-    ( <COMMA> genericProperty(genericProperties) )*
+    (<COMMA>genericProperty(genericProperties))*
     {
         return genericProperties;
+    }
+}
+
+ValueNodeList
+valueNodeList() throws StandardException :
+{
+    ValueNodeList list = (ValueNodeList)nodeFactory.getNode(NodeTypes.VALUE_NODE_LIST, parserContext);
+}
+{
+    valueNodeListElement(list)
+    (<COMMA> valueNodeListElement(list))*
+    {
+        return list;
+    }
+}
+
+void
+valueNodeListElement(ValueNodeList list) throws StandardException :
+{
+    ValueNode node = null;
+}
+{
+    node = literal()
+    {
+        list.addValueNode(node);
+        return;
     }
 }
 
@@ -10715,12 +10741,18 @@ void
 genericProperty(GenericProperties genericProperties) throws StandardException :
 {
     String key;
-    ValueNode value;
+    QueryTreeNode value;
 }
 {
     key=identifier()
     <EQUALS_OPERATOR>
-    value=literal()
+    (
+        value = literal()
+    |
+        <LEFT_BRACKET>
+        value = valueNodeList()
+        <RIGHT_BRACKET>
+    )
     {
         genericProperties.put(key, value);
     }
@@ -10757,6 +10789,7 @@ analyzerDefinition() throws StandardException :
     TableName analyzerName = null;
     TableName extendedAnalyzerName = null;
     AnalyzerElements analyzerElements = (AnalyzerElements)nodeFactory.getNode(NodeTypes.ANALYZER_ELEMENTS,
+                                                            (GenericProperties)nodeFactory.getNode(NodeTypes.GENERIC_PROPERTIES, parserContext),
                                                             (TokenFilterList)nodeFactory.getNode(NodeTypes.TOKEN_FILTER_LIST, parserContext),
                                                             (CharFilterList)nodeFactory.getNode(NodeTypes.CHAR_FILTER_LIST, parserContext),
                                                             parserContext);
@@ -10767,7 +10800,7 @@ analyzerDefinition() throws StandardException :
     [<WITH>]
     <LEFT_PAREN>
         analyzerElement(analyzerElements)
-        (analyzerElement(analyzerElements))*
+        (<COMMA> analyzerElement(analyzerElements))*
     <RIGHT_PAREN>
     {
         if (extendedAnalyzerName == null && analyzerElements.getTokenizer() == null) {
@@ -10785,27 +10818,28 @@ analyzerDefinition() throws StandardException :
 void analyzerElement(AnalyzerElements analyzerElements) throws StandardException :
 {}
 {
-    tokenizer(analyzerElements)
+    (
+        LOOKAHEAD({getToken(1).kind == TOKENIZER })
+        tokenizer(analyzerElements)
     |
-    charFilterList(analyzerElements)
+        LOOKAHEAD({getToken(1).kind == CHAR_FILTERS })
+        charFilterList(analyzerElements)
     |
-    tokenFilterList(analyzerElements)
+        LOOKAHEAD({getToken(1).kind == TOKEN_FILTERS })
+        tokenFilterList(analyzerElements)
+    |
+        genericProperty(analyzerElements.getProperties())
+    )
 }
 
 void tokenizer(AnalyzerElements analyzerElements) throws StandardException :
 {
-    GenericProperties tokenizerProperties = null;
+    NamedNodeWithOptionalProperties tokenizerNode = null;
 }
 {
     <TOKENIZER>
-    [<WITH>]
-    <LEFT_PAREN>
-        tokenizerProperties = genericProperties()
-    <RIGHT_PAREN>
+    tokenizerNode = namedNodeWithOptionalProperties()
     {
-        TokenizerNode tokenizerNode = (TokenizerNode)nodeFactory.getNode(NodeTypes.TOKENIZER_NODE,
-                                                                            tokenizerProperties,
-                                                                            parserContext);
         analyzerElements.setTokenizer(tokenizerNode);
     }
 }

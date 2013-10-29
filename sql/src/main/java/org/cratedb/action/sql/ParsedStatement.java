@@ -2,13 +2,15 @@ package org.cratedb.action.sql;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.search.Query;
-import org.cratedb.action.parser.*;
+import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.sql.parser.parser.NodeTypes;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
 
@@ -36,6 +38,11 @@ public class ParsedStatement {
     public Long versionFilter;
     public String stmt;
     public Query query;
+
+    /**
+     * used for create analyzer statements
+     */
+    public Settings createAnalyzerSettings = ImmutableSettings.EMPTY;
 
     /**
      * set if the where clause contains a single pk column.
@@ -78,6 +85,7 @@ public class ParsedStatement {
         DELETE_INDEX_ACTION,
         MULTI_GET_ACTION,
         INFORMATION_SCHEMA_TABLES,
+        CREATE_ANALYZER_ACTION
     }
 
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;
