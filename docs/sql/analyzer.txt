@@ -149,7 +149,7 @@ language
     see the language-parameter of :ref:`snowball-tokenfilter``.
 
 
-.. _builtin-tokenizer
+.. _builtin-tokenizer:
 
 Builtin Tokenizer
 =================
@@ -342,7 +342,7 @@ skip
 	Controls initial tokens to skip, defaults to 0.
 
 
-.. _builtin-token-filter
+.. _builtin-token-filter:
 
 Builtin Token Filter
 ====================
@@ -887,7 +887,7 @@ normalization
 ``type='arabic_normalization'`` or ``type='persian_normalization'``
 
 
-.. _buitlin-char-filter
+.. _builtin-char-filter:
 
 Builtin Char Filter
 ===================

@@ -22,7 +22,6 @@ import java.util.Map;
  * Parsing CREATE ANALYZER Statements.
  */
 public class AnalyzerVisitor extends BaseVisitor {
-
     private String analyzerName = null;
     private String extendedAnalyzerName = null;
     private Settings genericAnalyzerSettings = null;
@@ -46,7 +45,8 @@ public class AnalyzerVisitor extends BaseVisitor {
         return extendedAnalyzerName != null && extendedCustomAnalyzer == null;
     }
 
-    public Visitable visit(CreateAnalyzerNode node) throws StandardException {
+    @Override
+    public void visit(CreateAnalyzerNode node) throws StandardException {
         analyzerName = node.getObjectName().getTableName(); // extend to use schema here
         if (analyzerName.equalsIgnoreCase("default")) {
             throw new SQLParseException("Overriding the default analyzer is forbidden");
@@ -58,10 +58,11 @@ public class AnalyzerVisitor extends BaseVisitor {
             visit(node.getExtendsName());
         }
         visit(node.getElements());
-        return node;
+
+        stmt.type(ParsedStatement.ActionType.CREATE_ANALYZER_ACTION);
     }
 
-    public Visitable visit(TableName extendsName) throws StandardException {
+    public void visit(TableName extendsName) throws StandardException {
         String extended = extendsName.getTableName();
         if (!analyzerService.hasAnalyzer(extended)) {
             throw new SQLParseException(String.format("Extended Analyzer '%s' does not exist", extended));
@@ -69,10 +70,9 @@ public class AnalyzerVisitor extends BaseVisitor {
         extendedAnalyzerName = extended;
         // resolve custom Analyzer, if any
         extendedCustomAnalyzer = analyzerService.getCustomAnalyzer(extendedAnalyzerName);
-        return extendsName;
     }
 
-    public Visitable visit(AnalyzerElements elements) throws StandardException {
+    public void visit(AnalyzerElements elements) throws StandardException {
         if (elements.getTokenizer() != null) {
             visit(elements.getTokenizer());
         }
@@ -82,7 +82,6 @@ public class AnalyzerVisitor extends BaseVisitor {
             visit(elements.getTokenFilters());
             visit(elements.getCharFilters());
         }
-        return elements;
     }
 
     /**
@@ -91,7 +90,7 @@ public class AnalyzerVisitor extends BaseVisitor {
      * @return
      * @throws StandardException
      */
-    public Visitable visit(NamedNodeWithOptionalProperties tokenizer) throws StandardException {
+    public void visit(NamedNodeWithOptionalProperties tokenizer) throws StandardException {
 
         String name = tokenizer.getName();
         GenericProperties properties = tokenizer.getProperties();
@@ -125,11 +124,9 @@ public class AnalyzerVisitor extends BaseVisitor {
             }
             tokenizerDefinition = new Tuple<>(name, builder.build());
         }
-
-        return tokenizer;
     }
 
-    public Visitable visit(GenericProperties properties) throws StandardException {
+    public void visit(GenericProperties properties) throws StandardException {
         if (properties.hasProperties()) {
             ImmutableSettings.Builder builder = ImmutableSettings.builder();
             for (Map.Entry<String, QueryTreeNode> prop : properties.iterator()) {
@@ -138,10 +135,9 @@ public class AnalyzerVisitor extends BaseVisitor {
             }
             genericAnalyzerSettings = builder.build();
         }
-        return properties;
     }
 
-    public Visitable visit(TokenFilterList tokenFilterList) throws StandardException {
+    public void visit(TokenFilterList tokenFilterList) throws StandardException {
         for (NamedNodeWithOptionalProperties tokenFilterNode : tokenFilterList) {
 
             String name = tokenFilterNode.getName();
@@ -179,11 +175,10 @@ public class AnalyzerVisitor extends BaseVisitor {
                 tokenFilters.put(name, builder.build());
             }
         }
-        return tokenFilterList;
     }
 
 
-    public Visitable visit(CharFilterList charFilterList) throws StandardException {
+    public void visit(CharFilterList charFilterList) throws StandardException {
         for (NamedNodeWithOptionalProperties charFilterNode : charFilterList) {
 
             String name = charFilterNode.getName();
@@ -213,19 +208,8 @@ public class AnalyzerVisitor extends BaseVisitor {
                 charFilters.put(name, builder.build());
             }
         }
-        return charFilterList;
     }
 
-    @Override
-    public Visitable visit(Visitable node) throws StandardException {
-        QueryTreeNode treeNode = (QueryTreeNode)node;
-        switch (treeNode.getNodeType()) {
-            case NodeTypes.CREATE_ANALYZER_NODE:
-                return visit((CreateAnalyzerNode)node);
-            default:
-                return node;
-        }
-    }
 
     @Override
     protected void afterVisit() throws StandardException {
@@ -416,20 +400,5 @@ public class AnalyzerVisitor extends BaseVisitor {
             }
         }
         return builder.build();
-    }
-
-    @Override
-    public boolean visitChildrenFirst(Visitable node) {
-        return false;
-    }
-
-    @Override
-    public boolean stopTraversal() {
-        return true;
-    }
-
-    @Override
-    public boolean skipChildren(Visitable node) throws StandardException {
-        return false;
     }
 }

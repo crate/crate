@@ -68,7 +68,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     }
 
     @Override
-    protected void afterVisit() {
+    protected void afterVisit() throws StandardException {
         super.afterVisit();
         stmt.query = rootQuery;
         stmt.xcontent = jsonBuilder.bytes();

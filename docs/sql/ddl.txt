@@ -224,7 +224,7 @@ It will use a whitespace-tokenizer, a lowercase- and a kstem-token-filter, html_
 one of the ``mapping`` type.
 
 You can use :ref:`builtin-tokenizer`, :ref:`builtin-token-filter` and :ref:`builtin-char-filter` by just writing their names and you can extend and parameterize them,
-see for example the ``mymapping``char-filter above. You have to give these extended ones a unique name.
+see for example the ``mymapping`` char-filter above. You have to give these extended ones a unique name.
 
 Custom tokenizers, token-filters and char-filters can be reused in other analyzer-definitions,
 but cannot be further extended, this is only possible for builtin ones.

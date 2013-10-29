@@ -230,6 +230,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                 case CREATE_ANALYZER_ACTION:
                     ClusterUpdateSettingsRequest clusterUpdateSettingsRequest = builder.buildClusterUpdateSettingsRequest();
                     transportClusterUpdateCrateSettingsAction.execute(clusterUpdateSettingsRequest, new ClusterUpdateSettingsResponseListener(stmt, listener));
+                    break;
                 default:
                     if (stmt.hasGroupBy()) {
                         transportDistributedSQLAction.execute(

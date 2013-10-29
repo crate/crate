@@ -1,12 +1,12 @@
 package org.cratedb.module.sql.test;
 
-import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.action.parser.visitors.AnalyzerVisitor;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.action.sql.analyzer.AnalyzerService;
+import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
-import org.cratedb.sql.parser.parser.SQLParserException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -40,17 +40,15 @@ public class AnalyzerVisitorTest {
         AnalyzerService analyzerService = new AnalyzerService(mockedClusterService, new IndicesAnalysisService(ImmutableSettings.EMPTY));
         NodeExecutionContext nodeExecutionContext = mock(NodeExecutionContext.class);
         when(nodeExecutionContext.analyzerService()).thenReturn(analyzerService);
-        ParsedStatement parsedStatement;
+        SQLParseService parseService = new SQLParseService(nodeExecutionContext);
+
         Settings settings = null;
         try {
-            parsedStatement = new ParsedStatement(stmt, args, nodeExecutionContext);
-            assert parsedStatement.visitor() instanceof AnalyzerVisitor;
-            settings = ((AnalyzerVisitor)parsedStatement.visitor()).buildSettings();
-        } catch (SQLParserException e) {
+            ParsedStatement parsedStatement = parseService.parse(stmt, args);
+            settings = parsedStatement.createAnalyzerSettings;
+        } catch (SQLParseException e) {
             System.err.println(stmt);
             throw e;
-        } catch(IOException ioe) {
-            throw new StandardException(ioe);
         }
         return settings;
     }
@@ -108,7 +106,7 @@ public class AnalyzerVisitorTest {
         );
     }
 
-    @Test( expected = StandardException.class)
+    @Test( expected = SQLParseException.class)
     public void createAnalyzerWithoutTokenizer() throws StandardException {
         executeStatement("CREATE ANALYZER a1c WITH (" +
                 "  CHAR_FILTERS (" +

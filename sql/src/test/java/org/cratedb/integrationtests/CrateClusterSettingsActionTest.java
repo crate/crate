@@ -35,7 +35,7 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
     }
 
     private SQLResponse execute(String stmt) {
-        return execute(stmt, null);
+        return execute(stmt, new Object[0]);
     }
 
     private SQLResponse execute(String stmt, Object[] args) {
@@ -167,13 +167,6 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
                 analyzerSettings.getAsMap(), hasEntry("index.analysis.analyzer.a5.type", "stop")
         );
         assertThat(analyzerSettings.getAsArray("index.analysis.analyzer.a5.stopwords"), arrayContainingInAnyOrder("foo", "bar", "baz"));
-        assertThat(settings.getAsMap(),
-                allOf(
-                        not(hasKey(startsWith("crate.analyzer.custom.tokenizer"))),
-                        not(hasKey(startsWith("crate.analyzer.custom.token_filter"))),
-                        not(hasKey(startsWith("crate.analyzer.custom.char_filter")))
-                )
-        );
     }
 
 
