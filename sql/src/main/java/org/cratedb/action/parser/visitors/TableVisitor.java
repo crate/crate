@@ -6,7 +6,6 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
-import org.elasticsearch.common.settings.Settings;
 
 import java.util.Arrays;
 import java.util.List;
@@ -92,8 +91,7 @@ public class TableVisitor extends BaseVisitor {
             throw new SQLParseException("Unsupported type");
         }
 
-        // normally the column is specified before index definition, but so be safe,
-        // we can handle index definition before column definition also
+        // support index definition before column definition
         if (columnDefinition.containsKey("fields")) {
             Map<String, Map<String, String>> columnFieldsDefinition = (Map)columnDefinition.get("fields");
             columnDefinition = (Map)columnFieldsDefinition.get(node.getColumnName());
@@ -139,7 +137,6 @@ public class TableVisitor extends BaseVisitor {
     public void visit(IndexConstraintDefinitionNode node) throws StandardException {
         String indexName = node.getIndexName();
         if (node.getIndexColumnList() != null) {
-
             for (IndexColumn indexColumn : node.getIndexColumnList()) {
                 String columnName = indexColumn.getColumnName();
                 Map<String, Object> columnDefinition = safeColumnDefinition(columnName);
@@ -147,6 +144,7 @@ public class TableVisitor extends BaseVisitor {
                 indexColumnDefinition.putAll(columnDefinition);
 
                 if (!indexName.equals(columnName)) {
+                    // prepare for multi_field mapping
                     indexColumnDefinition.clear();
                     indexColumnDefinition.put("type", columnDefinition.get("type"));
                     indexColumnDefinition.put("store", "false");
@@ -154,27 +152,22 @@ public class TableVisitor extends BaseVisitor {
 
                 switch (node.getIndexMethod()) {
                     case "fulltext":
-                    default:
                         indexColumnDefinition.put("index", "analyzed");
                         GenericProperties indexProperties = node.getIndexProperties();
                         if (indexProperties != null && indexProperties.get("analyzer") != null) {
-                            if (indexProperties.get("analyzer") instanceof ValueNode) {
-                                String analyzerName = (String)valueFromNode((ValueNode)indexProperties.get("analyzer"));
-                                indexColumnDefinition.put("analyzer", analyzerName);
-
-                                // resolve custom analyzer and put into settings
-                                if (context.analyzerService().hasCustomAnalyzer(analyzerName)) {
-                                    Settings customAnalyzerSettings = context.analyzerService().resolveFullCustomAnalyzerSettings(analyzerName);
-                                    indexSettings.putAll(customAnalyzerSettings.getAsMap());
-                                }
-                            } else {
-                                throw new SQLParseException(String.format("Invalid Analyzer '%s'", indexProperties.get("analyzer").toString()));
+                            QueryTreeNode analyzer = indexProperties.get("analyzer");
+                            if (!(analyzer instanceof ValueNode)) {
+                                throw new SQLParseException("'analyzer' property invalid");
                             }
-
+                            indexColumnDefinition.put("analyzer",
+                                    (String)valueFromNode((ValueNode)analyzer));
                         } else {
                             indexColumnDefinition.put("analyzer", "standard");
                         }
                         break;
+                    default:
+                        throw new SQLParseException("Unsupported index method '" +
+                                node.getIndexMethod() + "'");
                 }
 
                 if (!indexName.equals(columnName)) {
