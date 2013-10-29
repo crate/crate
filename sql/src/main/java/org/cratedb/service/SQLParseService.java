@@ -36,7 +36,7 @@ public class SQLParseService {
                     break;
                 case NodeTypes.CREATE_TABLE_NODE:
                 case NodeTypes.DROP_TABLE_NODE:
-                    visitor = new TableVisitor(stmt);
+                    visitor = new TableVisitor(context, stmt, args);
                     break;
                 case NodeTypes.CREATE_ANALYZER_NODE:
                     visitor = new AnalyzerVisitor(context, stmt, args);
