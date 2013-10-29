@@ -5,7 +5,10 @@ import com.google.common.collect.Ordering;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.sql.*;
+import org.cratedb.sql.DuplicateKeyException;
+import org.cratedb.sql.SQLParseException;
+import org.cratedb.sql.TableAlreadyExistsException;
+import org.cratedb.sql.TableUnknownException;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -1777,4 +1780,80 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1L, response.rowCount());
         assertEquals("ok now panic", response.rows()[0][0]);
     }
+
+    @Test
+    public void testCreateTableWithInlineIndex() throws Exception {
+        execute("create table quotes (quote string index using fulltext)");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
+                .actionGet().isExists());
+
+        String quote = "Would it save you a lot of time if I just gave up and went mad now?";
+        execute("insert into quotes values (?)", new Object[]{quote});
+        refresh();
+
+        execute("select quote from quotes where quote = 'time'");
+        assertEquals(1L, response.rowCount());
+        assertEquals(quote, response.rows()[0][0]);
+
+        // filtering on the actual value does not work anymore because its now indexed using the
+        // standard analyzer
+        execute("select quote from quotes where quote = ?", new Object[]{quote});
+        assertEquals(0, response.rowCount());
+    }
+
+    @Test
+    public void testCreateTableWithIndex() throws Exception {
+        execute("create table quotes (quote string index off, " +
+                "index quote_fulltext using fulltext(quote) with (analyzer='english'))");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
+                .actionGet().isExists());
+
+        String quote = "Would it save you a lot of time if I just gave up and went mad now?";
+        execute("insert into quotes values (?)", new Object[]{quote});
+        refresh();
+
+        execute("select quote from quotes where quote_fulltext = 'time'");
+        assertEquals(1L, response.rowCount());
+        assertEquals(quote, response.rows()[0][0]);
+
+        // filtering on the actual value does still work
+        execute("select quote from quotes where quote = ?", new Object[]{quote});
+        assertEquals(1L, response.rowCount());
+    }
+
+    @Test
+    public void testCreateTableWithCompositeIndex() throws Exception {
+        execute("create table novels (title string index off, " +
+                "description string index off, " +
+                "index title_desc_fulltext using fulltext(title, description) " +
+                "with(analyzer='english'))");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("novels"))
+                .actionGet().isExists());
+
+        String title = "So Long, and Thanks for All the Fish";
+        String description = "Many were increasingly of the opinion that they'd all made a big " +
+                "mistake in coming down from the trees in the first place. And some said that " +
+                "even the trees had been a bad move, and that no one should ever have left " +
+                "the oceans.";
+        execute("insert into novels (title, description) values(?, ?)",
+                new Object[]{title, description});
+        refresh();
+
+        // match keyword existing in field `title`
+        execute("select title, description from novels where title_desc_fulltext = 'fish'");
+        assertEquals(1L, response.rowCount());
+        assertEquals(title, response.rows()[0][0]);
+        assertEquals(description, response.rows()[0][1]);
+
+        // match keyword existing in field `description`
+        execute("select title, description from novels where title_desc_fulltext = 'oceans'");
+        assertEquals(1L, response.rowCount());
+        assertEquals(title, response.rows()[0][0]);
+        assertEquals(description, response.rows()[0][1]);
+
+        // filtering on the actual values does still work
+        execute("select title from novels where title = ?", new Object[]{title});
+        assertEquals(1L, response.rowCount());
+    }
+
 }

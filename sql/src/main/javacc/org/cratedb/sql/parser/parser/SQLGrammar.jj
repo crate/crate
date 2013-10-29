@@ -13214,7 +13214,7 @@ columnIndexConstraintDefinition(TableName constraintName, String columnName) thr
         <USING>
         indexMethod = indexMethod()
         [
-            LOOKAHEAD({getToken(2).kind != _DEFAULT}) // prevent collision with defaultClause()
+            LOOKAHEAD({getToken(1).kind == WITH && getToken(2).kind != _DEFAULT}) // prevent collision with defaultClause()
             <WITH>
             <LEFT_PAREN>
                 indexProperties = genericProperties()

@@ -35,6 +35,7 @@ public abstract class DispatchingVisitor implements Visitor {
     protected void visit(ColumnDefinitionNode node) throws Exception {}
     protected void visit(ConstraintDefinitionNode node) throws Exception {}
     protected void visit(CreateAnalyzerNode node) throws Exception {}
+    protected void visit(IndexConstraintDefinitionNode node) throws Exception {}
 
     protected void afterVisit() throws SQLParseException {}
 
@@ -97,6 +98,10 @@ public abstract class DispatchingVisitor implements Visitor {
                 break;
             case NodeTypes.CONSTRAINT_DEFINITION_NODE:
                 visit((ConstraintDefinitionNode)tableElement);
+                break;
+            case NodeTypes.INDEX_CONSTRAINT_NODE:
+                visit((IndexConstraintDefinitionNode)tableElement);
+                break;
         }
     }
 

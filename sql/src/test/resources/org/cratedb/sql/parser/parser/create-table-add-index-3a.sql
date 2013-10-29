@@ -1,0 +1,1 @@
+create table t3 (title string INDEX OFF, content string INDEX USING fulltext)

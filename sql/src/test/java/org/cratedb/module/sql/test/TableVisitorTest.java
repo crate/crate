@@ -3,7 +3,6 @@ package org.cratedb.module.sql.test;
 import com.google.common.collect.ImmutableSet;
 import org.cratedb.action.parser.ESRequestBuilder;
 import org.cratedb.action.parser.QueryPlanner;
-import org.cratedb.action.parser.visitors.TableVisitor;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
@@ -183,6 +182,200 @@ public class TableVisitorTest {
         expectedException.expectMessage("Only columns declared as primary key can be used for routing");
         execStatement("create table phrases (pk_col int primary key, col2 string)" +
                 "clustered by(col2)");
+    }
+
+    @Test
+    public void testCreateTableWithInlineDefaultIndex() throws Exception {
+        execStatement("create table phrases (phrase string index using fulltext)");
+
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("properties", new HashMap<String, Object>(){{
+                put("phrase", new HashMap<String, Object>(){{
+                    put("type", "string");
+                    put("index", "analyzed");
+                    put("analyzer", "standard");
+                    put("store", "false");
+                }});
+            }});
+        }};
+
+        assertEquals(expectedMapping, stmt.indexMapping);
+    }
+
+    @Test
+    public void testCreateTableWithInlineIndexOff() throws Exception {
+        execStatement("create table phrases (phrase string index off)");
+
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("properties", new HashMap<String, Object>(){{
+                put("phrase", new HashMap<String, Object>(){{
+                    put("type", "string");
+                    put("index", "not_analyzed");
+                    put("store", "false");
+                }});
+            }});
+        }};
+
+        assertEquals(expectedMapping, stmt.indexMapping);
+    }
+
+    @Test
+    public void testCreateTableWithInlineIndexProperties() throws Exception {
+        execStatement("create table phrases (phrase string index using fulltext " +
+                "with (analyzer='german'))");
+
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("properties", new HashMap<String, Object>(){{
+                put("phrase", new HashMap<String, Object>(){{
+                    put("type", "string");
+                    put("index", "analyzed");
+                    put("analyzer", "german");
+                    put("store", "false");
+                }});
+            }});
+        }};
+
+        assertEquals(expectedMapping, stmt.indexMapping);
+    }
+
+    @Test
+    public void testCreateTableWithDefaultIndex() throws Exception {
+        execStatement("create table phrases (phrase string index off, " +
+                "index phrase_fulltext using fulltext(phrase))");
+
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("properties", new HashMap<String, Object>(){{
+                put("phrase", new HashMap<String, Object>(){{
+                    put("type", "multi_field");
+                    put("path", "just_name");
+                    put("fields", new HashMap<String, Object>(){{
+                        put("phrase", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "not_analyzed");
+                            put("store", "false");
+                        }});
+                        put("phrase_fulltext", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "analyzed");
+                            put("analyzer", "standard");
+                            put("store", "false");
+                        }});
+                    }});
+                }});
+            }});
+        }};
+
+        assertEquals(expectedMapping, stmt.indexMapping);
+    }
+
+    @Test
+    public void testCreateTableWithIndexProperties() throws Exception {
+        execStatement("create table phrases (phrase string index off, " +
+                "index phrase_fulltext using fulltext(phrase) with(analyzer='german'))");
+
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("properties", new HashMap<String, Object>(){{
+                put("phrase", new HashMap<String, Object>(){{
+                    put("type", "multi_field");
+                    put("path", "just_name");
+                    put("fields", new HashMap<String, Object>(){{
+                        put("phrase", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "not_analyzed");
+                            put("store", "false");
+                        }});
+                        put("phrase_fulltext", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "analyzed");
+                            put("analyzer", "german");
+                            put("store", "false");
+                        }});
+                    }});
+                }});
+            }});
+        }};
+
+        assertEquals(expectedMapping, stmt.indexMapping);
+    }
+
+    @Test
+    public void testCreateTableWithIndexPropertiesReverse() throws Exception {
+        execStatement("create table phrases (" +
+                "index phrase_fulltext using fulltext(phrase) with(analyzer='german')," +
+                "phrase string index off)");
+
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("properties", new HashMap<String, Object>(){{
+                put("phrase", new HashMap<String, Object>(){{
+                    put("type", "multi_field");
+                    put("path", "just_name");
+                    put("fields", new HashMap<String, Object>(){{
+                        put("phrase", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "not_analyzed");
+                            put("store", "false");
+                        }});
+                        put("phrase_fulltext", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "analyzed");
+                            put("analyzer", "german");
+                            put("store", "false");
+                        }});
+                    }});
+                }});
+            }});
+        }};
+
+        assertEquals(expectedMapping, stmt.indexMapping);
+    }
+
+    @Test
+    public void testCreateTableWithCompositeIndex() throws Exception {
+        execStatement("create table chapters (title string index off, " +
+                "description string index off, " +
+                "index title_desc_fulltext using fulltext(title, description) " +
+                "with(analyzer='german'))");
+
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("properties", new HashMap<String, Object>(){{
+                put("title", new HashMap<String, Object>(){{
+                    put("type", "multi_field");
+                    put("path", "just_name");
+                    put("fields", new HashMap<String, Object>(){{
+                        put("title", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "not_analyzed");
+                            put("store", "false");
+                        }});
+                        put("title_desc_fulltext", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "analyzed");
+                            put("analyzer", "german");
+                            put("store", "false");
+                        }});
+                    }});
+                }});
+                put("description", new HashMap<String, Object>(){{
+                    put("type", "multi_field");
+                    put("path", "just_name");
+                    put("fields", new HashMap<String, Object>(){{
+                        put("description", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "not_analyzed");
+                            put("store", "false");
+                        }});
+                        put("title_desc_fulltext", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "analyzed");
+                            put("analyzer", "german");
+                            put("store", "false");
+                        }});
+                    }});
+                }});
+            }});
+        }};
+
+        assertEquals(expectedMapping, stmt.indexMapping);
     }
 
 }
