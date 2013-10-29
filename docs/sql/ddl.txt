@@ -161,12 +161,28 @@ Example::
 
   The number of replicas can be changed at any time.
 
+.. _fulltext-indices:
 
 Indices and fullltext search
 ============================
 
-Indices for fulltext search are created using an analyzer that consists of
-one tokenizer and zero or more token filters and char filters.
+Fulltext indices take the contents of one or more fields and split it up into tokens that are used for fulltext-search.
+The transformation from a text to separate tokens is done by an analyzer.
+
+An analyzer consists of one tokenizer, zero or more token-filters, and zero or more char-filters.
+
+When a field-content is analyzed to become a stream of tokens, the char-filter is applied at first.
+It is used to filter some special chars from the stream of characters that make up the content.
+
+Tokenizers split the possibly filtered stream of characters into tokens.
+
+Token-filters can add tokens, delete tokens or transform them.
+
+With these elements in place, analyzer provide finegrained control over building a token stream used for fulltext search.
+e.G. you can use language specific analyzers, tokenizers and token-filters to get property search results for data
+ provided in a certain language.
+
+
 
 Create Analyzer Syntax::
 
@@ -220,10 +236,12 @@ A simple Example::
     )
 
 This example creates an analyzer called ``myanalyzer`` to be used in index-definitions and index-constraints.
-It will use a whitespace-tokenizer, a lowercase- and a kstem-token-filter, html_strip char-filter and a custom char-filter that extends
-one of the ``mapping`` type.
+It will use a :ref:`whitespace-tokenizer` tokenizer, a :ref:`lowercase-tokenfilter` token-filter
+and a :ref:`kstem-tokenfilter` token-filter, a :ref:`htmlstrip-charfilter` char-filter
+and a custom char-filter that extends the :ref:`mapping-charfilter` char-filter.
 
-You can use :ref:`builtin-tokenizer`, :ref:`builtin-token-filter` and :ref:`builtin-char-filter` by just writing their names and you can extend and parameterize them,
+You can use :ref:`builtin-tokenizer`, :ref:`builtin-token-filter` and :ref:`builtin-char-filter`
+by just writing their names and you can extend and parameterize them,
 see for example the ``mymapping`` char-filter above. You have to give these extended ones a unique name.
 
 Custom tokenizers, token-filters and char-filters can be reused in other analyzer-definitions,
@@ -240,8 +258,8 @@ You can extend and parameterize :ref:`builtin-analyzer` like this::
       language='german'
     )
 
-If you extend :ref:`builtin-analyzer`, you cannot give tokenizer, char-filter or token-filter.
-But you have to provide mandatory configuration-options for these extended analyzers.
+If you extend :ref:`builtin-analyzer`, tokenizer, char-filter or token-filter cannot be defined.
+In this case use the parameters available for the extended :ref:`builtin-analyzer`.
 
 If you extend custom-analyzers, every part of the analyzer that is ommitted will be taken from the extended one.
 Example::
@@ -253,7 +271,8 @@ Example::
         )
     )
 
-This analyzer will use the char-filters and token-filters from ``myanalyzer`` and will override the tokenizer with ``mypattern``.
+This analyzer will use the char-filters and token-filters from ``myanalyzer``
+and will override the tokenizer with ``mypattern``.
 
 Reference
 ---------

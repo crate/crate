@@ -1,5 +1,28 @@
 .. _builtin-analyzer:
 
+Overview
+========
+
+Analyzers are used for creating fulltext-indexes they take the content of a field and split it into tokens,
+which are then searched. Analyzers filter, reorder and/or transform the content of a field before it becomes the
+final stream of tokens.
+
+An analyzer consists of one tokenizer, zero or more token-filters, and zero or more char-filters.
+
+When a field-content is analyzed to become a stream of tokens, the char-filter is applied at first.
+It is used to filter some special chars from the stream of characters that make up the content.
+
+Tokenizers split the possibly filtered stream of characters into tokens.
+
+Token-filters can add tokens, delete tokens or transform them.
+
+With these elements in place, analyzer provide finegrained control over building a token stream used for fulltext search.
+e.G. you can use language specific analyzers, tokenizers and token-filters to get property search results for data
+ provided in a certain language.
+
+Below the builtin analyzers, tokenizers, token-filters and char-filters are listed.
+They can be used as is or can be extended. See :ref:`fulltext-indices`.
+
 Builtin Analyzer
 ================
 
@@ -10,8 +33,16 @@ standard
 
 ``type='standard'``
 
-An analyzer of type standard is built using the :ref:`standard-tokenizer` Tokenizer with the :ref:`standard-tokenfilter` Token Filter,
+An analyzer of type standard is built using the :ref:`standard-tokenizer` Tokenizer
+with the :ref:`standard-tokenfilter` Token Filter,
 :ref:`lowercase-tokenfilter` Token Filter, and :ref:`stop-tokenfilter` Token Filter.
+
+Lowercases all Tokens, excludes english stopwords (common words you usually don't search for like 'the', 'and', 'a' etc.) and
+excludes tokens longer than 255 characters. Tokens are built using a grammar-based approach which is suited for most european language.
+
+Example::
+
+    The quick brown fox jumps Over the lAzY DOG. --> quick, brown, fox, jumps, lazy, dog
 
 Parameters
 ..........
@@ -187,12 +218,12 @@ min_gram
     Minimum size in codepoints of a single n-gram. default: 1
 
 max_gram
-	Maximum size in codepoints of a single n-gram. default: 2
+    Maximum size in codepoints of a single n-gram. default: 2
 
 token_chars
-	Characters classes to keep in the tokens, will split on characters that don’t belong to any of these classes. default: [] (Keep all characters).
+    Characters classes to keep in the tokens, will split on characters that don’t belong to any of these classes. default: [] (Keep all characters).
 
-	Classes: letter, digit, whitespace, punctuation, symbol
+    Classes: letter, digit, whitespace, punctuation, symbol
 
 .. _keyword-tokenizer:
 
@@ -244,10 +275,10 @@ min_gram
     Minimum size in codepoints of a single n-gram. default 1.
 
 max_gram
-	Maximum size in codepoints of a single n-gram. default 2.
+    Maximum size in codepoints of a single n-gram. default 2.
 
 token_chars
-	Characters classes to keep in the tokens, will split on characters that don’t belong to any of these classes. default: [] (Keep all characters).
+    Characters classes to keep in the tokens, will split on characters that don’t belong to any of these classes. default: [] (Keep all characters).
 
     Classes: letter, digit, whitespace, punctuation, symbol
 
@@ -330,16 +361,16 @@ delimiter
     The character delimiter to use, defaults to /.
 
 replacement
-	An optional replacement character to use. Defaults to the delimiter.
+   An optional replacement character to use. Defaults to the delimiter.
 
 buffer_size
-	The buffer size to use, defaults to 1024.
+   The buffer size to use, defaults to 1024.
 
 reverse
-	Generates tokens in reverse order, defaults to false.
+   Generates tokens in reverse order, defaults to false.
 
 skip
-	Controls initial tokens to skip, defaults to 0.
+   Controls initial tokens to skip, defaults to 0.
 
 
 .. _builtin-token-filter:
@@ -381,10 +412,10 @@ Parameters
 ..........
 
 min
-	The minimum number. Defaults to 0.
+   The minimum number. Defaults to 0.
 
 max
-	The maximum number. Defaults to Integer.MAX_VALUE.
+   The maximum number. Defaults to Integer.MAX_VALUE.
 
 
 .. _lowercase-tokenfilter:
@@ -417,7 +448,7 @@ min_gram
     Defaults to 1.
 
 max_gram
-	Defaults to 2.
+   Defaults to 2.
 
 
 .. _edgengram-tokenfilter:
@@ -434,10 +465,10 @@ min_gram
     Defaults to 1.
 
 max_gram
-	Defaults to 2.
+   Defaults to 2.
 
 side
-	Either front or back. Defaults to front.
+   Either front or back. Defaults to front.
 
 
 .. _porterstem-tokenfilter:
@@ -473,16 +504,17 @@ max_shingle_size
     The maximum shingle size. Defaults to 2.
 
 min_shingle_sizes
-	The minimum shingle size. Defaults to 2.
+   The minimum shingle size. Defaults to 2.
 
 output_unigrams
-	If true the output will contain the input tokens (unigrams) as well as the shingles. Defaults to true.
+   If true the output will contain the input tokens (unigrams) as well as the shingles. Defaults to true.
 
 output_unigrams_if_no_shingles
-	If output_unigrams is false the output will contain the input tokens (unigrams) if no shingles are available. Note if output_unigrams is set to true this setting has no effect. Defaults to false.
+   If output_unigrams is false the output will contain the input tokens (unigrams) if no shingles are available.
+   Note if output_unigrams is set to true this setting has no effect. Defaults to false.
 
 token_separator
-	The string to use when joining adjacent tokens to form a shingle. Defaults to " ".
+   The string to use when joining adjacent tokens to form a shingle. Defaults to " ".
 
 
 .. _stop-tokenfilter:
@@ -498,19 +530,19 @@ Parameters
 ..........
 
 stopwords
-	A list of stop words to use. Defaults to english stop words.
+   A list of stop words to use. Defaults to english stop words.
 
 stopwords_path
-	A path (either relative to config location, or absolute) to a stopwords file configuration. Each stop word should be in its own "line" (separated by a line break). The file must be UTF-8 encoded.
-
-enable_position_increments
-	Set to true if token positions should record the removed stop words, false otherwise. Defaults to true. [0.90.3] Deprecated in 0.90.3. Removed in Lucene 4.4.
+   A path (either relative to config location, or absolute) to a stopwords file configuration.
+   Each stop word should be in its own "line" (separated by a line break). The file must be UTF-8 encoded.
 
 ignore_case
-	Set to true to lower case all words first. Defaults to false.
+   Set to true to lower case all words first. Defaults to false.
 
 remove_trailing
-	Set to false in order to not ignore the last term of a search if it is a stop word. This is very useful for the completion suggester as a query like green a can be extended to green apple even though you remove stop words in general. Defaults to true
+   Set to false in order to not ignore the last term of a search if it is a stop word.
+   This is very useful for the completion suggester as a query like green a can be extended to green apple
+   even though you remove stop words in general. Defaults to true
 
 
 .. _worddelimiter-tokenfilter:
@@ -553,7 +585,8 @@ stem_english_possessive
     If true causes trailing "'s" to be removed for each subword: "O’Neil’s" ⇒ "O", "Neil". Defaults to true.
 
 protected_words
-    A list of protected words from being delimiter. Either an array, or also can set protected_words_path which resolved to a file configured with protected words (one on each line). Automatically resolves to config/ based location if exists.
+    A list of protected words from being delimiter. Either an array, or also can set protected_words_path
+    which resolved to a file configured with protected words (one on each line). Automatically resolves to config/ based location if exists.
 
 type_table
     A custom type mapping table
@@ -572,7 +605,12 @@ Parameters
 ..........
 
 language/name
-    arabic, armenian, basque, brazilian, bulgarian, catalan, czech, danish, dutch, english, finnish, french, german, german2, greek, hungarian, italian, kp, kstem, lovins, latvian, norwegian, minimal_norwegian, porter, portuguese, romanian, russian, spanish, swedish, turkish, minimal_english, possessive_english, light_finnish, light_french, minimal_french, light_german, minimal_german, hindi, light_hungarian, indonesian, light_italian, light_portuguese, minimal_portuguese, portuguese, light_russian, light_spanish, light_swedish.
+    arabic, armenian, basque, brazilian, bulgarian, catalan, czech, danish, dutch, english,
+    finnish, french, german, german2, greek, hungarian, italian, kp, kstem, lovins, latvian,
+    norwegian, minimal_norwegian, porter, portuguese, romanian, russian, spanish, swedish,
+    turkish, minimal_english, possessive_english, light_finnish, light_french, minimal_french,
+    light_german, minimal_german, hindi, light_hungarian, indonesian, light_italian, light_portuguese,
+    minimal_portuguese, portuguese, light_russian, light_spanish, light_swedish.
 
 
 .. _keywordmarker-tokenfilter:
@@ -591,10 +629,10 @@ keywords
     A list of words to use.
 
 keywords_path
-	A path (either relative to config location, or absolute) to a list of words.
+   A path (either relative to config location, or absolute) to a list of words.
 
 ignore_case
-	Set to true to lower case all words first. Defaults to false.
+   Set to true to lower case all words first. Defaults to false.
 
 
 .. _keywordrepeat-tokenfilter:
@@ -682,19 +720,19 @@ word_list
     A list of words to use.
 
 word_list_path
-	A path (either relative to config location, or absolute) to a list of words.
+   A path (either relative to config location, or absolute) to a list of words.
 
 min_word_size
-	Minimum word size(Integer). Defaults to 5.
+   Minimum word size(Integer). Defaults to 5.
 
 min_subword_size
-	Minimum subword size(Integer). Defaults to 2.
+   Minimum subword size(Integer). Defaults to 2.
 
 max_subword_size
-	Maximum subword size(Integer). Defaults to 15.
+   Maximum subword size(Integer). Defaults to 15.
 
 only_longest_match
-	Only matching the longest(Boolean). Defaults to false
+   Only matching the longest(Boolean). Defaults to false
 
 
 .. _reverse-tokenfilter:
@@ -814,7 +852,7 @@ max_token_count
     The maximum number of tokens that should be indexed per document and field. The default is 1
 
 consume_all_tokens
-	If set to true the filter exhaust the stream even if max_token_count tokens have been consumed already. The default is false.
+   If set to true the filter exhaust the stream even if max_token_count tokens have been consumed already. The default is false.
 
 .. _hunspell-tokenfilter:
 
@@ -841,7 +879,8 @@ locale
     A locale for this filter. If this is unset, the lang or language are used instead - so one of these has to be set.
 
 dictionary
-    The name of a dictionary. The path to your hunspell dictionaries should be configured via indices.analysis.hunspell.dictionary.location in the crate.yml config file.
+    The name of a dictionary. The path to your hunspell dictionaries should be configured
+    via indices.analysis.hunspell.dictionary.location in the crate.yml config file.
 
 dedup
     If only unique terms should be returned, this needs to be set to true. Defaults to true.
@@ -867,13 +906,14 @@ common_words
     A list of common words to use.
 
 common_words_path
-	A path (either relative to config location, or absolute) to a list of common words. Each word should be in its own "line" (separated by a line break). The file must be UTF-8 encoded.
+   A path (either relative to config location, or absolute) to a list of common words.
+   Each word should be in its own "line" (separated by a line break). The file must be UTF-8 encoded.
 
 ignore_case
-	If true, common words matching will be case insensitive (defaults to false).
+   If true, common words matching will be case insensitive (defaults to false).
 
 query_mode
-	Generates bigrams then removes common words and single terms followed by a common word (defaults to false).
+   Generates bigrams then removes common words and single terms followed by a common word (defaults to false).
 
 .. note::
 
