@@ -202,7 +202,7 @@ public class AnalyzerService {
             }
 
             String[] charFilterNames = analyzerSettings.getAsArray(String.format("index.analysis.analyzer.%s.char_filter", name));
-            for (int i=0; i<tokenFilterNames.length; i++) {
+            for (int i=0; i<charFilterNames.length; i++) {
                 Settings customCharFilterSettings = getCustomCharFilter(charFilterNames[i]);
                 if (customCharFilterSettings != null) {
                     builder.put(customCharFilterSettings);
