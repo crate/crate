@@ -28,7 +28,7 @@ public class TableVisitor extends BaseVisitor {
     }
 
     @Override
-    protected void afterVisit() throws StandardException {
+    protected void afterVisit() throws SQLParseException {
         super.afterVisit();
 
         stmt.indexSettings = ImmutableMap.copyOf(this.indexSettings);

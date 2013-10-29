@@ -1,5 +1,6 @@
 package org.cratedb.action.sql.analyzer;
 
+import com.google.common.collect.ImmutableSet;
 import org.apache.lucene.analysis.Analyzer;
 import org.cratedb.service.SQLService;
 import org.elasticsearch.cluster.ClusterService;
@@ -13,16 +14,35 @@ import org.elasticsearch.index.analysis.TokenizerFactory;
 import org.elasticsearch.indices.analysis.IndicesAnalysisService;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 /**
  * Service to get builtin and custom analyzers, tokenizers, token_filters, char_filters
- * and for setting custom analyzers, tokenizers, token_filters, char_filters
  */
 public class AnalyzerService {
 
     private final ClusterService clusterService;
     private final IndicesAnalysisService analysisService;
+
+    // redefined list of extended analyzers not available outside of
+    // a concrete index (see AnalyzerModule.ExtendedProcessor)
+    // TODO: maybe extract them from ExtendedProcessor
+    private static final ImmutableSet<String> EXTENDED_BUILTIN_TOKEN_FILTERS = ImmutableSet.of("snowball",
+            "stemmer", "word_delimiter", "synonym",
+            "elision", "keep", "pattern_capture", "pattern_replace",
+            "dictionary_decompounder", "hyphenation_decompounder",
+            "arabic_stem", "brazilian_stem", "czech_stem", "dutch_stem", "french_stem",
+            "german_stem", "russian_stem", "keyword_marker", "stemmer_override",
+            "arabic_normalization", "persian_normalization",
+            "hunspell", "cjk_bigram", "cjk_width");
+    private static final ImmutableSet<String> EXTENDED_BUILTIN_TOKENIZERS = ImmutableSet.of("pattern");
+    private static final ImmutableSet<String> EXTENDED_BUILTIN_CHAR_FILTERS = ImmutableSet.of("mapping",
+            "html_strip", "pattern_replace");
+    private static final ImmutableSet<String> EXTENDED_BUILTIN_ANALYZERS = ImmutableSet.of("pattern",
+            "snowball", "arabic", "armenian", "basque", "brazilian", "bulgarian", "catalan",
+            "chinese", "cjk", "czech", "danish", "dutch",
+            "english", "finnish", "french", "galician", "german", "greek", "hindi", "hungarian",
+            "indonesian", "italian", "latvian", "norwegian", "persian", "portuguese",
+            "romanian", "russian", "spanish", "swedish", "turkish", "thai");
 
     public enum CustomType {
         ANALYZER("analyzer"),
@@ -56,7 +76,7 @@ public class AnalyzerService {
     }
 
     public boolean hasBuiltInTokenizer(String name) {
-        return Arrays.asList("pattern").contains(name) || analysisService.hasTokenizer(name);
+        return EXTENDED_BUILTIN_TOKENIZERS.contains(name) || analysisService.hasTokenizer(name);
     }
 
     public boolean hasCharFilter(String name) {
@@ -64,7 +84,7 @@ public class AnalyzerService {
     }
 
     public boolean hasBuiltInCharFilter(String name) {
-        return Arrays.asList("mapping", "html_strip", "pattern_replace").contains(name) || analysisService.hasCharFilter(name);
+        return EXTENDED_BUILTIN_CHAR_FILTERS.contains(name) || analysisService.hasCharFilter(name);
     }
 
     public boolean hasTokenFilter(String name) {
@@ -72,20 +92,11 @@ public class AnalyzerService {
     }
 
     public boolean hasBuiltInTokenFilter(String name) {
-        return Arrays.asList("snowball", "stemmer", "word_delimiter", "synonym",
-                "elision", "keep", "pattern_capture", "pattern_replace",
-                "dictionary_decompounder", "hyphenation_decompounder",
-                "arabic_stem", "brazilian_stem", "czech_stem", "dutch_stem", "french_stem", "german_stem", "russian_stem",
-                "keyword_marker", "stemmer_override",
-                "arabic_normalization", "persian_normalization",
-                "hunspell", "cjk_bigram", "cjk_width").contains(name) || analysisService.hasTokenFilter(name);
+        return EXTENDED_BUILTIN_TOKEN_FILTERS.contains(name) || analysisService.hasTokenFilter(name);
     }
 
     public boolean hasBuiltInAnalyzer(String name) {
-        return Arrays.asList("pattern", "snowball", "arabic", "armenian", "basque", "brazilian", "bulgarian", "catalan", "chinese", "cjk", "czech", "danish", "dutch",
-                "english", "finnish", "french", "galician", "german", "greek", "hindi", "hungarian",
-                "indonesian", "italian", "latvian", "norwegian", "persian", "portuguese",
-                "romanian", "russian", "spanish", "swedish", "turkish", "thai").contains(name) || analysisService.hasAnalyzer(name);
+        return EXTENDED_BUILTIN_ANALYZERS.contains(name) || analysisService.hasAnalyzer(name);
     }
 
     public Analyzer getBuiltInAnalyzer(String name) {

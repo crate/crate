@@ -33,7 +33,12 @@ public class TransportClusterUpdateCrateSettingsAction extends TransportClusterU
     public static final ImmutableList<String> ALLOWED_PREFIXES = ImmutableList.of(SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX);
 
     @Inject
-    public TransportClusterUpdateCrateSettingsAction(Settings settings, TransportService transportService, ClusterService clusterService, ThreadPool threadPool, AllocationService allocationService, @ClusterDynamicSettings final DynamicSettings dynamicSettings) {
+    public TransportClusterUpdateCrateSettingsAction(Settings settings,
+                                                     TransportService transportService,
+                                                     ClusterService clusterService,
+                                                     ThreadPool threadPool,
+                                                     AllocationService allocationService,
+                                                     @ClusterDynamicSettings final DynamicSettings dynamicSettings) {
         super(settings, transportService, clusterService, threadPool, allocationService, dynamicSettings);
     }
 
@@ -49,9 +54,9 @@ public class TransportClusterUpdateCrateSettingsAction extends TransportClusterU
      * @param settingsKey
      * @return true if settingsKey is an allowed Create Setting that can be updated dynamically, false otherwise
      */
-    public boolean is_allowed(final String settingsKey) {
-        for (int i=0;i<ALLOWED_PREFIXES.size();i++) {
-            if (settingsKey.startsWith(ALLOWED_PREFIXES.get(i))) {
+    public boolean isAllowed(final String settingsKey) {
+        for (String allowedPrefix :ALLOWED_PREFIXES) {
+            if (settingsKey.startsWith(allowedPrefix)) {
                 return true;
             }
         }
@@ -59,7 +64,9 @@ public class TransportClusterUpdateCrateSettingsAction extends TransportClusterU
     }
 
     @Override
-    protected void masterOperation(final ClusterUpdateSettingsRequest request, final ClusterState state, final ActionListener<ClusterUpdateSettingsResponse> listener) throws ElasticSearchException {
+    protected void masterOperation(final ClusterUpdateSettingsRequest request,
+                                   final ClusterState state,
+                                   final ActionListener<ClusterUpdateSettingsResponse> listener) throws ElasticSearchException {
         final ImmutableSettings.Builder transientUpdates = ImmutableSettings.settingsBuilder();
         final ImmutableSettings.Builder persistentUpdates = ImmutableSettings.settingsBuilder();
 
@@ -82,7 +89,7 @@ public class TransportClusterUpdateCrateSettingsAction extends TransportClusterU
                 ImmutableSettings.Builder transientSettings = ImmutableSettings.settingsBuilder();
                 transientSettings.put(currentState.metaData().transientSettings());
                 for (Map.Entry<String, String> entry : request.transientSettings().getAsMap().entrySet()) {
-                    if(is_allowed(entry.getKey())) {
+                    if(isAllowed(entry.getKey())) {
                         transientSettings.put(entry.getKey(), entry.getValue());
                         transientUpdates.put(entry.getKey(), entry.getValue());
                         changed = true;
@@ -94,7 +101,7 @@ public class TransportClusterUpdateCrateSettingsAction extends TransportClusterU
                 ImmutableSettings.Builder persistentSettings = ImmutableSettings.settingsBuilder();
                 persistentSettings.put(currentState.metaData().persistentSettings());
                 for (Map.Entry<String, String> entry : request.persistentSettings().getAsMap().entrySet()) {
-                    if (is_allowed(entry.getKey())) {
+                    if (isAllowed(entry.getKey())) {
                         persistentSettings.put(entry.getKey(), entry.getValue());
                         persistentUpdates.put(entry.getKey(), entry.getValue());
                         changed = true;
@@ -112,7 +119,8 @@ public class TransportClusterUpdateCrateSettingsAction extends TransportClusterU
                         .transientSettings(transientSettings.build());
 
                 ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
-                boolean updatedReadOnly = metaData.persistentSettings().getAsBoolean(MetaData.SETTING_READ_ONLY, false) || metaData.transientSettings().getAsBoolean(MetaData.SETTING_READ_ONLY, false);
+                boolean updatedReadOnly = metaData.persistentSettings().getAsBoolean(MetaData.SETTING_READ_ONLY, false)
+                        || metaData.transientSettings().getAsBoolean(MetaData.SETTING_READ_ONLY, false);
                 if (updatedReadOnly) {
                     blocks.addGlobalBlock(MetaData.CLUSTER_READ_ONLY_BLOCK);
                 } else {

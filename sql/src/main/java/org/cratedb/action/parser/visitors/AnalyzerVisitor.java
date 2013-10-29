@@ -212,12 +212,12 @@ public class AnalyzerVisitor extends BaseVisitor {
 
 
     @Override
-    protected void afterVisit() throws StandardException {
+    protected void afterVisit() throws SQLParseException {
         super.afterVisit();
         try {
             stmt.createAnalyzerSettings = buildSettings();
         } catch (IOException ioe) {
-            throw new StandardException("Could not build analyzer Settings", ioe);
+            throw new SQLParseException("Could not build analyzer Settings", ioe);
         }
     }
 

@@ -36,7 +36,7 @@ public abstract class DispatchingVisitor implements Visitor {
     protected void visit(ConstraintDefinitionNode node) throws Exception {}
     protected void visit(CreateAnalyzerNode node) throws Exception {}
 
-    protected void afterVisit() throws StandardException {}
+    protected void afterVisit() throws SQLParseException {}
 
     public DispatchingVisitor(ParsedStatement parsedStatement) {
         this.stmt = parsedStatement;

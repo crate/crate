@@ -37,7 +37,10 @@ public class AnalyzerVisitorTest {
      * @throws StandardException
      */
     public Settings executeStatement(String stmt, Object[] args) throws StandardException {
-        AnalyzerService analyzerService = new AnalyzerService(mockedClusterService, new IndicesAnalysisService(ImmutableSettings.EMPTY));
+        AnalyzerService analyzerService = new AnalyzerService(
+                mockedClusterService,
+                new IndicesAnalysisService(ImmutableSettings.EMPTY)
+        );
         NodeExecutionContext nodeExecutionContext = mock(NodeExecutionContext.class);
         when(nodeExecutionContext.analyzerService()).thenReturn(analyzerService);
         SQLParseService parseService = new SQLParseService(nodeExecutionContext);
@@ -138,14 +141,26 @@ public class AnalyzerVisitorTest {
         );
         Settings analyzerSettings = decodeSettings(settings.get(AnalyzerVisitor.getPrefixedSettingsKey("analyzer.a2")));
         assertThat(analyzerSettings.getAsMap(), hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a2.type"), "custom"));
-        assertThat(analyzerSettings.getAsMap(), hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a2.tokenizer"), "tokenizer2"));
-        assertThat(analyzerSettings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a2.filter")), arrayContainingInAnyOrder("myfilter", "myotherfilter"));
+        assertThat(
+                analyzerSettings.getAsMap(),
+                hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a2.tokenizer"), "tokenizer2")
+        );
+        assertThat(
+                analyzerSettings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a2.filter")),
+                arrayContainingInAnyOrder("myfilter", "myotherfilter")
+        );
 
         Settings myFilterSettings = decodeSettings(settings.get(AnalyzerVisitor.getPrefixedSettingsKey("filter.myfilter")));
-        assertThat(myFilterSettings.getAsMap(), hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.filter.myfilter.type"), "edgeNGram"));
+        assertThat(
+                myFilterSettings.getAsMap(),
+                hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.filter.myfilter.type"), "edgeNGram")
+        );
 
         Settings myOtherFilterSettings = decodeSettings(settings.get(AnalyzerVisitor.getPrefixedSettingsKey("filter.myotherfilter")));
-        assertThat(myOtherFilterSettings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.filter.myotherfilter.stopwords")), arrayContainingInAnyOrder("foo", "bar", "baz"));
+        assertThat(
+                myOtherFilterSettings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.filter.myotherfilter.stopwords")),
+                arrayContainingInAnyOrder("foo", "bar", "baz")
+        );
     }
 
     @Test
@@ -172,19 +187,34 @@ public class AnalyzerVisitorTest {
                 "  )" +
                 ")", null);
         Settings analyzerSettings = decodeSettings(settings.get(AnalyzerVisitor.getPrefixedSettingsKey("analyzer.a3")));
-        assertThat(analyzerSettings.getAsMap(), hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a3.type"), "custom"));
-        assertThat(analyzerSettings.getAsMap(), hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a3.tokenizer"), "tok3"));
-        assertThat(analyzerSettings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a3.char_filter")), arrayContainingInAnyOrder("html_strip", "mymapping"));
-
+        assertThat(
+                analyzerSettings.getAsMap(),
+                hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a3.type"), "custom"));
+        assertThat(
+                analyzerSettings.getAsMap(),
+                hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a3.tokenizer"), "tok3")
+        );
+        assertThat(
+                analyzerSettings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a3.char_filter")),
+                arrayContainingInAnyOrder("html_strip", "mymapping")
+        );
 
         assertThat(settings.getAsMap(), not(hasKey(startsWith(AnalyzerVisitor.getPrefixedSettingsKey("char_filter.html_strip")))));
 
         Settings myMappingSettings = decodeSettings(settings.get(AnalyzerVisitor.getPrefixedSettingsKey("char_filter.mymapping")));
-        assertThat(myMappingSettings.getAsMap(), hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.char_filter.mymapping.type"), "mapping"));
-        assertThat(myMappingSettings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.char_filter.mymapping.mapping")), arrayContainingInAnyOrder("ph=>f", "qu=>q", "foo=>bar"));
+        assertThat(
+                myMappingSettings.getAsMap(),
+                hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.char_filter.mymapping.type"), "mapping")
+        );
+        assertThat(
+                myMappingSettings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.char_filter.mymapping.mapping")),
+                arrayContainingInAnyOrder("ph=>f", "qu=>q", "foo=>bar")
+        );
 
-
-        assertThat(analyzerSettings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a3.filter")), arrayContainingInAnyOrder("standard", "germanlowercase", "trim"));
+        assertThat(
+                analyzerSettings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a3.filter")),
+                arrayContainingInAnyOrder("standard", "germanlowercase", "trim")
+        );
         assertThat(settings.getAsMap(), allOf(
                 not(hasKey(startsWith(AnalyzerVisitor.getPrefixedSettingsKey("filter.trim")))),
                 not(hasKey(startsWith(AnalyzerVisitor.getPrefixedSettingsKey("filter.standard"))))

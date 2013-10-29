@@ -22,7 +22,6 @@ public class NodeExecutionContext {
     public NodeExecutionContext(IndicesService indicesService,
                                 ClusterService clusterService,
                                 AnalyzerService analyzerService,
-                                
                                 QueryPlanner queryPlanner) {
         this.indicesService = indicesService;
         this.clusterService = clusterService;
