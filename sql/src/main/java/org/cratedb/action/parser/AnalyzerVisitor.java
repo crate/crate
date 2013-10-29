@@ -109,8 +109,8 @@ public class AnalyzerVisitor extends XContentVisitor {
         // use a builtin tokenizer without parameters
         if (properties == null) {
             // validate
-            if (!analyzerService.hasBuiltInTokenizer(name)) {
-                throw new SQLParseException(String.format("Non-existing built-in tokenizer '%s'", name));
+            if (!analyzerService.hasTokenizer(name)) {
+                throw new SQLParseException(String.format("Non-existing tokenizer '%s'", name));
             }
             // build
             tokenizerDefinition = new Tuple<>(name, ImmutableSettings.EMPTY);
@@ -119,7 +119,7 @@ public class AnalyzerVisitor extends XContentVisitor {
             if (!analyzerService.hasBuiltInTokenFilter(name)) {
                 // type mandatory
                 String evaluatedType = extractType(properties);
-                if (!analyzerService.hasTokenizer(evaluatedType)) {
+                if (!analyzerService.hasBuiltInTokenizer(evaluatedType)) {
                     throw new SQLParseException(String.format("Non-existing tokenizer type '%s'", evaluatedType));
                 }
             } else {

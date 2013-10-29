@@ -1,10 +1,11 @@
 package org.cratedb.integrationtests;
 
-import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.sql.SQLParseException;
+import org.cratedb.sql.parser.StandardException;
 import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.common.settings.Settings;
@@ -275,6 +276,27 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
                 arrayContainingInAnyOrder("mypattern", "html_strip")
         );
 
+    }
+
+    @Test
+    public void reuseExistingTokenizer() throws StandardException, IOException {
+        execute("CREATE ANALYZER a9 (" +
+                "  TOKENIZER a9tok WITH (" +
+                "    type='nGram'," +
+                "    \"token_chars\"=['letter', 'digit']" +
+                "  )" +
+                ")");
+
+        execute("CREATE ANALYZER a10 (" +
+                "  TOKENIZER a9tok" +
+                ")");
+
+        Settings settings = getPersistentClusterSettings();
+        Settings a10Settings = AnalyzerService.decodeSettings(settings.get("crate.analyzer.custom.analyzer.a10"));
+        assertThat(
+                a10Settings.getAsMap(),
+                hasEntry("index.analysis.analyzer.a10.tokenizer", "a9tok")
+        );
     }
 
 }
