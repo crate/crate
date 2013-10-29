@@ -2,10 +2,12 @@ package org.cratedb.action.sql;
 
 import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.action.parser.QueryPlanner;
+import org.cratedb.sql.TableUnknownException;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.mapper.DocumentMapper;
+import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 
 public class NodeExecutionContext {
@@ -14,13 +16,13 @@ public class NodeExecutionContext {
     private final ClusterService clusterService;
     private final AnalyzerService analyzerService;
     private final QueryPlanner queryPlanner;
-
     public static final String DEFAULT_TYPE = "default";
-
+ 
     @Inject
     public NodeExecutionContext(IndicesService indicesService,
                                 ClusterService clusterService,
                                 AnalyzerService analyzerService,
+                                
                                 QueryPlanner queryPlanner) {
         this.indicesService = indicesService;
         this.clusterService = clusterService;
@@ -32,23 +34,24 @@ public class NodeExecutionContext {
         if (schema != null && schema.equalsIgnoreCase(InformationSchemaTableExecutionContext.SCHEMA_NAME)) {
               return new InformationSchemaTableExecutionContext(table);
         }
-        DocumentMapper dm = indicesService.indexServiceSafe(table).mapperService()
-            .documentMapper(DEFAULT_TYPE);
-        MappingMetaData mappingMetaData = clusterService.state().metaData().index(table)
-            .mappingOrDefault(DEFAULT_TYPE);
-        if (dm!=null && mappingMetaData != null){
-            return new TableExecutionContext(table, dm, mappingMetaData);
-        }
-        return null;
-    }
 
-    /**
-     *
-     * @param name the name of the table
-     * @return the table
-     */
-    public ITableExecutionContext tableContext(String name) {
-        return tableContext(null, name);
+        // TODO: remove documentMapper
+        // the documentMapper isn't available on nodes that don't contain the index.
+        DocumentMapper dm;
+        try {
+            dm = indicesService.indexServiceSafe(table).mapperService().documentMapper(DEFAULT_TYPE);
+        } catch (IndexMissingException ex) {
+            throw new TableUnknownException(table, ex);
+        }
+
+        IndexMetaData indexMetaData = clusterService.state().metaData().index(table);
+        if (dm != null && indexMetaData != null){
+            return new TableExecutionContext(table, indexMetaData.mappingOrDefault(DEFAULT_TYPE), dm);
+        } else if (indexMetaData != null) {
+            return new TableExecutionContext(table, indexMetaData.mappingOrDefault(DEFAULT_TYPE));
+        }
+
+        return null;
     }
 
     public QueryPlanner queryPlanner() {

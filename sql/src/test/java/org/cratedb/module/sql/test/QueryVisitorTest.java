@@ -3,10 +3,10 @@ package org.cratedb.module.sql.test;
 import com.google.common.collect.ImmutableSet;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.parser.QueryPlanner;
-import org.cratedb.action.parser.XContentGenerator;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
+import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.common.collect.Tuple;
@@ -39,8 +39,8 @@ public class QueryVisitorTest {
         execStatement("explain select * from x");
     }
 
-    private String getSource() throws StandardException {
-        return stmt.buildSearchRequest().source().toUtf8();
+    private String getSource() {
+        return stmt.xcontent.toUtf8();
     }
 
     private ParsedStatement execStatement(String stmt) throws StandardException {
@@ -56,7 +56,9 @@ public class QueryVisitorTest {
         when(nec.queryPlanner()).thenReturn(queryPlanner);
         when(nec.tableContext(null, "locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("a", "b"));
-        stmt = new ParsedStatement(sql, args, nec);
+
+        SQLParseService parseService = new SQLParseService(nec);
+        stmt = parseService.parse(sql, args);
         return stmt;
     }
 
@@ -71,8 +73,9 @@ public class QueryVisitorTest {
         execStatement("select * from locations where exists (select 1 from locations)");
     }
 
-    @Test(expected = SQLParseException.class)
+    @Test
     public void testSelectWithNumericConstantValue() throws StandardException, IOException {
+        expectedException.expect(SQLParseException.class);
         execStatement("select 1 from locations");
     }
 
@@ -84,9 +87,10 @@ public class QueryVisitorTest {
     @Test
     public void testSelectAllFromTable() throws StandardException, IOException {
         execStatement("select * from locations");
-        stmt.buildSearchRequest().source().toString();
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"match_all\":{}},\"size\":" + XContentGenerator.DEFAULT_SELECT_LIMIT + "}",
-                stmt.buildSearchRequest().source().toUtf8());
+        assertEquals(
+            "{\"fields\":[\"a\",\"b\"],\"query\":{\"match_all\":{}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
+            getSource()
+        );
     }
 
     @Test
@@ -103,10 +107,7 @@ public class QueryVisitorTest {
                         .field("size", limit)
                         .endObject()
                         .string();
-        assertEquals(
-            expected,
-            stmt.buildSearchRequest().source().toUtf8()
-        );
+        assertEquals(expected, getSource());
     }
 
     @Test
@@ -125,10 +126,7 @@ public class QueryVisitorTest {
                         .field("size", limit)
                         .endObject()
                         .string();
-        assertEquals(
-                expected,
-                stmt.buildSearchRequest().source().toUtf8()
-        );
+        assertEquals(expected, getSource());
     }
 
     @Test
@@ -142,7 +140,7 @@ public class QueryVisitorTest {
                         .startObject("query")
                         .field("match_all", new HashMap())
                         .endObject()
-                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
+                        .field("size", SQLParseService.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
         stmt.outputFields();
@@ -163,7 +161,7 @@ public class QueryVisitorTest {
                         .field("match_all", new HashMap())
                         .endObject()
                         .field("version", true)
-                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
+                        .field("size", SQLParseService.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -210,7 +208,7 @@ public class QueryVisitorTest {
                 "{\"fields\":[\"a\",\"b\"]," +
                         "\"query\":{\"match_all\":{}}," +
                         "\"sort\":[{\"kind\":{\"order\":\"asc\",\"ignore_unmapped\":true}}]," +
-                        "\"size\":" + XContentGenerator.DEFAULT_SELECT_LIMIT +
+                        "\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT +
                         "}", getSource());
     }
 
@@ -225,7 +223,7 @@ public class QueryVisitorTest {
                         "{\"name\":{\"order\":\"desc\"," +
                         "\"ignore_unmapped\":true}}]," +
                         "" +
-                        "\"size\":" + XContentGenerator.DEFAULT_SELECT_LIMIT +
+                        "\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT +
                         "}",
                 getSource());
     }
@@ -241,7 +239,7 @@ public class QueryVisitorTest {
                         .startObject("query")
                         .field("match_all", new HashMap())
                         .endObject()
-                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
+                        .field("size", SQLParseService.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -260,7 +258,9 @@ public class QueryVisitorTest {
 
         String sql = "select persons.message, persons.person['addresses'] from persons " +
                 "where person['name'] = 'Ford'";
-        stmt = new ParsedStatement(sql, new Object[0], nec);
+
+        SQLParseService parseService = new SQLParseService(nec);
+        stmt = parseService.parse(sql, new Object[0]);
 
         String expected =
                 XContentFactory.jsonBuilder()
@@ -269,7 +269,7 @@ public class QueryVisitorTest {
                         .startObject("query")
                         .startObject("term").field("person.name", "Ford").endObject()
                         .endObject()
-                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
+                        .field("size", SQLParseService.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -292,7 +292,9 @@ public class QueryVisitorTest {
         when(nec.tableContext(null, "persons")).thenReturn(tec);
         String sql = "select persons.message, person['name'] from persons " +
                 "where person['addresses'][0]['city'] = 'Berlin'";
-        stmt = new ParsedStatement(sql, new Object[0], nec);
+
+        SQLParseService parseService = new SQLParseService(nec);
+        stmt = parseService.parse(sql);
     }
 
     @Test(expected = SQLParseException.class)
@@ -303,7 +305,9 @@ public class QueryVisitorTest {
         TableExecutionContext tec = mock(TableExecutionContext.class);
         when(nec.tableContext(null, "persons")).thenReturn(tec);
         String sql = "select persons.message, person['name'], person['addresses'][0] from persons";
-        stmt = new ParsedStatement(sql, new Object[0], nec);
+
+        SQLParseService parseService = new SQLParseService(nec);
+        stmt = parseService.parse(sql);
     }
 
     @Test
@@ -316,7 +320,7 @@ public class QueryVisitorTest {
                         .startObject("query")
                         .startObject("term").field("name", "Bartledan").endObject()
                         .endObject()
-                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
+                        .field("size", SQLParseService.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
         assertEquals(expected, getSource());
@@ -333,7 +337,7 @@ public class QueryVisitorTest {
                         .startObject("query")
                         .startObject("term").field("_id", 1).endObject()
                         .endObject()
-                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
+                        .field("size", SQLParseService.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
         assertEquals(expected, getSource());
@@ -353,7 +357,7 @@ public class QueryVisitorTest {
                         .endObject()
                         .endObject()
                         .endObject()
-                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
+                        .field("size", SQLParseService.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
         assertEquals(expected, getSource());
@@ -378,7 +382,7 @@ public class QueryVisitorTest {
                         .endObject()
                         .endObject()
                         .endObject()
-                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
+                        .field("size", SQLParseService.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -408,7 +412,7 @@ public class QueryVisitorTest {
                         .endObject()
                         .endObject()
                         .endObject()
-                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
+                        .field("size", SQLParseService.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -430,7 +434,7 @@ public class QueryVisitorTest {
                         .endObject()
                         .endObject()
                         .endObject()
-                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
+                        .field("size", SQLParseService.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
         assertEquals(expected, getSource());
@@ -447,7 +451,7 @@ public class QueryVisitorTest {
                         .startObject("query")
                         .startObject("term").field("date", "2013-07-16").endObject()
                         .endObject()
-                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
+                        .field("size", SQLParseService.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
         assertEquals(expected, getSource());
@@ -458,7 +462,7 @@ public class QueryVisitorTest {
             IOException {
         execStatement("select * from locations where position = 4");
 
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"term\":{\"position\":4}},\"size\":" + XContentGenerator.DEFAULT_SELECT_LIMIT + "}",
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"term\":{\"position\":4}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
                 getSource());
     }
 
@@ -473,7 +477,7 @@ public class QueryVisitorTest {
                         .startObject("query")
                         .startObject("term").field("name", "Bartledan").endObject()
                         .endObject()
-                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
+                        .field("size", SQLParseService.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -499,7 +503,7 @@ public class QueryVisitorTest {
                         .endArray()
                         .endObject()
                         .endObject()
-                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
+                        .field("size", SQLParseService.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -524,7 +528,7 @@ public class QueryVisitorTest {
                         .endArray()
                         .endObject()
                         .endObject()
-                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
+                        .field("size", SQLParseService.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -575,7 +579,7 @@ public class QueryVisitorTest {
                         .endArray()
                         .endObject()
                         .endObject()
-                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
+                        .field("size", SQLParseService.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -612,7 +616,7 @@ public class QueryVisitorTest {
                         .endArray()
                         .endObject()
                         .endObject()
-                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
+                        .field("size", SQLParseService.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -642,7 +646,7 @@ public class QueryVisitorTest {
                         .endArray()
                         .endObject()
                         .endObject()
-                        .field("size", XContentGenerator.DEFAULT_SELECT_LIMIT)
+                        .field("size", SQLParseService.DEFAULT_SELECT_LIMIT)
                         .endObject()
                         .string();
 
@@ -653,7 +657,7 @@ public class QueryVisitorTest {
     public void testWhereClauseToRangeQueryWithGtNumberField() throws StandardException,
             IOException {
         execStatement("select * from locations where position > 4");
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gt\":4}}},\"size\":" + XContentGenerator.DEFAULT_SELECT_LIMIT + "}",
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gt\":4}}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
                 getSource());
     }
 
@@ -661,7 +665,7 @@ public class QueryVisitorTest {
     public void testWhereClauseToRangeQueryWithGteNumberField() throws StandardException,
             IOException {
         execStatement("select * from locations where position >= 4");
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gte\":4}}},\"size\":" + XContentGenerator.DEFAULT_SELECT_LIMIT + "}",
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gte\":4}}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
                 getSource());
     }
 
@@ -669,7 +673,7 @@ public class QueryVisitorTest {
     public void testWhereClauseToRangeQueryWithGtNumberFieldYoda() throws StandardException,
             IOException {
         execStatement("select * from locations where 4 < position");
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gt\":4}}},\"size\":" + XContentGenerator.DEFAULT_SELECT_LIMIT + "}",
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gt\":4}}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
                 getSource());
     }
 
@@ -677,7 +681,7 @@ public class QueryVisitorTest {
     public void testWhereClauseToRangeQueryWithLteNumberField() throws StandardException,
             IOException {
         execStatement("select * from locations where position <= 4");
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"lte\":4}}},\"size\":" + XContentGenerator.DEFAULT_SELECT_LIMIT + "}",
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"lte\":4}}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
                 getSource());
     }
 
@@ -703,7 +707,7 @@ public class QueryVisitorTest {
     @Test
     public void testCountQuery() throws Exception {
         execStatement("select count(*) from locations where 4 < position");
-        assertEquals("{\"range\":{\"position\":{\"gt\":4}},\"size\":" + XContentGenerator.DEFAULT_SELECT_LIMIT + "}",
+        assertEquals("{\"range\":{\"position\":{\"gt\":4}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
             getSource());
     }
 
@@ -737,8 +741,6 @@ public class QueryVisitorTest {
     public void testUpdateDocWithConstant() throws Exception {
         execStatement("update locations set a=1 where a=2");
         Map<String, Object> expected = new HashMap<String, Object>(1);
-        // NOTE: this test does result in a null to be generated because the mock does not
-        // mock the mapper - but it shows that the logic goes another path in this case
         expected.put("a", null);
         assertEquals(expected, stmt.updateDoc());
 
@@ -830,5 +832,21 @@ public class QueryVisitorTest {
 
         assertTrue(stmt.groupByColumnNames.contains("kind.x"));
         assertTrue(stmt.resultColumnList.contains(new ColumnReferenceDescription("kind.x")));
+    }
+
+    @Test
+    public void testSelectByVersionException() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage(
+            "_version is only valid in the WHERE clause if paired with a single primary key column and crate.planner.optimize.pk_queries enabled");
+        execStatement("select kind from locations where \"_version\" = 1");
+    }
+
+    @Test
+    public void testDeleteByVersionWithoutPlannerException() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage(
+            "_version is only valid in the WHERE clause if paired with a single primary key column and crate.planner.optimize.pk_queries enabled");
+        execStatement("delete from locations where \"_id\" = 1 and \"_version\" = 1");
     }
 }

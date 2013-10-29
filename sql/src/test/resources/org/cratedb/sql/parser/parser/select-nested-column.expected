@@ -10,14 +10,14 @@ resultSet:
 
 		[0]:		
 		org.cratedb.sql.parser.parser.ResultColumn@44439b01
-		exposedName: a
-		name: a
+		exposedName: a.b.d
+		name: a.b.d
 		tableName: null
 		isDefaultColumn: false
 		type: null
 		expression: 			
 			org.cratedb.sql.parser.parser.NestedColumnReference@327581aa
-			columnName: a
+			columnName: a.b.d
 			tableName: null
 			type: null
 			path:
@@ -39,7 +39,7 @@ resultSet:
 		type: null
 		leftOperand: 			
 			org.cratedb.sql.parser.parser.NestedColumnReference@33c86489
-			columnName: a
+			columnName: a.b.c.name
 			tableName: null
 			type: null
 			path:

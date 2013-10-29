@@ -1,0 +1,1 @@
+select a[0] where a['b']['c']['name'] = 'crate'

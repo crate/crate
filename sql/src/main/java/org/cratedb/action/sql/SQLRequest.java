@@ -15,7 +15,7 @@ public class SQLRequest extends ActionRequest<SQLRequest> {
 
     public SQLRequest(String stmt, Object[] args) {
         this.stmt = stmt;
-        this.args = args;
+        args(args);
     }
 
     public SQLRequest(String stmt) {
@@ -35,7 +35,11 @@ public class SQLRequest extends ActionRequest<SQLRequest> {
     }
 
     public void args(Object[] args) {
-        this.args = args;
+        if (args == null) {
+            this.args = new Object[0];
+        } else {
+            this.args = args;
+        }
     }
 
     public SQLRequest stmt(String stmt){

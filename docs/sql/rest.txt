@@ -81,7 +81,7 @@ appropriate exception::
     ... }'
     {
       "error" : {
-        "message" : "SQLParseException[Only exactly one from table is allowed, got: 0]",
+        "message" : "SQLParseException[Only exactly one table is allowed in the from clause, got: 0]",
         "code" : 4000
       }
     }
@@ -94,21 +94,21 @@ GET parameter can be specified to return the stack trace::
     ... }'
     {
       "error" : {
-        "message" : "SQLParseException[Only exactly one from table is allowed, got: 0]",
+        "message" : "SQLParseException[Only exactly one table is allowed in the from clause, got: 0]",
         "code" : 4000
       },
       "error_trace" : {
-        "message" : "Only exactly one from table is allowed, got: 0",
+        "message" : "Only exactly one table is allowed in the from clause, got: 0",
         "at" : {
-          "class" : "org.cratedb.action.parser.XContentGenerator",
-          "method" : "generate",
-          "file" : "XContentGenerator.java",
+          "class" : "...BaseVisitor",
+          "method" : "visit",
+          "file" : "BaseVisitor.java",
           "line" : ...
         },
         "at" : {
-          "class" : "org.cratedb.action.parser.XContentGenerator",
-          "method" : "generate",
-          "file" : "XContentGenerator.java",
+          "class" : "...QueryVisitor",
+          "method" : "visit",
+          "file" : "QueryVisitor.java",
           "line" : ...
         },
     ...

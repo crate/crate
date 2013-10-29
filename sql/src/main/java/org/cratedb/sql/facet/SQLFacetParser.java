@@ -1,12 +1,11 @@
 package org.cratedb.sql.facet;
 
-import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.parser.SQLXContentSourceContext;
 import org.cratedb.action.sql.parser.SQLXContentSourceParser;
-import org.cratedb.sql.parser.StandardException;
+import org.cratedb.service.SQLParseService;
+import org.cratedb.sql.SQLParseException;
 import org.elasticsearch.action.update.TransportUpdateAction;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -24,17 +23,17 @@ import java.io.IOException;
  */
 public class SQLFacetParser extends AbstractComponent implements FacetParser {
 
-    private final NodeExecutionContext executionContext;
     private final TransportUpdateAction updateAction;
+    private final SQLParseService parseService;
 
     @Inject
     public SQLFacetParser(
             Settings settings,
-            NodeExecutionContext executionContext,
+            SQLParseService parseService,
             TransportUpdateAction updateAction) {
         super(settings);
         InternalSQLFacet.registerStreams();
-        this.executionContext = executionContext;
+        this.parseService = parseService;
         this.updateAction = updateAction;
     }
 
@@ -65,14 +64,14 @@ public class SQLFacetParser extends AbstractComponent implements FacetParser {
         } catch (Exception e) {
             throw new FacetPhaseExecutionException(facetName, "body parse failure", e);
         }
-        ParsedStatement stmt = null;
+
+        ParsedStatement stmt;
         try {
-            stmt = new ParsedStatement(context.stmt(), context.args(), executionContext);
-        } catch (StandardException e) {
+            stmt = parseService.parse(context.stmt(), context.args());
+        } catch (SQLParseException e) {
             throw new FacetPhaseExecutionException(facetName, "sql parse failure", e);
         }
 
         return new SQLFacetExecutor(stmt, searchContext, updateAction);
     }
-
 }

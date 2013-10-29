@@ -1,5 +1,7 @@
 package org.cratedb.sql;
 
+import org.cratedb.action.sql.NodeExecutionContext;
+import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.search.ReduceSearchPhaseException;
 import org.elasticsearch.action.search.ShardSearchFailure;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
@@ -65,5 +67,32 @@ public class ExceptionHelper {
         throw new CrateException(shardSearchFailures.length + " shard failures",
                 shardSearchFailures[0].failure());
 
+    }
+
+    /**
+     * Returns a {@link DeleteResponse} with attribute notFound set to true if a
+     * {@link VersionConflictEngineException} occurs.
+     * Intention is that we want to response a valid {@link org.cratedb.action.sql.SQLResponse}
+     * with rowCount 0 instead of responding an error.
+     *
+     * @param e
+     * @return
+     */
+    public static DeleteResponse deleteResponseFromVersionConflictException(Throwable e) {
+        DeleteResponse deleteResponse = null;
+        if (e instanceof RemoteTransportException) {
+            // if its a transport exception get the real cause throwable
+            e = e.getCause();
+        }
+        if (e instanceof VersionConflictEngineException) {
+            VersionConflictEngineException ex = (VersionConflictEngineException) e;
+            deleteResponse = new DeleteResponse(
+                    ex.index().getName(),
+                    NodeExecutionContext.DEFAULT_TYPE,
+                    "1", // dummy id since we cannot know it here, not used anywhere so its' ok
+                    ex.getCurrentVersion(),
+                    true);
+        }
+        return deleteResponse;
     }
 }

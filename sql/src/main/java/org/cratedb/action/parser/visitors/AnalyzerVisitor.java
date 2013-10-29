@@ -1,7 +1,8 @@
-package org.cratedb.action.parser;
+package org.cratedb.action.parser.visitors;
 
-import org.cratedb.action.sql.analyzer.AnalyzerService;
+import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.service.SQLService;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
@@ -10,7 +11,6 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -21,11 +21,8 @@ import java.util.Map;
 /**
  * Parsing CREATE ANALYZER Statements.
  */
-public class AnalyzerVisitor extends XContentVisitor {
+public class AnalyzerVisitor extends BaseVisitor {
 
-    private boolean stopTraverse = false;
-
-    private boolean doneParsing = true;
     private String analyzerName = null;
     private String extendedAnalyzerName = null;
     private Settings genericAnalyzerSettings = null;
@@ -36,23 +33,17 @@ public class AnalyzerVisitor extends XContentVisitor {
     private Map<String, Settings> tokenFilters = new HashMap<>();
     private final AnalyzerService analyzerService;
 
+    public AnalyzerVisitor(NodeExecutionContext context, ParsedStatement parsedStatement, Object[] args) {
+        super(context, parsedStatement, args);
+        analyzerService = context.analyzerService();
+    }
+
     public boolean extendsCustomAnalyzer() {
         return extendedAnalyzerName != null && extendedCustomAnalyzer != null;
     }
 
     public boolean extendsBuiltInAnalyzer() {
         return extendedAnalyzerName != null && extendedCustomAnalyzer == null;
-    }
-
-    @Override
-    public XContentBuilder getXContentBuilder() throws StandardException {
-        throw new UnsupportedOperationException();
-    }
-
-    public AnalyzerVisitor(ParsedStatement parsedStatement) throws StandardException {
-        super(parsedStatement);
-        analyzerService = stmt.context().analyzerService();
-        stopTraverse = false;
     }
 
     public Visitable visit(CreateAnalyzerNode node) throws StandardException {
@@ -67,7 +58,6 @@ public class AnalyzerVisitor extends XContentVisitor {
             visit(node.getExtendsName());
         }
         visit(node.getElements());
-        doneParsing = true;
         return node;
     }
 
@@ -231,13 +221,24 @@ public class AnalyzerVisitor extends XContentVisitor {
         QueryTreeNode treeNode = (QueryTreeNode)node;
         switch (treeNode.getNodeType()) {
             case NodeTypes.CREATE_ANALYZER_NODE:
-                stopTraverse = true;
                 return visit((CreateAnalyzerNode)node);
             default:
                 return node;
         }
     }
 
+    @Override
+    protected void afterVisit() throws StandardException {
+        super.afterVisit();
+        try {
+            stmt.createAnalyzerSettings = buildSettings();
+        } catch (IOException ioe) {
+            throw new StandardException("Could not build analyzer Settings", ioe);
+        }
+    }
+
+
+    // HELPER METHODS
     /**
      * validate Type Property
      */
@@ -251,7 +252,7 @@ public class AnalyzerVisitor extends XContentVisitor {
         if (!(typeNode instanceof ValueNode)) {
             throw new SQLParseException("'type' property invalid");
         }
-        return (String)evaluateValueNode(null, (ValueNode)typeNode, false);
+        return (String)valueFromNode((ValueNode) typeNode);
     }
 
     /**
@@ -263,12 +264,12 @@ public class AnalyzerVisitor extends XContentVisitor {
      */
     private void genericPropertyToSetting(ImmutableSettings.Builder builder, String name, QueryTreeNode value) throws StandardException {
         if (value instanceof ValueNode) {
-            builder.put(name, evaluateValueNode(null, (ValueNode) value, false));
+            builder.put(name, valueFromNode((ValueNode) value));
         } else if (value instanceof ValueNodeList) {
             ValueNodeList valueNodeList = (ValueNodeList)value;
             List<String> values = new ArrayList<>(valueNodeList.size());
             for (ValueNode node : valueNodeList) {
-                values.add(evaluateValueNode(null, node, false).toString());
+                values.add(valueFromNode(node).toString());
             }
             builder.putArray(name, values.toArray(new String[values.size()]));
         }
@@ -292,7 +293,7 @@ public class AnalyzerVisitor extends XContentVisitor {
      * create analyzer settings - possibly referencing charFilters, tokenFilters, tokenizers defined here
      * @return Settings describing a custom or extended builtin-analyzer
      */
-    public Settings analyzerSettings() {
+    private Settings analyzerSettings() {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
 
         if (extendsCustomAnalyzer()) {
@@ -382,11 +383,8 @@ public class AnalyzerVisitor extends XContentVisitor {
      * @return the analyzer settings corresponding to the analyzed <tt>CREATE ANALYZER</tt> statement
      * @throws SettingsException in case we can't build the settings yet
      */
-    public Settings buildSettings() throws SettingsException, IOException {
-        if (!doneParsing) {
-            throw new SettingsException("cannot build settings for analyzer yet");
-        }
-        //
+    private Settings buildSettings() throws IOException {
+
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
 
         String encodedAnalyzerSettings = AnalyzerService.encodeSettings(analyzerSettings()).toUtf8();
@@ -427,7 +425,7 @@ public class AnalyzerVisitor extends XContentVisitor {
 
     @Override
     public boolean stopTraversal() {
-        return stopTraverse;
+        return true;
     }
 
     @Override

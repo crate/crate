@@ -5,10 +5,8 @@ import com.google.common.collect.Ordering;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.sql.DuplicateKeyException;
-import org.cratedb.sql.SQLParseException;
-import org.cratedb.sql.TableAlreadyExistsException;
-import org.cratedb.sql.TableUnknownException;
+import org.cratedb.sql.*;
+import org.cratedb.sql.parser.StandardException;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -566,7 +564,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-
         execute("select * from test");
 
         assertEquals(1, response.rowCount());
@@ -804,9 +801,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-        execute("select coolness['x'] from test");
+        execute("select coolness['x'], a from test");
         assertEquals(1, response.rowCount());
         assertEquals("{y={z=3}}", response.rows()[0][0].toString());
+        assertEquals(map, response.rows()[0][1]);
 
         execute("update test set firstcol = 1, coolness['x']['a'] = 'a', coolness['x']['b'] = 'b', othercol = 2");
         assertEquals(1, response.rowCount());
@@ -901,13 +899,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
 
         execute("update test set coolness[0] = 3.3");
-
-        assertEquals(1, response.rowCount());
-        refresh();
-
-        execute("select coolness from test");
-        assertEquals(1, response.rowCount());
-        assertEquals(3.3, response.rows()[0][0]);
     }
 
     @Test
@@ -951,6 +942,112 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("select coolness from test");
         assertEquals(1, response.rowCount());
         assertEquals("{y=2, x=3}", response.rows()[0][0].toString());
+    }
+
+    @Test
+    public void testUpdateResetNestedObject() throws Exception {
+        prepareCreate("test")
+                .addMapping("default",
+                        "coolness", "type=object,index=not_analyzed")
+                .execute().actionGet();
+        ensureGreen();
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("x", "1");
+        map.put("y", 2);
+        Object[] args = new Object[] { map };
+
+        execute("insert into test values (?)", args);
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        // update with different map
+        Map<String, Object> new_map = new HashMap<>();
+        new_map.put("z", 1);
+
+        execute("update test set coolness = ?", new Object[]{new_map});
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("select coolness from test");
+        assertEquals(1, response.rowCount());
+        assertEquals(new_map, response.rows()[0][0]);
+
+        // update with empty map
+        Map<String, Object> empty_map = new HashMap<>();
+
+        execute("update test set coolness = ?", new Object[]{empty_map});
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("select coolness from test");
+        assertEquals(1, response.rowCount());
+        assertEquals(empty_map, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testGetResponseWithObjectColumn() throws Exception {
+        XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
+            .startObject("default")
+                .startObject("_meta").field("primary_keys", "id").endObject()
+                .startObject("properties")
+                    .startObject("id")
+                        .field("type", "string")
+                        .field("index", "not_analyzed")
+                    .endObject()
+                .startObject("data")
+                    .field("type", "object")
+                    .field("index", "not_analyzed")
+                    .field("dynamic", false)
+                .endObject()
+            .endObject()
+            .endObject()
+            .endObject();
+
+        prepareCreate("test")
+            .addMapping("default", mapping)
+            .execute().actionGet();
+        ensureGreen();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("foo", "bar");
+        execute("insert into test (id, data) values (?, ?)", new Object[] { "1", data});
+        refresh();
+
+        execute("select data from test where id = ?", new Object[] { "1" });
+        assertEquals(data, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testUpdateResetNestedNestedObject() throws Exception {
+        prepareCreate("test")
+                .addMapping("default",
+                        "coolness", "type=object,index=not_analyzed")
+                .execute().actionGet();
+        ensureGreen();
+
+        Map<String, Object> map = new HashMap<String, Object>(){{
+            put("x", "1");
+            put("y", new HashMap<String, Object>(){{
+                put("z", 3);
+            }});
+        }};
+
+        execute("insert into test values (?)", new Object[] { map });
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        Map<String, Object> new_map = new HashMap<>();
+        new_map.put("a", 1);
+
+        execute("update test set coolness['y'] = ?", new Object[]{new_map});
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("select coolness['y'], coolness['x'] from test");
+        assertEquals(1, response.rowCount());
+        assertEquals(new_map, response.rows()[0][0]);
+        assertEquals("1", response.rows()[0][1]);
     }
 
     @Test
@@ -1078,7 +1175,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     public void testSelectToGetRequestByPlanner() throws Exception {
         createTestIndexWithPkAndRoutingMapping();
 
-        execute("insert into test (some_id, foo) values (124, 'bar1')");
+        execute("insert into test (some_id, foo) values ('124', 'bar1')");
         assertEquals(1, response.rowCount());
         refresh();
 
@@ -1145,9 +1242,9 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     public void testSelectToRoutedRequestByPlannerMissingDocuments() throws Exception {
         createTestIndexWithPkAndRoutingMapping();
 
-        execute("insert into test (some_id, foo) values (1, 'foo')");
-        execute("insert into test (some_id, foo) values (2, 'bar')");
-        execute("insert into test (some_id, foo) values (3, 'baz')");
+        execute("insert into test (some_id, foo) values ('1', 'foo')");
+        execute("insert into test (some_id, foo) values ('2', 'bar')");
+        execute("insert into test (some_id, foo) values ('3', 'baz')");
         refresh();
 
         execute("SELECT some_id, foo FROM test WHERE some_id='4' OR some_id='3'");
@@ -1187,6 +1284,14 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertThat(response.rowCount(), is(1L));
         assertEquals(response.rows()[0][0], "3");
 
+    }
+
+    @Test
+    public void testCountWithGroupByNullArgs() throws Exception {
+        groupBySetup();
+
+        execute("select count(*), race from characters group by race", null);
+        assertEquals(3, response.rowCount());
     }
 
     @Test
@@ -1365,7 +1470,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1L, response.rowCount());
         assertEquals("Vo*", response.rows()[0][0]);
 
-        execute("select race from characters where race like 'Vo?'");
+        execute("select race from characters where race like ?", new Object[] { "Vo?"});
         assertEquals(1L, response.rowCount());
         assertEquals("Vo?", response.rows()[0][0]);
 
@@ -1547,4 +1652,126 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"});
     }
 
+    @Test
+    public void testDeleteWhereVersion() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string)");
+        ensureGreen();
+
+        execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
+        refresh();
+
+        execute("select \"_version\" from test where col1 = 1");
+        assertEquals(1L, response.rowCount());
+        assertEquals(1L, response.rows()[0][0]);
+        Long version = (Long)response.rows()[0][0];
+
+        execute("delete from test where col1 = 1 and \"_version\" = ?",
+                new Object[]{version});
+        assertEquals(1L, response.rowCount());
+
+        // Validate that the row is really deleted
+        refresh();
+        execute("select * from test where col1 = 1");
+        assertEquals(0, response.rowCount());
+
+    }
+
+    @Test
+    public void testDeleteWhereVersionWithConflict() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string)");
+        ensureGreen();
+
+        execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
+        refresh();
+
+        execute("select \"_version\" from test where col1 = 1");
+        assertEquals(1L, response.rowCount());
+        assertEquals(1L, response.rows()[0][0]);
+
+        execute("update test set col2 = ? where col1 = ?", new Object[]{"ok now panic", 1});
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("delete from test where col1 = 1 and \"_version\" = 1");
+        assertEquals(0, response.rowCount());
+    }
+
+    @Test
+    public void testUpdateWhereVersion() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string)");
+        ensureGreen();
+
+        execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
+        refresh();
+
+        execute("select \"_version\" from test where col1 = 1");
+        assertEquals(1L, response.rowCount());
+        assertEquals(1L, response.rows()[0][0]);
+
+        execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
+                new Object[]{"ok now panic", 1, 1});
+        assertEquals(1L, response.rowCount());
+
+        // Validate that the row is really updated
+        refresh();
+        execute("select col2 from test where col1 = 1");
+        assertEquals(1L, response.rowCount());
+        assertEquals("ok now panic", response.rows()[0][0]);
+    }
+
+    @Test
+    public void testUpdateWhereVersionWithConflict() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string)");
+        ensureGreen();
+
+        execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
+        refresh();
+
+        execute("select \"_version\" from test where col1 = 1");
+        assertEquals(1L, response.rowCount());
+        assertEquals(1L, response.rows()[0][0]);
+
+        execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
+                new Object[]{"ok now panic", 1, 1});
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
+                new Object[]{"already in panic", 1, 1});
+        assertEquals(0, response.rowCount());
+
+        // Validate that the row is really NOT updated
+        refresh();
+        execute("select col2 from test where col1 = 1");
+        assertEquals(1L, response.rowCount());
+        assertEquals("ok now panic", response.rows()[0][0]);
+    }
+
+    @Test
+    public void testUpdateResetObject() throws Exception {
+        execute("create table test (col1 integer primary key, col2 string)");
+        ensureGreen();
+
+        execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
+        refresh();
+
+        execute("select \"_version\" from test where col1 = 1");
+        assertEquals(1L, response.rowCount());
+        assertEquals(1L, response.rows()[0][0]);
+
+        execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
+                new Object[]{"ok now panic", 1, 1});
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
+                new Object[]{"already in panic", 1, 1});
+        assertEquals(0, response.rowCount());
+
+        // Validate that the row is really NOT updated
+        refresh();
+        execute("select col2 from test where col1 = 1");
+        assertEquals(1L, response.rowCount());
+        assertEquals("ok now panic", response.rows()[0][0]);
+    }
 }

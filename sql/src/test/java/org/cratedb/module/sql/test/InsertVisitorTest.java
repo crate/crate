@@ -1,9 +1,11 @@
 package org.cratedb.module.sql.test;
 
 import com.google.common.collect.ImmutableSet;
+import org.cratedb.action.parser.ESRequestBuilder;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
+import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -25,10 +27,11 @@ public class InsertVisitorTest {
 
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
         TableExecutionContext tec = mock(TableExecutionContext.class);
-        when(nec.tableContext("locations")).thenReturn(tec);
+        when(nec.tableContext(null, "locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("name", "kind"));
 
-        return new ParsedStatement(sql, params, nec);
+        SQLParseService parseService = new SQLParseService(nec);
+        return parseService.parse(sql, params);
     }
 
 
@@ -41,7 +44,8 @@ public class InsertVisitorTest {
         ParsedStatement statement = getParsedStatement(sql, params);
         assertEquals(statement.type(), ParsedStatement.ActionType.INSERT_ACTION);
 
-        IndexRequest indexRequest = statement.buildIndexRequest();
+        ESRequestBuilder requestBuilder = new ESRequestBuilder(statement);
+        IndexRequest indexRequest = requestBuilder.buildIndexRequest();
 
         assertEquals("locations", indexRequest.index());
         assertEquals("{\"name\":\"North West Ripple\",\"kind\":\"Galaxy\"}",
@@ -58,7 +62,8 @@ public class InsertVisitorTest {
         ParsedStatement statement = getParsedStatement(sql, params);
         assertEquals(statement.type(), ParsedStatement.ActionType.BULK_ACTION);
 
-        BulkRequest bulkRequest = statement.buildBulkRequest();
+        ESRequestBuilder requestBuilder = new ESRequestBuilder(statement);
+        BulkRequest bulkRequest = requestBuilder.buildBulkRequest();
 
         assertEquals(2, bulkRequest.requests().size());
 

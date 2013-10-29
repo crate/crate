@@ -15,7 +15,6 @@ public class NestedColumnReference extends ColumnReference {
     private List<ValueNode> path;
     private String sqlPathString;
     private String xcontentPathString;
-    private Boolean pathContainsNumeric;
 
     /**
      * Initializer.
@@ -38,7 +37,15 @@ public class NestedColumnReference extends ColumnReference {
         path = new ArrayList<ValueNode>();
         sqlPathString = null;
         xcontentPathString = null;
-        pathContainsNumeric = false;
+    }
+
+    @Override
+    public String getColumnName() {
+        try {
+            return xcontentPathString();
+        } catch (StandardException e) {
+            return columnName;
+        }
     }
 
     /**
@@ -97,41 +104,17 @@ public class NestedColumnReference extends ColumnReference {
     }
 
     /**
-     * Whether the path contains a NumericConstantNode (array index)
-     *
-     * @return
-     * @throws StandardException
-     */
-    public Boolean pathContainsNumeric() throws StandardException {
-        if (sqlPathString == null || xcontentPathString == null) {
-            generatePathStrings();
-        }
-        return pathContainsNumeric;
-    }
-
-    /**
      * Generates the path strings by iterating over the path elements
      *
      * @throws StandardException
      */
     private void generatePathStrings() throws StandardException {
-        StringBuilder xcontentBuilder = new StringBuilder().append(getColumnName());
-        StringBuilder sqlBuilder = new StringBuilder().append(getColumnName());
+        StringBuilder xcontentBuilder = new StringBuilder().append(columnName);
+        StringBuilder sqlBuilder = new StringBuilder().append(columnName);
         for (ValueNode node : path) {
-            Object value = null;
-            if (node instanceof CharConstantNode) {
-                value = ((CharConstantNode) node).getString();
-                xcontentBuilder.append(".").append(value);
-                sqlBuilder.append("['").append(value).append("']");
-            } else if (node instanceof NumericConstantNode) {
-                value = ((NumericConstantNode) node).getValue();
-                xcontentBuilder.append("[").append(value).append("]");
-                sqlBuilder.append("[").append(value).append("]");
-                pathContainsNumeric = true;
-            } else {
-                throw new StandardException("Only indexes or property names can " +
-                        "currently be used for nested column references");
-            }
+            Object value = ((CharConstantNode) node).getString();
+            xcontentBuilder.append(".").append(value);
+            sqlBuilder.append("['").append(value).append("']");
         }
         sqlPathString = sqlBuilder.toString();
         xcontentPathString = xcontentBuilder.toString();
@@ -154,6 +137,27 @@ public class NestedColumnReference extends ColumnReference {
                 row.treePrint(depth+1);
             }
         }
+    }
+
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return This object as a String
+     */
+
+    public String toString() {
+        String nestedColumnName = columnName;
+        try {
+            nestedColumnName = getColumnName();
+        } catch (Exception e) {}
+        return "columnName: " + nestedColumnName + "\n" +
+                "tableName: " + ( ( getTableName() != null) ?
+                getTableName().toString() :
+                "null") + "\n" +
+                "type: " +
+                ((getType() != null) ? getType().toString() : "null" ) + "\n"
+                ;
     }
 
 }

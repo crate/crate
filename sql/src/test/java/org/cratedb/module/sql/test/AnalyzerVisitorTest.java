@@ -1,7 +1,7 @@
 package org.cratedb.module.sql.test;
 
 import org.cratedb.action.sql.analyzer.AnalyzerService;
-import org.cratedb.action.parser.AnalyzerVisitor;
+import org.cratedb.action.parser.visitors.AnalyzerVisitor;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
