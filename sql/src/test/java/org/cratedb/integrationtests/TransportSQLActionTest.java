@@ -983,8 +983,38 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("select coolness from test");
         assertEquals(1, response.rowCount());
         assertEquals(empty_map, response.rows()[0][0]);
+    }
 
+    public void testGetResponseWithObjectColumn() throws Exception {
+        XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
+            .startObject("default")
+                .startObject("_meta").field("primary_keys", "id").endObject()
+                .startObject("properties")
+                    .startObject("id")
+                        .field("type", "string")
+                        .field("index", "not_analyzed")
+                    .endObject()
+                .startObject("data")
+                    .field("type", "object")
+                    .field("index", "not_analyzed")
+                    .field("dynamic", false)
+                .endObject()
+            .endObject()
+            .endObject()
+            .endObject();
 
+        prepareCreate("test")
+            .addMapping("default", mapping)
+            .execute().actionGet();
+        ensureGreen();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("foo", "bar");
+        execute("insert into test (id, data) values (?, ?)", new Object[] { "1", data});
+        refresh();
+
+        execute("select data from test where id = ?", new Object[] { "1" });
+        assertEquals(data, response.rows()[0][0]);
     }
 
     @Test
