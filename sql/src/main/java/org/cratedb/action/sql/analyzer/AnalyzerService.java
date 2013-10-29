@@ -1,17 +1,19 @@
-package org.cratedb.action;
+package org.cratedb.action.sql.analyzer;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.cratedb.service.SQLService;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.index.analysis.TokenizerFactory;
 import org.elasticsearch.indices.analysis.IndicesAnalysisService;
 
+import java.io.IOException;
 import java.util.Arrays;
-import java.util.Map;
 
 /**
  * Service to get builtin and custom analyzers, tokenizers, token_filters, char_filters
@@ -62,7 +64,7 @@ public class AnalyzerService {
     }
 
     public boolean hasBuiltInCharFilter(String name) {
-        return Arrays.asList("mapping").contains(name) || analysisService.hasCharFilter(name);
+        return Arrays.asList("mapping", "html_strip", "pattern_replace").contains(name) || analysisService.hasCharFilter(name);
     }
 
     public boolean hasTokenFilter(String name) {
@@ -90,19 +92,31 @@ public class AnalyzerService {
         return analysisService.analyzer(name);
     }
 
-    private Settings getSettings() throws SettingsException {
-        try {
-            String source = clusterService.state().metaData().persistentSettings().get(SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX);
-            return ImmutableSettings.builder().loadFromSource(source).build();
-        } catch(SettingsException | NullPointerException e) {
-            return ImmutableSettings.EMPTY;
-        }
+    public static BytesReference encodeSettings(Settings settings) throws IOException {
+        BytesStreamOutput bso = new BytesStreamOutput();
+        ImmutableSettings.writeSettingsToStream(settings, bso);
+        return bso.bytes();
+    }
+
+    public static Settings decodeSettings(String encodedSettings) throws IOException {
+        BytesStreamInput bsi = new BytesStreamInput(encodedSettings.getBytes(), 0, encodedSettings.getBytes().length, false);
+        return ImmutableSettings.readSettingsFromStream(bsi);
+
     }
 
     private Settings getCustomThingy(String name, CustomType type) {
-        Settings settings = getSettings();
-        Map<String, Settings> thingyMap = settings.getGroups(type.getName());
-        return thingyMap.get(name);
+        String encodedSettings = clusterService.state().metaData().persistentSettings().get(
+                String.format("%s.%s.%s", SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX, type.getName(), name)
+        );
+        Settings decoded = null;
+        if (encodedSettings != null) {
+            try {
+                decoded = decodeSettings(encodedSettings);
+            } catch (IOException e) {
+                // ignore
+            }
+        }
+        return decoded;
     }
 
     /**
@@ -111,7 +125,8 @@ public class AnalyzerService {
      * @return Settings defining a custom Analyzer
      */
     public Settings getCustomAnalyzer(String name) {
-        return getCustomThingy(name, CustomType.ANALYZER);
+        Settings analyzerSettings = getCustomThingy(name, CustomType.ANALYZER);
+        return analyzerSettings;
     }
 
     public TokenizerFactory getBuiltinTokenizer(String name) {

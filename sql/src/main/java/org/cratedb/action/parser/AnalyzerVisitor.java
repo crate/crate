@@ -1,21 +1,20 @@
 package org.cratedb.action.parser;
 
-import com.google.common.collect.ImmutableMap;
+import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.service.SQLService;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,11 +28,21 @@ public class AnalyzerVisitor extends XContentVisitor {
     private boolean doneParsing = true;
     private String analyzerName = null;
     private String extendedAnalyzerName = null;
+    private Settings genericAnalyzerSettings = null;
+    private Settings extendedCustomAnalyzer = null;
 
     private Tuple<String, Settings> tokenizerDefinition = null;
-    private List<Tuple<String,Settings>> charFilters = new ArrayList<>();
-    private List<Tuple<String, Settings>> tokenFilters = new ArrayList<>();
+    private Map<String,Settings> charFilters = new HashMap<>();
+    private Map<String, Settings> tokenFilters = new HashMap<>();
+    private final AnalyzerService analyzerService;
 
+    public boolean extendsCustomAnalyzer() {
+        return extendedAnalyzerName != null && extendedCustomAnalyzer != null;
+    }
+
+    public boolean extendsBuiltInAnalyzer() {
+        return extendedAnalyzerName != null && extendedCustomAnalyzer == null;
+    }
 
     @Override
     public XContentBuilder getXContentBuilder() throws StandardException {
@@ -42,15 +51,16 @@ public class AnalyzerVisitor extends XContentVisitor {
 
     public AnalyzerVisitor(ParsedStatement parsedStatement) throws StandardException {
         super(parsedStatement);
+        analyzerService = stmt.context().analyzerService();
         stopTraverse = false;
     }
 
     public Visitable visit(CreateAnalyzerNode node) throws StandardException {
         analyzerName = node.getObjectName().getTableName(); // extend to use schema here
-        if (analyzerName.equals("default")) {
+        if (analyzerName.equalsIgnoreCase("default")) {
             throw new SQLParseException("Overriding the default analyzer is forbidden");
         }
-        if (stmt.context().analyzerService().hasBuiltInAnalyzer(analyzerName)) {
+        if (analyzerService.hasBuiltInAnalyzer(analyzerName)) {
             throw new SQLParseException(String.format("Cannot override builtin analyzer '%s'", analyzerName));
         }
         if (node.getExtendsName() != null) {
@@ -63,10 +73,12 @@ public class AnalyzerVisitor extends XContentVisitor {
 
     public Visitable visit(TableName extendsName) throws StandardException {
         String extended = extendsName.getTableName();
-        if (!stmt.context().analyzerService().hasAnalyzer(extended)) {
+        if (!analyzerService.hasAnalyzer(extended)) {
             throw new SQLParseException(String.format("Extended Analyzer '%s' does not exist", extended));
         }
         extendedAnalyzerName = extended;
+        // resolve custom Analyzer, if any
+        extendedCustomAnalyzer = analyzerService.getCustomAnalyzer(extendedAnalyzerName);
         return extendsName;
     }
 
@@ -74,9 +86,12 @@ public class AnalyzerVisitor extends XContentVisitor {
         if (elements.getTokenizer() != null) {
             visit(elements.getTokenizer());
         }
-        visit(elements.getTokenFilters());
-        visit(elements.getCharFilters());
-        // done :)
+        if (extendsBuiltInAnalyzer()) {
+            visit(elements.getProperties());
+        } else {
+            visit(elements.getTokenFilters());
+            visit(elements.getCharFilters());
+        }
         return elements;
     }
 
@@ -94,17 +109,17 @@ public class AnalyzerVisitor extends XContentVisitor {
         // use a builtin tokenizer without parameters
         if (properties == null) {
             // validate
-            if (!stmt.context().analyzerService().hasBuiltInTokenizer(name)) {
+            if (!analyzerService.hasBuiltInTokenizer(name)) {
                 throw new SQLParseException(String.format("Non-existing built-in tokenizer '%s'", name));
             }
             // build
             tokenizerDefinition = new Tuple<>(name, ImmutableSettings.EMPTY);
         } else {
             // validate
-            if (!stmt.context().analyzerService().hasBuiltInTokenFilter(name)) {
+            if (!analyzerService.hasBuiltInTokenFilter(name)) {
                 // type mandatory
                 String evaluatedType = extractType(properties);
-                if (!stmt.context().analyzerService().hasTokenFilter(evaluatedType)) {
+                if (!analyzerService.hasTokenizer(evaluatedType)) {
                     throw new SQLParseException(String.format("Non-existing tokenizer type '%s'", evaluatedType));
                 }
             } else {
@@ -124,8 +139,20 @@ public class AnalyzerVisitor extends XContentVisitor {
         return tokenizer;
     }
 
+    public Visitable visit(GenericProperties properties) throws StandardException {
+        if (properties.hasProperties()) {
+            ImmutableSettings.Builder builder = ImmutableSettings.builder();
+            for (Map.Entry<String, QueryTreeNode> prop : properties.iterator()) {
+                genericPropertyToSetting(builder,
+                        getSettingsKey("index.analysis.analyzer.%s.%s", analyzerName, prop.getKey()), prop.getValue());
+            }
+            genericAnalyzerSettings = builder.build();
+        }
+        return properties;
+    }
+
     public Visitable visit(TokenFilterList tokenFilterList) throws StandardException {
-        for (TokenFilterNode tokenFilterNode : tokenFilterList) {
+        for (NamedNodeWithOptionalProperties tokenFilterNode : tokenFilterList) {
 
             String name = tokenFilterNode.getName();
             GenericProperties properties = tokenFilterNode.getProperties();
@@ -133,17 +160,17 @@ public class AnalyzerVisitor extends XContentVisitor {
             // use a builtin tokenfilter without parameters
             if (properties == null) {
                 // validate
-                if (!stmt.context().analyzerService().hasBuiltInTokenFilter(name)) {
+                if (!analyzerService.hasBuiltInTokenFilter(name)) {
                     throw new SQLParseException(String.format("Non-existing built-in token-filter '%s'", name));
                 }
                 // build
-                tokenFilters.add(new Tuple<>(name, ImmutableSettings.EMPTY));
+                tokenFilters.put(name, ImmutableSettings.EMPTY);
             } else {
                 // validate
-                if (!stmt.context().analyzerService().hasBuiltInTokenFilter(name)) {
+                if (!analyzerService.hasBuiltInTokenFilter(name)) {
                     // type mandatory when name is not a builtin filter
                     String evaluatedType = extractType(properties);
-                    if (!stmt.context().analyzerService().hasTokenFilter(evaluatedType)) {
+                    if (!analyzerService.hasTokenFilter(evaluatedType)) {
                         throw new SQLParseException(String.format("Non-existing token-filter type '%s'", evaluatedType));
                     }
                 } else {
@@ -159,7 +186,7 @@ public class AnalyzerVisitor extends XContentVisitor {
                             getSettingsKey("index.analysis.filter.%s.%s", name, tokenFilterProperty.getKey()),
                             tokenFilterProperty.getValue());
                 }
-                tokenFilters.add(new Tuple<>(name, builder.build()));
+                tokenFilters.put(name, builder.build());
             }
         }
         return tokenFilterList;
@@ -167,7 +194,7 @@ public class AnalyzerVisitor extends XContentVisitor {
 
 
     public Visitable visit(CharFilterList charFilterList) throws StandardException {
-        for (CharFilterNode charFilterNode : charFilterList) {
+        for (NamedNodeWithOptionalProperties charFilterNode : charFilterList) {
 
             String name = charFilterNode.getName();
             GenericProperties properties = charFilterNode.getProperties();
@@ -175,14 +202,14 @@ public class AnalyzerVisitor extends XContentVisitor {
             // use a builtin tokenfilter without parameters
             if (properties == null) {
                 // validate
-                if (!stmt.context().analyzerService().hasBuiltInCharFilter(name)) {
+                if (!analyzerService.hasBuiltInCharFilter(name)) {
                     throw new SQLParseException(String.format("Non-existing built-in char-filter '%s'", name));
                 }
                 // build
-                charFilters.add(new Tuple<>(name, ImmutableSettings.EMPTY));
+                charFilters.put(name, ImmutableSettings.EMPTY);
             } else {
                 String type = extractType(properties);
-                if (!stmt.context().analyzerService().hasCharFilter(type)) {
+                if (!analyzerService.hasCharFilter(type)) {
                     throw new SQLParseException(String.format("Non-existing char-filter type '%s'", type));
                 }
 
@@ -193,7 +220,7 @@ public class AnalyzerVisitor extends XContentVisitor {
                             getSettingsKey("index.analysis.char_filter.%s.%s", name, charFilterProperty.getKey()),
                             charFilterProperty.getValue());
                 }
-                charFilters.add(new Tuple<>(name, builder.build()));
+                charFilters.put(name, builder.build());
             }
         }
         return charFilterList;
@@ -212,7 +239,7 @@ public class AnalyzerVisitor extends XContentVisitor {
     }
 
     /**
-     * validate Properties
+     * validate Type Property
      */
     private String extractType(GenericProperties properties) throws StandardException {
         // validate
@@ -251,16 +278,82 @@ public class AnalyzerVisitor extends XContentVisitor {
         if (formatArgs != null) {
             suffix = String.format(suffix, formatArgs);
         }
-
-        return suffix; //String.format("%s.%s", SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX, suffix);
+        return suffix;
     }
 
+    public static String getPrefixedSettingsKey(String suffix, Object ... formatArgs) {
+        if (formatArgs != null) {
+            suffix = String.format(suffix, formatArgs);
+        }
+        return String.format("%s.%s", SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX, suffix);
+    }
+
+    /**
+     * create analyzer settings - possibly referencing charFilters, tokenFilters, tokenizers defined here
+     * @return Settings describing a custom or extended builtin-analyzer
+     */
     public Settings analyzerSettings() {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
+
+        if (extendsCustomAnalyzer()) {
+
+            // use analyzer-settings from extended analyzer only
+            Settings stripped = extendedCustomAnalyzer.getByPrefix(String.format("index.analysis.analyzer.%s", extendedAnalyzerName));
+            for (Map.Entry<String, String> entry : stripped.getAsMap().entrySet()) {
+                builder.put(String.format("index.analysis.analyzer.%s%s", analyzerName, entry.getKey()), entry.getValue());
+            }
+            builder.put(extendedCustomAnalyzer);
+
+            if (tokenizerDefinition == null) {
+                // set tokenizer if not defined in extending analyzer
+                String extendedTokenizerName = extendedCustomAnalyzer.get(String.format("index.analysis.analyzer.%s.tokenizer", extendedAnalyzerName));
+                Settings extendedTokenizerSettings = analyzerService.getCustomTokenizer(extendedTokenizerName);
+                if (extendedTokenizerSettings != null) {
+                    tokenizerDefinition = new Tuple<>(extendedTokenizerName, extendedTokenizerSettings);
+                } else {
+                    tokenizerDefinition = new Tuple<>(extendedTokenizerName, ImmutableSettings.EMPTY);
+                }
+            }
+
+            if (tokenFilters.isEmpty()) {
+                // only use inherited tokenfilters if none are defined in extending analyzer
+                String[] extendedTokenFilterNames = extendedCustomAnalyzer.getAsArray(String.format("index.analysis.analyzer.%s.filter", extendedAnalyzerName));
+                for (int i=0;i<extendedTokenFilterNames.length;i++) {
+                    Settings extendedTokenFilterSettings = analyzerService.getCustomTokenFilter(extendedTokenFilterNames[i]);
+                    if (extendedTokenFilterSettings != null) {
+                        tokenFilters.put(extendedTokenFilterNames[i], extendedTokenFilterSettings);
+                    } else {
+                        tokenFilters.put(extendedTokenFilterNames[i], ImmutableSettings.EMPTY);
+                    }
+                }
+            }
+
+            if (charFilters.isEmpty()) {
+                // only use inherited charfilters if none are defined in extending analyzer
+                String[] extendedCustomCharFilterNames = extendedCustomAnalyzer.getAsArray(String.format("index.analysis.analyzer.%s.char_filter", extendedAnalyzerName));
+                for (int i=0; i<extendedCustomCharFilterNames.length; i++) {
+                    Settings extendedCustomCharFilterSettings = analyzerService.getCustomCharFilter(extendedCustomCharFilterNames[i]);
+                    if (extendedCustomCharFilterSettings != null) {
+                        charFilters.put(extendedCustomCharFilterNames[i], extendedCustomCharFilterSettings);
+                    } else {
+                        charFilters.put(extendedCustomCharFilterNames[i], ImmutableSettings.EMPTY);
+                    }
+                }
+            }
+
+        } else if(extendsBuiltInAnalyzer()) {
+            // generic properties for extending builtin analyzers
+            if (genericAnalyzerSettings != null) {
+                builder.put(genericAnalyzerSettings);
+            }
+        }
+
+        // analyzer type
         builder.put(
-                getSettingsKey("index.analysis.analyzer.%s.type", analyzerName),
-                (extendedAnalyzerName == null ? "custom" : extendedAnalyzerName)
+            getSettingsKey("index.analysis.analyzer.%s.type", analyzerName),
+            (extendsBuiltInAnalyzer() ? extendedAnalyzerName : "custom" )
         );
+
         if (tokenizerDefinition != null) {
             builder.put(
                     getSettingsKey("index.analysis.analyzer.%s.tokenizer", analyzerName),
@@ -268,20 +361,14 @@ public class AnalyzerVisitor extends XContentVisitor {
             );
         }
         if (charFilters.size() > 0) {
-            String[] charFilterNames = new String[charFilters.size()];
-            for (int i=0; i<charFilters.size(); i++) {
-                charFilterNames[i] = charFilters.get(i).v1();
-            }
+            String[] charFilterNames = charFilters.keySet().toArray(new String[charFilters.size()]);
             builder.putArray(
                     getSettingsKey("index.analysis.analyzer.%s.char_filter", analyzerName),
                     charFilterNames
             );
         }
         if (tokenFilters.size() > 0) {
-            String[] tokenFilterNames = new String[tokenFilters.size()];
-            for (int i = 0; i<tokenFilters.size(); i++) {
-                tokenFilterNames[i] = tokenFilters.get(i).v1();
-            }
+            String[] tokenFilterNames = tokenFilters.keySet().toArray(new String[tokenFilters.size()]);
             builder.putArray(
                     getSettingsKey("index.analysis.analyzer.%s.filter", analyzerName),
                     tokenFilterNames
@@ -299,43 +386,38 @@ public class AnalyzerVisitor extends XContentVisitor {
         if (!doneParsing) {
             throw new SettingsException("cannot build settings for analyzer yet");
         }
-        // create analyzer settings - possibly referencing charFilters, tokenFilters, tokenizers defined here
+        //
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
 
-        String encodedAnalyzerSettings = settingsToXContent(analyzerSettings()).toUtf8();
+        String encodedAnalyzerSettings = AnalyzerService.encodeSettings(analyzerSettings()).toUtf8();
         builder.put(
                 String.format("%s.analyzer.%s", SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX, analyzerName),
                 encodedAnalyzerSettings
         );
 
-        if (tokenizerDefinition != null) {
+        if (tokenizerDefinition != null && !tokenizerDefinition.v2().getAsMap().isEmpty()) {
             builder.put(
                     String.format("%s.tokenizer.%s", SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX, tokenizerDefinition.v1()),
-                    settingsToXContent(tokenizerDefinition.v2()).toUtf8()
+                    AnalyzerService.encodeSettings(tokenizerDefinition.v2()).toUtf8()
             );
         }
-        for (Tuple<String, Settings> tokenFilterDefinition: tokenFilters) {
-            builder.put(
-                    String.format("%s.filter.%s", SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX, tokenFilterDefinition.v1()),
-                    settingsToXContent(tokenFilterDefinition.v2()).toUtf8()
-            );
+        for (Map.Entry<String, Settings> tokenFilterDefinition: tokenFilters.entrySet()) {
+            if (!tokenFilterDefinition.getValue().getAsMap().isEmpty()) {
+                builder.put(
+                        String.format("%s.filter.%s", SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX, tokenFilterDefinition.getKey()),
+                        AnalyzerService.encodeSettings(tokenFilterDefinition.getValue()).toUtf8()
+                );
+            }
         }
-        for (Tuple<String, Settings> charFilterDefinition : charFilters) {
-            builder.put(
-                    String.format("%s.char_filter.%s", SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX, charFilterDefinition.v1()),
-                    settingsToXContent(charFilterDefinition.v2()).toUtf8()
-            );
+        for (Map.Entry<String, Settings> charFilterDefinition : charFilters.entrySet()) {
+            if (!charFilterDefinition.getValue().getAsMap().isEmpty()) {
+                builder.put(
+                        String.format("%s.char_filter.%s", SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX, charFilterDefinition.getKey()),
+                        AnalyzerService.encodeSettings(charFilterDefinition.getValue()).toUtf8()
+                );
+            }
         }
         return builder.build();
-    }
-
-    public static BytesReference settingsToXContent(Settings settings) throws IOException {
-        XContentBuilder xContentBuilder = XContentFactory.jsonBuilder();
-        xContentBuilder.startObject();
-        for (ImmutableMap.Entry<String, String> entry : settings.getAsMap().entrySet()) {
-            xContentBuilder.field(entry.getKey(), entry.getValue());
-        }
-        return xContentBuilder.endObject().bytes();
     }
 
     @Override

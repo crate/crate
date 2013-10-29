@@ -2,6 +2,7 @@ package org.cratedb.action.sql;
 
 import org.cratedb.action.DistributedSQLRequest;
 import org.cratedb.action.TransportDistributedSQLAction;
+import org.cratedb.action.sql.analyzer.TransportClusterUpdateCrateSettingsAction;
 import org.cratedb.sql.ExceptionHelper;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
@@ -9,7 +10,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
-import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -62,7 +62,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final TransportDistributedSQLAction transportDistributedSQLAction;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final TransportDeleteIndexAction transportDeleteIndexAction;
-    private final TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction;
+    private final TransportClusterUpdateCrateSettingsAction transportClusterUpdateCrateSettingsAction;
     private final NodeExecutionContext executionContext;
 
     @Inject
@@ -81,7 +81,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             TransportCountAction transportCountAction,
             TransportCreateIndexAction transportCreateIndexAction,
             TransportDeleteIndexAction transportDeleteIndexAction,
-            TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction) {
+            TransportClusterUpdateCrateSettingsAction transportClusterUpdateCrateSettingsAction) {
         super(settings, threadPool);
         this.executionContext = executionContext;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
@@ -97,7 +97,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         this.transportDistributedSQLAction = transportDistributedSQLAction;
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.transportDeleteIndexAction = transportDeleteIndexAction;
-        this.transportClusterUpdateSettingsAction = transportClusterUpdateSettingsAction;
+        this.transportClusterUpdateCrateSettingsAction = transportClusterUpdateCrateSettingsAction;
     }
 
     private abstract class ESResponseToSQLResponseListener<T extends ActionResponse> implements ActionListener<T> {
@@ -220,7 +220,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                     break;
                 case CREATE_ANALYZER_ACTION:
                     ClusterUpdateSettingsRequest clusterUpdateSettingsRequest = stmt.buildClusterUpdateSettingsRequest();
-                    transportClusterUpdateSettingsAction.execute(clusterUpdateSettingsRequest, new ClusterUpdateSettingsResponseListener(stmt, listener));
+                    transportClusterUpdateCrateSettingsAction.execute(clusterUpdateSettingsRequest, new ClusterUpdateSettingsResponseListener(stmt, listener));
                     break;
                 default:
                     if (stmt.hasGroupBy()) {

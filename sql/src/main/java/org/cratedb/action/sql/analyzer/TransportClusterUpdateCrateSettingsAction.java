@@ -1,12 +1,9 @@
 package org.cratedb.action.sql.analyzer;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import org.cratedb.service.SQLService;
 import org.elasticsearch.ElasticSearchException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
@@ -18,8 +15,8 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
 import org.elasticsearch.cluster.settings.DynamicSettings;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
@@ -28,17 +25,21 @@ import org.elasticsearch.transport.TransportService;
 
 import java.util.Map;
 
+/**
+ * A TransportAction to update a special subset of ClusterSettings solely related to Crate
+ */
 public class TransportClusterUpdateCrateSettingsAction extends TransportClusterUpdateSettingsAction {
 
     public static final ImmutableList<String> ALLOWED_PREFIXES = ImmutableList.of(SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX);
 
+    @Inject
     public TransportClusterUpdateCrateSettingsAction(Settings settings, TransportService transportService, ClusterService clusterService, ThreadPool threadPool, AllocationService allocationService, @ClusterDynamicSettings final DynamicSettings dynamicSettings) {
         super(settings, transportService, clusterService, threadPool, allocationService, dynamicSettings);
     }
 
     @Override
     protected String transportAction() {
-        return ClusterUpdateSettingsAction.NAME;
+        return ClusterUpdateCrateSettingsAction.NAME;
     }
 
     /**
@@ -81,21 +82,25 @@ public class TransportClusterUpdateCrateSettingsAction extends TransportClusterU
                 ImmutableSettings.Builder transientSettings = ImmutableSettings.settingsBuilder();
                 transientSettings.put(currentState.metaData().transientSettings());
                 for (Map.Entry<String, String> entry : request.transientSettings().getAsMap().entrySet()) {
-
-                    transientSettings.put(entry.getKey(), entry.getValue());
-                    transientUpdates.put(entry.getKey(), entry.getValue());
-                    changed = true;
-
+                    if(is_allowed(entry.getKey())) {
+                        transientSettings.put(entry.getKey(), entry.getValue());
+                        transientUpdates.put(entry.getKey(), entry.getValue());
+                        changed = true;
+                    } else {
+                        logger.warn("ignoring not allowed transient setting '{}'", entry.getKey());
+                    }
                 }
 
                 ImmutableSettings.Builder persistentSettings = ImmutableSettings.settingsBuilder();
                 persistentSettings.put(currentState.metaData().persistentSettings());
                 for (Map.Entry<String, String> entry : request.persistentSettings().getAsMap().entrySet()) {
-                    if (entry.getKey())
-                    persistentSettings.put(entry.getKey(), entry.getValue());
-                    persistentUpdates.put(entry.getKey(), entry.getValue());
-                    changed = true;
-
+                    if (is_allowed(entry.getKey())) {
+                        persistentSettings.put(entry.getKey(), entry.getValue());
+                        persistentUpdates.put(entry.getKey(), entry.getValue());
+                        changed = true;
+                    } else {
+                        logger.warn("ignoring not allowed persistent setting '{}'", entry.getKey());
+                    }
                 }
 
                 if (!changed) {
@@ -119,12 +124,7 @@ public class TransportClusterUpdateCrateSettingsAction extends TransportClusterU
 
             @Override
             public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                if (oldState == newState) {
-                    // nothing changed...
-                    listener.onResponse(new ClusterUpdateSettingsResponse(transientUpdates.build(), persistentUpdates.build()));
-                    return;
-                }
-                // no rerouting necessary
+                listener.onResponse(new ClusterUpdateSettingsResponse(transientUpdates.build(), persistentUpdates.build()));
             }
         });
     }

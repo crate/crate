@@ -10783,6 +10783,7 @@ analyzerDefinition() throws StandardException :
     TableName analyzerName = null;
     TableName extendedAnalyzerName = null;
     AnalyzerElements analyzerElements = (AnalyzerElements)nodeFactory.getNode(NodeTypes.ANALYZER_ELEMENTS,
+                                                            (GenericProperties)nodeFactory.getNode(NodeTypes.GENERIC_PROPERTIES, parserContext),
                                                             (TokenFilterList)nodeFactory.getNode(NodeTypes.TOKEN_FILTER_LIST, parserContext),
                                                             (CharFilterList)nodeFactory.getNode(NodeTypes.CHAR_FILTER_LIST, parserContext),
                                                             parserContext);
@@ -10811,11 +10812,18 @@ analyzerDefinition() throws StandardException :
 void analyzerElement(AnalyzerElements analyzerElements) throws StandardException :
 {}
 {
-    tokenizer(analyzerElements)
+    (
+        LOOKAHEAD({getToken(1).kind == TOKENIZER })
+        tokenizer(analyzerElements)
     |
-    charFilterList(analyzerElements)
+        LOOKAHEAD({getToken(1).kind == CHAR_FILTERS })
+        charFilterList(analyzerElements)
     |
-    tokenFilterList(analyzerElements)
+        LOOKAHEAD({getToken(1).kind == TOKEN_FILTERS })
+        tokenFilterList(analyzerElements)
+    |
+        genericProperty(analyzerElements.getProperties())
+    )
 }
 
 void tokenizer(AnalyzerElements analyzerElements) throws StandardException :
@@ -10851,11 +10859,8 @@ void charFilter(AnalyzerElements analyzerElements) throws StandardException :
 {
     namedNode = namedNodeWithOptionalProperties()
     {
-        CharFilterNode charFilterNode = (CharFilterNode)nodeFactory.getNode(NodeTypes.CHAR_FILTER_NODE,
-                                                                                namedNode.getName(),
-                                                                                namedNode.getProperties(),
-                                                                                parserContext);
-        analyzerElements.addCharFilter(charFilterNode);
+
+        analyzerElements.addCharFilter(namedNode);
     }
 }
 
@@ -10880,11 +10885,7 @@ void tokenFilter(AnalyzerElements analyzerElements) throws StandardException :
 {
     namedNode = namedNodeWithOptionalProperties()
     {
-        TokenFilterNode tokenFilterNode = (TokenFilterNode)nodeFactory.getNode(NodeTypes.TOKEN_FILTER_NODE,
-                                                                                namedNode.getName(),
-                                                                                namedNode.getProperties(),
-                                                                                parserContext);
-        analyzerElements.addTokenFilter(tokenFilterNode);
+        analyzerElements.addTokenFilter(namedNode);
     }
 }
 

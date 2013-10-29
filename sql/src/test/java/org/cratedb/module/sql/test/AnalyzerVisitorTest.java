@@ -1,6 +1,6 @@
 package org.cratedb.module.sql.test;
 
-import org.cratedb.action.AnalyzerService;
+import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.action.parser.AnalyzerVisitor;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
@@ -14,7 +14,10 @@ import org.elasticsearch.indices.analysis.IndicesAnalysisService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.io.IOException;
+
 import static junit.framework.TestCase.assertEquals;
+import static org.cratedb.action.sql.analyzer.AnalyzerService.decodeSettings;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
@@ -38,54 +41,66 @@ public class AnalyzerVisitorTest {
         NodeExecutionContext nodeExecutionContext = mock(NodeExecutionContext.class);
         when(nodeExecutionContext.analyzerService()).thenReturn(analyzerService);
         ParsedStatement parsedStatement;
+        Settings settings = null;
         try {
             parsedStatement = new ParsedStatement(stmt, args, nodeExecutionContext);
-        } catch (SQLParserException e){
+            assert parsedStatement.visitor() instanceof AnalyzerVisitor;
+            settings = ((AnalyzerVisitor)parsedStatement.visitor()).buildSettings();
+        } catch (SQLParserException e) {
             System.err.println(stmt);
             throw e;
+        } catch(IOException ioe) {
+            throw new StandardException(ioe);
         }
-        assert parsedStatement.visitor() instanceof AnalyzerVisitor;
-        return ((AnalyzerVisitor)parsedStatement.visitor()).buildSettings();
+        return settings;
     }
 
     @Test
-    public void createAnalyzerWithBuiltinTokenizer() throws StandardException {
+    public void createAnalyzerWithBuiltinTokenizer() throws StandardException, IOException {
         Settings settings = executeStatement("CREATE ANALYZER a1a WITH (" +
                 "  TOKENIZER standard" +
                 ")", null);
 
-        assertEquals(
-                "standard",
-                settings.get(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a1a.tokenizer"))
-        );
-        assertEquals(
-                "custom",
-                settings.get(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a1a.type"))
-        );
         assertThat(
                 settings.getAsMap(),
-                not(hasKey(startsWith(AnalyzerVisitor.getSettingsKey("index.analysis.tokenizer.standard"))))
+                not(Matchers.hasKey(AnalyzerVisitor.getPrefixedSettingsKey("tokenizer.standard")))
+        );
+        Settings analyzerSettings = decodeSettings(settings.get(
+                AnalyzerVisitor.getPrefixedSettingsKey("analyzer.a1a")
+        ));
+        assertEquals(
+                "custom",
+                analyzerSettings.get(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a1a.type"))
+        );
+        assertThat(
+                analyzerSettings.getAsMap(),
+                Matchers.hasEntry(
+                        AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a1a.tokenizer"),
+                        "standard"
+                )
         );
     }
 
     @Test
-    public void createAnalyzerWithExtendedBuiltinTokenizer() throws StandardException {
+    public void createAnalyzerWithExtendedBuiltinTokenizer() throws StandardException, IOException {
         Settings settings = executeStatement("CREATE ANALYZER a1b WITH (" +
                 "  TOKENIZER myextendedone WITH (" +
                 "    type='standard'," +
                 "    \"max_token_length\"=8" +
                 "  )" +
                 ")", null);
+        Settings analyzerSettings = decodeSettings(settings.get(AnalyzerVisitor.getPrefixedSettingsKey("analyzer.a1b")));
         assertEquals(
                 "myextendedone",
-                settings.get(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a1b.tokenizer"))
+                analyzerSettings.get(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a1b.tokenizer"))
         );
         assertEquals(
                 "custom",
-                settings.get(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a1b.type"))
+                analyzerSettings.get(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a1b.type"))
         );
+        Settings tokenizerSettings = decodeSettings(settings.get(AnalyzerVisitor.getPrefixedSettingsKey("tokenizer.myextendedone")));
         assertThat(
-                settings.getAsMap(),
+                tokenizerSettings.getAsMap(),
                 allOf(
                         hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.tokenizer.myextendedone.type"), "standard"),
                         hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.tokenizer.myextendedone.max_token_length"), "8")
@@ -103,7 +118,7 @@ public class AnalyzerVisitorTest {
     }
 
     @Test
-    public void createAnalyzerWithTokenizerAndTokenFilters() throws StandardException {
+    public void createAnalyzerWithTokenizerAndTokenFilters() throws StandardException, IOException {
         Settings settings = executeStatement("CREATE ANALYZER a2 WITH (" +
                 "  TOKENIZER tokenizer2 (" +
                 "    type='standard'," +
@@ -123,16 +138,20 @@ public class AnalyzerVisitorTest {
                 ")",
                 null
         );
-        assertThat(settings.getAsMap(), hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a2.type"), "custom"));
-        assertThat(settings.getAsMap(), hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a2.tokenizer"), "tokenizer2"));
-        assertThat(settings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a2.filter")), arrayContainingInAnyOrder("myfilter", "myotherfilter"));
+        Settings analyzerSettings = decodeSettings(settings.get(AnalyzerVisitor.getPrefixedSettingsKey("analyzer.a2")));
+        assertThat(analyzerSettings.getAsMap(), hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a2.type"), "custom"));
+        assertThat(analyzerSettings.getAsMap(), hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a2.tokenizer"), "tokenizer2"));
+        assertThat(analyzerSettings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a2.filter")), arrayContainingInAnyOrder("myfilter", "myotherfilter"));
 
-        assertThat(settings.getAsMap(), hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.filter.myfilter.type"), "edgeNGram"));
-        assertThat(settings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.filter.myotherfilter.stopwords")), arrayContainingInAnyOrder("foo", "bar", "baz"));
+        Settings myFilterSettings = decodeSettings(settings.get(AnalyzerVisitor.getPrefixedSettingsKey("filter.myfilter")));
+        assertThat(myFilterSettings.getAsMap(), hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.filter.myfilter.type"), "edgeNGram"));
+
+        Settings myOtherFilterSettings = decodeSettings(settings.get(AnalyzerVisitor.getPrefixedSettingsKey("filter.myotherfilter")));
+        assertThat(myOtherFilterSettings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.filter.myotherfilter.stopwords")), arrayContainingInAnyOrder("foo", "bar", "baz"));
     }
 
     @Test
-    public void createFullCustomAnalyzer() throws StandardException {
+    public void createFullCustomAnalyzer() throws StandardException, IOException {
         Settings settings = executeStatement("CREATE ANALYZER a3 WITH (" +
                 "  TOKEN_FILTERS WITH (" +
                 "    standard," +
@@ -154,20 +173,31 @@ public class AnalyzerVisitorTest {
                 "    \"token_chars\"=['letter', 'digit']" +
                 "  )" +
                 ")", null);
-        assertThat(settings.getAsMap(), hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a3.type"), "custom"));
-        assertThat(settings.getAsMap(), hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a3.tokenizer"), "tok3"));
+        Settings analyzerSettings = decodeSettings(settings.get(AnalyzerVisitor.getPrefixedSettingsKey("analyzer.a3")));
+        assertThat(analyzerSettings.getAsMap(), hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a3.type"), "custom"));
+        assertThat(analyzerSettings.getAsMap(), hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a3.tokenizer"), "tok3"));
+        assertThat(analyzerSettings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a3.char_filter")), arrayContainingInAnyOrder("html_strip", "mymapping"));
 
-        assertThat(settings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a3.char_filter")), arrayContainingInAnyOrder("html_strip", "mymapping"));
-        assertThat(settings.getAsMap(), not(hasKey(startsWith(AnalyzerVisitor.getSettingsKey("index.analysis.char_filter.html_strip")))));
-        assertThat(settings.getAsMap(), hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.char_filter.mymapping.type"), "mapping"));
-        assertThat(settings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.char_filter.mymapping.mapping")), arrayContainingInAnyOrder("ph=>f", "qu=>q", "foo=>bar"));
 
-        assertThat(settings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a3.filter")), arrayContainingInAnyOrder("standard", "germanlowercase", "trim"));
+        assertThat(settings.getAsMap(), not(hasKey(startsWith(AnalyzerVisitor.getPrefixedSettingsKey("char_filter.html_strip")))));
+
+        Settings myMappingSettings = decodeSettings(settings.get(AnalyzerVisitor.getPrefixedSettingsKey("char_filter.mymapping")));
+        assertThat(myMappingSettings.getAsMap(), hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.char_filter.mymapping.type"), "mapping"));
+        assertThat(myMappingSettings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.char_filter.mymapping.mapping")), arrayContainingInAnyOrder("ph=>f", "qu=>q", "foo=>bar"));
+
+
+        assertThat(analyzerSettings.getAsArray(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a3.filter")), arrayContainingInAnyOrder("standard", "germanlowercase", "trim"));
         assertThat(settings.getAsMap(), allOf(
-                not(hasKey(startsWith(AnalyzerVisitor.getSettingsKey("index.analysis.filter.trim")))),
-                not(hasKey(startsWith(AnalyzerVisitor.getSettingsKey("index.analysis.filter.standard"))))
+                not(hasKey(startsWith(AnalyzerVisitor.getPrefixedSettingsKey("filter.trim")))),
+                not(hasKey(startsWith(AnalyzerVisitor.getPrefixedSettingsKey("filter.standard"))))
         ));
-        assertThat(settings.getAsMap(), Matchers.hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.filter.germanlowercase.type"), "lowercase"));
+
+        Settings germanLowercaseSettings = decodeSettings(settings.get(AnalyzerVisitor.getPrefixedSettingsKey("filter.germanlowercase")));
+        assertThat(germanLowercaseSettings.getAsMap(), allOf(
+                hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.filter.germanlowercase.type"), "lowercase"),
+                hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.filter.germanlowercase.language"), "german")
+            )
+        );
     }
 
     @Test( expected = SQLParseException.class)
@@ -197,6 +227,23 @@ public class AnalyzerVisitorTest {
                 "    type='nGram'," +
                 "    \"token_chars\"=['letter', 'digit']" +
                 "  )" +
+                ")", null);
+    }
+
+    @Test( expected = SQLParseException.class)
+    public void overrideDefaultAnalyzer() throws StandardException {
+        executeStatement("CREATE ANALYZER \"default\" WITH (" +
+                "  TOKENIZER whitespace" +
+                ")", null);
+    }
+
+    @Test(expected = SQLParseException.class)
+    public void overrideBuiltInAnalyzer() throws StandardException {
+        executeStatement("CREATE ANALYZER \"keyword\" WITH (" +
+                "  char_filters WITH (" +
+                "    html_strip" +
+                "  )," +
+                "  tokenizer standard" +
                 ")", null);
     }
 }

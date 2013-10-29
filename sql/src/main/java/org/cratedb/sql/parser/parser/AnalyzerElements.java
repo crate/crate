@@ -6,10 +6,12 @@ import org.cratedb.sql.parser.StandardException;
 public class AnalyzerElements extends QueryTreeNode {
 
     NamedNodeWithOptionalProperties tokenizer = null;
+    GenericProperties properties = null;
     TokenFilterList tokenFilters = new TokenFilterList();
     CharFilterList charFilters = new CharFilterList();
 
-    public void init(Object tokenFilterList, Object charFilterList) {
+    public void init(Object genericProperties, Object tokenFilterList, Object charFilterList) {
+        properties = (GenericProperties) genericProperties;
         tokenFilters = (TokenFilterList)tokenFilterList;
         charFilters = (CharFilterList)charFilterList;
     }
@@ -23,6 +25,10 @@ public class AnalyzerElements extends QueryTreeNode {
 
     public NamedNodeWithOptionalProperties getTokenizer() {
         return tokenizer;
+    }
+
+    public GenericProperties getProperties() {
+        return this.properties;
     }
 
     public CharFilterList getCharFilters() {
@@ -47,14 +53,16 @@ public class AnalyzerElements extends QueryTreeNode {
         AnalyzerElements elements = (AnalyzerElements) other;
         tokenizer = (NamedNodeWithOptionalProperties)getNodeFactory().copyNode(elements.getTokenizer(), getParserContext());
 
+        properties = (GenericProperties)getNodeFactory().copyNode(elements.getProperties(), getParserContext());
+
         tokenFilters = new TokenFilterList();
-        for (TokenFilterNode node : elements.getTokenFilters()) {
-            tokenFilters.add((TokenFilterNode)getNodeFactory().copyNode(node, getParserContext()));
+        for (NamedNodeWithOptionalProperties node : elements.getTokenFilters()) {
+            tokenFilters.add((NamedNodeWithOptionalProperties)getNodeFactory().copyNode(node, getParserContext()));
         }
 
         charFilters = new CharFilterList();
-        for (CharFilterNode node : elements.getCharFilters()) {
-            charFilters.add((CharFilterNode)getNodeFactory().copyNode(node, getParserContext()));
+        for (NamedNodeWithOptionalProperties node : elements.getCharFilters()) {
+            charFilters.add((NamedNodeWithOptionalProperties)getNodeFactory().copyNode(node, getParserContext()));
         }
     }
 
@@ -62,13 +70,17 @@ public class AnalyzerElements extends QueryTreeNode {
     public void printSubNodes(int depth) {
         super.printSubNodes(depth);
         if (tokenizer != null) {
-            printLabel(depth, "Tokenizer:\n");
+            printLabel(depth, "Tokenizer: ");
             tokenizer.treePrint(depth + 1);
         }
-        printLabel(depth, "TokenFilters:\n");
+
+        printLabel(depth, "Properties: ");
+        properties.treePrint(depth + 1);
+
+        printLabel(depth, "TokenFilters: ");
         tokenFilters.treePrint(depth + 1);
 
-        printLabel(depth, "CharFilters:\n");
+        printLabel(depth, "CharFilters: ");
         charFilters.treePrint(depth + 1);
 
     }
@@ -79,6 +91,7 @@ public class AnalyzerElements extends QueryTreeNode {
         if (tokenizer != null) {
             tokenizer.accept(v);
         }
+        properties.accept(v);
         tokenFilters.accept(v);
         charFilters.accept(v);
     }

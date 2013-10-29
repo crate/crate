@@ -1,6 +1,6 @@
 package org.cratedb.action.sql;
 
-import org.cratedb.action.AnalyzerService;
+import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.action.parser.QueryPlanner;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.MappingMetaData;

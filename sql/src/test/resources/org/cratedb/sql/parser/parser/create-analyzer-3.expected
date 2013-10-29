@@ -7,6 +7,9 @@ extends:
 	
 	org.cratedb.sql.parser.parser.AnalyzerElements@54266750
 
+	Properties: 		
+		org.cratedb.sql.parser.parser.GenericProperties@2548e059
+		{}
 	TokenFilters: 		
 		org.cratedb.sql.parser.parser.TokenFilterList@2548e059
 

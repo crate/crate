@@ -59,11 +59,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         return randomSettingsBuilder().put("number_of_replicas", 0).build();
     }
 
-    public Settings getPersistentClusterSettings() {
-        ClusterStateResponse response = client().admin().cluster().prepareState().execute().actionGet();
-        return response.getState().metaData().persistentSettings();
-    }
-
     @Test
     public void testSelectKeepsOrder() throws Exception {
         createIndex("test");
@@ -1550,20 +1545,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     @Test (expected = TableUnknownException.class)
     public void selectMultiGetRequestFromNonExistentTable() throws IOException {
         execute("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"});
-    }
-
-    @Test
-    public void createSimpleAnalyzer() {
-        execute("CREATE ANALYZER a1 WITH (" +
-                "  TOKENIZER standard" +
-                ")");
-        Settings customAnalyzerSettings = getPersistentClusterSettings();
-
-        assertThat(
-                customAnalyzerSettings.getAsMap(),
-                hasEntry("crate.analyzer.custom.index.analysis.analyzer.a1.tokenizer", "standard")
-        );
-
     }
 
 }
