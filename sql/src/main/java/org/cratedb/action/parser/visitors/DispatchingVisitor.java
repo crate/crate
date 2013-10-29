@@ -3,7 +3,6 @@ package org.cratedb.action.parser.visitors;
 
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.CrateException;
-import org.cratedb.sql.ExceptionHelper;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
@@ -35,6 +34,7 @@ public abstract class DispatchingVisitor implements Visitor {
     protected void visit(DropTableNode node) throws Exception {}
     protected void visit(ColumnDefinitionNode node) throws Exception {}
     protected void visit(ConstraintDefinitionNode node) throws Exception {}
+    protected void visit(IndexConstraintDefinitionNode node) throws Exception {}
 
     protected void afterVisit() {}
 
@@ -93,6 +93,10 @@ public abstract class DispatchingVisitor implements Visitor {
                 break;
             case NodeTypes.CONSTRAINT_DEFINITION_NODE:
                 visit((ConstraintDefinitionNode)tableElement);
+                break;
+            case NodeTypes.INDEX_CONSTRAINT_NODE:
+                visit((IndexConstraintDefinitionNode)tableElement);
+                break;
         }
     }
 

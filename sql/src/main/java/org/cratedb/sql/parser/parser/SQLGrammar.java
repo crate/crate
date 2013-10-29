@@ -13868,7 +13868,7 @@ columnReference() throws StandardException :
     case USING:
       jj_consume_token(USING);
       indexMethod = indexMethod();
-      if (getToken(2).kind != _DEFAULT) {
+      if (getToken(1).kind == WITH && getToken(2).kind != _DEFAULT) {
         jj_consume_token(WITH);
         jj_consume_token(LEFT_PAREN);
         indexProperties = genericProperties();

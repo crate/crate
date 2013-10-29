@@ -76,7 +76,7 @@ public class TableVisitor extends BaseVisitor {
     @Override
     public void visit(ColumnDefinitionNode node) throws SQLParseException {
 
-        Map<String, String> columnDefinition = newHashMap();
+        Map<String, Object> columnDefinition = safeColumnDefinition(node.getColumnName());
 
         String columnType = node.getType().getTypeName().toLowerCase();
         List<String> allowedColumnTypeList = Arrays.asList(allowedColumnTypes);
@@ -84,12 +84,31 @@ public class TableVisitor extends BaseVisitor {
             throw new SQLParseException("Unsupported type");
         }
 
-        columnDefinition.put("type", columnType);
-        // TODO: use parsed values (not yet supported by parser)
-        columnDefinition.put("index", "not_analyzed");
-        columnDefinition.put("store", "false");
+        // normally the column is specified before index definition, but so be safe,
+        // we can handle index definition before column definition also
+        if (columnDefinition.containsKey("fields")) {
+            Map<String, Map<String, String>> columnFieldsDefinition = (Map)columnDefinition.get("fields");
+            columnDefinition = (Map)columnFieldsDefinition.get(node.getColumnName());
+            assert columnDefinition != null;
 
-        mappingProperties.put(node.getColumnName(), columnDefinition);
+            // fix types of the indexes (they are null because column was not defined already)
+            for (Map.Entry<String, Map<String,String>> entry : columnFieldsDefinition.entrySet()) {
+                if (entry.getKey().equals(node.getColumnName())) {
+                    continue;
+                }
+                entry.getValue().put("type", columnType);
+            }
+        }
+
+        columnDefinition.put("type", columnType);
+
+        // default values
+        if (!columnDefinition.containsKey("index")) {
+            columnDefinition.put("index", "not_analyzed");
+        }
+        if (!columnDefinition.containsKey("store")) {
+            columnDefinition.put("store", "false");
+        }
     }
 
 
@@ -103,15 +122,74 @@ public class TableVisitor extends BaseVisitor {
                 }
                 mappingMeta.put("primary_keys", primaryKeyColumns.get(0));
                 break;
-            // TODO: handle INDEX-DEFINITION
             default:
                 throw new SQLParseException("Unsupported Constraint");
         }
     }
 
+    @Override
+    public void visit(IndexConstraintDefinitionNode node) throws StandardException {
+        String indexName = node.getIndexName();
+        if (node.getIndexColumnList() != null) {
+            for (IndexColumn indexColumn : node.getIndexColumnList()) {
+                String columnName = indexColumn.getColumnName();
+                Map<String, Object> columnDefinition = safeColumnDefinition(columnName);
+                Map<String, Object> indexColumnDefinition = newHashMap();
+                indexColumnDefinition.putAll(columnDefinition);
+
+                if (indexName != columnName) {
+                    indexColumnDefinition.clear();
+                    indexColumnDefinition.put("type", columnDefinition.get("type"));
+                    indexColumnDefinition.put("store", "false");
+                }
+
+                switch (node.getIndexMethod()) {
+                    case "fulltext":
+                    default:
+                        indexColumnDefinition.put("index", "analyzed");
+                        GenericProperties indexProperties = node.getIndexProperties();
+                        if (indexProperties != null && indexProperties.get("analyzer") != null) {
+                            indexColumnDefinition.put("analyzer",
+                                    (String)valueFromNode(indexProperties.get("analyzer")));
+                        } else {
+                            indexColumnDefinition.put("analyzer", "standard");
+                        }
+                        break;
+                }
+
+                if (indexName != columnName) {
+                    // create multi_field mapping
+                    Map<String, Object> fieldsDefinition = newHashMap();
+                    Map<String, Object> originalColumnDefinition = newHashMap();
+                    originalColumnDefinition.putAll(columnDefinition);
+                    fieldsDefinition.put(columnName, originalColumnDefinition);
+                    fieldsDefinition.put(indexName, indexColumnDefinition);
+                    columnDefinition.clear();
+                    columnDefinition.put("type", "multi_field");
+                    columnDefinition.put("path", "just_name");
+                    columnDefinition.put("fields", fieldsDefinition);
+                } else {
+                    columnDefinition.putAll(indexColumnDefinition);
+                }
+            }
+        } else if (!node.isIndexOff()) {
+            throw new SQLParseException("Unsupported index constraint");
+        }
+    }
+
+    private Map<String, Object> safeColumnDefinition(String columnName) {
+        Map<String, Object> columnDefinition = (Map)mappingProperties.get(columnName);
+        if (columnDefinition == null) {
+            columnDefinition = newHashMap();
+            mappingProperties.put(columnName, columnDefinition);
+        }
+
+        return columnDefinition;
+    }
+
     private Map<String, Object> mapping() {
         if (mapping != null) {
-            if (mappingMeta != null) {
+            if (mappingMeta != null && mappingMeta.size() > 0) {
                 mapping.put("_meta", mappingMeta);
             }
             if (routingColumn != null) {
