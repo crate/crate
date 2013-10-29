@@ -860,6 +860,24 @@ public class QueryVisitorTest {
     }
 
     @Test
+    public void testSelectWithWhereNotMatch() throws Exception {
+        execStatement("select kind from locations where not match(kind, 'Star')");
+        assertEquals(
+                "{\"fields\":[\"kind\"],\"query\":{\"bool\":{\"must_not\":{\"match\":{\"kind\":\"Star\"}}}},\"size\":1000}",
+                getSource()
+        );
+    }
+
+    @Test
+    public void testSelectWithWhereMatchAnd() throws Exception {
+        execStatement("select kind from locations where match(kind, 'Star') and name = 'Algol'");
+        assertEquals(
+                "{\"fields\":[\"kind\"],\"query\":{\"bool\":{\"minimum_should_match\":1,\"must\":[{\"match\":{\"kind\":\"Star\"}},{\"term\":{\"name\":\"Algol\"}}]}},\"size\":1000}",
+                getSource()
+        );
+    }
+
+    @Test
     public void testSelectWithWhereMatchOrderBy() throws Exception {
         execStatement("select kind from locations where match(kind, ?) " +
                 "order by match(kind, ?) desc",

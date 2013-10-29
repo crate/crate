@@ -303,8 +303,11 @@ public interface NodeTypes
     public static final int GENERIC_PROPERTIES = 248;
     public static final int NAMED_NODE_WITH_OPTIONAL_PROPERTIES = 249;
 
+    // Functions
+    public static final int MATCH_FUNCTION_NODE = 250;
+
     // Final value in set, keep up to date!
-    public static final int FINAL_VALUE = NAMED_NODE_WITH_OPTIONAL_PROPERTIES;
+    public static final int FINAL_VALUE = MATCH_FUNCTION_NODE;
 
 
 

@@ -199,15 +199,10 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
         jsonBuilder.startArray("sort");
         for (OrderByColumn column : node) {
-            if (column.getExpression().getNodeType() == NodeTypes.JAVA_TO_SQL_VALUE_NODE) {
-                JavaValueNode javaValueNode = ((JavaToSQLValueNode)column.getExpression()).getJavaValueNode();
-                if (javaValueNode.getNodeType() == NodeTypes.STATIC_METHOD_CALL_NODE
-                        && ((StaticMethodCallNode)javaValueNode).getMethodName().equals("match")
-                        ) {
-                    jsonBuilder.startObject()
-                            .field("_score", column.isAscending() ? "asc" : "desc")
-                            .endObject();
-                }
+            if (column.getExpression().getNodeType() == NodeTypes.MATCH_FUNCTION_NODE) {
+                jsonBuilder.startObject()
+                        .field("_score", column.isAscending() ? "asc" : "desc")
+                        .endObject();
             } else {
                 jsonBuilder.startObject()
                     .startObject(column.getExpression().getColumnName())
@@ -554,35 +549,12 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     }
 
     @Override
-    public void visit(ValueNode parentNode, JavaToSQLValueNode node) throws Exception {
-        JavaValueNode javaNode = node.getJavaValueNode();
-        if (javaNode instanceof StaticMethodCallNode) {
-            StaticMethodCallNode methodNode = ((StaticMethodCallNode) javaNode);
-            switch (methodNode.getMethodName()) {
-                case "match":
-                    if (methodNode.getMethodParameters().length != 2) {
-                        throw new SQLParseException("Method 'match' requires exactly 2 " +
-                                "parameters");
-                    }
-                    SQLToJavaValueNode valueNode1 = (SQLToJavaValueNode)methodNode.getMethodParameters()[0];
-                    SQLToJavaValueNode valueNode2 = (SQLToJavaValueNode)methodNode.getMethodParameters()[1];
-                    ColumnReference columnReference = (ColumnReference)valueNode1.getSQLValueNode();
-                    Object query = valueFromNode(valueNode2.getSQLValueNode());
-                    if (!(query instanceof String)) {
-                        throw new SQLParseException("Only characters allowed as 2nd parameter of" +
-                                " a 'match' method");
-                    }
-                    jsonBuilder.startObject("match")
-                            .field(columnReference.getColumnName(), (String)query)
-                            .endObject();
-                    break;
-                default:
-                    throw new SQLParseException("Unsupported method: " + methodNode.getMethodName());
-
-            }
-        } else {
-            throw new SQLParseException("Unsupported node: " + node.toString());
-        }
+    public void visit(ValueNode parentNode, MatchFunctionNode node) throws Exception {
+        ColumnReference columnReference = node.getColumnReference();
+        String query = (String)valueFromNode(node.getQueryText());
+        jsonBuilder.startObject("match")
+                .field(columnReference.getColumnName(), query)
+                .endObject();
     }
 
 }
