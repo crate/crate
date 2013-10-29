@@ -52,7 +52,7 @@ Known Limitations
    used testing data because ``name`` is not declared as a primary key and results in an error::
 
     cr> delete from locations where name = 'Aldebaran' and "_version" = 3
-    SQLParseException[Deleting by _version is only possible using a primary key in WHERE clause.]
+    SQLParseException[_version is only valid in the WHERE clause if paired with a single primary key column and crate.planner.optimize.pk_queries enabled]
 
 
 .. note::

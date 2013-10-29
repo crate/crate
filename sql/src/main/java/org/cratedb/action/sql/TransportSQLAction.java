@@ -232,6 +232,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                         SearchRequest searchRequest = builder.buildSearchRequest();
                         transportSearchAction.execute(searchRequest, new SearchResponseListener(stmt, listener));
                     }
+                    break;
             }
         } catch (Exception e) {
             listener.onFailure(ExceptionHelper.transformToCrateException(e));
