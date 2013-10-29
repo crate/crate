@@ -7,6 +7,7 @@ import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.ExceptionHelper;
 import org.cratedb.sql.facet.InternalSQLFacet;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
@@ -180,5 +181,8 @@ public class SQLResponseBuilder {
         return response;
     }
 
+    public SQLResponse buildResponse(ClusterUpdateSettingsResponse clusterUpdateSettingsResponse) {
+        return buildEmptyResponse(0);
+    }
 
 }

@@ -5,6 +5,14 @@ Changes for Crate
 Unreleased
 ==========
 
+- Implemented ``CREATE ANALYZER`` to create custom analyzers for fulltext-search
+
+2013/10/29 0.17.3
+=================
+
+ - fixed a NullPointerException that occured if a `select` statement  got
+   optimized to a primary key lookup and returned an object column.
+
  - fixed a NullPointerException that occured when `null` was passed as `args`
    argument to the `_sql` REST endpoint and the statement contained a `group
    by` clause.

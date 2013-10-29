@@ -16,6 +16,7 @@ public class AbstractCrateNodesTests extends AbstractNodesTests {
 
     private Map<String, Path> tmpDataDirs = new HashMap<String, Path>();
 
+    @Override
     public Node buildNode(String id, Settings settings) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
         builder.put(settings);
@@ -40,6 +41,7 @@ public class AbstractCrateNodesTests extends AbstractNodesTests {
         }
     }
 
+    @Override
     public void closeAllNodes(boolean preventRelocation) {
         synchronized (AbstractCrateNodesTests.class) {
             for (String id : tmpDataDirs.keySet()) {
@@ -49,6 +51,7 @@ public class AbstractCrateNodesTests extends AbstractNodesTests {
         super.closeAllNodes(preventRelocation);
     }
 
+    @Override
     public void closeNode(String id) {
         deleteTemporaryDataDirectory(id);
         super.closeNode(id);

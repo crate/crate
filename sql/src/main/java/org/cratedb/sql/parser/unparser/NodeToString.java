@@ -280,6 +280,8 @@ public class NodeToString
             return deallocateStatementNode((DeallocateStatementNode)node);
         case NodeTypes.COPY_STATEMENT_NODE:
             return copyStatementNode((CopyStatementNode)node);
+        case NodeTypes.GENERIC_PROPERTIES:
+            return genericProperties((GenericProperties)node);
         default:
             return "**UNKNOWN(" + node.getNodeType() +")**";
         }
@@ -302,12 +304,39 @@ public class NodeToString
 
             if (node.getIndexProperties() != null) {
                 builder.append(" WITH (");
-                for (Map.Entry<String, ValueNode> property : node.getIndexProperties().iterator()) {
-                    builder.append(String.format("\"%s\"", property.getKey()))
-                           .append("=")
-                           .append(toString(property.getValue()));
-                }
+                    builder.append(toString(node.getIndexProperties()));
                 builder.append(")");
+            }
+        }
+        return builder.toString();
+    }
+
+    protected String genericProperties(GenericProperties properties) throws StandardException
+    {
+        StringBuilder builder = new StringBuilder();
+        boolean firstRun = true;
+        for (Map.Entry<String, QueryTreeNode> property : properties.iterator()) {
+            if (firstRun) {
+                firstRun=false;
+            } else {
+                builder.append(",");
+            }
+            builder.append(String.format("\"%s\"", property.getKey()))
+                    .append("=");
+            if (property.getValue() instanceof ValueNode) {
+                builder.append(toString(property.getValue()));
+            } else if(property.getValue() instanceof ValueNodeList) {
+                builder.append("[");
+                boolean innerFirstRun = true;
+                for (ValueNode valueNode : (ValueNodeList)property) {
+                    if (innerFirstRun) {
+                        innerFirstRun=false;
+                    } else {
+                        builder.append(",");
+                    }
+                    builder.append(toString(valueNode));
+                }
+                builder.append("]");
             }
         }
         return builder.toString();
@@ -408,10 +437,7 @@ public class NodeToString
         str.append(")");
         if (node.getIndexProperties() != null) {
             str.append(" WITH (");
-            for (Map.Entry<String, ValueNode> entry : node.getIndexProperties().iterator()) {
-                str.append("\"" + entry.getKey() + "\"=");
-                str.append(toString(entry.getValue()));
-            }
+            str.append(toString(node.getIndexProperties()));
             str.append(")");
         }
         return str.toString();

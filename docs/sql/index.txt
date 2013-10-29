@@ -14,3 +14,4 @@ For general information about SQL please refer to `Wikipedia SQL`_.
    dml
    occ
    rest
+   analyzer

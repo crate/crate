@@ -126,7 +126,9 @@ public class SQLFields {
             FieldMapper<?> mapper = tableContext.mapper().mappers().smartNameFieldMapper(entry.getKey());
             List<Object> searchFieldValues = new ArrayList<>(1);
             for (Object value: entry.getValue().getValues()) {
-                if (mapper instanceof DateFieldMapper) {
+                if (mapper == null) {
+                    searchFieldValues.add(value);
+                } else if (mapper instanceof DateFieldMapper) {
                     searchFieldValues.add(mapper.valueForSearch(((DateFieldMapper) mapper).value(entry.getValue().getValue())));
                 } else {
                     searchFieldValues.add(mapper.valueForSearch(entry.getValue().getValue()));
