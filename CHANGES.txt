@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/10/29 0.17.3
+=================
+
  - fixed a NullPointerException that occured if a `select` statement  got
    optimized to a primary key lookup and returned an object column.
 
