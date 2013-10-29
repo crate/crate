@@ -5,6 +5,7 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.Arrays;
 import java.util.List;
@@ -131,13 +132,14 @@ public class TableVisitor extends BaseVisitor {
     public void visit(IndexConstraintDefinitionNode node) throws StandardException {
         String indexName = node.getIndexName();
         if (node.getIndexColumnList() != null) {
+
             for (IndexColumn indexColumn : node.getIndexColumnList()) {
                 String columnName = indexColumn.getColumnName();
                 Map<String, Object> columnDefinition = safeColumnDefinition(columnName);
                 Map<String, Object> indexColumnDefinition = newHashMap();
                 indexColumnDefinition.putAll(columnDefinition);
 
-                if (indexName != columnName) {
+                if (!indexName.equals(columnName)) {
                     indexColumnDefinition.clear();
                     indexColumnDefinition.put("type", columnDefinition.get("type"));
                     indexColumnDefinition.put("store", "false");
@@ -149,15 +151,26 @@ public class TableVisitor extends BaseVisitor {
                         indexColumnDefinition.put("index", "analyzed");
                         GenericProperties indexProperties = node.getIndexProperties();
                         if (indexProperties != null && indexProperties.get("analyzer") != null) {
-                            indexColumnDefinition.put("analyzer",
-                                    (String)valueFromNode(indexProperties.get("analyzer")));
+                            if (indexProperties.get("analyzer") instanceof ValueNode) {
+                                String analyzerName = (String)valueFromNode((ValueNode)indexProperties.get("analyzer"));
+                                indexColumnDefinition.put("analyzer", analyzerName);
+
+                                // resolve custom analyzer and put into settings
+                                if (context.analyzerService().hasCustomAnalyzer(analyzerName)) {
+                                    Settings customAnalyzerSettings = context.analyzerService().resolveFullCustomAnalyzerSettings(analyzerName);
+                                    indexSettings.putAll(customAnalyzerSettings.getAsMap());
+                                }
+                            } else {
+                                throw new SQLParseException(String.format("Invalid Analyzer '%s'", indexProperties.get("analyzer").toString()));
+                            }
+
                         } else {
                             indexColumnDefinition.put("analyzer", "standard");
                         }
                         break;
                 }
 
-                if (indexName != columnName) {
+                if (!indexName.equals(columnName)) {
                     // create multi_field mapping
                     Map<String, Object> fieldsDefinition = newHashMap();
                     Map<String, Object> originalColumnDefinition = newHashMap();
