@@ -137,22 +137,13 @@ public class TableExecutionContext implements ITableExecutionContext {
     public Iterable<String> allCols() {
         Set<String> res = new TreeSet<>();
         for (String columnName : ((Map<String, Object>)mapping().get("properties")).keySet()) {
+            // don't add internal or sub object field names
             if (columnName.startsWith("_") || columnName.contains(".")) {
                 continue;
             }
 
             res.add(columnName);
         }
-
-        //// add object type field names
-        //Map<String, ObjectMapper> objectMappers = documentMapper.objectMappers();
-        //for (Map.Entry<String, ObjectMapper> entry : objectMappers.entrySet()) {
-        //    ObjectMapper mapper = entry.getValue();
-        //    if (mapper instanceof RootObjectMapper) {
-        //        continue;
-        //    }
-        //    res.add(entry.getKey());
-        //}
         return res;
     }
 

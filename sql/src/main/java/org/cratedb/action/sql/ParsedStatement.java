@@ -9,7 +9,6 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.util.*;
 
@@ -50,11 +49,12 @@ public class ParsedStatement {
      * E.g.:
      *      pk_col = 1 or pk_col = 2
      */
-    public Set<String> primaryKeyValues;
+    public Set<String> primaryKeyValues = new HashSet<>();
 
-    public Set<String> routingValues;
+    public Set<String> routingValues = new HashSet<>();
 
     public Set<String> columnsWithFilter = new HashSet<>();
+    public int orClauses = 0;
 
     public String[] getRoutingValues() {
         return routingValues.toArray(new String[routingValues.size()]);

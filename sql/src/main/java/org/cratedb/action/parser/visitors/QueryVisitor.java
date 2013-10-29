@@ -376,6 +376,8 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         if (column instanceof ColumnReference) {
             jsonBuilder.startObject("terms").startArray(column.getColumnName());
             for (ValueNode listNode : rightNodes.getNodeList()) {
+                queryPlanner.checkColumn(tableContext, stmt, node,
+                    BinaryRelationalOperatorNode.EQUALS_RELOP, column.getColumnName(), valueFromNode(listNode));
                 jsonBuilder.value( valueFromNode(listNode));
             }
             jsonBuilder.endArray().endObject();
