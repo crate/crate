@@ -1778,6 +1778,20 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     @Test
+    public void testSelectMatch() throws Exception {
+        execute("create table quotes (quote string)");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
+                .actionGet().isExists());
+
+        execute("insert into quotes values (?)", new Object[]{"don't panic"});
+        refresh();
+
+        execute("select quote from quotes where match(quote, ?)", new Object[]{"don't panic"});
+        assertEquals(1L, response.rowCount());
+        assertEquals("don't panic", response.rows()[0][0]);
+    }
+
+    @Test
     public void testCreateTableWithInlineIndex() throws Exception {
         execute("create table quotes (quote string index using fulltext)");
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
@@ -1787,7 +1801,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("insert into quotes values (?)", new Object[]{quote});
         refresh();
 
-        execute("select quote from quotes where quote = 'time'");
+        execute("select quote from quotes where match(quote, 'time')");
         assertEquals(1L, response.rowCount());
         assertEquals(quote, response.rows()[0][0]);
 
@@ -1808,7 +1822,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("insert into quotes values (?)", new Object[]{quote});
         refresh();
 
-        execute("select quote from quotes where quote_fulltext = 'time'");
+        execute("select quote from quotes where match(quote_fulltext, 'time')");
         assertEquals(1L, response.rowCount());
         assertEquals(quote, response.rows()[0][0]);
 
@@ -1835,14 +1849,14 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 new Object[]{title, description});
         refresh();
 
-        // match keyword existing in field `title`
-        execute("select title, description from novels where title_desc_fulltext = 'fish'");
+        // match token existing at field `title`
+        execute("select title, description from novels where match(title_desc_fulltext, 'fish')");
         assertEquals(1L, response.rowCount());
         assertEquals(title, response.rows()[0][0]);
         assertEquals(description, response.rows()[0][1]);
 
-        // match keyword existing in field `description`
-        execute("select title, description from novels where title_desc_fulltext = 'oceans'");
+        // match token existing at field `description`
+        execute("select title, description from novels where match(title_desc_fulltext, 'oceans')");
         assertEquals(1L, response.rowCount());
         assertEquals(title, response.rows()[0][0]);
         assertEquals(description, response.rows()[0][1]);
@@ -1851,5 +1865,26 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("select title from novels where title = ?", new Object[]{title});
         assertEquals(1L, response.rowCount());
     }
+
+    @Test
+    public void testSelectMatchOrderBy() throws Exception {
+        execute("create table quotes (quote string index off," +
+                "index quote_ft using fulltext(quote))");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
+                .actionGet().isExists());
+
+        execute("insert into quotes values (?), (?)",
+                new Object[]{"Would it save you a lot of time if I just gave up and went mad now?",
+                        "Time is an illusion. Lunchtime doubly so"}
+        );
+        refresh();
+
+        execute("select quote from quotes where match(quote_ft, ?) " +
+                "order by match(quote_ft, ?) desc",
+                new Object[]{"time", "time"});
+        assertEquals(2L, response.rowCount());
+        assertEquals("Time is an illusion. Lunchtime doubly so", response.rows()[0][0]);
+    }
+
 
 }

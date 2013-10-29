@@ -849,4 +849,25 @@ public class QueryVisitorTest {
             "_version is only valid in the WHERE clause if paired with a single primary key column and crate.planner.optimize.pk_queries enabled");
         execStatement("delete from locations where \"_id\" = 1 and \"_version\" = 1");
     }
+
+    @Test
+    public void testSelectWithWhereMatch() throws Exception {
+        execStatement("select kind from locations where match(kind, 'Star')");
+        assertEquals(
+                "{\"fields\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"size\":1000}",
+                getSource()
+        );
+    }
+
+    @Test
+    public void testSelectWithWhereMatchOrderBy() throws Exception {
+        execStatement("select kind from locations where match(kind, ?) " +
+                "order by match(kind, ?) desc",
+                new Object[]{"Star", "Star"});
+        assertEquals(
+                "{\"fields\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"sort\":[{\"_score\":\"desc\"}],\"size\":1000}",
+                getSource()
+        );
+    }
+
 }

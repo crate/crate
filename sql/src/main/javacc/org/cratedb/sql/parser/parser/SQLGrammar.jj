@@ -2202,7 +2202,6 @@ TOKEN [IGNORE_CASE] :
 | <LEFT: "left">
 | <LIKE: "like">
 | <LOWER: "lower">
-| <MATCH: "match">
 | <MAX: "max">
 | <MIN: "min">
 | <MINUTE: "minute">
@@ -2453,6 +2452,7 @@ TOKEN [IGNORE_CASE] :
 | <TOKEN_FILTERS: "token_filters">
 | <CHAR_FILTERS: "char_filters">
 | <EXTENDS: "extends">
+| <MATCH: "match">
 }
 
 /* This list should contain non-SQL92 keywords that are not reserved.
@@ -15291,7 +15291,6 @@ reservedKeyword() :
 | tok = <LIKE>
 | tok = <LIMIT>
 | tok = <LOWER>
-| tok = <MATCH>
 | tok = <MAX>
 | tok = <MIN>
 | tok = <MINUTE>
@@ -15661,6 +15660,7 @@ nonReservedKeyword() :
 | tok = <TOKEN_FILTERS>
 | tok = <CHAR_FILTERS>
 | tok = <EXTENDS>
+| tok = <MATCH>
 )
     {
         // Remember last identifier token and whether it was delimited.
