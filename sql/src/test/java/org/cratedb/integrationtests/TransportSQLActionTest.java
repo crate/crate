@@ -6,7 +6,6 @@ import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.*;
-import org.cratedb.sql.parser.StandardException;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -21,7 +20,9 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.*;
@@ -34,7 +35,6 @@ import static org.hamcrest.Matchers.*;
 public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     private SQLResponse response;
-    private SQLRequest request;
 
     @Override
     protected int numberOfNodes() {
@@ -42,14 +42,15 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     private void execute(String stmt, Object[] args) {
-        request = new SQLRequest(stmt, args);
         response = client().execute(SQLAction.INSTANCE, new SQLRequest(stmt, args)).actionGet();
     }
 
     private void execute(String stmt) {
-        request = new SQLRequest(stmt);
         response = client().execute(SQLAction.INSTANCE, new SQLRequest(stmt)).actionGet();
     }
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Override
     public Settings getSettings() {
@@ -1488,6 +1489,8 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("select count(*) from characters where age like 32");
         assertEquals(1L, response.rows()[0][0]);
     }
+
+
 
 
     private String getIndexMapping(String index) throws IOException {

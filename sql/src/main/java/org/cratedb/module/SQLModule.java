@@ -9,6 +9,7 @@ import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.TransportSQLAction;
 import org.cratedb.action.sql.analyzer.ClusterUpdateCrateSettingsAction;
 import org.cratedb.action.sql.analyzer.TransportClusterUpdateCrateSettingsAction;
+import org.cratedb.service.InformationSchemaService;
 import org.cratedb.service.SQLParseService;
 import org.elasticsearch.action.GenericAction;
 import org.elasticsearch.action.support.TransportAction;
@@ -21,6 +22,7 @@ public class SQLModule extends AbstractModule {
     protected void configure() {
         bind(SQLParseService.class).asEagerSingleton();
         bind(TransportSQLAction.class).asEagerSingleton();
+        bind(InformationSchemaService.class).asEagerSingleton();
         bind(TransportClusterUpdateCrateSettingsAction.class).asEagerSingleton();
         bind(NodeExecutionContext.class).asEagerSingleton();
         bind(AnalyzerService.class).asEagerSingleton();

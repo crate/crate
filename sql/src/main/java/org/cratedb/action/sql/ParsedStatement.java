@@ -14,7 +14,6 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
 
-
 public class ParsedStatement {
 
     private ESLogger logger = Loggers.getLogger(ParsedStatement.class);
@@ -29,7 +28,6 @@ public class ParsedStatement {
 
     private Map<String, Object> updateDoc;
     private boolean countRequest;
-    private boolean hasOrderBy = false;
 
     public boolean versionSysColumnSelected = false;
 
@@ -62,6 +60,7 @@ public class ParsedStatement {
 
     public Set<String> columnsWithFilter = new HashSet<>();
     public int orClauses = 0;
+    public List<OrderByColumnName> orderByColumns = new ArrayList<>();
 
     public String[] getRoutingValues() {
         return routingValues.toArray(new String[routingValues.size()]);
@@ -84,7 +83,7 @@ public class ParsedStatement {
         CREATE_INDEX_ACTION,
         DELETE_INDEX_ACTION,
         MULTI_GET_ACTION,
-        INFORMATION_SCHEMA_TABLES,
+        INFORMATION_SCHEMA,
         CREATE_ANALYZER_ACTION
     }
 
@@ -220,10 +219,6 @@ public class ParsedStatement {
     }
 
     public boolean hasOrderBy() {
-        return hasOrderBy;
-    }
-
-    public void setHasOrderBy(boolean hasOrderBy) {
-        this.hasOrderBy = hasOrderBy;
+        return (orderByIndices != null && !orderByIndices.isEmpty()) || !orderByColumns.isEmpty();
     }
 }

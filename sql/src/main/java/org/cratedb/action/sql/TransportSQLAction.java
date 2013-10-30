@@ -4,6 +4,7 @@ import org.cratedb.action.DistributedSQLRequest;
 import org.cratedb.action.TransportDistributedSQLAction;
 import org.cratedb.action.parser.ESRequestBuilder;
 import org.cratedb.action.parser.SQLResponseBuilder;
+import org.cratedb.service.InformationSchemaService;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.action.sql.analyzer.TransportClusterUpdateCrateSettingsAction;
 import org.cratedb.sql.ExceptionHelper;
@@ -11,6 +12,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
+import org.elasticsearch.action.admin.cluster.state.TransportClusterStateAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -63,6 +65,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final TransportDistributedSQLAction transportDistributedSQLAction;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final TransportDeleteIndexAction transportDeleteIndexAction;
+    private final InformationSchemaService informationSchemaService;
     private final SQLParseService sqlParseService;
     private final TransportClusterUpdateCrateSettingsAction transportClusterUpdateCrateSettingsAction;
   
@@ -83,7 +86,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             TransportCountAction transportCountAction,
             TransportCreateIndexAction transportCreateIndexAction,
             TransportDeleteIndexAction transportDeleteIndexAction,
-            TransportClusterUpdateCrateSettingsAction transportClusterUpdateCrateSettingsAction) {
+            TransportClusterUpdateCrateSettingsAction transportClusterUpdateCrateSettingsAction,
+            InformationSchemaService informationSchemaService) {
         super(settings, threadPool);
         this.sqlParseService = sqlParseService;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
@@ -100,6 +104,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.transportDeleteIndexAction = transportDeleteIndexAction;
         this.transportClusterUpdateCrateSettingsAction = transportClusterUpdateCrateSettingsAction;
+        this.informationSchemaService = informationSchemaService;
     }
 
     private abstract class ESResponseToSQLResponseListener<T extends ActionResponse> implements ActionListener<T> {
@@ -191,6 +196,9 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             ParsedStatement stmt = sqlParseService.parse(request.stmt(), request.args());
             ESRequestBuilder builder = new ESRequestBuilder(stmt);
             switch (stmt.type()) {
+                case INFORMATION_SCHEMA:
+                    informationSchemaService.execute(stmt, listener);
+                    break;
                 case INSERT_ACTION:
                     IndexRequest indexRequest = builder.buildIndexRequest();
                     transportIndexAction.execute(indexRequest, new IndexResponseListener(stmt, listener));

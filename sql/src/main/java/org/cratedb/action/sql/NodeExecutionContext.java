@@ -2,6 +2,7 @@ package org.cratedb.action.sql;
 
 import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.action.parser.QueryPlanner;
+import org.cratedb.information_schema.InformationSchemaTableExecutionContext;
 import org.cratedb.sql.TableUnknownException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
