@@ -52,6 +52,18 @@ public class LuceneQueryVisitorTest {
         assertEquals("1", term.text());
 
     }
+    @Test
+    public void testIsNotNull() throws Exception {
+        String tree = queryTree("select * from information_schema.tables where table_name is not null");
+
+        String expected = "BooleanQuery/0:\n" +
+            "  MUST\n" +
+            "  *:*  MUST_NOT\n" +
+            "  BooleanQuery/0:\n" +
+            "    MUST\n" +
+            "    filtered(*:*)->NotFilter(table_name:[* TO *])";
+        assertEquals(expected, tree);
+    }
 
     @Test
     public void testBoolQueryGeneration() throws Exception {
