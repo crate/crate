@@ -3,39 +3,25 @@ package org.cratedb.action.parser;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.cratedb.action.parser.visitors.QueryVisitor;
+import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.action.sql.TableExecutionContext;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.SQLParser;
 import org.cratedb.sql.parser.parser.StatementNode;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.index.mapper.DocumentFieldMappers;
-import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.MapperTestUtils;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class LuceneQueryVisitorTest {
 
-    DocumentFieldMappers documentFieldMappers;
-
     @Before
     public void setUp() throws Exception {
-        String mapping = XContentFactory.jsonBuilder()
-            .startObject()
-            .startObject("default")
-                .startObject("properties")
-                    .startObject("long_field").field("type", "long").endObject()
-                    .startObject("int_field").field("type", "integer").endObject()
-                    .startObject("float_field").field("type", "float").endObject()
-                .endObject()
-            .endObject()
-            .endObject()
-            .string();
-        DocumentMapper documentMapper = MapperTestUtils.newParser().parse(mapping);
-        documentFieldMappers = documentMapper.mappers();
     }
 
     public void tearDown() throws Exception {
@@ -64,18 +50,6 @@ public class LuceneQueryVisitorTest {
         assertEquals("1", term.text());
 
     }
-
-    //@Test
-    //public void testIsNullQueryGeneration() throws Exception {
-    //    WhereClauseVisitor visitor = getLuceneQueryVisitor(
-    //        "select mycol from mytable where othercol is null"
-    //    );
-
-    //    Query query = visitor.query();
-    //    String tree = createTree(query);
-    //    String expected = "NumericRangeQuery: null to 1\n";
-    //    assertEquals(expected, tree);
-    //}
 
     @Test
     public void testBoolQueryGeneration() throws Exception {
@@ -123,30 +97,13 @@ public class LuceneQueryVisitorTest {
 
     @Test
     public void testRangeQueryGenerationLt() throws Exception {
+        // because no mapping is available a TermRangeQuery is built
+        // the numeric value inside the select is converted to a bytesref
         String tree = queryTree(
             "select c from t where long_field < 1"
         );
 
-        String expected = "NumericRangeQuery: null to 1\n";
-        assertEquals(expected, tree);
-    }
-
-    @Test
-    public void testRangeQueryGenerationInt() throws Exception {
-        String tree = queryTree(
-            "select c from t where int_field < 1"
-        );
-
-        String expected = "NumericRangeQuery: null to 1\n";
-        assertEquals(expected, tree);
-    }
-
-    @Test
-    public void testRangeQueryGenerationFloat() throws Exception {
-        String tree = queryTree(
-            "select c from t where float_field < 1.2"
-        );
-        String expected = "NumericRangeQuery: null to 1.2\n";
+        String expected = "TermRangeQuery: null to [31]\n";
         assertEquals(expected, tree);
     }
 
@@ -156,7 +113,7 @@ public class LuceneQueryVisitorTest {
             "select c from t where long_field <= 1"
         );
 
-        String expected = "NumericRangeQuery: null to (incl) 1\n";
+        String expected = "TermRangeQuery: null to (incl) [31]\n";
         assertEquals(expected, tree);
     }
 
@@ -166,7 +123,7 @@ public class LuceneQueryVisitorTest {
             "select c from t where long_field > 1"
         );
 
-        String expected = "NumericRangeQuery: 1 to null\n";
+        String expected = "TermRangeQuery: [31] to null\n";
         assertEquals(expected, tree);
     }
 
@@ -176,7 +133,7 @@ public class LuceneQueryVisitorTest {
             "select c from t where long_field >= 1"
         );
 
-        String expected = "NumericRangeQuery: (incl) 1 to null\n";
+        String expected = "TermRangeQuery: (incl) [31] to null\n";
         assertEquals(expected, tree);
     }
 
@@ -186,7 +143,7 @@ public class LuceneQueryVisitorTest {
             "select c from t where 1 > long_field"
         );
 
-        String expected = "NumericRangeQuery: null to 1\n";
+        String expected = "TermRangeQuery: null to [31]\n";
         assertEquals(expected, tree);
     }
 
@@ -209,7 +166,7 @@ public class LuceneQueryVisitorTest {
             "select c from t where 1 >= long_field"
         );
 
-        String expected = "NumericRangeQuery: null to (incl) 1\n";
+        String expected = "TermRangeQuery: null to (incl) [31]\n";
         assertEquals(expected, tree);
     }
 
@@ -219,14 +176,14 @@ public class LuceneQueryVisitorTest {
             "select c from t where 1 < long_field"
         );
 
-        String expected = "NumericRangeQuery: 1 to null\n";
+        String expected = "TermRangeQuery: [31] to null\n";
         assertEquals(expected, tree);
     }
 
     @Test
     public void testRangeQueryGenerationGteYoda() throws Exception {
         String tree = queryTree("select c from t where 1 <= long_field");
-        String expected = "NumericRangeQuery: (incl) 1 to null\n";
+        String expected = "TermRangeQuery: (incl) [31] to null\n";
         assertEquals(expected, tree);
     }
 
@@ -237,7 +194,12 @@ public class LuceneQueryVisitorTest {
 
     private ParsedStatement parse(String statement) throws StandardException {
         ParsedStatement stmt = new ParsedStatement(statement);
-        QueryVisitor visitor = new QueryVisitor(null, stmt, new Object[0]);
+        QueryPlanner queryPlanner = mock(QueryPlanner.class);
+        NodeExecutionContext context = mock(NodeExecutionContext.class);
+        TableExecutionContext tableContext = mock(TableExecutionContext.class);
+        when(context.queryPlanner()).thenReturn(queryPlanner);
+        when(context.tableContext(anyString(), anyString())).thenReturn(tableContext);
+        QueryVisitor visitor = new QueryVisitor(context, stmt, new Object[0]);
         SQLParser parser = new SQLParser();
         StatementNode statementNode = parser.parseStatement(statement);
         statementNode.accept(visitor);
@@ -255,6 +217,19 @@ public class LuceneQueryVisitorTest {
         if (query instanceof TermQuery) {
             sb.append("TermQuery: ");
             sb.append( ((TermQuery) query).getTerm().toString());
+            sb.append("\n");
+        } else if (query instanceof TermRangeQuery) {
+            TermRangeQuery rangeQuery = (TermRangeQuery)query;
+            sb.append("TermRangeQuery: ");
+            if (rangeQuery.includesLower()) {
+                sb.append("(incl) ");
+            }
+            sb.append(rangeQuery.getLowerTerm());
+            sb.append(" to ");
+            if (rangeQuery.includesUpper()) {
+                sb.append("(incl) ");
+            }
+            sb.append(rangeQuery.getUpperTerm());
             sb.append("\n");
         } else if (query instanceof NumericRangeQuery) {
             NumericRangeQuery rangeQuery = (NumericRangeQuery)query;

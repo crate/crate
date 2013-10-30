@@ -73,6 +73,10 @@ public class ParsedStatement {
     public ImmutableMap<String, Object> indexSettings;
     public ImmutableMap<String, Object> indexMapping;
 
+    public boolean isInformationSchemaQuery() {
+        return schemaName() != null && schemaName().equalsIgnoreCase("information_schema");
+    }
+
     public static enum ActionType {
         SEARCH_ACTION,
         INSERT_ACTION,
