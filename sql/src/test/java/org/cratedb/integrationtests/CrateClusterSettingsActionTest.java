@@ -8,14 +8,21 @@ import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
 
-import static org.hamcrest.Matchers.*;
+import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
+import static org.hamcrest.collection.IsMapContaining.hasKey;
 
 public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
     public static final int NUM_NODES = 2;
@@ -292,4 +299,47 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
         );
     }
 
+    @Test
+    public void useAnalyzerForIndexSettings() throws StandardException, IOException {
+        execute("CREATE ANALYZER a11 (" +
+                "  TOKENIZER standard," +
+                "  TOKEN_FILTERS WITH (" +
+                "    lowercase," +
+                "    mystop WITH (" +
+                "      type='stop'," +
+                "      stopword=['the', 'over']" +
+                "    )" +
+                "  )" +
+                ")");
+        Settings settings = getPersistentClusterSettings();
+        assertThat(
+            settings.getAsMap(),
+            allOf(
+                    hasKey("crate.analyzer.custom.analyzer.a11"),
+                    hasKey("crate.analyzer.custom.filter.mystop")
+            )
+        );
+        Settings analyzerSettings = AnalyzerService.decodeSettings(settings.get("crate.analyzer.custom.analyzer.a11"));
+        Settings tokenFilterSettings = AnalyzerService.decodeSettings(settings.get("crate.analyzer.custom.filter.mystop"));
+        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        builder.put(analyzerSettings);
+        builder.put(tokenFilterSettings);
+
+        Client client = client();
+        assertAcked(
+                client.admin().indices().prepareCreate("test").setSettings(builder.build()).addMapping("default",
+                        "name", "type=string",
+                        "content", "type=string,analyzer=a11,index=analyzed,store=false")
+        );
+        client.prepareIndex("test", "default", "1")
+                .setSource("{\"name\":\"phrase\",\"content\":\"The quick brown fox jumps over the lazy dog.\"}")
+                .execute().actionGet();
+
+        client().admin().indices().prepareRefresh().execute().actionGet();
+
+        SearchResponse response = client.prepareSearch("test").setQuery(new MatchQueryBuilder("content", "brown jump").type(MatchQueryBuilder.Type.BOOLEAN)).execute().actionGet();
+        assertEquals(1L, response.getHits().getTotalHits());
+        assertEquals("1", response.getHits().getHits()[0].getId());
+
+    }
 }
