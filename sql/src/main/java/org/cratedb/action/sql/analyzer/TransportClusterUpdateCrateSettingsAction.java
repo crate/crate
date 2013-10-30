@@ -30,7 +30,7 @@ import java.util.Map;
  */
 public class TransportClusterUpdateCrateSettingsAction extends TransportClusterUpdateSettingsAction {
 
-    public static final ImmutableList<String> ALLOWED_PREFIXES = ImmutableList.of(SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX);
+    public static final ImmutableList<String> ALLOWED_PREFIXES = ImmutableList.of(SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX);
 
     @Inject
     public TransportClusterUpdateCrateSettingsAction(Settings settings,
