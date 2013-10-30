@@ -2,6 +2,7 @@ package org.cratedb.action.parser.visitors;
 
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggExprFactory;
 import org.cratedb.action.parser.ColumnReferenceDescription;
@@ -15,6 +16,7 @@ import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.NotFilter;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -423,6 +425,24 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             jsonBuilder.endArray().endObject();
         } else {
             throw new SQLParseException("Invalid IN clause");
+        }
+
+        if (stmt.isInformationSchemaQuery()) {
+            BooleanQuery query = new BooleanQuery();
+            query.setMinimumNumberShouldMatch(1);
+
+            for (ValueNode valueNode : rightNodes.getNodeList()) {
+
+                query.add(
+                    new TermQuery(new Term(
+                        column.getColumnName(),
+                        BytesRefs.toBytesRef(valueFromNode(valueNode)))
+                    ),
+                    BooleanClause.Occur.SHOULD
+                );
+            }
+
+            addToLuceneQueryStack(parentNode, query);
         }
     }
 

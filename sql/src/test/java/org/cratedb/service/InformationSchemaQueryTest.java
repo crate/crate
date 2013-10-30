@@ -113,6 +113,14 @@ public class InformationSchemaQueryTest extends ElasticsearchTestCase {
     }
 
     @Test
+    public void testWhereIn() throws Exception {
+        exec("select * from information_schema.tables where table_name in ('t1', 't2') order by table_name asc");
+        assertEquals(2L, response.rowCount());
+        assertEquals("t1", response.rows()[0][0]);
+        assertEquals("t2", response.rows()[1][0]);
+    }
+
+    @Test
     public void testNotEqualsString() throws Exception {
         exec("select * from information_schema.tables where table_name != 't1'");
         assertEquals(2L, response.rowCount());
