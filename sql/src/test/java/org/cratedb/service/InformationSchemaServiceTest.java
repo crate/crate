@@ -38,15 +38,6 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
 
     private void serviceSetup() {
         node = startNode();
-        parseService = node.injector().getInstance(SQLParseService.class);
-        informationSchemaService = node.injector().getInstance(InformationSchemaService.class);
-
-        node.client().execute(SQLAction.INSTANCE,
-            new SQLRequest("create table t1 (col1 integer, col2 string) clustered into 7 shards")).actionGet();
-        node.client().execute(SQLAction.INSTANCE,
-            new SQLRequest("create table t2 (col1 integer, col2 string) clustered into 10 shards")).actionGet();
-        node.client().execute(SQLAction.INSTANCE,
-            new SQLRequest("create table t3 (col1 integer, col2 string) replicas 8")).actionGet();
     }
 
     private void emptyServiceSetup() {
@@ -107,92 +98,6 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
 
     private void execUsingClient(String statement) throws Exception {
         execUsingClient(statement, new Object[0]);
-    }
-
-    @Test
-    public void testQueryParserService() throws Exception {
-        serviceSetup();
-        exec("select * from information_schema.tables");
-        assertEquals(3L, response.rowCount());
-    }
-
-    @Test
-    public void testQueryParserServiceWithWhere() throws Exception {
-        serviceSetup();
-        exec("select table_name from information_schema.tables where table_name = 't1'");
-
-        assertEquals(1L, response.rowCount());
-        assertEquals("t1", response.rows()[0][0]);
-    }
-
-    @Test
-    public void testQueryParserServiceLimit() throws Exception {
-        serviceSetup();
-        exec("select * from information_schema.tables limit 1");
-
-        assertEquals(1L, response.rowCount());
-    }
-
-    @Test
-    public void testQueryParserServiceLimitAndOrderBy() throws Exception {
-        serviceSetup();
-        exec("select table_name, number_of_shards, number_of_replicas from information_schema.tables " +
-             " order by number_of_shards desc limit 2");
-
-        assertEquals(2L, response.rowCount());
-        assertEquals(10, response.rows()[0][1]);
-        assertEquals("t2", response.rows()[0][0]);
-        assertEquals(7, response.rows()[1][1]);
-        assertEquals("t1", response.rows()[1][0]);
-    }
-
-    @Test
-    public void testQueryParserServiceLimitAndOrderByStringColumn() throws Exception {
-        serviceSetup();
-        exec("select table_name, number_of_shards, number_of_replicas from information_schema.tables " +
-            " order by table_name desc limit 2");
-
-        assertEquals(2L, response.rowCount());
-        assertEquals("t3", response.rows()[0][0]);
-        assertEquals("t2", response.rows()[1][0]);
-    }
-
-    @Test
-    public void testQueryParserServiceWhereGt() throws Exception {
-        serviceSetup();
-        exec("select * from information_schema.tables where number_of_shards > 7");
-
-        assertEquals(1L, response.rowCount());
-        assertEquals("t2", response.rows()[0][0]);
-    }
-
-    @Test
-    public void testQueryParserServiceWhereEquals() throws Exception {
-        serviceSetup();
-        exec("select * from information_schema.tables where number_of_shards = 7");
-
-        assertEquals(1L, response.rowCount());
-        assertEquals("t1", response.rows()[0][0]);
-    }
-
-    @Test
-    public void testQueryParserServiceWhereNotEqualsNumeric() throws Exception {
-        serviceSetup();
-        exec("select * from information_schema.tables where number_of_shards != 7");
-
-        assertEquals(2L, response.rowCount());
-        assertTrue(response.rows()[0][1] != 7);
-        assertTrue(response.rows()[1][1] != 7);
-    }
-
-    @Test
-    public void testQueryParserServiceWhereNotEqualsString() throws Exception {
-        serviceSetup();
-        exec("select * from information_schema.tables where table_name != 't1'");
-
-        assertEquals(2L, response.rowCount());
-        assertTrue(!response.rows()[0][0].equals("t1"));
-        assertTrue(!response.rows()[1][0].equals("t1"));
     }
 
     @Test
