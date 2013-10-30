@@ -25,12 +25,14 @@ The information schema contains a table called `tables`.
 This table can be queried to get a list of all available tables and their
 settings like the number of shards or number of replicas::
 
-    cr> select * from information_schema.tables order by table_name asc
+    cr> select * from information_schema.tables 
+    ... where table_name not like 'my_table%' order by table_name asc
     +------------+------------------+--------------------+
     | table_name | number_of_shards | number_of_replicas |
     +------------+------------------+--------------------+
+    | documents  | 5                | 1                  |
     | locations  | 2                | 0                  |
     | myblobs    | 3                | 1                  |
     | quotes     | 5                | 1                  |
     +------------+------------------+--------------------+
-    SELECT 3 rows in set (... sec)
+    SELECT 4 rows in set (... sec)
