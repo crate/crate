@@ -22,7 +22,7 @@ import java.io.IOException;
 public class AnalyzerService {
 
     private final ClusterService clusterService;
-    private final IndicesAnalysisService analysisService;
+    private final IndicesAnalysisService indicesAnalysisService;
 
     // redefined list of extended analyzers not available outside of
     // a concrete index (see AnalyzerModule.ExtendedProcessor)
@@ -63,9 +63,9 @@ public class AnalyzerService {
     }
 
     @Inject
-    public AnalyzerService(ClusterService clusterService, IndicesAnalysisService analysisService) {
+    public AnalyzerService(ClusterService clusterService, IndicesAnalysisService indicesAnalysisService) {
         this.clusterService = clusterService;
-        this.analysisService = analysisService;
+        this.indicesAnalysisService = indicesAnalysisService;
     }
 
     public boolean hasAnalyzer(String name) {
@@ -73,11 +73,11 @@ public class AnalyzerService {
     }
 
     public boolean hasBuiltInAnalyzer(String name) {
-        return EXTENDED_BUILTIN_ANALYZERS.contains(name) || analysisService.hasAnalyzer(name);
+        return EXTENDED_BUILTIN_ANALYZERS.contains(name) || indicesAnalysisService.hasAnalyzer(name);
     }
 
     public Analyzer getBuiltInAnalyzer(String name) {
-        return analysisService.analyzer(name);
+        return indicesAnalysisService.analyzer(name);
     }
 
     public boolean hasCustomAnalyzer(String name) {
@@ -90,7 +90,7 @@ public class AnalyzerService {
     }
 
     public boolean hasBuiltInTokenizer(String name) {
-        return EXTENDED_BUILTIN_TOKENIZERS.contains(name) || analysisService.hasTokenizer(name);
+        return EXTENDED_BUILTIN_TOKENIZERS.contains(name) || indicesAnalysisService.hasTokenizer(name);
     }
 
     public boolean hasCustomTokenizer(String name) {
@@ -103,7 +103,7 @@ public class AnalyzerService {
     }
 
     public boolean hasBuiltInCharFilter(String name) {
-        return EXTENDED_BUILTIN_CHAR_FILTERS.contains(name) || analysisService.hasCharFilter(name);
+        return EXTENDED_BUILTIN_CHAR_FILTERS.contains(name) || indicesAnalysisService.hasCharFilter(name);
     }
 
     public boolean hasCustomCharFilter(String name) {
@@ -116,7 +116,7 @@ public class AnalyzerService {
     }
 
     public boolean hasBuiltInTokenFilter(String name) {
-        return EXTENDED_BUILTIN_TOKEN_FILTERS.contains(name) || analysisService.hasTokenFilter(name);
+        return EXTENDED_BUILTIN_TOKEN_FILTERS.contains(name) || indicesAnalysisService.hasTokenFilter(name);
     }
 
     public boolean hasCustomTokenFilter(String name) {
@@ -135,6 +135,13 @@ public class AnalyzerService {
 
     }
 
+    /**
+     * used to get custom analyzers, tokenizers, token-filters or char-filters with name ``name``
+     * from crate-cluster-settings
+     * @param name
+     * @param type
+     * @return a full settings instance for the thingy with given name and type or null if it does not exists
+     */
     private Settings getCustomThingy(String name, CustomType type) {
         String encodedSettings = clusterService.state().metaData().persistentSettings().get(
                 String.format("%s.%s.%s", SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX, type.getName(), name)
@@ -150,6 +157,12 @@ public class AnalyzerService {
         return decoded;
     }
 
+    /**
+     * used to check if custom analyzer, tokenizer, token-filter or char-filter with name ``name`` exists
+     * @param name
+     * @param type
+     * @return true if exists, false otherwise
+     */
     private boolean hasCustomThingy(String name, CustomType type) {
         return clusterService.state().metaData().persistentSettings().getAsMap().containsKey(
                 String.format("%s.%s.%s", SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX, type.getName(), name));
@@ -215,7 +228,7 @@ public class AnalyzerService {
     }
 
     public TokenizerFactory getBuiltinTokenizer(String name) {
-        return analysisService.tokenizerFactoryFactory(name).create(null, null); // arguments do not matter here
+        return indicesAnalysisService.tokenizerFactoryFactory(name).create(null, null); // arguments do not matter here
     }
 
     public Settings getCustomTokenizer(String name) {
