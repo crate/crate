@@ -15,6 +15,7 @@ import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
+import org.elasticsearch.common.lucene.search.NotFilter;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
@@ -336,7 +337,20 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             .field("null_value", true)
             .endObject().endObject().endObject();
 
-        // TODO: lucene query?
+        if (stmt.isInformationSchemaQuery()) {
+            addToLuceneQueryStack(
+                parentNode,
+                IsNullFilteredQuery(node.getOperand().getColumnName())
+            );
+        }
+    }
+
+    private Query IsNullFilteredQuery(String columnName) {
+        InformationSchemaColumn column =
+            ((InformationSchemaTableExecutionContext) tableContext).fieldMapper().get(columnName);
+
+        Filter isNullFilter = new NotFilter(column.rangeFilter(null, null, true, true));
+        return new FilteredQuery(new MatchAllDocsQuery(), isNullFilter);
     }
 
     @Override
@@ -377,7 +391,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     }
 
     private void addToLuceneQueryStack(ValueNode parentNode, Query query) {
-        if (parentNode == null) {
+        if (parentNode == null || rootQuery == null) {
             rootQuery = query;
             return;
         }
@@ -385,7 +399,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         BooleanQuery parentQuery = queryStack.peek();
         parentQuery.add(
             query,
-            isAndNode(parentNode) ? BooleanClause.Occur.MUST : BooleanClause.Occur.SHOULD
+            isOrNode(parentNode) ? BooleanClause.Occur.SHOULD : BooleanClause.Occur.MUST
         );
     }
 
@@ -444,15 +458,38 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     @Override
     protected void visit(ValueNode parentNode, NotNode node) throws Exception {
         jsonBuilder.startObject("bool").startObject("must_not");
-        visit(parentNode, node.getOperand());
+
+        ValueNode parent = parentNode;
+        if (stmt.isInformationSchemaQuery()) {
+            BooleanQuery query = new BooleanQuery();
+            BooleanQuery nestedQuery = new BooleanQuery();
+
+            query.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
+            query.add(nestedQuery, BooleanClause.Occur.MUST_NOT);
+
+            addToLuceneQueryStack(parentNode, query);
+            queryStack.add(nestedQuery);
+
+            // if this is beneath a AndNode or OrNode persist the correct parent
+            // but if this is the first node the rootQuery shouldn't be overwritten
+            // because the above BooleanQuery became the rootQuery.
+            if (parent == null) {
+                parent = node;
+            }
+        }
+
+        visit(parent, node.getOperand());
+
+        if (stmt.isInformationSchemaQuery()) {
+            queryStack.pop();
+        }
+
         jsonBuilder.endObject().endObject();
 
-        // TODO lucene query
     }
 
-
-    private boolean isAndNode(ValueNode node) {
-        return node.getNodeType() == NodeTypes.AND_NODE;
+    private boolean isOrNode(ValueNode node) {
+        return node.getNodeType() == NodeTypes.OR_NODE;
     }
 
     private Query queryFromBinaryRelationalOpNode(ValueNode parentNode, BinaryRelationalOperatorNode node) throws IOException {
@@ -558,15 +595,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     private BooleanQuery newBoolNode(ValueNode parentNode) {
         BooleanQuery query = new BooleanQuery();
         query.setMinimumNumberShouldMatch(1);
-
-        if (rootQuery == null) {
-            rootQuery = query;
-        } else {
-            BooleanQuery parentQuery = queryStack.peek();
-            parentQuery.add(query,
-                isAndNode(parentNode) ? BooleanClause.Occur.MUST : BooleanClause.Occur.SHOULD
-            );
-        }
+        addToLuceneQueryStack(parentNode, query);
 
         return query;
     }

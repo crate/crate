@@ -90,7 +90,6 @@ public class InformationSchemaQueryTest extends ElasticsearchTestCase {
 
     @Test
     public void testSelectStar() throws Exception {
-        // select *
         exec("select * from information_schema.tables");
         assertEquals(3L, response.rowCount());
     }
@@ -101,6 +100,17 @@ public class InformationSchemaQueryTest extends ElasticsearchTestCase {
         assertEquals(3L, response.rowCount());
     }
 
+    @Test
+    public void testIsNull() throws Exception {
+        exec("select * from information_schema.tables where table_name is null");
+        assertEquals(0L, response.rowCount());
+    }
+
+    @Test
+    public void testIsNotNull() throws Exception {
+        exec("select * from information_schema.tables where table_name is not null");
+        assertEquals(3L, response.rowCount());
+    }
 
     @Test
     public void testNotEqualsString() throws Exception {

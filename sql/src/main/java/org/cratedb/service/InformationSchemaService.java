@@ -280,7 +280,11 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
             Document doc = searcher.doc(scoreDoc.doc, fieldsToLoad);
             for (int c = 0; c < cols.length; c++) {
                 IndexableField field = doc.getField(cols[c]);
-                rows[r][c] = tablesFieldMapper.get(cols[c]).getValue(field);
+                if (field == null) {
+                    rows[r][c] = null;
+                } else {
+                    rows[r][c] = tablesFieldMapper.get(cols[c]).getValue(field);
+                }
             }
             r++;
         }
