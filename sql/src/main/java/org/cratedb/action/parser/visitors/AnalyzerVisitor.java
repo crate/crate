@@ -131,7 +131,9 @@ public class AnalyzerVisitor extends BaseVisitor {
             ImmutableSettings.Builder builder = ImmutableSettings.builder();
             for (Map.Entry<String, QueryTreeNode> prop : properties.iterator()) {
                 genericPropertyToSetting(builder,
-                        getSettingsKey("index.analysis.analyzer.%s.%s", analyzerName, prop.getKey()), prop.getValue());
+                        getSettingsKey("index.analysis.analyzer.%s.%s", analyzerName, prop.getKey()),
+                        prop.getValue()
+                );
             }
             genericAnalyzerSettings = builder.build();
         }
