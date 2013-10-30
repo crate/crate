@@ -176,6 +176,26 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
     }
 
     @Test
+    public void testQueryParserServiceWhereNotEqualsNumeric() throws Exception {
+        serviceSetup();
+        exec("select * from information_schema.tables where number_of_shards != 7");
+
+        assertEquals(2L, response.rowCount());
+        assertTrue(response.rows()[0][1] != 7);
+        assertTrue(response.rows()[1][1] != 7);
+    }
+
+    @Test
+    public void testQueryParserServiceWhereNotEqualsString() throws Exception {
+        serviceSetup();
+        exec("select * from information_schema.tables where table_name != 't1'");
+
+        assertEquals(2L, response.rowCount());
+        assertTrue(!response.rows()[0][0].equals("t1"));
+        assertTrue(!response.rows()[1][0].equals("t1"));
+    }
+
+    @Test
     public void testExecuteThreadSafety() throws Exception {
         serviceSetup();
         final ParsedStatement stmt = parseService.parse("select * from information_schema.tables");

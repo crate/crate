@@ -512,13 +512,11 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 }
             case BinaryRelationalOperatorNode.NOT_EQUALS_RELOP:
                 BooleanQuery matchAllAndNot = new BooleanQuery();
-                BooleanQuery notQuery = new BooleanQuery();
-                notQuery.add(
-                    new TermQuery(new Term(columnName, BytesRefs.toBytesRef(value))),
+                matchAllAndNot.add(
+                    buildLuceneQuery(BinaryRelationalOperatorNode.EQUALS_RELOP, columnName, value),
                     BooleanClause.Occur.MUST_NOT
                 );
                 matchAllAndNot.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
-                matchAllAndNot.add(notQuery, BooleanClause.Occur.MUST);
                 return matchAllAndNot;
             case BinaryRelationalOperatorNode.LESS_THAN_RELOP:
                 to = value;
