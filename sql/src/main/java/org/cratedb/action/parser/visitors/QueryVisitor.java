@@ -1,6 +1,5 @@
 package org.cratedb.action.parser.visitors;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.cratedb.action.groupby.aggregate.AggExpr;
@@ -16,7 +15,6 @@ import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
@@ -111,7 +109,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
     @Override
     public void visit(CursorNode node) throws Exception {
-        visit((SelectNode)node.getResultSetNode());
+        visit((SelectNode) node.getResultSetNode());
 
         if (node.getOrderByList() != null) {
             visit(node.getOrderByList());
@@ -323,15 +321,9 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
     @Override
     public void visit(ValueNode parentNode, BinaryRelationalOperatorNode node) throws IOException {
-        if (parentNode == null) {
-            rootQuery = queryFromNode(parentNode, node);
-            return;
-        }
-
-        BooleanQuery parentQuery = queryStack.peek();
-        parentQuery.add(
-            queryFromNode(parentNode, node),
-            isAndNode(parentNode) ? BooleanClause.Occur.MUST : BooleanClause.Occur.SHOULD
+        addToLuceneQueryStack(
+            parentNode,
+            queryFromBinaryRelationalOpNode(parentNode, node)
         );
     }
 
@@ -359,7 +351,11 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             right = tmp;
         }
 
+        String columnName = left.getColumnName();
         String like = valueFromNode(right).toString();
+
+        queryPlanner.checkColumn(tableContext, stmt, parentNode, null, columnName, like);
+
         // lucene uses * and ? as wildcard characters
         // but via SQL they are used as % and _
         // here they are converted back.
@@ -372,7 +368,25 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         like = like.replaceAll("\\\\_", "_");
         jsonBuilder.startObject("wildcard").field(left.getColumnName(), like).endObject();
 
-        // TODO: lucene query
+        if (stmt.isInformationSchemaQuery()) {
+            addToLuceneQueryStack(
+                parentNode,
+                new WildcardQuery(new Term(columnName, like))
+            );
+        }
+    }
+
+    private void addToLuceneQueryStack(ValueNode parentNode, Query query) {
+        if (parentNode == null) {
+            rootQuery = query;
+            return;
+        }
+
+        BooleanQuery parentQuery = queryStack.peek();
+        parentQuery.add(
+            query,
+            isAndNode(parentNode) ? BooleanClause.Occur.MUST : BooleanClause.Occur.SHOULD
+        );
     }
 
     @Override
@@ -441,7 +455,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         return node.getNodeType() == NodeTypes.AND_NODE;
     }
 
-    private Query queryFromNode(ValueNode parentNode, BinaryRelationalOperatorNode node) throws IOException {
+    private Query queryFromBinaryRelationalOpNode(ValueNode parentNode, BinaryRelationalOperatorNode node) throws IOException {
         int operator = node.getOperatorType();
         String columnName;
         Object value;

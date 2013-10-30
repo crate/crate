@@ -71,7 +71,11 @@ public class InformationSchemaQueryTest extends ElasticsearchTestCase {
     @AfterClass
     public static void tearDownClass() {
         synchronized (InformationSchemaQueryTest.class) {
+            parseService = null;
+            informationSchemaService.doClose();
+            informationSchemaService = null;
             node.close();
+            node = null;
         }
     }
 
@@ -88,6 +92,12 @@ public class InformationSchemaQueryTest extends ElasticsearchTestCase {
     public void testSelectStar() throws Exception {
         // select *
         exec("select * from information_schema.tables");
+        assertEquals(3L, response.rowCount());
+    }
+
+    @Test
+    public void testLike() throws Exception {
+        exec("select * from information_schema.tables where table_name like 't%'");
         assertEquals(3L, response.rowCount());
     }
 
