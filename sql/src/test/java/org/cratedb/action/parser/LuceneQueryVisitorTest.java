@@ -3,9 +3,11 @@ package org.cratedb.action.parser;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.cratedb.action.parser.visitors.QueryVisitor;
+import org.cratedb.action.sql.ITableExecutionContext;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
+import org.cratedb.information_schema.InformationSchemaTableExecutionContext;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.SQLParser;
 import org.cratedb.sql.parser.parser.StatementNode;
@@ -30,7 +32,7 @@ public class LuceneQueryVisitorTest {
     @Test
     public void testMatchAllQueryGeneration() throws Exception {
         ParsedStatement stmt = parse(
-            "select mycol from mytable"
+            "select table_name from mytable"
         );
 
         Query query = stmt.query;
@@ -40,43 +42,47 @@ public class LuceneQueryVisitorTest {
     @Test
     public void testSimpleTermQueryGeneration() throws Exception {
         ParsedStatement stmt = parse(
-            "select mycol from mytable where othercol = 1"
+            "select table_name from information_schema.tables where table_name = 1"
         );
 
         Query query = stmt.query;
         assertTrue(query instanceof TermQuery);
         Term term = ((TermQuery) query).getTerm();
-        assertEquals("othercol", term.field());
+        assertEquals("table_name", term.field());
         assertEquals("1", term.text());
 
     }
 
     @Test
     public void testBoolQueryGeneration() throws Exception {
+        // TODO: update this test to use different columns to test if the generated query is
+        // really correct
+
         String tree = queryTree(
-            "select c from t where x = 1 and (y = 2 or y = 3 or y = 4)"
+            "select c from information_schema.tables where table_name = 1 " +
+                " and (table_name = 2 or table_name = 3 or table_name = 4)"
         );
 
         String expected = "BooleanQuery/1:\n" +
             "  MUST\n" +
-            "  TermQuery: x:1\n" +
+            "  TermQuery: table_name:1\n" +
             "  MUST\n" +
             "  BooleanQuery/1:\n" +
             "    SHOULD\n" +
             "    BooleanQuery/1:\n" +
             "      SHOULD\n" +
-            "      TermQuery: y:2\n" +
+            "      TermQuery: table_name:2\n" +
             "      SHOULD\n" +
-            "      TermQuery: y:3\n" +
+            "      TermQuery: table_name:3\n" +
             "    SHOULD\n" +
-            "    TermQuery: y:4\n";
+            "    TermQuery: table_name:4\n";
         assertEquals(expected, tree);
     }
 
     @Test
     public void testBoolQueryGeneration2() throws Exception {
         String tree = queryTree(
-            "select c from t where x = 1 and y = 2 or y = 3 or y = 4"
+            "select c from information_schema.tables where table_name = 1 and table_name = 2 or table_name = 3 or table_name = 4"
         );
 
         String expected = "BooleanQuery/1:\n" +
@@ -85,65 +91,63 @@ public class LuceneQueryVisitorTest {
             "    SHOULD\n" +
             "    BooleanQuery/1:\n" +
             "      MUST\n" +
-            "      TermQuery: x:1\n" +
+            "      TermQuery: table_name:1\n" +
             "      MUST\n" +
-            "      TermQuery: y:2\n" +
+            "      TermQuery: table_name:2\n" +
             "    SHOULD\n" +
-            "    TermQuery: y:3\n" +
+            "    TermQuery: table_name:3\n" +
             "  SHOULD\n" +
-            "  TermQuery: y:4\n";
+            "  TermQuery: table_name:4\n";
         assertEquals(expected, tree);
     }
 
     @Test
     public void testRangeQueryGenerationLt() throws Exception {
-        // because no mapping is available a TermRangeQuery is built
-        // the numeric value inside the select is converted to a bytesref
         String tree = queryTree(
-            "select c from t where long_field < 1"
+            "select c from information_schema.tables where number_of_shards < 1"
         );
 
-        String expected = "TermRangeQuery: null to [31]\n";
+        String expected = "NumericRangeQuery: null to 1\n";
         assertEquals(expected, tree);
     }
 
     @Test
     public void testRangeQueryGenerationLte() throws Exception {
         String tree = queryTree(
-            "select c from t where long_field <= 1"
+            "select c from information_schema.tables where number_of_shards <= 1"
         );
 
-        String expected = "TermRangeQuery: null to (incl) [31]\n";
+        String expected = "NumericRangeQuery: null to (incl) 1\n";
         assertEquals(expected, tree);
     }
 
     @Test
     public void testRangeQueryGenerationGt() throws Exception {
         String tree = queryTree(
-            "select c from t where long_field > 1"
+            "select c from information_schema.tables where number_of_shards > 1"
         );
 
-        String expected = "TermRangeQuery: [31] to null\n";
+        String expected = "NumericRangeQuery: 1 to null\n";
         assertEquals(expected, tree);
     }
 
     @Test
     public void testRangeQueryGenerationGte() throws Exception {
         String tree = queryTree(
-            "select c from t where long_field >= 1"
+            "select c from information_schema.tables where number_of_shards >= 1"
         );
 
-        String expected = "TermRangeQuery: (incl) [31] to null\n";
+        String expected = "NumericRangeQuery: (incl) 1 to null\n";
         assertEquals(expected, tree);
     }
 
     @Test
     public void testRangeQueryGenerationLtYoda() throws Exception {
         String tree = queryTree(
-            "select c from t where 1 > long_field"
+            "select c from information_schema.tables where 1 > number_of_shards"
         );
 
-        String expected = "TermRangeQuery: null to [31]\n";
+        String expected = "NumericRangeQuery: null to 1\n";
         assertEquals(expected, tree);
     }
 
@@ -156,34 +160,34 @@ public class LuceneQueryVisitorTest {
             "  BooleanQuery/0:\n" +
             "    MUST_NOT\n" +
             "    TermQuery: x:1\n",
-            queryTree("select c from t where x != 1")
+            queryTree("select c from information_schema.tables where x != 1")
         );
     }
 
     @Test
     public void testRangeQueryGenerationLteYoda() throws Exception {
         String tree = queryTree(
-            "select c from t where 1 >= long_field"
+            "select c from information_schema.tables where 1 >= number_of_shards"
         );
 
-        String expected = "TermRangeQuery: null to (incl) [31]\n";
+        String expected = "NumericRangeQuery: null to (incl) 1\n";
         assertEquals(expected, tree);
     }
 
     @Test
     public void testRangeQueryGenerationGtYoda() throws Exception {
         String tree = queryTree(
-            "select c from t where 1 < long_field"
+            "select c from information_schema.tables where 1 < number_of_shards"
         );
 
-        String expected = "TermRangeQuery: [31] to null\n";
+        String expected = "NumericRangeQuery: 1 to null\n";
         assertEquals(expected, tree);
     }
 
     @Test
     public void testRangeQueryGenerationGteYoda() throws Exception {
-        String tree = queryTree("select c from t where 1 <= long_field");
-        String expected = "TermRangeQuery: (incl) [31] to null\n";
+        String tree = queryTree("select c from information_schema.tables where 1 <= number_of_shards");
+        String expected = "NumericRangeQuery: (incl) 1 to null\n";
         assertEquals(expected, tree);
     }
 
@@ -196,7 +200,7 @@ public class LuceneQueryVisitorTest {
         ParsedStatement stmt = new ParsedStatement(statement);
         QueryPlanner queryPlanner = mock(QueryPlanner.class);
         NodeExecutionContext context = mock(NodeExecutionContext.class);
-        TableExecutionContext tableContext = mock(TableExecutionContext.class);
+        ITableExecutionContext tableContext = new InformationSchemaTableExecutionContext("tables");
         when(context.queryPlanner()).thenReturn(queryPlanner);
         when(context.tableContext(anyString(), anyString())).thenReturn(tableContext);
         QueryVisitor visitor = new QueryVisitor(context, stmt, new Object[0]);
