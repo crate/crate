@@ -1,0 +1,26 @@
+
+==================
+Information Schema
+==================
+
+The Information Schema is a special schema that contains virtual tables which
+are read-only and can be queried to get information about the state of the
+cluster.
+
+Tables
+======
+
+The information schema contains a table called `tables`.
+
+This table can be queried to get a list of all available tables and their
+settings like the number of shards or number of replicas::
+
+    cr> select * from information_schema.tables order by table_name asc
+    +------------+------------------+--------------------+
+    | table_name | number_of_shards | number_of_replicas |
+    +------------+------------------+--------------------+
+    | locations  | 2                | 0                  |
+    | myblobs    | 3                | 1                  |
+    | quotes     | 5                | 1                  |
+    +------------+------------------+--------------------+
+    SELECT 3 rows in set (... sec)
