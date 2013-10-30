@@ -155,12 +155,11 @@ public class LuceneQueryVisitorTest {
     public void testNotEqual() throws Exception {
         assertEquals(
             "BooleanQuery/0:\n" +
+            "  MUST_NOT\n" +
+            "  TermQuery: table_name:1\n" +
             "  MUST\n" +
-            "  *:*  MUST\n" +
-            "  BooleanQuery/0:\n" +
-            "    MUST_NOT\n" +
-            "    TermQuery: x:1\n",
-            queryTree("select c from information_schema.tables where x != 1")
+            "  *:*",
+            queryTree("select table_name from information_schema.tables where table_name != 1")
         );
     }
 
