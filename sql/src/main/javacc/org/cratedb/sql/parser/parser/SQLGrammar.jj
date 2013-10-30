@@ -10730,7 +10730,11 @@ valueNodeListElement(ValueNodeList list) throws StandardException :
     ValueNode node = null;
 }
 {
-    node = literal()
+    (
+        node = literal()
+    |
+        node = dynamicParameterSpecification()
+    )
     {
         list.addValueNode(node);
         return;
@@ -10748,6 +10752,8 @@ genericProperty(GenericProperties genericProperties) throws StandardException :
     <EQUALS_OPERATOR>
     (
         value = literal()
+    |
+        value = dynamicParameterSpecification()
     |
         <LEFT_BRACKET>
         value = valueNodeList()

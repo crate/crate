@@ -122,8 +122,8 @@ public class AnalyzerVisitorTest {
     public void createAnalyzerWithTokenizerAndTokenFilters() throws StandardException, IOException {
         Settings settings = executeStatement("CREATE ANALYZER a2 WITH (" +
                 "  TOKENIZER tokenizer2 (" +
-                "    type='standard'," +
-                "    \"max_token_length\"=100" +
+                "    type=?," +
+                "    \"max_token_length\"=?" +
                 "  )," +
                 "  token_filters (" +
                 "    myfilter with (" +
@@ -137,7 +137,7 @@ public class AnalyzerVisitorTest {
                 "    )" +
                 "  )" +
                 ")",
-                null
+                new Object[]{"standard", 100}
         );
         Settings analyzerSettings = decodeSettings(settings.get(AnalyzerVisitor.getPrefixedSettingsKey("analyzer.a2")));
         assertThat(analyzerSettings.getAsMap(), hasEntry(AnalyzerVisitor.getSettingsKey("index.analysis.analyzer.a2.type"), "custom"));
@@ -177,15 +177,15 @@ public class AnalyzerVisitorTest {
                 "  CHAR_FILTERS WITH (" +
                 "    \"html_strip\"," +
                 "    mymapping WITH (" +
-                "      type='mapping'," +
-                "      mapping = ['ph=>f', 'qu=>q', 'foo=>bar']" +
+                "      type=?," +
+                "      mapping = [?, ?, ?]" +
                 "    )" +
                 "  )," +
                 "  TOKENIZER tok3 WITH (" +
                 "    type='nGram'," +
                 "    \"token_chars\"=['letter', 'digit']" +
                 "  )" +
-                ")", null);
+                ")", new Object[]{"mapping", "ph=>f", "qu=>q", "foo=>bar"});
         Settings analyzerSettings = decodeSettings(settings.get(AnalyzerVisitor.getPrefixedSettingsKey("analyzer.a3")));
         assertThat(
                 analyzerSettings.getAsMap(),
