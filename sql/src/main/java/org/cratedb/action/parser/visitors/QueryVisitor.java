@@ -1,5 +1,6 @@
 package org.cratedb.action.parser.visitors;
 
+import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.cratedb.action.groupby.aggregate.AggExpr;
@@ -9,6 +10,8 @@ import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.OrderByColumnIdx;
 import org.cratedb.action.sql.OrderByColumnName;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.information_schema.InformationSchemaColumn;
+import org.cratedb.information_schema.InformationSchemaTableExecutionContext;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
@@ -74,7 +77,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         stmt.query = rootQuery;
         stmt.xcontent = jsonBuilder.bytes();
 
-        if (stmt.schemaName() != null && stmt.schemaName().equalsIgnoreCase("information_schema")) {
+        if (stmt.isInformationSchemaQuery()) {
             stmt.type(ParsedStatement.ActionType.INFORMATION_SCHEMA);
         } else {
             // only non-information schema queries can be optimized
@@ -507,13 +510,14 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             .startObject(columnName).field(rangeQueryOperatorMap.get(operator), value).endObject()
             .endObject();
 
-        // TODO:
-        // FieldMappers fieldMappers = documentFieldMappers.smartName(columnName);
-        // if (fieldMappers != null) {
-        //     return fieldMappers.mapper().rangeQuery(
-        //         from, to, includeLower, includeUpper, null
-        //     );
-        // }
+
+        if (stmt.isInformationSchemaQuery()) {
+            ImmutableMap<String, InformationSchemaColumn> fieldMapper =
+                ((InformationSchemaTableExecutionContext)tableContext).fieldMapper();
+
+            return fieldMapper.get(columnName).rangeQuery(from, to, includeLower, includeUpper);
+        }
+
         return new TermRangeQuery(
             columnName, BytesRefs.toBytesRef(from), BytesRefs.toBytesRef(to),
             includeLower, includeUpper
