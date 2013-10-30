@@ -75,6 +75,15 @@ public class TableVisitorTest {
                                             .build()
                             ).toUtf8()
                     )
+                    .put(
+                            "crate.analyzer.custom.analyzer.invalid",
+                            AnalyzerService.encodeSettings(
+                                    ImmutableSettings.builder()
+                                            .put("index.analysis.analyzer.invalid.type", "custom")
+                                            .put("index.analysis.analyzer.invalid.tokenizer", "nonexistent")
+                                            .build()
+                            ).toUtf8()
+                    )
                     .build());
         } catch (IOException e) {
             throw new StandardException(e);
@@ -229,60 +238,6 @@ public class TableVisitorTest {
     }
 
     @Test
-    public void testCreateTableWithInlineDefaultIndex() throws Exception {
-        execStatement("create table phrases (phrase string index using fulltext)");
-
-        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
-            put("properties", new HashMap<String, Object>(){{
-                put("phrase", new HashMap<String, Object>(){{
-                    put("type", "string");
-                    put("index", "analyzed");
-                    put("analyzer", "standard");
-                    put("store", "false");
-                }});
-            }});
-        }};
-
-        assertEquals(expectedMapping, stmt.indexMapping);
-    }
-
-    @Test
-    public void testCreateTableWithInlineIndexOff() throws Exception {
-        execStatement("create table phrases (phrase string index off)");
-
-        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
-            put("properties", new HashMap<String, Object>(){{
-                put("phrase", new HashMap<String, Object>(){{
-                    put("type", "string");
-                    put("index", "not_analyzed");
-                    put("store", "false");
-                }});
-            }});
-        }};
-
-        assertEquals(expectedMapping, stmt.indexMapping);
-    }
-
-    @Test
-    public void testCreateTableWithInlineIndexProperties() throws Exception {
-        execStatement("create table phrases (phrase string index using fulltext " +
-                "with (analyzer='german'))");
-
-        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
-            put("properties", new HashMap<String, Object>(){{
-                put("phrase", new HashMap<String, Object>(){{
-                    put("type", "string");
-                    put("index", "analyzed");
-                    put("analyzer", "german");
-                    put("store", "false");
-                }});
-            }});
-        }};
-
-        assertEquals(expectedMapping, stmt.indexMapping);
-    }
-
-    @Test
     public void testCreateTableWithInlineIndexPropertiesWithCustomAnalyzer() throws Exception {
         execStatement("create table phrases (phrase string index using fulltext " +
                 "with (analyzer='tabletest'))");
@@ -352,36 +307,6 @@ public class TableVisitorTest {
     }
 
     @Test
-    public void testCreateTableWithIndexProperties() throws Exception {
-        execStatement("create table phrases (phrase string index off, " +
-                "index phrase_fulltext using fulltext(phrase) with(analyzer='german'))");
-
-        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
-            put("properties", new HashMap<String, Object>(){{
-                put("phrase", new HashMap<String, Object>(){{
-                    put("type", "multi_field");
-                    put("path", "just_name");
-                    put("fields", new HashMap<String, Object>(){{
-                        put("phrase", new HashMap<String, Object>(){{
-                            put("type", "string");
-                            put("index", "not_analyzed");
-                            put("store", "false");
-                        }});
-                        put("phrase_fulltext", new HashMap<String, Object>(){{
-                            put("type", "string");
-                            put("index", "analyzed");
-                            put("analyzer", "german");
-                            put("store", "false");
-                        }});
-                    }});
-                }});
-            }});
-        }};
-
-        assertEquals(expectedMapping, stmt.indexMapping);
-    }
-
-    @Test
     public void testCreateTableWithIndexPropertiesAndCustomAnalyzer() throws Exception {
         execStatement("create table phrases (phrase string index off, " +
                 "index phrase_fulltext using fulltext(phrase) with(analyzer='tabletest'))");
@@ -429,6 +354,108 @@ public class TableVisitorTest {
                 stmt.indexSettings,
                 hasEntry("index.analysis.tokenizer.mytok.max_token_length", (Object)"100")
         );
+    }
+
+    @Test
+    public void testCreateTableWithIndexAndNonExistingAnalyzer() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Analyzer does not exist");
+        execStatement("create table phrases (phrase string index off, " +
+                "index phrase_fulltext using fulltext(phrase) with (analyzer='nonexistent'))");
+    }
+
+    @Test
+    public void testCreateTableWithInvalidAnalyzer() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Invalid Analyzer: could not resolve tokenizer 'nonexistent'");
+        execStatement("create table phrases (" +
+                "  phrase string index off," +
+                "  index phrase_fulltext using fulltext(phrase) with (analyzer='invalid')" +
+                ")");
+    }
+
+    @Test
+    public void testCreateTableWithInlineDefaultIndex() throws Exception {
+        execStatement("create table phrases (phrase string index using fulltext)");
+
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("properties", new HashMap<String, Object>(){{
+                put("phrase", new HashMap<String, Object>(){{
+                    put("type", "string");
+                    put("index", "analyzed");
+                    put("analyzer", "standard");
+                    put("store", "false");
+                }});
+            }});
+        }};
+
+        assertEquals(expectedMapping, stmt.indexMapping);
+    }
+
+    @Test
+    public void testCreateTableWithInlineIndexOff() throws Exception {
+        execStatement("create table phrases (phrase string index off)");
+
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("properties", new HashMap<String, Object>(){{
+                put("phrase", new HashMap<String, Object>(){{
+                    put("type", "string");
+                    put("index", "not_analyzed");
+                    put("store", "false");
+                }});
+            }});
+        }};
+
+        assertEquals(expectedMapping, stmt.indexMapping);
+    }
+
+    @Test
+    public void testCreateTableWithInlineIndexProperties() throws Exception {
+        execStatement("create table phrases (phrase string index using fulltext " +
+                "with (analyzer='german'))");
+
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("properties", new HashMap<String, Object>(){{
+                put("phrase", new HashMap<String, Object>(){{
+                    put("type", "string");
+                    put("index", "analyzed");
+                    put("analyzer", "german");
+                    put("store", "false");
+                }});
+            }});
+        }};
+
+        assertEquals(expectedMapping, stmt.indexMapping);
+    }
+
+    @Test
+    public void testCreateTableWithIndexProperties() throws Exception {
+        execStatement("create table phrases (phrase string index off, " +
+                "index phrase_fulltext using fulltext(phrase) with(analyzer='german'))");
+
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("properties", new HashMap<String, Object>(){{
+                put("phrase", new HashMap<String, Object>(){{
+                    put("type", "multi_field");
+                    put("path", "just_name");
+                    put("fields", new HashMap<String, Object>(){{
+                        put("phrase", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "not_analyzed");
+                            put("store", "false");
+                        }});
+                        put("phrase_fulltext", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "analyzed");
+                            put("analyzer", "german");
+                            put("store", "false");
+                        }});
+                    }});
+                }});
+            }});
+        }};
+
+        assertEquals(expectedMapping, stmt.indexMapping);
     }
 
     @Test

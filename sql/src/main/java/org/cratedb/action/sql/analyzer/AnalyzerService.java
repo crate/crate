@@ -190,6 +190,8 @@ public class AnalyzerService {
                 Settings customTokenizerSettings = getCustomTokenizer(tokenizerName);
                 if (customTokenizerSettings != null) {
                     builder.put(customTokenizerSettings);
+                } else if (!hasBuiltInTokenizer(tokenizerName)) {
+                    throw new StandardException(String.format("Invalid Analyzer: could not resolve tokenizer '%s'", tokenizerName));
                 }
             }
 
@@ -198,6 +200,8 @@ public class AnalyzerService {
                 Settings customTokenFilterSettings = getCustomTokenFilter(tokenFilterNames[i]);
                 if (customTokenFilterSettings != null) {
                     builder.put(customTokenFilterSettings);
+                } else if (!hasBuiltInTokenFilter(tokenFilterNames[i])) {
+                    throw new StandardException(String.format("Invalid Analyzer: could not resolve token-filter '%s'", tokenFilterNames[i]));
                 }
             }
 
@@ -206,6 +210,8 @@ public class AnalyzerService {
                 Settings customCharFilterSettings = getCustomCharFilter(charFilterNames[i]);
                 if (customCharFilterSettings != null) {
                     builder.put(customCharFilterSettings);
+                } else if (!hasBuiltInCharFilter(charFilterNames[i])) {
+                    throw new StandardException(String.format("Invalid Analyzer: could not resolve char-filter '%s'", charFilterNames[i]));
                 }
             }
         } else {

@@ -531,6 +531,22 @@ class SQLGrammar
     }
 
     /**
+     * Determine whether the next tokens are a call to one of the
+     * functions in functionExpressionFollows().
+     */
+    private boolean functionExpressionFollows() {
+        // NOTE: If you add rule to functionExpressionFollows(), you must add the
+        // appropriate token(s) here.
+        switch (getToken(1).kind) {
+        case MATCH:
+            break;
+        default:
+            return false;
+        }
+        return (getToken(2).kind == LEFT_PAREN);
+    }
+
+    /**
      * Determine whether the next sequence of tokens can be the beginning
      * of a subquery. A subquery can begin with an arbitrary number of
      * left parentheses, followed by either SELECT or VALUES.
@@ -6770,10 +6786,54 @@ miscBuiltins() throws StandardException :
     {
         return value;
     }
-|    
+|
+    LOOKAHEAD( { functionExpressionFollows() } )
+    value = functionExpression()
+    {
+        return value;
+    }
+|
     value = routineInvocation()
     {
         return value;
+    }
+}
+
+ValueNode
+functionExpression() throws StandardException :
+{
+    ValueNode value;
+}
+{
+    value = matchFunctionExpression()
+    {
+        return value;
+    }
+
+}
+
+ValueNode
+matchFunctionExpression() throws StandardException :
+{
+    ColumnReference columnReference;
+    ValueNode queryText;
+}
+{
+    <MATCH>
+    <LEFT_PAREN>
+        columnReference = columnReference()
+        <COMMA>
+        (
+            queryText = stringLiteral()
+        |
+            queryText = dynamicParameterSpecification()
+        )
+    <RIGHT_PAREN>
+    {
+        return (ValueNode)nodeFactory.getNode(NodeTypes.MATCH_FUNCTION_NODE,
+                                              columnReference,
+                                              queryText,
+                                              parserContext);
     }
 }
 

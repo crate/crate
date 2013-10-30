@@ -199,12 +199,18 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
         jsonBuilder.startArray("sort");
         for (OrderByColumn column : node) {
-            jsonBuilder.startObject()
-                .startObject(column.getExpression().getColumnName())
-                .field("order", column.isAscending() ? "asc" : "desc")
-                .field("ignore_unmapped", true)
-                .endObject()
-                .endObject();
+            if (column.getExpression().getNodeType() == NodeTypes.MATCH_FUNCTION_NODE) {
+                jsonBuilder.startObject()
+                        .field("_score", column.isAscending() ? "asc" : "desc")
+                        .endObject();
+            } else {
+                jsonBuilder.startObject()
+                    .startObject(column.getExpression().getColumnName())
+                    .field("order", column.isAscending() ? "asc" : "desc")
+                    .field("ignore_unmapped", true)
+                    .endObject()
+                    .endObject();
+            }
         }
         jsonBuilder.endArray();
 
@@ -542,5 +548,13 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         }
     }
 
+    @Override
+    public void visit(ValueNode parentNode, MatchFunctionNode node) throws Exception {
+        ColumnReference columnReference = node.getColumnReference();
+        String query = (String)valueFromNode(node.getQueryText());
+        jsonBuilder.startObject("match")
+                .field(columnReference.getColumnName(), query)
+                .endObject();
+    }
 
 }

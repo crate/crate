@@ -26,6 +26,7 @@ public abstract class DispatchingVisitor implements Visitor {
     protected void visit(ValueNode parentNode, LikeEscapeOperatorNode node) throws Exception {}
     protected void visit(ValueNode parentNode, InListOperatorNode node) throws Exception {}
     protected void visit(ValueNode parentNode, NotNode node) throws Exception {}
+    protected void visit(ValueNode parentNode, MatchFunctionNode node) throws Exception {}
     protected void visit(CursorNode node) throws Exception {}
     protected void visit(UpdateNode node) throws Exception {}
     protected void visit(DeleteNode node) throws Exception {}
@@ -124,6 +125,9 @@ public abstract class DispatchingVisitor implements Visitor {
                 return;
             case NodeTypes.IS_NULL_NODE:
                 visit(parentNode, (IsNullNode)node);
+                return;
+            case NodeTypes.MATCH_FUNCTION_NODE:
+                visit(parentNode, (MatchFunctionNode)node);
                 return;
         }
 
