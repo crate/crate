@@ -57,7 +57,7 @@ public class TableVisitorTest {
         try {
             when(clusterMetaData.persistentSettings()).thenReturn(ImmutableSettings.builder()
                     .put(
-                            "crate.analyzer.custom.analyzer.tabletest",
+                            "crate.analysis.custom.analyzer.tabletest",
                             AnalyzerService.encodeSettings(
                                     ImmutableSettings.builder()
                                             .put("index.analysis.analyzer.tabletest.type", "custom")
@@ -67,11 +67,20 @@ public class TableVisitorTest {
                             ).toUtf8()
                     )
                     .put(
-                            "crate.analyzer.custom.tokenizer.mytok",
+                            "crate.analysis.custom.tokenizer.mytok",
                             AnalyzerService.encodeSettings(
                                     ImmutableSettings.builder()
                                             .put("index.analysis.tokenizer.mytok.type", "standard")
                                             .put("index.analysis.tokenizer.mytok.max_token_length", "100")
+                                            .build()
+                            ).toUtf8()
+                    )
+                    .put(
+                            "crate.analysis.custom.analyzer.invalid",
+                            AnalyzerService.encodeSettings(
+                                    ImmutableSettings.builder()
+                                            .put("index.analysis.analyzer.invalid.type", "custom")
+                                            .put("index.analysis.analyzer.invalid.tokenizer", "nonexistent")
                                             .build()
                             ).toUtf8()
                     )

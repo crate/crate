@@ -272,7 +272,7 @@ public class AnalyzerVisitor extends BaseVisitor {
         if (formatArgs != null) {
             suffix = String.format(suffix, formatArgs);
         }
-        return String.format("%s.%s", SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX, suffix);
+        return String.format("%s.%s", SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX, suffix);
     }
 
     /**
@@ -375,20 +375,20 @@ public class AnalyzerVisitor extends BaseVisitor {
 
         String encodedAnalyzerSettings = AnalyzerService.encodeSettings(analyzerSettings()).toUtf8();
         builder.put(
-                String.format("%s.analyzer.%s", SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX, analyzerName),
+                String.format("%s.analyzer.%s", SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX, analyzerName),
                 encodedAnalyzerSettings
         );
 
         if (tokenizerDefinition != null && !tokenizerDefinition.v2().getAsMap().isEmpty()) {
             builder.put(
-                    String.format("%s.tokenizer.%s", SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX, tokenizerDefinition.v1()),
+                    String.format("%s.tokenizer.%s", SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX, tokenizerDefinition.v1()),
                     AnalyzerService.encodeSettings(tokenizerDefinition.v2()).toUtf8()
             );
         }
         for (Map.Entry<String, Settings> tokenFilterDefinition: tokenFilters.entrySet()) {
             if (!tokenFilterDefinition.getValue().getAsMap().isEmpty()) {
                 builder.put(
-                        String.format("%s.filter.%s", SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX, tokenFilterDefinition.getKey()),
+                        String.format("%s.filter.%s", SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX, tokenFilterDefinition.getKey()),
                         AnalyzerService.encodeSettings(tokenFilterDefinition.getValue()).toUtf8()
                 );
             }
@@ -396,7 +396,7 @@ public class AnalyzerVisitor extends BaseVisitor {
         for (Map.Entry<String, Settings> charFilterDefinition : charFilters.entrySet()) {
             if (!charFilterDefinition.getValue().getAsMap().isEmpty()) {
                 builder.put(
-                        String.format("%s.char_filter.%s", SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX, charFilterDefinition.getKey()),
+                        String.format("%s.char_filter.%s", SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX, charFilterDefinition.getKey()),
                         AnalyzerService.encodeSettings(charFilterDefinition.getValue()).toUtf8()
                 );
             }

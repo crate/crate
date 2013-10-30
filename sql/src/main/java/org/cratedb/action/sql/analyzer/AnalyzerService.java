@@ -144,7 +144,7 @@ public class AnalyzerService {
      */
     private Settings getCustomThingy(String name, CustomType type) {
         String encodedSettings = clusterService.state().metaData().persistentSettings().get(
-                String.format("%s.%s.%s", SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX, type.getName(), name)
+                String.format("%s.%s.%s", SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name)
         );
         Settings decoded = null;
         if (encodedSettings != null) {
@@ -165,7 +165,7 @@ public class AnalyzerService {
      */
     private boolean hasCustomThingy(String name, CustomType type) {
         return clusterService.state().metaData().persistentSettings().getAsMap().containsKey(
-                String.format("%s.%s.%s", SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX, type.getName(), name));
+                String.format("%s.%s.%s", SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name));
     }
 
 
