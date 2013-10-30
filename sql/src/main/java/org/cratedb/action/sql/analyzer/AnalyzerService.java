@@ -3,6 +3,9 @@ package org.cratedb.action.sql.analyzer;
 import com.google.common.collect.ImmutableSet;
 import org.apache.lucene.analysis.Analyzer;
 import org.cratedb.service.SQLService;
+import org.cratedb.sql.AnalyzerInvalidException;
+import org.cratedb.sql.AnalyzerUnknownException;
+import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
@@ -21,7 +24,7 @@ import java.io.IOException;
 public class AnalyzerService {
 
     private final ClusterService clusterService;
-    private final IndicesAnalysisService analysisService;
+    private final IndicesAnalysisService indicesAnalysisService;
 
     // redefined list of extended analyzers not available outside of
     // a concrete index (see AnalyzerModule.ExtendedProcessor)
@@ -62,45 +65,64 @@ public class AnalyzerService {
     }
 
     @Inject
-    public AnalyzerService(ClusterService clusterService, IndicesAnalysisService analysisService) {
+    public AnalyzerService(ClusterService clusterService, IndicesAnalysisService indicesAnalysisService) {
         this.clusterService = clusterService;
-        this.analysisService = analysisService;
+        this.indicesAnalysisService = indicesAnalysisService;
     }
 
     public boolean hasAnalyzer(String name) {
-        return hasBuiltInAnalyzer(name) || getCustomAnalyzer(name) != null;
-    }
-
-    public boolean hasTokenizer(String name) {
-        return hasBuiltInTokenizer(name) || getCustomTokenizer(name) != null;
-    }
-
-    public boolean hasBuiltInTokenizer(String name) {
-        return EXTENDED_BUILTIN_TOKENIZERS.contains(name) || analysisService.hasTokenizer(name);
-    }
-
-    public boolean hasCharFilter(String name) {
-        return hasBuiltInCharFilter(name) || getCustomCharFilter(name) != null;
-    }
-
-    public boolean hasBuiltInCharFilter(String name) {
-        return EXTENDED_BUILTIN_CHAR_FILTERS.contains(name) || analysisService.hasCharFilter(name);
-    }
-
-    public boolean hasTokenFilter(String name) {
-        return hasBuiltInTokenFilter(name) || getCustomTokenFilter(name) != null;
-    }
-
-    public boolean hasBuiltInTokenFilter(String name) {
-        return EXTENDED_BUILTIN_TOKEN_FILTERS.contains(name) || analysisService.hasTokenFilter(name);
+        return hasBuiltInAnalyzer(name) || hasCustomAnalyzer(name);
     }
 
     public boolean hasBuiltInAnalyzer(String name) {
-        return EXTENDED_BUILTIN_ANALYZERS.contains(name) || analysisService.hasAnalyzer(name);
+        return EXTENDED_BUILTIN_ANALYZERS.contains(name) || indicesAnalysisService.hasAnalyzer(name);
     }
 
     public Analyzer getBuiltInAnalyzer(String name) {
-        return analysisService.analyzer(name);
+        return indicesAnalysisService.analyzer(name);
+    }
+
+    public boolean hasCustomAnalyzer(String name) {
+        return hasCustomThingy(name, CustomType.ANALYZER);
+    }
+
+
+    public boolean hasTokenizer(String name) {
+        return hasBuiltInTokenizer(name) || hasCustomTokenizer(name);
+    }
+
+    public boolean hasBuiltInTokenizer(String name) {
+        return EXTENDED_BUILTIN_TOKENIZERS.contains(name) || indicesAnalysisService.hasTokenizer(name);
+    }
+
+    public boolean hasCustomTokenizer(String name) {
+        return hasCustomThingy(name, CustomType.TOKENIZER);
+    }
+
+
+    public boolean hasCharFilter(String name) {
+        return hasBuiltInCharFilter(name) || hasCustomCharFilter(name);
+    }
+
+    public boolean hasBuiltInCharFilter(String name) {
+        return EXTENDED_BUILTIN_CHAR_FILTERS.contains(name) || indicesAnalysisService.hasCharFilter(name);
+    }
+
+    public boolean hasCustomCharFilter(String name) {
+        return hasCustomThingy(name, CustomType.CHAR_FILTER);
+    }
+
+
+    public boolean hasTokenFilter(String name) {
+        return hasBuiltInTokenFilter(name) || hasCustomTokenFilter(name);
+    }
+
+    public boolean hasBuiltInTokenFilter(String name) {
+        return EXTENDED_BUILTIN_TOKEN_FILTERS.contains(name) || indicesAnalysisService.hasTokenFilter(name);
+    }
+
+    public boolean hasCustomTokenFilter(String name) {
+        return hasCustomThingy(name, CustomType.TOKEN_FILTER);
     }
 
     public static BytesReference encodeSettings(Settings settings) throws IOException {
@@ -115,9 +137,16 @@ public class AnalyzerService {
 
     }
 
+    /**
+     * used to get custom analyzers, tokenizers, token-filters or char-filters with name ``name``
+     * from crate-cluster-settings
+     * @param name
+     * @param type
+     * @return a full settings instance for the thingy with given name and type or null if it does not exists
+     */
     private Settings getCustomThingy(String name, CustomType type) {
         String encodedSettings = clusterService.state().metaData().persistentSettings().get(
-                String.format("%s.%s.%s", SQLService.CUSTOM_ANALYZER_SETTINGS_PREFIX, type.getName(), name)
+                String.format("%s.%s.%s", SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name)
         );
         Settings decoded = null;
         if (encodedSettings != null) {
@@ -131,7 +160,21 @@ public class AnalyzerService {
     }
 
     /**
-     * get the custom analyzer created by the CREATE ANALYZER command
+     * used to check if custom analyzer, tokenizer, token-filter or char-filter with name ``name`` exists
+     * @param name
+     * @param type
+     * @return true if exists, false otherwise
+     */
+    private boolean hasCustomThingy(String name, CustomType type) {
+        return clusterService.state().metaData().persistentSettings().getAsMap().containsKey(
+                String.format("%s.%s.%s", SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name));
+    }
+
+
+    /**
+     * get the custom analyzer created by the CREATE ANALYZER command.
+     * This does not include definitions for custom tokenizers, token-filters or char-filters
+     *
      * @param name the name of the analyzer
      * @return Settings defining a custom Analyzer
      */
@@ -140,8 +183,60 @@ public class AnalyzerService {
         return analyzerSettings;
     }
 
+    /**
+     * resolve the full settings necessary for the custom analyzer with name ``name``
+     * to be included in index-settings to get applied on an index.
+     *
+     * Resolves all custom tokenizer, token-filter and char-filter settings and includes them
+     *
+     * @param name the name of the analyzer to resolve
+     * @return Settings ready for inclusion into a CreateIndexRequest
+     * @throws StandardException if no custom analyzer with name ``name`` could be found
+     */
+    public Settings resolveFullCustomAnalyzerSettings(String name) throws StandardException {
+        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        Settings analyzerSettings = getCustomAnalyzer(name);
+        if (analyzerSettings != null) {
+
+            builder.put(analyzerSettings);
+
+            String tokenizerName = analyzerSettings.get(String.format("index.analysis.analyzer.%s.tokenizer", name));
+            if (tokenizerName != null) {
+                Settings customTokenizerSettings = getCustomTokenizer(tokenizerName);
+                if (customTokenizerSettings != null) {
+                    builder.put(customTokenizerSettings);
+                } else if (!hasBuiltInTokenizer(tokenizerName)) {
+                    throw new AnalyzerInvalidException(String.format("Invalid Analyzer: could not resolve tokenizer '%s'", tokenizerName));
+                }
+            }
+
+            String[] tokenFilterNames = analyzerSettings.getAsArray(String.format("index.analysis.analyzer.%s.filter", name));
+            for (int i=0; i<tokenFilterNames.length; i++) {
+                Settings customTokenFilterSettings = getCustomTokenFilter(tokenFilterNames[i]);
+                if (customTokenFilterSettings != null) {
+                    builder.put(customTokenFilterSettings);
+                } else if (!hasBuiltInTokenFilter(tokenFilterNames[i])) {
+                    throw new AnalyzerInvalidException(String.format("Invalid Analyzer: could not resolve token-filter '%s'", tokenFilterNames[i]));
+                }
+            }
+
+            String[] charFilterNames = analyzerSettings.getAsArray(String.format("index.analysis.analyzer.%s.char_filter", name));
+            for (int i=0; i<charFilterNames.length; i++) {
+                Settings customCharFilterSettings = getCustomCharFilter(charFilterNames[i]);
+                if (customCharFilterSettings != null) {
+                    builder.put(customCharFilterSettings);
+                } else if (!hasBuiltInCharFilter(charFilterNames[i])) {
+                    throw new AnalyzerInvalidException(String.format("Invalid Analyzer: could not resolve char-filter '%s'", charFilterNames[i]));
+                }
+            }
+        } else {
+            throw new AnalyzerUnknownException(name);
+        }
+        return builder.build();
+    }
+
     public TokenizerFactory getBuiltinTokenizer(String name) {
-        return analysisService.tokenizerFactoryFactory(name).create(null, null); // arguments do not matter here
+        return indicesAnalysisService.tokenizerFactoryFactory(name).create(null, null); // arguments do not matter here
     }
 
     public Settings getCustomTokenizer(String name) {

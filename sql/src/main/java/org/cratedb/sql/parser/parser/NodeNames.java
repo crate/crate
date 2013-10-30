@@ -257,6 +257,8 @@ public interface NodeNames
 
     static final String LOCK_TABLE_NODE_NAME = "org.cratedb.sql.parser.parser.LockTableNode";
 
+    static final String MATCH_FUNCTION_NODE_NAME = "org.cratedb.sql.parser.parser.MatchFunctionNode";
+
     static final String MATERIALIZE_RESULT_SET_NODE_NAME = "org.cratedb.sql.parser.parser.MaterializeResultSetNode";
 
     static final String MODIFY_COLUMN_NODE_NAME = "org.cratedb.sql.parser.parser.ModifyColumnNode";

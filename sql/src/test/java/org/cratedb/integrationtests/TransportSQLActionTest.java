@@ -5,7 +5,10 @@ import com.google.common.collect.Ordering;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.sql.*;
+import org.cratedb.sql.DuplicateKeyException;
+import org.cratedb.sql.SQLParseException;
+import org.cratedb.sql.TableAlreadyExistsException;
+import org.cratedb.sql.TableUnknownException;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -1647,7 +1650,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("SELECT some_id as id, foo from test where some_id IN (?,?)", new Object[]{'1', '2'});
         assertThat(response.rowCount(), is(2L));
         assertThat(response.cols(), arrayContainingInAnyOrder("id", "foo"));
-        assertThat(new String[]{(String)response.rows()[0][0], (String)response.rows()[1][0]}, arrayContainingInAnyOrder("1", "2"));
+        assertThat(new String[]{(String) response.rows()[0][0], (String) response.rows()[1][0]}, arrayContainingInAnyOrder("1", "2"));
     }
 
     @Test (expected = TableUnknownException.class)
@@ -1777,4 +1780,201 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1L, response.rowCount());
         assertEquals("ok now panic", response.rows()[0][0]);
     }
+
+    @Test
+    public void testSelectMatch() throws Exception {
+        execute("create table quotes (quote string)");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
+                .actionGet().isExists());
+
+        execute("insert into quotes values (?)", new Object[]{"don't panic"});
+        refresh();
+
+        execute("select quote from quotes where match(quote, ?)", new Object[]{"don't panic"});
+        assertEquals(1L, response.rowCount());
+        assertEquals("don't panic", response.rows()[0][0]);
+    }
+
+    @Test
+    public void testSelectNotMatch() throws Exception {
+        execute("create table quotes (quote string)");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
+                .actionGet().isExists());
+
+        execute("insert into quotes values (?), (?)", new Object[]{"don't panic", "hello"});
+        refresh();
+
+        execute("select quote from quotes where not match(quote, ?)",
+                new Object[]{"don't panic"});
+        assertEquals(1L, response.rowCount());
+        assertEquals("hello", response.rows()[0][0]);
+    }
+
+    @Test
+    public void testSelectOrderByScore() throws Exception {
+        execute("create table quotes (quote string index off," +
+                "index quote_ft using fulltext(quote))");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
+                .actionGet().isExists());
+
+        execute("insert into quotes values (?), (?)",
+                new Object[]{"Would it save you a lot of time if I just gave up and went mad now?",
+                        "Time is an illusion. Lunchtime doubly so"}
+        );
+        refresh();
+
+        execute("select quote, \"_score\" from quotes where match(quote_ft, ?) " +
+                "order by \"_score\" desc",
+                new Object[]{"time", "time"});
+        assertEquals(2L, response.rowCount());
+        assertEquals("Time is an illusion. Lunchtime doubly so", response.rows()[0][0]);
+    }
+
+    @Test
+    public void testCreateTableWithInlineIndex() throws Exception {
+        execute("create table quotes (quote string index using fulltext)");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
+                .actionGet().isExists());
+
+        String quote = "Would it save you a lot of time if I just gave up and went mad now?";
+        execute("insert into quotes values (?)", new Object[]{quote});
+        refresh();
+
+        execute("select quote from quotes where match(quote, 'time')");
+        assertEquals(1L, response.rowCount());
+        assertEquals(quote, response.rows()[0][0]);
+
+        // filtering on the actual value does not work anymore because its now indexed using the
+        // standard analyzer
+        execute("select quote from quotes where quote = ?", new Object[]{quote});
+        assertEquals(0, response.rowCount());
+    }
+
+    @Test
+    public void testCreateTableWithIndexOff() throws Exception {
+        execute("create table quotes (id int, quote string index off)");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
+                .actionGet().isExists());
+
+        String quote = "Would it save you a lot of time if I just gave up and went mad now?";
+        execute("insert into quotes (id, quote) values (?, ?)", new Object[]{1, quote});
+        refresh();
+
+        execute("select quote from quotes where quote = ?", new Object[]{quote});
+        assertEquals(0, response.rowCount());
+
+        execute("select quote from quotes where id = 1");
+        assertEquals(1L, response.rowCount());
+        assertEquals(quote, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testCreateTableWithIndex() throws Exception {
+        execute("create table quotes (quote string, " +
+                "index quote_fulltext using fulltext(quote) with (analyzer='english'))");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
+                .actionGet().isExists());
+
+        String quote = "Would it save you a lot of time if I just gave up and went mad now?";
+        execute("insert into quotes values (?)", new Object[]{quote});
+        refresh();
+
+        execute("select quote from quotes where match(quote_fulltext, 'time')");
+        assertEquals(1L, response.rowCount());
+        assertEquals(quote, response.rows()[0][0]);
+
+        // filtering on the actual value does still work
+        execute("select quote from quotes where quote = ?", new Object[]{quote});
+        assertEquals(1L, response.rowCount());
+    }
+
+    @Test
+    public void testCreateTableWithCompositeIndex() throws Exception {
+        execute("create table novels (title string, description string, " +
+                "index title_desc_fulltext using fulltext(title, description) " +
+                "with(analyzer='english'))");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("novels"))
+                .actionGet().isExists());
+
+        String title = "So Long, and Thanks for All the Fish";
+        String description = "Many were increasingly of the opinion that they'd all made a big " +
+                "mistake in coming down from the trees in the first place. And some said that " +
+                "even the trees had been a bad move, and that no one should ever have left " +
+                "the oceans.";
+        execute("insert into novels (title, description) values(?, ?)",
+                new Object[]{title, description});
+        refresh();
+
+        // match token existing at field `title`
+        execute("select title, description from novels where match(title_desc_fulltext, 'fish')");
+        assertEquals(1L, response.rowCount());
+        assertEquals(title, response.rows()[0][0]);
+        assertEquals(description, response.rows()[0][1]);
+
+        // match token existing at field `description`
+        execute("select title, description from novels where match(title_desc_fulltext, 'oceans')");
+        assertEquals(1L, response.rowCount());
+        assertEquals(title, response.rows()[0][0]);
+        assertEquals(description, response.rows()[0][1]);
+
+        // filtering on the actual values does still work
+        execute("select title from novels where title = ?", new Object[]{title});
+        assertEquals(1L, response.rowCount());
+    }
+
+    @Test
+    public void testSelectScoreMatchAll() throws Exception {
+        execute("create table quotes (quote string)");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
+                .actionGet().isExists());
+
+        execute("insert into quotes values (?), (?)",
+                new Object[]{"Would it save you a lot of time if I just gave up and went mad now?",
+                        "Time is an illusion. Lunchtime doubly so"}
+        );
+        refresh();
+
+        execute("select quote, \"_score\" from quotes");
+        assertEquals(2L, response.rowCount());
+        assertEquals(1.0f, response.rows()[0][1]);
+        assertEquals(1.0f, response.rows()[1][1]);
+    }
+
+    @Test
+    public void testSelectWhereScore() throws Exception {
+        execute("create table quotes (quote string, " +
+                "index quote_ft using fulltext(quote))");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
+                .actionGet().isExists());
+
+        execute("insert into quotes values (?), (?)",
+                new Object[]{"Would it save you a lot of time if I just gave up and went mad now?",
+                        "Time is an illusion. Lunchtime doubly so"}
+        );
+        refresh();
+
+        execute("select quote, \"_score\" from quotes where match(quote_ft, 'time') " +
+                "and \"_score\" > 0.98");
+        assertEquals(1L, response.rowCount());
+        assertEquals(1, ((Float)response.rows()[0][1]).compareTo(0.98f));
+    }
+
+    @Test
+    public void testSelectMatchAnd() throws Exception {
+        execute("create table quotes (id int, quote string, " +
+                "index quote_fulltext using fulltext(quote) with (analyzer='english'))");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
+                .actionGet().isExists());
+
+        execute("insert into quotes (id, quote) values (?, ?), (?, ?)",
+                new Object[]{
+                        1, "Would it save you a lot of time if I just gave up and went mad now?",
+                        2, "Time is an illusion. Lunchtime doubly so"}
+        );
+        refresh();
+
+        execute("select quote from quotes where match(quote_fulltext, 'time') and id = 1");
+        assertEquals(1L, response.rowCount());
+    }
+
 }

@@ -2,7 +2,6 @@ package org.cratedb.action.parser.visitors;
 
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
-import org.apache.lucene.util.BytesRef;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggExprFactory;
 import org.cratedb.action.parser.ColumnReferenceDescription;
@@ -22,6 +21,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.*;
 
 
@@ -153,6 +153,9 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             jsonBuilder.startObject("query");
             whereClause(node.getWhereClause());
             jsonBuilder.endObject();
+            if (stmt.scoreMinimum != null) {
+                jsonBuilder.field("min_score", stmt.scoreMinimum);
+            }
         }
 
         // only include the version if it was explicitly selected.
@@ -256,8 +259,10 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 } else {
                     raiseUnsupportedSelectFromConstantNode(column);
                 }
-            } else if (columnName.equals("_version")) {
-                stmt.versionSysColumnSelected = true;
+            } else if (column.getExpression().getNodeType() == NodeTypes.SYSTEM_COLUMN_REFERENCE) {
+                if (columnName.equalsIgnoreCase("_version")) {
+                    stmt.versionSysColumnSelected = true;
+                }
             } else if (column.getExpression().getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE) {
                 NestedColumnReference nestedColumnReference =
                     (NestedColumnReference) column.getExpression();
@@ -541,6 +546,17 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             return null;
         }
 
+        if (columnName.equalsIgnoreCase("_score")) {
+            if (operator != BinaryRelationalOperatorNode.GREATER_THAN_RELOP
+                    && operator != BinaryRelationalOperatorNode.GREATER_EQUALS_RELOP) {
+                throw new SQLParseException("Filtering by _score can only be done using a " +
+                        "greater-than or greater-equals operator");
+            }
+            stmt.scoreMinimum = (BigDecimal)value;
+            jsonBuilder.field("match_all", new HashMap<>());
+            return null;
+        }
+
         switch (operator) {
             case BinaryRelationalOperatorNode.EQUALS_RELOP:
                 jsonBuilder.startObject("term").field(columnName, value).endObject();
@@ -635,5 +651,13 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         }
     }
 
+    @Override
+    public void visit(ValueNode parentNode, MatchFunctionNode node) throws Exception {
+        ColumnReference columnReference = node.getColumnReference();
+        String query = (String)valueFromNode(node.getQueryText());
+        jsonBuilder.startObject("match")
+                .field(columnReference.getColumnName(), query)
+                .endObject();
+    }
 
 }

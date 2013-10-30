@@ -679,6 +679,10 @@ public final class NodeFactoryImpl extends NodeFactory
             return NodeNames.CHAR_FILTER_LIST_NAME;
         case NodeTypes.NAMED_NODE_WITH_OPTIONAL_PROPERTIES:
             return NodeNames.NAMED_NODE_WITH_OPTIONAL_PROPERTIES_NAME;
+
+        case NodeTypes.MATCH_FUNCTION_NODE:
+            return NodeNames.MATCH_FUNCTION_NODE_NAME;
+
         default:
             throw new StandardException("Not implemented");
         }
