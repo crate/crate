@@ -6,7 +6,6 @@ import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.*;
-import org.cratedb.sql.parser.StandardException;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -36,7 +35,6 @@ import static org.hamcrest.Matchers.*;
 public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     private SQLResponse response;
-    private SQLRequest request;
 
     @Override
     protected int numberOfNodes() {
@@ -44,12 +42,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     private void execute(String stmt, Object[] args) {
-        request = new SQLRequest(stmt, args);
         response = client().execute(SQLAction.INSTANCE, new SQLRequest(stmt, args)).actionGet();
     }
 
     private void execute(String stmt) {
-        request = new SQLRequest(stmt);
         response = client().execute(SQLAction.INSTANCE, new SQLRequest(stmt)).actionGet();
     }
 
@@ -1494,106 +1490,8 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1L, response.rows()[0][0]);
     }
 
-    @Test
-    public void testSelectFromInformationSchemaTable() throws Exception {
-        execute("select TABLE_NAME from INFORMATION_SCHEMA.Tables");
-        assertEquals(0L, response.rowCount());
 
-        execute("create table test (col1 integer primary key, col2 string)");
-        Thread.sleep(800);
 
-        execute("select table_name, number_of_shards, number_of_replicas from INFORMATION_SCHEMA.Tables");
-        assertEquals(1L, response.rowCount());
-        assertEquals("test", response.rows()[0][0]);
-        assertEquals(5, response.rows()[0][1]);
-        assertEquals(1, response.rows()[0][2]);
-    }
-
-    @Test
-    public void testSelectStarFromInformationSchemaTable() throws Exception {
-        execute("select * from INFORMATION_SCHEMA.Tables");
-        assertEquals(0L, response.rowCount());
-        execute("create table test (col1 integer primary key, col2 string)");
-
-        execute("select * from INFORMATION_SCHEMA.Tables");
-        assertEquals(1L, response.rowCount());
-        assertEquals("test", response.rows()[0][0]);
-        assertEquals(5, response.rows()[0][1]);
-        assertEquals(1, response.rows()[0][2]);
-    }
-
-    @Test
-    public void testSelectStarFromInformationSchemaTableWithOrderBy() throws Exception {
-        execute("create table test (col1 integer primary key, col2 string)");
-        execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
-        refresh();
-
-        execute("select * from INFORMATION_SCHEMA.Tables order by table_name asc");
-        assertEquals(2L, response.rowCount());
-        assertEquals("foo", response.rows()[0][0]);
-        assertEquals(3, response.rows()[0][1]);
-        assertEquals(1, response.rows()[0][2]);
-
-        assertEquals("test", response.rows()[1][0]);
-        assertEquals(5, response.rows()[1][1]);
-        assertEquals(1, response.rows()[1][2]);
-    }
-
-    @Test
-    public void testSelectStarFromInformationSchemaTableWithOrderByAndLimit() throws Exception {
-        execute("create table test (col1 integer primary key, col2 string)");
-        execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
-        refresh();
-
-        execute("select * from INFORMATION_SCHEMA.Tables order by table_name asc limit 1");
-        assertEquals(1L, response.rowCount());
-        assertEquals("foo", response.rows()[0][0]);
-        assertEquals(3, response.rows()[0][1]);
-        assertEquals(1, response.rows()[0][2]);
-    }
-
-    @Test
-    public void testUpdateInformationSchema() throws Exception {
-        expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage(
-            "INFORMATION_SCHEMA tables are virtual and read-only. Only SELECT statements are supported");
-        execute("update INFORMATION_SCHEMA.Tables set table_name = 'x'");
-    }
-
-    @Test
-    public void testDeleteInformationSchema() throws Exception {
-        expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage(
-            "INFORMATION_SCHEMA tables are virtual and read-only. Only SELECT statements are supported");
-        execute("delete from INFORMATION_SCHEMA.Tables");
-    }
-
-    @Test
-    public void testSelectStarFromInformationSchemaTableWithOrderByTwoColumnsAndLimit() throws Exception {
-        execute("create table test (col1 integer primary key, col2 string) clustered into 1 shards");
-        execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
-        execute("create table bar (col1 integer primary key, col2 string) clustered into 3 shards");
-
-        execute("select table_name, number_of_shards from INFORMATION_SCHEMA.Tables order by number_of_shards desc, table_name asc limit 2");
-        assertEquals(2L, response.rowCount());
-
-        assertEquals("bar", response.rows()[0][0]);
-        assertEquals(3, response.rows()[0][1]);
-        assertEquals("foo", response.rows()[1][0]);
-        assertEquals(3, response.rows()[1][1]);
-    }
-
-    @Test
-    public void testSelectStarFromInformationSchemaTableWithOrderByAndLimitOffset() throws Exception {
-        execute("create table test (col1 integer primary key, col2 string)");
-        execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
-
-        execute("select * from INFORMATION_SCHEMA.Tables order by table_name asc limit 1 offset 1");
-        assertEquals(1L, response.rowCount());
-        assertEquals("test", response.rows()[0][0]);
-        assertEquals(5, response.rows()[0][1]);
-        assertEquals(1, response.rows()[0][2]);
-    }
 
     private String getIndexMapping(String index) throws IOException {
         ClusterStateRequest request = Requests.clusterStateRequest()

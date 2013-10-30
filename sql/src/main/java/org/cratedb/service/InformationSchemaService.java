@@ -2,6 +2,8 @@ package org.cratedb.service;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Files;
+import org.apache.lucene.codecs.Codec;
+import org.apache.lucene.codecs.lucene42.Lucene42Codec;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -74,6 +76,7 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
         this.clusterService = clusterService;
         this.searcherFactory = new SearcherFactory();
         this.indexWriterConfig = new IndexWriterConfig(Version.LUCENE_44, null);
+        this.indexWriterConfig.setCodec(new Lucene42Codec());
         this.dirty = false;
         this.tablesFieldMapper = new TablesTable().fieldMapper();
     }
@@ -125,13 +128,8 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
             @Override
             public void clusterChanged(ClusterChangedEvent event) {
                 if (event.metaDataChanged()) {
-                    try {
-                        indexMetaData(event.state().metaData().getIndices());
-                        synchronized (readLock) {
-                            dirty = true;
-                        }
-                    } catch (IOException e) {
-                        logger.error("Couldn't update information schema index", e);
+                    synchronized (readLock) {
+                        dirty = true;
                     }
                 }
             }
@@ -198,6 +196,7 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
             if (indexSearcher == null) {
                 initSearcher();
             } else if (dirty) {
+                indexMetaData(clusterService.state().getMetaData().indices());
                 // re-open the indexSearcher to get new results
                 newIndexSearcher = tablesSearcherManager.acquire();
                 dirty = false;
@@ -250,9 +249,7 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
     }
 
     private Sort getSort(ParsedStatement stmt) {
-        SortField[] sortFields;
-        Sort sort;
-        sortFields = new SortField[stmt.orderByColumns.size()];
+        SortField[] sortFields = new SortField[stmt.orderByColumns.size()];
 
         for (int i = 0; i < stmt.orderByColumns.size(); i++) {
             OrderByColumnName column = stmt.orderByColumns.get(i);
@@ -261,8 +258,7 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
                 column.name, tablesFieldMapper.get(column.name).type, reverse);
         }
 
-        sort = new Sort(sortFields);
-        return sort;
+        return new Sort(sortFields);
     }
 
     private SQLResponse docsToSQLResponse(IndexSearcher searcher, ParsedStatement stmt,
