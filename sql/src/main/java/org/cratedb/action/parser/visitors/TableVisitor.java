@@ -6,6 +6,7 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.Arrays;
 import java.util.List;
@@ -28,10 +29,6 @@ public class TableVisitor extends BaseVisitor {
                         ParsedStatement stmt,
                         Object[] args) throws StandardException {
         super(nodeExecutionContext, stmt, args);
-    }
-
-    public TableVisitor(ParsedStatement stmt) {
-        super(null, stmt, new Object[0]);
     }
 
     @Override
@@ -90,6 +87,8 @@ public class TableVisitor extends BaseVisitor {
         if (!allowedColumnTypeList.contains(columnType)) {
             throw new SQLParseException("Unsupported type");
         }
+        // map timestamp to date
+        columnType = columnType.equals("timestamp") ? "date" : columnType;
 
         // support index definition before column definition
         if (columnDefinition.containsKey("fields")) {
@@ -136,7 +135,10 @@ public class TableVisitor extends BaseVisitor {
     @Override
     public void visit(IndexConstraintDefinitionNode node) throws StandardException {
         String indexName = node.getIndexName();
-        if (node.getIndexColumnList() != null) {
+        if (node.isIndexOff()) {
+            Map<String, Object> columnDefinition = safeColumnDefinition(indexName);
+            columnDefinition.put("index", "no");
+        } else if (node.getIndexColumnList() != null) {
             for (IndexColumn indexColumn : node.getIndexColumnList()) {
                 String columnName = indexColumn.getColumnName();
                 Map<String, Object> columnDefinition = safeColumnDefinition(columnName);
@@ -150,24 +152,29 @@ public class TableVisitor extends BaseVisitor {
                     indexColumnDefinition.put("store", "false");
                 }
 
-                switch (node.getIndexMethod()) {
-                    case "fulltext":
-                        indexColumnDefinition.put("index", "analyzed");
-                        GenericProperties indexProperties = node.getIndexProperties();
-                        if (indexProperties != null && indexProperties.get("analyzer") != null) {
-                            QueryTreeNode analyzer = indexProperties.get("analyzer");
-                            if (!(analyzer instanceof ValueNode)) {
-                                throw new SQLParseException("'analyzer' property invalid");
-                            }
-                            indexColumnDefinition.put("analyzer",
-                                    (String)valueFromNode((ValueNode)analyzer));
-                        } else {
-                            indexColumnDefinition.put("analyzer", "standard");
+                if (node.getIndexMethod().equalsIgnoreCase("fulltext")) {
+                    indexColumnDefinition.put("index", "analyzed");
+                    GenericProperties indexProperties = node.getIndexProperties();
+                    if (indexProperties != null && indexProperties.get("analyzer") != null) {
+                        QueryTreeNode analyzer = indexProperties.get("analyzer");
+                        if (!(analyzer instanceof ValueNode)) {
+                            throw new SQLParseException("'analyzer' property invalid");
                         }
-                        break;
-                    default:
-                        throw new SQLParseException("Unsupported index method '" +
-                                node.getIndexMethod() + "'");
+                        // resolve custom analyzer and put into settings
+                        String analyzerName = (String)valueFromNode((ValueNode)analyzer);
+                        if (context.analyzerService().hasCustomAnalyzer(analyzerName)) {
+                            Settings customAnalyzerSettings = context.analyzerService().resolveFullCustomAnalyzerSettings(analyzerName);
+                            indexSettings.putAll(customAnalyzerSettings.getAsMap());
+                        } else if (!context.analyzerService().hasBuiltInAnalyzer(analyzerName)) {
+                            throw new SQLParseException("Analyzer does not exist");
+                        }
+                        indexColumnDefinition.put("analyzer", analyzerName);
+                    } else {
+                        indexColumnDefinition.put("analyzer", "standard");
+                    }
+                } else {
+                    throw new SQLParseException("Unsupported index method '" +
+                            node.getIndexMethod() + "'");
                 }
 
                 if (!indexName.equals(columnName)) {
@@ -185,7 +192,7 @@ public class TableVisitor extends BaseVisitor {
                     columnDefinition.putAll(indexColumnDefinition);
                 }
             }
-        } else if (!node.isIndexOff()) {
+        } else {
             throw new SQLParseException("Unsupported index constraint");
         }
     }

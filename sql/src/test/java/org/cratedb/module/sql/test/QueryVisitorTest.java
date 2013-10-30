@@ -878,14 +878,65 @@ public class QueryVisitorTest {
     }
 
     @Test
-    public void testSelectWithWhereMatchOrderBy() throws Exception {
+    public void testSelectWithOrderByScore() throws Exception {
         execStatement("select kind from locations where match(kind, ?) " +
-                "order by match(kind, ?) desc",
+                "order by \"_score\" desc",
                 new Object[]{"Star", "Star"});
         assertEquals(
-                "{\"fields\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"sort\":[{\"_score\":\"desc\"}],\"size\":1000}",
+                "{\"fields\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"sort\":[{\"_score\":{\"order\":\"desc\",\"ignore_unmapped\":true}}],\"size\":1000}",
                 getSource()
         );
     }
 
+    @Test
+    public void testSelectSysColumnScore() throws Exception {
+        execStatement("select kind, \"_score\" from locations where match(kind, ?) " +
+                "order by \"_score\" desc",
+                new Object[]{"Star", "Star"});
+        assertEquals(
+                "{\"fields\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"sort\":[{\"_score\":{\"order\":\"desc\",\"ignore_unmapped\":true}}],\"size\":1000}",
+                getSource()
+        );
+    }
+
+    @Test
+    public void testWhereClauseWithScore() throws Exception {
+        execStatement("select kind, \"_score\" from locations where match(kind, ?) " +
+                "and \"_score\" > 0.05",
+                new Object[]{"Star", "Star"});
+        assertEquals(
+                "{\"fields\":[\"kind\"],\"query\":{\"bool\":{\"minimum_should_match\":1,\"must\":[{\"match\":{\"kind\":\"Star\"}},{\"match_all\":{}}]}},\"min_score\":0.05,\"size\":1000}",
+                getSource()
+        );
+    }
+
+    @Test
+    public void testWhereClauseWithScoreInvalidEqualsOperator() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Filtering by _score can only be done using a " +
+                "greater-than or greater-equals operator");
+        execStatement("select kind, \"_score\" from locations where match(kind, ?) " +
+                "and \"_score\" = 0.05",
+                new Object[]{"Star", "Star"});
+    }
+
+    @Test
+    public void testWhereClauseWithScoreInvalidLessOperator() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Filtering by _score can only be done using a " +
+                "greater-than or greater-equals operator");
+        execStatement("select kind, \"_score\" from locations where match(kind, ?) " +
+                "and \"_score\" < 0.05",
+                new Object[]{"Star", "Star"});
+    }
+
+    @Test
+    public void testWhereClauseWithScoreInvalidLessEqualsOperator() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Filtering by _score can only be done using a " +
+                "greater-than or greater-equals operator");
+        execStatement("select kind, \"_score\" from locations where match(kind, ?) " +
+                "and \"_score\" <= 0.05",
+                new Object[]{"Star", "Star"});
+    }
 }

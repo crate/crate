@@ -8,6 +8,7 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.service.SQLParseService;
+import org.cratedb.sql.AnalyzerInvalidException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.cluster.ClusterService;
@@ -115,7 +116,8 @@ public class TableVisitorTest {
 
     @Test
     public void testCreateTable() throws Exception {
-        execStatement("create table phrases (pk_col int primary key, phrase string)");
+        execStatement("create table phrases (pk_col int primary key, phrase string, " +
+                "timestamp timestamp)");
 
         // default values
         Map<String, Object> expectedSettings = new HashMap<String, Object>(){{
@@ -134,6 +136,11 @@ public class TableVisitorTest {
                 }});
                 put("phrase", new HashMap<String, Object>(){{
                     put("type", "string");
+                    put("index", "not_analyzed");
+                    put("store", "false");
+                }});
+                put("timestamp", new HashMap<String, Object>(){{
+                    put("type", "date");
                     put("index", "not_analyzed");
                     put("store", "false");
                 }});
@@ -256,14 +263,14 @@ public class TableVisitorTest {
     }
 
     @Test
-    public void testCreateTableWithInlineIndexOff() throws Exception {
+    public void testCreateTableWithIndexOff() throws Exception {
         execStatement("create table phrases (phrase string index off)");
 
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
             put("properties", new HashMap<String, Object>(){{
                 put("phrase", new HashMap<String, Object>(){{
                     put("type", "string");
-                    put("index", "not_analyzed");
+                    put("index", "no");
                     put("store", "false");
                 }});
             }});
@@ -326,13 +333,32 @@ public class TableVisitorTest {
         );
         assertThat(
                 stmt.indexSettings,
-                hasEntry("index.analysis.tokenizer.mytok.max_token_length", (Object)"100")
+                hasEntry("index.analysis.tokenizer.mytok.max_token_length", (Object) "100")
         );
     }
 
     @Test
+    public void testCreateTableWithIndexAndNonExistingAnalyzer() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Analyzer does not exist");
+        execStatement("create table phrases (phrase string, " +
+                "index phrase_fulltext using fulltext(phrase) with (analyzer='nonexistent'))");
+    }
+
+    @Test
+    public void testCreateTableWithInvalidAnalyzer() throws Exception {
+        expectedException.expect(AnalyzerInvalidException.class);
+        expectedException.expectMessage("Invalid Analyzer: could not resolve tokenizer 'nonexistent'");
+        execStatement("create table phrases (" +
+                " phrase string," +
+                " index phrase_fulltext using fulltext(phrase) with (analyzer='invalid')" +
+                ")");
+    }
+
+
+    @Test
     public void testCreateTableWithDefaultIndex() throws Exception {
-        execStatement("create table phrases (phrase string index off, " +
+        execStatement("create table phrases (phrase string, " +
                 "index phrase_fulltext using fulltext(phrase))");
 
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
@@ -362,7 +388,7 @@ public class TableVisitorTest {
 
     @Test
     public void testCreateTableWithIndexProperties() throws Exception {
-        execStatement("create table phrases (phrase string index off, " +
+        execStatement("create table phrases (phrase string, " +
                 "index phrase_fulltext using fulltext(phrase) with(analyzer='german'))");
 
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
@@ -392,7 +418,7 @@ public class TableVisitorTest {
 
     @Test
     public void testCreateTableWithIndexPropertiesAndCustomAnalyzer() throws Exception {
-        execStatement("create table phrases (phrase string index off, " +
+        execStatement("create table phrases (phrase string, " +
                 "index phrase_fulltext using fulltext(phrase) with(analyzer='tabletest'))");
 
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
@@ -436,7 +462,7 @@ public class TableVisitorTest {
         );
         assertThat(
                 stmt.indexSettings,
-                hasEntry("index.analysis.tokenizer.mytok.max_token_length", (Object)"100")
+                hasEntry("index.analysis.tokenizer.mytok.max_token_length", (Object) "100")
         );
     }
 
@@ -444,7 +470,7 @@ public class TableVisitorTest {
     public void testCreateTableWithIndexPropertiesReverse() throws Exception {
         execStatement("create table phrases (" +
                 "index phrase_fulltext using fulltext(phrase) with(analyzer='german')," +
-                "phrase string index off)");
+                "phrase string)");
 
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
             put("properties", new HashMap<String, Object>(){{
@@ -473,8 +499,7 @@ public class TableVisitorTest {
 
     @Test
     public void testCreateTableWithCompositeIndex() throws Exception {
-        execStatement("create table chapters (title string index off, " +
-                "description string index off, " +
+        execStatement("create table chapters (title string, description string, " +
                 "index title_desc_fulltext using fulltext(title, description) " +
                 "with(analyzer='german'))");
 

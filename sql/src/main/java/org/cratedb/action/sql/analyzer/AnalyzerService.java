@@ -3,6 +3,8 @@ package org.cratedb.action.sql.analyzer;
 import com.google.common.collect.ImmutableSet;
 import org.apache.lucene.analysis.Analyzer;
 import org.cratedb.service.SQLService;
+import org.cratedb.sql.AnalyzerInvalidException;
+import org.cratedb.sql.AnalyzerUnknownException;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -203,6 +205,8 @@ public class AnalyzerService {
                 Settings customTokenizerSettings = getCustomTokenizer(tokenizerName);
                 if (customTokenizerSettings != null) {
                     builder.put(customTokenizerSettings);
+                } else if (!hasBuiltInTokenizer(tokenizerName)) {
+                    throw new AnalyzerInvalidException(String.format("Invalid Analyzer: could not resolve tokenizer '%s'", tokenizerName));
                 }
             }
 
@@ -211,6 +215,8 @@ public class AnalyzerService {
                 Settings customTokenFilterSettings = getCustomTokenFilter(tokenFilterNames[i]);
                 if (customTokenFilterSettings != null) {
                     builder.put(customTokenFilterSettings);
+                } else if (!hasBuiltInTokenFilter(tokenFilterNames[i])) {
+                    throw new AnalyzerInvalidException(String.format("Invalid Analyzer: could not resolve token-filter '%s'", tokenFilterNames[i]));
                 }
             }
 
@@ -219,10 +225,12 @@ public class AnalyzerService {
                 Settings customCharFilterSettings = getCustomCharFilter(charFilterNames[i]);
                 if (customCharFilterSettings != null) {
                     builder.put(customCharFilterSettings);
+                } else if (!hasBuiltInCharFilter(charFilterNames[i])) {
+                    throw new AnalyzerInvalidException(String.format("Invalid Analyzer: could not resolve char-filter '%s'", charFilterNames[i]));
                 }
             }
         } else {
-            throw new StandardException(String.format("No custom analyzer with name '%s'", name));
+            throw new AnalyzerUnknownException(name);
         }
         return builder.build();
     }

@@ -109,7 +109,7 @@ keyword
 
 ``type=keyword``
 
-Creates one single token from the field-contents. This is the same as using ``INDEX OFF`` on a field.
+Creates one single token from the field-contents.
 
 
 .. _pattern-analyzer:

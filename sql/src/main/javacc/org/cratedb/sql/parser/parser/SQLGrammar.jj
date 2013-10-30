@@ -92,7 +92,8 @@ class SQLGrammar
     /**
      * SYSTEM COLUMN NAMES
      */
-    private static final List<String> SYSTEM_COLUMN_NAMES = Arrays.asList(new String[]{"_version", "_ttl"});
+    private static final List<String> SYSTEM_COLUMN_NAMES =
+            Arrays.asList(new String[]{"_version", "_ttl", "_score"});
 
     /* SAVEPOINT variations */
     // TODO: I think these should be constants in the savepoint node. ***
