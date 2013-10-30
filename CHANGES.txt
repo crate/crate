@@ -5,11 +5,18 @@ Changes for Crate
 Unreleased
 ==========
 
-- Added fulltext search support
+2013/10/31 0.18.0
+=================
 
-- Added support for index constraints on table creation
+ - Added the `information_schema` schema that contains a virtual `tables` table
+   which can be queries to get information about the currently available
+   tables.
 
-- Implemented ``CREATE ANALYZER`` to create custom analyzers for fulltext-search
+ - Added fulltext search support
+
+ - Added support for index constraints on table creation
+ 
+ - Implemented ``CREATE ANALYZER`` to create custom analyzers for fulltext-search
 
 2013/10/29 0.17.3
 =================

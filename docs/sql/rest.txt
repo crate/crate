@@ -10,7 +10,7 @@ whereby the statement is sent as value associated to the key `stmt`".
 
 .. seealso::
 
-    :doc:`language`
+    :doc:`dml`
 
 A simple `SELECT` statement can be submitted like this::
 
