@@ -455,28 +455,62 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             value = valueFromNode(node.getLeftOperand());
         }
 
+        // currently the lucene queries are only used for information schema queries.
+        // therefore for non-information-schema-queries just the xcontent query is built.
+
+        if (stmt.isInformationSchemaQuery()) {
+            return buildLuceneQuery(operator, columnName, value);
+        }
+
         if  (queryPlanner.checkColumn(tableContext, stmt, parentNode, operator, columnName, value)) {
             // _version column that shouldn't be included in the query
             // this is kind of like:
             //      where pk_col = 1 and 1 = 1
             jsonBuilder.field("match_all", new HashMap<>());
-            return new MatchAllDocsQuery();
+            return null;
         }
 
+        switch (operator) {
+            case BinaryRelationalOperatorNode.EQUALS_RELOP:
+                jsonBuilder.startObject("term").field(columnName, value).endObject();
+                break;
+            case BinaryRelationalOperatorNode.NOT_EQUALS_RELOP:
+                jsonBuilder.startObject("bool").startObject("must_not")
+                    .startObject("term").field(columnName, value).endObject()
+                    .endObject().endObject();
+                break;
+            case BinaryRelationalOperatorNode.LESS_THAN_RELOP:
+            case BinaryRelationalOperatorNode.LESS_EQUALS_RELOP:
+            case BinaryRelationalOperatorNode.GREATER_THAN_RELOP:
+            case BinaryRelationalOperatorNode.GREATER_EQUALS_RELOP:
+                jsonBuilder.startObject("range")
+                    .startObject(columnName).field(rangeQueryOperatorMap.get(operator), value).endObject()
+                    .endObject();
+                break;
+            default:
+                throw new SQLParseException("Unhandled operator " + operator);
+        }
+
+        return null;
+    }
+
+    private Query buildLuceneQuery(int operator, String columnName, Object value) {
         Object from = null;
         Object to = null;
         boolean includeLower = false;
         boolean includeUpper = false;
 
+        InformationSchemaColumn column =
+            ((InformationSchemaTableExecutionContext)tableContext).fieldMapper().get(columnName);
+
         switch (operator) {
             case BinaryRelationalOperatorNode.EQUALS_RELOP:
-                jsonBuilder.startObject("term").field(columnName, value).endObject();
-                return new TermQuery(new Term(columnName, BytesRefs.toBytesRef(value)));
+                if (column.type == SortField.Type.STRING) {
+                    return new TermQuery(new Term(columnName, value.toString()));
+                } else {
+                    return column.rangeQuery(value, value, true, true);
+                }
             case BinaryRelationalOperatorNode.NOT_EQUALS_RELOP:
-                jsonBuilder.startObject("bool").startObject("must_not")
-                    .startObject("term").field(columnName, value).endObject()
-                    .endObject().endObject();
-
                 BooleanQuery matchAllAndNot = new BooleanQuery();
                 BooleanQuery notQuery = new BooleanQuery();
                 notQuery.add(
@@ -506,22 +540,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 throw new SQLParseException("Unhandled operator " + operator);
         }
 
-        jsonBuilder.startObject("range")
-            .startObject(columnName).field(rangeQueryOperatorMap.get(operator), value).endObject()
-            .endObject();
-
-
-        if (stmt.isInformationSchemaQuery()) {
-            ImmutableMap<String, InformationSchemaColumn> fieldMapper =
-                ((InformationSchemaTableExecutionContext)tableContext).fieldMapper();
-
-            return fieldMapper.get(columnName).rangeQuery(from, to, includeLower, includeUpper);
-        }
-
-        return new TermRangeQuery(
-            columnName, BytesRefs.toBytesRef(from), BytesRefs.toBytesRef(to),
-            includeLower, includeUpper
-        );
+        return column.rangeQuery(from, to, includeLower, includeUpper);
     }
 
     private BooleanQuery newBoolNode(ValueNode parentNode) {
