@@ -1,4 +1,10 @@
-.. _builtin-analyzer:
+.. _sql-analyzer:
+
+==========================================
+Builtin Tools for fulltext search in Crate
+==========================================
+
+.. _analyzer-overview:
 
 Overview
 ========
@@ -22,6 +28,9 @@ e.G. you can use language specific analyzers, tokenizers and token-filters to ge
 
 Below the builtin analyzers, tokenizers, token-filters and char-filters are listed.
 They can be used as is or can be extended. See :ref:`fulltext-indices`.
+
+
+.. _builtin-analyzer:
 
 Builtin Analyzer
 ================
@@ -61,7 +70,7 @@ simple
 
 ``type='simple'``
 
-uses the :ref:`lowercase-tokenizer` tokenizer.
+Uses the :ref:`lowercase-tokenizer` tokenizer.
 
 
 .. _whitespace-analyzer:
@@ -71,7 +80,7 @@ whitespace
 
 ``type='whitespace'``
 
-using a :ref:`whitespace-tokenizer` tokenizer
+Uses a :ref:`whitespace-tokenizer` tokenizer
 
 
 .. _stop-analyzer:
@@ -81,7 +90,7 @@ stop
 
 ``type='stop'``
 
-using a :ref:`lowercase-tokenizer` Tokenizer, with :ref:`stop-tokenfilter` Token Filter.
+Uses a :ref:`lowercase-tokenizer` Tokenizer, with :ref:`stop-tokenfilter` Token Filter.
 
 Parameters
 ..........
@@ -100,7 +109,7 @@ keyword
 
 ``type=keyword``
 
-creates one single token from the field-contents. This is the same as using ``INDEX OFF`` on a field.
+Creates one single token from the field-contents. This is the same as using ``INDEX OFF`` on a field.
 
 
 .. _pattern-analyzer:
@@ -167,7 +176,7 @@ snowball
 
 ``type='snowball'``
 
-uses the :ref:`standard-tokenizer` Tokenizer, with :ref:`standard-tokenfilter` filter,
+Uses the :ref:`standard-tokenizer` Tokenizer, with :ref:`standard-tokenfilter` filter,
 :ref:`lowercase-tokenfilter` filter, :ref:`stop-tokenfilter` filter, and :ref:`snowball-tokenfilter` filter.
 
 Parameters
@@ -223,7 +232,7 @@ max_gram
 token_chars
     Characters classes to keep in the tokens, will split on characters that don’t belong to any of these classes. default: [] (Keep all characters).
 
-    Classes: letter, digit, whitespace, punctuation, symbol
+    **Classes:** letter, digit, whitespace, punctuation, symbol
 
 .. _keyword-tokenizer:
 
@@ -232,7 +241,7 @@ keyword
 
 ``type='keyword'``
 
-emits the entire input as a single input.
+Emits the entire input as a single token.
 
 Parameters
 ..........
@@ -247,7 +256,7 @@ letter
 
 ``type='letter'``
 
-divides text at non-letters.
+Divides text at non-letters.
 
 
 .. _lowercase-tokenizer:
@@ -257,7 +266,7 @@ lowercase
 
 ``type='lowercase'``
 
-performs the function of :ref:`letter-tokenizer` and :ref:`lowercase-tokenfilter` together.
+Performs the function of :ref:`letter-tokenizer` and :ref:`lowercase-tokenfilter` together.
 It divides text at non-letters and converts them to lower case.
 
 
@@ -280,7 +289,7 @@ max_gram
 token_chars
     Characters classes to keep in the tokens, will split on characters that don’t belong to any of these classes. default: [] (Keep all characters).
 
-    Classes: letter, digit, whitespace, punctuation, symbol
+    **Classes:** letter, digit, whitespace, punctuation, symbol
 
 
 .. _whitespace-tokenizer:
@@ -290,7 +299,7 @@ whitespace
 
 ``type='whitespace'``
 
-divides text at whitespace.
+Divides text at whitespace.
 
 
 .. _pattern-tokenizer:
@@ -300,7 +309,7 @@ pattern
 
 ``type='pattern'``
 
-flexibly separates text into terms via a regular expression.
+Separates text into terms via a regular expression.
 
 Parameters
 ..........
@@ -328,7 +337,7 @@ uax email url
 
 ``type='uax_url_email'``
 
-exactly like the :ref:`standard-tokenizer`, but tokenizes emails and urls as single tokens.
+Exactly like the :ref:`standard-tokenizer`, but tokenizes emails and urls as single tokens.
 
 Parameters
 ..........
@@ -344,7 +353,7 @@ path hierarchy
 
 ``type='path_hierarchy'``
 
-takes something like this::
+Takes something like this::
 
     /something/something/else
 
@@ -361,16 +370,16 @@ delimiter
     The character delimiter to use, defaults to /.
 
 replacement
-   An optional replacement character to use. Defaults to the delimiter.
+    An optional replacement character to use. Defaults to the delimiter.
 
 buffer_size
-   The buffer size to use, defaults to 1024.
+    The buffer size to use, defaults to 1024.
 
 reverse
-   Generates tokens in reverse order, defaults to false.
+    Generates tokens in reverse order, defaults to false.
 
 skip
-   Controls initial tokens to skip, defaults to 0.
+    Controls initial tokens to skip, defaults to 0.
 
 
 .. _builtin-token-filter:
@@ -385,7 +394,7 @@ standard
 
 ``tyoe='standard'``
 
-normalizes tokens extracted with the :ref:`standard-tokenizer`` Tokenizer.
+Normalizes tokens extracted with the :ref:`standard-tokenizer`` Tokenizer.
 
 
 .. _asciifolding-tokenfilter:
@@ -395,7 +404,7 @@ ascii folding
 
 ``type='asciifolding'``
 
-converts alphabetic, numeric, and symbolic Unicode characters
+Converts alphabetic, numeric, and symbolic Unicode characters
 which are not in the first 127 ASCII characters
 (the "Basic Latin" Unicode block) into their ASCII equivalents, if one exists.
 
@@ -406,16 +415,16 @@ length
 
 ``type='length'``
 
-removes words that are too long or too short for the stream.
+Removes words that are too long or too short for the stream.
 
 Parameters
 ..........
 
 min
-   The minimum number. Defaults to 0.
+    The minimum number. Defaults to 0.
 
 max
-   The maximum number. Defaults to Integer.MAX_VALUE.
+    The maximum number. Defaults to Integer.MAX_VALUE.
 
 
 .. _lowercase-tokenfilter:
@@ -425,13 +434,13 @@ lowercase
 
 ``type='lowercase'``
 
-normalizes token text to lower case.
+Normalizes token text to lower case.
 
 Parameters
 ..........
 
 language
-    for optiosn, see :ref:`language-analyzer` Analyzer.
+    For options, see :ref:`language-analyzer` Analyzer.
 
 
 .. _ngram-tokenfilter:
@@ -448,7 +457,7 @@ min_gram
     Defaults to 1.
 
 max_gram
-   Defaults to 2.
+    Defaults to 2.
 
 
 .. _edgengram-tokenfilter:
@@ -465,10 +474,10 @@ min_gram
     Defaults to 1.
 
 max_gram
-   Defaults to 2.
+    Defaults to 2.
 
 side
-   Either front or back. Defaults to front.
+    Either front or back. Defaults to front.
 
 
 .. _porterstem-tokenfilter:
@@ -478,11 +487,11 @@ porter stem
 
 ``type='porterStem'``
 
-transforms the token stream as per the Porter stemming algorithm.
+Transforms the token stream as per the Porter stemming algorithm.
 
 .. note::
 
-    the input to the stemming filter must already be in lower case,
+    The input to the stemming filter must already be in lower case,
     so you will need to use Lower Case Token Filter or Lower Case Tokenizer farther down the Tokenizer chain
     in order for this to work properly!. For example, when using custom analyzer,
     make sure the lowercase filter comes before the porterStem filter in the list of filters.
@@ -495,7 +504,7 @@ shingle
 
 ``type='shingle'``
 
-constructs shingles (token n-grams), combinations of tokens as a single token, from a token stream.
+Constructs shingles (token n-grams), combinations of tokens as a single token, from a token stream.
 
 Parameters
 ..........
@@ -504,17 +513,17 @@ max_shingle_size
     The maximum shingle size. Defaults to 2.
 
 min_shingle_sizes
-   The minimum shingle size. Defaults to 2.
+    The minimum shingle size. Defaults to 2.
 
 output_unigrams
-   If true the output will contain the input tokens (unigrams) as well as the shingles. Defaults to true.
+    If true the output will contain the input tokens (unigrams) as well as the shingles. Defaults to true.
 
 output_unigrams_if_no_shingles
-   If output_unigrams is false the output will contain the input tokens (unigrams) if no shingles are available.
-   Note if output_unigrams is set to true this setting has no effect. Defaults to false.
+    If output_unigrams is false the output will contain the input tokens (unigrams) if no shingles are available.
+    Note if output_unigrams is set to true this setting has no effect. Defaults to false.
 
 token_separator
-   The string to use when joining adjacent tokens to form a shingle. Defaults to " ".
+    The string to use when joining adjacent tokens to form a shingle. Defaults to " ".
 
 
 .. _stop-tokenfilter:
@@ -524,25 +533,25 @@ stop
 
 ``type='stop'``
 
-removes stop words from token streams.
+Removes stop words from token streams.
 
 Parameters
 ..........
 
 stopwords
-   A list of stop words to use. Defaults to english stop words.
+    A list of stop words to use. Defaults to english stop words.
 
 stopwords_path
-   A path (either relative to config location, or absolute) to a stopwords file configuration.
-   Each stop word should be in its own "line" (separated by a line break). The file must be UTF-8 encoded.
+    A path (either relative to config location, or absolute) to a stopwords file configuration.
+    Each stop word should be in its own "line" (separated by a line break). The file must be UTF-8 encoded.
 
 ignore_case
-   Set to true to lower case all words first. Defaults to false.
+    Set to true to lower case all words first. Defaults to false.
 
 remove_trailing
-   Set to false in order to not ignore the last term of a search if it is a stop word.
-   This is very useful for the completion suggester as a query like green a can be extended to green apple
-   even though you remove stop words in general. Defaults to true
+    Set to false in order to not ignore the last term of a search if it is a stop word.
+    This is very useful for the completion suggester as a query like green a can be extended to green apple
+    even though you remove stop words in general. Defaults to true
 
 
 .. _worddelimiter-tokenfilter:
@@ -552,7 +561,7 @@ word delimiter
 
 ``type='word_delimiter'``
 
-splits words into subwords and performs optional transformations on subword groups.
+Splits words into subwords and performs optional transformations on subword groups.
 
 Parameters
 ..........
@@ -585,7 +594,7 @@ stem_english_possessive
     If true causes trailing "'s" to be removed for each subword: "O’Neil’s" ⇒ "O", "Neil". Defaults to true.
 
 protected_words
-    A list of protected words from being delimiter. Either an array, or also can set protected_words_path
+    A list of protected words from being delimiter. Either an array, or also can set ``protected_words_path``
     which resolved to a file configured with protected words (one on each line). Automatically resolves to config/ based location if exists.
 
 type_table
@@ -629,10 +638,10 @@ keywords
     A list of words to use.
 
 keywords_path
-   A path (either relative to config location, or absolute) to a list of words.
+    A path (either relative to config location, or absolute) to a list of words.
 
 ignore_case
-   Set to true to lower case all words first. Defaults to false.
+    Set to true to lower case all words first. Defaults to false.
 
 
 .. _keywordrepeat-tokenfilter:
@@ -654,7 +663,7 @@ kstem
 
 ``type='kstem'``
 
-high performance filter for english.
+High performance filter for english.
 All terms must already be lowercased (use :ref:`lowercase-tokenfilter` filter) for this filter to work correctly.
 
 
@@ -671,7 +680,7 @@ Parameters
 ..........
 
 language
-    possible values: Armenian, Basque, Catalan, Danish, Dutch, English, Finnish, French, German, German2, Hungarian,
+    Possible values: Armenian, Basque, Catalan, Danish, Dutch, English, Finnish, French, German, German2, Hungarian,
     Italian, Kp, Lovins, Norwegian, Porter, Portuguese, Romanian, Russian, Spanish, Swedish, Turkish.
 
 .. _phonetic-tokenfilter:
@@ -689,19 +698,19 @@ synonym
 
 ``type='synonym'``
 
-allows to easily handle synonyms during the analysis process. Synonyms are configured using a configuration file.
+Allows to easily handle synonyms during the analysis process. Synonyms are configured using a configuration file.
 
 Parameters
 ..........
 
 synonyms_path
-    path to synonyms configuration file
+    Path to synonyms configuration file
 
 ignore_case
-    default false
+    Defaults to ``false``
 
 expand
-    default true
+    Defaults to ``true``
 
 
 .. _compoundword-tokenfilter:
@@ -711,7 +720,7 @@ compound word
 
 ``type='dictionary_decompounder'`` or ``type='hyphenation_decompounder'``
 
-decompose compound words
+Decomposes compound words.
 
 Parameters
 ..........
@@ -720,19 +729,19 @@ word_list
     A list of words to use.
 
 word_list_path
-   A path (either relative to config location, or absolute) to a list of words.
+    A path (either relative to config location, or absolute) to a list of words.
 
 min_word_size
-   Minimum word size(Integer). Defaults to 5.
+    Minimum word size(Integer). Defaults to 5.
 
 min_subword_size
-   Minimum subword size(Integer). Defaults to 2.
+    Minimum subword size(Integer). Defaults to 2.
 
 max_subword_size
-   Maximum subword size(Integer). Defaults to 15.
+    Maximum subword size(Integer). Defaults to 15.
 
 only_longest_match
-   Only matching the longest(Boolean). Defaults to false
+    Only matching the longest(Boolean). Defaults to false
 
 
 .. _reverse-tokenfilter:
@@ -742,7 +751,7 @@ reverse
 
 ``type='reverse'``
 
-reverses each token
+Reverses each token.
 
 
 .. _elision-tokenfilter:
@@ -752,13 +761,13 @@ elision
 
 ``type='elision'``
 
-removes elisions.
+Removes elisions.
 
 Parameters
 ..........
 
 articles
-    set of stop words articles, for example ``['j', 'l']`` for content like ``J'aime l'odeur.``
+    A set of stop words articles, for example ``['j', 'l']`` for content like ``J'aime l'odeur.``
 
 
 .. _truncate-tokenfilter:
@@ -768,13 +777,13 @@ truncate
 
 ``type='truncate'``
 
-truncate tokens into a specific length.
+Truncates tokens to a specific length.
 
 Parameters
 ..........
 
 length
-    number of characters to truncate to. default 10
+    Number of characters to truncate to. default 10
 
 
 .. _unique-tokenfilter:
@@ -784,14 +793,14 @@ unique
 
 ``type='unique'``
 
-used to only index unique tokens during analysis. By default it is applied on all the token stream.
+Used to only index unique tokens during analysis. By default it is applied on all the token stream.
 
 Parameters
 ...........
 
 
 only_on_same_position
-    if set to true, it will only remove duplicate tokens on the same position.
+    If set to true, it will only remove duplicate tokens on the same position.
 
 
 .. _patterncapture-tokenfilter:
@@ -801,13 +810,13 @@ pattern capture
 
 ``type='pattern_capture'``
 
-emits a token for every capture group in the regular expression
+Emits a token for every capture group in the regular expression
 
 Parameters
 ..........
 
 preserve_original
-    if set to true (the default) then it would also emit the original token
+    If set to true (the default) then it would also emit the original token
 
 .. _patternreplace-tokenfilter:
 
@@ -816,16 +825,16 @@ pattern replace
 
 ``type='pattern_replace'``
 
-handle string replacements based on a regular expression.
+Handle string replacements based on a regular expression.
 
 Parameters
 ..........
 
 pattern
-    regular expression whose matches will be replaced
+    Regular expression whose matches will be replaced.
 
 replacement
-    the replacement, can reference the original text with ``$1``-like (the first matched group) references.
+    The replacement, can reference the original text with ``$1``-like (the first matched group) references.
 
 
 .. _trim-tokenfilter:
@@ -835,7 +844,7 @@ trim
 
 ``type='trim'``
 
-trims the whitespace surrounding a token.
+Trims the whitespace surrounding a token.
 
 
 .. _limittokencount-tokenfilter:
@@ -852,7 +861,7 @@ max_token_count
     The maximum number of tokens that should be indexed per document and field. The default is 1
 
 consume_all_tokens
-   If set to true the filter exhaust the stream even if max_token_count tokens have been consumed already. The default is false.
+    If set to true the filter exhaust the stream even if max_token_count tokens have been consumed already. The default is false.
 
 .. _hunspell-tokenfilter:
 
@@ -896,7 +905,7 @@ common grams
 
 ``type='common_grams'``
 
-generates bigrams for frequently occuring terms. Single terms are still indexed.
+Generates bigrams for frequently occuring terms. Single terms are still indexed.
 It can be used as an alternative to the :ref:`stop-tokenfilter` Token filter when we don’t want to completely ignore common terms.
 
 Parameters
@@ -906,18 +915,18 @@ common_words
     A list of common words to use.
 
 common_words_path
-   A path (either relative to config location, or absolute) to a list of common words.
-   Each word should be in its own "line" (separated by a line break). The file must be UTF-8 encoded.
+    A path (either relative to config location, or absolute) to a list of common words.
+    Each word should be in its own "line" (separated by a line break). The file must be UTF-8 encoded.
 
 ignore_case
-   If true, common words matching will be case insensitive (defaults to false).
+    If true, common words matching will be case insensitive (defaults to false).
 
 query_mode
-   Generates bigrams then removes common words and single terms followed by a common word (defaults to false).
+    Generates bigrams then removes common words and single terms followed by a common word (defaults to false).
 
 .. note::
 
-    either common_words or common_words_path must be given.
+    Either ``common_words`` or ``common_words_path`` must be given.
 
 .. _normalization-tokenfilter:
 
@@ -943,10 +952,10 @@ Parameters
 ..........
 
 mappings
-    list of mappings as strings of the form [<source>=><replacement>] e.g. "ph=>f"
+    A list of mappings as strings of the form ``[<source>=><replacement>] e.g. "ph=>f"``
 
 mappings_path
-    file with one mapping per line, like above
+    A path to a file with one mapping per line, like above.
 
 
 .. _htmlstrip-charfilter:
@@ -956,7 +965,7 @@ html strip
 
 ``type='html_strip'``
 
-stripping out HTML elements from an analyzed text.
+Strips out HTML elements from an analyzed text.
 
 
 .. _patternreplace-charfilter:
@@ -966,16 +975,16 @@ pattern replace
 
 ``type='pattern_replace'``
 
-manipulate the characters in a string before analysis with a regex.
+Manipulates the characters in a string before analysis with a regex.
 
 Parameters
 ..........
 
 pattern
-    regex whose matches will be replaced
+    Regex whose matches will be replaced
 
 replacement
-    replacement string, can reference replaced text by ``$1`` like references (first matched element)
+    Replacement string, can reference replaced text by ``$1`` like references (first matched element)
 
 
 .. _Java Pattern Api: http://download.oracle.com/javase/6/docs/api/java/util/regex/Pattern.html#field_summary

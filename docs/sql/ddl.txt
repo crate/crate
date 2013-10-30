@@ -220,20 +220,20 @@ Create Analyzer Syntax::
 Multiple char filters and token filters are allowed but at maximum one tokenizer. Order does not matter.
 A simple Example::
 
-    CREATE ANALYZER myanalyzer (
-      TOKENIZER whitespace,
-      TOKEN_FILTERS WITH (
-        lowercase,
-        kstem
-      ),
-      CHAR_FILTERS (
-        html_strip,
-        mymapping WITH (
-          type='mapping',
-          mapping = ['ph=>f', 'qu=>q', 'foo=>bar']
-        )
-      )
-    )
+    cr> CREATE ANALYZER myanalyzer (
+    ...   TOKENIZER whitespace,
+    ...   TOKEN_FILTERS WITH (
+    ...     lowercase,
+    ...     kstem
+    ...   ),
+    ...  CHAR_FILTERS (
+    ...     html_strip,
+    ...     mymapping WITH (
+    ...       type='mapping',
+    ...       mapping = ['ph=>f', 'qu=>q', 'foo=>bar']
+    ...     )
+    ...   )
+    ... )
 
 This example creates an analyzer called ``myanalyzer`` to be used in index-definitions and index-constraints.
 It will use a :ref:`whitespace-tokenizer` tokenizer, a :ref:`lowercase-tokenfilter` token-filter
@@ -254,9 +254,9 @@ Existing Analyzers can be used to create custom Analyzers by means of extending 
 
 You can extend and parameterize :ref:`builtin-analyzer` like this::
 
-    CREATE ANALYZER "german_snowball" extends snowball WITH (
-      language='german'
-    )
+    cr> CREATE ANALYZER "german_snowball" extends snowball WITH (
+    ...   language='german'
+    ... )
 
 If you extend :ref:`builtin-analyzer`, tokenizer, char-filter or token-filter cannot be defined.
 In this case use the parameters available for the extended :ref:`builtin-analyzer`.
@@ -264,12 +264,12 @@ In this case use the parameters available for the extended :ref:`builtin-analyze
 If you extend custom-analyzers, every part of the analyzer that is ommitted will be taken from the extended one.
 Example::
 
-    CREATE ANALYZER e2 EXTENDS myanalyzer (
-        TOKENIZER mypattern (
-          type='pattern',
-          pattern='.*'
-        )
-    )
+    cr> CREATE ANALYZER e2 EXTENDS myanalyzer (
+    ...     TOKENIZER mypattern (
+    ...       type='pattern',
+    ...       pattern='.*'
+    ...     )
+    ... )
 
 This analyzer will use the char-filters and token-filters from ``myanalyzer``
 and will override the tokenizer with ``mypattern``.
@@ -278,7 +278,7 @@ Reference
 ---------
 
 .. toctree::
-  :maxdepth: 1
+  :maxdepth: 2
 
   analyzer
 
