@@ -5,7 +5,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class TablesTable {
+public class TablesTable implements InformationSchemaTable {
 
     private Map<String, InformationSchemaColumn> fieldMapper = new LinkedHashMap<>();
 
@@ -34,10 +34,12 @@ public class TablesTable {
         );
     }
 
+    @Override
     public Iterable<String> cols() {
         return fieldMapper.keySet();
     }
 
+    @Override
     public ImmutableMap<String, InformationSchemaColumn> fieldMapper() {
         return ImmutableMap.copyOf(fieldMapper);
     }

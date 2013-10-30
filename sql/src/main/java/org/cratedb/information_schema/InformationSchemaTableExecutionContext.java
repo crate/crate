@@ -12,6 +12,7 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
 
     private final Map<String, Iterable<String>> tableColumnMap = new HashMap<String, Iterable<String>>() {{
         put(TablesTable.NAME, new TablesTable().cols());
+        put(TableConstraintsTable.NAME, new TableConstraintsTable().cols());
     }};
 
     public InformationSchemaTableExecutionContext(String tableName) {
