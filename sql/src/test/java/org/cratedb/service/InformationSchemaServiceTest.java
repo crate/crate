@@ -38,6 +38,14 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
 
     private void serviceSetup() {
         node = startNode();
+        parseService = node.injector().getInstance(SQLParseService.class);
+        informationSchemaService = node.injector().getInstance(InformationSchemaService.class);
+        node.client().execute(SQLAction.INSTANCE,
+            new SQLRequest("create table t1 (col1 integer, col2 string) clustered into 7 shards")).actionGet();
+        node.client().execute(SQLAction.INSTANCE,
+            new SQLRequest("create table t2 (col1 integer, col2 string) clustered into 10 shards")).actionGet();
+        node.client().execute(SQLAction.INSTANCE,
+            new SQLRequest("create table t3 (col1 integer, col2 string) replicas 8")).actionGet();
     }
 
     private void emptyServiceSetup() {
