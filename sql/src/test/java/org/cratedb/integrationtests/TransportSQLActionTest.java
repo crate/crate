@@ -1831,6 +1831,26 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     @Test
+    public void testCreateTableWithInlineDefaultIndex() throws Exception {
+        execute("create table quotes (quote string index using plain)");
+        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
+                .actionGet().isExists());
+
+        String quote = "Would it save you a lot of time if I just gave up and went mad now?";
+        execute("insert into quotes values (?)", new Object[]{quote});
+        refresh();
+
+        // matching does not work on plain indexes
+        execute("select quote from quotes where match(quote, 'time')");
+        assertEquals(0, response.rowCount());
+
+        // filtering on the actual value does work
+        execute("select quote from quotes where quote = ?", new Object[]{quote});
+        assertEquals(1L, response.rowCount());
+        assertEquals(quote, response.rows()[0][0]);
+    }
+
+    @Test
     public void testCreateTableWithInlineIndex() throws Exception {
         execute("create table quotes (quote string index using fulltext)");
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
