@@ -52,8 +52,9 @@ data is inserted, otherwise an error is returned.
 Index
 -----
 
-At Crate, every column's data is indexed by default using a :ref:`keyword-analyzer`,
-indexing the data as a single token.
+At Crate, every column's data is plain indexed by default.
+
+.. _sql_ddl_index_off:
 
 Disable indexing
 ................
@@ -67,24 +68,44 @@ column::
     ... )
     CREATE OK (... sec)
 
-Defining an index analyzer
-..........................
+.. _sql_ddl_index_plain:
+
+Plain index (Default)
+.....................
+
+Using a plain index can also declared explicit::
+
+    cr> create table my_table1b1 (
+    ...   first_column string INDEX using plain
+    ... )
+    CREATE OK (... sec)
+
+Which results in the same behaviour than without any index declaration::
+
+    cr> create table my_table1b2 (
+    ...   first_column string
+    ... )
+    CREATE OK (... sec)
+
+
+.. _sql_ddl_index_fulltext:
+
+Fulltext index with analyzer
+............................
 
 By defining an index on a column, it's analyzed data is indexed instead of the raw data.
 Thus, depending on the used analyzer, querying for the exact data may not work anymore.
 See :ref:`builtin-analyzer` for details about available builtin analyzer or `Create custom
 analyzer`_.
 
-If no analyzer is specified, the :ref:`standard <standard-analyzer>` analyzer is used::
+If no analyzer is specified using a fulltext index, the :ref:`standard <standard-analyzer>`
+analyzer is used::
 
     cr> create table my_table1c (
     ...   first_column string INDEX using fulltext
     ... )
     CREATE OK (... sec)
 
-.. note:
-
-    ``fulltext`` is the only indexing method supported right now.
 
 Defining the usage of a concrete analyzer is straight forward by defining the analyzer as a
 parameter using the ``WITH`` statement::
@@ -93,6 +114,12 @@ parameter using the ``WITH`` statement::
     ...   first_column string INDEX using fulltext with(analyzer='english')
     ... )
     CREATE OK (... sec)
+
+
+.. note:
+
+    ``fulltext`` and ``plain`` are the only indexing methods supported right now.
+
 
 Defining a named index column definition
 ........................................
@@ -126,6 +153,7 @@ columns are given to the ``fulltext`` index method::
     ...   INDEX title_body_ft using fulltext(title, body) with(analyzer='english')
     ... )
     CREATE OK (... sec)
+
 
 
 .. warning::
@@ -266,9 +294,10 @@ Indices and fulltext search
 
 Fulltext indices take the contents of one or more fields and split it up into tokens that are used for fulltext-search.
 The transformation from a text to separate tokens is done by an analyzer.
-In order to create fulltext search queries an index with an analyzer must be defined for the
-related columns.
-See :ref:`Index definition <sql_ddl_index_definition>` for details.
+In order to create fulltext search queries a
+:ref:`fulltext index with an analyzer <sql_ddl_index_fulltext>` must be defined for the related
+columns.
+See :ref:`Index definition <sql_ddl_index_definition>` for general index creation information.
 
 
 Create custom analyzer
@@ -335,7 +364,7 @@ A simple Example::
     ...     html_strip,
     ...     mymapping WITH (
     ...       type='mapping',
-    ...       mapping = ['ph=>f', 'qu=>q', 'foo=>bar']
+    ...       mappings = ['ph=>f', 'qu=>q', 'foo=>bar']
     ...     )
     ...   )
     ... )

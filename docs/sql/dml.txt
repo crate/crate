@@ -275,8 +275,9 @@ This is useful if used in conjunction with aggregation functions::
 Fulltext search
 ---------------
 
-In order to use fulltext searches on columns, one must create an index on the related column
-upfront on table creation, see :ref:`Index definition <sql_ddl_index_definition>` for details.
+In order to use fulltext searches on columns, one must create a
+:ref:`fulltext index with an analyzer <sql_ddl_index_fulltext>` on the related column
+upfront on table creation, see :ref:`fulltext-indices` for details.
 
 A fulltext search is done using the ``match(columnName, queryTerm)`` helper function::
 
