@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/11/01 0.18.1
+=================
+
+ - Added index method ``plain`` which is the default behaviour
+
 2013/10/31 0.18.0
 =================
 

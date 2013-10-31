@@ -172,6 +172,9 @@ public class TableVisitor extends BaseVisitor {
                     } else {
                         indexColumnDefinition.put("analyzer", "standard");
                     }
+                } else if (node.getIndexMethod().equalsIgnoreCase("plain")) {
+                    // default behaviour
+                    indexColumnDefinition.put("index", "not_analyzed");
                 } else {
                     throw new SQLParseException("Unsupported index method '" +
                             node.getIndexMethod() + "'");

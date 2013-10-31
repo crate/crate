@@ -2465,6 +2465,7 @@ TOKEN [IGNORE_CASE] :
 {
   <FLOAT: "float">
 | <FULLTEXT: "fulltext">
+| <PLAIN: "plain">
 | <ANALYZER: "analyzer">
 | <TOKENIZER: "tokenizer">
 | <TOKEN_FILTERS: "token_filters">
@@ -10749,7 +10750,11 @@ indexMethod() throws StandardException :
     Token tok = null;
 }
 {
-    tok = <FULLTEXT>
+    (
+        tok = <FULLTEXT>
+    |
+        tok = <PLAIN>
+    )
     {
         return tok.image;
     }
