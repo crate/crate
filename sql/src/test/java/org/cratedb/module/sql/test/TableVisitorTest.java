@@ -246,6 +246,23 @@ public class TableVisitorTest {
 
     @Test
     public void testCreateTableWithInlineDefaultIndex() throws Exception {
+        execStatement("create table phrases (phrase string index using plain)");
+
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("properties", new HashMap<String, Object>(){{
+                put("phrase", new HashMap<String, Object>(){{
+                    put("type", "string");
+                    put("index", "not_analyzed");
+                    put("store", "false");
+                }});
+            }});
+        }};
+
+        assertEquals(expectedMapping, stmt.indexMapping);
+    }
+
+    @Test
+    public void testCreateTableWithInlineFulltextIndex() throws Exception {
         execStatement("create table phrases (phrase string index using fulltext)");
 
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
