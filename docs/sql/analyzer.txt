@@ -30,6 +30,8 @@ Below the builtin analyzers, tokenizers, token-filters and char-filters are list
 They can be used as is or can be extended. See :ref:`fulltext-indices`.
 
 
+.. note:: This documentation is mainly derived from the `ElasticSearch Analysis Documentation`_ .
+
 .. _builtin-analyzer:
 
 Builtin Analyzer
@@ -1028,3 +1030,4 @@ replacement
 
 
 .. _Java Pattern Api: http://download.oracle.com/javase/6/docs/api/java/util/regex/Pattern.html#field_summary
+.. _ElasticSearch Analysis Documentation: http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/analysis.html
