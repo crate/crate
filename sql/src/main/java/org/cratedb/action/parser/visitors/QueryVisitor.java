@@ -366,7 +366,8 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         ValueNode left = node.getReceiver();
         ValueNode right = node.getLeftOperand();
 
-        if (left.getNodeType() != NodeTypes.COLUMN_REFERENCE) {
+        if (left.getNodeType() != NodeTypes.COLUMN_REFERENCE
+            && left.getNodeType() !=  NodeTypes.NESTED_COLUMN_REFERENCE) {
             tmp = left;
             left = right;
             right = tmp;
