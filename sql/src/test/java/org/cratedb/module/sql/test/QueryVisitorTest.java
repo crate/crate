@@ -849,4 +849,94 @@ public class QueryVisitorTest {
             "_version is only valid in the WHERE clause if paired with a single primary key column and crate.planner.optimize.pk_queries enabled");
         execStatement("delete from locations where \"_id\" = 1 and \"_version\" = 1");
     }
+
+    @Test
+    public void testSelectWithWhereMatch() throws Exception {
+        execStatement("select kind from locations where match(kind, 'Star')");
+        assertEquals(
+                "{\"fields\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"size\":1000}",
+                getSource()
+        );
+    }
+
+    @Test
+    public void testSelectWithWhereNotMatch() throws Exception {
+        execStatement("select kind from locations where not match(kind, 'Star')");
+        assertEquals(
+                "{\"fields\":[\"kind\"],\"query\":{\"bool\":{\"must_not\":{\"match\":{\"kind\":\"Star\"}}}},\"size\":1000}",
+                getSource()
+        );
+    }
+
+    @Test
+    public void testSelectWithWhereMatchAnd() throws Exception {
+        execStatement("select kind from locations where match(kind, 'Star') and name = 'Algol'");
+        assertEquals(
+                "{\"fields\":[\"kind\"],\"query\":{\"bool\":{\"minimum_should_match\":1,\"must\":[{\"match\":{\"kind\":\"Star\"}},{\"term\":{\"name\":\"Algol\"}}]}},\"size\":1000}",
+                getSource()
+        );
+    }
+
+    @Test
+    public void testSelectWithOrderByScore() throws Exception {
+        execStatement("select kind from locations where match(kind, ?) " +
+                "order by \"_score\" desc",
+                new Object[]{"Star", "Star"});
+        assertEquals(
+                "{\"fields\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"sort\":[{\"_score\":{\"order\":\"desc\",\"ignore_unmapped\":true}}],\"size\":1000}",
+                getSource()
+        );
+    }
+
+    @Test
+    public void testSelectSysColumnScore() throws Exception {
+        execStatement("select kind, \"_score\" from locations where match(kind, ?) " +
+                "order by \"_score\" desc",
+                new Object[]{"Star", "Star"});
+        assertEquals(
+                "{\"fields\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"sort\":[{\"_score\":{\"order\":\"desc\",\"ignore_unmapped\":true}}],\"size\":1000}",
+                getSource()
+        );
+    }
+
+    @Test
+    public void testWhereClauseWithScore() throws Exception {
+        execStatement("select kind, \"_score\" from locations where match(kind, ?) " +
+                "and \"_score\" > 0.05",
+                new Object[]{"Star", "Star"});
+        assertEquals(
+                "{\"fields\":[\"kind\"],\"query\":{\"bool\":{\"minimum_should_match\":1,\"must\":[{\"match\":{\"kind\":\"Star\"}},{\"match_all\":{}}]}},\"min_score\":0.05,\"size\":1000}",
+                getSource()
+        );
+    }
+
+    @Test
+    public void testWhereClauseWithScoreInvalidEqualsOperator() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Filtering by _score can only be done using a " +
+                "greater-than or greater-equals operator");
+        execStatement("select kind, \"_score\" from locations where match(kind, ?) " +
+                "and \"_score\" = 0.05",
+                new Object[]{"Star", "Star"});
+    }
+
+    @Test
+    public void testWhereClauseWithScoreInvalidLessOperator() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Filtering by _score can only be done using a " +
+                "greater-than or greater-equals operator");
+        execStatement("select kind, \"_score\" from locations where match(kind, ?) " +
+                "and \"_score\" < 0.05",
+                new Object[]{"Star", "Star"});
+    }
+
+    @Test
+    public void testWhereClauseWithScoreInvalidLessEqualsOperator() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Filtering by _score can only be done using a " +
+                "greater-than or greater-equals operator");
+        execStatement("select kind, \"_score\" from locations where match(kind, ?) " +
+                "and \"_score\" <= 0.05",
+                new Object[]{"Star", "Star"});
+    }
 }

@@ -5,7 +5,27 @@ Changes for Crate
 Unreleased
 ==========
 
-- Implemented ``CREATE ANALYZER`` to create custom analyzers for fulltext-search
+ - Table index definition documentation overhaul
+
+ - bugfix: the `LIKE` operand now also works on nested columns
+
+2013/11/01 0.18.1
+=================
+
+ - Added index method ``plain`` which is the default behaviour
+
+2013/10/31 0.18.0
+=================
+
+ - Added the `information_schema` schema that contains a virtual `tables` table
+   which can be queries to get information about the currently available
+   tables.
+
+ - Added fulltext search support
+
+ - Added support for indices on table creation
+ 
+ - Implemented ``CREATE ANALYZER`` to create custom analyzers for fulltext-search
 
 2013/10/29 0.17.3
 =================

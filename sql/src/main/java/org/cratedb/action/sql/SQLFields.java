@@ -104,6 +104,13 @@ public class SQLFields {
                             return hit.getVersion();
                         }
                     };
+                } else if (fn.equals("_score")) {
+                    fc = new FieldExtractor() {
+                        @Override
+                        public Object getValue() {
+                            return hit.getScore();
+                        }
+                    };
                 } else {
                     fc = new HitFieldExtractor(fn);
                 }

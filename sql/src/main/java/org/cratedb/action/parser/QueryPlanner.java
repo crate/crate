@@ -111,7 +111,7 @@ public class QueryPlanner {
      * @return true if the column should be omitted from the resulting lucene/xcontent query.
      */
     public boolean checkColumn(ITableExecutionContext tableContext, ParsedStatement stmt,
-                            ValueNode parentNode, int operator,
+                            ValueNode parentNode, Integer operator,
                             String columnName, Object value) {
         if (!optimizePrimaryKeyQueries()) {
             if (columnName.equalsIgnoreCase("_version")) {
@@ -124,7 +124,7 @@ public class QueryPlanner {
         if (parentNode != null && parentNode.getNodeType() == NodeTypes.OR_NODE) {
             stmt.orClauses++;
         }
-        if (operator != BinaryRelationalOperatorNode.EQUALS_RELOP) {
+        if (operator == null || operator != BinaryRelationalOperatorNode.EQUALS_RELOP) {
             stmt.columnsWithFilter.add(columnName);
             stmt.primaryKeyLookupValue = null;
 

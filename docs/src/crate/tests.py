@@ -70,7 +70,7 @@ def setUp(test):
 
 def test_suite():
     suite = unittest.TestSuite()
-    for fn in ('hello.txt', 'blob.txt', 'sql/ddl.txt'):
+    for fn in ('hello.txt', 'blob.txt'):
         s = doctest.DocFileSuite('../../' + fn,
                                  parser=bash_parser,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
@@ -85,7 +85,7 @@ def test_suite():
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
         suite.addTest(s)
-    for fn in ('sql/dml.txt', 'sql/occ.txt', 'sql/information_schema.txt'):
+    for fn in ('sql/dml.txt', 'sql/occ.txt', 'sql/ddl.txt', 'sql/information_schema.txt'):
         s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
                                  setUp=setUpLocations,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |

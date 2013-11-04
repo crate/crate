@@ -10,7 +10,7 @@ whereby the statement is sent as value associated to the key `stmt`".
 
 .. seealso::
 
-    :doc:`language`
+    :doc:`dml`
 
 A simple `SELECT` statement can be submitted like this::
 
@@ -128,7 +128,11 @@ Currently the defined error codes are:
     ----- ---------------------------------------------------------------------
     4000  The statement contains an invalid syntax or unsupported SQL statement
     ----- ---------------------------------------------------------------------
+    4001  The statement contains an invalid analyzer definition.
+    ----- ---------------------------------------------------------------------
     4041  Unknown table.
+    ----- ---------------------------------------------------------------------
+    4042  Unknown analyzer.
     ----- ---------------------------------------------------------------------
     4091  A document with the same primary key exists already.
     ----- ---------------------------------------------------------------------

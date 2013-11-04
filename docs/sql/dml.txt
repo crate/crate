@@ -272,6 +272,108 @@ This is useful if used in conjunction with aggregation functions::
     have to be used within the group by clause. Otherwise the statement won't
     execute.
 
+Fulltext search
+---------------
+
+In order to use fulltext searches on columns, one must create a
+:ref:`fulltext index with an analyzer <sql_ddl_index_fulltext>` on the related column
+upfront on table creation, see :ref:`fulltext-indices` for details.
+
+A fulltext search is done using the ``match(columnName, queryTerm)`` helper function::
+
+    cr> select name from locations where match(name_description_ft, 'time')
+    +-----------+
+    | name      |
+    +-----------+
+    | Altair    |
+    | Bartledan |
+    +-----------+
+    SELECT 2 rows in set (... sec)
+
+In order to get the match score of the fulltext search, an internal system column
+:ref:`_score <sql_ddl_system_column_score>` can be selected::
+
+    cr> select name, \"_score\" from locations where match(name_description_ft, 'time')
+    +-----------+------------+
+    | name      | _score     |
+    +-----------+------------+
+    | Altair    | 0.56319076 |
+    | Bartledan | 0.4590714  |
+    +-----------+------------+
+    SELECT 2 rows in set (... sec)
+
+The results of a ``match(...)` query are sorted by :ref:`_score <sql_ddl_system_column_score>`
+in a descending order by default.
+Of course it is possible to change it to use an ascending order instead::
+
+    cr> select name, \"_score\" from locations where match(name_description_ft, 'time')
+    ... order by \"_score\" asc
+    +-----------+------------+
+    | name      | _score     |
+    +-----------+------------+
+    | Bartledan | 0.4590714  |
+    | Altair    | 0.56319076 |
+    +-----------+------------+
+    SELECT 2 rows in set (... sec)
+
+.. note::
+
+  The terms used for a fulltext search are analyzed by an ``OR`` operator.
+
+Negative search
+...............
+
+A negative fulltext search can be done using a ``NOT`` clause::
+
+    cr> select name, \"_score\" from locations where not match(name_description_ft, 'time')
+    +------------------------------------+--------+
+    | name                               | _score |
+    +------------------------------------+--------+
+    | Outer Eastern Rim                  | 1.0    |
+    | Aldebaran                          | 1.0    |
+    | Alpha Centauri                     | 1.0    |
+    | Allosimanius Syneca                | 1.0    |
+    | None                               | 1.0    |
+    | North West Ripple                  | 1.0    |
+    | Galactic Sector QQ7 Active J Gamma | 1.0    |
+    | Algol                              | 1.0    |
+    | Argabuthon                         | 1.0    |
+    | Arkintoofle Minor                  | 1.0    |
+    |                                    | 1.0    |
+    +------------------------------------+--------+
+    SELECT 11 rows in set (... sec)
+
+
+Filter by :ref:`_score <sql_ddl_system_column_score>`
+.....................................................
+
+It is possible to filter results by the :ref:`_score <sql_ddl_system_column_score>` column
+but as it's value is a ratio related to the highest score of all result and thus never
+absolute and directly comparable across searches its use-case is very limited if any.
+It is only possible to filter by greater-than or greater-equals operator on the
+:ref:`_score <sql_ddl_system_column_score>` column.
+
+Anyway let's do it here for demonstration purpose::
+
+    cr> select name, \"_score\" from locations where match(name_description_ft, 'time')
+    ... and \"_score\" > 0.9
+    +--------+-----------+
+    | name   | _score    |
+    +--------+-----------+
+    | Altair | 0.9204767 |
+    +--------+-----------+
+    SELECT 1 row in set (... sec)
+
+As you maybe noticed, the :ref:`_score <sql_ddl_system_column_score>` value has changed for the
+same query text and document because it's a ratio related to all results,
+and if we limit it by filtering on :ref:`_score <sql_ddl_system_column_score>`,
+we'll have fewer or different results.
+
+.. warning::
+
+  As noted above :ref:`_score <sql_ddl_system_column_score>` is a ratio and not comparable
+  across search so use it only for filtering if you know what you're doing and on your own risk.
+
 Inserting data
 ==============
 

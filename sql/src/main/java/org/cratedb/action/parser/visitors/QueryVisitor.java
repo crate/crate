@@ -9,15 +9,19 @@ import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.OrderByColumnIdx;
 import org.cratedb.action.sql.OrderByColumnName;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.information_schema.InformationSchemaColumn;
+import org.cratedb.information_schema.InformationSchemaTableExecutionContext;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.lucene.search.NotFilter;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.*;
 
 
@@ -74,7 +78,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         stmt.query = rootQuery;
         stmt.xcontent = jsonBuilder.bytes();
 
-        if (stmt.schemaName() != null && stmt.schemaName().equalsIgnoreCase("information_schema")) {
+        if (stmt.isInformationSchemaQuery()) {
             stmt.type(ParsedStatement.ActionType.INFORMATION_SCHEMA);
         } else {
             // only non-information schema queries can be optimized
@@ -108,7 +112,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
     @Override
     public void visit(CursorNode node) throws Exception {
-        visit((SelectNode)node.getResultSetNode());
+        visit((SelectNode) node.getResultSetNode());
 
         if (node.getOrderByList() != null) {
             visit(node.getOrderByList());
@@ -149,6 +153,9 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             jsonBuilder.startObject("query");
             whereClause(node.getWhereClause());
             jsonBuilder.endObject();
+            if (stmt.scoreMinimum != null) {
+                jsonBuilder.field("min_score", stmt.scoreMinimum);
+            }
         }
 
         // only include the version if it was explicitly selected.
@@ -252,8 +259,10 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 } else {
                     raiseUnsupportedSelectFromConstantNode(column);
                 }
-            } else if (columnName.equals("_version")) {
-                stmt.versionSysColumnSelected = true;
+            } else if (column.getExpression().getNodeType() == NodeTypes.SYSTEM_COLUMN_REFERENCE) {
+                if (columnName.equalsIgnoreCase("_version")) {
+                    stmt.versionSysColumnSelected = true;
+                }
             } else if (column.getExpression().getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE) {
                 NestedColumnReference nestedColumnReference =
                     (NestedColumnReference) column.getExpression();
@@ -320,15 +329,9 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
     @Override
     public void visit(ValueNode parentNode, BinaryRelationalOperatorNode node) throws IOException {
-        if (parentNode == null) {
-            rootQuery = queryFromNode(parentNode, node);
-            return;
-        }
-
-        BooleanQuery parentQuery = queryStack.peek();
-        parentQuery.add(
-            queryFromNode(parentNode, node),
-            isAndNode(parentNode) ? BooleanClause.Occur.MUST : BooleanClause.Occur.SHOULD
+        addToLuceneQueryStack(
+            parentNode,
+            queryFromBinaryRelationalOpNode(parentNode, node)
         );
     }
 
@@ -341,7 +344,20 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             .field("null_value", true)
             .endObject().endObject().endObject();
 
-        // TODO: lucene query?
+        if (stmt.isInformationSchemaQuery()) {
+            addToLuceneQueryStack(
+                parentNode,
+                IsNullFilteredQuery(node.getOperand().getColumnName())
+            );
+        }
+    }
+
+    private Query IsNullFilteredQuery(String columnName) {
+        InformationSchemaColumn column =
+            ((InformationSchemaTableExecutionContext) tableContext).fieldMapper().get(columnName);
+
+        Filter isNullFilter = new NotFilter(column.rangeFilter(null, null, true, true));
+        return new FilteredQuery(new MatchAllDocsQuery(), isNullFilter);
     }
 
     @Override
@@ -350,13 +366,18 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         ValueNode left = node.getReceiver();
         ValueNode right = node.getLeftOperand();
 
-        if (left.getNodeType() != NodeTypes.COLUMN_REFERENCE) {
+        if (left.getNodeType() != NodeTypes.COLUMN_REFERENCE
+            && left.getNodeType() !=  NodeTypes.NESTED_COLUMN_REFERENCE) {
             tmp = left;
             left = right;
             right = tmp;
         }
 
+        String columnName = left.getColumnName();
         String like = valueFromNode(right).toString();
+
+        queryPlanner.checkColumn(tableContext, stmt, parentNode, null, columnName, like);
+
         // lucene uses * and ? as wildcard characters
         // but via SQL they are used as % and _
         // here they are converted back.
@@ -369,7 +390,25 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         like = like.replaceAll("\\\\_", "_");
         jsonBuilder.startObject("wildcard").field(left.getColumnName(), like).endObject();
 
-        // TODO: lucene query
+        if (stmt.isInformationSchemaQuery()) {
+            addToLuceneQueryStack(
+                parentNode,
+                new WildcardQuery(new Term(columnName, like))
+            );
+        }
+    }
+
+    private void addToLuceneQueryStack(ValueNode parentNode, Query query) {
+        if (parentNode == null || rootQuery == null) {
+            rootQuery = query;
+            return;
+        }
+
+        BooleanQuery parentQuery = queryStack.peek();
+        parentQuery.add(
+            query,
+            isOrNode(parentNode) ? BooleanClause.Occur.SHOULD : BooleanClause.Occur.MUST
+        );
     }
 
     @Override
@@ -392,6 +431,24 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             jsonBuilder.endArray().endObject();
         } else {
             throw new SQLParseException("Invalid IN clause");
+        }
+
+        if (stmt.isInformationSchemaQuery()) {
+            BooleanQuery query = new BooleanQuery();
+            query.setMinimumNumberShouldMatch(1);
+
+            for (ValueNode valueNode : rightNodes.getNodeList()) {
+
+                query.add(
+                    new TermQuery(new Term(
+                        column.getColumnName(),
+                        BytesRefs.toBytesRef(valueFromNode(valueNode)))
+                    ),
+                    BooleanClause.Occur.SHOULD
+                );
+            }
+
+            addToLuceneQueryStack(parentNode, query);
         }
     }
 
@@ -427,18 +484,41 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     @Override
     protected void visit(ValueNode parentNode, NotNode node) throws Exception {
         jsonBuilder.startObject("bool").startObject("must_not");
-        visit(parentNode, node.getOperand());
+
+        ValueNode parent = parentNode;
+        if (stmt.isInformationSchemaQuery()) {
+            BooleanQuery query = new BooleanQuery();
+            BooleanQuery nestedQuery = new BooleanQuery();
+
+            query.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
+            query.add(nestedQuery, BooleanClause.Occur.MUST_NOT);
+
+            addToLuceneQueryStack(parentNode, query);
+            queryStack.add(nestedQuery);
+
+            // if this is beneath a AndNode or OrNode persist the correct parent
+            // but if this is the first node the rootQuery shouldn't be overwritten
+            // because the above BooleanQuery became the rootQuery.
+            if (parent == null) {
+                parent = node;
+            }
+        }
+
+        visit(parent, node.getOperand());
+
+        if (stmt.isInformationSchemaQuery()) {
+            queryStack.pop();
+        }
+
         jsonBuilder.endObject().endObject();
 
-        // TODO lucene query
     }
 
-
-    private boolean isAndNode(ValueNode node) {
-        return node.getNodeType() == NodeTypes.AND_NODE;
+    private boolean isOrNode(ValueNode node) {
+        return node.getNodeType() == NodeTypes.OR_NODE;
     }
 
-    private Query queryFromNode(ValueNode parentNode, BinaryRelationalOperatorNode node) throws IOException {
+    private Query queryFromBinaryRelationalOpNode(ValueNode parentNode, BinaryRelationalOperatorNode node) throws IOException {
         int operator = node.getOperatorType();
         String columnName;
         Object value;
@@ -452,36 +532,79 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             value = valueFromNode(node.getLeftOperand());
         }
 
+        // currently the lucene queries are only used for information schema queries.
+        // therefore for non-information-schema-queries just the xcontent query is built.
+
+        if (stmt.isInformationSchemaQuery()) {
+            return buildLuceneQuery(operator, columnName, value);
+        }
+
         if  (queryPlanner.checkColumn(tableContext, stmt, parentNode, operator, columnName, value)) {
             // _version column that shouldn't be included in the query
             // this is kind of like:
             //      where pk_col = 1 and 1 = 1
             jsonBuilder.field("match_all", new HashMap<>());
-            return new MatchAllDocsQuery();
+            return null;
         }
 
+        if (columnName.equalsIgnoreCase("_score")) {
+            if (operator != BinaryRelationalOperatorNode.GREATER_THAN_RELOP
+                    && operator != BinaryRelationalOperatorNode.GREATER_EQUALS_RELOP) {
+                throw new SQLParseException("Filtering by _score can only be done using a " +
+                        "greater-than or greater-equals operator");
+            }
+            stmt.scoreMinimum = (BigDecimal)value;
+            jsonBuilder.field("match_all", new HashMap<>());
+            return null;
+        }
+
+        switch (operator) {
+            case BinaryRelationalOperatorNode.EQUALS_RELOP:
+                jsonBuilder.startObject("term").field(columnName, value).endObject();
+                break;
+            case BinaryRelationalOperatorNode.NOT_EQUALS_RELOP:
+                jsonBuilder.startObject("bool").startObject("must_not")
+                    .startObject("term").field(columnName, value).endObject()
+                    .endObject().endObject();
+                break;
+            case BinaryRelationalOperatorNode.LESS_THAN_RELOP:
+            case BinaryRelationalOperatorNode.LESS_EQUALS_RELOP:
+            case BinaryRelationalOperatorNode.GREATER_THAN_RELOP:
+            case BinaryRelationalOperatorNode.GREATER_EQUALS_RELOP:
+                jsonBuilder.startObject("range")
+                    .startObject(columnName).field(rangeQueryOperatorMap.get(operator), value).endObject()
+                    .endObject();
+                break;
+            default:
+                throw new SQLParseException("Unhandled operator " + operator);
+        }
+
+        return null;
+    }
+
+    private Query buildLuceneQuery(int operator, String columnName, Object value) {
         Object from = null;
         Object to = null;
         boolean includeLower = false;
         boolean includeUpper = false;
 
+        InformationSchemaColumn column =
+            ((InformationSchemaTableExecutionContext)tableContext).fieldMapper().get(columnName);
+
         switch (operator) {
             case BinaryRelationalOperatorNode.EQUALS_RELOP:
-                jsonBuilder.startObject("term").field(columnName, value).endObject();
-                return new TermQuery(new Term(columnName, BytesRefs.toBytesRef(value)));
+                if (column.type == SortField.Type.STRING) {
+                    return new TermQuery(new Term(columnName, value.toString()));
+                } else {
+                    return column.rangeQuery(value, value, true, true);
+                }
             case BinaryRelationalOperatorNode.NOT_EQUALS_RELOP:
-                jsonBuilder.startObject("bool").startObject("must_not")
-                    .startObject("term").field(columnName, value).endObject()
-                    .endObject().endObject();
-
                 BooleanQuery matchAllAndNot = new BooleanQuery();
-                BooleanQuery notQuery = new BooleanQuery();
-                notQuery.add(
-                    new TermQuery(new Term(columnName, BytesRefs.toBytesRef(value))),
+                matchAllAndNot.add(
+                    buildLuceneQuery(BinaryRelationalOperatorNode.EQUALS_RELOP, columnName, value),
                     BooleanClause.Occur.MUST_NOT
                 );
                 matchAllAndNot.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
-                matchAllAndNot.add(notQuery, BooleanClause.Occur.MUST);
                 return matchAllAndNot;
             case BinaryRelationalOperatorNode.LESS_THAN_RELOP:
                 to = value;
@@ -503,35 +626,13 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 throw new SQLParseException("Unhandled operator " + operator);
         }
 
-        jsonBuilder.startObject("range")
-            .startObject(columnName).field(rangeQueryOperatorMap.get(operator), value).endObject()
-            .endObject();
-
-        // TODO:
-        // FieldMappers fieldMappers = documentFieldMappers.smartName(columnName);
-        // if (fieldMappers != null) {
-        //     return fieldMappers.mapper().rangeQuery(
-        //         from, to, includeLower, includeUpper, null
-        //     );
-        // }
-        return new TermRangeQuery(
-            columnName, BytesRefs.toBytesRef(from), BytesRefs.toBytesRef(to),
-            includeLower, includeUpper
-        );
+        return column.rangeQuery(from, to, includeLower, includeUpper);
     }
 
     private BooleanQuery newBoolNode(ValueNode parentNode) {
         BooleanQuery query = new BooleanQuery();
         query.setMinimumNumberShouldMatch(1);
-
-        if (rootQuery == null) {
-            rootQuery = query;
-        } else {
-            BooleanQuery parentQuery = queryStack.peek();
-            parentQuery.add(query,
-                isAndNode(parentNode) ? BooleanClause.Occur.MUST : BooleanClause.Occur.SHOULD
-            );
-        }
+        addToLuceneQueryStack(parentNode, query);
 
         return query;
     }
@@ -551,5 +652,13 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         }
     }
 
+    @Override
+    public void visit(ValueNode parentNode, MatchFunctionNode node) throws Exception {
+        ColumnReference columnReference = node.getColumnReference();
+        String query = (String)valueFromNode(node.getQueryText());
+        jsonBuilder.startObject("match")
+                .field(columnReference.getColumnName(), query)
+                .endObject();
+    }
 
 }

@@ -12,6 +12,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 public class ParsedStatement {
@@ -34,6 +35,7 @@ public class ParsedStatement {
     public IndexRequest[] indexRequests;
 
     public Long versionFilter;
+    public BigDecimal scoreMinimum;
     public String stmt;
     public Query query;
 
@@ -72,6 +74,10 @@ public class ParsedStatement {
 
     public ImmutableMap<String, Object> indexSettings;
     public ImmutableMap<String, Object> indexMapping;
+
+    public boolean isInformationSchemaQuery() {
+        return schemaName() != null && schemaName().equalsIgnoreCase("information_schema");
+    }
 
     public static enum ActionType {
         SEARCH_ACTION,

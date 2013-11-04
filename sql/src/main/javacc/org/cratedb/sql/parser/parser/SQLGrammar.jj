@@ -92,7 +92,8 @@ class SQLGrammar
     /**
      * SYSTEM COLUMN NAMES
      */
-    private static final List<String> SYSTEM_COLUMN_NAMES = Arrays.asList(new String[]{"_version", "_ttl"});
+    private static final List<String> SYSTEM_COLUMN_NAMES =
+            Arrays.asList(new String[]{"_version", "_ttl", "_score"});
 
     /* SAVEPOINT variations */
     // TODO: I think these should be constants in the savepoint node. ***
@@ -523,6 +524,22 @@ class SQLGrammar
         case XMLEXISTS:
         case XMLQUERY:
         case EXTRACT:
+            break;
+        default:
+            return false;
+        }
+        return (getToken(2).kind == LEFT_PAREN);
+    }
+
+    /**
+     * Determine whether the next tokens are a call to one of the
+     * functions in functionExpressionFollows().
+     */
+    private boolean functionExpressionFollows() {
+        // NOTE: If you add rule to functionExpressionFollows(), you must add the
+        // appropriate token(s) here.
+        switch (getToken(1).kind) {
+        case MATCH:
             break;
         default:
             return false;
@@ -2448,6 +2465,7 @@ TOKEN [IGNORE_CASE] :
 {
   <FLOAT: "float">
 | <FULLTEXT: "fulltext">
+| <PLAIN: "plain">
 | <ANALYZER: "analyzer">
 | <TOKENIZER: "tokenizer">
 | <TOKEN_FILTERS: "token_filters">
@@ -6770,10 +6788,54 @@ miscBuiltins() throws StandardException :
     {
         return value;
     }
-|    
+|
+    LOOKAHEAD( { functionExpressionFollows() } )
+    value = functionExpression()
+    {
+        return value;
+    }
+|
     value = routineInvocation()
     {
         return value;
+    }
+}
+
+ValueNode
+functionExpression() throws StandardException :
+{
+    ValueNode value;
+}
+{
+    value = matchFunctionExpression()
+    {
+        return value;
+    }
+
+}
+
+ValueNode
+matchFunctionExpression() throws StandardException :
+{
+    ColumnReference columnReference;
+    ValueNode queryText;
+}
+{
+    <MATCH>
+    <LEFT_PAREN>
+        columnReference = columnReference()
+        <COMMA>
+        (
+            queryText = stringLiteral()
+        |
+            queryText = dynamicParameterSpecification()
+        )
+    <RIGHT_PAREN>
+    {
+        return (ValueNode)nodeFactory.getNode(NodeTypes.MATCH_FUNCTION_NODE,
+                                              columnReference,
+                                              queryText,
+                                              parserContext);
     }
 }
 
@@ -10688,7 +10750,11 @@ indexMethod() throws StandardException :
     Token tok = null;
 }
 {
-    tok = <FULLTEXT>
+    (
+        tok = <FULLTEXT>
+    |
+        tok = <PLAIN>
+    )
     {
         return tok.image;
     }
@@ -13214,7 +13280,7 @@ columnIndexConstraintDefinition(TableName constraintName, String columnName) thr
         <USING>
         indexMethod = indexMethod()
         [
-            LOOKAHEAD({getToken(2).kind != _DEFAULT}) // prevent collision with defaultClause()
+            LOOKAHEAD({getToken(1).kind == WITH && getToken(2).kind != _DEFAULT}) // prevent collision with defaultClause()
             <WITH>
             <LEFT_PAREN>
                 indexProperties = genericProperties()

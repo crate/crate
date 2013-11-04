@@ -12,7 +12,7 @@ public class SQLService extends AbstractLifecycleComponent<SQLService> {
     private final TransportSQLReduceHandler transportSQLReduceHandler;
     private final TransportDistributedSQLAction transportDistributedSQLAction;
 
-    public static final String CUSTOM_ANALYZER_SETTINGS_PREFIX = "crate.analyzer.custom";
+    public static final String CUSTOM_ANALYSIS_SETTINGS_PREFIX = "crate.analysis.custom";
 
     @Inject
     public SQLService(Settings settings,
