@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Table index definition documentation overhaul
+
+ - bugfix: the `LIKE` operand now also works on nested columns
+
 2013/11/01 0.18.1
 =================
 
@@ -19,7 +23,7 @@ Unreleased
 
  - Added fulltext search support
 
- - Added support for index constraints on table creation
+ - Added support for indices on table creation
  
  - Implemented ``CREATE ANALYZER`` to create custom analyzers for fulltext-search
 

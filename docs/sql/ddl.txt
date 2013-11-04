@@ -47,120 +47,6 @@ data is inserted, otherwise an error is returned.
 
   Multiple primary keys are not supported yet.
 
-.. _sql_ddl_index_definition:
-
-Index
------
-
-At Crate, every column's data is plain indexed by default.
-
-.. _sql_ddl_index_off:
-
-Disable indexing
-................
-
-Indexing can be turned off by using the ``INDEX OFF`` constraint.
-Without an index the column can never be hit by a query, and is only available as a result
-column::
-
-    cr> create table my_table1b (
-    ...   first_column string INDEX OFF
-    ... )
-    CREATE OK (... sec)
-
-.. _sql_ddl_index_plain:
-
-Plain index (Default)
-.....................
-
-Using a plain index can also declared explicit::
-
-    cr> create table my_table1b1 (
-    ...   first_column string INDEX using plain
-    ... )
-    CREATE OK (... sec)
-
-Which results in the same behaviour than without any index declaration::
-
-    cr> create table my_table1b2 (
-    ...   first_column string
-    ... )
-    CREATE OK (... sec)
-
-
-.. _sql_ddl_index_fulltext:
-
-Fulltext index with analyzer
-............................
-
-By defining an index on a column, it's analyzed data is indexed instead of the raw data.
-Thus, depending on the used analyzer, querying for the exact data may not work anymore.
-See :ref:`builtin-analyzer` for details about available builtin analyzer or `Create custom
-analyzer`_.
-
-If no analyzer is specified using a fulltext index, the :ref:`standard <standard-analyzer>`
-analyzer is used::
-
-    cr> create table my_table1c (
-    ...   first_column string INDEX using fulltext
-    ... )
-    CREATE OK (... sec)
-
-
-Defining the usage of a concrete analyzer is straight forward by defining the analyzer as a
-parameter using the ``WITH`` statement::
-
-    cr> create table my_table1d (
-    ...   first_column string INDEX using fulltext with(analyzer='english')
-    ... )
-    CREATE OK (... sec)
-
-
-.. note:
-
-    ``fulltext`` and ``plain`` are the only indexing methods supported right now.
-
-
-Defining a named index column definition
-........................................
-
-It's also possible to define an index column which treat the data of a given column as input.
-This is especially useful if you want to search for both, the exact and analyzed data::
-
-    cr> create table my_table1e (
-    ...   first_column string,
-    ...   INDEX first_column_ft using fulltext(first_column)
-    ... )
-    CREATE OK (... sec)
-
-Of course defining a custom analyzer is possible here too::
-
-    cr> create table my_table1f (
-    ...   first_column string,
-    ...   INDEX first_column_ft using fulltext(first_column) with(analyzer='english')
-    ... )
-    CREATE OK (... sec)
-
-Defining a composite index
-..........................
-
-Defining a composite (or combined) index is done using the same syntax as above despite multiple
-columns are given to the ``fulltext`` index method::
-
-    cr> create table documents (
-    ...   title string,
-    ...   body string,
-    ...   INDEX title_body_ft using fulltext(title, body) with(analyzer='english')
-    ... )
-    CREATE OK (... sec)
-
-
-
-.. warning::
-
-    Creating a column index/analysis after a table was already created is currently not
-    supported, so think carefully while designing your table definition.
-
 Data Types
 ==========
 
@@ -292,12 +178,128 @@ Example::
 Indices and fulltext search
 ============================
 
-Fulltext indices take the contents of one or more fields and split it up into tokens that are used for fulltext-search.
-The transformation from a text to separate tokens is done by an analyzer.
-In order to create fulltext search queries a
+Fulltext indices take the contents of one or more fields and split it up into tokens that are
+used for fulltext-search. The transformation from a text to separate tokens is done by an
+analyzer. In order to create fulltext search queries a
 :ref:`fulltext index with an analyzer <sql_ddl_index_fulltext>` must be defined for the related
 columns.
-See :ref:`Index definition <sql_ddl_index_definition>` for general index creation information.
+
+.. _sql_ddl_index_definition:
+
+Index Definition
+----------------
+
+At Crate, every column's data is indexed using the ``plain`` index method by default.
+Currently 3 choices related to index definition exists:
+
+  - `Disable indexing`_
+
+  - `Plain index (Default)`_
+
+  - `Fulltext index with analyzer`_
+
+.. warning::
+
+    Creating an index after a table was already created is currently not supported,
+    so think carefully while designing your table definition.
+
+
+.. _sql_ddl_index_off:
+
+Disable indexing
+................
+
+Indexing can be turned off by using the ``INDEX OFF`` column definition.
+Without an index the column can never be hit by a query, and is only available as a result
+column::
+
+    cr> create table my_table1b (
+    ...   first_column string INDEX OFF
+    ... )
+    CREATE OK (... sec)
+
+
+.. _sql_ddl_index_plain:
+
+Plain index (Default)
+.....................
+
+An index of type ``plain`` is indexing the input data as-is without analyzing.
+Using the ``plain`` index method is the default behaviour but can also be declared explicitly::
+
+    cr> create table my_table1b1 (
+    ...   first_column string INDEX using plain
+    ... )
+    CREATE OK (... sec)
+
+This results in the same behaviour than without any index declaration::
+
+    cr> create table my_table1b2 (
+    ...   first_column string
+    ... )
+    CREATE OK (... sec)
+
+
+.. _sql_ddl_index_fulltext:
+
+Fulltext index with analyzer
+............................
+
+By defining an index on a column, it's analyzed data is indexed instead of the raw data.
+Thus, depending on the used analyzer, querying for the exact data may not work anymore.
+See :ref:`builtin-analyzer` for details about available builtin analyzer or `Create custom
+analyzer`_.
+
+If no analyzer is specified using a fulltext index, the :ref:`standard <standard-analyzer>`
+analyzer is used::
+
+    cr> create table my_table1c (
+    ...   first_column string INDEX using fulltext
+    ... )
+    CREATE OK (... sec)
+
+Defining the usage of a concrete analyzer is straight forward by defining the analyzer as a
+parameter using the ``WITH`` statement::
+
+    cr> create table my_table1d (
+    ...   first_column string INDEX using fulltext with(analyzer='english')
+    ... )
+    CREATE OK (... sec)
+
+
+Defining a named index column definition
+........................................
+
+It's also possible to define an index column which treat the data of a given column as input.
+This is especially useful if you want to search for both, the exact and analyzed data::
+
+    cr> create table my_table1e (
+    ...   first_column string,
+    ...   INDEX first_column_ft using fulltext(first_column)
+    ... )
+    CREATE OK (... sec)
+
+Of course defining a custom analyzer is possible here too::
+
+    cr> create table my_table1f (
+    ...   first_column string,
+    ...   INDEX first_column_ft using fulltext(first_column) with(analyzer='english')
+    ... )
+    CREATE OK (... sec)
+
+
+Defining a composite index
+..........................
+
+Defining a composite (or combined) index is done using the same syntax as above despite multiple
+columns are given to the ``fulltext`` index method::
+
+    cr> create table documents (
+    ...   title string,
+    ...   body string,
+    ...   INDEX title_body_ft using fulltext(title, body) with(analyzer='english')
+    ... )
+    CREATE OK (... sec)
 
 
 Create custom analyzer
@@ -312,9 +314,10 @@ Tokenizers split the possibly filtered stream of characters into tokens.
 
 Token-filters can add tokens, delete tokens or transform them.
 
-With these elements in place, analyzer provide finegrained control over building a token stream used for fulltext search.
-e.G. you can use language specific analyzers, tokenizers and token-filters to get property search results for data
- provided in a certain language.
+With these elements in place, analyzer provide finegrained control over building a token stream
+used for fulltext search.
+For example you can use language specific analyzers, tokenizers and token-filters to get property
+search results for data provided in a certain language.
 
 
 
@@ -351,7 +354,8 @@ Create Analyzer Syntax::
         ]
     )
 
-Multiple char filters and token filters are allowed but at maximum one tokenizer. Order does not matter.
+Multiple char filters and token filters are allowed but at maximum one tokenizer.
+Order does not matter.
 A simple Example::
 
     cr> create ANALYZER myanalyzer (
@@ -370,14 +374,16 @@ A simple Example::
     ... )
     CREATE OK (... sec)
 
-This example creates an analyzer called ``myanalyzer`` to be used in index-definitions and index-constraints.
+This example creates an analyzer called ``myanalyzer`` to be used in index-definitions and
+index-constraints.
 It will use a :ref:`whitespace-tokenizer` tokenizer, a :ref:`lowercase-tokenfilter` token-filter
 and a :ref:`kstem-tokenfilter` token-filter, a :ref:`htmlstrip-charfilter` char-filter
 and a custom char-filter that extends the :ref:`mapping-charfilter` char-filter.
 
 You can use :ref:`builtin-tokenizer`, :ref:`builtin-token-filter` and :ref:`builtin-char-filter`
 by just writing their names and you can extend and parameterize them,
-see for example the ``mymapping`` char-filter above. You have to give these extended ones a unique name.
+see for example the ``mymapping`` char-filter above. You have to give these extended ones a
+unique name.
 
 Custom tokenizers, token-filters and char-filters can be reused in other analyzer-definitions,
 but cannot be further extended, this is only possible for builtin ones.
@@ -397,7 +403,8 @@ You can extend and parameterize :ref:`builtin-analyzer` like this::
 If you extend :ref:`builtin-analyzer`, tokenizer, char-filter or token-filter cannot be defined.
 In this case use the parameters available for the extended :ref:`builtin-analyzer`.
 
-If you extend custom-analyzers, every part of the analyzer that is ommitted will be taken from the extended one.
+If you extend custom-analyzers, every part of the analyzer that is ommitted will be taken from
+the extended one.
 Example::
 
     cr> create ANALYZER e2 EXTENDS myanalyzer (

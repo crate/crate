@@ -9,9 +9,9 @@ Builtin Tools for fulltext search in Crate
 Overview
 ========
 
-Analyzers are used for creating fulltext-indexes they take the content of a field and split it into tokens,
-which are then searched. Analyzers filter, reorder and/or transform the content of a field before it becomes the
-final stream of tokens.
+Analyzers are used for creating fulltext-indexes. They take the content of a field and split it
+into tokens, which are then searched. Analyzers filter, reorder and/or transform the content of
+a field before it becomes the final stream of tokens.
 
 An analyzer consists of one tokenizer, zero or more token-filters, and zero or more char-filters.
 
@@ -22,9 +22,9 @@ Tokenizers split the possibly filtered stream of characters into tokens.
 
 Token-filters can add tokens, delete tokens or transform them.
 
-With these elements in place, analyzer provide finegrained control over building a token stream used for fulltext search.
-e.G. you can use language specific analyzers, tokenizers and token-filters to get property search results for data
- provided in a certain language.
+With these elements in place, analyzer provide fine-grained control over building a token stream
+used for fulltext search. For example you can use language specific analyzers,
+tokenizers and token-filters to get proper search results for data provided in a certain language.
 
 Below the builtin analyzers, tokenizers, token-filters and char-filters are listed.
 They can be used as is or can be extended. See :ref:`fulltext-indices`.
@@ -46,8 +46,9 @@ An analyzer of type standard is built using the :ref:`standard-tokenizer` Tokeni
 with the :ref:`standard-tokenfilter` Token Filter,
 :ref:`lowercase-tokenfilter` Token Filter, and :ref:`stop-tokenfilter` Token Filter.
 
-Lowercases all Tokens, excludes english stopwords (common words you usually don't search for like 'the', 'and', 'a' etc.) and
-excludes tokens longer than 255 characters. Tokens are built using a grammar-based approach which is suited for most european language.
+Lowercase all Tokens, excludes english stopwords (common words you usually don't search for
+like 'the', 'and', 'a' etc.) and excludes tokens longer than 255 characters. Tokens are built
+using a grammar-based approach which is suited for most european language.
 
 Example::
 
@@ -57,10 +58,12 @@ Parameters
 ..........
 
 stopwords
-    A list of stopwords to initialize the :ref:`stop-tokenfilter` filter with. Defaults to the english stop words.
+    A list of stopwords to initialize the :ref:`stop-tokenfilter` filter with. Defaults to the
+    english stop words.
 
 max_token_length
-    The maximum token length. If a token is seen that exceeds this length then it is discarded. Defaults to ``255``.
+    The maximum token length. If a token is seen that exceeds this length then it is discarded.
+    Defaults to ``255``.
 
 
 .. _simple-analyzer:
@@ -96,7 +99,8 @@ Parameters
 ..........
 
 stopwords
-    A list of stopwords to initialize the :ref:'stop-tokenfilter` filter with. Defaults to the english stop words.
+    A list of stopwords to initialize the :ref:'stop-tokenfilter` filter with. Defaults to the
+    english stop words.
 
 stopwords_path
     A path (either relative to config location, or absolute) to a stopwords file configuration.
@@ -137,7 +141,8 @@ flags
 
     The regular expression should match the token separators, not the tokens themselves.
 
-Flags should be pipe-separated, eg ``CASE_INSENSITIVE|COMMENTS``. Check `Java Pattern API`_ for more details about flags options.
+Flags should be pipe-separated, eg ``CASE_INSENSITIVE|COMMENTS``. Check `Java Pattern API`_ for
+more details about flags options.
 
 
 .. _language-analyzer:
@@ -147,7 +152,7 @@ language
 
 ``type='<language-name>'``
 
-The following types are supported:
+| The following types are supported:
 ``arabic``, ``armenian``, ``basque``, ``brazilian``, ``bulgarian``, ``catalan``,
 ``chinese``, ``cjk``, ``czech``, ``danish``, ``dutch``, ``english``, ``finnish``,
 ``french``, ``galician``, ``german``, ``greek``, ``hindi``, ``hungarian``, ``indonesian``,
@@ -163,10 +168,11 @@ stopwords
 stopwords_path
     A path (either relative to config location, or absolute) to a stopwords file configuration.
 
-The following analyzers support setting custom ``stem_exclusion`` list:
-``arabic``, ``armenian``, ``basque``, ``brazilian``, ``bulgarian``, ``catalan``, ``czech``, ``danish``, ``dutch``,
-``english``, ``finnish``, ``french``, ``galician``, ``german``, ``hindi``, ``hungarian``,
-``indonesian``, ``italian``, ``norwegian``, ``portuguese``, ``romanian``, ``russian``, ``spanish``, ``swedish``, ``turkish``.
+| The following analyzers support setting custom ``stem_exclusion`` list:
+``arabic``, ``armenian``, ``basque``, ``brazilian``, ``bulgarian``, ``catalan``, ``czech``,
+``danish``, ``dutch``, ``english``, ``finnish``, ``french``, ``galician``, ``german``,
+``hindi``, ``hungarian``, ``indonesian``, ``italian``, ``norwegian``, ``portuguese``,
+``romanian``, ``russian``, ``spanish``, ``swedish``, ``turkish``.
 
 
 .. _snowball-analyzer:
@@ -177,7 +183,8 @@ snowball
 ``type='snowball'``
 
 Uses the :ref:`standard-tokenizer` Tokenizer, with :ref:`standard-tokenfilter` filter,
-:ref:`lowercase-tokenfilter` filter, :ref:`stop-tokenfilter` filter, and :ref:`snowball-tokenfilter` filter.
+:ref:`lowercase-tokenfilter` filter, :ref:`stop-tokenfilter` filter,
+and :ref:`snowball-tokenfilter` filter.
 
 Parameters
 ..........
@@ -202,14 +209,16 @@ standard
 
 ``type='standard'``
 
-A tokenizer of type standard providing grammar based tokenizer that is a good tokenizer for most European language documents.
-The tokenizer implements the Unicode Text Segmentation algorithm, as specified in Unicode Standard Annex #29.
+A tokenizer of type standard providing a grammar based tokenizer, which is a good tokenizer for
+most European language documents. The tokenizer implements the Unicode Text Segmentation
+algorithm, as specified in Unicode Standard Annex #29.
 
 Parameters
 ..........
 
 max_token_length
-    The maximum token length. If a token is seen that exceeds this length then it is discarded. Defaults to ``255``.
+    The maximum token length. If a token is seen that exceeds this length then it is discarded.
+    Defaults to ``255``.
 
 .. _edgengram-tokenizer:
 
@@ -218,7 +227,8 @@ edgeNGram
 
 ``type='edgeNGram'``
 
-This tokenizer is very similar to :ref:`ngram-tokenizer` but only keeps n-grams which start at the beginning of a token.
+This tokenizer is very similar to :ref:`ngram-tokenizer` but only keeps n-grams which start at
+the beginning of a token.
 
 Parameters
 ..........
@@ -230,7 +240,8 @@ max_gram
     Maximum size in codepoints of a single n-gram. default: 2
 
 token_chars
-    Characters classes to keep in the tokens, will split on characters that don’t belong to any of these classes. default: [] (Keep all characters).
+    Characters classes to keep in the tokens, will split on characters that don’t belong to any
+    of these classes. default: [] (Keep all characters).
 
     **Classes:** letter, digit, whitespace, punctuation, symbol
 
@@ -287,7 +298,8 @@ max_gram
     Maximum size in codepoints of a single n-gram. default 2.
 
 token_chars
-    Characters classes to keep in the tokens, will split on characters that don’t belong to any of these classes. default: [] (Keep all characters).
+    Characters classes to keep in the tokens, will split on characters that don’t belong to any
+    of these classes. default: [] (Keep all characters).
 
     **Classes:** letter, digit, whitespace, punctuation, symbol
 
@@ -327,7 +339,8 @@ group
 
     The regular expression should match the token separators, not the tokens themselves.
 
-Flags should be pipe-separated, eg ``CASE_INSENSITIVE|COMMENTS``. Check `Java Pattern API`_ for more details about flags options.
+Flags should be pipe-separated, eg ``CASE_INSENSITIVE|COMMENTS``. Check `Java Pattern API`_ for
+more details about flags options.
 
 
 .. _uaxemailurl-tokenizer:
@@ -343,7 +356,8 @@ Parameters
 ..........
 
 max_token_length
-    The maximum token length. If a token is seen that exceeds this length then it is discarded. Defaults to ``255``.
+    The maximum token length. If a token is seen that exceeds this length then it is discarded.
+    Defaults to ``255``.
 
 
 .. _pathhierarchy-tokenizer:
@@ -492,8 +506,8 @@ Transforms the token stream as per the Porter stemming algorithm.
 .. note::
 
     The input to the stemming filter must already be in lower case,
-    so you will need to use Lower Case Token Filter or Lower Case Tokenizer farther down the Tokenizer chain
-    in order for this to work properly!. For example, when using custom analyzer,
+    so you will need to use Lower Case Token Filter or Lower Case Tokenizer farther down the
+    Tokenizer chain in order for this to work properly! For example, when using custom analyzer,
     make sure the lowercase filter comes before the porterStem filter in the list of filters.
 
 
@@ -516,11 +530,13 @@ min_shingle_sizes
     The minimum shingle size. Defaults to 2.
 
 output_unigrams
-    If true the output will contain the input tokens (unigrams) as well as the shingles. Defaults to true.
+    If true the output will contain the input tokens (unigrams) as well as the shingles.
+    Defaults to true.
 
 output_unigrams_if_no_shingles
-    If output_unigrams is false the output will contain the input tokens (unigrams) if no shingles are available.
-    Note if output_unigrams is set to true this setting has no effect. Defaults to false.
+    If output_unigrams is false the output will contain the input tokens (unigrams) if no
+    shingles are available. Note if output_unigrams is set to true this setting has no effect.
+    Defaults to false.
 
 token_separator
     The string to use when joining adjacent tokens to form a shingle. Defaults to " ".
@@ -543,15 +559,15 @@ stopwords
 
 stopwords_path
     A path (either relative to config location, or absolute) to a stopwords file configuration.
-    Each stop word should be in its own "line" (separated by a line break). The file must be UTF-8 encoded.
+    Each stop word should be in its own "line" (separated by a line break). The file must be
+    UTF-8 encoded.
 
 ignore_case
     Set to true to lower case all words first. Defaults to false.
 
 remove_trailing
     Set to false in order to not ignore the last term of a search if it is a stop word.
-    This is very useful for the completion suggester as a query like green a can be extended to green apple
-    even though you remove stop words in general. Defaults to true
+    Defaults to true
 
 
 .. _worddelimiter-tokenfilter:
@@ -573,29 +589,38 @@ generate_number_parts
     If true causes number subwords to be generated: "500-42" ⇒ "500" "42". Defaults to true.
 
 catenate_words
-    If true causes maximum runs of word parts to be catenated: "wi-fi" ⇒ "wifi". Defaults to false.
+    If true causes maximum runs of word parts to be catenated: "wi-fi" ⇒ "wifi". Defaults to
+    false.
 
 catenate_numbers
-    If true causes maximum runs of number parts to be catenated: "500-42" ⇒ "50042". Defaults to false.
+    If true causes maximum runs of number parts to be catenated: "500-42" ⇒ "50042". Defaults to
+    false.
 
 catenate_all
-    If true causes all subword parts to be catenated: "wi-fi-4000" ⇒ "wifi4000". Defaults to false.
+    If true causes all subword parts to be catenated: "wi-fi-4000" ⇒ "wifi4000". Defaults to
+    false.
 
 split_on_case_change
-    If true causes "PowerShot" to be two tokens; ("Power-Shot" remains two parts regards). Defaults to true.
+    If true causes "PowerShot" to be two tokens; ("Power-Shot" remains two parts regards).
+    Defaults to true.
 
 preserve_original
-    If true includes original words in subwords: "500-42" ⇒ "500-42" "500" "42". Defaults to false.
+    If true includes original words in subwords: "500-42" ⇒ "500-42" "500" "42". Defaults to
+    false.
 
 split_on_numerics
     If true causes "j2se" to be three tokens; "j" "2" "se". Defaults to true.
 
 stem_english_possessive
-    If true causes trailing "'s" to be removed for each subword: "O’Neil’s" ⇒ "O", "Neil". Defaults to true.
+    If true causes trailing "'s" to be removed for each subword: "O’Neil’s" ⇒ "O", "Neil".
+    Defaults to true.
 
 protected_words
-    A list of protected words from being delimiter. Either an array, or also can set ``protected_words_path``
-    which resolved to a file configured with protected words (one on each line). Automatically resolves to config/ based location if exists.
+    A list of words protected from being delimiter.
+
+protected_words_path
+    A relative or absolute path to a file configured with protected words (one on each line).
+    If relative, automatically resolves to ``config/`` based location if exists.
 
 type_table
     A custom type mapping table
@@ -618,8 +643,8 @@ language/name
     finnish, french, german, german2, greek, hungarian, italian, kp, kstem, lovins, latvian,
     norwegian, minimal_norwegian, porter, portuguese, romanian, russian, spanish, swedish,
     turkish, minimal_english, possessive_english, light_finnish, light_french, minimal_french,
-    light_german, minimal_german, hindi, light_hungarian, indonesian, light_italian, light_portuguese,
-    minimal_portuguese, portuguese, light_russian, light_spanish, light_swedish.
+    light_german, minimal_german, hindi, light_hungarian, indonesian, light_italian,
+    light_portuguese, minimal_portuguese, portuguese, light_russian, light_spanish, light_swedish.
 
 
 .. _keywordmarker-tokenfilter:
@@ -651,9 +676,10 @@ keyword repeat
 
 ``type='keyword_repeat'``
 
-Emits each incoming token twice once as keyword and once as a non-keyword to allow an un-stemmed version of a term
-to be indexed side by side to the stemmed version of the term.
-Given the nature of this filter each token that isn’t transformed by a subsequent stemmer will be indexed twice.
+Emits each incoming token twice once as keyword and once as a non-keyword to allow an un-stemmed
+version of a term to be indexed side by side to the stemmed version of the term.
+Given the nature of this filter each token that isn’t transformed by a subsequent stemmer will
+be indexed twice.
 
 
 .. _kstem-tokenfilter:
@@ -664,7 +690,8 @@ kstem
 ``type='kstem'``
 
 High performance filter for english.
-All terms must already be lowercased (use :ref:`lowercase-tokenfilter` filter) for this filter to work correctly.
+All terms must already be lowercased (use :ref:`lowercase-tokenfilter` filter) for this filter
+to work correctly.
 
 
 .. _snowball-tokenfilter:
@@ -680,8 +707,9 @@ Parameters
 ..........
 
 language
-    Possible values: Armenian, Basque, Catalan, Danish, Dutch, English, Finnish, French, German, German2, Hungarian,
-    Italian, Kp, Lovins, Norwegian, Porter, Portuguese, Romanian, Russian, Spanish, Swedish, Turkish.
+    Possible values: Armenian, Basque, Catalan, Danish, Dutch, English, Finnish, French, German,
+    German2, Hungarian, Italian, Kp, Lovins, Norwegian, Porter, Portuguese, Romanian, Russian,
+    Spanish, Swedish, Turkish.
 
 .. _phonetic-tokenfilter:
 
@@ -698,7 +726,8 @@ synonym
 
 ``type='synonym'``
 
-Allows to easily handle synonyms during the analysis process. Synonyms are configured using a configuration file.
+Allows to easily handle synonyms during the analysis process. Synonyms are configured using a
+configuration file.
 
 Parameters
 ..........
@@ -834,7 +863,8 @@ pattern
     Regular expression whose matches will be replaced.
 
 replacement
-    The replacement, can reference the original text with ``$1``-like (the first matched group) references.
+    The replacement, can reference the original text with ``$1``-like (the first matched group)
+    references.
 
 
 .. _trim-tokenfilter:
@@ -861,7 +891,8 @@ max_token_count
     The maximum number of tokens that should be indexed per document and field. The default is 1
 
 consume_all_tokens
-    If set to true the filter exhaust the stream even if max_token_count tokens have been consumed already. The default is false.
+    If set to true the filter exhaust the stream even if max_token_count tokens have been
+    consumed already. The default is false.
 
 .. _hunspell-tokenfilter:
 
@@ -871,9 +902,11 @@ hunspell
 ``type='hunspell'``
 
 Basic support for hunspell stemming.
-Hunspell dictionaries will be picked up from a dedicated hunspell directory on the filesystem (defaults to <path.conf>/hunspell).
+Hunspell dictionaries will be picked up from a dedicated hunspell directory on the filesystem
+(defaults to <path.conf>/hunspell).
 Each dictionary is expected to have its own directory named after its associated locale (language).
-This dictionary directory is expected to hold both the *.aff and \*.dic files (all of which will automatically be picked up).
+This dictionary directory is expected to hold both the *.aff and \*.dic files (all of which will
+automatically be picked up).
 
 Parameters
 ..........
@@ -882,10 +915,12 @@ ignore_case
     If true, dictionary matching will be case insensitive (defaults to false)
 
 strict_affix_parsing
-    Determines whether errors while reading a affix rules file will cause exception or simple be ignored (defaults to true)
+    Determines whether errors while reading a affix rules file will cause exception or simply be
+    ignored (defaults to true)
 
 locale
-    A locale for this filter. If this is unset, the lang or language are used instead - so one of these has to be set.
+    A locale for this filter. If this is unset, the lang or language are used instead - so one
+    of these has to be set.
 
 dictionary
     The name of a dictionary. The path to your hunspell dictionaries should be configured
@@ -896,7 +931,8 @@ dedup
 
 recursion_level
     Configures the recursion level a stemmer can go into. Defaults to 2.
-    Some languages (for example czech) give better results when set to 1 or 0, so you should test it out.
+    Some languages (for example czech) give better results when set to 1 or 0,
+    so you should test it out.
 
 .. _commongrams-tokenfilter:
 
@@ -906,7 +942,8 @@ common grams
 ``type='common_grams'``
 
 Generates bigrams for frequently occuring terms. Single terms are still indexed.
-It can be used as an alternative to the :ref:`stop-tokenfilter` Token filter when we don’t want to completely ignore common terms.
+It can be used as an alternative to the :ref:`stop-tokenfilter` Token filter when we don’t want
+to completely ignore common terms.
 
 Parameters
 ..........
@@ -916,13 +953,15 @@ common_words
 
 common_words_path
     A path (either relative to config location, or absolute) to a list of common words.
-    Each word should be in its own "line" (separated by a line break). The file must be UTF-8 encoded.
+    Each word should be in its own "line" (separated by a line break). The file must be UTF-8
+    encoded.
 
 ignore_case
     If true, common words matching will be case insensitive (defaults to false).
 
 query_mode
-    Generates bigrams then removes common words and single terms followed by a common word (defaults to false).
+    Generates bigrams then removes common words and single terms followed by a common word
+    (defaults to false).
 
 .. note::
 
@@ -984,7 +1023,8 @@ pattern
     Regex whose matches will be replaced
 
 replacement
-    Replacement string, can reference replaced text by ``$1`` like references (first matched element)
+    Replacement string, can reference replaced text by ``$1`` like references (first matched
+    element)
 
 
 .. _Java Pattern Api: http://download.oracle.com/javase/6/docs/api/java/util/regex/Pattern.html#field_summary

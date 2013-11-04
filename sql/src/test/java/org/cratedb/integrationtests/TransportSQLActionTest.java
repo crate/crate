@@ -1464,17 +1464,29 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("select count(*) from characters where race like '%o%'");
         assertEquals(3L, response.rows()[0][0]);
 
-        execute("insert into characters (race, gender, name, details) values ('Vo*', 'male', 'Kwaltzz')");
-        execute("insert into characters (race, gender, name, details) values ('Vo?', 'male', 'Kwaltzzz')");
-        execute("insert into characters (race, gender, name, details) values ('Vo!', 'male', 'Kwaltzzzz')");
-        execute("insert into characters (race, gender, name, details) values ('Vo%', 'male', 'Kwaltzzzz')");
+        Map<String, Object> emptyMap = new HashMap<>();
+        Map<String, Object> details = new HashMap<>();
+        details.put("age", 30);
+        details.put("job", "soldier");
+        execute("insert into characters (race, gender, name, details) values (?, ?, ?, ?)",
+            new Object[] {"Vo*", "male", "Kwaltzz", emptyMap }
+        );
+        execute("insert into characters (race, gender, name, details) values (?, ?, ?, ?)",
+            new Object[] {"Vo?", "male", "Kwaltzzz", emptyMap }
+        );
+        execute("insert into characters (race, gender, name, details) values (?, ?, ?, ?)",
+            new Object[] {"Vo!", "male", "Kwaltzzzz", details}
+        );
+        execute("insert into characters (race, gender, name, details) values (?, ?, ?, ?)",
+            new Object[] {"Vo%", "male", "Kwaltzzzz", details}
+        );
         refresh();
 
         execute("select race from characters where race like 'Vo*'");
         assertEquals(1L, response.rowCount());
         assertEquals("Vo*", response.rows()[0][0]);
 
-        execute("select race from characters where race like ?", new Object[] { "Vo?"});
+        execute("select race from characters where race like ?", new Object[]{"Vo?"});
         assertEquals(1L, response.rowCount());
         assertEquals("Vo?", response.rows()[0][0]);
 
@@ -1491,6 +1503,12 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("select count(*) from characters where age like 32");
         assertEquals(1L, response.rows()[0][0]);
+
+        execute("select race from characters where details['age'] like 30");
+        assertEquals(2L, response.rowCount());
+
+        execute("select race from characters where details['job'] like 'sol%'");
+        assertEquals(2L, response.rowCount());
     }
 
 
