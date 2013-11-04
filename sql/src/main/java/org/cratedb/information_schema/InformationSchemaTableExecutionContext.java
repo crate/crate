@@ -2,6 +2,7 @@ package org.cratedb.information_schema;
 
 import com.google.common.collect.ImmutableMap;
 import org.cratedb.action.sql.ITableExecutionContext;
+import org.cratedb.service.InformationSchemaService;
 import org.elasticsearch.index.mapper.DocumentMapper;
 
 import java.util.ArrayList;
@@ -12,19 +13,12 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
     public static final String SCHEMA_NAME = "INFORMATION_SCHEMA";
     private final String tableName;
 
-    private final ImmutableMap<String, InformationSchemaTable> tablesMap = new ImmutableMap
-            .Builder<String, InformationSchemaTable>()
-            .put(TablesTable.NAME, new TablesTable())
-            .put(TableConstraintsTable.NAME, new TableConstraintsTable())
-            .build();
-
-
     public InformationSchemaTableExecutionContext(String tableName) {
         this.tableName = tableName;
     }
 
     public ImmutableMap<String, InformationSchemaColumn> fieldMapper() {
-        return tablesMap.get(tableName).fieldMapper();
+        return InformationSchemaService.tables.get(tableName).fieldMapper();
     }
 
     @Override
@@ -49,7 +43,7 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
 
     @Override
     public Iterable<String> allCols() {
-        return tablesMap.get(tableName).cols();
+        return InformationSchemaService.tables.get(tableName).cols();
     }
 
     @Override

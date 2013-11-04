@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added virtual table ``columns`` to the ``information_schema``, holds information about all
+   available columns.
+
  - Added the ``table_constraints`` table to information_schema
 
  - Table index definition documentation overhaul
