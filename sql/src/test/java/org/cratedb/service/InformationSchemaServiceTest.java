@@ -10,6 +10,7 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.node.internal.InternalNode;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -37,19 +38,20 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
     private SQLResponse response;
 
     private void serviceSetup() {
-        node = startNode();
-        parseService = node.injector().getInstance(SQLParseService.class);
-        informationSchemaService = node.injector().getInstance(InformationSchemaService.class);
-
         node.client().execute(SQLAction.INSTANCE,
-            new SQLRequest("create table t1 (col1 integer, col2 string) clustered into 7 shards")).actionGet();
+            new SQLRequest("create table t1 (col1 integer primary key, " +
+                    "col2 string) clustered into 7 " +
+                    "shards")).actionGet();
         node.client().execute(SQLAction.INSTANCE,
-            new SQLRequest("create table t2 (col1 integer, col2 string) clustered into 10 shards")).actionGet();
+            new SQLRequest("create table t2 (col1 integer primary key, " +
+                    "col2 string) clustered into " +
+                    "10 shards")).actionGet();
         node.client().execute(SQLAction.INSTANCE,
             new SQLRequest("create table t3 (col1 integer, col2 string) replicas 8")).actionGet();
     }
 
-    private void emptyServiceSetup() {
+    @Before
+    public void before() throws Exception {
         node = startNode();
         parseService = node.injector().getInstance(SQLParseService.class);
         informationSchemaService = node.injector().getInstance(InformationSchemaService.class);
@@ -57,7 +59,8 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
 
     @After
     public void tearDown() throws Exception {
-        closeAllNodes();
+        node.stop();
+        closeNode("node1");
         super.tearDown();
     }
 
@@ -192,7 +195,6 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
 
     @Test
     public void testSelectStarFromInformationSchemaTableWithOrderBy() throws Exception {
-        emptyServiceSetup();
         execUsingClient("create table test (col1 integer primary key, col2 string)");
         execUsingClient("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
 
@@ -209,7 +211,6 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
 
     @Test
     public void testSelectStarFromInformationSchemaTableWithOrderByAndLimit() throws Exception {
-        emptyServiceSetup();
         execUsingClient("create table test (col1 integer primary key, col2 string)");
         execUsingClient("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
 
@@ -222,7 +223,6 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
 
     @Test
     public void testUpdateInformationSchema() throws Exception {
-        emptyServiceSetup();
         expectedException.expect(SQLParseException.class);
         expectedException.expectMessage(
             "INFORMATION_SCHEMA tables are virtual and read-only. Only SELECT statements are supported");
@@ -231,7 +231,6 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
 
     @Test
     public void testDeleteInformationSchema() throws Exception {
-        emptyServiceSetup();
         expectedException.expect(SQLParseException.class);
         expectedException.expectMessage(
             "INFORMATION_SCHEMA tables are virtual and read-only. Only SELECT statements are supported");
@@ -240,7 +239,6 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
 
     @Test
     public void testSelectStarFromInformationSchemaTableWithOrderByTwoColumnsAndLimit() throws Exception {
-        emptyServiceSetup();
         execUsingClient("create table test (col1 integer primary key, col2 string) clustered into 1 shards");
         execUsingClient("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
         execUsingClient("create table bar (col1 integer primary key, col2 string) clustered into 3 shards");
@@ -256,7 +254,6 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
 
     @Test
     public void testSelectStarFromInformationSchemaTableWithOrderByAndLimitOffset() throws Exception {
-        emptyServiceSetup();
         execUsingClient("create table test (col1 integer primary key, col2 string)");
         execUsingClient("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
 
@@ -269,7 +266,6 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
 
     @Test
     public void testSelectFromInformationSchemaTable() throws Exception {
-        emptyServiceSetup();
         execUsingClient("select TABLE_NAME from INFORMATION_SCHEMA.Tables");
         assertEquals(0L, response.rowCount());
 
@@ -285,7 +281,6 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
 
     @Test
     public void testSelectStarFromInformationSchemaTable() throws Exception {
-        emptyServiceSetup();
         execUsingClient("create table test (col1 integer primary key, col2 string)");
         execUsingClient("select * from INFORMATION_SCHEMA.Tables");
         assertEquals(1L, response.rowCount());

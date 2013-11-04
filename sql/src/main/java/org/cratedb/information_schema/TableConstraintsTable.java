@@ -1,14 +1,22 @@
 package org.cratedb.information_schema;
 
 import com.google.common.collect.ImmutableMap;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.cratedb.action.sql.NodeExecutionContext;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.MappingMetaData;
 
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
  * virtual information_schema table listing table constraints like primary_key constraints
  */
-public class TableConstraintsTable implements InformationSchemaTable {
+public class TableConstraintsTable extends AbstractClusterStateBackedInformationSchemaTable {
 
     private Map<String, InformationSchemaColumn> fieldMapper = new LinkedHashMap<>();
 
@@ -22,8 +30,7 @@ public class TableConstraintsTable implements InformationSchemaTable {
 
     public class ConstraintType {
         public static final String PRIMARY_KEY = "PRIMARY_KEY";
-        public static final String UNIQUE = "UNIQUE";
-        public static final String CHECK = "CHECK";
+        // UNIQUE, CHECK, FOREIGN KEY etc.
     }
 
     public TableConstraintsTable() {
@@ -49,5 +56,34 @@ public class TableConstraintsTable implements InformationSchemaTable {
     @Override
     public ImmutableMap<String, InformationSchemaColumn> fieldMapper() {
         return ImmutableMap.copyOf(fieldMapper);
+    }
+
+    @Override
+    public void doIndex(ClusterState clusterState) throws IOException {
+        StringField tableName = new StringField(Columns.TABLE_NAME, "", Field.Store.YES);
+        StringField constraintName = new StringField(Columns.CONSTRAINT_NAME, "", Field.Store.YES);
+        StringField constraintType = new StringField(Columns.CONSTRAINT_TYPE, "", Field.Store.YES);
+
+        for (IndexMetaData indexMetaData : clusterState.metaData().indices().values()) {
+
+
+            MappingMetaData mappingMetaData = indexMetaData.getMappings().get(NodeExecutionContext.DEFAULT_TYPE);
+            if (mappingMetaData != null) {
+                String primaryKeyColumn = (String)mappingMetaData.sourceAsMap().get("primary_key");
+                if (primaryKeyColumn != null ) {
+                    Document doc = new Document();
+
+                    tableName.setStringValue(indexMetaData.getIndex());
+                    doc.add(tableName);
+
+                    constraintName.setStringValue(primaryKeyColumn);
+                    doc.add(constraintName);
+
+                    constraintType.setStringValue(ConstraintType.PRIMARY_KEY);
+                    doc.add(constraintType);
+                    indexWriter.addDocument(doc);
+                }
+            }
+        }
     }
 }

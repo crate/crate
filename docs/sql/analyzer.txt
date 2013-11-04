@@ -594,8 +594,9 @@ stem_english_possessive
     If true causes trailing "'s" to be removed for each subword: "O’Neil’s" ⇒ "O", "Neil". Defaults to true.
 
 protected_words
-    A list of protected words from being delimiter. Either an array, or also can set ``protected_words_path``
-    which resolved to a file configured with protected words (one on each line). Automatically resolves to config/ based location if exists.
+    A list of words protected from being delimiter.
+    Either an array, or defined by ``protected_words_path`` which resolved to a file
+    configured with protected words (one on each line). Automatically resolves to config/ based location if exists.
 
 type_table
     A custom type mapping table

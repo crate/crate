@@ -279,14 +279,14 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
     }
 
     @Test
-    public void reuseExistingTokenizer() throws StandardException, IOException {
+    public void reuseExistingTokenizer() throws StandardException, IOException, InterruptedException {
         execute("CREATE ANALYZER a9 (" +
                 "  TOKENIZER a9tok WITH (" +
                 "    type='nGram'," +
                 "    \"token_chars\"=['letter', 'digit']" +
                 "  )" +
                 ")");
-
+        Thread.sleep(10);
         execute("CREATE ANALYZER a10 (" +
                 "  TOKENIZER a9tok" +
                 ")");
