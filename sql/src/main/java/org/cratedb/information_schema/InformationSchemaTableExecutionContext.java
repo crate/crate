@@ -10,19 +10,19 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
 
     public static final String SCHEMA_NAME = "INFORMATION_SCHEMA";
     private final String tableName;
-    private final TablesTable tablesTable = new TablesTable();
 
-    private final Map<String, Iterable<String>> tableColumnMap = new HashMap<String, Iterable<String>>() {{
-        put(TablesTable.NAME, new TablesTable().cols());
-        put(TableConstraintsTable.NAME, new TableConstraintsTable().cols());
-    }};
+    private final ImmutableMap<String, InformationSchemaTable> tablesMap = ImmutableMap.of(
+            TablesTable.NAME, (InformationSchemaTable)new TablesTable(),
+            TableConstraintsTable.NAME, (InformationSchemaTable)new TableConstraintsTable()
+    );
+
 
     public InformationSchemaTableExecutionContext(String tableName) {
         this.tableName = tableName;
     }
 
     public ImmutableMap<String, InformationSchemaColumn> fieldMapper() {
-        return tableColumnMap.get(tableName).fieldMapper();
+        return tablesMap.get(tableName).fieldMapper();
     }
 
     @Override
@@ -47,7 +47,7 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
 
     @Override
     public Iterable<String> allCols() {
-        return tableColumnMap.get(tableName).cols();
+        return tablesMap.get(tableName).cols();
     }
 
     @Override

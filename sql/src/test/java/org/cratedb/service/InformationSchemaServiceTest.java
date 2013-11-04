@@ -112,53 +112,7 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
         execUsingClient(statement, new Object[0]);
     }
 
-    @Test
-    public void testQueryParserService() throws Exception {
-        serviceSetup();
-        exec("select * from information_schema.tables");
-        assertEquals(3L, response.rowCount());
-    }
 
-    @Test
-    public void testQueryParserServiceWithWhere() throws Exception {
-        serviceSetup();
-        exec("select table_name from information_schema.tables where table_name = 't1'");
-
-        assertEquals(1L, response.rowCount());
-        assertEquals("t1", response.rows()[0][0]);
-    }
-
-    @Test
-    public void testQueryParserServiceLimit() throws Exception {
-        serviceSetup();
-        exec("select * from information_schema.tables limit 1");
-
-        assertEquals(1L, response.rowCount());
-    }
-
-    @Test
-    public void testQueryParserServiceLimitAndOrderBy() throws Exception {
-        serviceSetup();
-        exec("select table_name, number_of_shards, number_of_replicas from information_schema.tables " +
-             " order by number_of_shards desc limit 2");
-
-        assertEquals(2L, response.rowCount());
-        assertEquals(10, response.rows()[0][1]);
-        assertEquals("t2", response.rows()[0][0]);
-        assertEquals(7, response.rows()[1][1]);
-        assertEquals("t1", response.rows()[1][0]);
-    }
-
-    @Test
-    public void testQueryParserServiceLimitAndOrderByStringColumn() throws Exception {
-        serviceSetup();
-        exec("select table_name, number_of_shards, number_of_replicas from information_schema.tables " +
-            " order by table_name desc limit 2");
-
-        assertEquals(2L, response.rowCount());
-        assertEquals("t3", response.rows()[0][0]);
-        assertEquals("t2", response.rows()[1][0]);
-    }
 
     @Test
     public void testExecuteThreadSafety() throws Exception {
