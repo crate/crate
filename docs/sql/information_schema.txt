@@ -36,3 +36,28 @@ settings like the number of shards or number of replicas::
     | quotes     | 5                | 1                  |
     +------------+------------------+--------------------+
     SELECT 4 rows in set (... sec)
+
+
+Table Constraints
+=================
+
+This table can be queries to get a list of all defined table constraints,
+their type, name and which table they are defined in.
+
+.. note::
+
+    Currently only ``PRIMARY_KEY`` constraints are supported.
+
+::
+
+    cr> select * from information_schema.table_constraints order by table_name desc limit 10
+    +------------+-----------------+-----------------+
+    | table_name | constraint_name | constraint_type |
+    +------------+-----------------+-----------------+
+    | my_table9  | first_column    | PRIMARY_KEY     |
+    | my_table8  | first_column    | PRIMARY_KEY     |
+    | my_table7  | first_column    | PRIMARY_KEY     |
+    | my_table6  | first_column    | PRIMARY_KEY     |
+    | my_table1  | first_column    | PRIMARY_KEY     |
+    +------------+-----------------+-----------------+
+    SELECT 5 rows in set (... sec)

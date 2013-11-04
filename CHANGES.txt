@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added the ``table_constraints`` table to information_schema
+
  - Table index definition documentation overhaul
 
  - bugfix: the `LIKE` operand now also works on nested columns
