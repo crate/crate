@@ -29,7 +29,7 @@ public abstract class AbstractClusterStateBackedInformationSchemaTable implement
     protected final IndexWriterConfig indexWriterConfig;
     protected IndexWriter indexWriter = null;
 
-    protected final Object readLock = new Object();
+    protected final Object indexLock = new Object();
     protected SearcherManager tablesSearcherManager;
     protected IndexSearcher indexSearcher;
     protected final SearcherFactory searcherFactory;
@@ -100,14 +100,18 @@ public abstract class AbstractClusterStateBackedInformationSchemaTable implement
 
     @Override
     public void index(ClusterState clusterState) {
-        try {
-            indexWriter.deleteAll();
+        synchronized (indexLock) {
+            try {
+                if (!initialized()) {
+                    init();
+                }
+                indexWriter.deleteAll();
 
-            doIndex(clusterState);
+                doIndex(clusterState);
 
-            tablesSearcherManager.maybeRefresh();
-            // refresh searcher after index
-            synchronized (readLock) {
+                tablesSearcherManager.maybeRefresh();
+                // refresh searcher after index
+
                 IndexSearcher newIndexSearcher = tablesSearcherManager.acquire();
                 // can only replace the indexSearcher with the new one if no search is active
                 // until the searcher can be replaced all searches will get old results.
@@ -115,10 +119,11 @@ public abstract class AbstractClusterStateBackedInformationSchemaTable implement
                     tablesSearcherManager.release(indexSearcher);
                     indexSearcher = newIndexSearcher;
                 }
-            }
 
-        } catch (IOException e) {
-            throw new CrateException(e);
+
+            } catch (IOException e) {
+                throw new CrateException(e);
+            }
         }
     }
 

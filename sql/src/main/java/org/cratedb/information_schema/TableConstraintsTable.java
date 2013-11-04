@@ -67,21 +67,26 @@ public class TableConstraintsTable extends AbstractClusterStateBackedInformation
         for (IndexMetaData indexMetaData : clusterState.metaData().indices().values()) {
 
 
-            MappingMetaData mappingMetaData = indexMetaData.getMappings().get(NodeExecutionContext.DEFAULT_TYPE);
+            MappingMetaData mappingMetaData = indexMetaData.getMappings()
+                    .get(NodeExecutionContext.DEFAULT_TYPE);
             if (mappingMetaData != null) {
-                String primaryKeyColumn = (String)mappingMetaData.sourceAsMap().get("primary_key");
-                if (primaryKeyColumn != null ) {
-                    Document doc = new Document();
+                Map<String, Object> metaMap = (Map<String, Object>)mappingMetaData.sourceAsMap()
+                        .get("_meta");
+                if (metaMap != null) {
+                    String primaryKeyColumn = (String)metaMap.get("primary_keys");
+                    if (primaryKeyColumn != null ) {
+                        Document doc = new Document();
 
-                    tableName.setStringValue(indexMetaData.getIndex());
-                    doc.add(tableName);
+                        tableName.setStringValue(indexMetaData.getIndex());
+                        doc.add(tableName);
 
-                    constraintName.setStringValue(primaryKeyColumn);
-                    doc.add(constraintName);
+                        constraintName.setStringValue(primaryKeyColumn);
+                        doc.add(constraintName);
 
-                    constraintType.setStringValue(ConstraintType.PRIMARY_KEY);
-                    doc.add(constraintType);
-                    indexWriter.addDocument(doc);
+                        constraintType.setStringValue(ConstraintType.PRIMARY_KEY);
+                        doc.add(constraintType);
+                        indexWriter.addDocument(doc);
+                    }
                 }
             }
         }

@@ -32,6 +32,8 @@ public interface InformationSchemaTable {
 
     /**
      * extract and index table data from the current ClusterState
+     *
+     * not synchronized, please synchronize when using to stay threadsafe
      * @param clusterState
      */
     public void index(ClusterState clusterState);

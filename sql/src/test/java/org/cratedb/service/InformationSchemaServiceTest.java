@@ -179,7 +179,7 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
     public void testUpdateInformationSchema() throws Exception {
         expectedException.expect(SQLParseException.class);
         expectedException.expectMessage(
-            "INFORMATION_SCHEMA tables are virtual and read-only. Only SELECT statements are supported");
+                "INFORMATION_SCHEMA tables are virtual and read-only. Only SELECT statements are supported");
         execUsingClient("update INFORMATION_SCHEMA.Tables set table_name = 'x'");
     }
 
@@ -187,7 +187,7 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
     public void testDeleteInformationSchema() throws Exception {
         expectedException.expect(SQLParseException.class);
         expectedException.expectMessage(
-            "INFORMATION_SCHEMA tables are virtual and read-only. Only SELECT statements are supported");
+                "INFORMATION_SCHEMA tables are virtual and read-only. Only SELECT statements are supported");
         execUsingClient("delete from INFORMATION_SCHEMA.Tables");
     }
 
@@ -242,4 +242,47 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
         assertEquals(5, response.rows()[0][1]);
         assertEquals(1, response.rows()[0][2]);
     }
+
+    @Test
+    public void testSelectFromTableConstraints() throws Exception {
+        execUsingClient("create table test (col1 integer primary key, col2 string)");
+        execUsingClient("select constraint_type, constraint_name, " +
+                "table_name from information_schema.table_constraints");
+        assertEquals(2L, response.rowCount());
+        assertEquals(response.rows()[0][0], "PRIMARY_KEY");
+        assertEquals(response.rows()[0][1], "col1");
+        assertEquals(response.rows()[0][2], "test");
+    }
+
+    @Test
+    public void testRefreshTableConstraints() throws Exception {
+        execUsingClient("create table test (col1 integer primary key, col2 string)");
+        execUsingClient("select table_name, constraint_name from INFORMATION_SCHEMA" +
+                ".table_constraints");
+        assertEquals(1L, response.rowCount());
+        assertEquals(response.rows()[0][0], "test");
+        assertEquals(response.rows()[0][1], "col1");
+
+        execUsingClient("create table test2 (col1a string primary key, col2a timestamp)");
+        execUsingClient("select * from INFORMATION_SCHEMA.table_constraints");
+
+        assertEquals(2L, response.rowCount());
+        assertEquals(response.rows()[1][0], "test2");
+        assertEquals(response.rows()[1][1], "col1a");
+    }
+
+    @Test
+    public void testTableConstraintsWithOrderBy() throws Exception {
+        execUsingClient("create table test1 (col11 integer primary key, col12 float)");
+        execUsingClient("create table test2 (col21 double primary key, col22 string)");
+        execUsingClient("create table \"äbc\" (col31 integer primary key, col32 string)");
+
+        execUsingClient("select table_name from INFORMATION_SCHEMA.table_constraints ORDER BY " +
+                "table_name");
+        assertEquals(3L, response.rowCount());
+        assertEquals(response.rows()[0][0], "test1");
+        assertEquals(response.rows()[1][0], "test2");
+        assertEquals(response.rows()[2][0], "äbc");
+    }
+
 }

@@ -95,20 +95,14 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
         } else {
             ClusterState state = clusterService.state();
             // reindex if dirty
-            synchronized (readLock) {
-                if (dirty) {
-                    for (InformationSchemaTable informationSchemaTable: tables.values()) {
-                        if (!informationSchemaTable.initialized()) {
-                            informationSchemaTable.init();
-                        }
-                        informationSchemaTable.index(state);
-                    }
-                    dirty = false;
-                } else if (!table.initialized()) {
-                    // prefill table if cluster state is not dirty (e.g. first query)
-                    table.init();
-                    table.index(state);
+            if (dirty) {
+                for (InformationSchemaTable informationSchemaTable: tables.values()) {
+                    informationSchemaTable.index(state);
                 }
+                dirty = false;
+            } else if (!table.initialized()) {
+                // prefill table if cluster state is not dirty (e.g. first query)
+                table.index(state);
             }
             table.query(stmt, listener);
         }
