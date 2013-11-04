@@ -40,10 +40,11 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
     private boolean dirty;
 
 
-    private final ImmutableMap<String, InformationSchemaTable> tables = ImmutableMap.of(
-            TablesTable.NAME, (InformationSchemaTable)new TablesTable(),
-            TableConstraintsTable.NAME, (InformationSchemaTable)new TableConstraintsTable()
-    );
+    private final ImmutableMap<String, InformationSchemaTable> tables = new ImmutableMap
+            .Builder<String, InformationSchemaTable>()
+            .put(TablesTable.NAME, new TablesTable())
+            .put(TableConstraintsTable.NAME, new TableConstraintsTable())
+            .build();
 
     @Inject
     public InformationSchemaService(Settings settings,
@@ -95,14 +96,16 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
         } else {
             ClusterState state = clusterService.state();
             // reindex if dirty
-            if (dirty) {
-                for (InformationSchemaTable informationSchemaTable: tables.values()) {
-                    informationSchemaTable.index(state);
+            synchronized (readLock) {
+                if (dirty) {
+                    for (InformationSchemaTable informationSchemaTable: tables.values()) {
+                        informationSchemaTable.index(state);
+                    }
+                    dirty = false;
+                } else if (!table.initialized()) {
+                    // prefill table if cluster state is not dirty (e.g. first query)
+                    table.index(state);
                 }
-                dirty = false;
-            } else if (!table.initialized()) {
-                // prefill table if cluster state is not dirty (e.g. first query)
-                table.index(state);
             }
             table.query(stmt, listener);
         }

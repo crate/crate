@@ -4,17 +4,19 @@ import com.google.common.collect.ImmutableMap;
 import org.cratedb.action.sql.ITableExecutionContext;
 import org.elasticsearch.index.mapper.DocumentMapper;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class InformationSchemaTableExecutionContext implements ITableExecutionContext {
 
     public static final String SCHEMA_NAME = "INFORMATION_SCHEMA";
     private final String tableName;
 
-    private final ImmutableMap<String, InformationSchemaTable> tablesMap = ImmutableMap.of(
-            TablesTable.NAME, (InformationSchemaTable)new TablesTable(),
-            TableConstraintsTable.NAME, (InformationSchemaTable)new TableConstraintsTable()
-    );
+    private final ImmutableMap<String, InformationSchemaTable> tablesMap = new ImmutableMap
+            .Builder<String, InformationSchemaTable>()
+            .put(TablesTable.NAME, new TablesTable())
+            .put(TableConstraintsTable.NAME, new TableConstraintsTable())
+            .build();
 
 
     public InformationSchemaTableExecutionContext(String tableName) {

@@ -12,7 +12,7 @@ import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class TablesTable extends AbstractClusterStateBackedInformationSchemaTable {
+public class TablesTable extends AbstractInformationSchemaTable {
 
     private Map<String, InformationSchemaColumn> fieldMapper = new LinkedHashMap<>();
 

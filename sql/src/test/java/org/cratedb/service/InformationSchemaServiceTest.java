@@ -19,6 +19,8 @@ import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.collection.IsArrayContainingInOrder.arrayContaining;
+
 public class InformationSchemaServiceTest extends AbstractZenNodesTests {
 
     @Rule
@@ -245,10 +247,16 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
 
     @Test
     public void testSelectFromTableConstraints() throws Exception {
+
+        execUsingClient("select * from INFORMATION_SCHEMA.table_constraints");
+        assertEquals(0L, response.rowCount());
+        assertThat(response.cols(), arrayContaining("table_name", "constraint_name",
+                "constraint_type"));
+
         execUsingClient("create table test (col1 integer primary key, col2 string)");
         execUsingClient("select constraint_type, constraint_name, " +
                 "table_name from information_schema.table_constraints");
-        assertEquals(2L, response.rowCount());
+        assertEquals(1L, response.rowCount());
         assertEquals(response.rows()[0][0], "PRIMARY_KEY");
         assertEquals(response.rows()[0][1], "col1");
         assertEquals(response.rows()[0][2], "test");
@@ -269,20 +277,6 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
         assertEquals(2L, response.rowCount());
         assertEquals(response.rows()[1][0], "test2");
         assertEquals(response.rows()[1][1], "col1a");
-    }
-
-    @Test
-    public void testTableConstraintsWithOrderBy() throws Exception {
-        execUsingClient("create table test1 (col11 integer primary key, col12 float)");
-        execUsingClient("create table test2 (col21 double primary key, col22 string)");
-        execUsingClient("create table \"äbc\" (col31 integer primary key, col32 string)");
-
-        execUsingClient("select table_name from INFORMATION_SCHEMA.table_constraints ORDER BY " +
-                "table_name");
-        assertEquals(3L, response.rowCount());
-        assertEquals(response.rows()[0][0], "test1");
-        assertEquals(response.rows()[1][0], "test2");
-        assertEquals(response.rows()[2][0], "äbc");
     }
 
 }

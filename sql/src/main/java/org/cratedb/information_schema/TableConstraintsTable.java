@@ -16,7 +16,7 @@ import java.util.Map;
 /**
  * virtual information_schema table listing table constraints like primary_key constraints
  */
-public class TableConstraintsTable extends AbstractClusterStateBackedInformationSchemaTable {
+public class TableConstraintsTable extends AbstractInformationSchemaTable {
 
     private Map<String, InformationSchemaColumn> fieldMapper = new LinkedHashMap<>();
 

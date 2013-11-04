@@ -17,6 +17,7 @@ import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.lucene.Lucene;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -24,19 +25,27 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class AbstractClusterStateBackedInformationSchemaTable implements InformationSchemaTable {
+
+/**
+ * abstract implementation of InformationSchemaTable that does the heavy lifting
+ * of starting and handling an MMap-lucene-index as backend.
+ *
+ * All you have to do is define columns, a fieldmapper, an index-method and optionally a
+ * quer-method
+ */
+public abstract class AbstractInformationSchemaTable implements InformationSchemaTable {
 
     protected final IndexWriterConfig indexWriterConfig;
     protected IndexWriter indexWriter = null;
 
     protected final Object indexLock = new Object();
-    protected SearcherManager tablesSearcherManager;
+    protected SearcherManager searcherManager;
     protected IndexSearcher indexSearcher;
     protected final SearcherFactory searcherFactory;
     protected AtomicInteger activeSearches = new AtomicInteger(0);
-    protected Directory tablesDirectory;
+    protected Directory indexDirectory;
 
-    public AbstractClusterStateBackedInformationSchemaTable() {
+    public AbstractInformationSchemaTable() {
         this.searcherFactory = new SearcherFactory();
         this.indexWriterConfig = new IndexWriterConfig(Version.LUCENE_44, null);
         this.indexWriterConfig.setCodec(new Lucene42Codec());
@@ -45,10 +54,10 @@ public abstract class AbstractClusterStateBackedInformationSchemaTable implement
     @Override
     public void init() throws CrateException {
         try {
-            tablesDirectory = new MMapDirectory(Files.createTempDir());
-            indexWriter = new IndexWriter(tablesDirectory, indexWriterConfig);
-            tablesSearcherManager = new SearcherManager(indexWriter, true, searcherFactory);
-            indexSearcher = tablesSearcherManager.acquire();
+            indexDirectory = new MMapDirectory(Files.createTempDir());
+            indexWriter = new IndexWriter(indexDirectory, indexWriterConfig);
+            searcherManager = new SearcherManager(indexWriter, true, searcherFactory);
+            indexSearcher = searcherManager.acquire();
         } catch(IOException ioe) {
             throw new CrateException(ioe);
         }
@@ -56,7 +65,7 @@ public abstract class AbstractClusterStateBackedInformationSchemaTable implement
 
     @Override
     public boolean initialized() {
-        return indexSearcher != null;
+        return indexSearcher != null && searcherManager != null && indexWriter != null;
     }
 
     @Override
@@ -77,6 +86,7 @@ public abstract class AbstractClusterStateBackedInformationSchemaTable implement
      * @param listener
      */
     public void doQuery(ParsedStatement stmt, ActionListener<SQLResponse> listener) throws IOException {
+        activeSearches.incrementAndGet();
         Sort sort = null;
         if (stmt.hasOrderBy()) {
             sort = getSort(stmt);
@@ -109,14 +119,14 @@ public abstract class AbstractClusterStateBackedInformationSchemaTable implement
 
                 doIndex(clusterState);
 
-                tablesSearcherManager.maybeRefresh();
+                searcherManager.maybeRefresh();
                 // refresh searcher after index
 
-                IndexSearcher newIndexSearcher = tablesSearcherManager.acquire();
+                IndexSearcher newIndexSearcher = searcherManager.acquire();
                 // can only replace the indexSearcher with the new one if no search is active
                 // until the searcher can be replaced all searches will get old results.
                 if (activeSearches.getAndIncrement() == 0) {
-                    tablesSearcherManager.release(indexSearcher);
+                    searcherManager.release(indexSearcher);
                     indexSearcher = newIndexSearcher;
                 }
 
@@ -124,6 +134,22 @@ public abstract class AbstractClusterStateBackedInformationSchemaTable implement
             } catch (IOException e) {
                 throw new CrateException(e);
             }
+        }
+    }
+
+    /**
+     *
+     * @return the number of indexed documents
+     * @throws CrateException
+     */
+    public long count() throws CrateException {
+        activeSearches.getAndIncrement();
+        try {
+            return Lucene.count(indexSearcher, new MatchAllDocsQuery());
+        } catch (IOException e) {
+            throw new CrateException(e);
+        } finally {
+            activeSearches.decrementAndGet();
         }
     }
 
@@ -139,14 +165,17 @@ public abstract class AbstractClusterStateBackedInformationSchemaTable implement
     @Override
     public void close() throws CrateException {
         try {
-            if (tablesSearcherManager != null) {
-                tablesSearcherManager.close();
+            if (searcherManager != null) {
+                searcherManager.close();
+                searcherManager = null;
             }
             if (indexWriter != null) {
                 indexWriter.close();
+                indexWriter = null;
             }
-            if (tablesDirectory != null) {
-                tablesDirectory.close();
+            if (indexDirectory != null) {
+                indexDirectory.close();
+                indexDirectory = null;
             }
 
         } catch (IOException e) {
