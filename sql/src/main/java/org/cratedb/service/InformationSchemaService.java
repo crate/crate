@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.information_schema.InformationSchemaTable;
+import org.cratedb.information_schema.TableColumnsTable;
 import org.cratedb.information_schema.TableConstraintsTable;
 import org.cratedb.information_schema.TablesTable;
 import org.cratedb.sql.SQLParseException;
@@ -43,10 +44,11 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
     private ClusterStateListener listener;
     protected final ESLogger logger;
 
-    private final ImmutableMap<String, InformationSchemaTable> tables = new ImmutableMap
+    public static final ImmutableMap<String, InformationSchemaTable> tables = new ImmutableMap
             .Builder<String, InformationSchemaTable>()
             .put(TablesTable.NAME, new TablesTable())
             .put(TableConstraintsTable.NAME, new TableConstraintsTable())
+            .put(TableColumnsTable.NAME, new TableColumnsTable())
             .build();
 
     @Inject

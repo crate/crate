@@ -279,4 +279,70 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
         assertEquals(response.rows()[1][1], "col1a");
     }
 
+    @Test
+    public void testTableConstraintsWithOrderBy() throws Exception {
+        execUsingClient("create table test1 (col11 integer primary key, col12 float)");
+        execUsingClient("create table test2 (col21 double primary key, col22 string)");
+        execUsingClient("create table \"äbc\" (col31 integer primary key, col32 string)");
+
+        execUsingClient("select table_name from INFORMATION_SCHEMA.table_constraints ORDER BY " +
+                "table_name");
+        assertEquals(3L, response.rowCount());
+        assertEquals(response.rows()[0][0], "test1");
+        assertEquals(response.rows()[1][0], "test2");
+        assertEquals(response.rows()[2][0], "äbc");
+    }
+
+    @Test
+    public void testSelectFromTableColumns() throws Exception {
+        execUsingClient("create table test (col1 integer, col2 string index off, age integer)");
+        execUsingClient("select * from INFORMATION_SCHEMA.Columns");
+        assertEquals(3L, response.rowCount());
+        assertEquals("test", response.rows()[0][0]);
+        assertEquals("age", response.rows()[0][1]);
+        assertEquals(1, response.rows()[0][2]);
+        assertEquals("integer", response.rows()[0][3]);
+
+        assertEquals("col1", response.rows()[1][1]);
+
+        assertEquals("col2", response.rows()[2][1]);
+    }
+
+    @Test
+    public void testSelectFromTableColumnsRefresh() throws Exception {
+        execUsingClient("create table test (col1 integer, col2 string, age integer)");
+        execUsingClient("select table_name, column_name, " +
+                "ordinal_position, data_type from INFORMATION_SCHEMA.Columns");
+        assertEquals(3L, response.rowCount());
+        assertEquals("test", response.rows()[0][0]);
+
+        execUsingClient("create table test2 (col1 integer, col2 string, age integer)");
+        execUsingClient("select table_name, column_name, " +
+                "ordinal_position, data_type from INFORMATION_SCHEMA.Columns " +
+                "order by table_name");
+
+        assertEquals(6L, response.rowCount());
+        assertEquals("test", response.rows()[0][0]);
+        assertEquals("test2", response.rows()[4][0]);
+    }
+
+    @Test
+    public void testSelectFromTableColumnsMultiField() throws Exception {
+        execUsingClient("create table test (col1 string, col2 string," +
+                "index col1_col2_ft using fulltext(col1, col2))");
+        execUsingClient("select table_name, column_name," +
+                "ordinal_position, data_type from INFORMATION_SCHEMA.Columns");
+        assertEquals(2L, response.rowCount());
+
+        assertEquals("test", response.rows()[0][0]);
+        assertEquals("col1", response.rows()[0][1]);
+        assertEquals(1, response.rows()[0][2]);
+        assertEquals("string", response.rows()[0][3]);
+
+        assertEquals("test", response.rows()[1][0]);
+        assertEquals("col2", response.rows()[1][1]);
+        assertEquals(2, response.rows()[1][2]);
+        assertEquals("string", response.rows()[1][3]);
+    }
+
 }
