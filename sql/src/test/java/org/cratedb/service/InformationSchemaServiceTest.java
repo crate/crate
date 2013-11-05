@@ -78,7 +78,7 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
 
         // create table causes a cluster event that will then cause to rebuild the information schema
         // wait until it's rebuild
-        Thread.sleep(200);
+        Thread.sleep(10);
 
         exec("select * from information_schema.tables");
         assertEquals(4L, response.rowCount());
@@ -226,7 +226,7 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
         assertEquals(0L, response.rowCount());
 
         execUsingClient("create table test (col1 integer primary key, col2 string)");
-        Thread.sleep(800); // wait for clusterStateChanged event and index update
+        Thread.sleep(10); // wait for clusterStateChanged event and index update
 
         execUsingClient("select table_name, number_of_shards, number_of_replicas from INFORMATION_SCHEMA.Tables");
         assertEquals(1L, response.rowCount());

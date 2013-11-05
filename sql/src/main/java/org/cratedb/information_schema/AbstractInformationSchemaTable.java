@@ -122,14 +122,13 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
                 searcherManager.maybeRefresh();
                 // refresh searcher after index
 
-                IndexSearcher newIndexSearcher = searcherManager.acquire();
                 // can only replace the indexSearcher with the new one if no search is active
                 // until the searcher can be replaced all searches will get old results.
-                if (activeSearches.getAndIncrement() == 0) {
+                if (activeSearches.get() == 0) {
+                    IndexSearcher newIndexSearcher = searcherManager.acquire();
                     searcherManager.release(indexSearcher);
                     indexSearcher = newIndexSearcher;
                 }
-
 
             } catch (IOException e) {
                 throw new CrateException(e);

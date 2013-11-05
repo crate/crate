@@ -19,6 +19,8 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import java.io.IOException;
@@ -38,7 +40,8 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
     private final ClusterService clusterService;
     private final Object readLock = new Object();
     private boolean dirty;
-
+    private ClusterStateListener listener;
+    protected final ESLogger logger;
 
     private final ImmutableMap<String, InformationSchemaTable> tables = new ImmutableMap
             .Builder<String, InformationSchemaTable>()
@@ -52,11 +55,14 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
         super(settings);
         this.clusterService = clusterService;
         this.dirty = false;
+        logger = Loggers.getLogger(getClass(), settings);
     }
 
     @Override
     protected void doStart() throws ElasticSearchException {
-        clusterService.add(new ClusterStateListener() {
+
+        logger.info("starting...");
+        listener = new ClusterStateListener() {
             @Override
             public void clusterChanged(ClusterChangedEvent event) {
                 if (event.metaDataChanged()) {
@@ -65,11 +71,15 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
                     }
                 }
             }
-        });
+        };
+        clusterService.add(listener);
+
     }
 
     @Override
     protected void doStop() throws ElasticSearchException {
+        logger.info("stopping...");
+        clusterService.remove(listener);
     }
 
     @Override
@@ -94,9 +104,9 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
         if (table == null) {
             listener.onFailure(new TableUnknownException(stmt.tableName()));
         } else {
-            ClusterState state = clusterService.state();
             // reindex if dirty
             synchronized (readLock) {
+                ClusterState state = clusterService.state();
                 if (dirty) {
                     for (InformationSchemaTable informationSchemaTable: tables.values()) {
                         informationSchemaTable.index(state);
