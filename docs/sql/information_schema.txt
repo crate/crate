@@ -92,3 +92,32 @@ their type, name and which table they are defined in.
     | my_table1  | first_column    | PRIMARY_KEY     |
     +------------+-----------------+-----------------+
     SELECT 5 rows in set (... sec)
+
+
+Indices
+=======
+
+This table can be queried to get a list of all defined indices of all columns and their
+definition like index method, expression list and property list.
+Using a :ref:`plain index <sql_ddl_index_plain>` for every column is the default
+behaviour at Crate, so almost all columns are listed as an index as well::
+
+    cr> select * from information_schema.indices
+    ... where table_name not like 'my_table%' order by table_name asc, index_name asc
+    +------------+---------------------+----------+-------------------+------------------+
+    | table_name | index_name          | method   | expressions       | properties       |
+    +------------+---------------------+----------+-------------------+------------------+
+    | documents  | body                | plain    | body              |                  |
+    | documents  | title               | plain    | title             |                  |
+    | documents  | title_body_ft       | fulltext | body, title       | analyzer=english |
+    | locations  | date                | plain    | date              |                  |
+    | locations  | description         | plain    | description       |                  |
+    | locations  | kind                | plain    | kind              |                  |
+    | locations  | name                | plain    | name              |                  |
+    | locations  | name_description_ft | fulltext | description, name | analyzer=english |
+    | locations  | position            | plain    | position          |                  |
+    | locations  | race                | plain    | race              |                  |
+    | quotes     | author              | plain    | author            |                  |
+    | quotes     | content             | plain    | content           |                  |
+    +------------+---------------------+----------+-------------------+------------------+
+    SELECT 12 rows in set (... sec)
