@@ -14,19 +14,26 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
 
 public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
     public static final int NUM_NODES = 2;
     public static boolean nodesRunning = false;
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
@@ -280,16 +287,24 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
 
     @Test
     public void reuseExistingTokenizer() throws StandardException, IOException, InterruptedException {
+
         execute("CREATE ANALYZER a9 (" +
                 "  TOKENIZER a9tok WITH (" +
                 "    type='nGram'," +
                 "    \"token_chars\"=['letter', 'digit']" +
                 "  )" +
                 ")");
-        Thread.sleep(10);
-        execute("CREATE ANALYZER a10 (" +
-                "  TOKENIZER a9tok" +
-                ")");
+        try {
+            execute("CREATE ANALYZER a10 (" +
+                    "  TOKENIZER a9tok" +
+                    ")");
+            fail("Reusing existing tokenizer worked");
+        } catch (SQLParseException e) {
+            assertThat(e.getMessage(), is("Non-existing tokenizer 'a9tok'"));
+        }
+        /*
+         * NOT SUPPORTED UNTIL A CONSISTENT SOLUTION IS FOUND
+         * FOR IMPLICITLY CREATING TOKENIZERS ETC. WITHIN ANALYZER-DEFINITIONS
 
         Settings settings = getPersistentClusterSettings();
         Settings a10Settings = AnalyzerService.decodeSettings(settings.get("crate.analysis.custom.analyzer.a10"));
@@ -297,6 +312,7 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
                 a10Settings.getAsMap(),
                 hasEntry("index.analysis.analyzer.a10.tokenizer", "a9tok")
         );
+        */
     }
 
     @Test

@@ -245,7 +245,7 @@ public class AnalyzerVisitorTest {
     }
 
     @Test( expected = SQLParseException.class)
-    public void createCustomAnalyzerWithInvalidTOkenFilters2() throws StandardException {
+    public void createCustomAnalyzerWithInvalidTokenFilters2() throws StandardException {
         executeStatement("CREATE ANALYZER a3 WITH (" +
                 "  TOKEN_FILTERS WITH (" +
                 "    germanlowercase," +

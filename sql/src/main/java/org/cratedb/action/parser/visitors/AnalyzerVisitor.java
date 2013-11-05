@@ -98,18 +98,20 @@ public class AnalyzerVisitor extends BaseVisitor {
         // use a builtin tokenizer without parameters
         if (properties == null) {
             // validate
-            if (!analyzerService.hasTokenizer(name)) {
+            if (!analyzerService.hasBuiltInTokenizer(name)) {
                 throw new SQLParseException(String.format("Non-existing tokenizer '%s'", name));
             }
             // build
             tokenizerDefinition = new Tuple<>(name, ImmutableSettings.EMPTY);
         } else {
             // validate
-            if (!analyzerService.hasBuiltInTokenFilter(name)) {
+            if (!analyzerService.hasBuiltInTokenizer(name)) {
                 // type mandatory
                 String evaluatedType = extractType(properties);
                 if (!analyzerService.hasBuiltInTokenizer(evaluatedType)) {
-                    throw new SQLParseException(String.format("Non-existing tokenizer type '%s'", evaluatedType));
+                    // only builtin tokenizers can be extended, for now
+                    throw new SQLParseException(String.format("Non-existing built-in tokenizer " +
+                            "type '%s'", evaluatedType));
                 }
             } else {
                 throw new SQLParseException(String.format("tokenizer name '%s' is reserved", name));
@@ -158,8 +160,10 @@ public class AnalyzerVisitor extends BaseVisitor {
                 if (!analyzerService.hasBuiltInTokenFilter(name)) {
                     // type mandatory when name is not a builtin filter
                     String evaluatedType = extractType(properties);
-                    if (!analyzerService.hasTokenFilter(evaluatedType)) {
-                        throw new SQLParseException(String.format("Non-existing token-filter type '%s'", evaluatedType));
+                    if (!analyzerService.hasBuiltInTokenFilter(evaluatedType)) {
+                        // only builtin token-filters can be extended, for now
+                        throw new SQLParseException(String.format("Non-existing " +
+                                "built-in token-filter type '%s'", evaluatedType));
                     }
                 } else {
                     if (properties.get("type") != null) {
@@ -196,8 +200,10 @@ public class AnalyzerVisitor extends BaseVisitor {
                 charFilters.put(name, ImmutableSettings.EMPTY);
             } else {
                 String type = extractType(properties);
-                if (!analyzerService.hasCharFilter(type)) {
-                    throw new SQLParseException(String.format("Non-existing char-filter type '%s'", type));
+                if (!analyzerService.hasBuiltInCharFilter(type)) {
+                    // only builtin char-filters can be extended, for now
+                    throw new SQLParseException(String.format("Non-existing built-in char-filter" +
+                            " type '%s'", type));
                 }
 
                 // build
