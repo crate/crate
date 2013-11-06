@@ -5,7 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
- - Added the ``routines`` table to information_schema to contain analyzers, tokenizers, token-filters and char-filters
+ - Added the ``routines`` table to information_schema to contain analyzers, tokenizers,
+   token-filters and char-filters
 
 2013/11/06 0.18.2
 =================

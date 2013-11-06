@@ -306,11 +306,17 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
 
         assertEquals("myanalyzer", response.rows()[0][0]);
         assertEquals("ANALYZER", response.rows()[0][1]);
-        assertEquals(stmt1, response.rows()[0][2]);
+        assertEquals("CREATE ANALYZER myanalyzer WITH (TOKENIZER whitespace, " +
+                "TOKEN_FILTERS WITH (" +
+                "mytokenfilter WITH (\"language\"='german',\"type\"='snowball'), kstem)" +
+                ")", response.rows()[0][2]);
 
         assertEquals("myotheranalyzer", response.rows()[1][0]);
         assertEquals("ANALYZER", response.rows()[1][1]);
-        assertEquals("CREATE ANALYZER myOtherAnalyzer extends german (  stopwords=['der', 'die', 'das'])", response.rows()[1][2]);
+        assertEquals(
+                "CREATE ANALYZER myotheranalyzer german WITH (\"stopwords\"=['der','die','das'])",
+                response.rows()[1][2]
+        );
     }
 
     @Test

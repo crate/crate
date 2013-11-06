@@ -135,33 +135,13 @@ For custom analyzers it contains the SQL statements used for their creation.
 ::
 
     cr> select * from information_schema.routines where routine_definition != 'BUILTIN' order by routine_name asc
-    +-----------------+--------------+-----------------------------------------------------------+
-    | routine_name    | routine_type | routine_definition                                        |
-    +-----------------+--------------+-----------------------------------------------------------+
-    | e2              | ANALYZER     | create ANALYZER e2 EXTENDS myanalyzer (                   |
-    |                 |              |     TOKENIZER mypattern (                                 |
-    |                 |              |       type='pattern',                                     |
-    |                 |              |       pattern='.*'                                        |
-    |                 |              |     )                                                     |
-    |                 |              | )                                                         |
-    | german_snowball | ANALYZER     | create ANALYZER "german_snowball" extends snowball WITH ( |
-    |                 |              |   language='german'                                       |
-    |                 |              | )                                                         |
-    | myanalyzer      | ANALYZER     | create ANALYZER myanalyzer (                              |
-    |                 |              |   TOKENIZER whitespace,                                   |
-    |                 |              |   TOKEN_FILTERS WITH (                                    |
-    |                 |              |     lowercase,                                            |
-    |                 |              |     kstem                                                 |
-    |                 |              |   ),                                                      |
-    |                 |              |  CHAR_FILTERS (                                           |
-    |                 |              |     html_strip,                                           |
-    |                 |              |     mymapping WITH (                                      |
-    |                 |              |       type='mapping',                                     |
-    |                 |              |       mappings = ['ph=>f', 'qu=>q', 'foo=>bar']           |
-    |                 |              |     )                                                     |
-    |                 |              |   )                                                       |
-    |                 |              | )                                                         |
-    +-----------------+--------------+-----------------------------------------------------------+
+    +-----------------+--------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | routine_name    | routine_type | routine_definition                                                                                                                                                                                       |
+    +-----------------+--------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | e2              | ANALYZER     | CREATE ANALYZER e2 myanalyzer WITH (TOKENIZER mypattern WITH ("pattern"='.*',"type"='pattern'))                                                                                                          |
+    | german_snowball | ANALYZER     | CREATE ANALYZER german_snowball snowball WITH ("language"='german')                                                                                                                                      |
+    | myanalyzer      | ANALYZER     | CREATE ANALYZER myanalyzer WITH (TOKENIZER whitespace, TOKEN_FILTERS WITH (lowercase, kstem), CHAR_FILTERS WITH (html_strip, mymapping WITH ("mappings"=['ph=>f','qu=>q','foo=>bar'],"type"='mapping'))) |
+    +-----------------+--------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     SELECT 3 rows in set (... sec)
 
 You can use this table to see e.g. what builtin tokenizers exist::

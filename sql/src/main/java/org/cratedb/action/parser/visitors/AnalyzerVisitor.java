@@ -3,6 +3,7 @@ package org.cratedb.action.parser.visitors;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
+import org.cratedb.service.SQLParseService;
 import org.cratedb.service.SQLService;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
@@ -17,15 +18,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Parsing CREATE ANALYZER Statements.
  */
 public class AnalyzerVisitor extends BaseVisitor {
     private String analyzerName = null;
-    private String source;
+    private String sql_stmt;
     private String extendedAnalyzerName = null;
     private Settings genericAnalyzerSettings = null;
     private Settings extendedCustomAnalyzer = null;
@@ -35,6 +34,8 @@ public class AnalyzerVisitor extends BaseVisitor {
     private Map<String, Settings> tokenFilters = new HashMap<>();
     private final AnalyzerService analyzerService;
 
+    // used for saving the creation statement
+    public static final String SQL_STATEMENT_KEY = "_sql_stmt";
 
     public AnalyzerVisitor(NodeExecutionContext context, ParsedStatement parsedStatement, Object[] args) {
         super(context, parsedStatement, args);
@@ -56,7 +57,7 @@ public class AnalyzerVisitor extends BaseVisitor {
 
     @Override
     public void visit(CreateAnalyzerNode node) throws StandardException {
-        source = getSource();
+        sql_stmt = new SQLParseService(context).unparse(stmt, args);
         analyzerName = node.getObjectName().getTableName(); // extend to use schema here
         if (analyzerName.equalsIgnoreCase("default")) {
             throw new SQLParseException("Overriding the default analyzer is forbidden");
@@ -70,32 +71,6 @@ public class AnalyzerVisitor extends BaseVisitor {
         visit(node.getElements());
 
         stmt.type(ParsedStatement.ActionType.CREATE_ANALYZER_ACTION);
-    }
-
-    public String getSource() {
-        if (args != null && args.length > 0) {
-            Matcher matcher = Pattern.compile("([?])").matcher(stmt.stmt);
-            String statement = stmt.stmt;
-            StringBuilder builder = new StringBuilder();
-            int argsIndex = 0;
-            int stmtPos = 0;
-            while(matcher.find() && argsIndex < args.length) {
-                builder.append(statement.substring(stmtPos, matcher.start()));
-                if (args[argsIndex] instanceof String) {
-                    builder.append("'").append(args[argsIndex]).append("'");
-                } else {
-                    builder.append(args[argsIndex]);
-                }
-                argsIndex++;
-                stmtPos = matcher.end();
-            }
-            builder.append(statement.substring(stmtPos));
-            return builder.toString();
-        } else {
-            return stmt.stmt;
-        }
-
-
     }
 
     public void visit(TableName extendsName) throws StandardException {
@@ -441,9 +416,10 @@ public class AnalyzerVisitor extends BaseVisitor {
         );
         // set source
         builder.put(
-                String.format("%s.analyzer.%s._source",
-                        SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX, analyzerName),
-                source
+                String.format("%s.analyzer.%s.%s",
+                        SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX, analyzerName,
+                        AnalyzerVisitor.SQL_STATEMENT_KEY),
+                sql_stmt
         );
 
         if (tokenizerDefinition != null && !tokenizerDefinition.v2().getAsMap().isEmpty()) {

@@ -313,7 +313,7 @@ It is used to filter some special chars from the stream of characters that make 
 
 Tokenizers split the possibly filtered stream of characters into tokens.
 
-Token-filters can add tokens, delete tokens or transform them, to finally produce the desired
+Token-filters can add tokens, delete tokens or transform them to finally produce the desired
 stream of tokens.
 
 With these elements in place, analyzer provide finegrained control over building a token stream

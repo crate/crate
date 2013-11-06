@@ -297,8 +297,10 @@ public class AnalyzerVisitorTest {
         Settings settings = executeStatement(stmt, new Object[0]);
         assertThat(
                 settings.getAsMap(),
-                hasEntry(AnalyzerVisitor.getPrefixedSettingsKey("analyzer.source1._source"),
-                        stmt)
+                hasEntry(
+                        AnalyzerVisitor.getPrefixedSettingsKey("analyzer.source1._source"),
+                        "CREATE ANALYZER source1 WITH (TOKENIZER whitespace)"
+                )
         );
     }
 
@@ -313,11 +315,12 @@ public class AnalyzerVisitorTest {
                 "       )" +
                 "   )"  +
                 ")";
-        Settings settings = executeStatement(stmt, new Object[]{"html_strip", 1, 2, Math.PI});
+        Settings settings = executeStatement(stmt, new Object[]{"html_strip", 1, "2", Math.PI});
         String source = settings.get(AnalyzerVisitor.getPrefixedSettingsKey("analyzer.source1" +
                 "._source"));
         assertEquals(
-                "CREATE ANALYZER source1 WITH(    TOKENIZER whitespace,   CHAR_FILTERS WITH(       a WITH (           type='html_strip',           b=[1, 2, 3.141592653589793]       )   ))",
+                "CREATE ANALYZER source1 WITH (TOKENIZER whitespace, CHAR_FILTERS WITH " +
+                        "(a WITH (\"b\"=[1,'2',3.141592653589793],\"type\"='html_strip')))",
                 source
         );
     }

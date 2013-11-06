@@ -2,6 +2,7 @@ package org.cratedb.action.sql.analyzer;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.lucene.analysis.Analyzer;
+import org.cratedb.action.parser.visitors.AnalyzerVisitor;
 import org.cratedb.service.SQLService;
 import org.cratedb.sql.AnalyzerInvalidException;
 import org.cratedb.sql.AnalyzerUnknownException;
@@ -116,8 +117,8 @@ public class AnalyzerService {
      */
     public String getCustomAnalyzerSource(String name) {
         return clusterService.state().metaData().persistentSettings().get(
-                String.format("%s.%s.%s._source", SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX,
-                        CustomType.ANALYZER.getName(), name)
+                String.format("%s.%s.%s.%s", SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX,
+                        CustomType.ANALYZER.getName(), name, AnalyzerVisitor.SQL_STATEMENT_KEY)
         );
     }
 
@@ -125,7 +126,7 @@ public class AnalyzerService {
         Map<String, Settings> result = new HashMap<>();
         for (Map.Entry<String, String> entry : getCustomThingies(CustomType.ANALYZER)
                 .getAsMap().entrySet()) {
-            if (!entry.getKey().endsWith("._source")) {
+            if (!entry.getKey().endsWith("." + AnalyzerVisitor.SQL_STATEMENT_KEY)) {
                 result.put(entry.getKey(), decodeSettings(entry.getValue()));
             }
         }

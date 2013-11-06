@@ -32,6 +32,10 @@ public class NodeToString
             return createTableNode((CreateTableNode)node);
         case NodeTypes.CREATE_VIEW_NODE:
             return createViewNode((CreateViewNode)node);
+        case NodeTypes.CREATE_ANALYZER_NODE:
+            return createAnalyzerNode((CreateAnalyzerNode)node);
+        case NodeTypes.NAMED_NODE_WITH_OPTIONAL_PROPERTIES:
+            return namedNodeWithOptionalProperties((NamedNodeWithOptionalProperties)node);
         case NodeTypes.DROP_TABLE_NODE:
         case NodeTypes.DROP_VIEW_NODE:
         case NodeTypes.DROP_TRIGGER_NODE:
@@ -287,6 +291,68 @@ public class NodeToString
         }
     }
 
+    protected String createAnalyzerNode(CreateAnalyzerNode node) throws StandardException {
+        StringBuilder builder = new StringBuilder("CREATE ANALYZER ");
+        builder.append(node.getObjectName().getTableName()).append(' ');
+        TableName extendsName = node.getExtendsName();
+        if (extendsName != null) {
+            builder.append("EXTENDS ").append(extendsName.getTableName()).append(' ');
+        }
+
+        builder.append("WITH (");
+        AnalyzerElements elements = node.getElements();
+        if (elements.hasProperties()) {
+            builder.append(toString(elements.getProperties()));
+        } else {
+            if (elements.getTokenizer() != null) {
+                builder.append("TOKENIZER ")
+                        .append(toString(elements.getTokenizer()));
+            }
+            if (elements.getTokenFilters().size() > 0) {
+                if (elements.getTokenizer() != null) { builder.append(", "); }
+                builder.append("TOKEN_FILTERS WITH (");
+                boolean firstTokenFilter = true;
+                for (NamedNodeWithOptionalProperties tokenFilter : elements.getTokenFilters()) {
+                    if (!firstTokenFilter) {
+                        builder.append(", ");
+                    } else {
+                        firstTokenFilter=false;
+                    }
+                    builder.append(toString(tokenFilter));
+                }
+                builder.append(')');
+            }
+            if (elements.getCharFilters() != null && elements.getCharFilters().size() > 0) {
+                if (elements.getTokenFilters().size() > 0 || elements.getTokenizer() != null) {
+                    builder.append(", ");
+                }
+                builder.append("CHAR_FILTERS WITH (");
+                boolean firstCharFilter = true;
+                for (NamedNodeWithOptionalProperties charFilter : elements.getCharFilters()) {
+                    if (!firstCharFilter) {
+                        builder.append(", ");
+                    } else {
+                        firstCharFilter = false;
+                    }
+                    builder.append(toString(charFilter));
+                }
+                builder.append(")");
+            }
+        }
+        builder.append(')');
+        return builder.toString();
+    }
+
+    protected String namedNodeWithOptionalProperties(NamedNodeWithOptionalProperties node)
+            throws StandardException {
+        StringBuilder builder = new StringBuilder(node.getName());
+        GenericProperties properties = node.getProperties();
+        if (properties != null && properties.hasProperties()) {
+            builder.append(' ').append("WITH (").append(toString(properties)).append(')');
+        }
+        return builder.toString();
+    }
+
     protected String indexConstraint(IndexConstraintDefinitionNode node) throws StandardException
     {
 
@@ -328,7 +394,7 @@ public class NodeToString
             } else if(property.getValue() instanceof ValueNodeList) {
                 builder.append("[");
                 boolean innerFirstRun = true;
-                for (ValueNode valueNode : (ValueNodeList)property) {
+                for (ValueNode valueNode : (ValueNodeList)property.getValue()) {
                     if (innerFirstRun) {
                         innerFirstRun=false;
                     } else {
