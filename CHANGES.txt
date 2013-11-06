@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added virtual table ``indices`` to the ``information_schema``, holds information about all
+   available indices.
+
  - Added virtual table ``columns`` to the ``information_schema``, holds information about all
    available columns.
 

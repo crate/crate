@@ -345,4 +345,39 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
         assertEquals("string", response.rows()[1][3]);
     }
 
+    @Test
+    public void testSelectFromTableIndices() throws Exception {
+        execUsingClient("create table test (col1 string, col2 string, " +
+                "col3 string index using fulltext, " +
+                "col4 string index off, " +
+                "index col1_col2_ft using fulltext(col1, col2) with(analyzer='english'))");
+        execUsingClient("select table_name, index_name, method, expressions, properties " +
+                "from INFORMATION_SCHEMA.Indices");
+        assertEquals(4L, response.rowCount());
+
+        assertEquals("test", response.rows()[0][0]);
+        assertEquals("col1", response.rows()[0][1]);
+        assertEquals("plain", response.rows()[0][2]);
+        assertEquals("col1", response.rows()[0][3]);
+        assertEquals("", response.rows()[0][4]);
+
+        assertEquals("test", response.rows()[1][0]);
+        assertEquals("col2", response.rows()[1][1]);
+        assertEquals("plain", response.rows()[1][2]);
+        assertEquals("col2", response.rows()[1][3]);
+        assertEquals("", response.rows()[1][4]);
+
+        assertEquals("test", response.rows()[2][0]);
+        assertEquals("col1_col2_ft", response.rows()[2][1]);
+        assertEquals("fulltext", response.rows()[2][2]);
+        assertEquals("col1, col2", response.rows()[2][3]);
+        assertEquals("analyzer=english", response.rows()[2][4]);
+
+        assertEquals("test", response.rows()[3][0]);
+        assertEquals("col3", response.rows()[3][1]);
+        assertEquals("fulltext", response.rows()[3][2]);
+        assertEquals("col3", response.rows()[3][3]);
+        assertEquals("analyzer=standard", response.rows()[3][4]);
+    }
+
 }
