@@ -247,8 +247,8 @@ Fulltext index with analyzer
 
 By defining an index on a column, it's analyzed data is indexed instead of the raw data.
 Thus, depending on the used analyzer, querying for the exact data may not work anymore.
-See :ref:`builtin-analyzer` for details about available builtin analyzer or `Create custom
-analyzer`_.
+See :ref:`builtin-analyzer` for details about available builtin analyzer or
+:ref:`sql-ddl-custom-analyzer`.
 
 If no analyzer is specified using a fulltext index, the :ref:`standard <standard-analyzer>`
 analyzer is used::
@@ -301,6 +301,7 @@ columns are given to the ``fulltext`` index method::
     ... )
     CREATE OK (... sec)
 
+.. _sql-ddl-custom-analyzer:
 
 Create custom analyzer
 ----------------------
