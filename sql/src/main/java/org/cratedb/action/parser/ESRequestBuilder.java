@@ -122,7 +122,7 @@ public class ESRequestBuilder {
         UpdateRequest request = new UpdateRequest(
             stmt.tableName(), NodeExecutionContext.DEFAULT_TYPE, stmt.primaryKeyLookupValue);
         request.fields(stmt.cols());
-        request.doc(stmt.updateDoc());
+        request.paths(stmt.updateDoc());
         request.retryOnConflict(ParsedStatement.UPDATE_RETRY_ON_CONFLICT);
 
         return request;

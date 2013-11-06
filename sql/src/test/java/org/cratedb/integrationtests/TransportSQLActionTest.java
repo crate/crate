@@ -990,6 +990,58 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     @Test
+    public void testUpdateResetNestedObjectUsingUpdateRequest() throws Exception {
+        XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
+                .startObject("default")
+                    .startObject("_meta").field("primary_keys", "id").endObject()
+                    .startObject("properties")
+                        .startObject("id")
+                            .field("type", "string")
+                            .field("index", "not_analyzed")
+                        .endObject()
+                        .startObject("data")
+                            .field("type", "object")
+                            .field("index", "not_analyzed")
+                            .field("dynamic", false)
+                        .endObject()
+                    .endObject()
+                .endObject()
+                .endObject();
+
+        prepareCreate("test")
+                .addMapping("default", mapping)
+                .execute().actionGet();
+        ensureGreen();
+
+        Map<String, Object> data = new HashMap<String, Object>(){{
+            put("foo", "bar");
+            put("days", new ArrayList<String>(){{
+                add("Mon");
+                add("Tue");
+                add("Wen");
+            }});
+        }};
+        execute("insert into test (id, data) values (?, ?)", new Object[] { "1", data});
+        refresh();
+
+        execute("select data from test where id = ?", new Object[] { "1" });
+        assertEquals(data, response.rows()[0][0]);
+
+        Map<String, Object> new_data = new HashMap<String, Object>(){{
+            put("days", new ArrayList<String>(){{
+                add("Mon");
+                add("Wen");
+            }});
+        }};
+        execute("update test set data = ? where id = ?", new Object[]{new_data, "1"});
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("select data from test where id = ?", new Object[] { "1" });
+        assertEquals(new_data, response.rows()[0][0]);
+    }
+
+    @Test
     public void testGetResponseWithObjectColumn() throws Exception {
         XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
             .startObject("default")
@@ -1745,34 +1797,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     @Test
     public void testUpdateWhereVersionWithConflict() throws Exception {
-        execute("create table test (col1 integer primary key, col2 string)");
-        ensureGreen();
-
-        execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
-        refresh();
-
-        execute("select \"_version\" from test where col1 = 1");
-        assertEquals(1L, response.rowCount());
-        assertEquals(1L, response.rows()[0][0]);
-
-        execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
-                new Object[]{"ok now panic", 1, 1});
-        assertEquals(1L, response.rowCount());
-        refresh();
-
-        execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
-                new Object[]{"already in panic", 1, 1});
-        assertEquals(0, response.rowCount());
-
-        // Validate that the row is really NOT updated
-        refresh();
-        execute("select col2 from test where col1 = 1");
-        assertEquals(1L, response.rowCount());
-        assertEquals("ok now panic", response.rows()[0][0]);
-    }
-
-    @Test
-    public void testUpdateResetObject() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureGreen();
 
