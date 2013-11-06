@@ -291,21 +291,21 @@ public class AnalyzerVisitorTest {
     }
 
     @Test
-    public void testGetSource() throws StandardException {
+    public void testGetStmt() throws StandardException {
         String stmt = "CREATE ANALYZER source1 WITH( TOKENIZER " +
                 "whitespace)";
         Settings settings = executeStatement(stmt, new Object[0]);
         assertThat(
                 settings.getAsMap(),
                 hasEntry(
-                        AnalyzerVisitor.getPrefixedSettingsKey("analyzer.source1._source"),
+                        AnalyzerVisitor.getPrefixedSettingsKey("analyzer.source1._sql_stmt"),
                         "CREATE ANALYZER source1 WITH (TOKENIZER whitespace)"
                 )
         );
     }
 
     @Test
-    public void testGetSourceWithParameters() throws StandardException {
+    public void testGetStmtWithParameters() throws StandardException {
         String stmt = "CREATE ANALYZER source1 WITH( " +
                 "   TOKENIZER whitespace," +
                 "   CHAR_FILTERS WITH(" +
@@ -317,7 +317,7 @@ public class AnalyzerVisitorTest {
                 ")";
         Settings settings = executeStatement(stmt, new Object[]{"html_strip", 1, "2", Math.PI});
         String source = settings.get(AnalyzerVisitor.getPrefixedSettingsKey("analyzer.source1" +
-                "._source"));
+                "._sql_stmt"));
         assertEquals(
                 "CREATE ANALYZER source1 WITH (TOKENIZER whitespace, CHAR_FILTERS WITH " +
                         "(a WITH (\"b\"=[1,'2',3.141592653589793],\"type\"='html_strip')))",

@@ -314,7 +314,7 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
         assertEquals("myotheranalyzer", response.rows()[1][0]);
         assertEquals("ANALYZER", response.rows()[1][1]);
         assertEquals(
-                "CREATE ANALYZER myotheranalyzer german WITH (\"stopwords\"=['der','die','das'])",
+                "CREATE ANALYZER myotheranalyzer EXTENDS german WITH (\"stopwords\"=['der','die','das'])",
                 response.rows()[1][2]
         );
     }

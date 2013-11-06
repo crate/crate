@@ -5,6 +5,7 @@ import org.cratedb.sql.TableUnknownException;
 import org.elasticsearch.cluster.AbstractZenNodesTests;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.node.internal.InternalNode;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -13,17 +14,24 @@ public class SQLParseServiceTest extends AbstractZenNodesTests {
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
-    private InternalNode node = null;
-    private SQLParseService sqlParseService = null;
+    private static InternalNode node = null;
+    private static SQLParseService sqlParseService = null;
 
     @Before
-    private InternalNode startNode() {
+    public void startNode() {
         if (node == null) {
             node = (InternalNode) startNode("node1", ImmutableSettings.EMPTY);
             sqlParseService = node.injector().getInstance(SQLParseService.class);
         }
-        return node;
+    }
 
+    @AfterClass
+    public static void stopNode() {
+        if (node != null) {
+            node.close();
+            node = null;
+            sqlParseService = null;
+        }
     }
 
     @Test(expected = TableUnknownException.class)
