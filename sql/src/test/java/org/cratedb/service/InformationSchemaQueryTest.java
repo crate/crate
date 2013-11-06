@@ -113,6 +113,52 @@ public class InformationSchemaQueryTest extends ElasticsearchTestCase {
     }
 
     @Test
+    public void testWhereAnd() throws Exception {
+        exec("select * from information_schema.tables where table_name='t1' and " +
+                "number_of_shards > 0");
+        assertEquals(1L, response.rowCount());
+        assertEquals("t1", response.rows()[0][0]);
+    }
+
+    @Test
+    public void testWhereAnd2() throws Exception {
+        exec("select * from information_schema.tables where number_of_shards >= 7 and " +
+                "number_of_replicas < 8 order by table_name asc");
+        assertEquals(2L, response.rowCount());
+        assertEquals("t1", response.rows()[0][0]);
+        assertEquals("t2", response.rows()[1][0]);
+    }
+
+    @Test
+    public void testWhereAnd3() throws Exception {
+        exec("select * from information_schema.tables where table_name is not null and " +
+                "number_of_shards > 6 order by table_name asc");
+        assertEquals(2L, response.rowCount());
+        assertEquals("t1", response.rows()[0][0]);
+        assertEquals("t2", response.rows()[1][0]);
+    }
+
+    @Test
+    public void testWhereOr() throws Exception {
+        exec("select * from information_schema.tables where table_name='t1' or table_name='t3' " +
+                "order by table_name asc");
+        assertEquals(2L, response.rowCount());
+        assertEquals("t1", response.rows()[0][0]);
+        assertEquals("t3", response.rows()[1][0]);
+    }
+
+    @Test
+    public void testWhereOr2() throws Exception {
+        exec("select * from information_schema.tables where table_name='t1' or table_name='t3' " +
+                "or table_name='t2'" +
+                "order by table_name desc");
+        assertEquals(3L, response.rowCount());
+        assertEquals("t3", response.rows()[0][0]);
+        assertEquals("t2", response.rows()[1][0]);
+        assertEquals("t1", response.rows()[2][0]);
+    }
+
+    @Test
     public void testWhereIn() throws Exception {
         exec("select * from information_schema.tables where table_name in ('t1', 't2') order by table_name asc");
         assertEquals(2L, response.rowCount());

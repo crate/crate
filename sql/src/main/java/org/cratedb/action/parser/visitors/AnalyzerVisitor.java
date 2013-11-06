@@ -17,12 +17,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Parsing CREATE ANALYZER Statements.
  */
 public class AnalyzerVisitor extends BaseVisitor {
     private String analyzerName = null;
+    private String source;
     private String extendedAnalyzerName = null;
     private Settings genericAnalyzerSettings = null;
     private Settings extendedCustomAnalyzer = null;
@@ -32,21 +35,28 @@ public class AnalyzerVisitor extends BaseVisitor {
     private Map<String, Settings> tokenFilters = new HashMap<>();
     private final AnalyzerService analyzerService;
 
+
     public AnalyzerVisitor(NodeExecutionContext context, ParsedStatement parsedStatement, Object[] args) {
         super(context, parsedStatement, args);
         analyzerService = context.analyzerService();
     }
 
     public boolean extendsCustomAnalyzer() {
-        return extendedAnalyzerName != null && extendedCustomAnalyzer != null;
+        return extendedAnalyzerName != null
+            && extendedCustomAnalyzer != null
+            && extendedCustomAnalyzer.get(String.format("index.analysis.analyzer.%s.type",
+                extendedAnalyzerName)).equals("custom");
     }
 
     public boolean extendsBuiltInAnalyzer() {
-        return extendedAnalyzerName != null && extendedCustomAnalyzer == null;
+        return extendedAnalyzerName != null && (extendedCustomAnalyzer == null ||
+                !extendedCustomAnalyzer.get(String.format("index.analysis.analyzer.%s.type",
+                        extendedAnalyzerName)).equals("custom"));
     }
 
     @Override
     public void visit(CreateAnalyzerNode node) throws StandardException {
+        source = getSource();
         analyzerName = node.getObjectName().getTableName(); // extend to use schema here
         if (analyzerName.equalsIgnoreCase("default")) {
             throw new SQLParseException("Overriding the default analyzer is forbidden");
@@ -60,6 +70,32 @@ public class AnalyzerVisitor extends BaseVisitor {
         visit(node.getElements());
 
         stmt.type(ParsedStatement.ActionType.CREATE_ANALYZER_ACTION);
+    }
+
+    public String getSource() {
+        if (args != null && args.length > 0) {
+            Matcher matcher = Pattern.compile("([?])").matcher(stmt.stmt);
+            String statement = stmt.stmt;
+            StringBuilder builder = new StringBuilder();
+            int argsIndex = 0;
+            int stmtPos = 0;
+            while(matcher.find() && argsIndex < args.length) {
+                builder.append(statement.substring(stmtPos, matcher.start()));
+                if (args[argsIndex] instanceof String) {
+                    builder.append("'").append(args[argsIndex]).append("'");
+                } else {
+                    builder.append(args[argsIndex]);
+                }
+                argsIndex++;
+                stmtPos = matcher.end();
+            }
+            builder.append(statement.substring(stmtPos));
+            return builder.toString();
+        } else {
+            return stmt.stmt;
+        }
+
+
     }
 
     public void visit(TableName extendsName) throws StandardException {
@@ -95,8 +131,10 @@ public class AnalyzerVisitor extends BaseVisitor {
         String name = tokenizer.getName();
         GenericProperties properties = tokenizer.getProperties();
 
-        // use a builtin tokenizer without parameters
+
         if (properties == null) {
+            // use a builtin tokenizer without parameters
+
             // validate
             if (!analyzerService.hasBuiltInTokenizer(name)) {
                 throw new SQLParseException(String.format("Non-existing tokenizer '%s'", name));
@@ -116,8 +154,10 @@ public class AnalyzerVisitor extends BaseVisitor {
             } else {
                 throw new SQLParseException(String.format("tokenizer name '%s' is reserved", name));
             }
-
             // build
+            // transform name as tokenizer is not publicly available
+            name = String.format("%s_%s", analyzerName, name);
+
             ImmutableSettings.Builder builder = ImmutableSettings.builder();
             for (Map.Entry<String, QueryTreeNode> tokenizerProperty : properties.iterator()) {
                 genericPropertyToSetting(builder,
@@ -172,6 +212,8 @@ public class AnalyzerVisitor extends BaseVisitor {
                 }
 
                 // build
+                // transform name as token-filter is not publicly available
+                name = String.format("%s_%s", analyzerName, name);
                 ImmutableSettings.Builder builder = ImmutableSettings.builder();
                 for (Map.Entry<String, QueryTreeNode> tokenFilterProperty : properties.iterator()) {
                     genericPropertyToSetting(builder,
@@ -207,6 +249,8 @@ public class AnalyzerVisitor extends BaseVisitor {
                 }
 
                 // build
+                // transform name as char-filter is not publicly available
+                name = String.format("%s_%s", analyzerName, name);
                 ImmutableSettings.Builder builder = ImmutableSettings.builder();
                 for (Map.Entry<String, QueryTreeNode> charFilterProperty: properties.iterator()) {
                     genericPropertyToSetting(builder,
@@ -289,22 +333,22 @@ public class AnalyzerVisitor extends BaseVisitor {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
 
         if (extendsCustomAnalyzer()) {
-
             // use analyzer-settings from extended analyzer only
             Settings stripped = extendedCustomAnalyzer.getByPrefix(String.format("index.analysis.analyzer.%s", extendedAnalyzerName));
             for (Map.Entry<String, String> entry : stripped.getAsMap().entrySet()) {
                 builder.put(String.format("index.analysis.analyzer.%s%s", analyzerName, entry.getKey()), entry.getValue());
             }
-            builder.put(extendedCustomAnalyzer);
 
             if (tokenizerDefinition == null) {
                 // set tokenizer if not defined in extending analyzer
                 String extendedTokenizerName = extendedCustomAnalyzer.get(String.format("index.analysis.analyzer.%s.tokenizer", extendedAnalyzerName));
-                Settings extendedTokenizerSettings = analyzerService.getCustomTokenizer(extendedTokenizerName);
-                if (extendedTokenizerSettings != null) {
-                    tokenizerDefinition = new Tuple<>(extendedTokenizerName, extendedTokenizerSettings);
-                } else {
-                    tokenizerDefinition = new Tuple<>(extendedTokenizerName, ImmutableSettings.EMPTY);
+                if (extendedTokenizerName != null) {
+                    Settings extendedTokenizerSettings = analyzerService.getCustomTokenizer(extendedTokenizerName);
+                    if (extendedTokenizerSettings != null) {
+                        tokenizerDefinition = new Tuple<>(extendedTokenizerName, extendedTokenizerSettings);
+                    } else {
+                        tokenizerDefinition = new Tuple<>(extendedTokenizerName, ImmutableSettings.EMPTY);
+                    }
                 }
             }
 
@@ -342,9 +386,20 @@ public class AnalyzerVisitor extends BaseVisitor {
         }
 
         // analyzer type
+        String analyzerType = "custom";
+        if (extendsBuiltInAnalyzer()){
+            if (extendedCustomAnalyzer != null) {
+                analyzerType = extendedCustomAnalyzer.get(
+                        String.format("index.analysis.analyzer.%s.type", extendedAnalyzerName)
+                );
+            } else {
+                // direct extending builtin analyzer, use name as type
+                analyzerType = extendedAnalyzerName;
+            }
+        }
         builder.put(
-            getSettingsKey("index.analysis.analyzer.%s.type", analyzerName),
-            (extendsBuiltInAnalyzer() ? extendedAnalyzerName : "custom" )
+                getSettingsKey("index.analysis.analyzer.%s.type", analyzerName),
+                analyzerType
         );
 
         if (tokenizerDefinition != null) {
@@ -383,6 +438,12 @@ public class AnalyzerVisitor extends BaseVisitor {
         builder.put(
                 String.format("%s.analyzer.%s", SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX, analyzerName),
                 encodedAnalyzerSettings
+        );
+        // set source
+        builder.put(
+                String.format("%s.analyzer.%s._source",
+                        SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX, analyzerName),
+                source
         );
 
         if (tokenizerDefinition != null && !tokenizerDefinition.v2().getAsMap().isEmpty()) {

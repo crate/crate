@@ -1,19 +1,21 @@
 package org.cratedb.module;
 
-import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.action.TransportSQLReduceHandler;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.TransportSQLAction;
+import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.action.sql.analyzer.ClusterUpdateCrateSettingsAction;
 import org.cratedb.action.sql.analyzer.TransportClusterUpdateCrateSettingsAction;
+import org.cratedb.information_schema.*;
 import org.cratedb.service.InformationSchemaService;
 import org.cratedb.service.SQLParseService;
 import org.elasticsearch.action.GenericAction;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.inject.assistedinject.FactoryProvider;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
 public class SQLModule extends AbstractModule {
@@ -41,5 +43,17 @@ public class SQLModule extends AbstractModule {
         actionsBinder.addBinding(SQLAction.NAME).toInstance(SQLAction.INSTANCE);
         actionsBinder.addBinding(ClusterUpdateCrateSettingsAction.NAME).toInstance(ClusterUpdateCrateSettingsAction.INSTANCE);
 
+        // Information schema tables
+        MapBinder<String, InformationSchemaTable> informationSchemaTables = MapBinder
+                .newMapBinder(binder(), String.class, InformationSchemaTable.class);
+        informationSchemaTables.addBinding(TablesTable.NAME).to(TablesTable.class).asEagerSingleton();
+        informationSchemaTables.addBinding(TableConstraintsTable.NAME).to(TableConstraintsTable.class)
+                .asEagerSingleton();
+        informationSchemaTables.addBinding(RoutinesTable.NAME).to(RoutinesTable.class).asEagerSingleton();
+
+        // get a factory for InformationSchemaTableExecutionContext
+        bind(InformationSchemaTableExecutionContextFactory.class).toProvider(FactoryProvider
+                .newFactory(InformationSchemaTableExecutionContextFactory.class,
+                        InformationSchemaTableExecutionContext.class));
     }
 }

@@ -17,6 +17,8 @@ import org.elasticsearch.index.analysis.TokenizerFactory;
 import org.elasticsearch.indices.analysis.IndicesAnalysisService;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Service to get builtin and custom analyzers, tokenizers, token_filters, char_filters
@@ -46,6 +48,8 @@ public class AnalyzerService {
             "english", "finnish", "french", "galician", "german", "greek", "hindi", "hungarian",
             "indonesian", "italian", "latvian", "norwegian", "persian", "portuguese",
             "romanian", "russian", "spanish", "swedish", "turkish", "thai");
+
+
 
     public enum CustomType {
         ANALYZER("analyzer"),
@@ -82,6 +86,52 @@ public class AnalyzerService {
         return indicesAnalysisService.analyzer(name);
     }
 
+    /**
+     * get all the builtin Analyzers defined in Crate
+     * @return an Iterable of Strings
+     */
+    public Iterable<? extends String> getBuiltInAnalyzers() {
+        return new ImmutableSet.Builder<String>()
+                .addAll(EXTENDED_BUILTIN_ANALYZERS)
+                .addAll(indicesAnalysisService.analyzerProviderFactories().keySet()).build();
+    }
+
+    /**
+     * get the custom analyzer created by the CREATE ANALYZER command.
+     * This does not include definitions for custom tokenizers, token-filters or char-filters
+     *
+     * @param name the name of the analyzer
+     * @return Settings defining a custom Analyzer
+     */
+    public Settings getCustomAnalyzer(String name) {
+        return getCustomThingy(name, CustomType.ANALYZER);
+    }
+
+    /**
+     * get the source of the custom analyzer with name ``name``.
+     * This is the statement it was created with.
+     *
+     * @param name the name of the custom analyzer
+     * @return the source as String or null if no source exists)
+     */
+    public String getCustomAnalyzerSource(String name) {
+        return clusterService.state().metaData().persistentSettings().get(
+                String.format("%s.%s.%s._source", SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX,
+                        CustomType.ANALYZER.getName(), name)
+        );
+    }
+
+    public Map<String, Settings> getCustomAnalyzers() throws IOException {
+        Map<String, Settings> result = new HashMap<>();
+        for (Map.Entry<String, String> entry : getCustomThingies(CustomType.ANALYZER)
+                .getAsMap().entrySet()) {
+            if (!entry.getKey().endsWith("._source")) {
+                result.put(entry.getKey(), decodeSettings(entry.getValue()));
+            }
+        }
+        return result;
+    }
+
     public boolean hasCustomAnalyzer(String name) {
         return hasCustomThingy(name, CustomType.ANALYZER);
     }
@@ -95,8 +145,23 @@ public class AnalyzerService {
         return EXTENDED_BUILTIN_TOKENIZERS.contains(name) || indicesAnalysisService.hasTokenizer(name);
     }
 
+    public Iterable<? extends String> getBuiltInTokenizers() {
+        return new ImmutableSet.Builder<String>().addAll(EXTENDED_BUILTIN_TOKENIZERS)
+                .addAll(indicesAnalysisService.tokenizerFactories().keySet())
+                .build();
+    }
+
     public boolean hasCustomTokenizer(String name) {
         return hasCustomThingy(name, CustomType.TOKENIZER);
+    }
+
+    public Map<String, Settings> getCustomTokenizers() throws IOException {
+        Map<String, Settings> result = new HashMap<>();
+        for (Map.Entry<String, String> entry : getCustomThingies(CustomType.TOKENIZER).getAsMap
+                ().entrySet()) {
+            result.put(entry.getKey(), decodeSettings(entry.getValue()));
+        }
+        return result;
     }
 
 
@@ -112,6 +177,20 @@ public class AnalyzerService {
         return hasCustomThingy(name, CustomType.CHAR_FILTER);
     }
 
+    public Iterable<? extends String> getBuiltInCharFilters() {
+        return new ImmutableSet.Builder<String>().addAll(EXTENDED_BUILTIN_CHAR_FILTERS)
+                .addAll(indicesAnalysisService.charFilterFactories().keySet())
+                .build();
+    }
+
+    public Map<String, Settings> getCustomCharFilters() throws IOException {
+        Map<String, Settings> result = new HashMap<>();
+        for (Map.Entry<String, String> entry : getCustomThingies(CustomType.CHAR_FILTER).getAsMap
+                ().entrySet()) {
+            result.put(entry.getKey(), decodeSettings(entry.getValue()));
+        }
+        return result;
+    }
 
     public boolean hasTokenFilter(String name) {
         return hasBuiltInTokenFilter(name) || hasCustomTokenFilter(name);
@@ -121,8 +200,24 @@ public class AnalyzerService {
         return EXTENDED_BUILTIN_TOKEN_FILTERS.contains(name) || indicesAnalysisService.hasTokenFilter(name);
     }
 
+    public Iterable<? extends String> getBuiltInTokenFilters() {
+        return new ImmutableSet.Builder<String>()
+                .addAll(EXTENDED_BUILTIN_TOKEN_FILTERS)
+                .addAll(indicesAnalysisService.tokenFilterFactories().keySet())
+                .build();
+    }
+
     public boolean hasCustomTokenFilter(String name) {
         return hasCustomThingy(name, CustomType.TOKEN_FILTER);
+    }
+
+    public Map<String, Settings> getCustomTokenFilters() throws IOException {
+        Map<String, Settings> result = new HashMap<>();
+        for (Map.Entry<String, String> entry : getCustomThingies(CustomType.TOKEN_FILTER).getAsMap
+                ().entrySet()) {
+            result.put(entry.getKey(), decodeSettings(entry.getValue()));
+        }
+        return result;
     }
 
     public static BytesReference encodeSettings(Settings settings) throws IOException {
@@ -145,6 +240,9 @@ public class AnalyzerService {
      * @return a full settings instance for the thingy with given name and type or null if it does not exists
      */
     private Settings getCustomThingy(String name, CustomType type) {
+        if (name == null) {
+            return null;
+        }
         String encodedSettings = clusterService.state().metaData().persistentSettings().get(
                 String.format("%s.%s.%s", SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name)
         );
@@ -159,6 +257,13 @@ public class AnalyzerService {
         return decoded;
     }
 
+    private Settings getCustomThingies(CustomType type) {
+        Map<String, Settings> settingsMap = clusterService.state().metaData().persistentSettings
+                ().getGroups(SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX);
+        Settings result = settingsMap.get(type.getName());
+        return result != null ? result : ImmutableSettings.EMPTY;
+    }
+
     /**
      * used to check if custom analyzer, tokenizer, token-filter or char-filter with name ``name`` exists
      * @param name
@@ -168,19 +273,6 @@ public class AnalyzerService {
     private boolean hasCustomThingy(String name, CustomType type) {
         return clusterService.state().metaData().persistentSettings().getAsMap().containsKey(
                 String.format("%s.%s.%s", SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name));
-    }
-
-
-    /**
-     * get the custom analyzer created by the CREATE ANALYZER command.
-     * This does not include definitions for custom tokenizers, token-filters or char-filters
-     *
-     * @param name the name of the analyzer
-     * @return Settings defining a custom Analyzer
-     */
-    public Settings getCustomAnalyzer(String name) {
-        Settings analyzerSettings = getCustomThingy(name, CustomType.ANALYZER);
-        return analyzerSettings;
     }
 
     /**

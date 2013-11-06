@@ -97,7 +97,7 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
         );
         assertThat(
                 settings.getAsMap(),
-                hasKey("crate.analysis.custom.tokenizer.custom")
+                hasKey("crate.analysis.custom.tokenizer.a2_custom")
         );
         Settings analyzerSettings = AnalyzerService.decodeSettings(settings.get("crate.analysis.custom.analyzer.a2"));
         assertThat(
@@ -106,15 +106,17 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
         );
         assertThat(
                 analyzerSettings.getAsMap(),
-                hasEntry("index.analysis.analyzer.a2.tokenizer", "custom")
+                hasEntry("index.analysis.analyzer.a2.tokenizer", "a2_custom")
         );
 
-        Settings tokenizerSettings = AnalyzerService.decodeSettings(settings.get("crate.analysis.custom.tokenizer.custom"));
+        Settings tokenizerSettings = AnalyzerService.decodeSettings(settings.get("crate.analysis" +
+                ".custom.tokenizer.a2_custom"));
         assertThat(
                 tokenizerSettings.getAsMap(),
-                hasEntry("index.analysis.tokenizer.custom.type", "keyword")
+                hasEntry("index.analysis.tokenizer.a2_custom.type", "keyword")
         );
-        assertThat(tokenizerSettings.getAsMap(), hasEntry("index.analysis.tokenizer.custom.buffer_size", "1024"));
+        assertThat(tokenizerSettings.getAsMap(), hasEntry("index.analysis.tokenizer.a2_custom" +
+                ".buffer_size", "1024"));
     }
 
     @Test
@@ -134,13 +136,13 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
                 settings.getAsMap(),
                 allOf(
                         hasKey("crate.analysis.custom.analyzer.a3"),
-                        hasKey("crate.analysis.custom.filter.greeklowercase")
+                        hasKey("crate.analysis.custom.filter.a3_greeklowercase")
                 )
         );
         Settings analyzerSettings = AnalyzerService.decodeSettings(settings.get("crate.analysis.custom.analyzer.a3"));
         assertThat(
                 analyzerSettings.getAsArray("index.analysis.analyzer.a3.filter"),
-                arrayContainingInAnyOrder("ngram", "greeklowercase")
+                arrayContainingInAnyOrder("ngram", "a3_greeklowercase")
         );
         assertThat(analyzerSettings.getAsMap(), hasEntry("index.analysis.analyzer.a3.tokenizer", "standard"));
 
@@ -161,7 +163,8 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
 
         Settings extendedAnalyzerSettings = AnalyzerService.decodeSettings(extendedSettings.get("crate.analysis.custom.analyzer.a4"));
         assertThat(extendedAnalyzerSettings.getAsArray("index.analysis.analyzer.a4.char_filter"), arrayContainingInAnyOrder("html_strip"));
-        assertThat(extendedAnalyzerSettings.getAsArray("index.analysis.analyzer.a4.filter"), arrayContainingInAnyOrder("ngram", "greeklowercase"));
+        assertThat(extendedAnalyzerSettings.getAsArray("index.analysis.analyzer.a4.filter"),
+                arrayContainingInAnyOrder("ngram", "a3_greeklowercase"));
         assertThat(extendedAnalyzerSettings.getAsMap(), hasEntry("index.analysis.analyzer.a4.tokenizer", "whitespace"));
 
     }
@@ -232,24 +235,24 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
                 settings.getAsMap(),
                 allOf(
                         hasKey("crate.analysis.custom.analyzer.a7"),
-                        hasKey("crate.analysis.custom.tokenizer.mytok"),
-                        hasKey("crate.analysis.custom.char_filter.mypattern"),
-                        hasKey("crate.analysis.custom.filter.myshingle"),
-                        hasKey("crate.analysis.custom.filter.my_stemmer")
+                        hasKey("crate.analysis.custom.tokenizer.a7_mytok"),
+                        hasKey("crate.analysis.custom.char_filter.a7_mypattern"),
+                        hasKey("crate.analysis.custom.filter.a7_myshingle"),
+                        hasKey("crate.analysis.custom.filter.a7_my_stemmer")
                 )
         );
         Settings analyzerSettings = AnalyzerService.decodeSettings(settings.get("crate.analysis.custom.analyzer.a7"));
         assertThat(
                 analyzerSettings.getAsArray("index.analysis.analyzer.a7.char_filter"),
-                arrayContainingInAnyOrder("mypattern", "html_strip")
+                arrayContainingInAnyOrder("a7_mypattern", "html_strip")
         );
         assertThat(
                 analyzerSettings.getAsArray("index.analysis.analyzer.a7.filter"),
-                arrayContainingInAnyOrder("myshingle", "lowercase", "my_stemmer")
+                arrayContainingInAnyOrder("a7_myshingle", "lowercase", "a7_my_stemmer")
         );
         assertThat(
                 analyzerSettings.getAsMap(),
-                hasEntry("index.analysis.analyzer.a7.tokenizer", "mytok")
+                hasEntry("index.analysis.analyzer.a7.tokenizer", "a7_mytok")
         );
         execute("CREATE ANALYZER a8 EXTENDS a7 WITH (" +
                 "  token_filters (" +
@@ -262,7 +265,7 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
             extendedSettings.getAsMap(),
             allOf(
                     hasKey("crate.analysis.custom.analyzer.a8"),
-                    hasKey("crate.analysis.custom.tokenizer.mytok")
+                    hasKey("crate.analysis.custom.tokenizer.a7_mytok")
             )
         );
         Settings extendedAnalyzerSettings = AnalyzerService.decodeSettings(extendedSettings.get("crate.analysis.custom.analyzer.a8"));
@@ -272,7 +275,7 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
         );
         assertThat(
                 extendedAnalyzerSettings.getAsMap(),
-                hasEntry("index.analysis.analyzer.a8.tokenizer", "mytok")
+                hasEntry("index.analysis.analyzer.a8.tokenizer", "a7_mytok")
         );
         assertThat(
                 extendedAnalyzerSettings.getAsArray("index.analysis.analyzer.a8.filter"),
@@ -280,7 +283,7 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
         );
         assertThat(
                 extendedAnalyzerSettings.getAsArray("index.analysis.analyzer.a8.char_filter"),
-                arrayContainingInAnyOrder("mypattern", "html_strip")
+                arrayContainingInAnyOrder("a7_mypattern", "html_strip")
         );
 
     }
@@ -332,11 +335,12 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
             settings.getAsMap(),
             allOf(
                     hasKey("crate.analysis.custom.analyzer.a11"),
-                    hasKey("crate.analysis.custom.filter.mystop")
+                    hasKey("crate.analysis.custom.filter.a11_mystop")
             )
         );
         Settings analyzerSettings = AnalyzerService.decodeSettings(settings.get("crate.analysis.custom.analyzer.a11"));
-        Settings tokenFilterSettings = AnalyzerService.decodeSettings(settings.get("crate.analysis.custom.filter.mystop"));
+        Settings tokenFilterSettings = AnalyzerService.decodeSettings(settings.get("crate" +
+                ".analysis.custom.filter.a11_mystop"));
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
         builder.put(analyzerSettings);
         builder.put(tokenFilterSettings);

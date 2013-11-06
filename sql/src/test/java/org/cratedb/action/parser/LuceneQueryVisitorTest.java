@@ -6,13 +6,16 @@ import org.cratedb.action.parser.visitors.QueryVisitor;
 import org.cratedb.action.sql.ITableExecutionContext;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
-import org.cratedb.action.sql.TableExecutionContext;
+import org.cratedb.information_schema.InformationSchemaTable;
 import org.cratedb.information_schema.InformationSchemaTableExecutionContext;
+import org.cratedb.information_schema.TablesTable;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.SQLParser;
 import org.cratedb.sql.parser.parser.StatementNode;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.HashMap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -75,7 +78,7 @@ public class LuceneQueryVisitorTest {
                 " and (table_name = 2 or table_name = 3 or table_name = 4)"
         );
 
-        String expected = "BooleanQuery/1:\n" +
+        String expected = "BooleanQuery/0:\n" +
             "  MUST\n" +
             "  TermQuery: table_name:1\n" +
             "  MUST\n" +
@@ -101,7 +104,7 @@ public class LuceneQueryVisitorTest {
             "  SHOULD\n" +
             "  BooleanQuery/1:\n" +
             "    SHOULD\n" +
-            "    BooleanQuery/1:\n" +
+            "    BooleanQuery/0:\n" +
             "      MUST\n" +
             "      TermQuery: table_name:1\n" +
             "      MUST\n" +
@@ -111,6 +114,20 @@ public class LuceneQueryVisitorTest {
             "  SHOULD\n" +
             "  TermQuery: table_name:4\n";
         assertEquals(expected, tree);
+    }
+
+    @Test
+    public void testBoolQueryGeneration3() throws Exception {
+        String tree = queryTree(
+                "select c from information_schema.tables where table_name = 1 and table_name = 2"
+        );
+        String expected = "BooleanQuery/0:\n" +
+                "  MUST\n" +
+                "  TermQuery: table_name:1\n" +
+                "  MUST\n" +
+                "  TermQuery: table_name:2\n";
+        assertEquals(expected, tree);
+
     }
 
     @Test
@@ -211,7 +228,10 @@ public class LuceneQueryVisitorTest {
         ParsedStatement stmt = new ParsedStatement(statement);
         QueryPlanner queryPlanner = mock(QueryPlanner.class);
         NodeExecutionContext context = mock(NodeExecutionContext.class);
-        ITableExecutionContext tableContext = new InformationSchemaTableExecutionContext("tables");
+        ITableExecutionContext tableContext = new InformationSchemaTableExecutionContext
+                (new HashMap<String, InformationSchemaTable>(){{
+                    put("tables", new TablesTable());
+                }}, "tables");
         when(context.queryPlanner()).thenReturn(queryPlanner);
         when(context.tableContext(anyString(), anyString())).thenReturn(tableContext);
         QueryVisitor visitor = new QueryVisitor(context, stmt, new Object[0]);
