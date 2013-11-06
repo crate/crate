@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/11/06 0.18.2
+=================
+
  - Fix: use update-by-path instead of merge on primary-keys queries as well
 
  - Added virtual table ``indices`` to the ``information_schema``, holds information about all
