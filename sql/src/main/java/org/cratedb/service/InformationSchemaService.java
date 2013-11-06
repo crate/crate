@@ -3,7 +3,7 @@ package org.cratedb.service;
 import com.google.common.collect.ImmutableMap;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.information_schema.*;
+import org.cratedb.information_schema.InformationSchemaTable;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.TableUnknownException;
 import org.cratedb.sql.parser.parser.NodeTypes;
@@ -22,6 +22,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import java.io.IOException;
+import java.util.Map;
 
 import static org.elasticsearch.action.support.PlainActionFuture.newFuture;
 
@@ -41,19 +42,14 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
     private ClusterStateListener listener;
     protected final ESLogger logger;
 
-    public static final ImmutableMap<String, InformationSchemaTable> tables = new ImmutableMap
-            .Builder<String, InformationSchemaTable>()
-            .put(TablesTable.NAME, new TablesTable())
-            .put(TableConstraintsTable.NAME, new TableConstraintsTable())
-            .put(TableColumnsTable.NAME, new TableColumnsTable())
-            .put(TableIndicesTable.NAME, new TableIndicesTable())
-            .build();
+    private final ImmutableMap<String, InformationSchemaTable> tables;
 
     @Inject
-    public InformationSchemaService(Settings settings,
-                                    ClusterService clusterService) {
+    public InformationSchemaService(Settings settings, ClusterService clusterService,
+                                    Map<String, InformationSchemaTable> informationSchemaTables) {
         super(settings);
         this.clusterService = clusterService;
+        this.tables = ImmutableMap.copyOf(informationSchemaTables);
         this.dirty = false;
         logger = Loggers.getLogger(getClass(), settings);
     }

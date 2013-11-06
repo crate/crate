@@ -2,23 +2,30 @@ package org.cratedb.information_schema;
 
 import com.google.common.collect.ImmutableMap;
 import org.cratedb.action.sql.ITableExecutionContext;
-import org.cratedb.service.InformationSchemaService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.assistedinject.Assisted;
 import org.elasticsearch.index.mapper.DocumentMapper;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class InformationSchemaTableExecutionContext implements ITableExecutionContext {
 
     public static final String SCHEMA_NAME = "INFORMATION_SCHEMA";
     private final String tableName;
 
-    public InformationSchemaTableExecutionContext(String tableName) {
+    private final ImmutableMap<String, InformationSchemaTable> tablesMap;
+
+    @Inject
+    public InformationSchemaTableExecutionContext(Map<String,
+                InformationSchemaTable> informationSchemaTables, @Assisted String tableName) {
+        this.tablesMap = ImmutableMap.copyOf(informationSchemaTables);
         this.tableName = tableName;
     }
 
     public ImmutableMap<String, InformationSchemaColumn> fieldMapper() {
-        return InformationSchemaService.tables.get(tableName).fieldMapper();
+        return tablesMap.get(tableName).fieldMapper();
     }
 
     @Override
@@ -43,7 +50,7 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
 
     @Override
     public Iterable<String> allCols() {
-        return InformationSchemaService.tables.get(tableName).cols();
+        return tablesMap.get(tableName).cols();
     }
 
     @Override

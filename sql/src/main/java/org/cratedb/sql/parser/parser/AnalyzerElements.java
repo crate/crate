@@ -31,6 +31,10 @@ public class AnalyzerElements extends QueryTreeNode {
         return this.properties;
     }
 
+    public boolean hasProperties() {
+        return this.properties != null && this.properties.hasProperties();
+    }
+
     public CharFilterList getCharFilters() {
         return this.charFilters;
     }

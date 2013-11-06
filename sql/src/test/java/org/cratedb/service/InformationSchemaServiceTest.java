@@ -1,9 +1,11 @@
 package org.cratedb.service;
 
+import com.google.common.base.Joiner;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.sql.SQLParseException;
 import org.elasticsearch.cluster.AbstractZenNodesTests;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -19,7 +21,7 @@ import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.collection.IsArrayContainingInOrder.arrayContaining;
+import static org.hamcrest.Matchers.arrayContaining;
 
 public class InformationSchemaServiceTest extends AbstractZenNodesTests {
 
@@ -37,6 +39,7 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
     private InternalNode node = null;
     private InformationSchemaService informationSchemaService;
     private SQLParseService parseService;
+    private AnalyzerService analyzerService;
     private SQLResponse response;
 
     private void serviceSetup() {
@@ -57,6 +60,7 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
         node = startNode();
         parseService = node.injector().getInstance(SQLParseService.class);
         informationSchemaService = node.injector().getInstance(InformationSchemaService.class);
+        analyzerService = node.injector().getInstance(AnalyzerService.class);
     }
 
     @After
@@ -257,9 +261,9 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
         execUsingClient("select constraint_type, constraint_name, " +
                 "table_name from information_schema.table_constraints");
         assertEquals(1L, response.rowCount());
-        assertEquals(response.rows()[0][0], "PRIMARY_KEY");
-        assertEquals(response.rows()[0][1], "col1");
-        assertEquals(response.rows()[0][2], "test");
+        assertEquals("PRIMARY_KEY", response.rows()[0][0]);
+        assertEquals("col1", response.rows()[0][1]);
+        assertEquals("test", response.rows()[0][2]);
     }
 
     @Test
@@ -268,15 +272,128 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
         execUsingClient("select table_name, constraint_name from INFORMATION_SCHEMA" +
                 ".table_constraints");
         assertEquals(1L, response.rowCount());
-        assertEquals(response.rows()[0][0], "test");
-        assertEquals(response.rows()[0][1], "col1");
+        assertEquals("test", response.rows()[0][0]);
+        assertEquals("col1", response.rows()[0][1]);
 
         execUsingClient("create table test2 (col1a string primary key, col2a timestamp)");
         execUsingClient("select * from INFORMATION_SCHEMA.table_constraints");
 
         assertEquals(2L, response.rowCount());
-        assertEquals(response.rows()[1][0], "test2");
-        assertEquals(response.rows()[1][1], "col1a");
+        assertEquals("test2", response.rows()[1][0]);
+        assertEquals("col1a", response.rows()[1][1]);
+    }
+
+    @Test
+    public void testSelectFromRoutines() throws Exception {
+        String stmt1 = "CREATE ANALYZER myAnalyzer WITH (" +
+                "  TOKENIZER whitespace," +
+                "  TOKEN_FILTERS (" +
+                "     myTokenFilter WITH (" +
+                "      type='snowball'," +
+                "      language='german'" +
+                "    )," +
+                "    kstem" +
+                "  )" +
+                ")";
+        execUsingClient(stmt1);
+        execUsingClient("CREATE ANALYZER myOtherAnalyzer extends german (" +
+                "  stopwords=[?, ?, ?]" +
+                ")", new Object[]{"der", "die", "das"});
+
+        execUsingClient("SELECT * from INFORMATION_SCHEMA.routines where routine_definition != " +
+                "'BUILTIN' order by routine_name asc");
+        assertEquals(2L, response.rowCount());
+
+        assertEquals("myanalyzer", response.rows()[0][0]);
+        assertEquals("ANALYZER", response.rows()[0][1]);
+        assertEquals("CREATE ANALYZER myanalyzer WITH (TOKENIZER whitespace, " +
+                "TOKEN_FILTERS WITH (" +
+                "mytokenfilter WITH (\"language\"='german',\"type\"='snowball'), kstem)" +
+                ")", response.rows()[0][2]);
+
+        assertEquals("myotheranalyzer", response.rows()[1][0]);
+        assertEquals("ANALYZER", response.rows()[1][1]);
+        assertEquals(
+                "CREATE ANALYZER myotheranalyzer EXTENDS german WITH (\"stopwords\"=['der','die','das'])",
+                response.rows()[1][2]
+        );
+    }
+
+    @Test
+    public void testSelectBuiltinAnalyzersFromRoutines() throws Exception {
+        execUsingClient("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
+               "\"routine_type\"='ANALYZER' AND \"routine_definition\"='BUILTIN' order by " +
+                "routine_name desc");
+        assertEquals(42L, response.rowCount());
+        String[] analyzerNames = new String[response.rows().length];
+        for (int i=0; i<response.rowCount(); i++) {
+            analyzerNames[i] = (String)response.rows()[i][0];
+        }
+        assertEquals(
+                "whitespace, turkish, thai, swedish, stop, standard_html_strip, standard, spanish, " +
+                "snowball, simple, russian, romanian, portuguese, persian, pattern, " +
+                "norwegian, latvian, keyword, italian, irish, indonesian, hungarian, " +
+                "hindi, greek, german, galician, french, finnish, english, dutch, default, " +
+                "danish, czech, classic, cjk, chinese, catalan, bulgarian, brazilian, " +
+                "basque, armenian, arabic",
+                Joiner.on(", ").join(analyzerNames)
+        );
+    }
+
+    @Test
+    public void testSelectBuiltinTokenizersFromRoutines() throws Exception {
+        execUsingClient("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
+                "\"routine_type\"='TOKENIZER' AND \"routine_definition\"='BUILTIN' order by " +
+                "routine_name asc");
+        assertEquals(13L, response.rowCount());
+        String[] tokenizerNames = new String[response.rows().length];
+        for (int i=0; i<response.rowCount(); i++) {
+            tokenizerNames[i] = (String)response.rows()[i][0];
+        }
+        assertEquals(
+                "classic, edgeNGram, edge_ngram, keyword, letter, lowercase, nGram, ngram, " +
+                        "path_hierarchy, pattern, standard, uax_url_email, whitespace",
+                Joiner.on(", ").join(tokenizerNames)
+        );
+    }
+
+    @Test
+    public void testSelectBuiltinTokenFiltersFromRoutines() throws Exception {
+        execUsingClient("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
+                "\"routine_type\"='TOKEN_FILTER' AND \"routine_definition\"='BUILTIN' order by " +
+                "routine_name asc");
+        assertEquals(43L, response.rowCount());
+        String[] tokenFilterNames = new String[response.rows().length];
+        for (int i=0; i<response.rowCount(); i++) {
+            tokenFilterNames[i] = (String)response.rows()[i][0];
+        }
+        assertEquals(
+                "arabic_normalization, arabic_stem, asciifolding, brazilian_stem, cjk_bigram, " +
+                "cjk_width, classic, common_grams, czech_stem, dictionary_decompounder, " +
+                "dutch_stem, edgeNGram, edge_ngram, elision, french_stem, german_stem, hunspell, " +
+                "hyphenation_decompounder, keep, keyword_marker, keyword_repeat, kstem, " +
+                "length, lowercase, nGram, ngram, pattern_capture, pattern_replace, " +
+                "persian_normalization, porter_stem, reverse, russian_stem, shingle, " +
+                "snowball, standard, stemmer, stemmer_override, stop, synonym, trim, " +
+                "truncate, unique, word_delimiter",
+                Joiner.on(", ").join(tokenFilterNames)
+        );
+    }
+
+    @Test
+    public void testSelectBuiltinCharFiltersFromRoutines() throws Exception {
+        execUsingClient("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
+                "\"routine_type\"='CHAR_FILTER' AND \"routine_definition\"='BUILTIN' order by " +
+                "routine_name asc");
+        assertEquals(4L, response.rowCount());
+        String[] charFilterNames = new String[response.rows().length];
+        for (int i=0; i<response.rowCount(); i++) {
+            charFilterNames[i] = (String)response.rows()[i][0];
+        }
+        assertEquals(
+                "htmlStrip, html_strip, mapping, pattern_replace",
+                Joiner.on(", ").join(charFilterNames)
+        );
     }
 
     @Test

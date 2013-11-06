@@ -121,3 +121,50 @@ behaviour at Crate, so almost all columns are listed as an index as well::
     | quotes     | content             | plain    | content           |                  |
     +------------+---------------------+----------+-------------------+------------------+
     SELECT 12 rows in set (... sec)
+
+
+Routines
+========
+
+The routines table contains all custom analyzers, tokenizers, token-filters and char-filters
+and all custom analyzers created by ``CREATE ANALYZER`` statements
+(see :ref:`sql-ddl-custom-analyzer`).
+
+The column ``routine_definition`` contains the string ``BUILTIN`` for all builtin *Routines*.
+For custom analyzers it contains the SQL statements used for their creation.
+::
+
+    cr> select * from information_schema.routines where routine_definition != 'BUILTIN' order by routine_name asc
+    +-----------------+--------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | routine_name    | routine_type | routine_definition                                                                                                                                                                                       |
+    +-----------------+--------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    | e2              | ANALYZER     | CREATE ANALYZER e2 EXTENDS myanalyzer WITH (TOKENIZER mypattern WITH ("pattern"='.*',"type"='pattern'))                                                                                                  |
+    | german_snowball | ANALYZER     | CREATE ANALYZER german_snowball EXTENDS snowball WITH ("language"='german')                                                                                                                              |
+    | myanalyzer      | ANALYZER     | CREATE ANALYZER myanalyzer WITH (TOKENIZER whitespace, TOKEN_FILTERS WITH (lowercase, kstem), CHAR_FILTERS WITH (html_strip, mymapping WITH ("mappings"=['ph=>f','qu=>q','foo=>bar'],"type"='mapping'))) |
+    +-----------------+--------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+    SELECT 3 rows in set (... sec)
+
+You can use this table to see e.g. what builtin tokenizers exist::
+
+    cr> select routine_name from information_schema.routines
+    ... where routine_type='TOKENIZER' and  routine_definition='BUILTIN'
+    ... order by routine_name asc
+    +----------------+
+    | routine_name   |
+    +----------------+
+    | classic        |
+    | edgeNGram      |
+    | edge_ngram     |
+    | keyword        |
+    | letter         |
+    | lowercase      |
+    | nGram          |
+    | ngram          |
+    | path_hierarchy |
+    | pattern        |
+    | standard       |
+    | uax_url_email  |
+    | whitespace     |
+    +----------------+
+    SELECT 13 rows in set (... sec)
+

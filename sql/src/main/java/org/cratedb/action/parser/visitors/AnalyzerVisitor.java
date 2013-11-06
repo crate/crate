@@ -3,6 +3,7 @@ package org.cratedb.action.parser.visitors;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
+import org.cratedb.service.SQLParseService;
 import org.cratedb.service.SQLService;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
@@ -23,6 +24,7 @@ import java.util.Map;
  */
 public class AnalyzerVisitor extends BaseVisitor {
     private String analyzerName = null;
+    private String sql_stmt;
     private String extendedAnalyzerName = null;
     private Settings genericAnalyzerSettings = null;
     private Settings extendedCustomAnalyzer = null;
@@ -32,21 +34,30 @@ public class AnalyzerVisitor extends BaseVisitor {
     private Map<String, Settings> tokenFilters = new HashMap<>();
     private final AnalyzerService analyzerService;
 
+    // used for saving the creation statement
+    public static final String SQL_STATEMENT_KEY = "_sql_stmt";
+
     public AnalyzerVisitor(NodeExecutionContext context, ParsedStatement parsedStatement, Object[] args) {
         super(context, parsedStatement, args);
         analyzerService = context.analyzerService();
     }
 
     public boolean extendsCustomAnalyzer() {
-        return extendedAnalyzerName != null && extendedCustomAnalyzer != null;
+        return extendedAnalyzerName != null
+            && extendedCustomAnalyzer != null
+            && extendedCustomAnalyzer.get(String.format("index.analysis.analyzer.%s.type",
+                extendedAnalyzerName)).equals("custom");
     }
 
     public boolean extendsBuiltInAnalyzer() {
-        return extendedAnalyzerName != null && extendedCustomAnalyzer == null;
+        return extendedAnalyzerName != null && (extendedCustomAnalyzer == null ||
+                !extendedCustomAnalyzer.get(String.format("index.analysis.analyzer.%s.type",
+                        extendedAnalyzerName)).equals("custom"));
     }
 
     @Override
     public void visit(CreateAnalyzerNode node) throws StandardException {
+        sql_stmt = new SQLParseService(context).unparse(stmt, args);
         analyzerName = node.getObjectName().getTableName(); // extend to use schema here
         if (analyzerName.equalsIgnoreCase("default")) {
             throw new SQLParseException("Overriding the default analyzer is forbidden");
@@ -95,27 +106,33 @@ public class AnalyzerVisitor extends BaseVisitor {
         String name = tokenizer.getName();
         GenericProperties properties = tokenizer.getProperties();
 
-        // use a builtin tokenizer without parameters
+
         if (properties == null) {
+            // use a builtin tokenizer without parameters
+
             // validate
-            if (!analyzerService.hasTokenizer(name)) {
+            if (!analyzerService.hasBuiltInTokenizer(name)) {
                 throw new SQLParseException(String.format("Non-existing tokenizer '%s'", name));
             }
             // build
             tokenizerDefinition = new Tuple<>(name, ImmutableSettings.EMPTY);
         } else {
             // validate
-            if (!analyzerService.hasBuiltInTokenFilter(name)) {
+            if (!analyzerService.hasBuiltInTokenizer(name)) {
                 // type mandatory
                 String evaluatedType = extractType(properties);
                 if (!analyzerService.hasBuiltInTokenizer(evaluatedType)) {
-                    throw new SQLParseException(String.format("Non-existing tokenizer type '%s'", evaluatedType));
+                    // only builtin tokenizers can be extended, for now
+                    throw new SQLParseException(String.format("Non-existing built-in tokenizer " +
+                            "type '%s'", evaluatedType));
                 }
             } else {
                 throw new SQLParseException(String.format("tokenizer name '%s' is reserved", name));
             }
-
             // build
+            // transform name as tokenizer is not publicly available
+            name = String.format("%s_%s", analyzerName, name);
+
             ImmutableSettings.Builder builder = ImmutableSettings.builder();
             for (Map.Entry<String, QueryTreeNode> tokenizerProperty : properties.iterator()) {
                 genericPropertyToSetting(builder,
@@ -158,8 +175,10 @@ public class AnalyzerVisitor extends BaseVisitor {
                 if (!analyzerService.hasBuiltInTokenFilter(name)) {
                     // type mandatory when name is not a builtin filter
                     String evaluatedType = extractType(properties);
-                    if (!analyzerService.hasTokenFilter(evaluatedType)) {
-                        throw new SQLParseException(String.format("Non-existing token-filter type '%s'", evaluatedType));
+                    if (!analyzerService.hasBuiltInTokenFilter(evaluatedType)) {
+                        // only builtin token-filters can be extended, for now
+                        throw new SQLParseException(String.format("Non-existing " +
+                                "built-in token-filter type '%s'", evaluatedType));
                     }
                 } else {
                     if (properties.get("type") != null) {
@@ -168,6 +187,8 @@ public class AnalyzerVisitor extends BaseVisitor {
                 }
 
                 // build
+                // transform name as token-filter is not publicly available
+                name = String.format("%s_%s", analyzerName, name);
                 ImmutableSettings.Builder builder = ImmutableSettings.builder();
                 for (Map.Entry<String, QueryTreeNode> tokenFilterProperty : properties.iterator()) {
                     genericPropertyToSetting(builder,
@@ -196,11 +217,15 @@ public class AnalyzerVisitor extends BaseVisitor {
                 charFilters.put(name, ImmutableSettings.EMPTY);
             } else {
                 String type = extractType(properties);
-                if (!analyzerService.hasCharFilter(type)) {
-                    throw new SQLParseException(String.format("Non-existing char-filter type '%s'", type));
+                if (!analyzerService.hasBuiltInCharFilter(type)) {
+                    // only builtin char-filters can be extended, for now
+                    throw new SQLParseException(String.format("Non-existing built-in char-filter" +
+                            " type '%s'", type));
                 }
 
                 // build
+                // transform name as char-filter is not publicly available
+                name = String.format("%s_%s", analyzerName, name);
                 ImmutableSettings.Builder builder = ImmutableSettings.builder();
                 for (Map.Entry<String, QueryTreeNode> charFilterProperty: properties.iterator()) {
                     genericPropertyToSetting(builder,
@@ -283,22 +308,22 @@ public class AnalyzerVisitor extends BaseVisitor {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
 
         if (extendsCustomAnalyzer()) {
-
             // use analyzer-settings from extended analyzer only
             Settings stripped = extendedCustomAnalyzer.getByPrefix(String.format("index.analysis.analyzer.%s", extendedAnalyzerName));
             for (Map.Entry<String, String> entry : stripped.getAsMap().entrySet()) {
                 builder.put(String.format("index.analysis.analyzer.%s%s", analyzerName, entry.getKey()), entry.getValue());
             }
-            builder.put(extendedCustomAnalyzer);
 
             if (tokenizerDefinition == null) {
                 // set tokenizer if not defined in extending analyzer
                 String extendedTokenizerName = extendedCustomAnalyzer.get(String.format("index.analysis.analyzer.%s.tokenizer", extendedAnalyzerName));
-                Settings extendedTokenizerSettings = analyzerService.getCustomTokenizer(extendedTokenizerName);
-                if (extendedTokenizerSettings != null) {
-                    tokenizerDefinition = new Tuple<>(extendedTokenizerName, extendedTokenizerSettings);
-                } else {
-                    tokenizerDefinition = new Tuple<>(extendedTokenizerName, ImmutableSettings.EMPTY);
+                if (extendedTokenizerName != null) {
+                    Settings extendedTokenizerSettings = analyzerService.getCustomTokenizer(extendedTokenizerName);
+                    if (extendedTokenizerSettings != null) {
+                        tokenizerDefinition = new Tuple<>(extendedTokenizerName, extendedTokenizerSettings);
+                    } else {
+                        tokenizerDefinition = new Tuple<>(extendedTokenizerName, ImmutableSettings.EMPTY);
+                    }
                 }
             }
 
@@ -336,9 +361,20 @@ public class AnalyzerVisitor extends BaseVisitor {
         }
 
         // analyzer type
+        String analyzerType = "custom";
+        if (extendsBuiltInAnalyzer()){
+            if (extendedCustomAnalyzer != null) {
+                analyzerType = extendedCustomAnalyzer.get(
+                        String.format("index.analysis.analyzer.%s.type", extendedAnalyzerName)
+                );
+            } else {
+                // direct extending builtin analyzer, use name as type
+                analyzerType = extendedAnalyzerName;
+            }
+        }
         builder.put(
-            getSettingsKey("index.analysis.analyzer.%s.type", analyzerName),
-            (extendsBuiltInAnalyzer() ? extendedAnalyzerName : "custom" )
+                getSettingsKey("index.analysis.analyzer.%s.type", analyzerName),
+                analyzerType
         );
 
         if (tokenizerDefinition != null) {
@@ -377,6 +413,13 @@ public class AnalyzerVisitor extends BaseVisitor {
         builder.put(
                 String.format("%s.analyzer.%s", SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX, analyzerName),
                 encodedAnalyzerSettings
+        );
+        // set source
+        builder.put(
+                String.format("%s.analyzer.%s.%s",
+                        SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX, analyzerName,
+                        AnalyzerVisitor.SQL_STATEMENT_KEY),
+                sql_stmt
         );
 
         if (tokenizerDefinition != null && !tokenizerDefinition.v2().getAsMap().isEmpty()) {

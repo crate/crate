@@ -3,6 +3,7 @@ package org.cratedb.action.sql;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.information_schema.InformationSchemaTableExecutionContext;
+import org.cratedb.information_schema.InformationSchemaTableExecutionContextFactory;
 import org.cratedb.sql.TableUnknownException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -17,22 +18,25 @@ public class NodeExecutionContext {
     private final ClusterService clusterService;
     private final AnalyzerService analyzerService;
     private final QueryPlanner queryPlanner;
+    private final InformationSchemaTableExecutionContextFactory factory;
     public static final String DEFAULT_TYPE = "default";
  
     @Inject
     public NodeExecutionContext(IndicesService indicesService,
                                 ClusterService clusterService,
                                 AnalyzerService analyzerService,
-                                QueryPlanner queryPlanner) {
+                                QueryPlanner queryPlanner,
+                                InformationSchemaTableExecutionContextFactory factory) {
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.analyzerService = analyzerService;
         this.queryPlanner = queryPlanner;
+        this.factory = factory;
     }
 
     public ITableExecutionContext tableContext(String schema, String table) {
         if (schema != null && schema.equalsIgnoreCase(InformationSchemaTableExecutionContext.SCHEMA_NAME)) {
-              return new InformationSchemaTableExecutionContext(table);
+              return factory.create(table);
         }
 
         // TODO: remove documentMapper

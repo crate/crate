@@ -467,6 +467,10 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     private void binaryLogicalOperatorNode(ValueNode parentNode,
                                            BinaryLogicalOperatorNode node) throws Exception {
         BooleanQuery query = newBoolNode(parentNode);
+        if (node.getNodeType() == NodeTypes.OR_NODE) {
+            query.setMinimumNumberShouldMatch(1);
+        }
+
         queryStack.add(query);
 
         jsonBuilder.startObject();
@@ -631,7 +635,6 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
     private BooleanQuery newBoolNode(ValueNode parentNode) {
         BooleanQuery query = new BooleanQuery();
-        query.setMinimumNumberShouldMatch(1);
         addToLuceneQueryStack(parentNode, query);
 
         return query;
