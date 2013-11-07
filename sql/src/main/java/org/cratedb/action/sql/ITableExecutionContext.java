@@ -11,5 +11,6 @@ public interface ITableExecutionContext {
     public List<String> primaryKeys();
     public List<String> primaryKeysIncludingDefault();
     public Iterable<String> allCols();
+    public boolean hasCol(String name);
     public Boolean isRouting(String name);
 }

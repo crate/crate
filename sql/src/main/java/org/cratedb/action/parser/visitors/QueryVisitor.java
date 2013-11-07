@@ -212,13 +212,14 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         jsonBuilder.startArray("sort");
         int count = 0;
         for (OrderByColumn column : node) {
+            String columnName = column.getExpression().getColumnName();
             count++;
             // orderByColumns are used to query the InformationSchema
             stmt.orderByColumns.add(
-                new OrderByColumnName(column.getExpression().getColumnName(), count, column.isAscending())
+                new OrderByColumnName(columnName, count, column.isAscending())
             );
             jsonBuilder.startObject()
-                .startObject(column.getExpression().getColumnName())
+                .startObject(columnName)
                 .field("order", column.isAscending() ? "asc" : "desc")
                 .field("ignore_unmapped", true)
                 .endObject()
@@ -236,13 +237,13 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         stmt.resultColumnList = new ArrayList<>(columnList.size());
 
         for (ResultColumn column : columnList) {
-             if (column instanceof AllResultColumn) {
+            if (column instanceof AllResultColumn) {
                 if (stmt.hasGroupBy()) {
                     throw new SQLParseException(
                         "select * with group by not allowed. It is required to specify the columns explicitly");
                 }
-                 Iterable<String> cols = tableContext.allCols();
-                 for (String name : cols) {
+                Iterable<String> cols = tableContext.allCols();
+                for (String name : cols) {
                     stmt.addOutputField(name, name);
                     fields.add(name);
                 }
@@ -329,6 +330,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
     @Override
     public void visit(ValueNode parentNode, BinaryRelationalOperatorNode node) throws IOException {
+
         addToLuceneQueryStack(
             parentNode,
             queryFromBinaryRelationalOpNode(parentNode, node)
@@ -355,9 +357,14 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     private Query IsNullFilteredQuery(String columnName) {
         InformationSchemaColumn column =
             ((InformationSchemaTableExecutionContext) tableContext).fieldMapper().get(columnName);
+        // no filter if non-existing column
+        if (column == null) {
+            return new MatchAllDocsQuery();
+        } else {
+            Filter isNullFilter = new NotFilter(column.rangeFilter(null, null, true, true));
+            return new FilteredQuery(new MatchAllDocsQuery(), isNullFilter);
+        }
 
-        Filter isNullFilter = new NotFilter(column.rangeFilter(null, null, true, true));
-        return new FilteredQuery(new MatchAllDocsQuery(), isNullFilter);
     }
 
     @Override
@@ -595,6 +602,13 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         InformationSchemaColumn column =
             ((InformationSchemaTableExecutionContext)tableContext).fieldMapper().get(columnName);
 
+        // if column does not exist - no docs match query
+        if (column == null) {
+            BooleanQuery noOpQuery = new BooleanQuery();
+            noOpQuery.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST_NOT);
+            return noOpQuery;
+        }
+
         switch (operator) {
             case BinaryRelationalOperatorNode.EQUALS_RELOP:
                 if (column.type == SortField.Type.STRING) {
@@ -658,6 +672,14 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     @Override
     public void visit(ValueNode parentNode, MatchFunctionNode node) throws Exception {
         ColumnReference columnReference = node.getColumnReference();
+        if (stmt.isInformationSchemaQuery()) {
+            addToLuceneQueryStack(
+                    parentNode,
+                    buildLuceneQuery(BinaryRelationalOperatorNode.EQUALS_RELOP,
+                            columnReference.getColumnName(), valueFromNode(node.getQueryText()))
+            );
+        }
+
         String query = (String)valueFromNode(node.getQueryText());
         jsonBuilder.startObject("match")
                 .field(columnReference.getColumnName(), query)

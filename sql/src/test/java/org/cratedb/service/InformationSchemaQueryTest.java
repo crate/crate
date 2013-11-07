@@ -4,6 +4,7 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.sql.TableUnknownException;
 import org.elasticsearch.ElasticsearchTestCase;
 import org.elasticsearch.common.network.NetworkUtils;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -228,4 +229,81 @@ public class InformationSchemaQueryTest extends ElasticsearchTestCase {
         exec("select * from information_schema.tables limit 1");
         assertEquals(1L, response.rowCount());
     }
+
+    @Test
+    public void testSelectNonExistingColumn() throws Exception {
+        exec("select routine_non_existing from information_schema.routines");
+        assertEquals(102L, response.rowCount());
+        assertEquals("routine_non_existing", response.cols()[0]);
+        for (int i=0; i<response.rows().length;i++) {
+            assertNull(response.rows()[i][0]);
+        }
+    }
+
+    @Test
+    public void selectNonExistingAndExistingColumns() throws Exception {
+        exec("select \"unknown\", routine_name from information_schema.routines order by " +
+                "routine_name asc");
+        assertEquals(102L, response.rowCount());
+        assertEquals("unknown", response.cols()[0]);
+        assertEquals("routine_name", response.cols()[1]);
+        for (int i=0; i<response.rows().length;i++) {
+            assertNull(response.rows()[i][0]);
+        }
+    }
+
+    @Test
+    public void selectWhereNonExistingColumn() throws Exception {
+        exec("select * from information_schema.routines where something > 0");
+        assertEquals(0L, response.rowCount());
+    }
+
+    @Test
+    public void selectWhereNonExistingColumnIsNull() throws Exception {
+        exec("select * from information_schema.routines where something IS NULL");
+        assertEquals(102L, response.rowCount());  // something does not exist,
+        // so we get all documents
+    }
+
+    @Test
+    public void selectWhereNonExistingColumnWhereIn() throws Exception {
+        exec("select * from information_schema.routines where something IN(1,2,3)");
+        assertEquals(0L, response.rowCount());
+    }
+
+    @Test
+    public void selectWhereNonExistingColumnLike() throws Exception {
+
+        exec("select * from information_schema.routines where something Like '%bla'");
+        assertEquals(0L, response.rowCount());
+    }
+
+    @Test
+    public void selectWhereNonExistingColumnMatchFunction() throws Exception {
+        exec("select * from information_schema.routines where match(something, 'bla')");
+        assertEquals(0L, response.rowCount());
+    }
+
+    @Test
+    public void selectWhereExistingColumnMatchFunction() throws Exception {
+        exec("select * from information_schema.routines where match(routine_type, 'ANALYZER')");
+        assertEquals(42L, response.rowCount());
+    }
+
+    @Test
+    public void selectOrderByNonExistingColumn() throws Exception {
+        exec("SELECT * from information_schema.routines");
+        SQLResponse responseWithoutOrder = response;
+        exec("SELECT * from information_schema.routines order by something");
+        assertEquals(responseWithoutOrder.rowCount(), response.rowCount());
+        for (int i=0;i<response.rowCount();i++) {
+            assertArrayEquals(responseWithoutOrder.rows()[i], response.rows()[i]);
+        }
+    }
+
+    @Test( expected = TableUnknownException.class )
+    public void testSelectUnkownTableFromInformationSchema() throws Exception {
+        exec("select * from information_schema.non_existent");
+    }
+
 }
