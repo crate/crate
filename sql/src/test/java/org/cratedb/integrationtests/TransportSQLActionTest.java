@@ -5,10 +5,7 @@ import com.google.common.collect.Ordering;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.sql.DuplicateKeyException;
-import org.cratedb.sql.SQLParseException;
-import org.cratedb.sql.TableAlreadyExistsException;
-import org.cratedb.sql.TableUnknownException;
+import org.cratedb.sql.*;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -1035,7 +1032,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("insert into test (id, data) values (?, ?)", new Object[] { "1", data});
         refresh();
 
-        execute("select data from test where id = ?", new Object[] { "1" });
+        execute("select data from test where id = ?", new Object[]{"1"});
         assertEquals(data, response.rows()[0][0]);
 
         Map<String, Object> new_data = new HashMap<String, Object>(){{
@@ -1078,10 +1075,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         Map<String, Object> data = new HashMap<>();
         data.put("foo", "bar");
-        execute("insert into test (id, data) values (?, ?)", new Object[] { "1", data});
+        execute("insert into test (id, data) values (?, ?)", new Object[]{"1", data});
         refresh();
 
-        execute("select data from test where id = ?", new Object[] { "1" });
+        execute("select data from test where id = ?", new Object[]{"1"});
         assertEquals(data, response.rows()[0][0]);
     }
 
@@ -1100,7 +1097,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
             }});
         }};
 
-        execute("insert into test values (?)", new Object[] { map });
+        execute("insert into test values (?)", new Object[]{map});
         assertEquals(1, response.rowCount());
         refresh();
 
@@ -2050,4 +2047,120 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(1L, response.rowCount());
     }
 
+    @Test
+    public void testSelectFromInformationSchema() throws Exception {
+        execute("create table quotes (" +
+                "id integer primary key, " +
+                "quote string index off, " +
+                "index quote_fulltext using fulltext(quote) with (analyzer='snowball')" +
+                ") clustered by (id) into 3 shards replicas 10");
+        refresh();
+
+        execute("select table_name, number_of_shards, number_of_replicas from " +
+                "information_schema" +
+                ".tables");
+        assertEquals(1L, response.rowCount());
+        assertEquals("quotes", response.rows()[0][0]);
+        assertEquals(3, response.rows()[0][1]);
+        assertEquals(10, response.rows()[0][2]);
+
+        execute("select * from information_schema.columns");
+        assertEquals(2L, response.rowCount());
+
+        execute("select * from information_schema.table_constraints");
+        assertEquals(1L, response.rowCount());
+
+        execute("select * from information_schema.indices");
+        assertEquals(2L, response.rowCount());
+        assertEquals("id", response.rows()[0][1]);
+        assertEquals("quote_fulltext", response.rows()[1][1]);
+
+        execute("select * from information_schema.routines");
+        assertEquals(102L, response.rowCount());
+    }
+
+    private void nonExistingColumnSetup() {
+        execute("create table quotes (" +
+                "id integer primary key, " +
+                "quote string index off, " +
+                "index quote_fulltext using fulltext(quote) with (analyzer='snowball')" +
+                ") clustered by (id) into 3 shards");
+        refresh();
+        execute("insert into quotes (id, quote) values (1, '\"Nothing particularly exciting," +
+                "\" it admitted, \"but they are alternatives.\"')");
+        execute("insert into quotes (id, quote) values (2, '\"Have another drink," +
+                "\" said Trillian. \"Enjoy yourself.\"')");
+        refresh();
+    }
+
+    @Test
+    public void selectNonExistingColumn() throws Exception {
+        nonExistingColumnSetup();
+        execute("select notExisting from quotes");
+        assertEquals(2L, response.rowCount());
+        assertEquals("notexisting", response.cols()[0]);
+        assertNull(response.rows()[0][0]);
+        assertNull(response.rows()[1][0]);
+    }
+
+    @Test
+    public void selectNonExistingAndExistingColumns() throws Exception {
+        nonExistingColumnSetup();
+        execute("select \"unknown\", id from quotes order by id asc");
+        assertEquals(2L, response.rowCount());
+        assertEquals("unknown", response.cols()[0]);
+        assertEquals("id", response.cols()[1]);
+        assertNull(response.rows()[0][0]);
+        assertEquals(1, response.rows()[0][1]);
+        assertNull(response.rows()[1][0]);
+        assertEquals(2, response.rows()[1][1]);
+    }
+
+    @Test
+    public void selectWhereNonExistingColumn() throws Exception {
+        nonExistingColumnSetup();
+        execute("select * from quotes where something > 0");
+        assertEquals(0L, response.rowCount());
+    }
+
+    @Test
+    public void selectWhereNonExistingColumnIsNull() throws Exception {
+        nonExistingColumnSetup();
+        execute("select * from quotes where something IS NULL");
+        assertEquals(2L, response.rowCount());  // something does not exist,
+                                                // so we get all documents
+    }
+
+    @Test
+    public void selectWhereNonExistingColumnWhereIn() throws Exception {
+        nonExistingColumnSetup();
+        execute("select * from quotes where something IN(1,2,3)");
+        assertEquals(0L, response.rowCount());
+    }
+
+    @Test
+    public void selectWhereNonExistingColumnLike() throws Exception {
+        nonExistingColumnSetup();
+        execute("select * from quotes where something Like '%bla'");
+        assertEquals(0L, response.rowCount());
+    }
+
+    @Test
+    public void selectWhereNonExistingColumnMatchFunction() throws Exception {
+        nonExistingColumnSetup();
+        execute("select * from quotes where match(something, 'bla')");
+        assertEquals(0L, response.rowCount());
+    }
+
+    @Test
+    public void selectOrderByNonExistingColumn() throws Exception {
+        nonExistingColumnSetup();
+        execute("SELECT * from quotes");
+        SQLResponse responseWithoutOrder = response;
+        execute("SELECT * from quotes order by something");
+        assertEquals(responseWithoutOrder.rowCount(), response.rowCount());
+        for (int i=0;i<response.rowCount();i++) {
+            assertArrayEquals(responseWithoutOrder.rows()[i], response.rows()[i]);
+        }
+    }
 }

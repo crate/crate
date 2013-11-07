@@ -20,9 +20,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.lucene.Lucene;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -97,7 +95,7 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
         limit += offset;
 
         TopDocs docs;
-        if (stmt.hasOrderBy()) {
+        if (sort != null) {
             docs = indexSearcher.search(stmt.query, null, limit, sort);
         } else {
             docs = indexSearcher.search(stmt.query, null, limit);
@@ -202,16 +200,21 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
     }
 
     protected Sort getSort(ParsedStatement stmt) {
-        SortField[] sortFields = new SortField[stmt.orderByColumns.size()];
+        List<SortField> sortFields = new ArrayList<>();
 
         for (int i = 0; i < stmt.orderByColumns.size(); i++) {
             OrderByColumnName column = stmt.orderByColumns.get(i);
             boolean reverse = !column.isAsc;
-            sortFields[i] = new SortField(
-                    column.name, this.fieldMapper().get(column.name).type, reverse);
+            InformationSchemaColumn tableColumn = this.fieldMapper().get(column.name);
+            if (tableColumn != null) {
+                sortFields.add(new SortField(column.name, tableColumn.type, reverse));
+            }
         }
-
-        return new Sort(sortFields);
+        if (sortFields.size() == 0) {
+            return null;
+        } else {
+            return new Sort(sortFields.toArray(new SortField[sortFields.size()]));
+        }
     }
 
     protected SQLResponse docsToSQLResponse(IndexSearcher searcher, ParsedStatement stmt,
@@ -233,7 +236,8 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
             Document doc = searcher.doc(scoreDoc.doc, fieldsToLoad);
             for (int c = 0; c < cols.length; c++) {
                 IndexableField field = doc.getField(cols[c]);
-                rows[r][c] = fieldMapper().get(cols[c]).getValue(field);
+                InformationSchemaColumn tableColumn = fieldMapper().get(cols[c]);
+                rows[r][c] = tableColumn == null ? null : tableColumn.getValue(field);
             }
             r++;
         }

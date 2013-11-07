@@ -2,6 +2,7 @@ package org.cratedb.information_schema;
 
 import com.google.common.collect.ImmutableMap;
 import org.cratedb.action.sql.ITableExecutionContext;
+import org.cratedb.sql.TableUnknownException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.assistedinject.Assisted;
 import org.elasticsearch.index.mapper.DocumentMapper;
@@ -21,6 +22,9 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
     public InformationSchemaTableExecutionContext(Map<String,
                 InformationSchemaTable> informationSchemaTables, @Assisted String tableName) {
         this.tablesMap = ImmutableMap.copyOf(informationSchemaTables);
+        if (!this.tablesMap.containsKey(tableName)) {
+            throw new TableUnknownException(tableName);
+        }
         this.tableName = tableName;
     }
 
@@ -51,6 +55,11 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
     @Override
     public Iterable<String> allCols() {
         return tablesMap.get(tableName).cols();
+    }
+
+    @Override
+    public boolean hasCol(String name) {
+        return tablesMap.get(tableName).fieldMapper().containsKey(name);
     }
 
     @Override

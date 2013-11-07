@@ -17,7 +17,7 @@ import java.util.*;
 /**
  * virtual information_schema table listing table index definitions
  */
-public class TableIndicesTable extends AbstractInformationSchemaTable {
+public class IndicesTable extends AbstractInformationSchemaTable {
 
     private Map<String, InformationSchemaColumn> fieldMapper = new LinkedHashMap<>();
 
@@ -41,7 +41,7 @@ public class TableIndicesTable extends AbstractInformationSchemaTable {
     // only internal used
     StringField uidField = new StringField("uid", "", Field.Store.YES);
 
-    public TableIndicesTable() {
+    public IndicesTable() {
         fieldMapper.put(
                 Columns.TABLE_NAME,
                 new InformationSchemaStringColumn(Columns.TABLE_NAME)

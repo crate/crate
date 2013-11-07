@@ -36,7 +36,7 @@ public class NodeExecutionContext {
 
     public ITableExecutionContext tableContext(String schema, String table) {
         if (schema != null && schema.equalsIgnoreCase(InformationSchemaTableExecutionContext.SCHEMA_NAME)) {
-              return factory.create(table);
+            return factory.create(table);
         }
 
         // TODO: remove documentMapper
