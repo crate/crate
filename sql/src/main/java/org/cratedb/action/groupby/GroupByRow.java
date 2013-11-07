@@ -67,6 +67,14 @@ public class GroupByRow implements Streamable {
         return row;
     }
 
+    @Override
+    public String toString() {
+        return "GroupByRow{" +
+            "aggregateStates=" + aggregateStates +
+            ", regularColumns=" + regularColumns +
+            '}';
+    }
+
     public Object get(int columnIndex) {
         AggState aggState = aggregateStates.get(columnIndex);
         if (aggState == null) {

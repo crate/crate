@@ -33,6 +33,11 @@ public class CountAggState extends AggState {
     }
 
     @Override
+    public String toString() {
+        return "AggState {" + value + "}";
+    }
+
+    @Override
     public int compareTo(AggState o) {
         // let it crash if AggState isn't a CountAggState since it's not comparable
         CountAggState countAggState = (CountAggState)o;

@@ -56,6 +56,7 @@ public class TransportSQLReduceHandler {
             if (!reduceJobStatus.shardsToProcess.await(2, TimeUnit.MINUTES)) {
                 throw new SQLReduceJobTimeoutException();
             }
+
             return new SQLReduceJobResponse(reduceJobStatus);
 
         } catch (InterruptedException e) {

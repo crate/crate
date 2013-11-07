@@ -1,10 +1,10 @@
 package org.cratedb.action;
 
+import com.google.common.collect.MinMaxPriorityQueue;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.GroupByRowComparator;
 import org.cratedb.action.sql.OrderByColumnIdx;
 
-import java.util.PriorityQueue;
 import java.util.concurrent.CountDownLatch;
 
 public class SQLReduceJobStatus {
@@ -25,23 +25,16 @@ public class SQLReduceJobStatus {
         this.comparator = new GroupByRowComparator(orderByIndices);
     }
 
-    public GroupByRow[] toSortedArray(SQLGroupByResult groupByResult,
-                                                   GroupByRowComparator comparator)
+    public GroupByRow[] toSortedArray(SQLGroupByResult groupByResult)
     {
-        PriorityQueue<GroupByRow> q;
+        MinMaxPriorityQueue.Builder<GroupByRow> rowBuilder = MinMaxPriorityQueue.orderedBy(this.comparator);
         if (limit != null) {
-            q = new PriorityQueue<>(limit, comparator);
-        } else {
-            q = new PriorityQueue<>(1000, comparator);
+            rowBuilder.maximumSize(limit);
         }
 
-        int pos = -1;
+        MinMaxPriorityQueue<GroupByRow> q = rowBuilder.create();
         for (GroupByRow groupByRow : groupByResult.result.values()) {
-            pos++;
             q.add(groupByRow);
-            if (limit != null && pos == limit) {
-                break;
-            }
         }
 
         return q.toArray(new GroupByRow[q.size()]);
