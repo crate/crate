@@ -50,8 +50,8 @@ public class SQLModule extends AbstractModule {
         informationSchemaTables.addBinding(TableConstraintsTable.NAME).to(TableConstraintsTable.class)
                 .asEagerSingleton();
         informationSchemaTables.addBinding(RoutinesTable.NAME).to(RoutinesTable.class).asEagerSingleton();
-        informationSchemaTables.addBinding(TableColumnsTable.NAME).to(TableColumnsTable.class).asEagerSingleton();
-        informationSchemaTables.addBinding(TableIndicesTable.NAME).to(TableIndicesTable.class).asEagerSingleton();
+        informationSchemaTables.addBinding(ColumnsTable.NAME).to(ColumnsTable.class).asEagerSingleton();
+        informationSchemaTables.addBinding(IndicesTable.NAME).to(IndicesTable.class).asEagerSingleton();
 
         // get a factory for InformationSchemaTableExecutionContext
         bind(InformationSchemaTableExecutionContextFactory.class).toProvider(FactoryProvider

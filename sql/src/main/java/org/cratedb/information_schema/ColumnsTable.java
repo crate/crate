@@ -17,7 +17,7 @@ import java.util.Map;
 /**
  * virtual information_schema table listing table columns definition
  */
-public class TableColumnsTable extends AbstractInformationSchemaTable {
+public class ColumnsTable extends AbstractInformationSchemaTable {
 
     private Map<String, InformationSchemaColumn> fieldMapper = new LinkedHashMap<>();
 
@@ -35,7 +35,7 @@ public class TableColumnsTable extends AbstractInformationSchemaTable {
     IntField ordinalPositionField = new IntField(Columns.ORDINAL_POSITION, 0, Field.Store.YES);
     StringField dataTypeField = new StringField(Columns.DATA_TYPE, "", Field.Store.YES);
 
-    public TableColumnsTable() {
+    public ColumnsTable() {
         fieldMapper.put(
                 Columns.TABLE_NAME,
                 new InformationSchemaStringColumn(Columns.TABLE_NAME)
