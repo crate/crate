@@ -16,7 +16,7 @@ public class SQLReduceJobResponse extends ActionResponse {
     }
 
     public SQLReduceJobResponse(SQLReduceJobStatus jobStatus) {
-        this.result = jobStatus.toSortedArray(jobStatus.groupByResult, jobStatus.comparator);
+        this.result = jobStatus.toSortedArray(jobStatus.groupByResult);
     }
 
     @Override
