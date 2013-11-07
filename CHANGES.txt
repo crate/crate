@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - values of a row inserted using the sql parameter substitution feature are
+   now also mapped to the correct format if the table has a defined type for
+   the column.
+
  - fix: default SQL settings were missing at distribution config file
 
  - fix: default cluster name(and so the log file) was not `crate`
