@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/11/07 0.18.3
+=================
+
  - values of a row inserted using the sql parameter substitution feature are
    now also mapped to the correct format if the table has a defined type for
    the column.
