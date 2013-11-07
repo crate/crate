@@ -1024,7 +1024,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("insert into test (id, data) values (?, ?)", new Object[] { "1", data});
         refresh();
 
-        execute("select data from test where id = ?", new Object[] { "1" });
+        execute("select data from test where id = ?", new Object[]{"1"});
         assertEquals(data, response.rows()[0][0]);
 
         Map<String, Object> new_data = new HashMap<String, Object>(){{
@@ -1067,10 +1067,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         Map<String, Object> data = new HashMap<>();
         data.put("foo", "bar");
-        execute("insert into test (id, data) values (?, ?)", new Object[] { "1", data});
+        execute("insert into test (id, data) values (?, ?)", new Object[]{"1", data});
         refresh();
 
-        execute("select data from test where id = ?", new Object[] { "1" });
+        execute("select data from test where id = ?", new Object[]{"1"});
         assertEquals(data, response.rows()[0][0]);
     }
 
@@ -1089,7 +1089,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
             }});
         }};
 
-        execute("insert into test values (?)", new Object[] { map });
+        execute("insert into test values (?)", new Object[]{map});
         assertEquals(1, response.rowCount());
         refresh();
 
@@ -2038,5 +2038,43 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("select quote from quotes where match(quote_fulltext, 'time') and id = 1");
         assertEquals(1L, response.rowCount());
     }
+
+    @Test
+    public void testSelectFromInformationSchema() throws Exception {
+        execute("create table quotes (" +
+                "id integer primary key, " +
+                "quote string index off, " +
+                "index quote_fulltext using fulltext(quote) with (analyzer='snowball')" +
+                ") clustered by (id) into 3 shards replicas 10");
+        refresh();
+
+        execute("select table_name, number_of_shards, number_of_replicas from " +
+                "information_schema" +
+                ".tables");
+        assertEquals(1L, response.rowCount());
+        assertEquals("quotes", response.rows()[0][0]);
+        assertEquals(3, response.rows()[0][1]);
+        assertEquals(10, response.rows()[0][2]);
+
+        execute("select * from information_schema.columns");
+        assertEquals(2L, response.rowCount());
+
+        execute("select * from information_schema.table_constraints");
+        assertEquals(1L, response.rowCount());
+
+        execute("select * from information_schema.indices");
+        assertEquals(2L, response.rowCount());
+        assertEquals("id", response.rows()[0][1]);
+        assertEquals("quote_fulltext", response.rows()[1][1]);
+
+        execute("select * from information_schema.routines");
+        assertEquals(102L, response.rowCount());
+    }
+
+    @Test( expected = TableUnknownException.class )
+    public void testSelectUnkownTableFromInformationSchema() throws Exception {
+        execute("select * from information_schema.non_existent");
+    }
+
 
 }
