@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fix: default SQL settings were missing at distribution config file
+
+ - fix: default cluster name(and so the log file) was not `crate`
+
  - bugfix: SQL statements with `group by` and `limit` clauses returned wrong
    result sets.
 
