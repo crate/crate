@@ -36,6 +36,7 @@ dependencies {
     compile project(':elasticsearch-crate-plugin')
     compile project(':inout')
     compile project(':blob')
+    testCompile 'com.github.tlrx:elasticsearch-test:0.0.8'
 }
 
 installDist.dependsOn(jar, ":docs:sphinx")
@@ -132,4 +133,12 @@ task(runDebug, dependsOn: 'classes', type: JavaExec) {
     main = 'org.cratedb.bootstrap.CrateF'
     debug = true
     classpath = sourceSets.main.runtimeClasspath
+}
+
+sourceSets {
+    test {
+        resources {
+            srcDir 'src/test/java'
+        }
+    }
 }

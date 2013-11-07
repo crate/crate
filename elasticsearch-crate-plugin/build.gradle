@@ -7,5 +7,4 @@ configurations {
 
 dependencies {
     compile project(':es')
-    testCompile 'com.github.tlrx:elasticsearch-test:0.0.8'
 }
