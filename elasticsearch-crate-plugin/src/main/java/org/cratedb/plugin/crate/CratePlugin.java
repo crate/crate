@@ -2,8 +2,6 @@ package org.cratedb.plugin.crate;
 
 
 import org.cratedb.rest.action.admin.CrateFrontpageAction;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.AbstractPlugin;
 import org.elasticsearch.rest.RestModule;
@@ -22,21 +20,6 @@ public class CratePlugin extends AbstractPlugin {
 
     public CratePlugin(Settings settings) {
         this.settings = settings;
-    }
-
-    @Override
-    public Settings additionalSettings() {
-        ImmutableSettings.Builder settingsBuilder = ImmutableSettings.settingsBuilder();
-
-        // Forbid DELETE on '/' aka. deleting all indices
-        settingsBuilder.put("action.disable_delete_all_indices", true);
-
-        // Set the default cluster name if not explicitly defined
-        if (this.settings.get(ClusterName.SETTING).equals(ClusterName.DEFAULT.value())) {
-            settingsBuilder.put("cluster.name", "crate");
-        }
-
-        return settingsBuilder.build();
     }
 
     @Override
