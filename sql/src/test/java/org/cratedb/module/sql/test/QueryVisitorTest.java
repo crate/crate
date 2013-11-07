@@ -741,7 +741,7 @@ public class QueryVisitorTest {
     public void testUpdateDocWithConstant() throws Exception {
         execStatement("update locations set a=1 where a=2");
         Map<String, Object> expected = new HashMap<String, Object>(1);
-        expected.put("a", null);
+        expected.put("a", 1);
         assertEquals(expected, stmt.updateDoc());
 
     }

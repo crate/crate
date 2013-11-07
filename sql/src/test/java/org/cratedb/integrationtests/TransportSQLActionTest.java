@@ -565,12 +565,14 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 .execute().actionGet();
 
         execute("insert into test values(true, '2013-09-10T21:51:43', 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775807, 32767, 'Youri')");
+        execute("insert into test values(?, ?, ?, ?, ?, ?, ?, ?)",
+            new Object[] { true, "2013-09-10T21:51:43", 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775807L, 32767, "Youri" });
         assertEquals(1, response.rowCount());
         refresh();
 
         execute("select * from test");
 
-        assertEquals(1, response.rowCount());
+        assertEquals(2, response.rowCount());
         assertEquals(true, response.rows()[0][0]);
         assertEquals(1378849903000L, response.rows()[0][1]);
         assertEquals(1.79769313486231570e+308, response.rows()[0][2]);
@@ -579,6 +581,15 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(9223372036854775807L, response.rows()[0][5]);
         assertEquals(32767, response.rows()[0][6]);
         assertEquals("Youri", response.rows()[0][7]);
+
+        assertEquals(true, response.rows()[1][0]);
+        assertEquals(1378849903000L, response.rows()[1][1]);
+        assertEquals(1.79769313486231570e+308, response.rows()[1][2]);
+        assertEquals(3.402, response.rows()[1][3]);
+        assertEquals(2147483647, response.rows()[1][4]);
+        assertEquals(9223372036854775807L, response.rows()[1][5]);
+        assertEquals(32767, response.rows()[1][6]);
+        assertEquals("Youri", response.rows()[1][7]);
     }
 
     @Test

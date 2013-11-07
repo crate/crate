@@ -56,10 +56,13 @@ public class BaseVisitor extends DispatchingVisitor {
 
     @Deprecated
     protected Object mappedValueFromNode(String name, ValueNode node) {
-        if (node instanceof ConstantNode) {
-            return tableContext.mappedValue(name, ((ConstantNode) node).getValue());
+        Object unmappedValue = valueFromNode(node);
+        Object value = tableContext.mappedValue(name, unmappedValue);
+        if (value != null) {
+            return value;
         }
-        return valueFromNode(node);
+
+        return unmappedValue;
     }
 
     /**
