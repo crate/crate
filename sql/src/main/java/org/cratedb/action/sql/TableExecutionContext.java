@@ -18,7 +18,6 @@ public class TableExecutionContext implements ITableExecutionContext {
     private Map<String, Object> mappingMeta;
     private DocumentMapper documentMapper;
 
-
     @Deprecated
     TableExecutionContext(String name, MappingMetaData mappingMetaData, DocumentMapper documentMapper) {
         this.mappingMetaData = mappingMetaData;
@@ -145,6 +144,13 @@ public class TableExecutionContext implements ITableExecutionContext {
             res.add(columnName);
         }
         return res;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public boolean hasCol(String colName) {
+        return ((Map<String, Object>)mapping().get("properties"))
+                .containsKey(colName);
     }
 
     /**

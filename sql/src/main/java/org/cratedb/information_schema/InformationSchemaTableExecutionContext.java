@@ -58,6 +58,11 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
     }
 
     @Override
+    public boolean hasCol(String name) {
+        return tablesMap.get(tableName).fieldMapper().containsKey(name);
+    }
+
+    @Override
     public Boolean isRouting(String name) {
         return false;
     }
