@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/11/08 0.18.4
+=================
+
  - the sql `count()` function now also be called with parameter substitution
    (`count(?)`) and with primary key primary key columns (`count(pk_col)`).
    This way SQLAlchemy's ORM functionality can be used with Crate.
