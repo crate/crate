@@ -81,6 +81,21 @@ public class QueryVisitorTest {
         execStatement("select 1 from locations");
     }
 
+    @Test
+    public void testSelectCountWrongParameter() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("'select count(?)' only works with '*' as parameter");
+        execStatement("select count(?) from locations", new Object[] {"foobar"});
+    }
+
+    @Test
+    public void testSelectCountNonPrimaryKeyColumn() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage(
+            "select count(columnName) is currently only supported on primary key columns");
+        execStatement("select count(a) from locations");
+    }
+
     @Test(expected = SQLParseException.class)
     public void testSelectWithCharConstantValue() throws StandardException, IOException {
         execStatement("select 'name' from locations");

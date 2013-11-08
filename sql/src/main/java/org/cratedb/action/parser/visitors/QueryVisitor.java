@@ -185,14 +185,18 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     private void visit(OrderByList node) throws IOException, StandardException {
         if (stmt.hasGroupBy()) {
             stmt.orderByIndices = new ArrayList<>();
-            int idx;
+            int idx = -1;
             for (OrderByColumn column : node) {
 
-                if (column.getExpression() instanceof AggregateNode) {
-                    AggExpr aggExpr = AggExprFactory.createAggExpr(
-                        ((AggregateNode) column.getExpression()).getAggregateName());
-
-                    idx = stmt.resultColumnList.indexOf(aggExpr);
+                if (column.getExpression().getNodeType() == NodeTypes.AGGREGATE_NODE) {
+                    AggregateNode aggNode = (AggregateNode)column.getExpression();
+                    if (aggNode.getAggregateName().startsWith("COUNT")) {
+                        if (aggNode.getOperand() != null) {
+                            validateCountOperand(aggNode.getOperand());
+                        }
+                        AggExpr aggExpr = AggExprFactory.createAggExpr("COUNT(*)");
+                        idx = stmt.resultColumnList.indexOf(aggExpr);
+                    }
                 } else {
                     String columnName = column.getExpression().getColumnName();
                     ColumnReferenceDescription colrefDesc = new ColumnReferenceDescription(columnName);
@@ -296,13 +300,46 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     private void handleAggregateNode(ParsedStatement stmt, ResultColumn column) {
 
         AggregateNode node = (AggregateNode)column.getExpression();
-        if (node.getAggregateName().equals("COUNT(*)")) {
-            stmt.resultColumnList.add(AggExprFactory.createAggExpr(node.getAggregateName()));
+        if (node.getAggregateName().startsWith("COUNT")) {
+            ValueNode operand = node.getOperand();
+            if (operand != null) {
+                validateCountOperand(operand);
+            }
+            stmt.resultColumnList.add(AggExprFactory.createAggExpr("COUNT(*)"));
             String alias = column.getName() != null ? column.getName() : node.getAggregateName();
             stmt.countRequest(true);
             stmt.addOutputField(alias, node.getAggregateName());
         } else {
             throw new SQLParseException("Unsupported Aggregate function " + node.getAggregateName());
+        }
+    }
+
+    /**
+     * verify that the operand in the count function translates to a count(*)
+     * because anything else isn't supported right now.
+     *
+     * @param operand
+     */
+    private void validateCountOperand(ValueNode operand) throws SQLParseException {
+        switch (operand.getNodeType()) {
+            case NodeTypes.PARAMETER_NODE:
+                ParameterNode parameterNode = (ParameterNode)operand;
+                Object value = args[parameterNode.getParameterNumber()];
+                if (!value.equals("*")) {
+                    throw new SQLParseException("'select count(?)' only works with '*' as parameter");
+                }
+                break;
+            case NodeTypes.COLUMN_REFERENCE:
+                if (!tableContext.primaryKeys().contains(operand.getColumnName())) {
+                    throw new SQLParseException(
+                        "select count(columnName) is currently only supported on primary key columns"
+                    );
+                }
+                break;
+
+            default:
+                throw new SQLParseException(
+                    "Got an unsupported argument to the count aggregate function");
         }
     }
 
