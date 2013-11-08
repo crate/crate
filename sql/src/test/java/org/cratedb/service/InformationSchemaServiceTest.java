@@ -5,7 +5,6 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.sql.SQLParseException;
 import org.elasticsearch.cluster.AbstractZenNodesTests;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -39,7 +38,6 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
     private InternalNode node = null;
     private InformationSchemaService informationSchemaService;
     private SQLParseService parseService;
-    private AnalyzerService analyzerService;
     private SQLResponse response;
 
     private void serviceSetup() {
@@ -60,7 +58,6 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
         node = startNode();
         parseService = node.injector().getInstance(SQLParseService.class);
         informationSchemaService = node.injector().getInstance(InformationSchemaService.class);
-        analyzerService = node.injector().getInstance(AnalyzerService.class);
     }
 
     @After
@@ -156,17 +153,20 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
     @Test
     public void testSelectStarFromInformationSchemaTableWithOrderBy() throws Exception {
         execUsingClient("create table test (col1 integer primary key, col2 string)");
-        execUsingClient("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
+        execUsingClient("create table foo (col1 integer primary key, " +
+                "col2 string) clustered by(col1) into 3 shards");
 
         execUsingClient("select * from INFORMATION_SCHEMA.Tables order by table_name asc");
         assertEquals(2L, response.rowCount());
         assertEquals("foo", response.rows()[0][0]);
         assertEquals(3, response.rows()[0][1]);
         assertEquals(1, response.rows()[0][2]);
+        assertEquals("col1", response.rows()[0][3]);
 
         assertEquals("test", response.rows()[1][0]);
         assertEquals(5, response.rows()[1][1]);
         assertEquals(1, response.rows()[1][2]);
+        assertEquals("col1", response.rows()[0][3]);
     }
 
     @Test
@@ -222,6 +222,7 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
         assertEquals("test", response.rows()[0][0]);
         assertEquals(5, response.rows()[0][1]);
         assertEquals(1, response.rows()[0][2]);
+        assertEquals("col1", response.rows()[0][3]);
     }
 
     @Test
@@ -232,21 +233,24 @@ public class InformationSchemaServiceTest extends AbstractZenNodesTests {
         execUsingClient("create table test (col1 integer primary key, col2 string)");
         Thread.sleep(10); // wait for clusterStateChanged event and index update
 
-        execUsingClient("select table_name, number_of_shards, number_of_replicas from INFORMATION_SCHEMA.Tables");
+        execUsingClient("select table_name, number_of_shards, number_of_replicas, " +
+                "routing_column from INFORMATION_SCHEMA.Tables");
         assertEquals(1L, response.rowCount());
         assertEquals("test", response.rows()[0][0]);
         assertEquals(5, response.rows()[0][1]);
         assertEquals(1, response.rows()[0][2]);
+        assertEquals("col1", response.rows()[0][3]);
     }
 
     @Test
     public void testSelectStarFromInformationSchemaTable() throws Exception {
-        execUsingClient("create table test (col1 integer primary key, col2 string)");
+        execUsingClient("create table test (col1 integer, col2 string)");
         execUsingClient("select * from INFORMATION_SCHEMA.Tables");
         assertEquals(1L, response.rowCount());
         assertEquals("test", response.rows()[0][0]);
         assertEquals(5, response.rows()[0][1]);
         assertEquals(1, response.rows()[0][2]);
+        assertEquals("_id", response.rows()[0][3]);
     }
 
     @Test

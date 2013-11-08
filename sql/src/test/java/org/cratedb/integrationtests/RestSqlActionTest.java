@@ -41,15 +41,16 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
 
     @Test
     public void testSqlRequest() throws Exception {
-        String json = sql("{\"stmt\": \"select * from locations where \\\"_id\\\" = '1'\"}");
+        String json = sql("{\"stmt\": \"select * from locations where id = '1'\"}");
         JSONAssert.assertEquals(
                 "{\n" +
-                        "  \"cols\" : [ \"date\", \"description\", \"kind\", \"name\", " +
+                        "  \"cols\" : [ \"date\", \"description\", \"id\", \"kind\", \"name\", " +
                         "\"position\", \"race\" ],\n" +
                         "  \"rows\" : [ [ \"1979-10-12T00:00:00.000Z\", " +
                         "\"Relative to life on NowWhat, living on an affluent world in the North" +
                         " West ripple of the Galaxy is said to be easier by a factor of about " +
-                        "seventeen million.\", \"Galaxy\", \"North West Ripple\", 1, null ] ],\n" +
+                        "seventeen million.\", \"1\", \"Galaxy\", \"North West Ripple\", 1, " +
+                        "null ] ],\n" +
                         " \"rowcount\": 1" +
                         "}"
                 , json, true);
@@ -60,17 +61,17 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
     public void testSqlRequestWithArgs() throws Exception {
 
         String json = sql("{\n" +
-            "    \"stmt\": \"select * from locations where \\\"_id\\\" = $2\",\n" +
+            "    \"stmt\": \"select * from locations where id = $2\",\n" +
             "    \"args\": [[\"1\", \"2\"], \"1\", 1, 2, 2.0, 99999999999999999999999999999999]\n" +
             "}\n");
         JSONAssert.assertEquals(
             "{\n" +
-                "  \"cols\" : [ \"date\", \"description\", \"kind\", \"name\", " +
+                "  \"cols\" : [ \"date\", \"description\", \"id\", \"kind\", \"name\", " +
                 "\"position\", \"race\" ],\n" +
                 "  \"rows\" : [ [ \"1979-10-12T00:00:00.000Z\", " +
                 "\"Relative to life on NowWhat, living on an affluent world in the North" +
                 " West ripple of the Galaxy is said to be easier by a factor of about " +
-                "seventeen million.\", \"Galaxy\", \"North West Ripple\", 1, null ] ],\n" +
+                "seventeen million.\", \"1\", \"Galaxy\", \"North West Ripple\", 1, null ] ],\n" +
                 " \"rowcount\": 1" +
                 "}"
             , json, true);
@@ -80,8 +81,8 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
     public void testSqlRequestWithNullArgs() throws Exception {
 
         String json = sql("{\n" +
-            "    \"stmt\": \"insert into locations (name, kind) values (?, ?)\",\n" +
-            "    \"args\": [\"Somewhere\", null]\n" +
+            "    \"stmt\": \"insert into locations (id, name, kind) values (?, ?)\",\n" +
+            "    \"args\": [\"100\", \"Somewhere\", null]\n" +
             "}\n");
 
         JSONAssert.assertEquals(
@@ -97,7 +98,7 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
         SQLXContentSourceContext context = new SQLXContentSourceContext();
         SQLXContentSourceParser parser = new SQLXContentSourceParser(context);
         BytesArray source = new BytesArray("{\n" +
-            "    \"stmt\": \"select * from locations where \\\"_id\\\" = $2\",\n" +
+            "    \"stmt\": \"select * from locations where id = $2\",\n" +
             "    \"args\": [[\"1\", \"2\"], \"1\", 1, 2, 2.0, 99999999999999999999999999999999]\n" +
             "}\n");
         parser.parseSource(source);
@@ -114,7 +115,7 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
         SQLXContentSourceContext context = new SQLXContentSourceContext();
         SQLXContentSourceParser parser = new SQLXContentSourceParser(context);
         BytesArray source = new BytesArray("{\n" +
-            "    \"stmt\": \"select * from locations where \\\"_id\\\" = $2\",\n" +
+            "    \"stmt\": \"select * from locations where id = $2\",\n" +
             "    \"args\": [[\"1\", \"2\", [\"1\"]], \"1\", 1, 2, 2.0, 99999999999999999999999999999999]\n" +
             "}\n");
         parser.parseSource(source);
@@ -129,7 +130,7 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
         SQLXContentSourceContext context = new SQLXContentSourceContext();
         SQLXContentSourceParser parser = new SQLXContentSourceParser(context);
         BytesArray source = new BytesArray("{\n" +
-            "    \"stmt\": \"select * from locations where \\\"_id\\\" = $2\",\n" +
+            "    \"stmt\": \"select * from locations where id = $2\",\n" +
             "    \"args\": [{\"1\": \"2\"}, 1]\n" +
             "}\n");
         parser.parseSource(source);
