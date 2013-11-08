@@ -247,6 +247,20 @@ Currently the only supported aggregation function in `crate` is `count(*)`::
     +----------+
     SELECT 1 row in set (... sec)
 
+.. note::
+
+    The count() aggregate function can also be called with parameter
+    substitution. But only if the value evaluates to a '*'.
+
+.. seealso::
+
+    :doc:`rest`
+
+.. note::
+
+    count(columName) works also, but currently only on a primary key column.
+    
+
 Group by
 --------
 

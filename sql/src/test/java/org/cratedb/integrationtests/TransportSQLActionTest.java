@@ -1358,6 +1358,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(3, response.rowCount());
     }
 
+
     @Test
     public void testCountWithGroupBy() throws Exception {
         groupBySetup();
@@ -1653,6 +1654,79 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
         execute("SELECT * FROM test");
         assertEquals(1L, response.rowCount());
+    }
+
+    @Test
+    public void testSqlAlchemyGeneratedCountWithStar() throws  Exception {
+        // generated using sqlalchemy
+        // session.query(func.count('*')).filter(Test.name == 'foo').scalar()
+
+        execute("create table test (col1 integer primary key, col2 string)");
+        execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
+        execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
+        refresh();
+
+        execute(
+            "SELECT count(?) AS count_1 FROM test WHERE test.col2 = ?",
+            new Object[] { "*", "foo" }
+        );
+        assertEquals(1L, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testSqlAlchemyGeneratedCountWithPrimaryKeyCol() throws Exception {
+        // generated using sqlalchemy
+        // session.query(Test.col1).filter(Test.col2 == 'foo').scalar()
+
+        execute("create table test (col1 integer primary key, col2 string)");
+        execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
+        execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
+        refresh();
+
+        execute(
+            "SELECT count(test.col1) AS count_1 FROM test WHERE test.col2 = ?",
+            new Object[] { "foo" }
+        );
+        assertEquals(1L, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testSqlAlchemyGroupByWithCountStar() throws Exception {
+        // generated using sqlalchemy
+        // session.query(func.count('*'), Test.col2).group_by(Test.col2).order_by(desc(func.count('*'))).all()
+
+        execute("create table test (col1 integer primary key, col2 string)");
+        execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
+        execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
+        execute("insert into test values (?, ?)", new Object[] { 3, "foo" });
+        refresh();
+
+        execute(
+            "SELECT count(?) AS count_1, test.col2 AS test_col2 FROM test " +
+                "GROUP BY test.col2 order by count(?) desc",
+            new Object[] { "*", "*" }
+        );
+
+        assertEquals(2L, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testSqlAlchemyGroupByWithPrimaryKeyCol() throws Exception {
+        // generated using sqlalchemy
+        // session.query(func.count(Test.col1), Test.col2).group_by(Test.col2).order_by(desc(func.count(Test.col1))).all()
+
+        execute("create table test (col1 integer primary key, col2 string)");
+        execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
+        execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
+        execute("insert into test values (?, ?)", new Object[] { 3, "foo" });
+        refresh();
+
+        execute(
+            "SELECT count(test.col1) AS count_1, test.col2 AS test_col2 FROM test " +
+                "GROUP BY test.col2 order by count(test.col1) desc"
+        );
+
+        assertEquals(2L, response.rows()[0][0]);
     }
 
     @Test(expected = TableAlreadyExistsException.class)
