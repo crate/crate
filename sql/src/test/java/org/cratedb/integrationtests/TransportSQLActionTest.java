@@ -2217,13 +2217,14 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 ") clustered by (id) into 3 shards replicas 10");
         refresh();
 
-        execute("select table_name, number_of_shards, number_of_replicas from " +
+        execute("select table_name, number_of_shards, number_of_replicas, routing_column from " +
                 "information_schema" +
                 ".tables");
         assertEquals(1L, response.rowCount());
         assertEquals("quotes", response.rows()[0][0]);
         assertEquals(3, response.rows()[0][1]);
         assertEquals(10, response.rows()[0][2]);
+        assertEquals("id", response.rows()[0][3]);
 
         execute("select * from information_schema.columns");
         assertEquals(2L, response.rowCount());

@@ -30,7 +30,7 @@ def bash_transform(s):
 
 
 def crash_transform(s):
-    return ('cmd.onecmd("""{}""");'.format(s.strip()))
+    return ('cmd.onecmd("""{0}""");'.format(s.strip()))
 
 
 bash_parser = zc.customdoctests.DocTestParser(

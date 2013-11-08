@@ -15,7 +15,7 @@ the actual result rows as a two-dimensional array of values.
 
 A simple select::
 
-    cr> select name, position from locations order by "_id" limit 2
+    cr> select name, position from locations order by id limit 2
     +-------------------+----------+
     | name              | position |
     +-------------------+----------+
@@ -27,17 +27,17 @@ A simple select::
 If the '*' operator is used, all properties defined in the schema are returned
 for each object::
 
-    cr> select * from locations order by "_id" limit 1 offset 1
+    cr> select date, description, kind, name, position, race from locations order by id limit 1 offset 1
     +--------------------------+--------------...---+--------+-------------------+----------+------+
     | date                     | description        | kind   | name              | position | race |
     +--------------------------+--------------...---+--------+-------------------+----------+------+
-    | 1979-10-12T00:00:00.000Z | Motivated by ...s. | Planet | Arkintoofle Minor | 3        | None |
+    | 1979-10-12T00:00:00.000Z | Motivated by ...s. | Planet | Arkintoofle Minor | 3        | NULL |
     +--------------------------+--------------...---+--------+-------------------+----------+------+
     SELECT 1 row in set (... sec)
 
 Aliases can be used to change the output name of the columns::
 
-    cr> select name as n from locations order by "_id" limit 1
+    cr> select name as n from locations order by id limit 1
     +-------------------+
     | n                 |
     +-------------------+
@@ -50,7 +50,7 @@ Where Clause
 
 A simple where clause example using an equality operator::
 
-    cr> select description from locations where "_id" = '1'
+    cr> select description from locations where id = '1'
     +-----------------------------------------...-------------------------------------------+
     | description                                                                           |
     +-----------------------------------------...-------------------------------------------+
@@ -114,7 +114,7 @@ exist at all. `is not null` also behaves this way. E.g. the following query
 returns 2 rows since the `is null` filter matches all rows and a limit is
 specified::
 
-    cr> select name from locations where missing is null order by "_id" limit 2
+    cr> select name from locations where missing is null order by id limit 2
     +-------------------+
     | name              |
     +-------------------+
@@ -347,7 +347,7 @@ A negative fulltext search can be done using a ``NOT`` clause::
     | Aldebaran                          | 1.0    |
     | Alpha Centauri                     | 1.0    |
     | Allosimanius Syneca                | 1.0    |
-    | None                               | 1.0    |
+    | NULL                               | 1.0    |
     | North West Ripple                  | 1.0    |
     | Galactic Sector QQ7 Active J Gamma | 1.0    |
     | Algol                              | 1.0    |
@@ -355,7 +355,7 @@ A negative fulltext search can be done using a ``NOT`` clause::
     | Arkintoofle Minor                  | 1.0    |
     |                                    | 1.0    |
     +------------------------------------+--------+
-    SELECT 11 rows in set (... sec)
+    SELECT 11 rows in set (0.01 sec)
 
 
 Filter by :ref:`_score <sql_ddl_system_column_score>`
@@ -406,9 +406,9 @@ Inserting a row::
 Inserting multiple rows at once (aka. bulk insert) can be done by defining
 multiple values for the ``INSERT`` statement::
 
-    cr> insert into locations (date, description, kind, name, position) values
-    ... ('2013-09-12T21:43:59.000Z', 'Blagulon Kappa is the planet to which the police are native.', 'Planet', 'Blagulon Kappa', 7),
-    ... ('2013-09-13T16:43:59.000Z', 'Brontitall is a planet with a warm, rich atmosphere and no mountains.', 'Planet', 'Brontitall', 10)
+    cr> insert into locations (id, date, description, kind, name, position) values
+    ... ('14', '2013-09-12T21:43:59.000Z', 'Blagulon Kappa is the planet to which the police are native.', 'Planet', 'Blagulon Kappa', 7),
+    ... ('15', '2013-09-13T16:43:59.000Z', 'Brontitall is a planet with a warm, rich atmosphere and no mountains.', 'Planet', 'Brontitall', 10)
     INSERT OK, 2 rows affected (... sec)
 
 
