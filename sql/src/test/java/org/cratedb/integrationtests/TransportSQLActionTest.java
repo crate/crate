@@ -620,7 +620,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         Map<String, Object> craty = new HashMap<>();
         craty.put("s", new String[] { "foo", "bar"});
-        craty.put("d1", new String[] { "2013-09-10T21:51:43"});
+        craty.put("d1", new String[] { "2013-09-10T21:51:43", null});
         craty.put("d2", "2013-09-10T21:51:43");
         execute("insert into test values(?, ?, ?, ?, ?, ?, ?, ?, ?)",
             new Object[] {
@@ -628,7 +628,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 craty,
                 new String[] {"2013-09-10T21:51:43", "2013-11-10T21:51:43"},
                 new Double[] {1.79769313486231570e+308, 1.69769313486231570e+308},
-                new Float[] {3.402f, 3.403f },
+                new Float[] {3.402f, 3.403f, null },
                 new Integer[] {2147483647, 234583},
                 new Long[] { 9223372036854775807L, 4L },
                 new Short[] {32767, 2 },
@@ -650,6 +650,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
             is(1378849903000L)
         );
         assertThat(
+            ((List<Long>)((Map<String, Object>)response.rows()[0][1]).get("d1")).get(1),
+            nullValue()
+        );
+        assertThat(
             (Long)((Map<String, Object>)response.rows()[0][1]).get("d2"),
             is(1378849903000L)
         );
@@ -662,6 +666,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         assertThat( ((List<Double>)response.rows()[0][4]).get(0), is(3.402));
         assertThat( ((List<Double>)response.rows()[0][4]).get(1), is(3.403));
+        assertThat( ((List<Double>)response.rows()[0][4]).get(2), nullValue());
 
         assertThat( ((List<Integer>)response.rows()[0][5]).get(0), is(2147483647));
         assertThat( ((List<Integer>)response.rows()[0][5]).get(1), is(234583));

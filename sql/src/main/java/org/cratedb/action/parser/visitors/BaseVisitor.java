@@ -59,10 +59,6 @@ public class BaseVisitor extends DispatchingVisitor {
     @Deprecated
     protected Object mappedValueFromNode(String name, ValueNode node) {
         Object unmappedValue = valueFromNode(node);
-        if (unmappedValue == null) {
-            return null;
-        }
-
         Object value = mapRecursive(name, unmappedValue);
         if (value != null) {
             return value;
@@ -72,7 +68,9 @@ public class BaseVisitor extends DispatchingVisitor {
 
     @SuppressWarnings("unchecked")
     private Object mapRecursive(String name, Object unmappedValue) {
-        if (unmappedValue.getClass().isArray()) {
+        if (unmappedValue == null) {
+            return unmappedValue;
+        } else if (unmappedValue.getClass().isArray()) {
             Object[] unmappedValues = (Object[])unmappedValue;
             Object[] value = new Object[unmappedValues.length];
             for (int i = 0; i < value.length; i++) {
