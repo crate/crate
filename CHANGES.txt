@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/11/11 0.18.6
+=================
+
  - fix NPE if a null value was passed inside a complex type.
 
 2013/11/11 0.18.5
