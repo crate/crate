@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/11/11 0.18.5
+=================
+
  - bugfix: complex types like lists and dictionaries now also have the mapping
    applied to the values inside.  For instance if a list of datetimes (in a iso
    datetime string) is passed to the `/_sql` REST endpoint these values are
