@@ -8,6 +8,8 @@ import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.TableUnknownException;
 import org.cratedb.sql.parser.parser.*;
 
+import java.util.Map;
+
 public class BaseVisitor extends DispatchingVisitor {
 
     protected final Object[] args;
@@ -57,12 +59,40 @@ public class BaseVisitor extends DispatchingVisitor {
     @Deprecated
     protected Object mappedValueFromNode(String name, ValueNode node) {
         Object unmappedValue = valueFromNode(node);
-        Object value = tableContext.mappedValue(name, unmappedValue);
+        if (unmappedValue == null) {
+            return null;
+        }
+
+        Object value = mapRecursive(name, unmappedValue);
         if (value != null) {
             return value;
         }
-
         return unmappedValue;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Object mapRecursive(String name, Object unmappedValue) {
+        if (unmappedValue.getClass().isArray()) {
+            Object[] unmappedValues = (Object[])unmappedValue;
+            Object[] value = new Object[unmappedValues.length];
+            for (int i = 0; i < value.length; i++) {
+                value[i] = mapRecursive(name, unmappedValues[i]);
+            }
+            return value;
+        } else if (unmappedValue instanceof Map) {
+            Map<Object, Object> valueMap = (Map<Object, Object>)unmappedValue;
+            for (Map.Entry<Object, Object> entry : valueMap.entrySet()) {
+                entry.setValue(mapRecursive(name + "." + entry.getKey().toString(), entry.getValue()));
+            }
+            return valueMap;
+        } else {
+            Object mappedValue = tableContext.mappedValue(name, unmappedValue);
+            if (mappedValue != null) {
+                return mappedValue;
+            } else {
+                return unmappedValue;
+            }
+        }
     }
 
     /**
