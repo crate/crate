@@ -1,16 +1,15 @@
 package org.cratedb.action.import_.parser;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import com.google.common.collect.ImmutableMap;
+import org.cratedb.action.import_.ImportContext;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.search.SearchParseException;
 
-import org.cratedb.action.import_.ImportContext;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ImportParser implements IImportParser {
 
@@ -18,7 +17,8 @@ public class ImportParser implements IImportParser {
 
     public ImportParser() {
         Map<String, ImportParseElement> elementParsers = new HashMap<String, ImportParseElement>();
-        elementParsers.put("directory", new DirectoryParseElement());
+        elementParsers.put("path", new PathParseElement());
+        elementParsers.put("directory", new PathParseElement());
         elementParsers.put("compression", new ImportCompressionParseElement());
         elementParsers.put("file_pattern", new FilePatternParseElement());
         elementParsers.put("mappings", new ImportMappingsParseElement());
@@ -75,8 +75,8 @@ public class ImportParser implements IImportParser {
      * @param context
      */
     private void validate(ImportContext context) {
-        if (context.directory() == null || context.directory().isEmpty()) {
-            throw new ImportParseException(context, "No directory defined");
+        if (context.path() == null || context.path().isEmpty()) {
+            throw new ImportParseException(context, "No path or directory defined");
         }
     }
 }

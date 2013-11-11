@@ -4,6 +4,7 @@ import zc.customdoctests
 from crate.testing.layer import CrateLayer
 import os
 import requests
+import shutil
 
 from crate.client.crash import CrateCmd
 cmd = CrateCmd()
@@ -63,16 +64,43 @@ def setUpLocations(test):
 
     print(project_path('sql/src/test/resources/essetup/data', 'test_a.json'))
 
+def setUpQuotes(test):
+    test.globs['cmd'] = cmd
+    requests.put('http://localhost:9200/quotes', '''
+    index :
+     number_of_shards : 2
+     number_of_replicas : 0
+    ''')
+    requests.put('http://localhost:9200/quotes/default/_mapping',
+                 open(project_path('sql/src/test/resources/essetup/mappings',
+                                   'test_b.json')))
+
+    print(project_path('sql/src/test/resources/essetup/data', 'test_b.json'))
+
+    crate_wd = empty_layer.wdPath()
+    import_dir = os.path.join(crate_wd, "import_data")
+    if not os.path.isdir(import_dir):
+        os.mkdir(import_dir)
+    shutil.copy(project_path('sql/src/test/resources/essetup/data/copy', 'test_copy_from.json'),
+                os.path.join(import_dir, "quotes.json"))
+
+
+def setUpLocationsAndQuotes(test):
+    setUpLocations(test)
+    setUpQuotes(test)
 
 def setUp(test):
     test.globs['cmd'] = cmd
 
+def tearDownDropQuotes(test):
+    cmd.onecmd("drop table quotes")
 
 def test_suite():
     suite = unittest.TestSuite()
     for fn in ('hello.txt', 'blob.txt'):
         s = doctest.DocFileSuite('../../' + fn,
                                  parser=bash_parser,
+                                 tearDown=tearDownDropQuotes,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
@@ -87,7 +115,7 @@ def test_suite():
         suite.addTest(s)
     for fn in ('sql/dml.txt', 'sql/occ.txt', 'sql/ddl.txt', 'sql/information_schema.txt'):
         s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
-                                 setUp=setUpLocations,
+                                 setUp=setUpLocationsAndQuotes,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
                                  doctest.ELLIPSIS)
         s.layer = empty_layer

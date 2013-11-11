@@ -1,7 +1,6 @@
 package org.cratedb.action.import_;
 
-import java.io.IOException;
-
+import org.cratedb.import_.Importer;
 import org.elasticsearch.action.support.nodes.NodeOperationResponse;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -10,7 +9,7 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilderString;
 
-import org.cratedb.import_.Importer;
+import java.io.IOException;
 
 public class NodeImportResponse extends NodeOperationResponse implements ToXContent {
 
@@ -89,5 +88,9 @@ public class NodeImportResponse extends NodeOperationResponse implements ToXCont
         static final XContentBuilderString SUCCESSES = new XContentBuilderString("successes");
         static final XContentBuilderString FAILURES = new XContentBuilderString("failures");
         static final XContentBuilderString INVALIDATED = new XContentBuilderString("invalidated");
+    }
+
+    public Importer.Result result() {
+        return result;
     }
 }

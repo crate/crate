@@ -1,9 +1,12 @@
 package org.cratedb.action.parser;
 
+import org.cratedb.action.import_.ImportResponse;
+import org.cratedb.action.import_.NodeImportResponse;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLFields;
 import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.import_.Importer;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.ExceptionHelper;
 import org.cratedb.sql.facet.InternalSQLFacet;
@@ -183,6 +186,16 @@ public class SQLResponseBuilder {
 
     public SQLResponse buildResponse(ClusterUpdateSettingsResponse clusterUpdateSettingsResponse) {
         return buildEmptyResponse(0);
+    }
+
+    public SQLResponse buildResponse(ImportResponse importResponse) {
+        int rowCount = 0;
+        for (NodeImportResponse nodeImportResponse : importResponse.getResponses()) {
+            for (Importer.ImportCounts importCounts : nodeImportResponse.result().importCounts) {
+                rowCount += importCounts.successes;
+            }
+        }
+        return buildEmptyResponse(rowCount);
     }
 
 }
