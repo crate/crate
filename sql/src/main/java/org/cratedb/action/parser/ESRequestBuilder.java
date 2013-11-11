@@ -1,5 +1,6 @@
 package org.cratedb.action.parser;
 
+import org.cratedb.action.import_.ImportRequest;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.parser.parser.NodeTypes;
@@ -15,7 +16,12 @@ import org.elasticsearch.action.get.MultiGetRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -56,9 +62,9 @@ public class ESRequestBuilder {
     }
 
     public IndexRequest buildIndexRequest() {
-        IndexRequest[] requests = stmt.indexRequests;
-        assert requests.length == 1;
-        return requests[0];
+        List<IndexRequest> requests = stmt.indexRequests;
+        assert requests.size() == 1;
+        return requests.get(0);
     }
 
     public BulkRequest buildBulkRequest() throws Exception {
@@ -128,25 +134,44 @@ public class ESRequestBuilder {
         return request;
     }
 
-     public CreateIndexRequest buildCreateIndexRequest() {
-         CreateIndexRequest request = new CreateIndexRequest(stmt.tableName());
-         request.settings(stmt.indexSettings);
-         request.mapping(NodeExecutionContext.DEFAULT_TYPE, stmt.indexMapping);
+    public CreateIndexRequest buildCreateIndexRequest() {
+        CreateIndexRequest request = new CreateIndexRequest(stmt.tableName());
+        request.settings(stmt.indexSettings);
+        request.mapping(NodeExecutionContext.DEFAULT_TYPE, stmt.indexMapping);
 
-         return request;
-     }
+        return request;
+    }
 
-     public DeleteIndexRequest buildDeleteIndexRequest() {
-         return new DeleteIndexRequest(stmt.tableName());
-     }
+    public DeleteIndexRequest buildDeleteIndexRequest() {
+        return new DeleteIndexRequest(stmt.tableName());
+    }
 
-     /**
-      * Used for setting custom analyzers
-      * @return
-      */
-     public ClusterUpdateSettingsRequest buildClusterUpdateSettingsRequest() {
-         ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
-         request.persistentSettings(stmt.createAnalyzerSettings);
-         return request;
-     }
+    /**
+    * Used for setting custom analyzers
+    * @return
+    */
+    public ClusterUpdateSettingsRequest buildClusterUpdateSettingsRequest() {
+        ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
+        request.persistentSettings(stmt.createAnalyzerSettings);
+        return request;
+    }
+
+    public ImportRequest buildImportRequest() {
+        ImportRequest importRequest = new ImportRequest();
+
+        BytesReference source = null;
+        try {
+            XContentBuilder jsonBuilder = XContentFactory.jsonBuilder();
+            source = jsonBuilder.startObject()
+                    .field("path", stmt.importPath)
+                    .endObject().bytes();
+        } catch (IOException e) {
+        }
+        importRequest.source(source, false);
+
+        importRequest.index(stmt.indices()[0]);
+        importRequest.type(NodeExecutionContext.DEFAULT_TYPE);
+
+        return importRequest;
+    }
 }

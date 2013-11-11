@@ -3,7 +3,7 @@ package org.cratedb.action.restore.parser;
 import com.google.common.collect.ImmutableMap;
 import org.cratedb.action.dump.parser.DumpParser;
 import org.cratedb.action.import_.ImportContext;
-import org.cratedb.action.import_.parser.DirectoryParseElement;
+import org.cratedb.action.import_.parser.PathParseElement;
 import org.cratedb.action.import_.parser.IImportParser;
 import org.cratedb.action.import_.parser.ImportParseElement;
 import org.cratedb.action.import_.parser.ImportParseException;
@@ -24,7 +24,9 @@ public class RestoreParser implements IImportParser {
 
     public RestoreParser() {
         Map<String, ImportParseElement> elementParsers = new HashMap<String, ImportParseElement>();
-        elementParsers.put("directory", new DirectoryParseElement());
+        elementParsers.put("path", new PathParseElement());
+        // deprecated but still here for backward compatibility
+        elementParsers.put("directory", new PathParseElement());
         this.elementParsers = ImmutableMap.copyOf(elementParsers);
     }
 
@@ -58,8 +60,8 @@ public class RestoreParser implements IImportParser {
                     }
                 }
             }
-            if (context.directory() == null) {
-                context.directory(DumpParser.DEFAULT_DIR);
+            if (context.path() == null) {
+                context.path(DumpParser.DEFAULT_DIR);
             }
         } catch (Exception e) {
             String sSource = "_na_";

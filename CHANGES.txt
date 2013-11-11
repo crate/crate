@@ -8,6 +8,8 @@ Unreleased
  - added column ``routing_column`` to table ``information_schema.tables``,
    listing the column whose value determines on which shard a document gets stored
 
+ - Added support for importing data using the SQL `copy <table> from <path>` command.
+
 2013/11/11 0.18.6
 =================
 

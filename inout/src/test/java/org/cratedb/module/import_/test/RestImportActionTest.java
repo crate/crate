@@ -1,18 +1,13 @@
 package org.cratedb.module.import_.test;
 
-import static com.github.tlrx.elasticsearch.test.EsSetup.createIndex;
-import static com.github.tlrx.elasticsearch.test.EsSetup.deleteAll;
-import static com.github.tlrx.elasticsearch.test.EsSetup.fromClassPath;
-import static com.github.tlrx.elasticsearch.test.EsSetup.index;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-
 import com.google.common.collect.ImmutableMap;
+import org.cratedb.action.export.ExportAction;
+import org.cratedb.action.export.ExportRequest;
+import org.cratedb.action.export.ExportResponse;
+import org.cratedb.action.import_.ImportAction;
+import org.cratedb.action.import_.ImportRequest;
+import org.cratedb.action.import_.ImportResponse;
+import org.cratedb.module.AbstractRestActionTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.get.GetRequestBuilder;
 import org.elasticsearch.action.get.GetResponse;
@@ -21,13 +16,14 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.junit.Test;
 
-import org.cratedb.action.export.ExportAction;
-import org.cratedb.action.export.ExportRequest;
-import org.cratedb.action.export.ExportResponse;
-import org.cratedb.action.import_.ImportAction;
-import org.cratedb.action.import_.ImportRequest;
-import org.cratedb.action.import_.ImportResponse;
-import org.cratedb.module.AbstractRestActionTest;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import static com.github.tlrx.elasticsearch.test.EsSetup.*;
 
 public class RestImportActionTest extends AbstractRestActionTest {
 
@@ -42,7 +38,7 @@ public class RestImportActionTest extends AbstractRestActionTest {
         assertEquals(0, getImports(response).size());
         List<Map<String, Object>> failures = getImportFailures(response);
         assertEquals(2, failures.size());
-        assertTrue(failures.get(0).toString().contains("No directory defined"));
+        assertTrue(failures.get(0).toString().contains("No path or directory defined"));
     }
 
     /**

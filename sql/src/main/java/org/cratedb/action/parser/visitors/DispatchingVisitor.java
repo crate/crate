@@ -37,6 +37,7 @@ public abstract class DispatchingVisitor implements Visitor {
     protected void visit(ConstraintDefinitionNode node) throws Exception {}
     protected void visit(CreateAnalyzerNode node) throws Exception {}
     protected void visit(IndexConstraintDefinitionNode node) throws Exception {}
+    protected void visit(CopyStatementNode node) throws Exception {}
 
     protected void afterVisit() throws SQLParseException {}
 
@@ -75,6 +76,10 @@ public abstract class DispatchingVisitor implements Visitor {
                 case NodeTypes.CREATE_ANALYZER_NODE:
                     stopTraversal = true;
                     visit((CreateAnalyzerNode)node);
+                    break;
+                case NodeTypes.COPY_STATEMENT_NODE:
+                    stopTraversal = true;
+                    visit((CopyStatementNode)node);
                     break;
                 default:
                     throw new SQLParseException("Unsupported SQL Statement");

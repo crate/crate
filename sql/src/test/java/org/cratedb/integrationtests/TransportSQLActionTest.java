@@ -1,11 +1,15 @@
 package org.cratedb.integrationtests;
 
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Ordering;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.sql.*;
+import org.cratedb.sql.DuplicateKeyException;
+import org.cratedb.sql.SQLParseException;
+import org.cratedb.sql.TableAlreadyExistsException;
+import org.cratedb.sql.TableUnknownException;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -24,6 +28,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
@@ -35,6 +40,9 @@ import static org.hamcrest.Matchers.*;
 public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     private SQLResponse response;
+
+    private String copyFilePath = TransportSQLActionTest.class.getResource(
+                                            "/essetup/data/copy").getPath();
 
     @Override
     protected int numberOfNodes() {
@@ -2330,4 +2338,50 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
             assertArrayEquals(responseWithoutOrder.rows()[i], response.rows()[i]);
         }
     }
+
+    @Test
+    public void testCopyFromFile() throws Exception {
+        execute("create table quotes (id int primary key, " +
+                "quote string index using fulltext)");
+        refresh();
+
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes from ?", new Object[]{filePath});
+        // 2 nodes on same machine resulting in double affected rows
+        assertEquals(6L, response.rowCount());
+        refresh();
+
+        execute("select * from quotes");
+        assertEquals(3L, response.rowCount());
+    }
+
+    @Test
+    public void testCopyFromDirectory() throws Exception {
+        execute("create table quotes (id int primary key, " +
+                "quote string index using fulltext)");
+
+        execute("copy quotes from ?", new Object[]{copyFilePath});
+        // 2 nodes on same machine resulting in double affected rows
+        assertEquals(6L, response.rowCount());
+        refresh();
+
+        execute("select * from quotes");
+        assertEquals(3L, response.rowCount());
+    }
+
+    @Test
+    public void testCopyFromFilePattern() throws Exception {
+        execute("create table quotes (id int primary key, " +
+                "quote string index using fulltext)");
+
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "(\\D).json");
+        execute("copy quotes from ?", new Object[]{filePath});
+        // 2 nodes on same machine resulting in double affected rows
+        assertEquals(6L, response.rowCount());
+        refresh();
+
+        execute("select * from quotes");
+        assertEquals(3L, response.rowCount());
+    }
+
 }

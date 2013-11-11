@@ -1,26 +1,10 @@
 package org.cratedb.import_;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.zip.GZIPInputStream;
-
+import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
+import org.cratedb.action.import_.ImportContext;
+import org.cratedb.action.import_.NodeImportRequest;
 import org.elasticsearch.ElasticSearchException;
 import org.elasticsearch.ElasticSearchParseException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -32,7 +16,10 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexRequest.OpType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -47,31 +34,34 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.VersionType;
-import org.elasticsearch.index.mapper.internal.IdFieldMapper;
-import org.elasticsearch.index.mapper.internal.IndexFieldMapper;
-import org.elasticsearch.index.mapper.internal.RoutingFieldMapper;
-import org.elasticsearch.index.mapper.internal.SourceFieldMapper;
-import org.elasticsearch.index.mapper.internal.TTLFieldMapper;
-import org.elasticsearch.index.mapper.internal.TimestampFieldMapper;
-import org.elasticsearch.index.mapper.internal.TypeFieldMapper;
+import org.elasticsearch.index.mapper.internal.*;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.IndexMissingException;
 
-import org.cratedb.action.import_.ImportContext;
-import org.cratedb.action.import_.NodeImportRequest;
+import java.io.*;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+import java.util.zip.GZIPInputStream;
 
 public class Importer {
 
     private Client client;
     private final Injector injector;
+    private final ClusterService clusterService;
 
     private final ByteSizeValue bulkByteSize = new ByteSizeValue(5, ByteSizeUnit.MB);
     private final TimeValue flushInterval = TimeValue.timeValueSeconds(5);
     private final int concurrentRequests = 4;
 
+    private Map<Tuple<String, String>, List<String>> indexTypePrimaryKeysCache = new HashMap<>();
+
     @Inject
-    public Importer(Injector injector) {
+    public Importer(Injector injector, ClusterService clusterService) {
         this.injector = injector;
+        this.clusterService = clusterService;
     }
 
     public Result execute(ImportContext context, NodeImportRequest request) {
@@ -84,17 +74,27 @@ public class Importer {
         int bulkSize = request.bulkSize();
         Result result = new Result();
         Date start = new Date();
-        File dir = new File(context.directory());
-        if (dir.isDirectory()) {
-            File[] files;
+
+        File path = new File(context.path());
+        Pattern file_pattern = context.file_pattern();
+        File[] files;
+
+        if (!path.isDirectory() && !path.isFile() && context.file_pattern() == null) {
+            // try to parse last path segment as file pattern
+            Tuple<String, Pattern> tuple = parsePathPattern(context.path());
+            path = new File(tuple.v1());
+            file_pattern = tuple.v2();
+        }
+
+        if (path.isDirectory()) {
             if (context.file_pattern() == null) {
-                files = dir.listFiles();
+                files = path.listFiles();
             } else {
-                final Pattern file_pattern = context.file_pattern();
-                files = dir.listFiles(new FilenameFilter() {
+                final Pattern file_pattern_inner = file_pattern;
+                files = path.listFiles(new FilenameFilter() {
                     @Override
                     public boolean accept(File dir, String name) {
-                        Matcher m = file_pattern.matcher(name);
+                        Matcher m = file_pattern_inner.matcher(name);
                         if (m.find()) {
                             return true;
                         }
@@ -102,38 +102,46 @@ public class Importer {
                     }
                 });
             }
-            // import settings according to the given data file pattern
-            try {
-            if (context.settings()) {
-                Set<String> createdSettings = new HashSet<String>();
-                for (File file : files) {
-                    String fileName = file.getName();
-                    if (!fileName.endsWith(".mapping") && !fileName.endsWith(".settings") && file.isFile() && file.canRead()) {
-                        loadSettings(file, createdSettings, index);
-                    }
-                }
-            }
-            // import mappings according to the given data file pattern
-            if (context.mappings()) {
-                Map<String, Set<String>> createdMappings = new HashMap<String, Set<String>>();
-                for (File file : files) {
-                    String fileName = file.getName();
-                    if (!fileName.endsWith(".mapping") && !fileName.endsWith(".settings") && file.isFile() && file.canRead()) {
-                        loadMappings(file, createdMappings, index, type);
-                    }
-                }
-            }
-            } catch (Exception e) {
-                throw new ElasticSearchException("::" ,e);
-            }
-            // import data according to the given data file pattern
+        } else if (path.isFile()) {
+            files = new File[1];
+            files[0] = path;
+        } else {
+            return result;
+        }
+        if (files.length == 0) {
+            return result;
+        }
+        // import settings according to the given data file pattern
+        try {
+        if (context.settings()) {
+            Set<String> createdSettings = new HashSet<String>();
             for (File file : files) {
                 String fileName = file.getName();
-                if (!fileName.endsWith(".mapping") && !fileName.endsWith(".settings")) {
-                    ImportCounts counts = handleFile(file, index, type, bulkSize, context.compression());
-                    if (counts != null) {
-                        result.importCounts.add(counts);
-                    }
+                if (!fileName.endsWith(".mapping") && !fileName.endsWith(".settings") && file.isFile() && file.canRead()) {
+                    loadSettings(file, createdSettings, index);
+                }
+            }
+        }
+        // import mappings according to the given data file pattern
+        if (context.mappings()) {
+            Map<String, Set<String>> createdMappings = new HashMap<String, Set<String>>();
+            for (File file : files) {
+                String fileName = file.getName();
+                if (!fileName.endsWith(".mapping") && !fileName.endsWith(".settings") && file.isFile() && file.canRead()) {
+                    loadMappings(file, createdMappings, index, type);
+                }
+            }
+        }
+        } catch (Exception e) {
+            throw new ElasticSearchException("::" ,e);
+        }
+        // import data according to the given data file pattern
+        for (File file : files) {
+            String fileName = file.getName();
+            if (!fileName.endsWith(".mapping") && !fileName.endsWith(".settings")) {
+                ImportCounts counts = handleFile(file, index, type, bulkSize, context.compression());
+                if (counts != null) {
+                    result.importCounts.add(counts);
                 }
             }
         }
@@ -162,7 +170,7 @@ public class Importer {
                 while ((line = r.readLine()) != null) {
                     IndexRequest indexRequest;
                     try {
-                        indexRequest = parseObject(line);
+                        indexRequest = parseObject(line, index, type);
                     } catch (ObjectImportException e) {
                         bulkListener.addFailure();
                         continue;
@@ -200,7 +208,9 @@ public class Importer {
         return null;
     }
 
-    private IndexRequest parseObject(String line) throws ObjectImportException {
+    private IndexRequest parseObject(String line,
+                                     String index,
+                                     String type) throws ObjectImportException {
         XContentParser parser = null;
         try {
             IndexRequest indexRequest = new IndexRequest();
@@ -229,11 +239,14 @@ public class Importer {
                         indexRequest.versionType(VersionType.EXTERNAL);
                     } else if (fieldName.equals(SourceFieldMapper.NAME) && token == Token.START_OBJECT) {
                         sourceBuilder.copyCurrentStructure(parser);
+                    } else if(indexTypePrimaryKeys(index, type).contains(fieldName)) {
+                        indexRequest.id(parser.text());
                     }
                 } else if (token == null) {
                     break;
                 }
             }
+
             if (ttl > 0) {
                 String ts = indexRequest.timestamp();
                 long start;
@@ -250,7 +263,12 @@ public class Importer {
                     return null;
                 }
             }
-            indexRequest.source(sourceBuilder);
+            if (sourceBuilder.bytes().length() == 0) {
+                // treat complete line as source
+                indexRequest.source(line.getBytes());
+            } else {
+                indexRequest.source(sourceBuilder);
+            }
             return indexRequest;
         } catch (ElasticSearchParseException e) {
             throw new ObjectImportException(e);
@@ -433,6 +451,54 @@ public class Importer {
         public int successes = 0;
         public int failures = 0;
         public int invalid = 0;
+    }
+
+    private Tuple<String, Pattern> parsePathPattern(String path) {
+        List<String> pathSplit = Splitter.on(File.separatorChar).splitToList(path);
+        Pattern file_pattern = null;
+        if (pathSplit.size() >= 2) {
+            String basePath = Joiner.on(File.separatorChar).join(pathSplit.subList(0, pathSplit.size() - 1));
+            String pattern = pathSplit.get(pathSplit.size()-1);
+
+            try {
+                file_pattern = Pattern.compile(pattern);
+                path = basePath;
+            } catch (PatternSyntaxException e) {
+            }
+        }
+        return new Tuple<>(path, file_pattern);
+    }
+
+    public List<String> indexTypePrimaryKeys(String index, String type) {
+        Tuple cacheKey = new Tuple(index, type);
+        if (!indexTypePrimaryKeysCache.containsKey(cacheKey)) {
+            IndexMetaData indexMetaData = clusterService.state().metaData().index(index);
+            MappingMetaData mappingMetaData = indexMetaData.mappingOrDefault(type);
+            List<String> pks = new ArrayList<>();
+
+            if (mappingMetaData != null) {
+                try {
+                    Object metaProperty = mappingMetaData.sourceAsMap().get("_meta");
+                    if (metaProperty != null) {
+                        Object srcPks = ((Map)metaProperty).get("primary_keys");
+                        if (srcPks instanceof String) {
+                            pks.add((String)srcPks);
+                        } else if (srcPks instanceof List) {
+                            pks.addAll((List)srcPks);
+                        }
+                    }
+
+                } catch (IOException e) {
+                }
+            }
+
+            if (pks.isEmpty()) {
+                pks.add("_id"); // Default Primary Key
+            }
+            indexTypePrimaryKeysCache.put(cacheKey, pks);
+        }
+
+        return indexTypePrimaryKeysCache.get(cacheKey);
     }
 
 }

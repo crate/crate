@@ -440,3 +440,52 @@ Deleting rows in Crate is done using the SQL ``DELETE`` statement::
 
     cr> delete from locations where position > 3
     DELETE OK, ... rows affected (... sec)
+
+
+Importing data
+==============
+
+Using the ``COPY FROM`` SQL statement, data can be imported into Crate.
+Currently the only supported data format is JSON, one line is representing one entry.
+
+Example JSON data::
+
+    {"id": 1, "quote": "Don't panic"}
+    {"id": 2, "quote": "Would it save you a lot of time if I just gave up and went mad now?"}
+
+.. note::
+
+  Existing entries will be overwritten on import.
+
+Import from path
+----------------
+
+Using a path to copy from, data will be imported distributed on every node on which the path
+points to an existing file. This also means, if the same file with the same content is available
+on all nodes, every node is concurrently importing the same data which does not make so much
+sense. It's more useful, for example, to split the data to import across all nodes into a
+directory, so every node is importing a different portion of the overall data.
+
+In short, just put a file on every node and import the data using the ``COPY FROM`` statement.
+
+The path can be a directory, a file or a directory with a `PCRE`_ file pattern suffix.
+If the path is relative, it is based on the absolute path of each node's data location.
+
+Let's demonstrate this using a relative file path::
+
+    cr> copy quotes from 'import_data/quotes.json'
+    COPY OK (... sec)
+
+Using a relative directory path::
+
+    cr> copy quotes from 'import_data'
+    COPY OK (... sec)
+
+And finally import data using a directory path and a `PCRE`_ file pattern  suffix::
+
+    cr> copy quotes from 'import_data/(\\D).json'
+    COPY OK (... sec)
+
+
+
+.. _PCRE: http://www.pcre.org/

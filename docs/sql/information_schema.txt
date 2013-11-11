@@ -33,7 +33,7 @@ settings like the number of shards or number of replicas::
     | documents  | 5                | 1                  | _id            |
     | locations  | 2                | 0                  | id             |
     | myblobs    | 3                | 1                  | _id            |
-    | quotes     | 5                | 1                  | _id            |
+    | quotes     | 5                | 1                  | id             |
     +------------+------------------+--------------------+----------------+
     SELECT 4 rows in set (... sec)
 
@@ -54,12 +54,12 @@ definition like data type and ordinal position inside the table::
     | locations  | date        | 1                | timestamp |
     | locations  | description | 2                | string    |
     | locations  | id          | 3                | string    |
-    | locations  | kind        | 4                | string    |
-    | locations  | name        | 5                | string    |
-    | locations  | position    | 6                | integer   |
-    | locations  | race        | 7                | craty     |
-    | quotes     | author      | 1                | string    |
-    | quotes     | content     | 2                | string    |
+    | locations  | kind        | 3                | string    |
+    | locations  | name        | 4                | string    |
+    | locations  | position    | 5                | integer   |
+    | locations  | race        | 6                | craty     |
+    | quotes     | id          | 1                | integer   |
+    | quotes     | quote       | 2                | string    |
     +------------+-------------+------------------+-----------+
     SELECT 11 rows in set (... sec)
 
@@ -86,6 +86,7 @@ their type, name and which table they are defined in.
     +------------+-----------------+-----------------+
     | table_name | constraint_name | constraint_type |
     +------------+-----------------+-----------------+
+    | quotes     | id              | PRIMARY_KEY     |
     | my_table9  | first_column    | PRIMARY_KEY     |
     | my_table8  | first_column    | PRIMARY_KEY     |
     | my_table7  | first_column    | PRIMARY_KEY     |
@@ -93,7 +94,7 @@ their type, name and which table they are defined in.
     | my_table1  | first_column    | PRIMARY_KEY     |
     | locations  | id              | PRIMARY_KEY     |
     +------------+-----------------+-----------------+
-    SELECT 6 rows in set (... sec)
+    SELECT 7 rows in set (... sec)
 
 
 Indices
@@ -120,8 +121,8 @@ behaviour at Crate, so almost all columns are listed as an index as well::
     | locations  | name_description_ft | fulltext | description, name | analyzer=english |
     | locations  | position            | plain    | position          |                  |
     | locations  | race                | plain    | race              |                  |
-    | quotes     | author              | plain    | author            |                  |
-    | quotes     | content             | plain    | content           |                  |
+    | quotes     | id                  | plain    | id                |                  |
+    | quotes     | quote               | plain    | quote             |                  |
     +------------+---------------------+----------+-------------------+------------------+
     SELECT 13 rows in set (... sec)
 

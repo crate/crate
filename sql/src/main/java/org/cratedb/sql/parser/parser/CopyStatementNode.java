@@ -31,7 +31,7 @@ public class CopyStatementNode extends StatementNode
     private TableName tableName;
     private ResultColumnList columnList;
     private SubqueryNode subquery;
-    private String filename;
+    private ValueNode filename;
     private Format format;
     private String delimiter, nullString, quote, escape, encoding;
     private boolean header;
@@ -48,7 +48,7 @@ public class CopyStatementNode extends StatementNode
     public void init(Object mode, Object subquery, Object filename) {
         this.mode = (Mode)mode;
         this.subquery = (SubqueryNode)subquery;
-        this.filename = (String)filename;
+        this.filename = (ValueNode)filename;
     }
 
     /**
@@ -64,7 +64,7 @@ public class CopyStatementNode extends StatementNode
         this.mode = (Mode)mode;
         this.tableName = (TableName)tableName;
         this.columnList = (ResultColumnList)columnList;
-        this.filename = (String)filename;
+        this.filename = (ValueNode)filename;
     }
 
     public Mode getMode() {
@@ -79,7 +79,7 @@ public class CopyStatementNode extends StatementNode
     public ResultColumnList getColumnList() {
         return columnList;
     }
-    public String getFilename() {
+    public ValueNode getFilename() {
         return filename;
     }
 

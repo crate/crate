@@ -7,7 +7,7 @@ public class ImportContext {
 
     private String nodePath;
     private boolean compression;
-    private String directory;
+    private String path;
     private Pattern file_pattern;
     private boolean mappings = false;
     private boolean settings = false;
@@ -24,17 +24,17 @@ public class ImportContext {
         this.compression = compression;
     }
 
-    public String directory() {
-        return directory;
+    public String path() {
+        return path;
     }
 
-    public void directory(String directory) {
-        File file = new File(directory);
+    public void path(String path) {
+        File file = new File(path);
         if (!file.isAbsolute() && nodePath != null) {
-            file = new File(nodePath, directory);
-            directory = file.getAbsolutePath();
+            file = new File(nodePath, path);
+            path = file.getAbsolutePath();
         }
-        this.directory = directory;
+        this.path = path;
     }
 
     public Pattern file_pattern() {
