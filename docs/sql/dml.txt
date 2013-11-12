@@ -355,7 +355,7 @@ A negative fulltext search can be done using a ``NOT`` clause::
     | Arkintoofle Minor                  | 1.0    |
     |                                    | 1.0    |
     +------------------------------------+--------+
-    SELECT 11 rows in set (0.01 sec)
+    SELECT 11 rows in set (... sec)
 
 
 Filter by :ref:`_score <sql_ddl_system_column_score>`

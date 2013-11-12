@@ -5,13 +5,10 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.StringField;
-import org.cratedb.action.sql.NodeExecutionContext;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
 
 import java.io.IOException;
-import java.util.Map;
 
 public class TablesTable extends AbstractInformationSchemaTable {
 
@@ -53,43 +50,21 @@ public class TablesTable extends AbstractInformationSchemaTable {
         StringField routingColumn = new StringField(Columns.ROUTING_COLUMN, "", Field.Store.YES);
 
         for (IndexMetaData metaData : clusterState.metaData().indices().values()) {
+            IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
             Document doc = new Document();
-            tableName.setStringValue(metaData.getIndex());
+            tableName.setStringValue(extractor.getIndexName());
             doc.add(tableName);
 
-            numberOfShards.setIntValue(metaData.getNumberOfShards());
+            numberOfShards.setIntValue(extractor.getNumberOfShards());
             doc.add(numberOfShards);
 
-            numberOfReplicas.setIntValue(metaData.getNumberOfReplicas());
+            numberOfReplicas.setIntValue(extractor.getNumberOfReplicas());
             doc.add(numberOfReplicas);
 
             // routing column
 
-            String routingColumnName = null;
-            MappingMetaData mappingMetaData= metaData.getMappings()
-                    .get(NodeExecutionContext.DEFAULT_TYPE);
-            if (mappingMetaData != null) {
-                if (mappingMetaData.routing().hasPath()) {
-                    routingColumnName = mappingMetaData.routing().path();
-                }
-                if (routingColumnName == null) {
-
-                    Map<String, Object> mappingsMap = mappingMetaData.sourceAsMap();
-                    if (mappingsMap != null) {
-                        // if primary key has been set, use this
-                        @SuppressWarnings("unchecked")
-                        Map<String, Object> metaMap = (Map<String, Object>)mappingsMap.get("_meta");
-                        if (metaMap != null) {
-                            String primaryKeyColumn = (String)metaMap.get("primary_keys");
-                            if (primaryKeyColumn != null) {
-                                routingColumnName = primaryKeyColumn;
-                            }
-                        }
-                    }
-                }
-            }
-            // default routing key is _id if none has been set
-            routingColumn.setStringValue(routingColumnName == null ? "_id" : routingColumnName);
+            String routingColumnName = extractor.getRoutingColumn();
+            routingColumn.setStringValue(routingColumnName);
             doc.add(routingColumn);
 
             indexWriter.addDocument(doc);

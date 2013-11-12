@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - added column ``routing_column`` to table ``information_schema.tables``,
+   listing the column whose value determines on which shard a document gets stored
+
 2013/11/11 0.18.5
 =================
 
@@ -19,9 +22,6 @@ Unreleased
  - the sql `count()` function now also be called with parameter substitution
    (`count(?)`) and with primary key primary key columns (`count(pk_col)`).
    This way SQLAlchemy's ORM functionality can be used with Crate.
-
-- added column ``routing_column`` to table ``information_schema.tables``,
-   listing the column whose value determines on which shard a document gets stored
 
 2013/11/07 0.18.3
 =================

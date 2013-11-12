@@ -125,7 +125,7 @@ public class AnalyzerServiceTest extends ElasticsearchTestCase {
                 "   tokenizer lowercase," +
                 "   char_filters WITH (" +
                 "       \"html_strip\"," +
-                "       mymapping WITH (" +
+                "       my_mapping WITH (" +
                 "           type='mapping'," +
                 "           mappings=['ph=>f', 'ß=>ss', 'ö=>oe']" +
                 "       )" +
@@ -143,17 +143,19 @@ public class AnalyzerServiceTest extends ElasticsearchTestCase {
         );
         assertThat(
                 fullAnalyzerSettings.getAsArray("index.analysis.analyzer.a3.char_filter"),
-                arrayContainingInAnyOrder("html_strip", "a3_mymapping")
+                arrayContainingInAnyOrder("html_strip", "a3_my_mapping")
         );
         assertThat(
                 fullAnalyzerSettings.getAsMap(),
-                hasEntry("index.analysis.char_filter.a3_mymapping.type", "mapping")
+                hasEntry("index.analysis.char_filter.a3_my_mapping.type", "mapping")
         );
         assertThat(
-                fullAnalyzerSettings.getAsArray("index.analysis.char_filter.a3_mymapping" +
+                fullAnalyzerSettings.getAsArray("index.analysis.char_filter.a3_my_mapping" +
                         ".mappings"),
                 arrayContainingInAnyOrder("ph=>f", "ß=>ss", "ö=>oe")
         );
+        node.client().execute(SQLAction.INSTANCE, new SQLRequest("CREATE TABLE t1(content " +
+                "string index using fulltext with (analyzer='a3'))")).actionGet();
     }
 
     @Test

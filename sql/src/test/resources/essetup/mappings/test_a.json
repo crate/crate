@@ -3,7 +3,7 @@
         "_id": {
             "type": "string",
             "index": "not_analyzed",
-            "store": "true"
+            "store": "false"
         },
         "_meta": {
             "primary_keys": "id"
@@ -12,7 +12,7 @@
             "id": {
                 "type": "string",
                 "index": "not_analyzed",
-                "store": "true"
+                "store": "false"
             },
             "name": {
                 "type": "multi_field",
@@ -33,16 +33,16 @@
             },
             "date": {
                 "type": "date",
-                "store": true
+                "store": false
             },
             "kind": {
                 "type": "string",
                 "index": "not_analyzed",
-                "store": true
+                "store": false
             },
             "position": {
                 "type": "integer",
-                "store": true
+                "store": false
             },
             "description": {
                 "type": "multi_field",
@@ -63,7 +63,7 @@
             },
             "race": {
                 "type": "object",
-                "store": true
+                "store": false
             }
         }
     }
