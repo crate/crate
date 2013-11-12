@@ -1,18 +1,17 @@
 package org.cratedb.information_schema;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.Term;
-import org.cratedb.action.sql.NodeExecutionContext;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * virtual information_schema table listing table index definitions
@@ -78,93 +77,37 @@ public class IndicesTable extends AbstractInformationSchemaTable {
     public void doIndex(ClusterState clusterState) throws IOException {
 
         for (IndexMetaData indexMetaData : clusterState.metaData().indices().values()) {
-            indicesExpressions = new HashMap<>();
+            IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(indexMetaData);
 
-            MappingMetaData mappingMetaData = indexMetaData.getMappings().get(NodeExecutionContext.DEFAULT_TYPE);
-            if (mappingMetaData != null) {
-                Map<String, Object> mappingProperties = (Map)mappingMetaData.sourceAsMap()
-                                                                        .get("properties");
-                for (ImmutableMap.Entry<String, Object> columnEntry: mappingProperties.entrySet()) {
-                    Map<String, Object> columnProperties = (Map)columnEntry.getValue();
-
-                    if (columnProperties.get("type") != null
-                            && columnProperties.get("type").equals("multi_field")) {
-                        for (ImmutableMap.Entry<String, Object> multiColumnEntry:
-                                ((Map<String, Object>)columnProperties.get("fields")).entrySet()) {
-                            Map<String, Object> multiColumnProperties = (Map)multiColumnEntry.getValue();
-
-                            addIndexDocument(
-                                    indexMetaData.getIndex(),
-                                    multiColumnEntry.getKey(),
-                                    columnEntry.getKey(),
-                                    multiColumnProperties
-                            );
-                        }
-                    } else {
-                        addIndexDocument(
-                                indexMetaData.getIndex(),
-                                columnEntry.getKey(),
-                                columnEntry.getKey(),
-                                columnProperties
-                        );
-                    }
-                }
+            for (IndexMetaDataExtractor.Index index: extractor
+                    .getIndices()) {
+                addIndexDocument(index);
             }
 
         }
     }
 
-    private void addIndexDocument(String tableName, String indexName,
-                                  String columnName,
-                                  Map<String, Object> columnProperties) throws IOException {
-        String method;
-        Map<String, String> properties = new HashMap<>();
-        List<String> expressions = new ArrayList<>();
-
-        String index = (String)columnProperties.get("index");
-        String analyzer = (String)columnProperties.get("analyzer");
-        if (index != null && index.equals("no")) {
-            return;
-        } else if ((index == null && analyzer == null)
-                || (index != null && index.equals("not_analyzed"))) {
-            method = "plain";
-        } else {
-            method = "fulltext";
-        }
-
-        if (analyzer != null) {
-            properties.put("analyzer", analyzer);
-        }
-
-        if (indicesExpressions.containsKey(indexName)) {
-            expressions = indicesExpressions.get(indexName);
-        } else {
-            indicesExpressions.put(indexName, expressions);
-        }
-        expressions.add(columnName);
-
+    private void addIndexDocument(IndexMetaDataExtractor.Index index) throws IOException {
         Document doc = new Document();
 
-        tableNameField.setStringValue(tableName);
+        tableNameField.setStringValue(index.tableName);
         doc.add(tableNameField);
 
-        indexNameField.setStringValue(indexName);
+        indexNameField.setStringValue(index.indexName);
         doc.add(indexNameField);
 
-        methodField.setStringValue(method);
+        methodField.setStringValue(index.method);
         doc.add(methodField);
 
-        expressionsField.setStringValue(Joiner.on(", ").join(expressions));
+        expressionsField.setStringValue(index.getExpressionsString());
         doc.add(expressionsField);
 
-        Joiner.MapJoiner joiner = Joiner.on(", ").withKeyValueSeparator("=");
-        propertiesField.setStringValue(joiner.join(properties));
+        propertiesField.setStringValue(index.getPropertiesString());
         doc.add(propertiesField);
 
-        String uid = tableName + "." + indexName;
-        uidField.setStringValue(uid);
+        uidField.setStringValue(index.getUid());
         doc.add(uidField);
 
-        indexWriter.updateDocument(new Term("uid", uid), doc);
+        indexWriter.updateDocument(new Term("uid", index.getUid()), doc);
     }
 }
