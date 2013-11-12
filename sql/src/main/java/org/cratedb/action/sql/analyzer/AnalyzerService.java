@@ -10,10 +10,14 @@ import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.loader.JsonSettingsLoader;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.analysis.TokenizerFactory;
 import org.elasticsearch.indices.analysis.IndicesAnalysisService;
 
@@ -50,6 +54,7 @@ public class AnalyzerService {
             "indonesian", "italian", "latvian", "norwegian", "persian", "portuguese",
             "romanian", "russian", "spanish", "swedish", "turkish", "thai");
 
+    private ESLogger logger = Loggers.getLogger(AnalyzerService.class);
 
 
     public enum CustomType {
@@ -223,13 +228,20 @@ public class AnalyzerService {
 
     public static BytesReference encodeSettings(Settings settings) throws IOException {
         BytesStreamOutput bso = new BytesStreamOutput();
-        ImmutableSettings.writeSettingsToStream(settings, bso);
+        XContentBuilder builder = XContentFactory.jsonBuilder(bso);
+        builder.startObject();
+        for (Map.Entry<String, String> entry : settings.getAsMap().entrySet()) {
+            builder.field(entry.getKey(), entry.getValue());
+        }
+        builder.endObject();
+        builder.flush();
         return bso.bytes();
     }
 
     public static Settings decodeSettings(String encodedSettings) throws IOException {
-        BytesStreamInput bsi = new BytesStreamInput(encodedSettings.getBytes(), 0, encodedSettings.getBytes().length, false);
-        return ImmutableSettings.readSettingsFromStream(bsi);
+        Map<String, String> loaded = new JsonSettingsLoader().load(encodedSettings);
+        return ImmutableSettings.builder().put(loaded).build();
+
 
     }
 
@@ -252,7 +264,7 @@ public class AnalyzerService {
             try {
                 decoded = decodeSettings(encodedSettings);
             } catch (IOException e) {
-                // ignore
+                logger.warn("Could not decode settings for {} '{}'.", e, type.getName(), name);
             }
         }
         return decoded;
