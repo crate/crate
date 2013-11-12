@@ -1,6 +1,8 @@
 
 apply plugin: 'java'
 
+archivesBaseName = 'crate-sql'
+
 // we do not want to have elasticsearch here, since we provide it in :es
 configurations {
     all*.exclude group: 'org.elasticsearch'

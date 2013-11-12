@@ -1,6 +1,8 @@
 apply plugin:'distribution'
 apply plugin: 'java'
 
+archivesBaseName = 'crate-app'
+
 configurations {
     all*.exclude group: 'org.elasticsearch'
 }

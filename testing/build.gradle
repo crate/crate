@@ -1,5 +1,7 @@
 apply plugin: 'java'
 
+archivesBaseName = 'crate-testing'
+
 configurations {
     all*.exclude group: 'org.elasticsearch'
 }

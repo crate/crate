@@ -5,6 +5,8 @@ import org.cratedb.action.sql.SQLRequest;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionRequestValidationException;
 
+import java.util.regex.Pattern;
+
 /**
  * Container that wraps a {@link SQLRequest} and a {@link ParsedStatement}
  *
@@ -26,6 +28,7 @@ public class DistributedSQLRequest extends ActionRequest {
     public DistributedSQLRequest(SQLRequest request, ParsedStatement stmt) {
         sqlRequest = request;
         parsedStatement = stmt;
+        Pattern p;
     }
 
     @Override
