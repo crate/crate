@@ -40,7 +40,7 @@ public class IndexMetaDataExtractor {
         public final List<String> expressions;
         public final Map<String, String> properties;
 
-        public Index(String tableName, String indexName, String columnName, String method,
+        protected Index(String tableName, String indexName, String columnName, String method,
                      List<String> expressions, Map<String, String> properties) {
             this.tableName = tableName;
             this.indexName = indexName;
@@ -50,14 +50,40 @@ public class IndexMetaDataExtractor {
             this.properties = properties;
         }
 
+        /**
+         * returns the expressions over which the index is defined as a comma-separated string
+         * @return the index-expressions as a comma-separated string
+         */
         public String getExpressionsString() {
             return Joiner.on(", ").join(expressions);
         }
 
+        /**
+         * Returns the properties the index was defined with as a comma-separated string of
+         * key-value pairs.
+         *
+         * E.g. used in information_schema.indices to display the index' properties
+         *
+         * @return
+         */
         public String getPropertiesString() {
             return Joiner.on(", ").withKeyValueSeparator("=").join(properties);
         }
 
+        /**
+         * Create an Index from a columnDefinition and further informations.
+         *
+         * @param tableName the name of the table this index is defined in
+         * @param indexName the name of the index
+         * @param columnName the name of the column this index indexes (there can be more than
+         *                   one index for a column)
+         * @param columnProperties the properties of the column this index indexes -
+         *                         index attributes are extracted from here
+         * @param indexExpressions an empty list that holds state and gets filled while calling
+         *                         this function. Use one map for iterating over all columns of
+         *                         a table.
+         * @return and Index instance or null if this column is not indexed
+         */
         public static Index create(String tableName, String indexName,
                                    String columnName, Map<String, Object> columnProperties,
                                    Map<String, List<String>> indexExpressions) {
@@ -88,6 +114,9 @@ public class IndexMetaDataExtractor {
             return new Index(tableName, indexName, columnName, method, expressions, properties);
         }
 
+        /**
+         * returns a unique identifier for this index
+         */
         public String getUid() {
             return String.format("%s.%s", tableName, indexName);
         }
