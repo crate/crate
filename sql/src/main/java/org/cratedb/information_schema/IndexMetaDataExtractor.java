@@ -232,42 +232,44 @@ public class IndexMetaDataExtractor {
     @SuppressWarnings("unchecked")
     public List<Index> getIndices() throws IOException {
         List<Index> indices = new ArrayList<>();
-        String tableName = getIndexName();
 
-        Map<String, List<String>> indicesExpressions = new HashMap<>();
+        if (hasDefaultMapping()) {
+            String tableName = getIndexName();
+            Map<String, List<String>> indicesExpressions = new HashMap<>();
 
-        Map<String, Object> propertiesMap = (Map<String, Object>)getDefaultMappingMetaData()
-                .sourceAsMap().get("properties");
-        if (propertiesMap != null) {
-            for (Map.Entry<String, Object> columnEntry: propertiesMap.entrySet()) {
-                Map<String, Object> columnProperties = (Map)columnEntry.getValue();
+            Map<String, Object> propertiesMap = (Map<String, Object>)getDefaultMappingMetaData()
+                    .sourceAsMap().get("properties");
+            if (propertiesMap != null) {
+                for (Map.Entry<String, Object> columnEntry: propertiesMap.entrySet()) {
+                    Map<String, Object> columnProperties = (Map)columnEntry.getValue();
 
-                if (columnProperties.get("type") != null
-                        && columnProperties.get("type").equals("multi_field")) {
-                    for (ImmutableMap.Entry<String, Object> multiColumnEntry:
-                            ((Map<String, Object>)columnProperties.get("fields")).entrySet()) {
-                        Map<String, Object> multiColumnProperties = (Map)multiColumnEntry.getValue();
+                    if (columnProperties.get("type") != null
+                            && columnProperties.get("type").equals("multi_field")) {
+                        for (ImmutableMap.Entry<String, Object> multiColumnEntry:
+                                ((Map<String, Object>)columnProperties.get("fields")).entrySet()) {
+                            Map<String, Object> multiColumnProperties = (Map)multiColumnEntry.getValue();
 
 
-                        Index idx = Index.create(tableName,
-                                multiColumnEntry.getKey(),
+                            Index idx = Index.create(tableName,
+                                    multiColumnEntry.getKey(),
+                                    columnEntry.getKey(),
+                                    multiColumnProperties,
+                                    indicesExpressions);
+                            if (idx != null) {
+                                indices.add(idx);
+                            }
+
+                        }
+                    } else {
+                        Index idx = Index.create(
+                                tableName,
                                 columnEntry.getKey(),
-                                multiColumnProperties,
+                                columnEntry.getKey(),
+                                columnProperties,
                                 indicesExpressions);
                         if (idx != null) {
                             indices.add(idx);
                         }
-
-                    }
-                } else {
-                    Index idx = Index.create(
-                            tableName,
-                            columnEntry.getKey(),
-                            columnEntry.getKey(),
-                            columnProperties,
-                            indicesExpressions);
-                    if (idx != null) {
-                        indices.add(idx);
                     }
                 }
             }
