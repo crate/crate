@@ -1,7 +1,9 @@
 org.cratedb.sql.parser.parser.CopyStatementNode@49de17f4
 mode: FROM_SUBQUERY
 tableName: null
-filename: /tmp/t12.txt
+filename: value: /tmp/t12.txt
+type: CHAR(12) NOT NULL
+
 format: null
 delimiter: null
 nullString: null

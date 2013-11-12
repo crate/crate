@@ -8,6 +8,29 @@ Unreleased
  - added column ``routing_column`` to table ``information_schema.tables``,
    listing the column whose value determines on which shard a document gets stored
 
+ - Added support for importing data using the SQL `copy <table> from <path>` command.
+
+2013/11/11 0.18.6
+=================
+
+ - fix NPE if a null value was passed inside a complex type.
+
+2013/11/11 0.18.5
+=================
+
+ - bugfix: complex types like lists and dictionaries now also have the mapping
+   applied to the values inside.  For instance if a list of datetimes (in a iso
+   datetime string) is passed to the `/_sql` REST endpoint these values are
+   converted to long.
+
+2013/11/08 0.18.4
+=================
+
+ - the sql `count()` function now also be called with parameter substitution
+   (`count(?)`) and with primary key primary key columns (`count(pk_col)`).
+   This way SQLAlchemy's ORM functionality can be used with Crate.
+>>>>>>> origin/master
+
 2013/11/07 0.18.3
 =================
 

@@ -1,7 +1,9 @@
 org.cratedb.sql.parser.parser.CopyStatementNode@44c9d92c
 mode: FROM_TABLE
 tableName: t2
-filename: /tmp/t2.csv
+filename: value: /tmp/t2.csv
+type: CHAR(11) NOT NULL
+
 format: null
 delimiter: null
 nullString: null

@@ -1491,10 +1491,8 @@ public class NodeToString
             break;
         }
         if (node.getFilename() != null) {
-            str.append("'");
-            str.append(node.getFilename());
-            str.append("'");
-        } 
+            str.append(toString(node.getFilename()));
+        }
         else if (node.getMode() == CopyStatementNode.Mode.TO_TABLE) {
             str.append("STDIN");
         }

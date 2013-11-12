@@ -1,11 +1,15 @@
 package org.cratedb.integrationtests;
 
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Ordering;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.sql.*;
+import org.cratedb.sql.DuplicateKeyException;
+import org.cratedb.sql.SQLParseException;
+import org.cratedb.sql.TableAlreadyExistsException;
+import org.cratedb.sql.TableUnknownException;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -24,6 +28,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
@@ -35,6 +40,9 @@ import static org.hamcrest.Matchers.*;
 public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     private SQLResponse response;
+
+    private String copyFilePath = TransportSQLActionTest.class.getResource(
+                                            "/essetup/data/copy").getPath();
 
     @Override
     protected int numberOfNodes() {
@@ -587,6 +595,98 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(9223372036854775807L, response.rows()[1][5]);
         assertEquals(32767, response.rows()[1][6]);
         assertEquals("Youri", response.rows()[1][7]);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testInsertCoreTypesAsArrayAndObject() throws Exception {
+        XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
+            .startObject("default")
+                .startObject("properties")
+                    .startObject("boolean").field("type", "boolean").endObject()
+                    .startObject("craty")
+                        .field("type", "object")
+                        .startObject("properties")
+                            .startObject("s").field("type", "string").endObject()
+                            .startObject("d1").field("type", "date").endObject()
+                            .startObject("d2").field("type", "date").endObject()
+                        .endObject()
+                    .endObject()
+                    .startObject("datetime").field("type", "date").endObject()
+                    .startObject("double").field("type", "double").endObject()
+                    .startObject("float").field("type", "float").endObject()
+                    .startObject("integer").field("type", "integer").endObject()
+                    .startObject("long").field("type", "long").endObject()
+                    .startObject("short").field("type", "short").endObject()
+                    .startObject("string").field("type", "string").endObject()
+                .endObject()
+            .endObject()
+            .endObject();
+        prepareCreate("test")
+            .addMapping("default", mapping)
+            .execute().actionGet();
+
+        Map<String, Object> craty = new HashMap<>();
+        craty.put("s", new String[] { "foo", "bar"});
+        craty.put("d1", new String[] { "2013-09-10T21:51:43", null});
+        craty.put("d2", "2013-09-10T21:51:43");
+        execute("insert into test values(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            new Object[] {
+                new Boolean[] {true, false},
+                craty,
+                new String[] {"2013-09-10T21:51:43", "2013-11-10T21:51:43"},
+                new Double[] {1.79769313486231570e+308, 1.69769313486231570e+308},
+                new Float[] {3.402f, 3.403f, null },
+                new Integer[] {2147483647, 234583},
+                new Long[] { 9223372036854775807L, 4L },
+                new Short[] {32767, 2 },
+                new String[] {"Youri", "Juri"}
+            }
+        );
+        refresh();
+
+        execute("select * from test");
+        assertEquals(true, ((List<Boolean>)response.rows()[0][0]).get(0));
+        assertEquals(false, ((List<Boolean>)response.rows()[0][0]).get(1));
+
+        assertEquals("foo",
+            ((List<String>)((Map<String, Object>)response.rows()[0][1]).get("s")).get(0));
+        assertEquals("bar",
+            ((List<String>)((Map<String, Object>)response.rows()[0][1]).get("s")).get(1));
+        assertThat(
+            ((List<Long>)((Map<String, Object>)response.rows()[0][1]).get("d1")).get(0),
+            is(1378849903000L)
+        );
+        assertThat(
+            ((List<Long>)((Map<String, Object>)response.rows()[0][1]).get("d1")).get(1),
+            nullValue()
+        );
+        assertThat(
+            (Long)((Map<String, Object>)response.rows()[0][1]).get("d2"),
+            is(1378849903000L)
+        );
+
+        assertThat( ((List<Long>)response.rows()[0][2]).get(0), is(1378849903000L));
+        assertThat( ((List<Long>)response.rows()[0][2]).get(1), is(1384120303000L));
+
+        assertThat( ((List<Double>)response.rows()[0][3]).get(0), is(1.79769313486231570e+308));
+        assertThat( ((List<Double>)response.rows()[0][3]).get(1), is(1.69769313486231570e+308));
+
+        assertThat( ((List<Double>)response.rows()[0][4]).get(0), is(3.402));
+        assertThat( ((List<Double>)response.rows()[0][4]).get(1), is(3.403));
+        assertThat( ((List<Double>)response.rows()[0][4]).get(2), nullValue());
+
+        assertThat( ((List<Integer>)response.rows()[0][5]).get(0), is(2147483647));
+        assertThat( ((List<Integer>)response.rows()[0][5]).get(1), is(234583));
+
+        assertThat( ((List<Long>)response.rows()[0][6]).get(0), is(9223372036854775807L));
+        assertThat( ((List<Integer>)response.rows()[0][6]).get(1), is(4));
+
+        assertThat( ((List<Integer>)response.rows()[0][7]).get(0), is(32767));
+        assertThat( ((List<Integer>)response.rows()[0][7]).get(1), is(2));
+
+        assertThat( ((List<String>)response.rows()[0][8]).get(0), is("Youri"));
+        assertThat( ((List<String>)response.rows()[0][8]).get(1), is("Juri"));
     }
 
     @Test
@@ -1358,6 +1458,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(3, response.rowCount());
     }
 
+
     @Test
     public void testCountWithGroupBy() throws Exception {
         groupBySetup();
@@ -1653,6 +1754,79 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
         execute("SELECT * FROM test");
         assertEquals(1L, response.rowCount());
+    }
+
+    @Test
+    public void testSqlAlchemyGeneratedCountWithStar() throws  Exception {
+        // generated using sqlalchemy
+        // session.query(func.count('*')).filter(Test.name == 'foo').scalar()
+
+        execute("create table test (col1 integer primary key, col2 string)");
+        execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
+        execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
+        refresh();
+
+        execute(
+            "SELECT count(?) AS count_1 FROM test WHERE test.col2 = ?",
+            new Object[] { "*", "foo" }
+        );
+        assertEquals(1L, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testSqlAlchemyGeneratedCountWithPrimaryKeyCol() throws Exception {
+        // generated using sqlalchemy
+        // session.query(Test.col1).filter(Test.col2 == 'foo').scalar()
+
+        execute("create table test (col1 integer primary key, col2 string)");
+        execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
+        execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
+        refresh();
+
+        execute(
+            "SELECT count(test.col1) AS count_1 FROM test WHERE test.col2 = ?",
+            new Object[] { "foo" }
+        );
+        assertEquals(1L, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testSqlAlchemyGroupByWithCountStar() throws Exception {
+        // generated using sqlalchemy
+        // session.query(func.count('*'), Test.col2).group_by(Test.col2).order_by(desc(func.count('*'))).all()
+
+        execute("create table test (col1 integer primary key, col2 string)");
+        execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
+        execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
+        execute("insert into test values (?, ?)", new Object[] { 3, "foo" });
+        refresh();
+
+        execute(
+            "SELECT count(?) AS count_1, test.col2 AS test_col2 FROM test " +
+                "GROUP BY test.col2 order by count(?) desc",
+            new Object[] { "*", "*" }
+        );
+
+        assertEquals(2L, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testSqlAlchemyGroupByWithPrimaryKeyCol() throws Exception {
+        // generated using sqlalchemy
+        // session.query(func.count(Test.col1), Test.col2).group_by(Test.col2).order_by(desc(func.count(Test.col1))).all()
+
+        execute("create table test (col1 integer primary key, col2 string)");
+        execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
+        execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
+        execute("insert into test values (?, ?)", new Object[] { 3, "foo" });
+        refresh();
+
+        execute(
+            "SELECT count(test.col1) AS count_1, test.col2 AS test_col2 FROM test " +
+                "GROUP BY test.col2 order by count(test.col1) desc"
+        );
+
+        assertEquals(2L, response.rows()[0][0]);
     }
 
     @Test(expected = TableAlreadyExistsException.class)
@@ -2164,4 +2338,50 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
             assertArrayEquals(responseWithoutOrder.rows()[i], response.rows()[i]);
         }
     }
+
+    @Test
+    public void testCopyFromFile() throws Exception {
+        execute("create table quotes (id int primary key, " +
+                "quote string index using fulltext)");
+        refresh();
+
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes from ?", new Object[]{filePath});
+        // 2 nodes on same machine resulting in double affected rows
+        assertEquals(6L, response.rowCount());
+        refresh();
+
+        execute("select * from quotes");
+        assertEquals(3L, response.rowCount());
+    }
+
+    @Test
+    public void testCopyFromDirectory() throws Exception {
+        execute("create table quotes (id int primary key, " +
+                "quote string index using fulltext)");
+
+        execute("copy quotes from ?", new Object[]{copyFilePath});
+        // 2 nodes on same machine resulting in double affected rows
+        assertEquals(6L, response.rowCount());
+        refresh();
+
+        execute("select * from quotes");
+        assertEquals(3L, response.rowCount());
+    }
+
+    @Test
+    public void testCopyFromFilePattern() throws Exception {
+        execute("create table quotes (id int primary key, " +
+                "quote string index using fulltext)");
+
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "(\\D).json");
+        execute("copy quotes from ?", new Object[]{filePath});
+        // 2 nodes on same machine resulting in double affected rows
+        assertEquals(6L, response.rowCount());
+        refresh();
+
+        execute("select * from quotes");
+        assertEquals(3L, response.rowCount());
+    }
+
 }

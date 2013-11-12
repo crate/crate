@@ -1,7 +1,6 @@
 package org.cratedb.action.parser.visitors;
 
 import com.google.common.collect.Lists;
-import org.cratedb.action.sql.ITableExecutionContext;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
@@ -10,7 +9,6 @@ import org.cratedb.sql.parser.parser.*;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import java.util.*;
 
@@ -54,20 +52,20 @@ public class InsertVisitor extends BaseVisitor {
 
         ResultSetNode resultSetNode = node.getResultSetNode();
         if (resultSetNode instanceof RowResultSetNode) {
-            stmt.indexRequests = new IndexRequest[1];
+            stmt.indexRequests = new ArrayList<>(1);
             visit((RowResultSetNode)resultSetNode, 0);
         } else {
             RowsResultSetNode rowsResultSetNode = (RowsResultSetNode)resultSetNode;
             RowResultSetNode[] rows = rowsResultSetNode.getRows().toArray(
                 new RowResultSetNode[rowsResultSetNode.getRows().size()]);
-            stmt.indexRequests = new IndexRequest[rows.length];
+            stmt.indexRequests = new ArrayList<>(rows.length);
 
             for (int i = 0; i < rows.length; i++) {
                 visit(rows[i], i);
             }
         }
 
-        if (stmt.indexRequests.length > 1) {
+        if (stmt.indexRequests.size() > 1) {
             stmt.type(ParsedStatement.ActionType.BULK_ACTION);
         } else {
             stmt.type(ParsedStatement.ActionType.INSERT_ACTION);
@@ -75,8 +73,8 @@ public class InsertVisitor extends BaseVisitor {
     }
 
     private void visit(RowResultSetNode node, int idx) throws StandardException {
-        stmt.indexRequests[idx] = new IndexRequest(stmt.tableName(), NodeExecutionContext.DEFAULT_TYPE);
-        stmt.indexRequests[idx].create(true);
+        IndexRequest indexRequest = new IndexRequest(stmt.tableName(), NodeExecutionContext.DEFAULT_TYPE);
+        indexRequest.create(true);
 
         Map<String, Object> source = new HashMap<String, Object>();
         ResultColumnList resultColumnList = node.getResultColumns();
@@ -87,15 +85,16 @@ public class InsertVisitor extends BaseVisitor {
 
             source.put(columnName, value);
             if (primaryKeys.contains(columnName)) {
-                stmt.indexRequests[idx].id(value.toString());
+                indexRequest.id(value.toString());
             }
         }
 
-        if (primaryKeys.size() > 0 && stmt.indexRequests[idx].id() == null) {
+        if (primaryKeys.size() > 0 && indexRequest.id() == null) {
             throw new SQLParseException(
                 "Primary key is required but is missing from the insert statement");
         }
 
-        stmt.indexRequests[idx].source(source);
+        indexRequest.source(source);
+        stmt.indexRequests.add(idx, indexRequest);
     }
 }
