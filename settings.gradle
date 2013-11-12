@@ -1,5 +1,6 @@
 include 'es',
         'testing',
+        'core',
         'inout',
         'blob',
         'elasticsearch-crate-plugin',

@@ -1,8 +1,6 @@
-package org.cratedb.information_schema;
+package org.cratedb.core;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
-import org.cratedb.action.sql.NodeExecutionContext;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 
@@ -128,7 +126,7 @@ public class IndexMetaDataExtractor {
     public IndexMetaDataExtractor(IndexMetaData metaData) {
         this.metaData = metaData;
         this.defaultMappingMetaData = this.metaData.getMappings()
-                .get(NodeExecutionContext.DEFAULT_TYPE);
+                .get(Constants.DEFAULT_MAPPING_TYPE);
     }
 
     public String getIndexName() {
@@ -225,7 +223,7 @@ public class IndexMetaDataExtractor {
                     Map<String, Object> columnProperties = (Map)columnEntry.getValue();
                     if (columnProperties.get("type") != null
                             && columnProperties.get("type").equals("multi_field")) {
-                        for (ImmutableMap.Entry<String, Object> multiColumnEntry:
+                        for (Map.Entry<String, Object> multiColumnEntry:
                                 ((Map<String, Object>)columnProperties.get("fields")).entrySet()) {
                             Map<String, Object> multiColumnProperties = (Map)multiColumnEntry.getValue();
 
@@ -274,7 +272,7 @@ public class IndexMetaDataExtractor {
 
                     if (columnProperties.get("type") != null
                             && columnProperties.get("type").equals("multi_field")) {
-                        for (ImmutableMap.Entry<String, Object> multiColumnEntry:
+                        for (Map.Entry<String, Object> multiColumnEntry:
                                 ((Map<String, Object>)columnProperties.get("fields")).entrySet()) {
                             Map<String, Object> multiColumnProperties = (Map)multiColumnEntry.getValue();
 

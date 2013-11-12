@@ -13,6 +13,7 @@ evaluationDependsOn(':app')
 
 dependencies {
     compile project(':es')
+    compile project(':core')
     compile project(':inout')
     testCompile 'org.skyscreamer:jsonassert:1.2.0'
     testCompile 'com.h2database:h2:1.3.173'

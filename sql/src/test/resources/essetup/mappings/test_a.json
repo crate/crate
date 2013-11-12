@@ -33,7 +33,7 @@
             },
             "date": {
                 "type": "date",
-                "store": false
+                "store": true
             },
             "kind": {
                 "type": "string",

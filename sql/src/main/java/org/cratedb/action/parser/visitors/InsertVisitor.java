@@ -3,6 +3,7 @@ package org.cratedb.action.parser.visitors;
 import com.google.common.collect.Lists;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.core.Constants;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
@@ -73,7 +74,7 @@ public class InsertVisitor extends BaseVisitor {
     }
 
     private void visit(RowResultSetNode node, int idx) throws StandardException {
-        IndexRequest indexRequest = new IndexRequest(stmt.tableName(), NodeExecutionContext.DEFAULT_TYPE);
+        IndexRequest indexRequest = new IndexRequest(stmt.tableName(), Constants.DEFAULT_MAPPING_TYPE);
         indexRequest.create(true);
 
         Map<String, Object> source = new HashMap<String, Object>();

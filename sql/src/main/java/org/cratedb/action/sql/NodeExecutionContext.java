@@ -1,7 +1,8 @@
 package org.cratedb.action.sql;
 
-import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.action.parser.QueryPlanner;
+import org.cratedb.action.sql.analyzer.AnalyzerService;
+import org.cratedb.core.Constants;
 import org.cratedb.information_schema.InformationSchemaTableExecutionContext;
 import org.cratedb.information_schema.InformationSchemaTableExecutionContextFactory;
 import org.cratedb.sql.TableUnknownException;
@@ -19,7 +20,6 @@ public class NodeExecutionContext {
     private final AnalyzerService analyzerService;
     private final QueryPlanner queryPlanner;
     private final InformationSchemaTableExecutionContextFactory factory;
-    public static final String DEFAULT_TYPE = "default";
  
     @Inject
     public NodeExecutionContext(IndicesService indicesService,
@@ -43,16 +43,19 @@ public class NodeExecutionContext {
         // the documentMapper isn't available on nodes that don't contain the index.
         DocumentMapper dm;
         try {
-            dm = indicesService.indexServiceSafe(table).mapperService().documentMapper(DEFAULT_TYPE);
+            dm = indicesService.indexServiceSafe(table).mapperService().documentMapper(Constants
+                    .DEFAULT_MAPPING_TYPE);
         } catch (IndexMissingException ex) {
             throw new TableUnknownException(table, ex);
         }
 
         IndexMetaData indexMetaData = clusterService.state().metaData().index(table);
         if (dm != null && indexMetaData != null){
-            return new TableExecutionContext(table, indexMetaData.mappingOrDefault(DEFAULT_TYPE), dm);
+            return new TableExecutionContext(table,
+                    indexMetaData.mappingOrDefault(Constants.DEFAULT_MAPPING_TYPE), dm);
         } else if (indexMetaData != null) {
-            return new TableExecutionContext(table, indexMetaData.mappingOrDefault(DEFAULT_TYPE));
+            return new TableExecutionContext(table,
+                    indexMetaData.mappingOrDefault(Constants.DEFAULT_MAPPING_TYPE));
         }
 
         return null;
