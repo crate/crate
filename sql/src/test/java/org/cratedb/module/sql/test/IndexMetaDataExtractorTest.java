@@ -9,7 +9,10 @@ import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.node.internal.InternalNode;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.List;
@@ -38,8 +41,10 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
     @AfterClass
     public static void closeNode() {
         if (node != null) {
+            node.stop();
             node.close();
         }
+        node = null;
     }
 
     private SQLResponse execute(String stmt, Object[] args) {
@@ -49,6 +54,10 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
 
     private SQLResponse execute(String stmt) {
         return execute(stmt, new Object[0]);
+    }
+
+    private void refresh() {
+        client().admin().indices().prepareRefresh().execute().actionGet();
     }
 
     private IndexMetaData getIndexMetaData(String indexName) {
@@ -65,6 +74,7 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
                 "datum timestamp, " +
                 "content string index using fulltext" +
                 ") replicas 0");
+        refresh();
         IndexMetaData metaData = getIndexMetaData("test1");
         IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
         List<IndexMetaDataExtractor.ColumnDefinition> columnDefinitions = extractor.getColumnDefinitions();
@@ -96,6 +106,8 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
     @Test
     public void testExtractColumnDefinitionsFromEmptyIndex() throws Exception {
         node.client().admin().indices().prepareCreate("test2").execute().actionGet();
+        refresh();
+
         IndexMetaData metaData = getIndexMetaData("test2");
         IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
         List<IndexMetaDataExtractor.ColumnDefinition> columnDefinitions = extractor.getColumnDefinitions();
@@ -110,6 +122,8 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
                 "datum timestamp, " +
                 "content string index using fulltext" +
                 ") replicas 0");
+        refresh();
+
         IndexMetaData metaData = getIndexMetaData("test3");
         IndexMetaDataExtractor extractor1 = new IndexMetaDataExtractor(metaData);
         assertThat(extractor1.getPrimaryKey(), is("id"));
@@ -117,6 +131,8 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
         execute("create table test4 (" +
                 " content string" +
                 ")");
+        refresh();
+
         IndexMetaDataExtractor extractor2 = new IndexMetaDataExtractor(getIndexMetaData("test4"));
         assertThat(extractor2.getPrimaryKey(), is(nullValue()));
 
@@ -134,6 +150,8 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
                 "content string index off," +
                 "index ft using fulltext(title, content) with (analyzer='english')" +
                 ") replicas 0");
+        refresh();
+
         IndexMetaData metaData = getIndexMetaData("test6");
         IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
         List<IndexMetaDataExtractor.Index> indices = extractor.getIndices();
@@ -171,6 +189,8 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
     @Test
     public void extractIndicesFromEmptyIndex() throws Exception {
         node.client().admin().indices().prepareCreate("test7").execute().actionGet();
+        refresh();
+
         IndexMetaData metaData = getIndexMetaData("test7");
         IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
         List<IndexMetaDataExtractor.Index> indices = extractor.getIndices();
@@ -187,12 +207,16 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
                 "content string index off," +
                 "index ft using fulltext(title, content) with (analyzer='english')" +
                 ") replicas 0");
+        refresh();
+
         IndexMetaData metaData = getIndexMetaData("test8");
         IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
 
         assertThat(extractor.getRoutingColumn(), is("id"));
 
         execute("create table test9 (content string) replicas 0");
+        refresh();
+
         metaData = getIndexMetaData("test9");
         extractor = new IndexMetaDataExtractor(metaData);
 
@@ -201,6 +225,8 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
         execute("create table test10 " +
                 "(id integer primary key, content string) " +
                 "clustered by(id) into 2 shards replicas 0");
+        refresh();
+
         metaData = getIndexMetaData("test10");
         extractor = new IndexMetaDataExtractor(metaData);
 
@@ -210,6 +236,8 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
     @Test
     public void extractRoutingColumnFromEmptyIndex() throws Exception {
         node.client().admin().indices().prepareCreate("test11").execute().actionGet();
+        refresh();
+
         IndexMetaData metaData = getIndexMetaData("test11");
         IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
         assertThat(extractor.getRoutingColumn(), is("_id"));

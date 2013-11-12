@@ -33,7 +33,7 @@ settings like the number of shards or number of replicas::
     | documents  | 5                | 1                  | _id            |
     | locations  | 2                | 0                  | id             |
     | myblobs    | 3                | 1                  | _id            |
-    | quotes     | 5                | 1                  | id             |
+    | quotes     | 2                | 0                  | id             |
     +------------+------------------+--------------------+----------------+
     SELECT 4 rows in set (... sec)
 
@@ -54,10 +54,10 @@ definition like data type and ordinal position inside the table::
     | locations  | date        | 1                | timestamp |
     | locations  | description | 2                | string    |
     | locations  | id          | 3                | string    |
-    | locations  | kind        | 3                | string    |
-    | locations  | name        | 4                | string    |
-    | locations  | position    | 5                | integer   |
-    | locations  | race        | 6                | craty     |
+    | locations  | kind        | 4                | string    |
+    | locations  | name        | 5                | string    |
+    | locations  | position    | 6                | integer   |
+    | locations  | race        | 7                | craty     |
     | quotes     | id          | 1                | integer   |
     | quotes     | quote       | 2                | string    |
     +------------+-------------+------------------+-----------+
