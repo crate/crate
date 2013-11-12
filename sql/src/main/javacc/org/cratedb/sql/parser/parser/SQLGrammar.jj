@@ -15075,20 +15075,20 @@ copyStatementBase() throws StandardException :
     TableName tableName = null;
     ResultColumnList columnList = null;
     SubqueryNode subquery = null;
-    String filename = null;
+    ValueNode filename = null;
 }
 {
 (
     LOOKAHEAD( { getToken(1).kind == LEFT_PAREN && getToken(2).kind == SELECT } )
     subquery = derivedTable()
-    <TO> ( filename = string() | <STDOUT> )
+    <TO> ( filename = stringLiteral() | filename = dynamicParameterSpecification() | <STDOUT> )
     { mode = CopyStatementNode.Mode.FROM_SUBQUERY; }
 |
     tableName = qualifiedName()
     [ <LEFT_PAREN> columnList = insertColumnList() <RIGHT_PAREN> ]
-    ( <TO> ( filename = string() | <STDOUT> )
+    ( <TO> ( filename = stringLiteral() | filename = dynamicParameterSpecification() | <STDOUT> )
        { mode = CopyStatementNode.Mode.FROM_TABLE; }
-    | <FROM> ( filename = string() | <STDIN> )
+    | <FROM> ( filename = stringLiteral() | filename = dynamicParameterSpecification() | <STDIN> )
        { mode = CopyStatementNode.Mode.TO_TABLE; }
     )
 )

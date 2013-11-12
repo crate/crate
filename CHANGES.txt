@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for importing data using the SQL `copy <table> from <path>` command.
+
 2013/11/11 0.18.6
 =================
 

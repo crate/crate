@@ -46,6 +46,9 @@ public class SQLParseService {
                 case NodeTypes.CREATE_ANALYZER_NODE:
                     visitor = new AnalyzerVisitor(context, stmt, args);
                     break;
+                case NodeTypes.COPY_STATEMENT_NODE:
+                    visitor = new CopyVisitor(context, stmt, args);
+                    break;
                 default:
                     visitor = new QueryVisitor(context, stmt, args);
                     break;

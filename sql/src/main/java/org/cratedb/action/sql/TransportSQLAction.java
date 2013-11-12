@@ -2,17 +2,19 @@ package org.cratedb.action.sql;
 
 import org.cratedb.action.DistributedSQLRequest;
 import org.cratedb.action.TransportDistributedSQLAction;
+import org.cratedb.action.import_.ImportRequest;
+import org.cratedb.action.import_.ImportResponse;
+import org.cratedb.action.import_.TransportImportAction;
 import org.cratedb.action.parser.ESRequestBuilder;
 import org.cratedb.action.parser.SQLResponseBuilder;
+import org.cratedb.action.sql.analyzer.TransportClusterUpdateCrateSettingsAction;
 import org.cratedb.service.InformationSchemaService;
 import org.cratedb.service.SQLParseService;
-import org.cratedb.action.sql.analyzer.TransportClusterUpdateCrateSettingsAction;
 import org.cratedb.sql.ExceptionHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
-import org.elasticsearch.action.admin.cluster.state.TransportClusterStateAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -68,7 +70,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final InformationSchemaService informationSchemaService;
     private final SQLParseService sqlParseService;
     private final TransportClusterUpdateCrateSettingsAction transportClusterUpdateCrateSettingsAction;
-  
+    private final TransportImportAction transportImportAction;
+
 
     @Inject
     protected TransportSQLAction(Settings settings, ThreadPool threadPool,
@@ -87,6 +90,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             TransportCreateIndexAction transportCreateIndexAction,
             TransportDeleteIndexAction transportDeleteIndexAction,
             TransportClusterUpdateCrateSettingsAction transportClusterUpdateCrateSettingsAction,
+            TransportImportAction transportImportAction,
             InformationSchemaService informationSchemaService) {
         super(settings, threadPool);
         this.sqlParseService = sqlParseService;
@@ -104,6 +108,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.transportDeleteIndexAction = transportDeleteIndexAction;
         this.transportClusterUpdateCrateSettingsAction = transportClusterUpdateCrateSettingsAction;
+        this.transportImportAction = transportImportAction;
         this.informationSchemaService = informationSchemaService;
     }
 
@@ -238,6 +243,10 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                 case CREATE_ANALYZER_ACTION:
                     ClusterUpdateSettingsRequest clusterUpdateSettingsRequest = builder.buildClusterUpdateSettingsRequest();
                     transportClusterUpdateCrateSettingsAction.execute(clusterUpdateSettingsRequest, new ClusterUpdateSettingsResponseListener(stmt, listener));
+                    break;
+                case COPY_IMPORT_ACTION:
+                    ImportRequest importRequest = builder.buildImportRequest();
+                    transportImportAction.execute(importRequest, new ImportResponseListener(stmt, listener));
                     break;
                 default:
                     if (stmt.hasGroupBy()) {
@@ -411,6 +420,18 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         @Override
         public void onResponse(ClusterUpdateSettingsResponse clusterUpdateSettingsResponse) {
             listener.onResponse(builder.buildResponse(clusterUpdateSettingsResponse));
+        }
+    }
+
+    private class ImportResponseListener extends ESResponseToSQLResponseListener<ImportResponse> {
+
+        public ImportResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+            super(stmt, listener);
+        }
+
+        @Override
+        public void onResponse(ImportResponse importResponse) {
+            listener.onResponse(builder.buildResponse(importResponse));
         }
     }
 

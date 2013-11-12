@@ -32,12 +32,14 @@ public class ParsedStatement {
 
     public boolean versionSysColumnSelected = false;
 
-    public IndexRequest[] indexRequests;
+    public List<IndexRequest> indexRequests;
 
     public Long versionFilter;
     public BigDecimal scoreMinimum;
     public String stmt;
     public Query query;
+
+    public String importPath;
 
     /**
      * used for create analyzer statements
@@ -90,7 +92,8 @@ public class ParsedStatement {
         DELETE_INDEX_ACTION,
         MULTI_GET_ACTION,
         INFORMATION_SCHEMA,
-        CREATE_ANALYZER_ACTION
+        CREATE_ANALYZER_ACTION,
+        COPY_IMPORT_ACTION
     }
 
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;
