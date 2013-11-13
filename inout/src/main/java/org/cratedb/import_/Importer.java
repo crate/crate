@@ -87,7 +87,7 @@ public class Importer {
         }
 
         if (path.isDirectory()) {
-            if (context.file_pattern() == null) {
+            if (file_pattern == null) {
                 files = path.listFiles();
             } else {
                 final Pattern file_pattern_inner = file_pattern;
