@@ -493,7 +493,7 @@ Following variables are supported::
     =======  ============
     Name     Description
     =======  ============
-    node     Node id
+    node     Node name
     cluster  Cluster name
     table    Table name
     =======  ============

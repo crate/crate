@@ -14,14 +14,14 @@ public class NodeImportRequest extends NodeOperationRequest {
     private BytesReference source;
     private String index;
     private String type;
-    private String nodeId;
+
+
 
     NodeImportRequest() {
     }
 
     public NodeImportRequest(String nodeId, ImportRequest request) {
         super(request, nodeId);
-        this.nodeId = nodeId;
         this.source = request.source();
         this.index = request.index();
         this.type = request.type();
@@ -57,9 +57,5 @@ public class NodeImportRequest extends NodeOperationRequest {
 
     public int bulkSize() {
         return DEFAULT_BULK_SIZE;
-    }
-
-    public String nodeId() {
-        return nodeId;
     }
 }

@@ -29,6 +29,8 @@ public abstract class AbstractTransportImportAction extends TransportNodesOperat
 
     private String nodePath = "";
 
+    private NodeEnvironment nodeEnvironment;
+
     @Inject
     public AbstractTransportImportAction(Settings settings, ClusterName clusterName,
                                          ThreadPool threadPool, ClusterService clusterService,
@@ -36,6 +38,7 @@ public abstract class AbstractTransportImportAction extends TransportNodesOperat
         super(settings, clusterName, threadPool, clusterService, transportService);
         this.importParser = importParser;
         this.importer = importer;
+        this.nodeEnvironment = nodeEnv;
 
         File[] paths = nodeEnv.nodeDataLocations();
         if (paths.length > 0) {
@@ -109,7 +112,7 @@ public abstract class AbstractTransportImportAction extends TransportNodesOperat
     @Override
     protected NodeImportResponse nodeOperation(NodeImportRequest request)
             throws ElasticSearchException {
-        ImportContext context = new ImportContext(nodePath, request.nodeId(),
+        ImportContext context = new ImportContext(nodePath, nodeEnvironment.nodeName(),
                 clusterName.value(), request.index());
 
         BytesReference source = request.source();
@@ -122,4 +125,6 @@ public abstract class AbstractTransportImportAction extends TransportNodesOperat
     protected boolean accumulateExceptions() {
         return true;
     }
+
+
 }

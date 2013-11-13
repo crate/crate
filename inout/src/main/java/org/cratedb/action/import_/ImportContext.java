@@ -16,13 +16,13 @@ public class ImportContext {
     private Pattern file_pattern;
     private boolean mappings = false;
     private boolean settings = false;
-    private String nodeId;
+    private String nodeName;
     private String clusterName;
     private String index;
 
-    public ImportContext(String nodePath, String nodeId, String clusterName, String index) {
+    public ImportContext(String nodePath, String nodeName, String clusterName, String index) {
         this.nodePath = nodePath;
-        this.nodeId = nodeId;
+        this.nodeName = nodeName;
         this.clusterName = clusterName;
         this.index = index;
     }
@@ -80,7 +80,7 @@ public class ImportContext {
      * @return
      */
     private String applyVars(String template) {
-        template = template.replace(VAR_NODE, nodeId);
+        template = template.replace(VAR_NODE, nodeName);
         if (index != null) {
             template = template.replace(VAR_INDEX, index);
             template = template.replace(VAR_TABLE, index);
