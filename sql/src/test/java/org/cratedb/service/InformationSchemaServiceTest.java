@@ -6,7 +6,7 @@ import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.SQLParseException;
-import org.elasticsearch.cluster.AbstractZenNodesTests;
+import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.node.internal.InternalNode;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.arrayContaining;
 
-public class InformationSchemaServiceTest extends AbstractZenNodesTests {
+public class InformationSchemaServiceTest extends AbstractCrateNodesTests {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();

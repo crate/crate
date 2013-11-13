@@ -4,22 +4,18 @@ import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.sql.parser.StandardException;
-import org.elasticsearch.ElasticsearchTestCase;
-import org.elasticsearch.common.network.NetworkUtils;
-import org.elasticsearch.common.settings.ImmutableSettings;
+import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.internal.InternalNode;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
-import static org.elasticsearch.node.NodeBuilder.nodeBuilder;
 import static org.hamcrest.Matchers.*;
 
-public class AnalyzerServiceTest extends ElasticsearchTestCase {
+public class AnalyzerServiceTest extends AbstractCrateNodesTests {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -27,36 +23,13 @@ public class AnalyzerServiceTest extends ElasticsearchTestCase {
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
-
-    private static final Settings defaultSettings = ImmutableSettings
-            .settingsBuilder()
-            .put("cluster.name", "test-cluster-" + NetworkUtils.getLocalAddress().getHostName() + "CHILD_VM=[" + CHILD_VM_ID +"]")
-            .build();
     private static InternalNode node;
     private static AnalyzerService analyzerService;
 
-    @BeforeClass
-    public static void setupClass() {
-        synchronized (AnalyzerServiceTest.class) {
-            String settingsSource = InformationSchemaQueryTest.class.getName().replace('.', '/') + ".yml";
-            Settings finalSettings = settingsBuilder()
-                    .loadFromClasspath(settingsSource)
-                    .put(defaultSettings)
-                    .put("name", "node1")
-                    .put("discovery.id.seed", randomLong())
-                    .build();
-
-            if (finalSettings.get("gateway.type") == null) {
-                // default to non gateway
-                finalSettings = settingsBuilder().put(finalSettings).put("gateway.type", "none").build();
-            }
-            if (finalSettings.get("cluster.routing.schedule") != null) {
-                // decrease the routing schedule so new nodes will be added quickly
-                finalSettings = settingsBuilder().put(finalSettings).put("cluster.routing.schedule", "50ms").build();
-            }
-
-            node = (InternalNode)nodeBuilder().settings(finalSettings).build();
-            node.start();
+    @Before
+    public void setupClass() {
+        if (node == null) {
+            node = (InternalNode)startNode("node1");
             analyzerService = node.injector().getInstance(AnalyzerService.class);
         }
     }
