@@ -1,8 +1,8 @@
 package org.cratedb.action.parser;
 
 import org.cratedb.action.import_.ImportRequest;
-import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.core.Constants;
 import org.cratedb.sql.parser.parser.NodeTypes;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -78,7 +78,7 @@ public class ESRequestBuilder {
 
     public GetRequest buildGetRequest() {
         GetRequest request = new GetRequest(
-            stmt.tableName(), NodeExecutionContext.DEFAULT_TYPE, stmt.primaryKeyLookupValue);
+            stmt.tableName(), Constants.DEFAULT_MAPPING_TYPE, stmt.primaryKeyLookupValue);
         request.fields(stmt.columnNames());
         request.realtime(true);
         return request;
@@ -90,7 +90,7 @@ public class ESRequestBuilder {
         MultiGetRequest request = new MultiGetRequest();
         for (String id: ids) {
             MultiGetRequest.Item item
-                = new MultiGetRequest.Item(stmt.tableName(), NodeExecutionContext.DEFAULT_TYPE, id);
+                = new MultiGetRequest.Item(stmt.tableName(), Constants.DEFAULT_MAPPING_TYPE, id);
             item.fields(stmt.columnNames());
             request.add(item);
         }
@@ -114,7 +114,7 @@ public class ESRequestBuilder {
 
     public DeleteRequest buildDeleteRequest() {
         DeleteRequest request = new DeleteRequest(
-            stmt.tableName(), NodeExecutionContext.DEFAULT_TYPE, stmt.primaryKeyLookupValue);
+            stmt.tableName(), Constants.DEFAULT_MAPPING_TYPE, stmt.primaryKeyLookupValue);
 
         // Set version if found by planner
         if (stmt.versionFilter != null) {
@@ -126,7 +126,7 @@ public class ESRequestBuilder {
 
     public UpdateRequest buildUpdateRequest() {
         UpdateRequest request = new UpdateRequest(
-            stmt.tableName(), NodeExecutionContext.DEFAULT_TYPE, stmt.primaryKeyLookupValue);
+            stmt.tableName(), Constants.DEFAULT_MAPPING_TYPE, stmt.primaryKeyLookupValue);
         request.fields(stmt.cols());
         request.paths(stmt.updateDoc());
         request.retryOnConflict(ParsedStatement.UPDATE_RETRY_ON_CONFLICT);
@@ -137,7 +137,7 @@ public class ESRequestBuilder {
     public CreateIndexRequest buildCreateIndexRequest() {
         CreateIndexRequest request = new CreateIndexRequest(stmt.tableName());
         request.settings(stmt.indexSettings);
-        request.mapping(NodeExecutionContext.DEFAULT_TYPE, stmt.indexMapping);
+        request.mapping(Constants.DEFAULT_MAPPING_TYPE, stmt.indexMapping);
 
         return request;
     }
@@ -170,7 +170,7 @@ public class ESRequestBuilder {
         importRequest.source(source, false);
 
         importRequest.index(stmt.indices()[0]);
-        importRequest.type(NodeExecutionContext.DEFAULT_TYPE);
+        importRequest.type(Constants.DEFAULT_MAPPING_TYPE);
 
         return importRequest;
     }

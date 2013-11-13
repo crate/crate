@@ -1,8 +1,8 @@
+
 apply plugin: 'java'
 
-archivesBaseName = 'crate-inout'
+archivesBaseName = 'crate-core'
 
-// we do not want to have elasticsearch here, since we provide it in :es
 configurations {
     all*.exclude group: 'org.elasticsearch'
 }
@@ -10,15 +10,18 @@ configurations {
 dependencies {
     compile project(':es')
     testCompile project(':testing')
-    testCompile 'com.github.tlrx:elasticsearch-test:0.0.9'
+}
+
+test {
+    // show standard out and standard error of the test JVM(s) on the console
+    testLogging.showStandardStreams = true
+
 }
 
 sourceSets {
     test {
         resources {
             srcDir 'src/test/java'
-            include '**/*.rst'
-            include '**/*.json'
         }
     }
 }

@@ -1,6 +1,8 @@
 apply plugin: 'java'
 apply plugin: 'distribution'
 
+archivesBaseName = 'crate-client'
+
 dependencies {
     compile project(path: ':sql')
     testCompile project(':testing')

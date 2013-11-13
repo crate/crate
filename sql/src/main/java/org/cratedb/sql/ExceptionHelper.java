@@ -1,6 +1,6 @@
 package org.cratedb.sql;
 
-import org.cratedb.action.sql.NodeExecutionContext;
+import org.cratedb.core.Constants;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.search.ReduceSearchPhaseException;
 import org.elasticsearch.action.search.ShardSearchFailure;
@@ -88,7 +88,7 @@ public class ExceptionHelper {
             VersionConflictEngineException ex = (VersionConflictEngineException) e;
             deleteResponse = new DeleteResponse(
                     ex.index().getName(),
-                    NodeExecutionContext.DEFAULT_TYPE,
+                    Constants.DEFAULT_MAPPING_TYPE,
                     "1", // dummy id since we cannot know it here, not used anywhere so its' ok
                     ex.getCurrentVersion(),
                     true);

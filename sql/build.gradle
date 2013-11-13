@@ -1,6 +1,8 @@
 
 apply plugin: 'java'
 
+archivesBaseName = 'crate-sql'
+
 // we do not want to have elasticsearch here, since we provide it in :es
 configurations {
     all*.exclude group: 'org.elasticsearch'
@@ -11,6 +13,7 @@ evaluationDependsOn(':app')
 
 dependencies {
     compile project(':es')
+    compile project(':core')
     compile project(':inout')
     testCompile 'org.skyscreamer:jsonassert:1.2.0'
     testCompile 'com.h2database:h2:1.3.173'
