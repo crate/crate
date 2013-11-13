@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/11/13 0.19.2
+=================
+
  - Added support for table alias usage on ``SELECT`` queries. Only possible if all tables are
    using the same schema.
 
