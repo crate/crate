@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Windows build: favor crate jars over all other jars at classpath
+
  - Fix: use nodeName instead of nodeId for path var ${node} on ``COPY`` SQL command
 
  - Added support for ${node}, ${cluster} and ${table} variables inside the `path` value of a
