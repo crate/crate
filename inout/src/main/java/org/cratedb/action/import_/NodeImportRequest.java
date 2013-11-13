@@ -1,25 +1,27 @@
 package org.cratedb.action.import_;
 
-import java.io.IOException;
-
 import org.elasticsearch.action.support.nodes.NodeOperationRequest;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-public class NodeImportRequest  extends NodeOperationRequest {
+import java.io.IOException;
+
+public class NodeImportRequest extends NodeOperationRequest {
 
     public static final int DEFAULT_BULK_SIZE = 10000;
 
     private BytesReference source;
     private String index;
     private String type;
+    private String nodeId;
 
     NodeImportRequest() {
     }
 
     public NodeImportRequest(String nodeId, ImportRequest request) {
         super(request, nodeId);
+        this.nodeId = nodeId;
         this.source = request.source();
         this.index = request.index();
         this.type = request.type();
@@ -55,5 +57,9 @@ public class NodeImportRequest  extends NodeOperationRequest {
 
     public int bulkSize() {
         return DEFAULT_BULK_SIZE;
+    }
+
+    public String nodeId() {
+        return nodeId;
     }
 }

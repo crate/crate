@@ -109,7 +109,8 @@ public abstract class AbstractTransportImportAction extends TransportNodesOperat
     @Override
     protected NodeImportResponse nodeOperation(NodeImportRequest request)
             throws ElasticSearchException {
-        ImportContext context = new ImportContext(nodePath);
+        ImportContext context = new ImportContext(nodePath, request.nodeId(),
+                clusterName.value(), request.index());
 
         BytesReference source = request.source();
         importParser.parseSource(context, source);
