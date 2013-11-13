@@ -2,14 +2,14 @@ package org.cratedb.service;
 
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.TableUnknownException;
-import org.elasticsearch.cluster.AbstractZenNodesTests;
+import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.node.internal.InternalNode;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 
-public class SQLParseServiceTest extends AbstractZenNodesTests {
+public class SQLParseServiceTest extends AbstractCrateNodesTests {
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);

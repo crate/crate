@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: make test-setup create data dirs as temporary directories
+   that get deleted after test runs
+
  - Fix: use nodeName instead of nodeId for path var ${node} on ``COPY`` SQL command
 
  - Added support for ${node}, ${cluster} and ${table} variables inside the `path` value of a

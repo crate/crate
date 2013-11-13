@@ -14,7 +14,7 @@ import java.util.Map;
 
 public class AbstractCrateNodesTests extends AbstractNodesTests {
 
-    private Map<String, Path> tmpDataDirs = new HashMap<String, Path>();
+    private Map<String, Path> tmpDataDirs = new HashMap<>();
 
     @Override
     public Node buildNode(String id, Settings settings) {

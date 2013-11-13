@@ -5,19 +5,18 @@ import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.TableUnknownException;
-import org.elasticsearch.ElasticsearchTestCase;
+import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.common.network.NetworkUtils;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.internal.InternalNode;
 import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
-import static org.elasticsearch.node.NodeBuilder.nodeBuilder;
 
-public class InformationSchemaQueryTest extends ElasticsearchTestCase {
+public class InformationSchemaQueryTest extends AbstractCrateNodesTests {
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
@@ -34,37 +33,40 @@ public class InformationSchemaQueryTest extends ElasticsearchTestCase {
     private SQLResponse response;
 
 
-    @BeforeClass
-    public static void setUpClass() {
+    @Before
+    public void setUpNode() throws Exception {
         synchronized (InformationSchemaQueryTest.class) {
-            String settingsSource = InformationSchemaQueryTest.class.getName().replace('.', '/') + ".yml";
-            Settings finalSettings = settingsBuilder()
-                .loadFromClasspath(settingsSource)
-                .put(defaultSettings)
-                .put("name", "node1")
-                .put("discovery.id.seed", randomLong())
-                .build();
+            if (node == null) {
+                String settingsSource = InformationSchemaQueryTest.class.getName().replace('.', '/') + ".yml";
+                Settings finalSettings = settingsBuilder()
+                        .loadFromClasspath(settingsSource)
+                        .put(defaultSettings)
+                        .put("name", "node1")
+                        .put("discovery.id.seed", randomLong())
+                        .build();
 
-            if (finalSettings.get("gateway.type") == null) {
-                // default to non gateway
-                finalSettings = settingsBuilder().put(finalSettings).put("gateway.type", "none").build();
+                if (finalSettings.get("gateway.type") == null) {
+                    // default to non gateway
+                    finalSettings = settingsBuilder().put(finalSettings).put("gateway.type", "none").build();
+                }
+                if (finalSettings.get("cluster.routing.schedule") != null) {
+                    // decrease the routing schedule so new nodes will be added quickly
+                    finalSettings = settingsBuilder().put(finalSettings).put("cluster.routing.schedule", "50ms").build();
+                }
+
+                node = (InternalNode)buildNode("node1", finalSettings);
+                node.start();
+                parseService = node.injector().getInstance(SQLParseService.class);
+                informationSchemaService = node.injector().getInstance(InformationSchemaService.class);
+
+                node.client().execute(SQLAction.INSTANCE,
+                        new SQLRequest("create table t1 (col1 integer, col2 string) clustered into 7 shards")).actionGet();
+                node.client().execute(SQLAction.INSTANCE,
+                        new SQLRequest("create table t2 (col1 integer, col2 string) clustered into 10 shards")).actionGet();
+                node.client().execute(SQLAction.INSTANCE,
+                        new SQLRequest("create table t3 (col1 integer, col2 string) replicas 8")).actionGet();
             }
-            if (finalSettings.get("cluster.routing.schedule") != null) {
-                // decrease the routing schedule so new nodes will be added quickly
-                finalSettings = settingsBuilder().put(finalSettings).put("cluster.routing.schedule", "50ms").build();
-            }
 
-            node = (InternalNode)nodeBuilder().settings(finalSettings).build();
-            node.start();
-            parseService = node.injector().getInstance(SQLParseService.class);
-            informationSchemaService = node.injector().getInstance(InformationSchemaService.class);
-
-            node.client().execute(SQLAction.INSTANCE,
-                new SQLRequest("create table t1 (col1 integer, col2 string) clustered into 7 shards")).actionGet();
-            node.client().execute(SQLAction.INSTANCE,
-                new SQLRequest("create table t2 (col1 integer, col2 string) clustered into 10 shards")).actionGet();
-            node.client().execute(SQLAction.INSTANCE,
-                new SQLRequest("create table t3 (col1 integer, col2 string) replicas 8")).actionGet();
         }
     }
 
