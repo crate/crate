@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for ${node}, ${cluster} and ${table} variables inside the `path` value of a
+   ``COPY`` SQL command
+
+ - Fix: using regex pattern on ``COPY`` did not work properly
+
 2013/11/13 0.19.1
 =================
 

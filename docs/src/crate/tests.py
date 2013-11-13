@@ -75,10 +75,9 @@ def setUpQuotes(test):
                  open(project_path('sql/src/test/resources/essetup/mappings',
                                    'test_b.json')))
 
-    print(project_path('sql/src/test/resources/essetup/data', 'test_b.json'))
-
     crate_wd = empty_layer.wdPath()
-    import_dir = os.path.join(crate_wd, "import_data")
+    cluster_name = "Testing9200"
+    import_dir = os.path.join(crate_wd, cluster_name, "nodes", "0", "import_data")
     if not os.path.isdir(import_dir):
         os.mkdir(import_dir)
     shutil.copy(project_path('sql/src/test/resources/essetup/data/copy', 'test_copy_from.json'),
