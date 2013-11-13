@@ -20,8 +20,8 @@ public class ImportRequest extends NodesOperationRequest<ImportRequest> {
      * Constructs a new import request against the provided nodes. No nodes provided
      * means it will run against all nodes.
      */
-    public ImportRequest(String... nodes) {
-        super(nodes);
+    public ImportRequest(String... nodeIds) {
+        super(nodeIds);
     }
 
     /**

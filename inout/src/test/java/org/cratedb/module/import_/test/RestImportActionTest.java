@@ -1,5 +1,6 @@
 package org.cratedb.module.import_.test;
 
+import com.github.tlrx.elasticsearch.test.EsSetup;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import org.cratedb.action.export.ExportAction;
@@ -8,6 +9,8 @@ import org.cratedb.action.export.ExportResponse;
 import org.cratedb.action.import_.ImportAction;
 import org.cratedb.action.import_.ImportRequest;
 import org.cratedb.action.import_.ImportResponse;
+import org.cratedb.action.import_.NodeImportResponse;
+import org.cratedb.import_.Importer;
 import org.cratedb.module.AbstractRestActionTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.get.GetRequestBuilder;
@@ -15,6 +18,7 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Test;
 
 import java.io.File;
@@ -419,17 +423,37 @@ public class RestImportActionTest extends AbstractRestActionTest {
 
     @Test
     public void testPathWithVars() {
+        ImmutableSettings.Builder settingsBuilder = ImmutableSettings.settingsBuilder();
+        settingsBuilder.put("node.name", "import-test-with-path-vars");
+        EsSetup esSetup3 = new EsSetup(settingsBuilder.build());
+        esSetup3.execute(deleteAll());
+        esSetup3.client().admin().cluster().prepareHealth().setWaitForGreenStatus().execute()
+                .actionGet();
+
         String path = getClass().getResource("/importdata/import_10").getPath();
         path = Joiner.on(File.separator).join(path, "import_node-${node}.json");
-        ImportResponse response = executeImportRequest("{\"path\": \"" + path + "\"}");
-        List<Map<String, Object>> imports = getImports(response);
-        assertEquals(1, imports.size());
-        Map<String, Object> nodeInfo = imports.get(0);
-        List imported = (List) nodeInfo.get("imported_files");
-        assertTrue(imported.size() == 1);
-        assertTrue(imported.get(0).toString().matches(
-                "\\{file_name=(.*)/importdata/import_10/import_node-1.json, successes=1, failures=0\\}"));
+
+        ImportRequest request = new ImportRequest();
+        request.source("{\"path\": \"" + path + "\"}");
+        ImportResponse response =  esSetup3.client().execute(ImportAction.INSTANCE,
+                request).actionGet();
+
+        int successfullyImported = 0;
+        List<String> importedFiles = new ArrayList<>();
+        for (NodeImportResponse nodeImportResponse : response.getResponses()) {
+            for (Importer.ImportCounts importCounts : nodeImportResponse.result().importCounts) {
+                successfullyImported += importCounts.successes;
+                importedFiles.add(importCounts.fileName);
+            }
+        }
+        assertEquals(1, successfullyImported);
+
+        assertEquals(1, importedFiles.size());
+        assertTrue(importedFiles.get(0).matches(
+                "(.*)/importdata/import_10/import_node-import-test-with-path-vars.json"));
         assertTrue(existsWithField("1001", "name", "1001", "test", "d"));
+
+        esSetup3.terminate();
     }
 
 }
