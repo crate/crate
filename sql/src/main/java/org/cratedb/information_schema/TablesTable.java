@@ -9,12 +9,16 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 
 import java.io.IOException;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 public class TablesTable extends AbstractInformationSchemaTable {
 
-    private Map<String, InformationSchemaColumn> fieldMapper = new LinkedHashMap<>();
+    private ImmutableMap<String, InformationSchemaColumn> fieldMapper = new ImmutableMap
+            .Builder<String, InformationSchemaColumn>()
+            .put(Columns.TABLE_NAME, new InformationSchemaStringColumn(Columns.TABLE_NAME))
+            .put(Columns.NUMBER_OF_SHARDS, new InformationSchemaIntegerColumn(Columns.NUMBER_OF_SHARDS))
+            .put(Columns.NUMBER_OF_REPLICAS, new InformationSchemaIntegerColumn(Columns.NUMBER_OF_REPLICAS))
+            .put(Columns.ROUTING_COLUMN, new InformationSchemaStringColumn(Columns.ROUTING_COLUMN))
+            .build();
 
     public static final String NAME = "tables";
 
@@ -22,24 +26,7 @@ public class TablesTable extends AbstractInformationSchemaTable {
         public static final String TABLE_NAME = "table_name";
         public static final String NUMBER_OF_SHARDS = "number_of_shards";
         public static final String NUMBER_OF_REPLICAS = "number_of_replicas";
-    }
-
-    public TablesTable() {
-        super();
-        fieldMapper.put(
-            Columns.TABLE_NAME,
-            new InformationSchemaStringColumn(Columns.TABLE_NAME)
-        );
-
-        fieldMapper.put(
-            Columns.NUMBER_OF_SHARDS,
-            new InformationSchemaIntegerColumn(Columns.NUMBER_OF_SHARDS)
-        );
-
-        fieldMapper.put(
-            Columns.NUMBER_OF_REPLICAS,
-            new InformationSchemaIntegerColumn(Columns.NUMBER_OF_REPLICAS)
-        );
+        public static final String ROUTING_COLUMN = "routing_column";
     }
 
     @Override
@@ -60,17 +47,25 @@ public class TablesTable extends AbstractInformationSchemaTable {
         StringField tableName = new StringField(TablesTable.Columns.TABLE_NAME, "", Field.Store.YES);
         IntField numberOfShards = new IntField(TablesTable.Columns.NUMBER_OF_SHARDS, 0, Field.Store.YES);
         IntField numberOfReplicas = new IntField(TablesTable.Columns.NUMBER_OF_REPLICAS, 0, Field.Store.YES);
+        StringField routingColumn = new StringField(Columns.ROUTING_COLUMN, "", Field.Store.YES);
 
         for (IndexMetaData metaData : clusterState.metaData().indices().values()) {
+            IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
             Document doc = new Document();
-            tableName.setStringValue(metaData.getIndex());
+            tableName.setStringValue(extractor.getIndexName());
             doc.add(tableName);
 
-            numberOfShards.setIntValue(metaData.getNumberOfShards());
+            numberOfShards.setIntValue(extractor.getNumberOfShards());
             doc.add(numberOfShards);
 
-            numberOfReplicas.setIntValue(metaData.getNumberOfReplicas());
+            numberOfReplicas.setIntValue(extractor.getNumberOfReplicas());
             doc.add(numberOfReplicas);
+
+            // routing column
+
+            String routingColumnName = extractor.getRoutingColumn();
+            routingColumn.setStringValue(routingColumnName);
+            doc.add(routingColumn);
 
             indexWriter.addDocument(doc);
         }

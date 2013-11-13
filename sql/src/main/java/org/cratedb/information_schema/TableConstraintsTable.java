@@ -4,10 +4,8 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
-import org.cratedb.action.sql.NodeExecutionContext;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -65,29 +63,20 @@ public class TableConstraintsTable extends AbstractInformationSchemaTable {
         StringField constraintType = new StringField(Columns.CONSTRAINT_TYPE, "", Field.Store.YES);
 
         for (IndexMetaData indexMetaData : clusterState.metaData().indices().values()) {
+            IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(indexMetaData);
+            String primaryKeyColumn = extractor.getPrimaryKey();
+            if (primaryKeyColumn != null ) {
+                Document doc = new Document();
 
+                tableName.setStringValue(extractor.getIndexName());
+                doc.add(tableName);
 
-            MappingMetaData mappingMetaData = indexMetaData.getMappings()
-                    .get(NodeExecutionContext.DEFAULT_TYPE);
-            if (mappingMetaData != null) {
-                Map<String, Object> metaMap = (Map<String, Object>)mappingMetaData.sourceAsMap()
-                        .get("_meta");
-                if (metaMap != null) {
-                    String primaryKeyColumn = (String)metaMap.get("primary_keys");
-                    if (primaryKeyColumn != null ) {
-                        Document doc = new Document();
+                constraintName.setStringValue(primaryKeyColumn);
+                doc.add(constraintName);
 
-                        tableName.setStringValue(indexMetaData.getIndex());
-                        doc.add(tableName);
-
-                        constraintName.setStringValue(primaryKeyColumn);
-                        doc.add(constraintName);
-
-                        constraintType.setStringValue(ConstraintType.PRIMARY_KEY);
-                        doc.add(constraintType);
-                        indexWriter.addDocument(doc);
-                    }
-                }
+                constraintType.setStringValue(ConstraintType.PRIMARY_KEY);
+                doc.add(constraintType);
+                indexWriter.addDocument(doc);
             }
         }
     }

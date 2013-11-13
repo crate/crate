@@ -1,0 +1,1 @@
+select * from t1 where t1.a='A''s Escape Plan'

@@ -15,7 +15,7 @@ the actual result rows as a two-dimensional array of values.
 
 A simple select::
 
-    cr> select name, position from locations order by "_id" limit 2
+    cr> select name, position from locations order by id limit 2
     +-------------------+----------+
     | name              | position |
     +-------------------+----------+
@@ -27,7 +27,7 @@ A simple select::
 If the '*' operator is used, all properties defined in the schema are returned
 for each object::
 
-    cr> select * from locations order by "_id" limit 1 offset 1
+    cr> select date, description, kind, name, position, race from locations order by id limit 1 offset 1
     +--------------------------+--------------...---+--------+-------------------+----------+------+
     | date                     | description        | kind   | name              | position | race |
     +--------------------------+--------------...---+--------+-------------------+----------+------+
@@ -37,7 +37,7 @@ for each object::
 
 Aliases can be used to change the output name of the columns::
 
-    cr> select name as n from locations order by "_id" limit 1
+    cr> select name as n from locations order by id limit 1
     +-------------------+
     | n                 |
     +-------------------+
@@ -50,7 +50,7 @@ Where Clause
 
 A simple where clause example using an equality operator::
 
-    cr> select description from locations where "_id" = '1'
+    cr> select description from locations where id = '1'
     +-----------------------------------------...-------------------------------------------+
     | description                                                                           |
     +-----------------------------------------...-------------------------------------------+
@@ -114,7 +114,7 @@ exist at all. `is not null` also behaves this way. E.g. the following query
 returns 2 rows since the `is null` filter matches all rows and a limit is
 specified::
 
-    cr> select name from locations where missing is null order by "_id" limit 2
+    cr> select name from locations where missing is null order by id limit 2
     +-------------------+
     | name              |
     +-------------------+
@@ -406,9 +406,9 @@ Inserting a row::
 Inserting multiple rows at once (aka. bulk insert) can be done by defining
 multiple values for the ``INSERT`` statement::
 
-    cr> insert into locations (date, description, kind, name, position) values
-    ... ('2013-09-12T21:43:59.000Z', 'Blagulon Kappa is the planet to which the police are native.', 'Planet', 'Blagulon Kappa', 7),
-    ... ('2013-09-13T16:43:59.000Z', 'Brontitall is a planet with a warm, rich atmosphere and no mountains.', 'Planet', 'Brontitall', 10)
+    cr> insert into locations (id, date, description, kind, name, position) values
+    ... ('14', '2013-09-12T21:43:59.000Z', 'Blagulon Kappa is the planet to which the police are native.', 'Planet', 'Blagulon Kappa', 7),
+    ... ('15', '2013-09-13T16:43:59.000Z', 'Brontitall is a planet with a warm, rich atmosphere and no mountains.', 'Planet', 'Brontitall', 10)
     INSERT OK, 2 rows affected (... sec)
 
 

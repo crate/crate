@@ -5,10 +5,8 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.StringField;
-import org.cratedb.action.sql.NodeExecutionContext;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -68,69 +66,26 @@ public class ColumnsTable extends AbstractInformationSchemaTable {
     public void doIndex(ClusterState clusterState) throws IOException {
 
         for (IndexMetaData indexMetaData : clusterState.metaData().indices().values()) {
+            IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(indexMetaData);
 
-            MappingMetaData mappingMetaData = indexMetaData.getMappings().get(NodeExecutionContext.DEFAULT_TYPE);
-            if (mappingMetaData != null) {
-                Map<String, Object> mappingProperties = (Map)mappingMetaData.sourceAsMap()
-                                                                        .get("properties");
-                int pos = 1;
-                for (ImmutableMap.Entry<String, Object> columnEntry: mappingProperties.entrySet()) {
-                    Map<String, Object> columnProperties = (Map)columnEntry.getValue();
-
-                    if (columnProperties.get("type") != null
-                            && columnProperties.get("type").equals("multi_field")) {
-                        for (ImmutableMap.Entry<String, Object> multiColumnEntry:
-                                ((Map<String, Object>)columnProperties.get("fields")).entrySet()) {
-                            Map<String, Object> multiColumnProperties = (Map)multiColumnEntry.getValue();
-
-                            if (multiColumnEntry.getKey().equals(columnEntry.getKey())) {
-                                addColumnDocument(
-                                        indexMetaData.getIndex(),
-                                        multiColumnEntry.getKey(),
-                                        pos,
-                                        multiColumnProperties
-                                        );
-                                pos++;
-                            }
-                        }
-                    } else {
-                        addColumnDocument(
-                                indexMetaData.getIndex(),
-                                columnEntry.getKey(),
-                                pos,
-                                columnProperties
-                                );
-                        pos++;
-                    }
-                }
+            for (IndexMetaDataExtractor.ColumnDefinition columnDefinition : extractor.getColumnDefinitions()) {
+                addColumnDocument(columnDefinition);
             }
-
         }
     }
 
-    private void addColumnDocument(String tableName, String columnName, int ordinalPosition,
-                                   Map<String, Object>columnProperties) throws IOException {
-        String dataType = (String)columnProperties.get("type");
-        if (dataType == null && columnProperties.get("properties") != null) {
-            // TODO: whats about nested object schema?
-            dataType = "craty"; // ``object`` type detected, but we call it ``craty``
-        }
-        if (dataType.equals("date")) {
-            dataType = "timestamp";
-        }
-
+    private void addColumnDocument(IndexMetaDataExtractor.ColumnDefinition columnDefinition) throws IOException {
         Document doc = new Document();
-
-        tableNameField.setStringValue(tableName);
+        tableNameField.setStringValue(columnDefinition.tableName);
         doc.add(tableNameField);
 
-        columnNameField.setStringValue(columnName);
+        columnNameField.setStringValue(columnDefinition.columnName);
         doc.add(columnNameField);
 
-        ordinalPositionField.setIntValue(ordinalPosition);
+        ordinalPositionField.setIntValue(columnDefinition.ordinalPosition);
         doc.add(ordinalPositionField);
 
-        dataTypeField.setStringValue(dataType);
+        dataTypeField.setStringValue(columnDefinition.dataType);
         doc.add(dataTypeField);
 
         indexWriter.addDocument(doc);
