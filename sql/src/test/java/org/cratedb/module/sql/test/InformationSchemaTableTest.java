@@ -13,8 +13,8 @@ import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.information_schema.AbstractInformationSchemaTable;
 import org.cratedb.information_schema.InformationSchemaColumn;
 import org.cratedb.information_schema.InformationSchemaStringColumn;
+import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.AbstractZenNodesTests;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.collect.Tuple;
@@ -29,7 +29,7 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 
-public class InformationSchemaTableTest extends AbstractZenNodesTests {
+public class InformationSchemaTableTest extends AbstractCrateNodesTests {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
