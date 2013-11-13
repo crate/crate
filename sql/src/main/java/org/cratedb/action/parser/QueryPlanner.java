@@ -113,7 +113,7 @@ public class QueryPlanner {
     public boolean checkColumn(ITableExecutionContext tableContext, ParsedStatement stmt,
                             ValueNode parentNode, Integer operator,
                             String columnName, Object value) {
-        if (!optimizePrimaryKeyQueries()) {
+        if (!optimizePrimaryKeyQueries() || stmt.tableNameIsAlias) {
             if (columnName.equalsIgnoreCase("_version")) {
                 raiseUnsupportedVersionSysColFilter();
             }

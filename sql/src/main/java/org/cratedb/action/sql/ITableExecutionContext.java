@@ -13,4 +13,5 @@ public interface ITableExecutionContext {
     public Iterable<String> allCols();
     public boolean hasCol(String name);
     public Boolean isRouting(String name);
+    public boolean tableIsAlias();
 }

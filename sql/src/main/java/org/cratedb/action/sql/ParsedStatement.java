@@ -41,6 +41,8 @@ public class ParsedStatement {
 
     public String importPath;
 
+    public boolean tableNameIsAlias = false;
+
     /**
      * used for create analyzer statements
      */

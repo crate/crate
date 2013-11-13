@@ -38,6 +38,7 @@ public class BaseVisitor extends DispatchingVisitor {
         if (tableContext == null) {
             throw new TableUnknownException(tableName.getTableName());
         }
+        stmt.tableNameIsAlias = tableContext.tableIsAlias();
     }
 
     protected void visit(FromList fromList) throws Exception {

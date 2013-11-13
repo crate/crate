@@ -66,4 +66,8 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
     public Boolean isRouting(String name) {
         return false;
     }
+
+    public boolean tableIsAlias() {
+        return false;
+    }
 }
