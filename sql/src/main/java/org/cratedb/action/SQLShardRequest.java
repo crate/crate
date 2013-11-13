@@ -22,11 +22,13 @@ public class SQLShardRequest extends TransportRequest implements Streamable {
     public SQLRequest sqlRequest;
     public UUID contextId;
     public int shardId;
+    public String concreteIndex;
 
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
+        concreteIndex = in.readString();
         shardId = in.readVInt();
         contextId = new UUID(in.readLong(), in.readLong());
         reducers = in.readStringArray();
@@ -37,6 +39,7 @@ public class SQLShardRequest extends TransportRequest implements Streamable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+        out.writeString(concreteIndex);
         out.writeVInt(shardId);
         out.writeLong(contextId.getMostSignificantBits());
         out.writeLong(contextId.getLeastSignificantBits());

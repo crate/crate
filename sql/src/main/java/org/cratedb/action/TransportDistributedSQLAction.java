@@ -114,9 +114,10 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
     }
 
 
-    protected SQLShardRequest newShardRequest(SQLRequest request, int shardId, UUID contextId,
-                                              String[] reducers) {
+    protected SQLShardRequest newShardRequest(SQLRequest request, String concreteIndex,
+                                              int shardId, UUID contextId, String[] reducers) {
         SQLShardRequest shardRequest = new SQLShardRequest();
+        shardRequest.concreteIndex = concreteIndex;
         shardRequest.shardId = shardId;
         shardRequest.contextId = contextId;
         shardRequest.sqlRequest = request;
@@ -135,7 +136,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
         try {
             Map<String, Map<Integer, GroupByRow>> distributedCollectResult =
-                sqlQueryService.query(request.reducers, stmt, request.shardId);
+                sqlQueryService.query(request.reducers, request.concreteIndex, stmt, request.shardId);
 
             for (String reducer : request.reducers) {
 
@@ -319,7 +320,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 shardIndex++;
                 final ShardRouting shard = shardIt.firstOrNull();
                 if (shard != null) {
-                    performMapperOperation(contextId, shard, shardIndex);
+                    performMapperOperation(contextId, shard, shard.index(), shardIndex);
                 } else {
                     onMapperOperation(null, shardIndex,
                         new NoShardAvailableActionException(shardIt.shardId()));
@@ -327,10 +328,13 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             }
         }
 
-        private void performMapperOperation(UUID contextId, ShardRouting shard, int shardIndex) {
+        private void performMapperOperation(UUID contextId, ShardRouting shard,
+                                            String concreteIndex, int shardIndex) {
             assert shard != null;
 
-            SQLShardRequest shardRequest = newShardRequest(sqlRequest, shard.id(), contextId, reducers);
+            SQLShardRequest shardRequest = newShardRequest(
+                sqlRequest, concreteIndex, shard.id(), contextId, reducers
+            );
             if (shardOnLocalNode(shard)) {
                 executeMapperLocal(shard, shardRequest, shardIndex);
             } else {

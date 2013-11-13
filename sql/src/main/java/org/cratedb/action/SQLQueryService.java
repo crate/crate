@@ -6,6 +6,7 @@ import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.ParsedStatement;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -51,11 +52,11 @@ public class SQLQueryService {
         this.aggFunctionMap = aggFunctionMap;
     }
 
-    public Map<String, Map<Integer, GroupByRow>> query(String[] reducers,
+    public Map<String, Map<Integer, GroupByRow>> query(String[] reducers, String concreteIndex,
                                                        ParsedStatement stmt, int shardId)
         throws Exception
     {
-        SearchContext context = buildSearchContext(stmt, shardId);
+        SearchContext context = buildSearchContext(concreteIndex, shardId);
         SearchContext.setCurrent(context);
         logger.trace("Parsing xcontentQuery:\n " + stmt.xcontent.toUtf8());
         parser.parse(context, stmt.xcontent);
@@ -76,12 +77,12 @@ public class SQLQueryService {
         return collector.partitionedResult;
     }
 
-    private SearchContext buildSearchContext(ParsedStatement stmt, int shardId) {
+    private SearchContext buildSearchContext(String concreteIndex, int shardId) {
         SearchShardTarget shardTarget = new SearchShardTarget(
-            clusterService.localNode().id(), stmt.tableName(), shardId
+            clusterService.localNode().id(), concreteIndex, shardId
         );
 
-        IndexService indexService = indicesService.indexServiceSafe(stmt.tableName());
+        IndexService indexService = indicesService.indexServiceSafe(concreteIndex);
         IndexShard indexShard = indexService.shardSafe(shardId);
 
         return new SearchContext(0,
