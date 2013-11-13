@@ -140,4 +140,6 @@ Currently the defined error codes are:
           the same document concurrently.
     ----- ---------------------------------------------------------------------
     4093  A table with the same name exists already.
+    ----- ---------------------------------------------------------------------
+    4094  The used table alias contains tables with different schema.
     ===== =====================================================================

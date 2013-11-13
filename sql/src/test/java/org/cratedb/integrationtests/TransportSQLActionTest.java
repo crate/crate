@@ -6,10 +6,7 @@ import com.google.common.collect.Ordering;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.sql.DuplicateKeyException;
-import org.cratedb.sql.SQLParseException;
-import org.cratedb.sql.TableAlreadyExistsException;
-import org.cratedb.sql.TableUnknownException;
+import org.cratedb.sql.*;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -1763,7 +1760,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("create table test (col1 integer primary key, col2 string)");
         execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
-        execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
+        execute("insert into test values (?, ?)", new Object[]{2, "bar"});
         refresh();
 
         execute(
@@ -1798,7 +1795,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("create table test (col1 integer primary key, col2 string)");
         execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
         execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
-        execute("insert into test values (?, ?)", new Object[] { 3, "foo" });
+        execute("insert into test values (?, ?)", new Object[]{3, "foo"});
         refresh();
 
         execute(
@@ -2384,4 +2381,93 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(3L, response.rowCount());
     }
 
+    @Test
+    public void testSelectTableAlias() throws Exception {
+        execute("create table quotes_en (id int primary key, quote string)");
+        execute("create table quotes_de (id int primary key, quote string)");
+        client().admin().indices().prepareAliases().addAlias("quotes_en", "quotes")
+                .addAlias("quotes_de", "quotes").execute().actionGet();
+        ensureGreen();
+
+        execute("insert into quotes_en values (?,?)", new Object[]{1, "Don't panic"});
+        assertEquals(1, response.rowCount());
+        execute("insert into quotes_de values (?,?)", new Object[]{2, "Keine Panik"});
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        execute("select quote from quotes where id = ?", new Object[]{1});
+        assertEquals(1, response.rowCount());
+        execute("select quote from quotes where id = ?", new Object[]{2});
+        assertEquals(1, response.rowCount());
+    }
+
+    @Test (expected = TableAliasSchemaException.class)
+    public void testSelectTableAliasSchemaExceptionColumnDefinition() throws Exception {
+        execute("create table quotes_en (id int primary key, quote string, author string)");
+        execute("create table quotes_de (id int primary key, quote string)");
+        client().admin().indices().prepareAliases().addAlias("quotes_en", "quotes")
+                .addAlias("quotes_de", "quotes").execute().actionGet();
+        ensureGreen();
+        execute("select quote from quotes where id = ?", new Object[]{1});
+    }
+
+    @Test (expected = TableAliasSchemaException.class)
+    public void testSelectTableAliasSchemaExceptionColumnDataType() throws Exception {
+        execute("create table quotes_en (id int primary key, quote int)");
+        execute("create table quotes_de (id int primary key, quote string)");
+        client().admin().indices().prepareAliases().addAlias("quotes_en", "quotes")
+                .addAlias("quotes_de", "quotes").execute().actionGet();
+        ensureGreen();
+        execute("select quote from quotes where id = ?", new Object[]{1});
+    }
+
+    @Test (expected = TableAliasSchemaException.class)
+    public void testSelectTableAliasSchemaExceptionPrimaryKeyRoutingColumn() throws Exception {
+        execute("create table quotes_en (id int primary key, quote string)");
+        execute("create table quotes_de (id int, quote string)");
+        client().admin().indices().prepareAliases().addAlias("quotes_en", "quotes")
+                .addAlias("quotes_de", "quotes").execute().actionGet();
+        ensureGreen();
+        execute("select quote from quotes where id = ?", new Object[]{1});
+    }
+
+    @Test (expected = TableAliasSchemaException.class)
+    public void testSelectTableAliasSchemaExceptionIndices() throws Exception {
+        execute("create table quotes_en (id int primary key, quote string)");
+        execute("create table quotes_de (id int primary key, quote string index using fulltext)");
+        client().admin().indices().prepareAliases().addAlias("quotes_en", "quotes")
+                .addAlias("quotes_de", "quotes").execute().actionGet();
+        ensureGreen();
+        execute("select quote from quotes where id = ?", new Object[]{1});
+    }
+
+    @Test
+    public void testCountWithGroupByTableAlias() throws Exception {
+        execute("create table characters_guide (race string, gender string, name string)");
+        execute("insert into characters_guide (race, gender, name) values ('Human', 'male', 'Arthur Dent')");
+        execute("insert into characters_guide (race, gender, name) values ('Human', 'male', 'Ford Perfect')");
+        execute("insert into characters_guide (race, gender, name) values ('Human', 'female', 'Trillian')");
+        execute("insert into characters_guide (race, gender, name) values ('Android', 'male', 'Marving')");
+        execute("insert into characters_guide (race, gender, name) values ('Vogon', 'male', 'Jeltz')");
+        execute("insert into characters_guide (race, gender, name) values ('Vogon', 'male', 'Kwaltz')");
+        refresh();
+
+        execute("create table characters_life (race string, gender string, name string)");
+        execute("insert into characters_life (race, gender, name) values ('Rabbit', 'male', 'Agrajag')");
+        refresh();
+
+        client().admin().indices().prepareAliases().addAlias("characters_guide", "characters")
+                .addAlias("characters_life", "characters").execute().actionGet();
+        ensureGreen();
+
+        execute("select count(*) from characters");
+        assertEquals(7L, response.rows()[0][0]);
+
+        execute("select count(*), race from characters group by race order by count(*)");
+        assertEquals(4, response.rowCount());
+        assertEquals("Rabbit", response.rows()[0][1]);
+        assertEquals("Android", response.rows()[1][1]);
+        assertEquals("Vogon", response.rows()[2][1]);
+        assertEquals("Human", response.rows()[3][1]);
+    }
 }

@@ -17,17 +17,21 @@ public class TableExecutionContext implements ITableExecutionContext {
     private Map<String, Object> mapping;
     private Map<String, Object> mappingMeta;
     private DocumentMapper documentMapper;
+    private boolean tableIsAlias = false;
 
     @Deprecated
-    TableExecutionContext(String name, MappingMetaData mappingMetaData, DocumentMapper documentMapper) {
+    TableExecutionContext(String name, MappingMetaData mappingMetaData,
+                          DocumentMapper documentMapper, boolean tableIsAlias) {
         this.mappingMetaData = mappingMetaData;
         this.tableName = name;
         this.documentMapper = documentMapper;
+        this.tableIsAlias = tableIsAlias;
     }
 
-    TableExecutionContext(String name, MappingMetaData mappingMetaData) {
+    TableExecutionContext(String name, MappingMetaData mappingMetaData, boolean tableIsAlias) {
         this.mappingMetaData = mappingMetaData;
         this.tableName = name;
+        this.tableIsAlias = tableIsAlias;
     }
 
 
@@ -170,5 +174,9 @@ public class TableExecutionContext implements ITableExecutionContext {
             routingPath = "_id";
         }
         return routingPath.equals(name);
+    }
+
+    public boolean tableIsAlias() {
+        return tableIsAlias;
     }
 }
