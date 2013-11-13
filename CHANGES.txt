@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/11/13 0.19.1
+=================
+
  - added column ``routing_column`` to table ``information_schema.tables``,
    listing the column whose value determines on which shard a document gets stored
 
