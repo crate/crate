@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/11/14 0.19.3
+=================
+
  - Schema check for table aliases can be disabled by config now.
 
 2013/11/13 0.19.2
