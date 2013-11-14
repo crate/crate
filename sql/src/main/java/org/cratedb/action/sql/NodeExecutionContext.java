@@ -13,6 +13,7 @@ import org.elasticsearch.action.support.IgnoreIndices;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
@@ -27,18 +28,21 @@ public class NodeExecutionContext {
     private final AnalyzerService analyzerService;
     private final QueryPlanner queryPlanner;
     private final InformationSchemaTableExecutionContextFactory factory;
+    private final Settings settings;
  
     @Inject
     public NodeExecutionContext(IndicesService indicesService,
                                 ClusterService clusterService,
                                 AnalyzerService analyzerService,
                                 QueryPlanner queryPlanner,
-                                InformationSchemaTableExecutionContextFactory factory) {
+                                InformationSchemaTableExecutionContextFactory factory,
+                                Settings settings) {
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.analyzerService = analyzerService;
         this.queryPlanner = queryPlanner;
         this.factory = factory;
+        this.settings = settings;
     }
 
     public ITableExecutionContext tableContext(String schema, String table) {
@@ -99,6 +103,10 @@ public class NodeExecutionContext {
     }
 
     private boolean compareIndicesMetaData(String[] indices) throws IOException {
+        if (settings.getAsBoolean("crate.table_alias.schema_check", true) == false) {
+            return true;
+        }
+
         IndexMetaData indexMetaData = clusterService.state().metaData().index(indices[0]);
         IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(indexMetaData);
         String routingColumn = extractor.getRoutingColumn();
