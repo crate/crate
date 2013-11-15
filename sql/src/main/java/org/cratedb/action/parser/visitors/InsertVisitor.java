@@ -36,6 +36,9 @@ public class InsertVisitor extends BaseVisitor {
         // So we *must* resolve this values explicitly here.
 
         tableName(node.getTargetTableName());
+        if (tableContext.tableIsAlias()) {
+            throw new SQLParseException("Table alias not allowed in INSERT statement.");
+        }
         ResultColumnList targetColumnList = node.getTargetColumnList();
 
         // Get column names from index if not defined by query

@@ -54,6 +54,9 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     @Override
     public void visit(UpdateNode node) throws Exception {
         tableName(node.getTargetTableName());
+        if (tableContext.tableIsAlias()) {
+            throw new SQLParseException("Table alias not allowed in UPDATE statement.");
+        }
         xcontent(node);
 
         Map<String, Object> updateDoc = new HashMap<>();
@@ -358,6 +361,9 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     public void visit(DeleteNode node) throws Exception {
         SelectNode selectNode = (SelectNode) node.getResultSetNode();
         visit(selectNode.getFromList());
+        if (stmt.tableNameIsAlias) {
+            throw new SQLParseException("Table alias not allowed in DELETE statement.");
+        }
         whereClause(selectNode.getWhereClause());
 
         stmt.type(ParsedStatement.ActionType.DELETE_BY_QUERY_ACTION);

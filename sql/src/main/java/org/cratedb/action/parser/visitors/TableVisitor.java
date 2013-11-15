@@ -73,7 +73,10 @@ public class TableVisitor extends BaseVisitor {
 
     @Override
     public void visit(DropTableNode node) throws StandardException {
-        stmt.tableName(node.getObjectName().getTableName());
+        tableName(node.getObjectName());
+        if (tableContext.tableIsAlias()) {
+            throw new SQLParseException("Table alias not allowed in DROP TABLE statement.");
+        }
         stmt.type(ParsedStatement.ActionType.DELETE_INDEX_ACTION);
     }
 

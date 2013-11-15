@@ -2469,4 +2469,79 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals("Human", response.rows()[0][1]);
         assertEquals("Vogon", response.rows()[1][1]);
     }
+
+    private String tableAliasSetup() throws Exception {
+        String tableName = "mytable";
+        String tableAlias = "mytablealias";
+        execute(String.format("create table %s (id integer primary key, content string)",
+                tableName));
+        client().admin().indices().prepareAliases().addAlias(tableName,
+                tableAlias).execute().actionGet();
+        refresh();
+        return tableAlias;
+    }
+
+    @Test
+    public void testCreateTableWithExistingTableAlias() throws Exception {
+        String tableAlias = tableAliasSetup();
+
+        expectedException.expect(TableAlreadyExistsException.class);
+        expectedException.expectMessage("A table with the same name already exists");
+
+        execute(String.format("create table %s (content string index off)", tableAlias));
+    }
+
+    @Test
+    public void testDropTableWithTableAlias() throws Exception {
+        String tableAlias = tableAliasSetup();
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Table alias not allowed in DROP TABLE statement.");
+        execute(String.format("drop table %s", tableAlias));
+    }
+
+    @Test
+    public void testCopyFromWithTableAlias() throws Exception {
+        String tableAlias = tableAliasSetup();
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Table alias not allowed in COPY statement.");
+
+        execute(String.format("copy %s from '/tmp/file.json'", tableAlias));
+
+    }
+
+    @Test
+    public void testInsertWithTableAlias() throws Exception {
+        String tableAlias = tableAliasSetup();
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Table alias not allowed in INSERT statement.");
+
+        execute(
+                String.format("insert into %s (id, content) values (?, ?)", tableAlias),
+                new Object[]{1, "bla"}
+                );
+    }
+
+    @Test
+    public void testUpdateWithTableAlias() throws Exception {
+        String tableAlias = tableAliasSetup();
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Table alias not allowed in UPDATE statement.");
+
+        execute(
+                String.format("update %s set id=?, content=?", tableAlias),
+                new Object[]{1, "bla"}
+        );
+    }
+
+    @Test
+    public void testDeleteWithTableAlias() throws Exception {
+        String tableAlias = tableAliasSetup();
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Table alias not allowed in DELETE statement.");
+
+        execute(
+                String.format("delete from %s where id=?", tableAlias),
+                new Object[]{1}
+        );
+    }
 }

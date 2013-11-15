@@ -8,6 +8,7 @@ import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.IndexMissingException;
+import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.transport.RemoteTransportException;
 
 public class ExceptionHelper {
@@ -31,6 +32,13 @@ public class ExceptionHelper {
                     "A document with the same primary key exists already", e);
         } else if (e instanceof IndexAlreadyExistsException) {
             return new TableAlreadyExistsException(((IndexAlreadyExistsException)e).index().name(), e);
+        } else if ((e instanceof InvalidIndexNameException)) {
+            if (e.getMessage().contains("an alias with the same name already exists")) {
+                // treat an alias like a table as aliases are not officially supported
+                return new TableAlreadyExistsException(((InvalidIndexNameException)e).index().getName(),
+                        e);
+            }
+            return new InvalidTableNameException(((InvalidIndexNameException) e).index().getName(), e);
         } else if (e instanceof IndexMissingException) {
             return new TableUnknownException(((IndexMissingException)e).index().name(), e);
         } else if (e instanceof ReduceSearchPhaseException && e.getCause() instanceof VersionConflictException) {

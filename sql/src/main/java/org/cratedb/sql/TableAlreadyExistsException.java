@@ -7,7 +7,7 @@ public class TableAlreadyExistsException extends CrateException {
     String tableName;
 
     public TableAlreadyExistsException(String tableName, Throwable e) {
-        super("A table with the same name exists already", e);
+        super("A table with the same name already exists", e);
         this.tableName = tableName;
     }
 

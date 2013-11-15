@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - proper Error handling when issuing statements against a table-alias
+
  - rename column ``expressions`` of ``information_schema.indices`` to ``columns``
    and change type to array of strings
 
