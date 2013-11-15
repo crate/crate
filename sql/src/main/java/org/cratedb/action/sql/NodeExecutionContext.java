@@ -62,8 +62,9 @@ public class NodeExecutionContext {
             throw new TableUnknownException(table, ex);
         }
 
-
-        if (concreteIndices.length > 1) {
+        if (concreteIndices.length == 1 ) {
+            tableIsAlias = !concreteIndices[0].equals(indices[0]);
+        } else if (concreteIndices.length > 1) {
             tableIsAlias = true;
             try {
                 if (!compareIndicesMetaData(concreteIndices)) {

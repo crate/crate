@@ -457,6 +457,11 @@ Example JSON data::
 
   Existing entries will be overwritten on import.
 
+.. note::
+
+  The ``COPY FROM`` statement will not convert or validate your data.
+  Please make sure that it fits your schema.
+
 Import from path
 ----------------
 

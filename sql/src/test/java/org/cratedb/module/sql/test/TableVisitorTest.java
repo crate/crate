@@ -199,9 +199,6 @@ public class TableVisitorTest {
             put("_meta", new HashMap<String, String>(){{
                 put("primary_keys", "pk_col");
             }});
-            put("_routing", new HashMap<String, String>(){{
-                put("path", "pk_col");
-            }});
             put("properties", new HashMap<String, Object>(){{
                 put("pk_col", new HashMap<String, Object>(){{
                     put("type", "integer");
