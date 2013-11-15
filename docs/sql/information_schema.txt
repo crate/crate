@@ -107,23 +107,23 @@ behaviour at Crate, so almost all columns are listed as an index as well::
 
     cr> select * from information_schema.indices
     ... where table_name not like 'my_table%' order by table_name asc, index_name asc
-    +------------+---------------------+----------+-------------------+------------------+
-    | table_name | index_name          | method   | expressions       | properties       |
-    +------------+---------------------+----------+-------------------+------------------+
-    | documents  | body                | plain    | body              |                  |
-    | documents  | title               | plain    | title             |                  |
-    | documents  | title_body_ft       | fulltext | body, title       | analyzer=english |
-    | locations  | date                | plain    | date              |                  |
-    | locations  | description         | plain    | description       |                  |
-    | locations  | id                  | plain    | id                |                  |
-    | locations  | kind                | plain    | kind              |                  |
-    | locations  | name                | plain    | name              |                  |
-    | locations  | name_description_ft | fulltext | description, name | analyzer=english |
-    | locations  | position            | plain    | position          |                  |
-    | locations  | race                | plain    | race              |                  |
-    | quotes     | id                  | plain    | id                |                  |
-    | quotes     | quote               | plain    | quote             |                  |
-    +------------+---------------------+----------+-------------------+------------------+
+    +------------+---------------------+----------+---------------------------+------------------+
+    | table_name | index_name          | method   | columns                   | properties       |
+    +------------+---------------------+----------+---------------------------+------------------+
+    | documents  | body                | plain    | [u'body']                 |                  |
+    | documents  | title               | plain    | [u'title']                |                  |
+    | documents  | title_body_ft       | fulltext | [u'body', u'title']       | analyzer=english |
+    | locations  | date                | plain    | [u'date']                 |                  |
+    | locations  | description         | plain    | [u'description']          |                  |
+    | locations  | id                  | plain    | [u'id']                   |                  |
+    | locations  | kind                | plain    | [u'kind']                 |                  |
+    | locations  | name                | plain    | [u'name']                 |                  |
+    | locations  | name_description_ft | fulltext | [u'description', u'name'] | analyzer=english |
+    | locations  | position            | plain    | [u'position']             |                  |
+    | locations  | race                | plain    | [u'race']                 |                  |
+    | quotes     | id                  | plain    | [u'id']                   |                  |
+    | quotes     | quote               | plain    | [u'quote']                |                  |
+    +------------+---------------------+----------+---------------------------+------------------+
     SELECT 13 rows in set (... sec)
 
 

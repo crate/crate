@@ -10,7 +10,11 @@ import org.elasticsearch.common.lucene.BytesRefs;
 public class InformationSchemaStringColumn extends InformationSchemaColumn {
 
     public InformationSchemaStringColumn(String name) {
-        super(name);
+        this(name, false);
+    }
+
+    public InformationSchemaStringColumn(String name, boolean allowMultipleValues) {
+        super(name, allowMultipleValues);
         type = SortField.Type.STRING;
     }
 

@@ -35,16 +35,16 @@ public class IndexMetaDataExtractor {
         public final String indexName;
         public final String columnName;
         public final String method;
-        public final List<String> expressions;
+        public final List<String> columns;
         public final Map<String, String> properties;
 
         protected Index(String tableName, String indexName, String columnName, String method,
-                     List<String> expressions, Map<String, String> properties) {
+                     List<String> columns, Map<String, String> properties) {
             this.tableName = tableName;
             this.indexName = indexName;
             this.columnName = columnName;
             this.method = method;
-            this.expressions = expressions;
+            this.columns = columns;
             this.properties = properties;
         }
 
@@ -52,8 +52,8 @@ public class IndexMetaDataExtractor {
          * returns the expressions over which the index is defined as a comma-separated string
          * @return the index-expressions as a comma-separated string
          */
-        public String getExpressionsString() {
-            return Joiner.on(", ").join(expressions);
+        public String getColumnsString() {
+            return Joiner.on(", ").join(columns);
         }
 
         /**
@@ -77,17 +77,17 @@ public class IndexMetaDataExtractor {
          *                   one index for a column)
          * @param columnProperties the properties of the column this index indexes -
          *                         index attributes are extracted from here
-         * @param indexExpressions an empty list that holds state and gets filled while calling
+         * @param indexColumns an empty list that holds state and gets filled while calling
          *                         this function. Use one map for iterating over all columns of
          *                         a table.
          * @return and Index instance or null if this column is not indexed
          */
         public static Index create(String tableName, String indexName,
                                    String columnName, Map<String, Object> columnProperties,
-                                   Map<String, List<String>> indexExpressions) {
+                                   Map<String, List<String>> indexColumns) {
             String method;
             Map<String, String> properties = new HashMap<>();
-            List<String> expressions = new ArrayList<>();
+            List<String> columns = new ArrayList<>();
 
             String index = (String)columnProperties.get("index");
             String analyzer = (String)columnProperties.get("analyzer");
@@ -103,13 +103,13 @@ public class IndexMetaDataExtractor {
             if (analyzer != null) {
                 properties.put("analyzer", analyzer);
             }
-            if (indexExpressions.containsKey(indexName)) {
-                expressions = indexExpressions.get(indexName);
+            if (indexColumns.containsKey(indexName)) {
+                columns = indexColumns.get(indexName);
             } else {
-                indexExpressions.put(indexName, expressions);
+                indexColumns.put(indexName, columns);
             }
-            expressions.add(columnName);
-            return new Index(tableName, indexName, columnName, method, expressions, properties);
+            columns.add(columnName);
+            return new Index(tableName, indexName, columnName, method, columns, properties);
         }
 
         /**
@@ -262,7 +262,7 @@ public class IndexMetaDataExtractor {
 
         if (hasDefaultMapping()) {
             String tableName = getIndexName();
-            Map<String, List<String>> indicesExpressions = new HashMap<>();
+            Map<String, List<String>> indicesColumns = new HashMap<>();
 
             Map<String, Object> propertiesMap = (Map<String, Object>)getDefaultMappingMetaData()
                     .sourceAsMap().get("properties");
@@ -281,7 +281,7 @@ public class IndexMetaDataExtractor {
                                     multiColumnEntry.getKey(),
                                     columnEntry.getKey(),
                                     multiColumnProperties,
-                                    indicesExpressions);
+                                    indicesColumns);
                             if (idx != null) {
                                 indices.add(idx);
                             }
@@ -293,7 +293,7 @@ public class IndexMetaDataExtractor {
                                 columnEntry.getKey(),
                                 columnEntry.getKey(),
                                 columnProperties,
-                                indicesExpressions);
+                                indicesColumns);
                         if (idx != null) {
                             indices.add(idx);
                         }

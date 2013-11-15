@@ -4,8 +4,8 @@ import org.apache.lucene.index.IndexableField;
 
 public abstract class InformationSchemaNumericColumn extends InformationSchemaColumn {
 
-    public InformationSchemaNumericColumn(String name) {
-        super(name);
+    public InformationSchemaNumericColumn(String name, boolean allowMultipleValues) {
+        super(name, allowMultipleValues);
     }
 
     @Override

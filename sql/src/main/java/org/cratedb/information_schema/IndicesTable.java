@@ -29,14 +29,13 @@ public class IndicesTable extends AbstractInformationSchemaTable {
         public static final String TABLE_NAME = "table_name";
         public static final String INDEX_NAME = "index_name";
         public static final String METHOD = "method";
-        public static final String EXPRESSIONS = "expressions";
+        public static final String COLUMNS = "columns";
         public static final String PROPERTIES = "properties";
     }
 
     StringField tableNameField = new StringField(Columns.TABLE_NAME, "", Field.Store.YES);
     StringField indexNameField = new StringField(Columns.INDEX_NAME, "", Field.Store.YES);
     StringField methodField = new StringField(Columns.METHOD, "", Field.Store.YES);
-    StringField expressionsField = new StringField(Columns.EXPRESSIONS, "", Field.Store.YES);
     StringField propertiesField = new StringField(Columns.PROPERTIES, "", Field.Store.YES);
     // only internal used
     StringField uidField = new StringField("uid", "", Field.Store.YES);
@@ -55,8 +54,8 @@ public class IndicesTable extends AbstractInformationSchemaTable {
                 new InformationSchemaStringColumn(Columns.METHOD)
         );
         fieldMapper.put(
-                Columns.EXPRESSIONS,
-                new InformationSchemaStringColumn(Columns.EXPRESSIONS)
+                Columns.COLUMNS,
+                new InformationSchemaStringColumn(Columns.COLUMNS, true)
         );
         fieldMapper.put(
                 Columns.PROPERTIES,
@@ -100,8 +99,10 @@ public class IndicesTable extends AbstractInformationSchemaTable {
         methodField.setStringValue(index.method);
         doc.add(methodField);
 
-        expressionsField.setStringValue(index.getExpressionsString());
-        doc.add(expressionsField);
+        for (String column : index.columns) {
+            StringField columnsField = new StringField(Columns.COLUMNS, column, Field.Store.YES);
+            doc.add(columnsField);
+        }
 
         propertiesField.setStringValue(index.getPropertiesString());
         doc.add(propertiesField);

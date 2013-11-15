@@ -49,13 +49,15 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
                 doc.add(new StringField("id", node.getId(), Field.Store.YES));
                 doc.add(new StringField("name", node.getName(), Field.Store.YES));
                 doc.add(new StringField("address", node.address().toString(), Field.Store.YES));
+                doc.add(new StringField("many", node.version().number(), Field.Store.YES));
+                doc.add(new StringField("many", node.version().luceneVersion.toString(), Field.Store.YES));
                 indexWriter.addDocument(doc);
             }
         }
 
         @Override
         public Iterable<String> cols() {
-            return Arrays.asList("id", "name", "address");
+            return Arrays.asList("id", "name", "address", "many");
         }
 
         @Override
@@ -63,7 +65,8 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
             return ImmutableMap.of(
                     "id", (InformationSchemaColumn) new InformationSchemaStringColumn("id"),
                     "name", new InformationSchemaStringColumn("name"),
-                    "address", new InformationSchemaStringColumn("address")
+                    "address", new InformationSchemaStringColumn("address"),
+                    "many", new InformationSchemaStringColumn("many", true)
             );
         }
     }
@@ -132,7 +135,7 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
         ClusterState state = client().admin().cluster().prepareState().execute().actionGet()
                 .getState();
         testTable.index(state);
-        ParsedStatement stmt = new ParsedStatement("select id, name, address from nodes");
+        ParsedStatement stmt = new ParsedStatement("select id, name, address, many from nodes");
         stmt.limit = 1000;
         stmt.offset = 0;
         stmt.orderByColumns = new ArrayList<>();
@@ -140,6 +143,7 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
         stmt.outputFields.add(new Tuple<>("id", "id"));
         stmt.outputFields.add(new Tuple<>("name", "name"));
         stmt.outputFields.add(new Tuple<>("address", "address"));
+        stmt.outputFields.add(new Tuple<>("many", "many"));
 
         testTable.query(stmt, new ActionListener<SQLResponse>() {
             @Override
@@ -149,11 +153,12 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
                         (String)sqlResponse.rows()[0][1], (String)sqlResponse.rows()[1][1],
                         (String)sqlResponse.rows()[2][1]},
                         arrayContainingInAnyOrder("node1", "node2", "node3"));
+                assertTrue(sqlResponse.rows()[0][3] instanceof List);
             }
 
             @Override
             public void onFailure(Throwable e) {
-                // ignore
+                fail(e.getMessage());
             }
         });
     }
@@ -164,7 +169,7 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
         testTable.init();
         assertEquals(0L, testTable.count());
 
-        ParsedStatement stmt = new ParsedStatement("select id, name, address from nodes");
+        ParsedStatement stmt = new ParsedStatement("select id, name, address, many from nodes");
         stmt.limit = 1000;
         stmt.offset = 0;
         stmt.orderByColumns = new ArrayList<>();
@@ -172,6 +177,7 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
         stmt.outputFields.add(new Tuple<>("id", "id"));
         stmt.outputFields.add(new Tuple<>("name", "name"));
         stmt.outputFields.add(new Tuple<>("address", "address"));
+        stmt.outputFields.add(new Tuple<>("many", "many"));
 
         testTable.query(stmt, new ActionListener<SQLResponse>() {
             @Override
@@ -182,7 +188,7 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
 
             @Override
             public void onFailure(Throwable e) {
-                // ignore
+                fail(e.getMessage());
             }
         });
     }
