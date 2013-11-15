@@ -10,14 +10,12 @@ import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.node.internal.InternalNode;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -37,9 +35,9 @@ public class InformationSchemaServiceTest extends AbstractCrateNodesTests {
         return (InternalNode) startNode("node1", ImmutableSettings.EMPTY);
     }
 
-    private InternalNode node = null;
-    private InformationSchemaService informationSchemaService;
-    private SQLParseService parseService;
+    private static InternalNode node = null;
+    private static InformationSchemaService informationSchemaService;
+    private static SQLParseService parseService;
     private SQLResponse response;
 
     private void serviceSetup() {
@@ -57,16 +55,32 @@ public class InformationSchemaServiceTest extends AbstractCrateNodesTests {
 
     @Before
     public void before() throws Exception {
-        node = startNode();
-        parseService = node.injector().getInstance(SQLParseService.class);
-        informationSchemaService = node.injector().getInstance(InformationSchemaService.class);
+        if (node == null) {
+            node = startNode();
+            parseService = node.injector().getInstance(SQLParseService.class);
+            informationSchemaService = node.injector().getInstance(InformationSchemaService.class);
+        }
     }
 
     @After
-    public void tearDown() throws Exception {
-        node.stop();
-        closeNode("node1");
-        super.tearDown();
+    public void cleanUp() throws Exception {
+        Set<String> indices = node.client().admin().cluster().prepareState().execute().actionGet()
+                .getState().metaData().getIndices().keySet();
+        node.client().admin().indices()
+                .prepareDelete(indices.toArray(new String[indices.size()]))
+                .execute()
+                .actionGet();
+    }
+
+    @AfterClass
+    public static void shutdownNode() throws Exception {
+        parseService = null;
+        informationSchemaService = null;
+        if (node != null) {
+            node.stop();
+            node.close();
+            node = null;
+        }
     }
 
     @Test
@@ -483,25 +497,25 @@ public class InformationSchemaServiceTest extends AbstractCrateNodesTests {
         assertEquals("col1", response.rows()[0][1]);
         assertEquals("plain", response.rows()[0][2]);
         assertTrue(response.rows()[0][3] instanceof List);
-        assertThat((List<String>)response.rows()[0][3], contains("col1"));
+        assertThat((List<String>) response.rows()[0][3], contains("col1"));
         assertEquals("", response.rows()[0][4]);
 
         assertEquals("test", response.rows()[1][0]);
         assertEquals("col2", response.rows()[1][1]);
         assertEquals("plain", response.rows()[1][2]);
-        assertThat((List<String>)response.rows()[1][3], contains("col2"));
+        assertThat((List<String>) response.rows()[1][3], contains("col2"));
         assertEquals("", response.rows()[1][4]);
 
         assertEquals("test", response.rows()[2][0]);
         assertEquals("col1_col2_ft", response.rows()[2][1]);
         assertEquals("fulltext", response.rows()[2][2]);
-        assertThat((List<String>)response.rows()[2][3], contains("col1", "col2"));
+        assertThat((List<String>) response.rows()[2][3], contains("col1", "col2"));
         assertEquals("analyzer=english", response.rows()[2][4]);
 
         assertEquals("test", response.rows()[3][0]);
         assertEquals("col3", response.rows()[3][1]);
         assertEquals("fulltext", response.rows()[3][2]);
-        assertThat((List<String>)response.rows()[3][3], contains("col3"));
+        assertThat((List<String>) response.rows()[3][3], contains("col3"));
         assertEquals("analyzer=standard", response.rows()[3][4]);
     }
 

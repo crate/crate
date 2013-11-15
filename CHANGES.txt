@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - test hickup fixes and speed improvements
+
  - proper Error handling when issuing statements against a table-alias
 
  - rename column ``expressions`` of ``information_schema.indices`` to ``columns``
