@@ -2468,12 +2468,14 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     private String tableAliasSetup() throws Exception {
         String tableName = "mytable";
         String tableAlias = "mytablealias";
-        execute(String.format("create table %s (id integer primary key, content string)",
+        execute(String.format("create table %s (id integer primary key, " +
+                "content string)",
                 tableName));
         refresh();
         client().admin().indices().prepareAliases().addAlias(tableName,
                 tableAlias).execute().actionGet();
         refresh();
+        Thread.sleep(20);
         return tableAlias;
     }
 

@@ -26,6 +26,10 @@ public class AbstractCrateNodesTests extends AbstractNodesTests {
             Path tmpDataDir = Files.createTempDirectory(null);
             tmpDataDirs.put(id, tmpDataDir);
             builder.put("path.data", tmpDataDir.toAbsolutePath());
+            if (settings.get("gateway.type") == null) {
+                // default to non gateway
+                builder.put("gateway.type", "none");
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
