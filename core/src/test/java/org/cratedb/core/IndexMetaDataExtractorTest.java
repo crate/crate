@@ -251,24 +251,24 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
         assertThat(indices.get(0).indexName, is("ft"));
         assertThat(indices.get(0).tableName, is("test6"));
         assertThat(indices.get(0).method, is("fulltext"));
-        assertThat(indices.get(0).getExpressionsString(), is("content, title"));
+        assertThat(indices.get(0).getColumnsString(), is("content, title"));
         assertThat(indices.get(0).getPropertiesString(), is("analyzer=english"));
         assertThat(indices.get(0).getUid(), is("test6.ft"));
 
         assertThat(indices.get(1).indexName, is("datum"));
         assertThat(indices.get(1).tableName, is("test6"));
         assertThat(indices.get(1).method, is("plain"));
-        assertThat(indices.get(1).getExpressionsString(), is("datum"));
+        assertThat(indices.get(1).getColumnsString(), is("datum"));
         assertThat(indices.get(1).getUid(), is("test6.datum"));
 
         assertThat(indices.get(2).indexName, is("id"));
         assertThat(indices.get(2).tableName, is("test6"));
-        assertThat(indices.get(2).getExpressionsString(), is("id"));
+        assertThat(indices.get(2).getColumnsString(), is("id"));
         assertThat(indices.get(2).method, is("plain"));
 
         assertThat(indices.get(3).indexName, is("title"));
         assertThat(indices.get(3).tableName, is("test6"));
-        assertThat(indices.get(3).getExpressionsString(), is("title"));
+        assertThat(indices.get(3).getColumnsString(), is("title"));
         assertThat(indices.get(3).method, is("plain"));
 
         // compound indices will be listed once for every column they index,

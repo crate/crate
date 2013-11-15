@@ -5,7 +5,11 @@ import org.apache.lucene.search.*;
 public class InformationSchemaIntegerColumn extends InformationSchemaNumericColumn {
 
     public InformationSchemaIntegerColumn(String name) {
-        super(name);
+        this(name, false);
+    }
+
+    public InformationSchemaIntegerColumn(String name, boolean allowMultipleValues) {
+        super(name, allowMultipleValues);
         type = SortField.Type.INT;
     }
 

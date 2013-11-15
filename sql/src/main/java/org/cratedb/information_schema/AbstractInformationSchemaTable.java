@@ -235,9 +235,21 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
             }
             Document doc = searcher.doc(scoreDoc.doc, fieldsToLoad);
             for (int c = 0; c < cols.length; c++) {
-                IndexableField field = doc.getField(cols[c]);
+                IndexableField[] fields = doc.getFields(cols[c]);
                 InformationSchemaColumn tableColumn = fieldMapper().get(cols[c]);
-                rows[r][c] = tableColumn == null ? null : tableColumn.getValue(field);
+                Object rowValue = null;
+                if (fields.length > 0) {
+                    if (tableColumn.allowMultipleValues) {
+                        List<Object> rowValues = new ArrayList<>(fields.length);
+                        for (int i=0; i < fields.length; i++) {
+                            rowValues.add(tableColumn.getValue(fields[i]));
+                        }
+                        rowValue = rowValues;
+                    } else {
+                        rowValue = tableColumn.getValue(fields[0]);
+                    }
+                }
+                rows[r][c] = rowValue;
             }
             r++;
         }

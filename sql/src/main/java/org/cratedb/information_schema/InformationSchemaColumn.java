@@ -8,10 +8,12 @@ import org.apache.lucene.search.SortField;
 public abstract class InformationSchemaColumn {
 
     public final String name;
+    public final boolean allowMultipleValues;
     public SortField.Type type;
 
-    public InformationSchemaColumn(String name) {
+    public InformationSchemaColumn(String name, boolean allowMultipleValues) {
         this.name = name;
+        this.allowMultipleValues = allowMultipleValues;
     }
 
     public abstract Object getValue(IndexableField field);
