@@ -1309,14 +1309,10 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("insert into test (message) values (?)", args);
     }
 
-    private void createTestIndexWithPkAndRoutingMapping() throws IOException {
+    private void createTestIndexWithSomeIdPkMapping() throws IOException {
         XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
                 .startObject("default")
                 .startObject("_meta").field("primary_keys", "some_id").endObject()
-                .startObject("_routing")
-                .field("required", false)
-                .field("path", "some_id")
-                .endObject()
                 .startObject("properties")
                 .startObject("some_id").field("type", "string").field("store",
                         "true").field("index", "not_analyzed").endObject()
@@ -1334,7 +1330,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     @Test
     public void testSelectToGetRequestByPlanner() throws Exception {
-        createTestIndexWithPkAndRoutingMapping();
+        createTestIndexWithSomeIdPkMapping();
 
         execute("insert into test (some_id, foo) values ('124', 'bar1')");
         assertEquals(1, response.rowCount());
@@ -1348,7 +1344,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     @Test
     public void testDeleteToDeleteRequestByPlanner() throws Exception {
-        createTestIndexWithPkAndRoutingMapping();
+        createTestIndexWithSomeIdPkMapping();
 
         execute("insert into test (some_id, foo) values (123, 'bar')");
         assertEquals(1, response.rowCount());
@@ -1364,7 +1360,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     @Test
     public void testUpdateToUpdateRequestByPlanner() throws Exception {
-        createTestIndexWithPkAndRoutingMapping();
+        createTestIndexWithSomeIdPkMapping();
 
         execute("insert into test (some_id, foo) values (123, 'bar')");
         assertEquals(1, response.rowCount());
@@ -1381,7 +1377,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     @Test
     public void testSelectToRoutedRequestByPlanner() throws Exception {
-        createTestIndexWithPkAndRoutingMapping();
+        createTestIndexWithSomeIdPkMapping();
 
         execute("insert into test (some_id, foo) values (1, 'foo')");
         execute("insert into test (some_id, foo) values (2, 'bar')");
@@ -1401,7 +1397,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     @Test
     public void testSelectToRoutedRequestByPlannerMissingDocuments() throws Exception {
-        createTestIndexWithPkAndRoutingMapping();
+        createTestIndexWithSomeIdPkMapping();
 
         execute("insert into test (some_id, foo) values ('1', 'foo')");
         execute("insert into test (some_id, foo) values ('2', 'bar')");
@@ -1418,7 +1414,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     @Test
     public void testSelectToRoutedRequestByPlannerWhereIn() throws Exception {
-        createTestIndexWithPkAndRoutingMapping();
+        createTestIndexWithSomeIdPkMapping();
 
         execute("insert into test (some_id, foo) values (1, 'foo')");
         execute("insert into test (some_id, foo) values (2, 'bar')");
@@ -1431,7 +1427,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     @Test
     public void testDeleteToRoutedRequestByPlannerWhereIn() throws Exception {
-        createTestIndexWithPkAndRoutingMapping();
+        createTestIndexWithSomeIdPkMapping();
 
         execute("insert into test (some_id, foo) values (1, 'foo')");
         execute("insert into test (some_id, foo) values (2, 'bar')");
@@ -1841,7 +1837,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         String expectedMapping = "{\"default\":{" +
                 "\"_meta\":{\"primary_keys\":\"col1\"}," +
-                "\"_routing\":{\"path\":\"col1\"}," +
                 "\"properties\":{" +
                 "\"col1\":{\"type\":\"integer\"}," +
                 "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"," +
@@ -1891,7 +1886,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     @Test
     public void selectMultiGetRequestWithColumnAlias() throws IOException {
-        createTestIndexWithPkAndRoutingMapping();
+        createTestIndexWithSomeIdPkMapping();
         execute("insert into test (some_id, foo) values (1, 'foo')");
         execute("insert into test (some_id, foo) values (2, 'bar')");
         execute("insert into test (some_id, foo) values (3, 'baz')");

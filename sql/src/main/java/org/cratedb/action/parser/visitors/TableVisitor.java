@@ -67,7 +67,6 @@ public class TableVisitor extends BaseVisitor {
             throw new SQLParseException("Only columns declared as primary key can be used for " +
                     "routing");
         }
-
         stmt.type(ParsedStatement.ActionType.CREATE_INDEX_ACTION);
     }
 
@@ -217,11 +216,6 @@ public class TableVisitor extends BaseVisitor {
         if (mapping != null) {
             if (mappingMeta != null && mappingMeta.size() > 0) {
                 mapping.put("_meta", mappingMeta);
-            }
-            if (routingColumn != null) {
-                Map<String, String> routing = newHashMap();
-                routing.put("path", routingColumn.getColumnName());
-                mapping.put("_routing", routing);
             }
             mapping.put("properties", mappingProperties);
         }
