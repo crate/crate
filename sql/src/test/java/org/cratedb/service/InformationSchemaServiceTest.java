@@ -51,6 +51,7 @@ public class InformationSchemaServiceTest extends AbstractCrateNodesTests {
                     "10 shards")).actionGet();
         node.client().execute(SQLAction.INSTANCE,
             new SQLRequest("create table t3 (col1 integer, col2 string) replicas 8")).actionGet();
+        refresh(node.client());
     }
 
     @Before
