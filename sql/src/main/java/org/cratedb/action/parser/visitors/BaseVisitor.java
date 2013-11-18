@@ -57,7 +57,6 @@ public class BaseVisitor extends DispatchingVisitor {
         tableName(table.getTableName());
     }
 
-    @Deprecated
     protected Object mappedValueFromNode(String name, ValueNode node) {
         Object unmappedValue = valueFromNode(node);
         Object value = mapRecursive(name, unmappedValue);

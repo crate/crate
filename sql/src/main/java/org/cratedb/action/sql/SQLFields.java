@@ -6,14 +6,15 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.text.StringAndBytesText;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.index.get.GetField;
-import org.elasticsearch.index.mapper.FieldMapper;
-import org.elasticsearch.index.mapper.core.DateFieldMapper;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHitField;
 import org.elasticsearch.search.internal.InternalSearchHit;
 import org.elasticsearch.search.internal.InternalSearchHitField;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class SQLFields {
 
@@ -130,21 +131,9 @@ public class SQLFields {
 
         Map<String, SearchHitField> searchFields = new HashMap<>(getResponse.getFields().size());
         for (Map.Entry<String, GetField> entry : getResponse.getFields().entrySet()) {
-            FieldMapper<?> mapper = tableContext.mapper().mappers().smartNameFieldMapper(entry.getKey());
-            List<Object> searchFieldValues = new ArrayList<>(1);
-            for (Object value: entry.getValue().getValues()) {
-                if (mapper == null) {
-                    searchFieldValues.add(value);
-                } else if (mapper instanceof DateFieldMapper) {
-                    searchFieldValues.add(mapper.valueForSearch(((DateFieldMapper) mapper).value(entry.getValue().getValue())));
-                } else {
-                    searchFieldValues.add(mapper.valueForSearch(entry.getValue().getValue()));
-                }
-            }
-
             searchFields.put(entry.getKey(), new InternalSearchHitField(
                     entry.getKey(),
-                    searchFieldValues
+                    entry.getValue().getValues()
                 )
             );
         }

@@ -15,8 +15,8 @@ import org.junit.rules.ExpectedException;
 
 import java.util.List;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
 public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
 
@@ -79,6 +79,18 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
                                 .field("index", "analyzed")
                                 .field("analyzer", "standard")
                             .endObject()
+                            .startObject("person")
+                                .startObject("properties")
+                                    .startObject("first_name")
+                                        .field("type", "string")
+                                        .field("index", "not_analyzed")
+                                    .endObject()
+                                    .startObject("birthday")
+                                        .field("type", "date")
+                                        .field("index", "not_analyzed")
+                                    .endObject()
+                                .endObject()
+                            .endObject()
                         .endObject()
                     .endObject()
                 .endObject();
@@ -91,28 +103,49 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
         IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
         List<IndexMetaDataExtractor.ColumnDefinition> columnDefinitions = extractor.getColumnDefinitions();
 
-        assertEquals(4, columnDefinitions.size());
+        assertEquals(7, columnDefinitions.size());
 
         assertThat(columnDefinitions.get(0).columnName, is("content"));
         assertThat(columnDefinitions.get(0).dataType, is("string"));
         assertThat(columnDefinitions.get(0).ordinalPosition, is(1));
         assertThat(columnDefinitions.get(0).tableName, is("test1"));
+        assertFalse(columnDefinitions.get(0).dynamic);
 
         assertThat(columnDefinitions.get(1).columnName, is("datum"));
         assertThat(columnDefinitions.get(1).dataType, is("timestamp"));
         assertThat(columnDefinitions.get(1).ordinalPosition, is(2));
         assertThat(columnDefinitions.get(1).tableName, is("test1"));
+        assertFalse(columnDefinitions.get(1).dynamic);
 
         assertThat(columnDefinitions.get(2).columnName, is("id"));
         assertThat(columnDefinitions.get(2).dataType, is("integer"));
         assertThat(columnDefinitions.get(2).ordinalPosition, is(3));
         assertThat(columnDefinitions.get(2).tableName, is("test1"));
+        assertFalse(columnDefinitions.get(2).dynamic);
 
-
-        assertThat(columnDefinitions.get(3).columnName, is("title"));
-        assertThat(columnDefinitions.get(3).dataType, is("string"));
+        assertThat(columnDefinitions.get(3).columnName, is("person"));
+        assertThat(columnDefinitions.get(3).dataType, is("craty"));
         assertThat(columnDefinitions.get(3).ordinalPosition, is(4));
         assertThat(columnDefinitions.get(3).tableName, is("test1"));
+        assertTrue(columnDefinitions.get(3).dynamic);
+
+        assertThat(columnDefinitions.get(4).columnName, is("person.birthday"));
+        assertThat(columnDefinitions.get(4).dataType, is("timestamp"));
+        assertThat(columnDefinitions.get(4).ordinalPosition, is(5));
+        assertThat(columnDefinitions.get(4).tableName, is("test1"));
+        assertFalse(columnDefinitions.get(4).dynamic);
+
+        assertThat(columnDefinitions.get(5).columnName, is("person.first_name"));
+        assertThat(columnDefinitions.get(5).dataType, is("string"));
+        assertThat(columnDefinitions.get(5).ordinalPosition, is(6));
+        assertThat(columnDefinitions.get(5).tableName, is("test1"));
+        assertFalse(columnDefinitions.get(5).dynamic);
+
+        assertThat(columnDefinitions.get(6).columnName, is("title"));
+        assertThat(columnDefinitions.get(6).dataType, is("string"));
+        assertThat(columnDefinitions.get(6).ordinalPosition, is(7));
+        assertThat(columnDefinitions.get(6).tableName, is("test1"));
+        assertFalse(columnDefinitions.get(6).dynamic);
     }
 
     @Test
@@ -161,7 +194,8 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
         refresh();
         IndexMetaData metaData = getIndexMetaData("test3");
         IndexMetaDataExtractor extractor1 = new IndexMetaDataExtractor(metaData);
-        assertThat(extractor1.getPrimaryKey(), is("id"));
+        assertThat(extractor1.getPrimaryKeys().size(), is(1));
+        assertThat(extractor1.getPrimaryKeys(), contains("id"));
 
         builder = XContentFactory.jsonBuilder()
                 .startObject()
@@ -181,11 +215,11 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
         refresh();
 
         IndexMetaDataExtractor extractor2 = new IndexMetaDataExtractor(getIndexMetaData("test4"));
-        assertThat(extractor2.getPrimaryKey(), is(nullValue()));
+        assertThat(extractor2.getPrimaryKeys().size(), is(0));
 
         node.client().admin().indices().prepareCreate("test5").execute().actionGet();
         IndexMetaDataExtractor extractor3 = new IndexMetaDataExtractor(getIndexMetaData("test5"));
-        assertThat(extractor3.getPrimaryKey(), is(nullValue()));
+        assertThat(extractor3.getPrimaryKeys().size(), is(0));
     }
 
     @Test

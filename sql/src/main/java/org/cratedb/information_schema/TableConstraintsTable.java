@@ -10,6 +10,7 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -65,14 +66,15 @@ public class TableConstraintsTable extends AbstractInformationSchemaTable {
 
         for (IndexMetaData indexMetaData : clusterState.metaData().indices().values()) {
             IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(indexMetaData);
-            String primaryKeyColumn = extractor.getPrimaryKey();
-            if (primaryKeyColumn != null ) {
+            List<String> primaryKeyColumns = extractor.getPrimaryKeys();
+            if (primaryKeyColumns.size() > 0) {
                 Document doc = new Document();
 
                 tableName.setStringValue(extractor.getIndexName());
                 doc.add(tableName);
 
-                constraintName.setStringValue(primaryKeyColumn);
+                // TODO: support multiple primary keys
+                constraintName.setStringValue(primaryKeyColumns.get(0));
                 doc.add(constraintName);
 
                 constraintType.setStringValue(ConstraintType.PRIMARY_KEY);

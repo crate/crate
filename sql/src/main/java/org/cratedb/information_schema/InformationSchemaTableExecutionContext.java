@@ -3,9 +3,9 @@ package org.cratedb.information_schema;
 import com.google.common.collect.ImmutableMap;
 import org.cratedb.action.sql.ITableExecutionContext;
 import org.cratedb.sql.TableUnknownException;
+import org.cratedb.sql.types.SQLFieldMapper;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.assistedinject.Assisted;
-import org.elasticsearch.index.mapper.DocumentMapper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,8 +33,9 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
     }
 
     @Override
-    public DocumentMapper mapper() {
-        throw new UnsupportedOperationException("Information Schema currently has no DocumentMapper");
+    public SQLFieldMapper mapper() {
+        throw new UnsupportedOperationException("Information Schema currently has no " +
+                "SQLFieldMapper");
     }
 
     @Override

@@ -7,6 +7,7 @@ import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.*;
+import org.cratedb.sql.types.TimeStampSQLType;
 import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
@@ -469,17 +470,20 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 .addMapping("default",
                         "date", "type=date")
                 .execute().actionGet();
+
         client().prepareIndex("test", "default", "id1")
-                .setSource("{\"date\":\"2013-10-01\"}")
+                .setSource("{\"date\": " +
+                        new TimeStampSQLType().toXContent("2013-10-01", false) + "}")
                 .execute().actionGet();
         client().prepareIndex("test", "default", "id2")
-                .setSource("{\"date\":\"2013-10-02\"}")
+                .setSource("{\"date\": " +
+                        new TimeStampSQLType().toXContent("2013-10-02", false) + "}")
                 .execute().actionGet();
         refresh();
         execute(
                 "select date from test where date = '2013-10-01'");
         assertEquals(1, response.rowCount());
-        assertEquals("2013-10-01", response.rows()[0][0]);
+        assertEquals(1380578400000L, response.rows()[0][0]);
     }
 
     @Test
@@ -489,16 +493,18 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                         "date", "type=date")
                 .execute().actionGet();
         client().prepareIndex("test", "default", "id1")
-                .setSource("{\"date\":\"2013-10-01\"}")
+                .setSource("{\"date\": " +
+                        new TimeStampSQLType().toXContent("2013-10-01", false) + "}")
                 .execute().actionGet();
         client().prepareIndex("test", "default", "id2")
-                .setSource("{\"date\":\"2013-10-02\"}")
+                .setSource("{\"date\":" +
+                        new TimeStampSQLType().toXContent("2013-10-02", false) + "}")
                 .execute().actionGet();
         refresh();
         execute(
                 "select date from test where date > '2013-10-01'");
         assertEquals(1, response.rowCount());
-        assertEquals("2013-10-02", response.rows()[0][0]);
+        assertEquals(1380664800000L, response.rows()[0][0]);
     }
 
     @Test
@@ -585,7 +591,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         assertEquals(2, response.rowCount());
         assertEquals(true, response.rows()[0][0]);
-        assertEquals(1378849903000L, response.rows()[0][1]);
+        assertEquals(1378842703000L, response.rows()[0][1]);
         assertEquals(1.79769313486231570e+308, response.rows()[0][2]);
         assertEquals(3.402, response.rows()[0][3]);
         assertEquals(2147483647, response.rows()[0][4]);
@@ -594,7 +600,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals("Youri", response.rows()[0][7]);
 
         assertEquals(true, response.rows()[1][0]);
-        assertEquals(1378849903000L, response.rows()[1][1]);
+        assertEquals(1378842703000L, response.rows()[1][1]);
         assertEquals(1.79769313486231570e+308, response.rows()[1][2]);
         assertEquals(3.402, response.rows()[1][3]);
         assertEquals(2147483647, response.rows()[1][4]);
@@ -661,7 +667,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
             ((List<String>)((Map<String, Object>)response.rows()[0][1]).get("s")).get(1));
         assertThat(
             ((List<Long>)((Map<String, Object>)response.rows()[0][1]).get("d1")).get(0),
-            is(1378849903000L)
+            is(1378842703000L)
         );
         assertThat(
             ((List<Long>)((Map<String, Object>)response.rows()[0][1]).get("d1")).get(1),
@@ -669,11 +675,11 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         );
         assertThat(
             (Long)((Map<String, Object>)response.rows()[0][1]).get("d2"),
-            is(1378849903000L)
+            is(1378842703000L)
         );
 
-        assertThat( ((List<Long>)response.rows()[0][2]).get(0), is(1378849903000L));
-        assertThat( ((List<Long>)response.rows()[0][2]).get(1), is(1384120303000L));
+        assertThat( ((List<Long>)response.rows()[0][2]).get(0), is(1378842703000L));
+        assertThat( ((List<Long>)response.rows()[0][2]).get(1), is(1384116703000L));
 
         assertThat( ((List<Double>)response.rows()[0][3]).get(0), is(1.79769313486231570e+308));
         assertThat( ((List<Double>)response.rows()[0][3]).get(1), is(1.69769313486231570e+308));

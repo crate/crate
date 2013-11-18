@@ -12,6 +12,7 @@ import org.cratedb.action.sql.analyzer.TransportClusterUpdateCrateSettingsAction
 import org.cratedb.information_schema.*;
 import org.cratedb.service.InformationSchemaService;
 import org.cratedb.service.SQLParseService;
+import org.cratedb.sql.types.*;
 import org.elasticsearch.action.GenericAction;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -53,9 +54,27 @@ public class SQLModule extends AbstractModule {
         informationSchemaTables.addBinding(ColumnsTable.NAME).to(ColumnsTable.class).asEagerSingleton();
         informationSchemaTables.addBinding(IndicesTable.NAME).to(IndicesTable.class).asEagerSingleton();
 
+        // SQL Types
+        MapBinder<String, SQLType> sqlTypeMapBinder = MapBinder.newMapBinder(binder(),
+                String.class, SQLType.class);
+        sqlTypeMapBinder.addBinding(BooleanSQLType.NAME).to(BooleanSQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(StringSQLType.NAME).to(StringSQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(ByteSQLType.NAME).to(ByteSQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(ShortSQLType.NAME).to(ShortSQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(IntegerSQLType.NAME).to(IntegerSQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(LongSQLType.NAME).to(LongSQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(FloatSQLType.NAME).to(FloatSQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(DoubleSQLType.NAME).to(DoubleSQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(TimeStampSQLType.NAME).to(TimeStampSQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(CratySQLType.NAME).to(CratySQLType.class).asEagerSingleton();
+
         // get a factory for InformationSchemaTableExecutionContext
         bind(InformationSchemaTableExecutionContextFactory.class).toProvider(FactoryProvider
                 .newFactory(InformationSchemaTableExecutionContextFactory.class,
                         InformationSchemaTableExecutionContext.class));
+
+        // get a factory for SQLFieldMapper
+        bind(SQLFieldMapperFactory.class).toProvider(FactoryProvider.newFactory
+                (SQLFieldMapperFactory.class, SQLFieldMapper.class));
     }
 }

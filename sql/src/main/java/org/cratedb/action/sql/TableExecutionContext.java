@@ -1,79 +1,40 @@
 package org.cratedb.action.sql;
 
-import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.cratedb.core.IndexMetaDataExtractor;
+import org.cratedb.sql.ValidationException;
+import org.cratedb.sql.types.SQLFieldMapper;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.FieldMapper;
 
-import java.io.IOException;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 public class TableExecutionContext implements ITableExecutionContext {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
-    private final MappingMetaData mappingMetaData;
+    private final IndexMetaDataExtractor indexMetaDataExtractor;
     private final String tableName;
-    private Map<String, Object> mapping;
-    private Map<String, Object> mappingMeta;
-    private DocumentMapper documentMapper;
+    private SQLFieldMapper sqlFieldMapper;
     private boolean tableIsAlias = false;
 
-    @Deprecated
-    TableExecutionContext(String name, MappingMetaData mappingMetaData,
-                          DocumentMapper documentMapper, boolean tableIsAlias) {
-        this.mappingMetaData = mappingMetaData;
+    TableExecutionContext(String name, IndexMetaDataExtractor indexMetaDataExtractor,
+                          SQLFieldMapper sqlFieldMapper, boolean tableIsAlias) {
+        this.indexMetaDataExtractor = indexMetaDataExtractor;
         this.tableName = name;
-        this.documentMapper = documentMapper;
-        this.tableIsAlias = tableIsAlias;
-    }
-
-    TableExecutionContext(String name, MappingMetaData mappingMetaData, boolean tableIsAlias) {
-        this.mappingMetaData = mappingMetaData;
-        this.tableName = name;
+        this.sqlFieldMapper = sqlFieldMapper;
         this.tableIsAlias = tableIsAlias;
     }
 
 
     protected Map<String, Object> mapping() {
-        if (mapping == null) {
-            try {
-                if (mappingMetaData == null) {
-                    mapping = new HashMap<>();
-                } else {
-                    mapping = mappingMetaData.sourceAsMap();
-                }
-            } catch (IOException ex) {
-                logger.error(ex.getMessage(), ex);
-                // :/
-            }
-        }
-        return mapping;
-    }
-
-    @SuppressWarnings("unchecked")
-    protected Map<String, Object> mappingMeta() {
-        if (mappingMeta == null) {
-            Map<String, Object> mapping = mapping();
-            if (mapping == null) {
-                mappingMeta = new HashMap<>();
-            } else {
-                Object _meta = mapping.get("_meta");
-                if (_meta == null) {
-                    mappingMeta = new HashMap<>();
-                } else {
-                    assert _meta instanceof Map;
-                    mappingMeta = (Map<String, Object>)_meta;
-                }
-            }
-        }
-
-        return mappingMeta;
+        return indexMetaDataExtractor.getDefaultMappingMap();
     }
 
     @Override
-    public DocumentMapper mapper() {
-        return documentMapper;
+    public SQLFieldMapper mapper() {
+        return sqlFieldMapper;
     }
 
     /**
@@ -82,17 +43,11 @@ public class TableExecutionContext implements ITableExecutionContext {
      * @param value the value to be mapped
      * @return the value converted to the proper type
      */
-    @Deprecated
-    public Object mappedValue(String name, Object value){
-        if (documentMapper == null) {
+    public Object mappedValue(String name, Object value) throws ValidationException {
+        if (sqlFieldMapper == null) {
             return value;
         }
-
-        FieldMapper fieldMapper = documentMapper.mappers().smartNameFieldMapper(name);
-        if (fieldMapper != null) {
-            return fieldMapper.value(value);
-        }
-        return value;
+        return sqlFieldMapper.convertToXContentValue(name, value);
     }
 
     /**
@@ -103,16 +58,7 @@ public class TableExecutionContext implements ITableExecutionContext {
      */
     @SuppressWarnings("unchecked")
     public List<String> primaryKeys() {
-        List<String> pks = new ArrayList<>();
-
-        Object srcPks = mappingMeta().get("primary_keys");
-        if (srcPks instanceof String) {
-            pks.add((String)srcPks);
-        } else if (srcPks instanceof List) {
-            pks.addAll((List)srcPks);
-        }
-
-        return pks;
+        return indexMetaDataExtractor.getPrimaryKeys();
     }
 
     /**
@@ -166,7 +112,7 @@ public class TableExecutionContext implements ITableExecutionContext {
      * @return
      */
     public Boolean isRouting(String name) {
-        String routingPath = mappingMetaData.routing().path();
+        String routingPath = indexMetaDataExtractor.getRoutingColumn();
         if (routingPath == null) {
             // the primary key(s) values are saved under _id, so they are used as default
             // routing values
