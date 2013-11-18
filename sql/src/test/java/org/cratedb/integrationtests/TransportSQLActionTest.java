@@ -1884,6 +1884,38 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     @Test
+    public void testGroupByEmpty() throws Exception {
+        execute("create table test (col1 string)");
+        refresh();
+
+        execute("select count(*), col1 from test group by col1");
+        assertEquals(0, response.rowCount());
+    }
+
+    @Test
+    public void testGroupByMultiValueField() throws Exception {
+        groupBySetup();
+
+        execute("insert into characters (race, gender, name) values (?, ?, ?)",
+            new Object[] { new String[] {"Android"}, new String[] {"male", "robot"}, "Marvin2"}
+        );
+        execute("insert into characters (race, gender, name) values (?, ?, ?)",
+            new Object[] { new String[] {"Android"}, new String[] {"male", "robot"}, "Marvin3"}
+        );
+        refresh();
+
+        execute("select count(*), race, gender from characters group by race, gender order by count(*) desc");
+        assertEquals(5, response.rowCount());
+        assertEquals(3L, response.rows()[0][0]);
+        assertEquals("Android", response.rows()[0][1]);
+        assertEquals("male", response.rows()[0][2]);
+
+        assertEquals(2L, response.rows()[1][0]);
+        assertEquals("Android", response.rows()[1][1]);
+        assertEquals("robot", response.rows()[1][2]);
+    }
+
+    @Test
     public void testDropTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
