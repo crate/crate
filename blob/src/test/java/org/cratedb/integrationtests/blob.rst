@@ -39,6 +39,11 @@ Uploading the same file again::
     >>> put(blob_url(small_digest), data=small_data)
     HTTP Error 409: Conflict
 
+Uploading a file to an index with disabled blob support::
+
+    >>> put(blob_url(small_digest, 'test_no_blobs'), data=small_data)
+    HTTP Error 400: Bad Request
+
 Get the files::
 
     >>> r = get(blob_url(big_digest))

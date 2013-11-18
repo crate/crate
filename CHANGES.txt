@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: proper error handling while uploading files to an index with disabled blob support
+
  - test hickup fixes and speed improvements
 
  - proper Error handling when issuing statements against a table-alias
