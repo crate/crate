@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/11/18 0.19.4
+=================
+
  - Fix: proper error handling while uploading files to an index with disabled blob support
 
  - test hickup fixes and speed improvements
