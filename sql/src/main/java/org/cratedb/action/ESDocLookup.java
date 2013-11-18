@@ -31,10 +31,10 @@ public class ESDocLookup implements GroupByFieldLookup {
         docLookup.setNextReader(context);
     }
 
-    public Object lookupField(String columnName) {
+    public Object[] getValues(String columnName) {
         ScriptDocValues docValues = (ScriptDocValues)docLookup.get(columnName);
         if (docValues.isEmpty())
-            return null;
-        return docValues.getValues().get(0);
+            return new Object[] { null };
+        return docValues.getValues().toArray(new Object[docValues.getValues().size()]);
     }
 }
