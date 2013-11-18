@@ -1,11 +1,14 @@
 package org.cratedb.http.netty;
 
-import org.cratedb.blob.*;
+import org.cratedb.blob.BlobService;
+import org.cratedb.blob.DigestBlob;
+import org.cratedb.blob.RemoteDigestBlob;
 import org.cratedb.blob.exceptions.DigestMismatchException;
 import org.cratedb.blob.exceptions.DigestNotFoundException;
 import org.cratedb.blob.exceptions.MissingHTTPEndpointException;
 import org.cratedb.blob.v2.BlobIndices;
 import org.cratedb.blob.v2.BlobShard;
+import org.cratedb.blob.v2.BlobsDisabledException;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -197,6 +200,9 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
         } else if (ex instanceof DigestNotFoundException) {
             status = HttpResponseStatus.NOT_FOUND;
             body = null;
+        } else if (ex instanceof BlobsDisabledException) {
+            status = HttpResponseStatus.BAD_REQUEST;
+            body = ex.getMessage();
         } else {
             status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
             logger.error("unhandled exception:", ex);

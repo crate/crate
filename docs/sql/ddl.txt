@@ -64,7 +64,7 @@ A text-based basic type containing one or more character. Example::
 number
 ------
 
-Crate supports a set of number types: ``integer``,``long``, ``short``, ``double``,
+Crate supports a set of number types: ``integer``, ``long``, ``short``, ``double``,
 ``float`` and ``byte``. All types have the same ranges as corresponding `Java types`_.
 Example::
 
