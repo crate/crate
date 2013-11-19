@@ -3,7 +3,7 @@ package org.cratedb.action.parser.visitors;
 import com.google.common.collect.Lists;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
-import org.cratedb.core.Constants;
+import org.cratedb.Constants;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;

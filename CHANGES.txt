@@ -8,6 +8,12 @@ Unreleased
  - further optimization of the internal data structure serialization used while
    executing a group by query.
 
+ - Implemented Crate Version & Build class
+   - use Crate version number at main rest endpoint
+   - use ES version as `es_version`
+   - use Version.CURRENT for distribution & create_tag.sh
+   - removed static versions.json, read it from main rest endpoint instead
+
  - Throw a proper error if a multi-value field is encountered during group by
    instead of returning an incorrect result.
 

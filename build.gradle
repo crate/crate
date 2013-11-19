@@ -1,23 +1,6 @@
-// get the version from git.
-// if the latest commit contains a tag the tag will be the version
-// otherwise the version will be in the format
-// <latest-tag>-<commits-since-tags>-<current-hash>
-
-task getVersion {
-    def stdout = new ByteArrayOutputStream()
-    exec {
-        commandLine 'git', 'describe', '--tags'
-        standardOutput stdout
-    }
-
-    ext.version = stdout.toString().trim()
-}
-
 allprojects {
-    dependsOn = getVersion
     apply plugin: 'idea'
     group = 'crate'
-    version = getVersion.version
     repositories {
         mavenCentral()
     }

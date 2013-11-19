@@ -5,7 +5,7 @@ import org.cratedb.action.parser.ESRequestBuilder;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
-import org.cratedb.core.Constants;
+import org.cratedb.Constants;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.TableUnknownException;
 import org.cratedb.sql.parser.StandardException;

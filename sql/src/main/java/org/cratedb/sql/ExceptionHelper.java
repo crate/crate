@@ -1,6 +1,6 @@
 package org.cratedb.sql;
 
-import org.cratedb.core.Constants;
+import org.cratedb.Constants;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.search.ReduceSearchPhaseException;
 import org.elasticsearch.action.search.ShardSearchFailure;

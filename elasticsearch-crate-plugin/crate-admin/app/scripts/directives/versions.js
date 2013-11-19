@@ -14,17 +14,12 @@ angular.module('crateAdminApp')
             var prefix = $location.search().prefix || '';
             $http({method: 'GET', url: prefix + '/'}).
               success(function(data) {
-                $scope.es = data.version.number;
-              }).
-              error(function() {
-                $scope.es = '-';
-              });
-            $http({method: 'GET', url: prefix + '/_plugin/crate-admin/version.json'}).
-              success(function(data) {
-                $scope.crate = data.version.crate;
+                $scope.crate = data.version.number;
+                $scope.es = data.version.es_version;
               }).
               error(function() {
                 $scope.crate = '-';
+                $scope.es = '-';
               });
           }]
     };

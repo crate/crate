@@ -1,6 +1,6 @@
 package org.cratedb.action.sql;
 
-import org.cratedb.core.IndexMetaDataExtractor;
+import org.cratedb.index.IndexMetaDataExtractor;
 import org.cratedb.sql.ValidationException;
 import org.cratedb.sql.types.SQLFieldMapper;
 import org.elasticsearch.common.logging.ESLogger;

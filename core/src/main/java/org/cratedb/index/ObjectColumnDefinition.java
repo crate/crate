@@ -1,4 +1,4 @@
-package org.cratedb.core;
+package org.cratedb.index;
 
 import java.util.ArrayList;
 import java.util.List;

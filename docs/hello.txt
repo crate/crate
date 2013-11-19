@@ -15,16 +15,17 @@ displays basic system information::
     {
       "ok" : true,
       "status" : 200,
-      "name" : "...",
+      "name" : "crate",
       "version" : {
-        "number" : "0.90.5",
-        "build_hash" : "${buildNumber}",
-        "build_timestamp" : "NA",
-        "build_snapshot" : false,
-        "lucene_version" : "4.4"
-      },
-      "tagline" : "You Know, for Search"
+        "number" : "...",
+        "build_hash" : "...",
+        "build_timestamp" : "...",
+        "build_snapshot" : ...,
+        "es_version" : "...",
+        "lucene_version" : "..."
+      }
     }
+
 
 .. note::
 

@@ -2,8 +2,8 @@ package org.cratedb.action.sql;
 
 import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
-import org.cratedb.core.ColumnDefinition;
-import org.cratedb.core.IndexMetaDataExtractor;
+import org.cratedb.index.ColumnDefinition;
+import org.cratedb.index.IndexMetaDataExtractor;
 import org.cratedb.information_schema.InformationSchemaTableExecutionContext;
 import org.cratedb.information_schema.InformationSchemaTableExecutionContextFactory;
 import org.cratedb.sql.CrateException;

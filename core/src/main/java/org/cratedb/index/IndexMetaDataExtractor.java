@@ -1,6 +1,7 @@
-package org.cratedb.core;
+package org.cratedb.index;
 
 import com.google.common.base.Joiner;
+import org.cratedb.Constants;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.Booleans;

@@ -36,8 +36,12 @@ then
    exit -1
 fi
 
+# install locally so we can get the version
+./gradlew install
+# get the version
+VERSION=`./app/build/install/crate/bin/crate -v | cut -d " " -f 2 | tr -d ','`
+
 # check if tag to create has already been created
-VERSION=`mvn validate | grep "Building crate " | cut -d " " -f 4`
 EXISTS=`git tag | grep $VERSION`
 
 if [ "$VERSION" == "$EXISTS" ]

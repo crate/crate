@@ -5,7 +5,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.Term;
-import org.cratedb.core.IndexMetaDataExtractor;
+import org.cratedb.index.IndexMetaDataExtractor;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 
