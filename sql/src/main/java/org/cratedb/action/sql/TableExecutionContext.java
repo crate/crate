@@ -139,13 +139,15 @@ public class TableExecutionContext implements ITableExecutionContext {
     @SuppressWarnings("unchecked")
     public Iterable<String> allCols() {
         Set<String> res = new TreeSet<>();
-        for (String columnName : ((Map<String, Object>)mapping().get("properties")).keySet()) {
-            // don't add internal or sub object field names
-            if (columnName.startsWith("_") || columnName.contains(".")) {
-                continue;
-            }
+        if (mapping().size() > 0 && mapping().containsKey("properties")) {
+            for (String columnName : ((Map<String, Object>)mapping().get("properties")).keySet()) {
+                // don't add internal or sub object field names
+                if (columnName.startsWith("_") || columnName.contains(".")) {
+                    continue;
+                }
 
-            res.add(columnName);
+                res.add(columnName);
+            }
         }
         return res;
     }

@@ -109,6 +109,15 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     @Test
+    public void testSelectStarEmptyMapping() throws Exception {
+        prepareCreate("test")
+                .execute().actionGet();
+        execute("select * from test");
+        assertArrayEquals(new String[]{}, response.cols());
+        assertEquals(0, response.rowCount());
+    }
+
+    @Test
     public void testSelectStarWithOther() throws Exception {
         prepareCreate("test")
                 .addMapping("default",
