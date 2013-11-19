@@ -145,17 +145,17 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             Map<String, Map<GroupByKey, GroupByRow>> distributedCollectResult =
                 sqlQueryService.query(request.reducers, request.concreteIndex, stmt, request.shardId);
 
-            if (logger.isTraceEnabled()) {
-                logger.trace("gathering result on {} shard: {} took {} ms",
-                    clusterService.localNode().getId(), request.shardId, (new Date().getTime() - now));
-            }
 
+            long numResults = 0;
             for (String reducer : request.reducers) {
                 SQLMapperResultRequest mapperResultRequest = new SQLMapperResultRequest();
                 mapperResultRequest.contextId = request.contextId;
                 mapperResultRequest.groupByResult =
                     new SQLGroupByResult(distributedCollectResult.get(reducer).values());
 
+                numResults += mapperResultRequest.groupByResult.size();
+
+                // TODO: could be optimized if reducerNode == mapperNode to avoid transportService
                 DiscoveryNode node = clusterService.state().getNodes().get(reducer);
                 transportService.submitRequest(
                     node,
@@ -164,6 +164,11 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                     TransportRequestOptions.options(),
                     EmptyTransportResponseHandler.INSTANCE_SAME
                 );
+            }
+
+            if (logger.isTraceEnabled()) {
+                logger.trace("[{}] shard: {} collecting {} results took {} ms",
+                    clusterService.localNode().getId(), request.shardId, numResults, (new Date().getTime() - now));
             }
         } catch (Exception e) {
             throw new CrateException(e);
@@ -269,13 +274,9 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             while ( (row = groupByResult.pollFirst()) != null) {
                 currentRow++;
 
-                // for (Map.Entry<Integer, AggState> aggStateEntry : row.aggregateStates.entrySet()) {
-                //     rows[currentRow][aggStateEntry.getKey()] = aggStateEntry.getValue().value();
-                // }
-
-                // for (Map.Entry<Integer, Object> objectEntry : row.regularColumns.entrySet()) {
-                //     rows[currentRow][objectEntry.getKey()] = objectEntry.getValue();
-                // }
+                for (int c = 0; c < parsedStatement.outputFields().size(); c++) {
+                    rows[currentRow][c] = row.get(c);
+                }
             }
 
             return rows;

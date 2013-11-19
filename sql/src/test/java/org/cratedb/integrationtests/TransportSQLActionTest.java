@@ -6,6 +6,7 @@ import com.google.common.collect.Ordering;
 import org.apache.log4j.Level;
 import org.cratedb.action.SQLQueryService;
 import org.cratedb.action.TransportDistributedSQLAction;
+import org.cratedb.action.TransportSQLReduceHandler;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
@@ -1552,7 +1553,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     public void testCountWithGroupByOrderOnKeyAscAndLimit() throws Exception {
         groupBySetup();
 
-        Loggers.getLogger(TransportDistributedSQLAction.class).setLevel("TRACE");
 
         execute("select count(*), race from characters group by race order by race asc limit 2");
 
@@ -1829,6 +1829,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         // generated using sqlalchemy
         // session.query(func.count(Test.col1), Test.col2).group_by(Test.col2).order_by(desc(func.count(Test.col1))).all()
 
+
         execute("create table test (col1 integer primary key, col2 string)");
         execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
         execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
@@ -1878,6 +1879,8 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     @Test
     public void testGroupByNestedObject() throws Exception {
         groupBySetup();
+        Loggers.getLogger(TransportDistributedSQLAction.class).setLevel("TRACE");
+        Loggers.getLogger(TransportSQLReduceHandler.class).setLevel("TRACE");
 
         execute("select count(*), details['job'] from characters group by details['job'] order by count(*), details['job']");
         assertEquals(3, response.rowCount());
@@ -1910,15 +1913,8 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         );
         refresh();
 
-        execute("select count(*), race, gender from characters group by race, gender order by count(*) desc");
-        assertEquals(5, response.rowCount());
-        assertEquals(3L, response.rows()[0][0]);
-        assertEquals("Android", response.rows()[0][1]);
-        assertEquals("male", response.rows()[0][2]);
 
-        assertEquals(2L, response.rows()[1][0]);
-        assertEquals("Android", response.rows()[1][1]);
-        assertEquals("robot", response.rows()[1][2]);
+        // TODO: should throw an exception - group by on array not supported
     }
 
     @Test

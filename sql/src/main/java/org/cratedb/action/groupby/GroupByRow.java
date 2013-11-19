@@ -5,14 +5,11 @@ import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.AggState;
 import org.cratedb.action.groupby.aggregate.AggStateReader;
-import org.cratedb.action.parser.ColumnDescription;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -34,22 +31,24 @@ public class GroupByRow implements Streamable {
 
     public GroupByKey key;
     public AggState[] aggStates;
+    public Integer[] idxMap;
 
-    public GroupByRow() {
+    public GroupByRow() {}
 
-    }
-
-    public GroupByRow(GroupByKey key, AggState... aggStates) {
+    public GroupByRow(Integer[] idxMap, GroupByKey key, AggState... aggStates) {
+        this.idxMap = idxMap;
         this.aggStates = aggStates;
         this.key = key;
     }
 
-    public static GroupByRow createEmptyRow(GroupByKey key,
+    public static GroupByRow createEmptyRow(Integer[] idxMap,
+                                            GroupByKey key,
                                             List<AggExpr> aggExprs,
                                             Map<String, AggFunction> aggregateFunctions) {
         GroupByRow row = new GroupByRow();
         row.key = key;
         row.aggStates = new AggState[aggExprs.size()];
+        row.idxMap = idxMap;
 
         for (int i = 0; i < row.aggStates.length; i++) {
             row.aggStates[i] = aggregateFunctions.get(aggExprs.get(i).functionName).createAggState();
@@ -59,7 +58,11 @@ public class GroupByRow implements Streamable {
     }
 
     public Object get(int idx) {
-        return null;
+        int realIdx = idxMap[idx];
+        if (realIdx > (key.size() - 1)) {
+            return aggStates[realIdx - key.size()].value();
+        }
+        return key.get(realIdx);
     }
 
     @Override
@@ -83,49 +86,35 @@ public class GroupByRow implements Streamable {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         key = GroupByKey.readFromStreamInput(in);
-        //int numAggregateStates = in.readVInt();
-        //aggregateStates = new HashMap<>(numAggregateStates);
-        //for (int i = 0; i < numAggregateStates; i++) {
-        //    int key = in.readVInt();
-        //    AggState state = AggStateReader.readFrom(in);
-        //    aggregateStates.put(key, state);
-        //}
+        aggStates = new AggState[in.readVInt()];
 
-        //int numRegularColumns = in.readVInt();
-        //regularColumns = new HashMap<>(numRegularColumns);
-        //for (int i = 0; i < numRegularColumns; i++) {
-        //    int key = in.readVInt();
-        //    Object value = in.readGenericValue();
-        //    regularColumns.put(key, value);
-        //}
+        for (int i = 0; i < aggStates.length; i++) {
+            aggStates[i] = AggStateReader.readFrom(in);
+        }
+
+        idxMap = new Integer[in.readVInt()];
+        for (int i = 0; i < idxMap.length; i++) {
+            idxMap[i] = in.readVInt();
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         key.writeTo(out);
-        //out.writeVInt(aggregateStates.size());
-        //for (Map.Entry<Integer, AggState> entry : aggregateStates.entrySet()) {
-        //    out.writeVInt(entry.getKey());
-        //    entry.getValue().writeTo(out);
-        //}
+        out.writeVInt(aggStates.length);
+        for (AggState aggState : aggStates) {
+            aggState.writeTo(out);
+        }
 
-        //if (regularColumns == null) {
-        //    out.writeVInt(0);
-        //} else {
-        //    out.writeVInt(regularColumns.size());
-        //    for (Map.Entry<Integer, Object> entry : regularColumns.entrySet()) {
-        //        out.writeVInt(entry.getKey());
-        //        out.writeGenericValue(entry.getValue());
-        //    }
-        //}
+        out.writeVInt(idxMap.length);
+        for (Integer idx : idxMap) {
+            out.writeVInt(idx);
+        }
     }
 
     public void merge(GroupByRow otherRow) {
-        //for (Map.Entry<Integer, AggState> thisEntry : aggregateStates.entrySet()) {
-        //    AggState currentValue = thisEntry.getValue();
-        //    AggState otherValue = otherRow.aggregateStates.get(thisEntry.getKey());
-        //    currentValue.merge(otherValue);
-        //    thisEntry.setValue(currentValue);
-        //}
+        for (int i = 0; i < aggStates.length; i++) {
+            aggStates[i].merge(otherRow.aggStates[i]);
+        }
     }
 }

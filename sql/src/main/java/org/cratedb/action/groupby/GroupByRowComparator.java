@@ -21,11 +21,15 @@ public class GroupByRowComparator implements Comparator<GroupByRow> {
             Object left = o1.get(orderByIndex.index);
             Object right = o2.get(orderByIndex.index);
 
-            if (left == null) {
-                return 1;
+            if (left != null && right != null) {
+                chain = chain.compare((Comparable)left, (Comparable)right, orderByIndex.ordering);
+            } else if (right != null) {
+                chain = chain.compare(0, 1);
+            } else if (left != null) {
+                chain = chain.compare(1, 0);
+            } else {
+                chain = chain.compare(0, 0);
             }
-
-            chain = chain.compare((Comparable)left, (Comparable)right, orderByIndex.ordering);
         }
 
         return chain.result();

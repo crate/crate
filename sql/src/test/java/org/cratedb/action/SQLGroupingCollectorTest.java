@@ -40,12 +40,15 @@ public class SQLGroupingCollectorTest extends TestCase {
         ParsedStatement stmt = new ParsedStatement(
             "select count(*), city, country from ... group by country, city order by count(*) desc"
         );
+
+        AggExpr countAggExpr = new AggExpr(CountAggFunction.NAME, paramInfo);
         stmt.groupByColumnNames = Arrays.asList("country", "city");
         stmt.resultColumnList = Arrays.asList(
-            new AggExpr(CountAggFunction.NAME, paramInfo),
+            countAggExpr,
             new ColumnReferenceDescription("city"),
             new ColumnReferenceDescription("country")
         );
+        stmt.aggregateExpressions = Arrays.asList(countAggExpr);
 
         DummyGroupKeyLookup dummyGroupKeyLookup = new DummyGroupKeyLookup();
         Map<String, AggFunction> aggFunctionMap = new HashMap<>();
@@ -65,55 +68,45 @@ public class SQLGroupingCollectorTest extends TestCase {
 
         Map<GroupByKey, GroupByRow> result = collector.partitionedResult.get("r1");
 
-        assertThat(result.size(), is(9));
+        assertThat(result.size(), is(3));
 
         assertThat(result.containsKey(new GroupByKey(new Object[] {"austria", "bregenz"})), is(true));
-        assertThat(result.containsKey(new GroupByKey(new Object[] {"austria", "dornbirn"})), is(true));
-        assertThat(result.containsKey(new GroupByKey(new Object[] {"austria", "hohenems"})), is(true));
 
         assertThat(result.containsKey(new GroupByKey(new Object[] {"germany", "somecity1"})), is(true));
-        assertThat(result.containsKey(new GroupByKey(new Object[] {"germany", "somecity2"})), is(true));
-        assertThat(result.containsKey(new GroupByKey(new Object[] {"germany", "somecity3"})), is(true));
+        assertThat(result.containsKey(new GroupByKey(new Object[] {null, "somecity1"})), is(true));
 
-        assertThat(result.containsKey(new GroupByKey(new Object[] {"switzerland", "somecity1"})), is(true));
-        assertThat(result.containsKey(new GroupByKey(new Object[] {"switzerland", "somecity2"})), is(true));
-        assertThat(result.containsKey(new GroupByKey(new Object[] {"switzerland", "somecity3"})), is(true));
 
-        GroupByRow row = result.get(new GroupByKey(new Object[] {"germany", "somecity1"}));
+        GroupByRow row = result.get(new GroupByKey(new Object[] {"austria", "bregenz"}));
         assertThat((Long)((CountAggState)row.get(0)).value(), is(2L));
 
-        row = result.get(new GroupByKey(new Object[] {"austria", "bregenz"}));
-        assertThat((Long)((CountAggState)row.get(0)).value(), is(2L));
+        row = result.get(new GroupByKey(new Object[] {null, "somecity1"}));
+        assertThat((Long)((CountAggState)row.get(0)).value(), is(1L));
 
-        row = result.get(new GroupByKey(new Object[] {"austria", "dornbirn"}));
+        row = result.get(new GroupByKey(new Object[] {"germany", "somecity1"}));
         assertThat((Long)((CountAggState)row.get(0)).value(), is(1L));
     }
 
     class DummyGroupKeyLookup implements GroupByFieldLookup {
 
 
-        private ImmutableMap<Integer, ImmutableMap<String, Object[]>> dummyValues =
-            ImmutableMap.<Integer, ImmutableMap<String, Object[]>>builder()
-            .put(1,
-                ImmutableMap.<String, Object[]>builder()
-                    .put("country", new Object[] {"austria"})
-                    .put("city", new Object[] {"bregenz"}).build()
-            )
-            .put(2,
-                ImmutableMap.<String, Object[]>builder()
-                    .put("country", new Object[]{"austria"})
-                    .put("city", new Object[]{"bregenz", "dornbirn", "hohenems"}).build()
-            )
-            .put(3,
-                ImmutableMap.<String, Object[]>builder()
-                    .put("country", new Object[]{"germany", "switzerland"})
-                    .put("city", new Object[]{"somecity1"}).build()
-            )
-            .put(4,
-                ImmutableMap.<String, Object[]>builder()
-                    .put("country", new Object[] {"germany", "switzerland"})
-                    .put("city", new Object[] {"somecity1", "somecity2", "somecity3"}).build()
-            ).build();
+        private HashMap<Integer, HashMap<String, Object>> dummyValues = new HashMap<Integer, HashMap<String, Object>>() {{
+            put(1, new HashMap<String, Object>() {{
+                put("country", "austria");
+                put("city", "bregenz");
+            }});
+            put(2, new HashMap<String, Object>() {{
+                put("country", "austria");
+                put("city", "bregenz");
+            }});
+            put(3, new HashMap<String, Object>() {{
+                put("country", null);
+                put("city", "somecity1");
+            }});
+            put(4, new HashMap<String, Object>() {{
+                put("country", "germany");
+                put("city", "somecity1");
+            }});
+        }};
 
         private int currentDocId;
 

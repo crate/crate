@@ -6,6 +6,8 @@ import org.apache.lucene.search.Scorer;
 import org.cratedb.action.GroupByFieldLookup;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.parser.ColumnDescription;
+import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.sql.ParsedStatement;
 
 import java.io.IOException;
@@ -26,6 +28,7 @@ public class SQLGroupingCollector extends Collector {
     private final GroupByFieldLookup groupByFieldLookup;
     private final ParsedStatement parsedStatement;
     private final Map<String, AggFunction> aggFunctionMap;
+    private final Integer[] idxMap;
 
     /**
      * Partitioned and grouped results.
@@ -61,6 +64,25 @@ public class SQLGroupingCollector extends Collector {
         for (String reducer : reducers) {
             partitionedResult.put(reducer, new TreeMap<GroupByKey, GroupByRow>());
         }
+
+        idxMap = new Integer[parsedStatement.resultColumnList.size()];
+        int aggIdx = 0;
+        int idx = 0;
+        for (ColumnDescription columnDescription : parsedStatement.resultColumnList) {
+            switch (columnDescription.type) {
+                case ColumnDescription.Types.AGGREGATE_COLUMN:
+                    idxMap[idx] = aggIdx + parsedStatement.groupByColumnNames.size();
+                    aggIdx++;
+                    break;
+
+                case ColumnDescription.Types.CONSTANT_COLUMN:
+                    idxMap[idx] = parsedStatement.groupByColumnNames.indexOf(
+                        ((ColumnReferenceDescription)columnDescription).name);
+                    break;
+            }
+
+            idx++;
+        }
     }
 
     @Override
@@ -81,7 +103,7 @@ public class SQLGroupingCollector extends Collector {
 
         GroupByRow row = resultMap.get(key);
         if (row == null) {
-            row = GroupByRow.createEmptyRow(key, parsedStatement.aggregateExpressions, aggFunctionMap);
+            row = GroupByRow.createEmptyRow(idxMap, key, parsedStatement.aggregateExpressions, aggFunctionMap);
             resultMap.put(key, row);
         }
 

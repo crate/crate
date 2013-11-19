@@ -12,6 +12,7 @@ import java.util.Arrays;
 public class GroupByKey implements Streamable, Comparable<GroupByKey> {
 
     private Object[] keyValue;
+    Ordering<Comparable> ordering = Ordering.natural();
 
     public GroupByKey() {
 
@@ -37,22 +38,29 @@ public class GroupByKey implements Streamable, Comparable<GroupByKey> {
     @Override
     public int compareTo(GroupByKey other) {
         assert this.size() == other.size();
-
-        Ordering<Comparable> ordering = Ordering.natural();
         ComparisonChain chain = ComparisonChain.start();
 
         for (int i = 0; i < this.size(); i++) {
             Object left = this.get(i);
             Object right = other.get(i);
 
-            if (left == null) {
-                return 1;
+            if (left != null && right != null) {
+                chain = chain.compare((Comparable)left, (Comparable)right, ordering);
+            } else if (right != null) {
+                chain = chain.compare(0, 1);
+            } else if (left != null) {
+                chain = chain.compare(1, 0);
+            } else {
+                chain = chain.compare(0, 0);
             }
-
-            chain = chain.compare((Comparable)left, (Comparable)right, ordering);
         }
 
         return chain.result();
+    }
+
+    @Override
+    public String toString() {
+        return "GroupByKey{" + Arrays.toString(keyValue) + "}";
     }
 
     @Override
