@@ -4,14 +4,11 @@ import com.google.common.collect.MinMaxPriorityQueue;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.GroupByRowComparator;
 import org.cratedb.action.groupby.aggregate.AggState;
-import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.CrateException;
-import org.cratedb.sql.SQLParseException;
-import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.ElasticSearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.NoShardAvailableActionException;
@@ -31,7 +28,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -196,6 +196,8 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
             if (parsedStatement.limit != null) {
                 rowBuilder.maximumSize(parsedStatement.limit);
+            } else {
+                rowBuilder.maximumSize(SQLParseService.DEFAULT_SELECT_LIMIT);
             }
             this.groupByResult = rowBuilder.create();
             clusterState = clusterService.state();

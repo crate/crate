@@ -17,7 +17,7 @@ import java.util.List;
 
 public class SQLParseService {
 
-    public static final Integer DEFAULT_SELECT_LIMIT = 1000;
+    public static final Integer DEFAULT_SELECT_LIMIT = 10000;
     public final NodeExecutionContext context;
 
     @Inject

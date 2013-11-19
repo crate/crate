@@ -188,7 +188,7 @@ public class QueryVisitorTest {
     @Test
     public void testSelectAllAndFieldFromTable() throws StandardException, IOException {
         execStatement("select *, name from locations");
-        assertEquals("{\"fields\":[\"a\",\"b\",\"name\"],\"query\":{\"match_all\":{}},\"size\":1000}",
+        assertEquals("{\"fields\":[\"a\",\"b\",\"name\"],\"query\":{\"match_all\":{}},\"size\":10000}",
                 getSource());
     }
 
@@ -705,7 +705,7 @@ public class QueryVisitorTest {
     @Test
     public void testWhereClauseInList() throws StandardException {
         execStatement("select * from locations where position in (?,?,?)", new Object[]{3, 5, 6});
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"terms\":{\"position\":[3,5,6]}},\"size\":1000}", getSource());
+        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"terms\":{\"position\":[3,5,6]}},\"size\":10000}", getSource());
     }
 
     @Test
@@ -775,7 +775,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereLikePrefixQuery() throws Exception {
         execStatement("select kind from locations where kind like 'P%'");
         assertEquals(
-            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P*\"}},\"size\":1000}",
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P*\"}},\"size\":10000}",
             getSource()
         );
     }
@@ -784,7 +784,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereLikePrefixQueryEscaped() throws Exception {
         execStatement("select kind from locations where kind like 'P\\%'");
         assertEquals(
-            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P%\"}},\"size\":1000}",
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P%\"}},\"size\":10000}",
             getSource()
         );
     }
@@ -793,7 +793,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereLikeWithEscapedStar() throws Exception {
         execStatement("select kind from locations where kind like 'P*'");
         assertEquals(
-            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\\\\*\"}},\"size\":1000}",
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\\\\*\"}},\"size\":10000}",
             getSource()
         );
     }
@@ -802,7 +802,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereLikeWithoutWildcards() throws Exception {
         execStatement("select kind from locations where kind like 'P'");
         assertEquals(
-            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\"}},\"size\":1000}",
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\"}},\"size\":10000}",
             getSource()
         );
     }
@@ -811,7 +811,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereLikePrefixQueryUnderscore() throws Exception {
         execStatement("select kind from locations where kind like 'P_'");
         assertEquals(
-            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P?\"}},\"size\":1000}",
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P?\"}},\"size\":10000}",
             getSource()
         );
     }
@@ -820,7 +820,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereLikePrefixQueryUnderscoreEscaped() throws Exception {
         execStatement("select kind from locations where kind like 'P\\_'");
         assertEquals(
-            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P_\"}},\"size\":1000}",
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P_\"}},\"size\":10000}",
             getSource()
         );
     }
@@ -829,7 +829,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereLikePrefixQueryQuestionmark() throws Exception {
         execStatement("select kind from locations where kind like 'P?'");
         assertEquals(
-            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\\\\?\"}},\"size\":1000}",
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\\\\?\"}},\"size\":10000}",
             getSource()
         );
     }
@@ -838,7 +838,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereLikeReversed() throws Exception {
         execStatement("select kind from locations where 'P_' like kind");
         assertEquals(
-            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P?\"}},\"size\":1000}",
+            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P?\"}},\"size\":10000}",
             getSource()
         );
     }
@@ -871,7 +871,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereMatch() throws Exception {
         execStatement("select kind from locations where match(kind, 'Star')");
         assertEquals(
-                "{\"fields\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"size\":1000}",
+                "{\"fields\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"size\":10000}",
                 getSource()
         );
     }
@@ -880,7 +880,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereNotMatch() throws Exception {
         execStatement("select kind from locations where not match(kind, 'Star')");
         assertEquals(
-                "{\"fields\":[\"kind\"],\"query\":{\"bool\":{\"must_not\":{\"match\":{\"kind\":\"Star\"}}}},\"size\":1000}",
+                "{\"fields\":[\"kind\"],\"query\":{\"bool\":{\"must_not\":{\"match\":{\"kind\":\"Star\"}}}},\"size\":10000}",
                 getSource()
         );
     }
@@ -889,7 +889,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereMatchAnd() throws Exception {
         execStatement("select kind from locations where match(kind, 'Star') and name = 'Algol'");
         assertEquals(
-                "{\"fields\":[\"kind\"],\"query\":{\"bool\":{\"minimum_should_match\":1,\"must\":[{\"match\":{\"kind\":\"Star\"}},{\"term\":{\"name\":\"Algol\"}}]}},\"size\":1000}",
+                "{\"fields\":[\"kind\"],\"query\":{\"bool\":{\"minimum_should_match\":1,\"must\":[{\"match\":{\"kind\":\"Star\"}},{\"term\":{\"name\":\"Algol\"}}]}},\"size\":10000}",
                 getSource()
         );
     }
@@ -900,7 +900,7 @@ public class QueryVisitorTest {
                 "order by \"_score\" desc",
                 new Object[]{"Star", "Star"});
         assertEquals(
-                "{\"fields\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"sort\":[{\"_score\":{\"order\":\"desc\",\"ignore_unmapped\":true}}],\"size\":1000}",
+                "{\"fields\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"sort\":[{\"_score\":{\"order\":\"desc\",\"ignore_unmapped\":true}}],\"size\":10000}",
                 getSource()
         );
     }
@@ -911,7 +911,7 @@ public class QueryVisitorTest {
                 "order by \"_score\" desc",
                 new Object[]{"Star", "Star"});
         assertEquals(
-                "{\"fields\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"sort\":[{\"_score\":{\"order\":\"desc\",\"ignore_unmapped\":true}}],\"size\":1000}",
+                "{\"fields\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"sort\":[{\"_score\":{\"order\":\"desc\",\"ignore_unmapped\":true}}],\"size\":10000}",
                 getSource()
         );
     }
@@ -922,7 +922,7 @@ public class QueryVisitorTest {
                 "and \"_score\" > 0.05",
                 new Object[]{"Star", "Star"});
         assertEquals(
-                "{\"fields\":[\"kind\"],\"query\":{\"bool\":{\"minimum_should_match\":1,\"must\":[{\"match\":{\"kind\":\"Star\"}},{\"match_all\":{}}]}},\"min_score\":0.05,\"size\":1000}",
+                "{\"fields\":[\"kind\"],\"query\":{\"bool\":{\"minimum_should_match\":1,\"must\":[{\"match\":{\"kind\":\"Star\"}},{\"match_all\":{}}]}},\"min_score\":0.05,\"size\":10000}",
                 getSource()
         );
     }

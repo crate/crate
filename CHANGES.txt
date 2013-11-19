@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Increased default ``SELECT`` limit to 10000.
+   Also use this default limit on ``GROUP BY`` queries if no limit is defined explicit.
+
  - Fix: NPE was thrown when using a star select on an index with no defined mappings
 
 2013/11/18 0.19.4
