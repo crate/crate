@@ -16,9 +16,6 @@ public class GroupByRowComparator implements Comparator<GroupByRow> {
 
     @Override
     public int compare(GroupByRow o1, GroupByRow o2) {
-
-        Ordering<Comparable> ordering = Ordering.natural();
-        Ordering<Comparable> reverseOrdering = Ordering.natural().reverse();
         ComparisonChain chain = ComparisonChain.start();
         for (OrderByColumnIdx orderByIndex : orderByIndices) {
             Object left = o1.get(orderByIndex.index);
@@ -28,11 +25,7 @@ public class GroupByRowComparator implements Comparator<GroupByRow> {
                 return 1;
             }
 
-            if (orderByIndex.isAsc) {
-                chain = chain.compare((Comparable)left, (Comparable)right, ordering);
-            } else {
-                chain = chain.compare((Comparable)left, (Comparable)right, reverseOrdering);
-            }
+            chain = chain.compare((Comparable)left, (Comparable)right, orderByIndex.ordering);
         }
 
         return chain.result();

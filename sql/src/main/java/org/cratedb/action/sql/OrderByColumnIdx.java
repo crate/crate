@@ -1,5 +1,6 @@
 package org.cratedb.action.sql;
 
+import com.google.common.collect.Ordering;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -9,7 +10,21 @@ import java.io.IOException;
 public class OrderByColumnIdx implements Streamable {
 
     public Integer index;
-    public boolean isAsc;
+    private boolean isAsc;
+    public Ordering<Comparable> ordering = Ordering.natural();
+
+    public boolean isAsc() {
+        return isAsc;
+    }
+
+    public void isAsc(boolean isAsc) {
+        this.isAsc = isAsc;
+        if (isAsc) {
+            ordering = Ordering.natural();
+        } else {
+            ordering = Ordering.natural().reverse();
+        }
+    }
 
     public OrderByColumnIdx() {
         // empty ctor for streaming
@@ -17,13 +32,13 @@ public class OrderByColumnIdx implements Streamable {
 
     public OrderByColumnIdx(int index, boolean isAsc) {
         this.index = index;
-        this.isAsc = isAsc;
+        isAsc(isAsc);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         index = in.readVInt();
-        isAsc = in.readBoolean();
+        isAsc(in.readBoolean());
     }
 
     @Override

@@ -204,7 +204,7 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
 
         for (int i = 0; i < stmt.orderByColumns.size(); i++) {
             OrderByColumnName column = stmt.orderByColumns.get(i);
-            boolean reverse = !column.isAsc;
+            boolean reverse = !column.isAsc();
             InformationSchemaColumn tableColumn = this.fieldMapper().get(column.name);
             if (tableColumn != null) {
                 sortFields.add(new SortField(column.name, tableColumn.type, reverse));
