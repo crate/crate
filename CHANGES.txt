@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: NPE was thrown when using a star select on an index with no defined mappings
+
 2013/11/18 0.19.4
 =================
 
