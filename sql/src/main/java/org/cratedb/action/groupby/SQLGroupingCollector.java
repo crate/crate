@@ -1,19 +1,16 @@
 package org.cratedb.action.groupby;
 
-import com.google.common.base.Joiner;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Scorer;
 import org.cratedb.action.GroupByFieldLookup;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
-import org.cratedb.action.parser.ColumnDescription;
-import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.sql.ParsedStatement;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 import static com.google.common.collect.Maps.newHashMap;
 
@@ -27,7 +24,6 @@ public class SQLGroupingCollector extends Collector {
 
     private final String[] reducers;
     private final GroupByFieldLookup groupByFieldLookup;
-    private final GroupingKeyGenerator keyGenerator;
     private final ParsedStatement parsedStatement;
     private final Map<String, AggFunction> aggFunctionMap;
 
@@ -42,15 +38,15 @@ public class SQLGroupingCollector extends Collector {
      *
      * partitionedResult = {
      *     "node1": {
-     *         "hash Human": (GroupByRow)[AvgAggState, "Human", CountAggState],
-     *         "hash Vogon": (GroupByRow)[AvgAggState, "Vogon", CountAggState]
+     *         GroupByKey {"Human"}: (GroupByRow)[AvgAggState, CountAggState],
+     *         GroupByKey {"Vogon"}: (GroupByRow)[AvgAggState, CountAggState]
      *     },
      *     "node2": {
-     *         "hash Android": (GroupByRow)[AvgAggState, "Android", CountAggState]
+     *         GroupByKey {"Android"}: (GroupByRow)[AvgAggState, CountAggState]
      *     }
      * }
      */
-    public Map<String, Map<Integer, GroupByRow>> partitionedResult = newHashMap();
+    public Map<String, Map<GroupByKey, GroupByRow>> partitionedResult = newHashMap();
 
     public SQLGroupingCollector(ParsedStatement parsedStatement,
                                 GroupByFieldLookup groupByFieldLookup,
@@ -62,10 +58,8 @@ public class SQLGroupingCollector extends Collector {
         this.aggFunctionMap = aggFunctionMap;
 
         assert parsedStatement.groupByColumnNames != null;
-        keyGenerator = new GroupingKeyGenerator(parsedStatement.groupByColumnNames.size());
-
         for (String reducer : reducers) {
-            partitionedResult.put(reducer, new HashMap<Integer, GroupByRow>());
+            partitionedResult.put(reducer, new TreeMap<GroupByKey, GroupByRow>());
         }
     }
 
@@ -76,51 +70,35 @@ public class SQLGroupingCollector extends Collector {
     @Override
     public void collect(int doc) throws IOException {
         groupByFieldLookup.setNextDocId(doc);
-        keyGenerator.reset();
-        for (String groupByColumn : parsedStatement.groupByColumnNames) {
-            Object groupByColValue = groupByFieldLookup.lookupField(groupByColumn);
-            keyGenerator.add(groupByColumn, groupByColValue);
-
+        Object[] keyValue = new Object[parsedStatement.groupByColumnNames.size()];
+        for (int i = 0; i < parsedStatement.groupByColumnNames.size(); i++) {
+            keyValue[i] = groupByFieldLookup.lookupField(parsedStatement.groupByColumnNames.get(i));
         }
+        GroupByKey key = new GroupByKey(keyValue);
 
-        int key = keyGenerator.getKey();
         String reducer = partitionByKey(reducers, key);
-        Map<Integer, GroupByRow> resultMap = partitionedResult.get(reducer);
+        Map<GroupByKey, GroupByRow> resultMap = partitionedResult.get(reducer);
 
         GroupByRow row = resultMap.get(key);
         if (row == null) {
-            row = GroupByRow.createEmptyRow(parsedStatement.resultColumnList, aggFunctionMap);
+            row = GroupByRow.createEmptyRow(key, parsedStatement.aggregateExpressions, aggFunctionMap);
+            resultMap.put(key, row);
         }
 
-        int columnIdx = -1;
-        for (ColumnDescription column : parsedStatement.resultColumnList) {
-            columnIdx++;
-            switch (column.type) {
-                case ColumnDescription.Types.AGGREGATE_COLUMN:
-                    Object value = null;
-                    AggExpr aggExpr = (AggExpr)column;
-                    if (!aggExpr.parameterInfo.isAllColumn) {
-                        throw new UnsupportedOperationException("select aggFunc(column) not supported!");
-                    }
-
-                    AggFunction function = aggFunctionMap.get(aggExpr.functionName);
-                    function.iterate(row.aggregateStates.get(columnIdx), value);
-                    break;
-
-                case ColumnDescription.Types.CONSTANT_COLUMN:
-                    row.regularColumns.put(
-                        columnIdx,
-                        keyGenerator.getValue(((ColumnReferenceDescription)column).name)
-                    );
-                    break;
+        for (int i = 0; i < parsedStatement.aggregateExpressions.size(); i++) {
+            AggExpr aggExpr = parsedStatement.aggregateExpressions.get(i);
+            Object value = null;
+            if (!aggExpr.parameterInfo.isAllColumn) {
+                throw new UnsupportedOperationException("select aggFunc(column) not supported!");
             }
-        }
 
-        resultMap.put(key, row);
+            AggFunction function = aggFunctionMap.get(aggExpr.functionName);
+            function.iterate(row.aggStates[i], value);
+        }
     }
 
-    private String partitionByKey(String[] reducers, int key) {
-        return reducers[Math.abs(key) % reducers.length];
+    private String partitionByKey(String[] reducers, GroupByKey key) {
+        return reducers[Math.abs(key.hashCode()) % reducers.length];
     }
 
     @Override
@@ -131,35 +109,5 @@ public class SQLGroupingCollector extends Collector {
     @Override
     public boolean acceptsDocsOutOfOrder() {
         return true;
-    }
-
-    private class GroupingKeyGenerator {
-
-        Map<String, Object> keyMap;
-
-        public GroupingKeyGenerator(Integer size) {
-            keyMap = new HashMap<>(size);
-        }
-
-        public void add(String columnName, Object value) {
-            keyMap.put(columnName, value);
-        }
-
-        public Object getValue(String columnName) {
-            return keyMap.get(columnName);
-        }
-
-        public void reset() {
-            keyMap.clear();
-        }
-
-        public int getKey() {
-            int result = 1;
-            for (Object o : keyMap.values()) {
-                result = result * 31 + (o != null ? o.hashCode() : 0);
-            }
-
-            return result;
-        }
     }
 }

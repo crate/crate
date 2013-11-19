@@ -3,6 +3,9 @@ package org.cratedb.integrationtests;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Ordering;
+import org.apache.log4j.Level;
+import org.cratedb.action.SQLQueryService;
+import org.cratedb.action.TransportDistributedSQLAction;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
@@ -19,6 +22,7 @@ import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -1547,6 +1551,8 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     @Test
     public void testCountWithGroupByOrderOnKeyAscAndLimit() throws Exception {
         groupBySetup();
+
+        Loggers.getLogger(TransportDistributedSQLAction.class).setLevel("TRACE");
 
         execute("select count(*), race from characters group by race order by race asc limit 2");
 

@@ -242,6 +242,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
         Set<String> fields = new LinkedHashSet<>();
         stmt.resultColumnList = new ArrayList<>(columnList.size());
+        stmt.aggregateExpressions = new ArrayList<>();
 
         for (ResultColumn column : columnList) {
             if (column instanceof AllResultColumn) {
@@ -308,7 +309,9 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             if (operand != null) {
                 validateCountOperand(operand);
             }
-            stmt.resultColumnList.add(AggExprFactory.createAggExpr("COUNT(*)"));
+            AggExpr aggExpr = AggExprFactory.createAggExpr("COUNT(*)");
+            stmt.resultColumnList.add(aggExpr);
+            stmt.aggregateExpressions.add(aggExpr);
             String alias = column.getName() != null ? column.getName() : node.getAggregateName();
             stmt.countRequest(true);
             stmt.addOutputField(alias, node.getAggregateName());

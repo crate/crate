@@ -33,7 +33,7 @@ public class SQLReduceJobStatus {
         }
 
         MinMaxPriorityQueue<GroupByRow> q = rowBuilder.create();
-        for (GroupByRow groupByRow : groupByResult.result.values()) {
+        for (GroupByRow groupByRow : groupByResult.result) {
             q.add(groupByRow);
         }
 

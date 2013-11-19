@@ -2,6 +2,7 @@ package org.cratedb.action.sql;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.search.Query;
+import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.sql.parser.parser.NodeTypes;
 import org.elasticsearch.action.index.IndexRequest;
@@ -104,6 +105,7 @@ public class ParsedStatement {
 
     public List<String> groupByColumnNames;
     public List<ColumnDescription> resultColumnList;
+    public List<AggExpr> aggregateExpressions;
 
     public Integer limit = null;
     public Integer offset = null;

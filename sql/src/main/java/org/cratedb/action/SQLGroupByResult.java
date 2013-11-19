@@ -1,5 +1,6 @@
 package org.cratedb.action;
 
+import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.aggregate.AggState;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -7,8 +8,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static com.google.common.collect.Maps.newHashMap;
 
@@ -20,14 +20,14 @@ import static com.google.common.collect.Maps.newHashMap;
  */
 public class SQLGroupByResult implements Streamable {
 
-    public Map<Integer, GroupByRow> result = newHashMap();
+    public List<GroupByRow> result;
 
     public SQLGroupByResult() {
         // empty ctor - serialization
     }
 
-    public SQLGroupByResult(Map<Integer, GroupByRow> result) {
-        this.result = result;
+    public SQLGroupByResult(Collection<GroupByRow> result) {
+        this.result = new ArrayList<>(result);
     }
 
     public void merge(SQLGroupByResult otherResult) {
@@ -41,20 +41,46 @@ public class SQLGroupByResult implements Streamable {
      * if the entry is in result the values are merged.
      * @param mapperResult
      */
-    protected void merge(Map<Integer, GroupByRow> mapperResult) {
-        for (Map.Entry<Integer, GroupByRow> entry : mapperResult.entrySet()) {
-            GroupByRow currentRow = result.get(entry.getKey());
-            if (currentRow == null) {
-                result.put(entry.getKey(), entry.getValue());
-            } else {
-                GroupByRow otherRow = entry.getValue();
-                assert currentRow.size() == otherRow.size();
+    protected void merge(Collection<GroupByRow> mapperResult) {
+        if (result == null || result.isEmpty()) {
+            result = new ArrayList<>(mapperResult);
+            return;
+        }
+        if (mapperResult == null || mapperResult.isEmpty()) {
+            return;
+        }
 
-                for (Map.Entry<Integer, AggState> aggEntry : otherRow.aggregateStates.entrySet()) {
-                    AggState currentState = currentRow.aggregateStates.get(aggEntry.getKey());
-                    currentState.merge(aggEntry.getValue());
-                }
+        Iterator<GroupByRow> thisIterator = result.iterator();
+        Iterator<GroupByRow> otherIterator = mapperResult.iterator();
+
+        GroupByRow otherRow = otherIterator.next();
+        GroupByRow thisRow = thisIterator.next();
+        boolean exit = false;
+        while (!exit) {
+            switch (thisRow.key.compareTo(otherRow.key)) {
+                case 0:
+                    thisRow.merge(otherRow);
+                    if (otherIterator.hasNext()) {
+                        otherRow = otherIterator.next();
+                    } else {
+                        exit = true;
+                    }
+                    break;
+                case -1:
+                case 1:
+                    if (thisIterator.hasNext()) {
+                        thisRow = thisIterator.next();
+                    } else {
+                        result.add(otherRow);
+                        exit = true;
+                    }
+                    break;
             }
+        }
+
+        while (otherIterator.hasNext()) {
+            otherRow =  otherIterator.next();
+            result.add(otherRow);
         }
     }
 
@@ -64,20 +90,19 @@ public class SQLGroupByResult implements Streamable {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        int mapSize = in.readVInt();
-        result = new HashMap<>(mapSize);
-        for (int i = 0; i < mapSize; i++) {
-            int key = in.readInt();
-            result.put(key, GroupByRow.readGroupByRow(in));
+        int resultSize = in.readVInt();
+        result = new ArrayList<>(resultSize);
+
+        for (int i = 0; i < resultSize; i++) {
+            result.add(GroupByRow.readGroupByRow(in));
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(result.size());
-        for (Map.Entry<Integer, GroupByRow> entry : result.entrySet()) {
-            out.writeInt(entry.getKey());
-            entry.getValue().writeTo(out);
+        for (GroupByRow groupByRow : result) {
+            groupByRow.writeTo(out);
         }
     }
 
