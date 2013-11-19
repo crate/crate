@@ -9,5 +9,5 @@ public interface GroupByFieldLookup {
 
     public void setNextDocId(int doc);
     public void setNextReader(AtomicReaderContext context);
-    public Object lookupField(String columnName);
+    public Object[] getValues(String columnName);
 }

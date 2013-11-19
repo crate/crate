@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fix: group by statements now work correctly for multi value columns.
+
 2013/11/18 0.19.4
 =================
 

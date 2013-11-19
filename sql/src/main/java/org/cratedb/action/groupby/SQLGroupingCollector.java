@@ -12,8 +12,7 @@ import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.sql.ParsedStatement;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static com.google.common.collect.Maps.newHashMap;
 
@@ -73,50 +72,107 @@ public class SQLGroupingCollector extends Collector {
     public void setScorer(Scorer scorer) throws IOException {
     }
 
+    /**
+     * for each key (column in the group by clause) get the values and then all possible
+     * combinations
+     *
+     * e.g.: group by tags, cats
+     *
+     * tags: t1, t2
+     * cats: c1, c2, c3
+     *
+     *  ->
+     *
+     * values:
+     *  [
+     *      [t1, t2],
+     *      [c1, c2, c3]
+     *  ]
+     *
+     *  ->
+     *
+     * keyValues:  [ (t1, c1), (t1, c2), (t1, c3), (t2, c1), (t2, c2), (t2, c3) ]
+     *
+     * @return combination of all keyValue pairs.
+     */
+    private List<Object[]> getKeyValues() {
+        Object[][] values = new Object[parsedStatement.groupByColumnNames.size()][];
+
+        int combinations = 1;
+        for (int i = 0; i < values.length; i++) {
+            values[i] = groupByFieldLookup.getValues(parsedStatement.groupByColumnNames.get(i));
+            combinations *= values[i].length;
+        }
+
+        Deque<Object> newRow = new LinkedList<>();
+        List<Object[]> keyValues = new ArrayList<>(combinations);
+        getPermutations(values, keyValues, 0, newRow);
+
+        return keyValues;
+    }
+
+    private void getPermutations(Object[][] values,
+                                 List<Object[]> keyValues, int index, Deque<Object> newRow) {
+
+        if (index == values.length) {
+            keyValues.add(newRow.toArray());
+        } else {
+            Object[] row = values[index];
+            for (Object o : row) {
+                newRow.addLast(o);
+                getPermutations(values, keyValues, index + 1, newRow);
+                newRow.removeLast();
+            }
+        }
+    }
+
     @Override
     public void collect(int doc) throws IOException {
         groupByFieldLookup.setNextDocId(doc);
-        keyGenerator.reset();
-        for (String groupByColumn : parsedStatement.groupByColumnNames) {
-            Object groupByColValue = groupByFieldLookup.lookupField(groupByColumn);
-            keyGenerator.add(groupByColumn, groupByColValue);
+        List<Object[]> keyValues = getKeyValues();
 
-        }
+        for (Object[] keyValue : keyValues) {
+            keyGenerator.reset();
 
-        int key = keyGenerator.getKey();
-        String reducer = partitionByKey(reducers, key);
-        Map<Integer, GroupByRow> resultMap = partitionedResult.get(reducer);
-
-        GroupByRow row = resultMap.get(key);
-        if (row == null) {
-            row = GroupByRow.createEmptyRow(parsedStatement.resultColumnList, aggFunctionMap);
-        }
-
-        int columnIdx = -1;
-        for (ColumnDescription column : parsedStatement.resultColumnList) {
-            columnIdx++;
-            switch (column.type) {
-                case ColumnDescription.Types.AGGREGATE_COLUMN:
-                    Object value = null;
-                    AggExpr aggExpr = (AggExpr)column;
-                    if (!aggExpr.parameterInfo.isAllColumn) {
-                        throw new UnsupportedOperationException("select aggFunc(column) not supported!");
-                    }
-
-                    AggFunction function = aggFunctionMap.get(aggExpr.functionName);
-                    function.iterate(row.aggregateStates.get(columnIdx), value);
-                    break;
-
-                case ColumnDescription.Types.CONSTANT_COLUMN:
-                    row.regularColumns.put(
-                        columnIdx,
-                        keyGenerator.getValue(((ColumnReferenceDescription)column).name)
-                    );
-                    break;
+            for (int i = 0; i < keyValue.length; i++) {
+                keyGenerator.add(parsedStatement.groupByColumnNames.get(i), keyValue[i]);
             }
-        }
 
-        resultMap.put(key, row);
+            int key = keyGenerator.getKey();
+            String reducer = partitionByKey(reducers, key);
+            Map<Integer, GroupByRow> resultMap = partitionedResult.get(reducer);
+
+            GroupByRow row = resultMap.get(key);
+            if (row == null) {
+                row = GroupByRow.createEmptyRow(parsedStatement.resultColumnList, aggFunctionMap);
+            }
+
+            int columnIdx = -1;
+            for (ColumnDescription column : parsedStatement.resultColumnList) {
+                columnIdx++;
+                switch (column.type) {
+                    case ColumnDescription.Types.AGGREGATE_COLUMN:
+                        Object value = null;
+                        AggExpr aggExpr = (AggExpr)column;
+                        if (!aggExpr.parameterInfo.isAllColumn) {
+                            throw new UnsupportedOperationException("select aggFunc(column) not supported!");
+                        }
+
+                        AggFunction function = aggFunctionMap.get(aggExpr.functionName);
+                        function.iterate(row.aggregateStates.get(columnIdx), value);
+                        break;
+
+                    case ColumnDescription.Types.CONSTANT_COLUMN:
+                        row.regularColumns.put(
+                            columnIdx,
+                            keyGenerator.getValue(((ColumnReferenceDescription)column).name)
+                        );
+                        break;
+                }
+            }
+
+            resultMap.put(key, row);
+        }
     }
 
     private String partitionByKey(String[] reducers, int key) {
