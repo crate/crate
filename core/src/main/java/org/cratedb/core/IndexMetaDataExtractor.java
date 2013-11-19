@@ -3,12 +3,10 @@ package org.cratedb.core;
 import com.google.common.base.Joiner;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.Booleans;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Helper class to extract frequently needed attributes from IndexMetaData
@@ -29,6 +27,18 @@ public class IndexMetaDataExtractor {
             this.dataType = dataType;
             this.ordinalPosition = ordinalPosition;
             this.dynamic = dynamic;
+        }
+    }
+
+    /*
+     * Columndefinition that contains other columns
+     */
+    public static class ObjectColumnDefinition extends ColumnDefinition {
+        public final List<ColumnDefinition> nestedColumns = new ArrayList<>();
+
+
+        public ObjectColumnDefinition(String tableName, String columnName, String dataType, int ordinalPosition, boolean dynamic) {
+            super(tableName, columnName, dataType, ordinalPosition, dynamic);
         }
     }
 
@@ -302,18 +312,17 @@ public class IndexMetaDataExtractor {
                     ||
                     columnProperties.get("type").equals("object")) {
                 boolean dynamic = columnProperties.get("dynamic") == null ||
-                        !columnProperties.get("dynamic").equals("strict") ||
-                        !columnProperties.get("dynamic").equals(false);
+                        !(columnProperties.get("dynamic").equals("strict") ||
+                        columnProperties.get("dynamic").equals(false) ||
+                        Booleans.isExplicitFalse((String)columnProperties.get("dynamic")));
                 String objectColumnName = getColumnName(prefix, columnEntry.getKey());
                 // add object column before child columns
-                columns.add(
-                        new ColumnDefinition(
-                                indexName,
-                                objectColumnName,
-                                getColumnDataType(columnProperties),
-                                startPos++,
-                                dynamic
-                        )
+                ObjectColumnDefinition objectColumnDefinition = new ObjectColumnDefinition(
+                        indexName,
+                        objectColumnName,
+                        getColumnDataType(columnProperties),
+                        startPos++,
+                        dynamic
                 );
                 if (columnProperties.get("properties") != null) {
 
@@ -321,11 +330,13 @@ public class IndexMetaDataExtractor {
                     startPos = internalExtractColumnDefinitions(
                             indexName,
                             objectColumnName,
-                            columns,
+                            objectColumnDefinition.nestedColumns,
                             (Map<String, Object>)columnProperties.get("properties"),
                             startPos
                     );
                 }
+                columns.add(objectColumnDefinition);
+                columns.addAll(objectColumnDefinition.nestedColumns);
 
             } else {
                 String columnName = getColumnName(prefix, columnEntry.getKey());
@@ -370,7 +381,6 @@ public class IndexMetaDataExtractor {
                         for (Map.Entry<String, Object> multiColumnEntry:
                                 ((Map<String, Object>)columnProperties.get("fields")).entrySet()) {
                             Map<String, Object> multiColumnProperties = (Map)multiColumnEntry.getValue();
-
 
                             Index idx = Index.create(tableName,
                                     multiColumnEntry.getKey(),

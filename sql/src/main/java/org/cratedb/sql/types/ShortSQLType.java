@@ -1,11 +1,11 @@
 package org.cratedb.sql.types;
 
 
-public class ShortSQLType extends ScalarSQLType {
+public class ShortSQLType extends NumericSQLType {
 
     public static final String NAME = "short";
     @Override
-    public String mappingTypeName() {
+    public String typeName() {
         return NAME;
     }
 
@@ -18,6 +18,5 @@ public class ShortSQLType extends ScalarSQLType {
     protected Object convertNumber(Number value) throws ConvertException {
         return value.intValue();
     }
-
 
 }

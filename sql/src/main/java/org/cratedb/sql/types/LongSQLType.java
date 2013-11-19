@@ -1,10 +1,10 @@
 package org.cratedb.sql.types;
 
-public class LongSQLType extends ScalarSQLType {
+public class LongSQLType extends NumericSQLType {
     public static final String NAME = "long";
 
     @Override
-    public String mappingTypeName() {
+    public String typeName() {
         return NAME;
     }
 

@@ -46,7 +46,7 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
     }
 
     private void refresh() {
-        node.client().admin().indices().prepareRefresh().execute().actionGet();
+        refresh(node.client());
     }
     private IndexMetaData getIndexMetaData(String indexName) {
         ClusterStateResponse stateResponse = node.client().admin().cluster()
@@ -447,5 +447,126 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
         IndexMetaData metaData = getIndexMetaData("test11");
         IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
         assertThat(extractor.getRoutingColumn(), is("_id"));
+    }
+
+    @Test
+    public void testExtractObjectColumn() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                    .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                        .startObject("properties")
+                            .startObject("craty_field")
+                                .startObject("properties")
+                                    .startObject("size")
+                                        .field("type", "byte")
+                                        .field("index", "not_analyzed")
+                                    .endObject()
+                                    .startObject("created")
+                                        .field("type", "date")
+                                        .field("index", "not_analyzed")
+                                    .endObject()
+                                .endObject()
+                            .endObject()
+                            .startObject("strict_field")
+                                .field("type", "object")
+                                .field("dynamic", "strict")
+                                .startObject("properties")
+                                    .startObject("path")
+                                        .field("type", "string")
+                                        .field("index", "not_analyzed")
+                                    .endObject()
+                                    .startObject("created")
+                                        .field("type", "date")
+                                        .field("index", "not_analyzed")
+                                    .endObject()
+                                .endObject()
+                            .endObject()
+                            .startObject("no_dynamic_field")
+                                .field("type", "object")
+                                .field("dynamic", false)
+                                .startObject("properties")
+                                    .startObject("path")
+                                        .field("type", "string")
+                                        .field("index", "not_analyzed")
+                                    .endObject()
+                                    .startObject("dynamic_again")
+                                        .startObject("properties")
+                                            .startObject("field")
+                                                .field("type", "date")
+                                            .endObject()
+                                        .endObject()
+                                    .endObject()
+                                .endObject()
+                            .endObject()
+                        .endObject()
+                    .endObject()
+                .endObject();
+        node.client().admin().indices().prepareCreate("test12")
+                .setSettings(ImmutableSettings.builder()
+                        .put("number_of_replicas", 0)
+                        .put("number_of_shards", 2))
+                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
+                .execute().actionGet();
+        refresh();
+        IndexMetaData metaData = getIndexMetaData("test12");
+        IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
+        List<IndexMetaDataExtractor.ColumnDefinition> columns = extractor.getColumnDefinitions();
+
+        assertEquals(10, columns.size());
+
+        assertThat(columns.get(0).columnName, is("craty_field"));
+        assertThat(columns.get(0).dynamic, is(true));
+        assertThat(columns.get(0).dataType, is("craty"));
+        assertThat(columns.get(0).ordinalPosition, is(1));
+        assertThat(columns.get(0).tableName, is("test12"));
+        assertTrue(columns.get(0) instanceof IndexMetaDataExtractor.ObjectColumnDefinition);
+        IndexMetaDataExtractor.ObjectColumnDefinition objectColumn = (IndexMetaDataExtractor
+                .ObjectColumnDefinition)columns.get(0);
+        assertEquals(2, objectColumn.nestedColumns.size());
+
+        assertEquals(columns.get(1), objectColumn.nestedColumns.get(0));
+        assertThat(columns.get(1).columnName, is("craty_field.created"));
+        assertThat(columns.get(1).dataType, is("timestamp"));
+        assertThat(columns.get(1).ordinalPosition, is(2));
+        assertFalse(columns.get(1).dynamic);
+        assertThat(columns.get(1).tableName, is("test12"));
+
+        assertEquals(columns.get(2), objectColumn.nestedColumns.get(1));
+        assertThat(columns.get(2).columnName, is("craty_field.size"));
+        assertThat(columns.get(2).dataType, is("byte"));
+        assertThat(columns.get(2).ordinalPosition, is(3));
+        assertFalse(columns.get(2).dynamic);
+        assertThat(columns.get(2).tableName, is("test12"));
+
+        assertThat(columns.get(3).columnName, is("no_dynamic_field"));
+        assertThat(columns.get(3).dynamic, is(false));
+        assertThat(columns.get(3).dataType, is("craty"));
+        assertThat(columns.get(3).ordinalPosition, is(4));
+        assertThat(columns.get(3).tableName, is("test12"));
+        assertTrue(columns.get(3) instanceof IndexMetaDataExtractor.ObjectColumnDefinition);
+        objectColumn = (IndexMetaDataExtractor.ObjectColumnDefinition)columns.get(3);
+        assertEquals(3, objectColumn.nestedColumns.size());
+
+        assertEquals(columns.get(4), objectColumn.nestedColumns.get(0));
+        assertThat(columns.get(4).columnName, is("no_dynamic_field.dynamic_again"));
+        assertThat(columns.get(4).dataType, is("craty"));
+        assertThat(columns.get(4).ordinalPosition, is(5));
+        assertTrue(columns.get(4).dynamic);
+        assertThat(columns.get(4).tableName, is("test12"));
+
+        assertEquals(columns.get(5), objectColumn.nestedColumns.get(1));
+        assertThat(columns.get(5).columnName, is("no_dynamic_field.dynamic_again.field"));
+        assertThat(columns.get(5).dataType, is("timestamp"));
+        assertThat(columns.get(5).ordinalPosition, is(6));
+        assertFalse(columns.get(5).dynamic);
+        assertThat(columns.get(5).tableName, is("test12"));
+
+        assertEquals(columns.get(6), objectColumn.nestedColumns.get(2));
+        assertThat(columns.get(6).columnName, is("no_dynamic_field.path"));
+        assertThat(columns.get(6).dataType, is("string"));
+        assertThat(columns.get(6).ordinalPosition, is(7));
+        assertFalse(columns.get(6).dynamic);
+        assertThat(columns.get(6).tableName, is("test12"));
+
     }
 }

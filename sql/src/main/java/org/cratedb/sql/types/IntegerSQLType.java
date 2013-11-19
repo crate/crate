@@ -1,11 +1,11 @@
 package org.cratedb.sql.types;
 
-public class IntegerSQLType extends ScalarSQLType {
+public class IntegerSQLType extends NumericSQLType {
 
     public static final String NAME = "integer";
 
     @Override
-    public String mappingTypeName() {
+    public String typeName() {
         return NAME;
     }
 

@@ -16,14 +16,16 @@ public abstract class SQLType {
         }
     }
 
-    public abstract String mappingTypeName();
-    public Object toXContent(@Nullable Object value, boolean allowNull) throws ConvertException {
-        if (value == null) {
-            if (allowNull) { return null; }
-            else { throw new ConvertException("NULL value not allowed"); }
-        }
+    public abstract String typeName();
+
+    public Object toXContent(@Nullable Object value) throws ConvertException {
+        if (value == null) { return null; }
         return doConvert(value);
     }
 
     protected abstract Object doConvert(Object value) throws ConvertException;
+
+    public Object toDisplayValue(@Nullable Object value) {
+        return value;
+    }
 }

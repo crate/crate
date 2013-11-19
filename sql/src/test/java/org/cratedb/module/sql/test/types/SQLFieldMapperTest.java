@@ -2,24 +2,32 @@ package org.cratedb.module.sql.test.types;
 
 import org.cratedb.core.Constants;
 import org.cratedb.core.IndexMetaDataExtractor;
+import org.cratedb.sql.ValidationException;
 import org.cratedb.sql.types.*;
+import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static junit.framework.Assert.assertEquals;
+public class SQLFieldMapperTest extends AbstractCrateNodesTests {
 
-public class SQLFieldMapperTest {
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
 
     protected SQLFieldMapper mapper;
 
-    @Before
-    public void before() throws IOException {
+    private IndexMetaData getMetaData() throws IOException {
         Map<String, Object> mapping = new HashMap<String, Object>(){{
             put("properties", new HashMap<String, Object>(){{
                 put("string_field", new HashMap<String, Object>(){{
@@ -80,11 +88,16 @@ public class SQLFieldMapperTest {
         }};
         MappingMetaData mappingMetaData = new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE,
                 mapping);
-        IndexMetaData metaData = IndexMetaData.builder("test1")
+        return IndexMetaData.builder("test1")
                 .numberOfReplicas(0)
                 .numberOfShards(2)
                 .putMapping(mappingMetaData)
                 .build();
+    }
+
+    @Before
+    public void before() throws IOException {
+        IndexMetaData metaData = getMetaData();
         this.mapper = new SQLFieldMapper(
                 new HashMap<String, SQLType>() {{
                     put(BooleanSQLType.NAME, new BooleanSQLType());
@@ -118,15 +131,55 @@ public class SQLFieldMapperTest {
     public void testDateType() {
         String[] fields = new String[]{"date_field", "craty_field.created"};
         for (int i=0; i<2; i++) {
-            assertEquals(0L, this.mapper.convertToXContentValue(fields[i], "1970-01-01T01:00:00"));
-            assertEquals(-3600000L,  this.mapper.convertToXContentValue(fields[i], "1970-01-01"));
-            assertEquals(-3600000L,  this.mapper.convertToXContentValue(fields[i], "1970-01-01"));
-            assertEquals(1384790145289L, this.mapper.convertToXContentValue(fields[i],
+            assertEquals(0L, this.mapper.convertToXContentValue(fields[i],
+                    "1970-01-01T00:00:00"));
+            assertEquals(0L,  this.mapper.convertToXContentValue(fields[i], "1970-01-01"));
+            assertEquals(0L,  this.mapper.convertToXContentValue(fields[i], "1970-01-01"));
+            assertEquals(1384793745289L, this.mapper.convertToXContentValue(fields[i],
                     "2013-11-18T16:55:45.289715"));
             assertEquals(1384790145289L, this.mapper.convertToXContentValue(fields[i],
                     1384790145.289));
             assertEquals(0L, this.mapper.convertToXContentValue(fields[i], 0L));    
         }
-        
+    }
+
+    @Test
+    public void testMapCratyColumn() {
+        Object mapped = this.mapper.convertToXContentValue("craty_field", new HashMap<String,
+                Object>(){{
+            put("title", "The Total Perspective Vortex");
+            put("size", 1024);
+            put("created", "2013-11-18");
+        }});
+        assertTrue(mapped instanceof Map);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> mappedMap = (Map<String, Object>)mapped;
+        assertEquals("The Total Perspective Vortex", mappedMap.get("title"));
+        assertEquals(1024, mappedMap.get("size"));
+        assertEquals(1384732800000L, mappedMap.get("created"));
+
+        assertEquals(1384732800000L, this.mapper.convertToXContentValue("craty_field.created",
+                "2013-11-18"));
+    }
+
+    @Test
+    public void testInvalidBoolean1() {
+        expectedException.expect(ValidationException.class);
+        expectedException.expectMessage("Validation failed for boolean_field: Invalid boolean");
+        this.mapper.convertToXContentValue("boolean_field", 1);
+    }
+
+    @Test
+    public void testInvalidBoolean2() {
+        expectedException.expect(ValidationException.class);
+        expectedException.expectMessage("Validation failed for boolean_field: Invalid boolean");
+        this.mapper.convertToXContentValue("boolean_field", "A String");
+    }
+
+    @Test
+    public void testInvalidBoolean3() {
+        expectedException.expect(ValidationException.class);
+        expectedException.expectMessage("Validation failed for boolean_field: Invalid boolean");
+        this.mapper.convertToXContentValue("boolean_field", new HashMap<String, Object>());
     }
 }

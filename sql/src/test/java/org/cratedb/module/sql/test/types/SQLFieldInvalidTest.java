@@ -17,23 +17,18 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.fail;
 
 @RunWith( value = Parameterized.class)
-public class SQLFieldRangeTest {
+public class SQLFieldInvalidTest {
+    private String fieldName;
+    private Object[] invalidValues;
 
     protected SQLFieldMapper mapper;
 
-    private String fieldName;
-    private Number[] testNumbers;
-    public Class<?> klass;
-
-    public SQLFieldRangeTest(String fieldName, Number[] testNumbers, Class<?> klass) {
+    public SQLFieldInvalidTest(String fieldName, Object[] invalidValues) {
         this.fieldName = fieldName;
-        this.testNumbers = testNumbers;
-        this.klass = klass;
+        this.invalidValues = invalidValues;
     }
 
     @Before
@@ -122,35 +117,71 @@ public class SQLFieldRangeTest {
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         Object[][] data = new Object[][]{
-                {"byte_field", new Number[]{Byte.MIN_VALUE - 1, Byte.MIN_VALUE, 0,
-                    Byte.MAX_VALUE, Byte.MAX_VALUE + 1}, Integer.class},
-                {"short_field", new Number[]{Short.MIN_VALUE - 1, Short.MIN_VALUE, 0,
-                        Short.MAX_VALUE,
-                        Short.MAX_VALUE + 1}, Integer.class},
-                {"integer_field", new Number[]{Integer.MIN_VALUE - 1L, Integer.MIN_VALUE, 0,
-                        Integer.MAX_VALUE, Integer.MAX_VALUE + 1L}, Integer.class}
+                {
+                        "boolean_field",
+                        new Object[]{-1, "A String", 0, 199.0, new HashMap<String, Object>()}
+                },
+                {
+                        "byte_field",
+                        new Object[]{ Byte.MAX_VALUE+1, Byte.MIN_VALUE-1, "A String", 99999.0,
+                                true, false}
+                },
+                {
+                        "short_field",
+                        new Object[]{Short.MAX_VALUE+1, Short.MIN_VALUE-1, "A String",
+                                new HashMap<String, Object>(), true, false}
+                },
+                {
+                        "integer_field",
+                        new Object[]{Integer.MAX_VALUE+1L, Integer.MIN_VALUE-1L, "A String",
+                                new HashMap<String, Object>(), true, false}
+                },
+                {
+                        "long_field",
+                        new Object[]{"A String", new HashMap<String, Object>(), true, false}
+                },
+                {
+                        "float_field",
+                        new Object[]{"A String", new HashMap<String, Object>(), true, false}
+                },
+                {
+                        "double_field",
+                        new Object[]{"A String", new HashMap<String, Object>(), true, false}
+                },
+                {
+                        "string_field",
+                        new Object[]{Integer.MAX_VALUE, 1.0, new HashMap<String, Object>(), true,
+                                false}
+                },
+                {
+                        "craty_field",
+                        new Object[]{Integer.MAX_VALUE, 1.0, "A String", true, false,
+                            new HashMap<String, Object>(){{
+                                put("title", 0);
+                                put("size", Integer.MAX_VALUE);
+                                put("created", true);
+                            }}
+                        }
+                },
+                {
+                        "date_field",
+                        new Object[]{"No Date", true, false, new HashMap<String, Object>()}
+                }
+
         };
         return Arrays.asList(data);
     }
 
     @Test
-    public void testRange() {
-        try {
-            this.mapper.convertToXContentValue(fieldName, testNumbers[0]);
-            fail("did not validate lower bound");
-        } catch(ValidationException e) {}
-
-        assertThat(this.mapper.convertToXContentValue(fieldName, testNumbers[1]),
-                instanceOf(this.klass));
-        assertThat(
-                this.mapper.convertToXContentValue(fieldName, testNumbers[2]),
-                instanceOf(this.klass));
-        assertThat(this.mapper.convertToXContentValue(fieldName,
-                testNumbers[3]),
-                instanceOf(this.klass));
-        try {
-            this.mapper.convertToXContentValue(fieldName, testNumbers[4]);
-            fail("did not validate upper bound");
-        } catch(ValidationException e) {}
+    public void testInvalidValues() {
+        for (Object invalidValue : invalidValues) {
+            try {
+                this.mapper.convertToXContentValue(fieldName, invalidValue);
+                fail(String.format("Validation of %s for '%s' did not work", fieldName,
+                        invalidValue.toString()));
+            } catch(ValidationException e) {
+                //
+            }
+        }
     }
 }

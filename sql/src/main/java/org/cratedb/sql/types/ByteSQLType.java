@@ -1,11 +1,11 @@
 package org.cratedb.sql.types;
 
-public class ByteSQLType extends ScalarSQLType {
+public class ByteSQLType extends NumericSQLType {
 
     public static final String NAME = "byte";
 
     @Override
-    public String mappingTypeName() {
+    public String typeName() {
         return NAME;
     }
 

@@ -1,37 +1,53 @@
 package org.cratedb.sql.types;
 
+import org.elasticsearch.common.Nullable;
+import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
 public class TimeStampSQLType extends SQLType {
 
     public static final String NAME = "timestamp";
-
+    private static final DateTimeFormatter formatter = ISODateTimeFormat.dateOptionalTimeParser()
+            .withZoneUTC();
     @Override
-    public String mappingTypeName() {
+    public String typeName() {
         return NAME;
     }
 
     @Override
     protected Object doConvert(Object value) throws ConvertException {
-        Long converted = null;
+
         if (value instanceof String) {
             // ISODate String
             try {
-                converted = ISODateTimeFormat.dateOptionalTimeParser().parseMillis((String)value);
+                return formatter.parseMillis((String) value);
             } catch (IllegalArgumentException e) {
                 throw new ConvertException(String.format("Invalid %s ISODate string",
-                        mappingTypeName()));
+                        typeName()));
             }
         }
         else if ((value instanceof Float)||(value instanceof Double)) {
             // interpret as seconds since epoque with millis as fractions
             double d = ((Number)value).doubleValue();
-            converted = Math.round(d * 1000.0);
+            return Math.round(d * 1000.0);
         }
         else if ((value instanceof Number)) {
             // interpret as milliseconds since epoque
-            converted = ((Number) value).longValue();
+            return ((Number) value).longValue();
         }
-        return converted;
+        throw new ConvertException(String.format("Invalid %s", typeName()));
+    }
+
+    @Override
+    public Object toDisplayValue(@Nullable Object value) {
+        Object result = value;
+        try {
+            result = toXContent(value);
+        } catch (ConvertException e) {
+            // :/
+        }
+        if ( Integer.MIN_VALUE < ((Long)result) && ((Long)result) < Integer.MAX_VALUE){
+            result = ((Number)result).intValue();}
+        return result;
     }
 }

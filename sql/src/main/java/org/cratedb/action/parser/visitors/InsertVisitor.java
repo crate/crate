@@ -46,6 +46,12 @@ public class InsertVisitor extends BaseVisitor {
         if (targetColumnList == null) {
             columnNameList = Lists.newArrayList(tableContext.allCols());
         } else {
+            for (ResultColumn column : targetColumnList) {
+                if (column.getReference() instanceof NestedColumnReference) {
+                    throw new SQLParseException("Nested Column Reference not allowes in INSERT " +
+                            "statement");
+                }
+            }
             columnNameList = Arrays.asList(targetColumnList.getColumnNames());
         }
 
