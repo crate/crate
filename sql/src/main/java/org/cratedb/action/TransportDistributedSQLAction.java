@@ -237,7 +237,8 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             if (expectedShardResponses == 0 || reducers.length == 0) {
                 try {
                     listener.onResponse(
-                        new SQLResponse(parsedStatement.cols(), new Object[0][0], 0L));
+                        new SQLResponse(parsedStatement.cols(), new Object[0][0], 0L,
+                                sqlRequest.creationTime()));
                 } catch (Throwable e) {
                     listener.onFailure(e);
                 }
@@ -254,7 +255,8 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 listener.onResponse(
                     new SQLResponse(parsedStatement.cols(),
                         groupbyResultToRows(parsedStatement, groupByResult),
-                        rowCount
+                        rowCount,
+                        sqlRequest.creationTime()
                     )
                 );
             } catch (Throwable e) {

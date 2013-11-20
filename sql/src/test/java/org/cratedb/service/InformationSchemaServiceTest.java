@@ -115,7 +115,7 @@ public class InformationSchemaServiceTest extends AbstractCrateNodesTests {
      */
     private void exec(String statement, Object[] args) throws Exception {
         ParsedStatement stmt = parseService.parse(statement, args);
-        response = informationSchemaService.execute(stmt).actionGet();
+        response = informationSchemaService.execute(stmt, System.currentTimeMillis()).actionGet();
     }
 
     /**
@@ -153,7 +153,9 @@ public class InformationSchemaServiceTest extends AbstractCrateNodesTests {
                 @Override
                 public void run() {
                     try {
-                        SQLResponse response = informationSchemaService.execute(stmt).actionGet();
+                        SQLResponse response = informationSchemaService.execute(stmt,
+                                System.currentTimeMillis()
+                                ).actionGet();
                         assertTrue(response.rowCount() >= 3L);
                         countDownLatch.countDown();
                     } catch (IOException e) {

@@ -28,7 +28,7 @@ public interface InformationSchemaTable {
      * @param stmt the statement containing the parsed query
      * @param listener the listener to be called on success or failure
      */
-    public void query(ParsedStatement stmt, ActionListener<SQLResponse> listener);
+    public void query(ParsedStatement stmt, ActionListener<SQLResponse> listener, long requestStartedTime);
 
     /**
      * extract and index table data from the current ClusterState

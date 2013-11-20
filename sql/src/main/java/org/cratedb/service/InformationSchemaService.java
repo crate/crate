@@ -85,7 +85,9 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
         }
     }
 
-    public void execute(ParsedStatement stmt, final ActionListener<SQLResponse> listener) throws IOException {
+    public void execute(ParsedStatement stmt, final ActionListener<SQLResponse> listener,
+                        long requestStartedTime
+                        ) throws IOException {
         if (!stmt.schemaName().equalsIgnoreCase("information_schema")) {
             listener.onFailure(new IllegalStateException("Trying to query information schema with invalid ParsedStatement"));
             return;
@@ -113,14 +115,15 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
                     table.index(state);
                 }
             }
-            table.query(stmt, listener);
+            table.query(stmt, listener, requestStartedTime);
         }
 
     }
 
-    public ActionFuture<SQLResponse> execute(ParsedStatement stmt) throws IOException {
+    public ActionFuture<SQLResponse> execute(ParsedStatement stmt,
+                                             long requestStartedTime) throws IOException {
         PlainActionFuture<SQLResponse> future = newFuture();
-        execute(stmt, future);
+        execute(stmt, future, requestStartedTime);
         return future;
     }
 

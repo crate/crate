@@ -88,7 +88,7 @@ public class InformationSchemaQueryTest extends AbstractCrateNodesTests {
 
     private void exec(String statement, Object[] args) throws Exception {
         ParsedStatement stmt = parseService.parse(statement, args);
-        response = informationSchemaService.execute(stmt).actionGet();
+        response = informationSchemaService.execute(stmt, System.currentTimeMillis()).actionGet();
     }
 
     @Test

@@ -116,10 +116,14 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         protected final ActionListener<SQLResponse> listener;
         protected final SQLResponseBuilder builder;
+        protected final long requestStartedTime;
 
-        public ESResponseToSQLResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+        public ESResponseToSQLResponseListener(ParsedStatement stmt,
+                                               ActionListener<SQLResponse> listener,
+                                               long requestStartedTime) {
             this.listener = listener;
             this.builder = new SQLResponseBuilder(sqlParseService.context, stmt);
+            this.requestStartedTime = requestStartedTime;
         }
 
         @Override
@@ -129,54 +133,65 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     }
 
     private class SearchResponseListener extends ESResponseToSQLResponseListener<SearchResponse> {
-        public SearchResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            super(stmt, listener);
+
+        public SearchResponseListener(ParsedStatement stmt,
+                                      ActionListener<SQLResponse> listener,
+                                      long requestStartedTime) {
+            super(stmt, listener, requestStartedTime);
         }
 
         @Override
         public void onResponse(SearchResponse response) {
-            this.listener.onResponse(builder.buildResponse(response));
+            listener.onResponse(builder.buildResponse(response, requestStartedTime));
         }
     }
 
     private class IndexResponseListener extends ESResponseToSQLResponseListener<IndexResponse> {
-        public IndexResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            super(stmt, listener);
+
+        public IndexResponseListener(ParsedStatement stmt,
+                                     ActionListener<SQLResponse> listener,
+                                     long requestStartedTime) {
+            super(stmt, listener, requestStartedTime);
         }
 
         @Override
         public void onResponse(IndexResponse response) {
-            this.listener.onResponse(builder.buildResponse(response));
+            listener.onResponse(builder.buildResponse(response, requestStartedTime));
         }
     }
 
     private class DeleteByQueryResponseListener extends ESResponseToSQLResponseListener<DeleteByQueryResponse> {
-        public DeleteByQueryResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            super(stmt, listener);
+
+        public DeleteByQueryResponseListener(ParsedStatement stmt,
+                                             ActionListener<SQLResponse> listener,
+                                             long requestStartedTime) {
+            super(stmt, listener, requestStartedTime);
         }
 
         @Override
         public void onResponse(DeleteByQueryResponse response) {
-            this.listener.onResponse(builder.buildResponse(response));
+            listener.onResponse(builder.buildResponse(response, requestStartedTime));
         }
     }
 
     private class DeleteResponseListener extends ESResponseToSQLResponseListener<DeleteResponse> {
 
-        public DeleteResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            super(stmt, listener);
+        public DeleteResponseListener(ParsedStatement stmt,
+                                      ActionListener<SQLResponse> listener,
+                                      long requestStartedTime) {
+            super(stmt, listener, requestStartedTime);
         }
 
         @Override
         public void onResponse(DeleteResponse response) {
-            this.listener.onResponse(builder.buildResponse(response));
+            listener.onResponse(builder.buildResponse(response, requestStartedTime));
         }
 
         @Override
         public void onFailure(Throwable e) {
             DeleteResponse response = ExceptionHelper.deleteResponseFromVersionConflictException(e);
             if (response != null) {
-                this.listener.onResponse(builder.buildResponse(response));
+                listener.onResponse(builder.buildResponse(response, requestStartedTime));
             } else {
                 listener.onFailure(ExceptionHelper.transformToCrateException(e));
             }
@@ -184,13 +199,16 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     }
 
     private class BulkResponseListener extends ESResponseToSQLResponseListener<BulkResponse> {
-        public BulkResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            super(stmt, listener);
+
+        public BulkResponseListener(ParsedStatement stmt,
+                                    ActionListener<SQLResponse> listener,
+                                    long requestStartedTime) {
+            super(stmt, listener, requestStartedTime);
         }
 
         @Override
         public void onResponse(BulkResponse response) {
-            this.listener.onResponse(builder.buildResponse(response));
+            listener.onResponse(builder.buildResponse(response, requestStartedTime));
         }
     }
 
@@ -202,63 +220,76 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             ESRequestBuilder builder = new ESRequestBuilder(stmt);
             switch (stmt.type()) {
                 case INFORMATION_SCHEMA:
-                    informationSchemaService.execute(stmt, listener);
+                    informationSchemaService.execute(stmt, listener, request.creationTime());
                     break;
                 case INSERT_ACTION:
                     IndexRequest indexRequest = builder.buildIndexRequest();
-                    transportIndexAction.execute(indexRequest, new IndexResponseListener(stmt, listener));
+                    transportIndexAction.execute(indexRequest, new IndexResponseListener(stmt,
+                            listener, request.creationTime()));
                     break;
                 case DELETE_BY_QUERY_ACTION:
                     DeleteByQueryRequest deleteByQueryRequest = builder.buildDeleteByQueryRequest();
-                    transportDeleteByQueryAction.execute(deleteByQueryRequest, new DeleteByQueryResponseListener(stmt, listener));
+                    transportDeleteByQueryAction.execute(deleteByQueryRequest,
+                            new DeleteByQueryResponseListener(stmt, listener, request.creationTime()));
                     break;
                 case DELETE_ACTION:
                     DeleteRequest deleteRequest = builder.buildDeleteRequest();
-                    transportDeleteAction.execute(deleteRequest, new DeleteResponseListener(stmt, listener));
+                    transportDeleteAction.execute(deleteRequest,
+                            new DeleteResponseListener(stmt, listener, request.creationTime()));
                     break;
                 case BULK_ACTION:
                     BulkRequest bulkRequest = builder.buildBulkRequest();
-                    transportBulkAction.execute(bulkRequest, new BulkResponseListener(stmt, listener));
+                    transportBulkAction.execute(bulkRequest,
+                            new BulkResponseListener(stmt, listener, request.creationTime()));
                     break;
                 case GET_ACTION:
                     GetRequest getRequest = builder.buildGetRequest();
-                    transportGetAction.execute(getRequest, new GetResponseListener(stmt, listener));
+                    transportGetAction.execute(getRequest,
+                            new GetResponseListener(stmt, listener, request.creationTime()));
                     break;
                 case MULTI_GET_ACTION:
                     MultiGetRequest multiGetRequest = builder.buildMultiGetRequest();
-                    transportMultiGetAction.execute(multiGetRequest, new MultiGetResponseListener(stmt, listener));
+                    transportMultiGetAction.execute(multiGetRequest,
+                            new MultiGetResponseListener(stmt, listener, request.creationTime()));
                     break;
                 case UPDATE_ACTION:
                     UpdateRequest updateRequest = builder.buildUpdateRequest();
-                    transportUpdateAction.execute(updateRequest, new UpdateResponseListener(stmt, listener));
+                    transportUpdateAction.execute(updateRequest,
+                            new UpdateResponseListener(stmt, listener, request.creationTime()));
                     break;
                 case CREATE_INDEX_ACTION:
                     CreateIndexRequest createIndexRequest = builder.buildCreateIndexRequest();
-                    transportCreateIndexAction.execute(createIndexRequest, new CreateIndexResponseListener(stmt, listener));
+                    transportCreateIndexAction.execute(createIndexRequest,
+                            new CreateIndexResponseListener(stmt, listener, request.creationTime()));
                     break;
                 case DELETE_INDEX_ACTION:
                     DeleteIndexRequest deleteIndexRequest = builder.buildDeleteIndexRequest();
-                    transportDeleteIndexAction.execute(deleteIndexRequest, new DeleteIndexResponseListener(stmt, listener));
+                    transportDeleteIndexAction.execute(deleteIndexRequest,
+                            new DeleteIndexResponseListener(stmt, listener, request.creationTime()));
                     break;
                 case CREATE_ANALYZER_ACTION:
                     ClusterUpdateSettingsRequest clusterUpdateSettingsRequest = builder.buildClusterUpdateSettingsRequest();
-                    transportClusterUpdateCrateSettingsAction.execute(clusterUpdateSettingsRequest, new ClusterUpdateSettingsResponseListener(stmt, listener));
+                    transportClusterUpdateCrateSettingsAction.execute(clusterUpdateSettingsRequest,
+                            new ClusterUpdateSettingsResponseListener(stmt, listener, request.creationTime()));
                     break;
                 case COPY_IMPORT_ACTION:
                     ImportRequest importRequest = builder.buildImportRequest();
-                    transportImportAction.execute(importRequest, new ImportResponseListener(stmt, listener));
+                    transportImportAction.execute(importRequest,
+                            new ImportResponseListener(stmt, listener, request.creationTime()));
                     break;
                 default:
                     if (stmt.hasGroupBy()) {
                         transportDistributedSQLAction.execute(
                             new DistributedSQLRequest(request, stmt),
-                            new DistributedSQLResponseListener(stmt, listener));
+                            new DistributedSQLResponseListener(stmt, listener, request.creationTime()));
                     } else if (stmt.countRequest()) {
                         CountRequest countRequest = builder.buildCountRequest();
-                        transportCountAction.execute(countRequest, new CountResponseListener(stmt, listener));
+                        transportCountAction.execute(countRequest,
+                                new CountResponseListener(stmt, listener, request.creationTime()));
                     } else {
                         SearchRequest searchRequest = builder.buildSearchRequest();
-                        transportSearchAction.execute(searchRequest, new SearchResponseListener(stmt, listener));
+                        transportSearchAction.execute(searchRequest,
+                                new SearchResponseListener(stmt, listener, request.creationTime()));
                     }
                     break;
             }
@@ -306,38 +337,45 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     }
 
     private class CountResponseListener extends ESResponseToSQLResponseListener<CountResponse> {
-        public CountResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            super(stmt, listener);
+
+        public CountResponseListener(ParsedStatement stmt,
+                                     ActionListener<SQLResponse> listener,
+                                     long requestStartedTime) {
+            super(stmt, listener, requestStartedTime);
         }
 
         @Override
         public void onResponse(CountResponse response) {
-            listener.onResponse(builder.buildResponse(response));
+            listener.onResponse(builder.buildResponse(response, requestStartedTime));
         }
     }
 
 
     private class GetResponseListener extends ESResponseToSQLResponseListener<GetResponse> {
 
-        public GetResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            super(stmt, listener);
+        public GetResponseListener(ParsedStatement stmt,
+                                   ActionListener<SQLResponse> listener,
+                                   long requestStartedTime) {
+            super(stmt, listener, requestStartedTime);
         }
 
         @Override
         public void onResponse(GetResponse response) {
-            listener.onResponse(builder.buildResponse(response));
+            listener.onResponse(builder.buildResponse(response, requestStartedTime));
         }
     }
 
     private class MultiGetResponseListener extends ESResponseToSQLResponseListener<MultiGetResponse> {
 
-        public MultiGetResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            super(stmt, listener);
+        public MultiGetResponseListener(ParsedStatement stmt,
+                                        ActionListener<SQLResponse> listener,
+                                        long requestStartedTime) {
+            super(stmt, listener, requestStartedTime);
         }
 
         @Override
         public void onResponse(MultiGetResponse response) {
-            listener.onResponse(builder.buildResponse(response));
+            listener.onResponse(builder.buildResponse(response, requestStartedTime));
         }
     }
 
@@ -345,14 +383,19 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         private final ActionListener<SQLResponse> delegate;
         private final ParsedStatement stmt;
+        private final long requestStartedTime;
 
-        public DistributedSQLResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+        public DistributedSQLResponseListener(ParsedStatement stmt,
+                                              ActionListener<SQLResponse> listener,
+                                              long requestStartedTime) {
             this.stmt = stmt;
             this.delegate = listener;
+            this.requestStartedTime = requestStartedTime;
         }
 
         @Override
         public void onResponse(SQLResponse sqlResponse) {
+            sqlResponse.requestStartedTime(requestStartedTime);
             delegate.onResponse(sqlResponse);
         }
 
@@ -362,76 +405,82 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
     }
 
-    private class UpdateResponseListener implements ActionListener<UpdateResponse> {
+    private class UpdateResponseListener extends ESResponseToSQLResponseListener<UpdateResponse> {
 
-        private final ActionListener<SQLResponse> delegate;
-        private final SQLResponseBuilder builder;
-
-        public UpdateResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            delegate = listener;
-            builder = new SQLResponseBuilder(sqlParseService.context, stmt);
+        public UpdateResponseListener(ParsedStatement stmt,
+                                      ActionListener<SQLResponse> listener,
+                                      long requestStartedTime) {
+            super(stmt, listener, requestStartedTime);
         }
 
         @Override
-        public void onResponse(UpdateResponse updateResponse) {
-            delegate.onResponse(builder.buildResponse(updateResponse));
+        public void onResponse(UpdateResponse response) {
+            listener.onResponse(builder.buildResponse(response, requestStartedTime));
         }
 
         @Override
         public void onFailure(Throwable e) {
             if (e instanceof DocumentMissingException) {
-                delegate.onResponse(builder.buildMissingDocumentResponse());
+                listener.onResponse(builder.buildMissingDocumentResponse(requestStartedTime));
             } else {
-                delegate.onFailure(ExceptionHelper.transformToCrateException(e));
+                listener.onFailure(ExceptionHelper.transformToCrateException(e));
             }
         }
     }
 
     private class CreateIndexResponseListener extends ESResponseToSQLResponseListener<CreateIndexResponse> {
 
-        public CreateIndexResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            super(stmt, listener);
+        public CreateIndexResponseListener(ParsedStatement stmt,
+                                           ActionListener<SQLResponse> listener,
+                                           long requestStartedTime) {
+            super(stmt, listener, requestStartedTime);
         }
 
         @Override
         public void onResponse(CreateIndexResponse response) {
-            listener.onResponse(builder.buildResponse(response));
+            listener.onResponse(builder.buildResponse(response, requestStartedTime));
         }
     }
 
     private class DeleteIndexResponseListener extends ESResponseToSQLResponseListener<DeleteIndexResponse> {
 
-        public DeleteIndexResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            super(stmt, listener);
+        public DeleteIndexResponseListener(ParsedStatement stmt,
+                                           ActionListener<SQLResponse> listener,
+                                           long requestStartedTime) {
+            super(stmt, listener, requestStartedTime);
         }
 
         @Override
         public void onResponse(DeleteIndexResponse response) {
-            listener.onResponse(builder.buildResponse(response));
+            listener.onResponse(builder.buildResponse(response, requestStartedTime));
         }
     }
 
     private class ClusterUpdateSettingsResponseListener extends ESResponseToSQLResponseListener<ClusterUpdateSettingsResponse> {
 
-        public ClusterUpdateSettingsResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            super(stmt, listener);
+        public ClusterUpdateSettingsResponseListener(ParsedStatement stmt,
+                                                     ActionListener<SQLResponse> listener,
+                                                     long requestStartedTime) {
+            super(stmt, listener, requestStartedTime);
         }
 
         @Override
-        public void onResponse(ClusterUpdateSettingsResponse clusterUpdateSettingsResponse) {
-            listener.onResponse(builder.buildResponse(clusterUpdateSettingsResponse));
+        public void onResponse(ClusterUpdateSettingsResponse response) {
+            listener.onResponse(builder.buildResponse(response, requestStartedTime));
         }
     }
 
     private class ImportResponseListener extends ESResponseToSQLResponseListener<ImportResponse> {
 
-        public ImportResponseListener(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
-            super(stmt, listener);
+        public ImportResponseListener(ParsedStatement stmt,
+                                      ActionListener<SQLResponse> listener,
+                                      long requestStartedTime) {
+            super(stmt, listener, requestStartedTime);
         }
 
         @Override
-        public void onResponse(ImportResponse importResponse) {
-            listener.onResponse(builder.buildResponse(importResponse));
+        public void onResponse(ImportResponse response) {
+            listener.onResponse(builder.buildResponse(response, requestStartedTime));
         }
     }
 

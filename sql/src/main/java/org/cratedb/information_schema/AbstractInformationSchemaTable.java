@@ -67,9 +67,10 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
     }
 
     @Override
-    public void query(ParsedStatement stmt, ActionListener<SQLResponse> listener) {
+    public void query(ParsedStatement stmt, ActionListener<SQLResponse> listener,
+                      long requestStartedTime) {
         try {
-            doQuery(stmt, listener);
+            doQuery(stmt, listener, requestStartedTime);
         } catch(IOException e) {
             throw new CrateException(e);
         }
@@ -83,7 +84,8 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
      * @param stmt
      * @param listener
      */
-    public void doQuery(ParsedStatement stmt, ActionListener<SQLResponse> listener) throws IOException {
+    public void doQuery(ParsedStatement stmt, ActionListener<SQLResponse> listener,
+                        long requestStartedTime) throws IOException {
         activeSearches.incrementAndGet();
         Sort sort = null;
         if (stmt.hasOrderBy()) {
@@ -101,7 +103,7 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
             docs = indexSearcher.search(stmt.query, null, limit);
         }
 
-        SQLResponse response = docsToSQLResponse(indexSearcher, stmt, docs, offset);
+        SQLResponse response = docsToSQLResponse(indexSearcher, stmt, docs, offset, requestStartedTime);
         activeSearches.decrementAndGet();
         listener.onResponse(response);
     }
@@ -218,7 +220,8 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
     }
 
     protected SQLResponse docsToSQLResponse(IndexSearcher searcher, ParsedStatement stmt,
-                                          TopDocs docs, Integer offset) throws IOException {
+                                          TopDocs docs, Integer offset,
+                                          long requestStartedTime) throws IOException {
         // TODO: move into SQLResponseBuilder ?
 
         String[] cols = stmt.cols();
@@ -253,6 +256,6 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
             }
             r++;
         }
-        return new SQLResponse(cols, rows, rows.length);
+        return new SQLResponse(cols, rows, rows.length, requestStartedTime);
     }
 }
