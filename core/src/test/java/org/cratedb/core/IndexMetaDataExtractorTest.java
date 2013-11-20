@@ -13,6 +13,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.io.IOException;
 import java.util.List;
 
 import static org.hamcrest.Matchers.contains;
@@ -567,6 +568,115 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
         assertThat(columns.get(6).ordinalPosition, is(7));
         assertFalse(columns.get(6).dynamic);
         assertThat(columns.get(6).tableName, is("test12"));
+
+    }
+
+    @Test
+    public void testIsDynamic() throws IOException {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .startObject("properties")
+                    .startObject("field")
+                        .field("type", "string")
+                    .endObject()
+                .endObject()
+                .endObject()
+                .endObject();
+        node.client().admin().indices().prepareCreate("test13")
+                .setSettings(ImmutableSettings.builder()
+                        .put("number_of_replicas", 0)
+                        .put("number_of_shards", 2)
+                        .put("index.mapper.dynamic", false))
+                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
+                .execute().actionGet();
+        IndexMetaData metaData = getIndexMetaData("test13");
+        IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
+        assertFalse(extractor.isDynamic());
+
+        builder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .field("dynamic", true)
+                .startObject("properties")
+                .startObject("field")
+                .field("type", "string")
+                .endObject()
+                .endObject()
+                .endObject()
+                .endObject();
+        node.client().admin().indices().prepareCreate("test14")
+                .setSettings(ImmutableSettings.builder()
+                        .put("number_of_replicas", 0)
+                        .put("number_of_shards", 2)
+                        .put("index.mapper.dynamic", false))
+                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
+                .execute().actionGet();
+        metaData = getIndexMetaData("test13");
+        extractor = new IndexMetaDataExtractor(metaData);
+        assertFalse(extractor.isDynamic());
+
+        builder = XContentFactory.jsonBuilder()
+                .startObject()
+                    .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                        .field("dynamic", false)
+                        .startObject("properties")
+                            .startObject("field")
+                                .field("type", "string")
+                            .endObject()
+                        .endObject()
+                    .endObject()
+                .endObject();
+        node.client().admin().indices().prepareCreate("test15")
+                .setSettings(ImmutableSettings.builder()
+                        .put("number_of_replicas", 0)
+                        .put("number_of_shards", 2))
+                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
+                .execute().actionGet();
+        metaData = getIndexMetaData("test15");
+        extractor = new IndexMetaDataExtractor(metaData);
+        assertFalse(extractor.isDynamic());
+
+        builder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .field("dynamic", "strict")
+                .startObject("properties")
+                .startObject("field")
+                .field("type", "string")
+                .endObject()
+                .endObject()
+                .endObject()
+                .endObject();
+        node.client().admin().indices().prepareCreate("test16")
+                .setSettings(ImmutableSettings.builder()
+                        .put("number_of_replicas", 0)
+                        .put("number_of_shards", 2))
+                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
+                .execute().actionGet();
+        metaData = getIndexMetaData("test16");
+        extractor = new IndexMetaDataExtractor(metaData);
+        assertFalse(extractor.isDynamic());
+
+        builder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .startObject("properties")
+                .startObject("field")
+                .field("type", "string")
+                .endObject()
+                .endObject()
+                .endObject()
+                .endObject();
+        node.client().admin().indices().prepareCreate("test17")
+                .setSettings(ImmutableSettings.builder()
+                        .put("number_of_replicas", 0)
+                        .put("number_of_shards", 2))
+                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
+                .execute().actionGet();
+        metaData = getIndexMetaData("test17");
+        extractor = new IndexMetaDataExtractor(metaData);
+        assertTrue(extractor.isDynamic());
 
     }
 }

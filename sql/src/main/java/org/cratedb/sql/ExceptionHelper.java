@@ -6,6 +6,7 @@ import org.elasticsearch.action.search.ReduceSearchPhaseException;
 import org.elasticsearch.action.search.ShardSearchFailure;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
+import org.elasticsearch.index.mapper.StrictDynamicMappingException;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.InvalidIndexNameException;
@@ -39,6 +40,10 @@ public class ExceptionHelper {
                         e);
             }
             return new InvalidTableNameException(((InvalidIndexNameException) e).index().getName(), e);
+        } else if (e instanceof StrictDynamicMappingException) {
+            String message = e.getMessage();
+            // TODO: find path
+            return new StrictCratyException("",e);
         } else if (e instanceof IndexMissingException) {
             return new TableUnknownException(((IndexMissingException)e).index().name(), e);
         } else if (e instanceof ReduceSearchPhaseException && e.getCause() instanceof VersionConflictException) {

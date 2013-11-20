@@ -7,6 +7,7 @@ import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.core.Constants;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.SQLParseException;
+import org.cratedb.sql.StrictCratyException;
 import org.cratedb.sql.ValidationException;
 import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.client.Client;
@@ -22,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 public class SQLTypeMappingTest extends AbstractCrateNodesTests {
@@ -92,30 +94,87 @@ public class SQLTypeMappingTest extends AbstractCrateNodesTests {
         return execute(stmt, new Object[0]);
     }
 
-    private void setUpSimple() {
-        execute(node1.client(), "create table t1(" +
-                "  id integer primary key," +
-                "  title string," +
-                "  checked boolean," +
-                "  created timestamp," +
-                "  weight double," +
-                "  size byte" +
-                ") clustered into 1 shards replicas 0");
+    private void setUpSimple() throws IOException {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .startObject("_meta")
+                    .field("primary_keys", "id")
+                .endObject()
+                .startObject("properties")
+                    .startObject("id")
+                        .field("type", "integer")
+                        .field("index", "not_analyzed")
+                    .endObject()
+                    .startObject("string_field")
+                        .field("type", "string")
+                        .field("index", "not_analyzed")
+                    .endObject()
+                    .startObject("boolean_field")
+                        .field("type", "boolean")
+                        .field("index", "not_analyzed")
+                    .endObject()
+                    .startObject("byte_field")
+                        .field("type", "byte")
+                        .field("index", "not_analyzed")
+                    .endObject()
+                    .startObject("short_field")
+                        .field("type", "short")
+                        .field("index", "not_analyzed")
+                    .endObject()
+                    .startObject("integer_field")
+                        .field("type", "integer")
+                        .field("index", "not_analyzed")
+                    .endObject()
+                    .startObject("long_field")
+                        .field("type", "long")
+                        .field("index", "not_analyzed")
+                    .endObject()
+                    .startObject("float_field")
+                        .field("type", "float")
+                        .field("index", "not_analyzed")
+                    .endObject()
+                    .startObject("double_field")
+                        .field("type", "double")
+                        .field("index", "not_analyzed")
+                    .endObject()
+                    .startObject("timestamp_field")
+                        .field("type", "date")
+                        .field("index", "not_analyzed")
+                    .endObject()
+                    .startObject("craty_field")
+                        .field("type", "object")
+                        .startObject("properties")
+                            .startObject("inner")
+                                .field("type", "date")
+                                .field("index", "not_analyzed")
+                            .endObject()
+                        .endObject()
+                    .endObject()
+                .endObject()
+                .endObject();
+        node1.client().admin().indices().prepareCreate("t1")
+                .setSettings(ImmutableSettings.builder()
+                        .put("number_of_replicas", 0)
+                        .put("number_of_shards", 2)
+                        .put("index.mapper.map_source", false))
+                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
+                .execute().actionGet();
         refresh(node1.client());
     }
 
     @Test
-    public void testInsertAtNodeWithoutShard() {
+    public void testInsertAtNodeWithoutShard() throws Exception {
        setUpSimple();
 
-        execute(node1.client(), "insert into t1 (id, title, " +
-                "created, size) values (?, ?, ?, ?)", new Object[]{1, "With",
+        execute(node1.client(), "insert into t1 (id, string_field, " +
+                "timestamp_field, byte_field) values (?, ?, ?, ?)", new Object[]{1, "With",
                 "1970-01-01T00:00:00", 127});
-        execute(node2.client(), "insert into t1 (id, title, " +
-                "created, size) values (?, ?, ?, ?)", new Object[]{2, "Without",
+        execute(node2.client(), "insert into t1 (id, string_field, " +
+                "timestamp_field, byte_field) values (?, ?, ?, ?)", new Object[]{2, "Without",
                 "1970-01-01T01:00:00", Byte.MIN_VALUE});
         refresh(node1.client());
-        SQLResponse response = execute("select id, title, created, size from t1 order by id");
+        SQLResponse response = execute("select id, string_field, timestamp_field, byte_field from t1 order by id");
 
         assertEquals(1, response.rows()[0][0]);
         assertEquals("With", response.rows()[0][1]);
@@ -276,47 +335,149 @@ public class SQLTypeMappingTest extends AbstractCrateNodesTests {
     }
 
     @Test
-    public void testWhereClause()  {
+    public void testWhereClause() throws Exception {
         setUpSimple();
         ParsedStatement stmt = parseService.parse("select * from t1 where " +
-                "created='1970-01-01T00:00:00'");
+                "timestamp_field='1970-01-01T00:00:00'");
         assertEquals(
-                "{\"fields\":[\"checked\",\"created\",\"id\",\"size\",\"title\",\"weight\"]," +
-                "\"query\":{\"term\":{\"created\":0}},\"size\":1000}",
+                "{\"fields\":[\"boolean_field\",\"byte_field\",\"craty_field\",\"double_field\"," +
+                    "\"float_field\",\"id\",\"integer_field\",\"long_field\",\"short_field\"," +
+                    "\"string_field\",\"timestamp_field\"]," +
+                    "\"query\":{\"term\":{\"timestamp_field\":0}},\"size\":1000}",
                 stmt.xcontent.toUtf8());
     }
 
     @Test
-    public void testInvalidWhereClause() {
+    public void testInvalidWhereClause() throws Exception {
 
         expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("Validation failed for size: byte out of bounds");
+        expectedException.expectMessage("Validation failed for byte_field: byte out of bounds");
 
         setUpSimple();
-        ParsedStatement stmt = parseService.parse("delete from t1 where size=129");
+        ParsedStatement stmt = parseService.parse("delete from t1 where byte_field=129");
     }
 
     @Test
-    public void testInvalidWhereInWhereClause() {
+    public void testInvalidWhereInWhereClause() throws Exception {
         expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("Validation failed for size: invalid byte");
+        expectedException.expectMessage("Validation failed for byte_field: invalid byte");
 
         setUpSimple();
-        ParsedStatement stmt = parseService.parse("update t1 set size=0 where size='0'");
+        ParsedStatement stmt = parseService.parse("update t1 set byte_field=0 where byte_field in ('0')");
     }
 
     @Test
-    public void testSetUpdate() {
+    public void testSetUpdate() throws Exception {
         setUpSimple();
 
-        execute("insert into t1 (id, size) values (0, 0)");
-        execute("update t1 set created='1970-01-01T00:00:00' " +
-                "where id=0");
+        execute("insert into t1 (id, byte_field, short_field, integer_field, long_field, " +
+                "float_field, double_field, boolean_field, string_field, timestamp_field," +
+                "craty_field) values (?,?,?,?,?,?,?,?,?,?,?)", new Object[]{
+                    0, 0, 0, 0, 0, 0.0, 1.0, false, "", "1970-01-01", new HashMap<String, Object>(){{ put("inner", "1970-01-01"); }}
+                });
+        execute("update t1 set " +
+                "byte_field=?," +
+                "short_field=?," +
+                "integer_field=?," +
+                "long_field=?," +
+                "float_field=?," +
+                "double_field=?," +
+                "boolean_field=?," +
+                "string_field=?," +
+                "timestamp_field=?," +
+                "craty_field=?" +
+                "where id=0", new Object[]{
+                    Byte.MAX_VALUE, Short.MIN_VALUE, Integer.MAX_VALUE, Long.MIN_VALUE,
+                    1.0, Math.PI, true, "a string", "2013-11-20", new HashMap<String, Object>() {{put("inner", "2013-11-20");}}
+        });
         refresh(node1.client());
 
-        SQLResponse response = execute("select created from t1 where id=0");
+        SQLResponse response = execute("select id, byte_field, short_field, integer_field, long_field," +
+                "float_field, double_field, boolean_field, string_field, timestamp_field," +
+                "craty_field from t1 where id=0");
         assertEquals(1, response.rowCount());
         assertEquals(0, response.rows()[0][0]);
+        assertEquals(127, response.rows()[0][1]);
+        assertEquals(-32768, response.rows()[0][2]);
+        assertEquals(0x7fffffff, response.rows()[0][3]);
+        assertEquals(0x8000000000000000L, response.rows()[0][4]);
+        assertEquals(1.0, response.rows()[0][5]);
+        assertEquals(Math.PI, response.rows()[0][6]);
+        assertEquals(true, response.rows()[0][7]);
+        assertEquals("a string", response.rows()[0][8]);
+        assertEquals(1384905600000L, response.rows()[0][9]);
+        assertEquals(new HashMap<String, Object>() {{ put("inner", 1384905600000L); }}, response.rows()[0][10]);
+    }
+
+    @Test
+    public void testGetRequestMapping() throws Exception {
+        setUpSimple();
+        execute("insert into t1 (id, string_field, boolean_field, byte_field, short_field, integer_field," +
+                "long_field, float_field, double_field, craty_field," +
+                "timestamp_field) values " +
+                "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", new Object[]{
+                0, "Blabla", true, 120, 1000, 1200000, 120000000000L, 1.4, 3.456789, new HashMap<String, Object>(){{put("inner", "1970-01-01");}}, "1970-01-01"
+        });
+        refresh(node1.client());
+        SQLResponse getResponse = execute("select * from t1 where id=0");
+        SQLResponse searchResponse = execute("select * from t1 limit 1");
+        for (int i=0; i < getResponse.rows()[0].length; i++) {
+            assertThat(getResponse.rows()[0][i], is(searchResponse.rows()[0][i]));
+        }
+    }
+
+    @Test
+    public void testInsertNewColumnToCraty() throws Exception {
+        setUpCratyMapping();
+        Map<String, Object> cratyContent = new HashMap<String, Object>(){{
+            put("new_col", "a string");
+            put("another_new_col", "1970-01-01T00:00:00");
+        }};
+        execute("insert into test12 (craty_field) values (?)",
+                new Object[]{cratyContent});
+        refresh(node1.client());
+        SQLResponse response = execute("select craty_field from test12");
+        assertEquals(1, response.rowCount());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> selectedCraty = (Map<String, Object>)response.rows()[0][0];
+        // no mapping applied
+        assertThat((String)selectedCraty.get("new_col"), is("a string"));
+        assertThat((String)selectedCraty.get("another_new_col"), is("1970-01-01T00:00:00"));
+    }
+
+    @Test
+    public void testInsertNewColumnToStrictCraty() throws Exception {
+
+        expectedException.expect(StrictCratyException.class);
+        expectedException.expectMessage("Invalid write operation on strict craty");
+
+        setUpCratyMapping();
+        Map<String, Object> strictContent = new HashMap<String, Object>(){{
+            put("new_col", "a string");
+            put("another_new_col", "1970-01-01T00:00:00");
+        }};
+        execute("insert into test12 (id, strict_field) values (?, ?)",
+                new Object[]{0, strictContent});
+    }
+
+    @Test
+    public void testInsertNewColumnToNotDynamicCraty() throws Exception {
+
+        setUpCratyMapping();
+        Map<String, Object> notDynamicContent = new HashMap<String, Object>(){{
+            put("new_col", "a string");
+            put("another_new_col", "1970-01-01T00:00:00");
+        }};
+        execute("insert into test12 (no_dynamic_field) values (?)",
+                new Object[]{notDynamicContent});
+        refresh(node1.client());
+        SQLResponse response = execute("select no_dynamic_field from test12");
+        assertEquals(1, response.rowCount());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> selectedNoDynamic = (Map<String, Object>)response.rows()[0][0];
+        // no mapping applied
+        assertThat((String)selectedNoDynamic.get("new_col"), is("a string"));
+        assertThat((String)selectedNoDynamic.get("another_new_col"), is("1970-01-01T00:00:00"));
     }
 
 }

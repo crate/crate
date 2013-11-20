@@ -414,12 +414,12 @@ public class IndexMetaDataExtractor {
      * if false, only
      */
     public boolean isDynamic() {
-        boolean dynamic = true;
-        if (hasDefaultMapping()) {
+        boolean dynamic = metaData.settings().getAsBoolean("index.mapper.dynamic", true);
+        if (dynamic && hasDefaultMapping()) {
             Object dynamicProperty = getDefaultMappingMap().get("dynamic");
             if (dynamicProperty != null
                     &&
-                ((dynamicProperty instanceof String) && dynamicProperty.equals("strict")
+                ((dynamicProperty instanceof String) && (dynamicProperty.equals("strict") || Booleans.isExplicitFalse((String)dynamicProperty))
                     ||
                 ((dynamicProperty instanceof Boolean) && dynamicProperty == Boolean.FALSE))) {
                 dynamic = false;

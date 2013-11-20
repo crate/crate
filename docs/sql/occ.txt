@@ -9,13 +9,13 @@ by using the internal system column :ref:`_version <sql_ddl_system_column_versio
 
 It's possible to fetch the ``_version`` by selecting it::
 
-    cr> select name, id, "_version" from locations where kind = 'Star System'
+    cr> select name, id, "_version" from locations where kind = 'Star System' order by name asc
     +----------------+----+----------+
     | name           | id | _version |
     +----------------+----+----------+
     | Aldebaran      | 4  | 3        |
-    | Alpha Centauri | 6  | 3        |
     | Algol          | 5  | 3        |
+    | Alpha Centauri | 6  | 3        |
     | Altair         | 7  | 1        |
     +----------------+----+----------+
     SELECT 4 rows in set (... sec)
@@ -40,7 +40,7 @@ Optimistic Delete
 
 Of course the same can be done when deleting a row::
 
-    cr> delete from locations where id = 6 and "_version" = 3
+    cr> delete from locations where id = '6' and "_version" = 3
     DELETE OK, 1 row affected (... sec)
 
 
