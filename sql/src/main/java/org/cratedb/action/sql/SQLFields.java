@@ -131,15 +131,9 @@ public class SQLFields {
 
         Map<String, SearchHitField> searchFields = new HashMap<>(getResponse.getFields().size());
         for (Map.Entry<String, GetField> entry : getResponse.getFields().entrySet()) {
-
-            List<Object> mappedValues = new ArrayList<>(entry.getValue().getValues().size());
-            for (Object value : entry.getValue().getValues()) {
-                mappedValues.add(tableContext.mapper().convertToDisplayValue(entry.getKey(),
-                        value));
-            }
             searchFields.put(entry.getKey(), new InternalSearchHitField(
                     entry.getKey(),
-                    mappedValues
+                    entry.getValue().getValues()
                 )
             );
         }

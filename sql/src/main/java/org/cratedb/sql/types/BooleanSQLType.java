@@ -11,9 +11,10 @@ public class BooleanSQLType extends SQLType {
 
     @Override
     protected Object doConvert(Object value) throws ConvertException {
-        if (!(value instanceof Boolean)) {
+        try {
+            return (Boolean)value;
+        } catch (ClassCastException e) {
             throw new ConvertException(String.format("Invalid %s", typeName()));
         }
-        return value;
     }
 }

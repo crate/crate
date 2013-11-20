@@ -6,8 +6,8 @@ import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.core.Constants;
 import org.cratedb.service.SQLParseService;
+import org.cratedb.sql.ColumnUnknownException;
 import org.cratedb.sql.SQLParseException;
-import org.cratedb.sql.StrictCratyException;
 import org.cratedb.sql.ValidationException;
 import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.client.Client;
@@ -427,6 +427,16 @@ public class SQLTypeMappingTest extends AbstractCrateNodesTests {
     }
 
     @Test
+    public void testInsertNewColumn() throws Exception {
+        setUpSimple();
+        execute("insert into t1 (id, new_col) values (?,?)", new Object[]{0, "1970-01-01"});
+        refresh(node1.client());
+        SQLResponse response = execute("select id, new_col from t1 where id=0");
+        // TODO: type guessing
+        assertEquals("1970-01-01", response.rows()[0][1]);
+    }
+
+    @Test
     public void testInsertNewColumnToCraty() throws Exception {
         setUpCratyMapping();
         Map<String, Object> cratyContent = new HashMap<String, Object>(){{
@@ -440,24 +450,25 @@ public class SQLTypeMappingTest extends AbstractCrateNodesTests {
         assertEquals(1, response.rowCount());
         @SuppressWarnings("unchecked")
         Map<String, Object> selectedCraty = (Map<String, Object>)response.rows()[0][0];
-        // no mapping applied
+
         assertThat((String)selectedCraty.get("new_col"), is("a string"));
-        assertThat((String)selectedCraty.get("another_new_col"), is("1970-01-01T00:00:00"));
+        // TODO: type guessing
+        assertEquals("1970-01-01T00:00:00", selectedCraty.get("another_new_col"));
     }
 
     @Test
     public void testInsertNewColumnToStrictCraty() throws Exception {
 
-        expectedException.expect(StrictCratyException.class);
-        expectedException.expectMessage("Invalid write operation on strict craty");
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column unknown");
 
         setUpCratyMapping();
         Map<String, Object> strictContent = new HashMap<String, Object>(){{
             put("new_col", "a string");
             put("another_new_col", "1970-01-01T00:00:00");
         }};
-        execute("insert into test12 (id, strict_field) values (?, ?)",
-                new Object[]{0, strictContent});
+        execute("insert into test12 (strict_field) values (?)",
+                new Object[]{strictContent});
     }
 
     @Test

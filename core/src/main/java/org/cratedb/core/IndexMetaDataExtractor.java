@@ -20,6 +20,15 @@ public class IndexMetaDataExtractor {
         public final boolean dynamic;
         public final int ordinalPosition;
 
+        /**
+         * Create a new ColumnDefinition
+         * @param tableName the name of the table this column is in
+         * @param columnName the name of the column
+         * @param dataType the dataType of the column
+         * @param ordinalPosition the position in the table
+         * @param dynamic applies only to objects - if the new columns can be added,
+         *                always false for "normal" columns
+         */
         public ColumnDefinition(String tableName, String columnName, String dataType,
                                 int ordinalPosition, boolean dynamic) {
             this.tableName = tableName;
@@ -311,10 +320,12 @@ public class IndexMetaDataExtractor {
                     columnProperties.containsKey("properties"))
                     ||
                     columnProperties.get("type").equals("object")) {
+
                 boolean dynamic = columnProperties.get("dynamic") == null ||
-                        !(columnProperties.get("dynamic").equals("strict") ||
+                        !columnProperties.get("dynamic").equals("strict") ||
                         columnProperties.get("dynamic").equals(false) ||
-                        Booleans.isExplicitFalse((String)columnProperties.get("dynamic")));
+                        Booleans.isExplicitFalse((String)columnProperties.get("dynamic"));
+
                 String objectColumnName = getColumnName(prefix, columnEntry.getKey());
                 // add object column before child columns
                 ObjectColumnDefinition objectColumnDefinition = new ObjectColumnDefinition(

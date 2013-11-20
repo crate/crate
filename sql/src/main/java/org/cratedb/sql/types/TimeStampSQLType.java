@@ -27,12 +27,12 @@ public class TimeStampSQLType extends SQLType {
             }
         }
         else if ((value instanceof Float)||(value instanceof Double)) {
-            // interpret as seconds since epoque with millis as fractions
+            // interpret as seconds since the Java epoch of 1970-01-01T00:00:00Z with millis as fractions
             double d = ((Number)value).doubleValue();
             return Math.round(d * 1000.0);
         }
         else if ((value instanceof Number)) {
-            // interpret as milliseconds since epoque
+            // interpret as milliseconds since the Java epoch of 1970-01-01T00:00:00Z
             return ((Number) value).longValue();
         }
         throw new ConvertException(String.format("Invalid %s", typeName()));

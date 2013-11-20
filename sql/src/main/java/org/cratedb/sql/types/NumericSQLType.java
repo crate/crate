@@ -6,13 +6,16 @@ public abstract class NumericSQLType extends SQLType {
 
     @Override
     protected Object doConvert(Object value) throws ConvertException {
-        if (!(value instanceof Number)) {
+        Number number;
+        try {
+            number = (Number) value;
+        } catch(ClassCastException e) {
             throw new ConvertException(String.format("invalid %s", typeName()));
         }
-        if (!checkRange((Number) value)) {
+        if (!checkRange(number)) {
             throw new ConvertException(String.format("%s out of bounds", typeName()));
         }
-        return convertNumber((Number) value);
+        return convertNumber(number);
     }
 
     protected abstract Object convertNumber(Number value) throws ConvertException;
