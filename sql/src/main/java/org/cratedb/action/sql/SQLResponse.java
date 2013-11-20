@@ -23,7 +23,7 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
     private Object[][] rows;
     private String[] cols;
     private long rowCount = NO_ROW_COUNT;
-    private long requestStartedTime = -1L;
+    private long requestStartedTime = 0L;
 
     public SQLResponse() {
     }
@@ -88,7 +88,7 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
         if (requestStartedTime > 0) {
             return System.currentTimeMillis()- requestStartedTime;
         }
-        return 0;
+        return -1;
     }
 
     public void requestStartedTime(long requestStartedTime) {
