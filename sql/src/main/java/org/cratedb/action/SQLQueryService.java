@@ -70,9 +70,12 @@ public class SQLQueryService {
             reducers
         );
 
-        context.searcher().search(query, collector);
-        context.release();
-        SearchContext.removeCurrent();
+        try {
+            context.searcher().search(query, collector);
+        } finally {
+            context.release();
+            SearchContext.removeCurrent();
+        }
 
         return collector.partitionedResult;
     }

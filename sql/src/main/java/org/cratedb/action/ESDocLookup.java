@@ -1,12 +1,15 @@
 package org.cratedb.action;
 
 import org.apache.lucene.index.AtomicReaderContext;
+import org.cratedb.sql.GroupByOnArrayUnsupportedException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.fielddata.AtomicFieldData;
 import org.elasticsearch.index.fielddata.ScriptDocValues;
 import org.elasticsearch.search.lookup.DocLookup;
 import org.elasticsearch.search.lookup.FieldLookup;
 import org.elasticsearch.search.lookup.SearchLookup;
+
+import java.util.List;
 
 /**
  * Wrapper around {@link SearchLookup} that implements {@link GroupByFieldLookup}
@@ -31,10 +34,15 @@ public class ESDocLookup implements GroupByFieldLookup {
         docLookup.setNextReader(context);
     }
 
-    public Object lookupField(String columnName) {
+    public Object lookupField(String columnName) throws GroupByOnArrayUnsupportedException {
         ScriptDocValues docValues = (ScriptDocValues)docLookup.get(columnName);
         if (docValues.isEmpty())
             return null;
-        return docValues.getValues().get(0);
+        List<?> values = docValues.getValues();
+        if (values.size() > 1) {
+            throw new GroupByOnArrayUnsupportedException(columnName);
+        }
+
+        return values.get(0);
     }
 }
