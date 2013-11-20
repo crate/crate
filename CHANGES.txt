@@ -10,6 +10,14 @@ Unreleased
 
  - Fix: NPE was thrown when using a star select on an index with no defined mappings
 
+- new es upstream commit: new setting ``index.mapper.map_source`` to control whether source values
+   get mapped when returning
+
+ - fix: correct type validation and mapping on all handler nodes, even on nodes without table-shard
+   according to table definition
+
+ - nested columns of object types now listed in ``information_schema.columns``
+
 2013/11/18 0.19.4
 =================
 

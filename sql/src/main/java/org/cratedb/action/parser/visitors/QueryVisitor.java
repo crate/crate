@@ -424,7 +424,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         }
 
         String columnName = left.getColumnName();
-        String like = valueFromNode(right).toString();
+        String like = mappedValueFromNode(columnName, right).toString();
 
         queryPlanner.checkColumn(tableContext, stmt, parentNode, null, columnName, like);
 
@@ -474,9 +474,11 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         if (column instanceof ColumnReference) {
             jsonBuilder.startObject("terms").startArray(column.getColumnName());
             for (ValueNode listNode : rightNodes.getNodeList()) {
+                String columnName = column.getColumnName();
                 queryPlanner.checkColumn(tableContext, stmt, node,
-                    BinaryRelationalOperatorNode.EQUALS_RELOP, column.getColumnName(), valueFromNode(listNode));
-                jsonBuilder.value( valueFromNode(listNode));
+                    BinaryRelationalOperatorNode.EQUALS_RELOP, columnName,
+                        mappedValueFromNode(columnName, listNode));
+                jsonBuilder.value( mappedValueFromNode(columnName, listNode));
             }
             jsonBuilder.endArray().endObject();
         } else {
@@ -492,7 +494,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 query.add(
                     new TermQuery(new Term(
                         column.getColumnName(),
-                        BytesRefs.toBytesRef(valueFromNode(valueNode)))
+                        BytesRefs.toBytesRef(mappedValueFromNode(column.getColumnName(), valueNode)))
                     ),
                     BooleanClause.Occur.SHOULD
                 );
@@ -579,11 +581,11 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
         if (node.getLeftOperand() instanceof ColumnReference) {
             columnName = node.getLeftOperand().getColumnName();
-            value = valueFromNode(node.getRightOperand());
+            value = mappedValueFromNode(columnName, node.getRightOperand());
         } else {
             operator = swapOperator(operator);
             columnName = node.getRightOperand().getColumnName();
-            value = valueFromNode(node.getLeftOperand());
+            value = mappedValueFromNode(columnName, node.getLeftOperand());
         }
 
         // currently the lucene queries are only used for information schema queries.
@@ -719,11 +721,14 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             addToLuceneQueryStack(
                     parentNode,
                     buildLuceneQuery(BinaryRelationalOperatorNode.EQUALS_RELOP,
-                            columnReference.getColumnName(), valueFromNode(node.getQueryText()))
+                            columnReference.getColumnName(), mappedValueFromNode(
+                            columnReference.getColumnName(),
+                            node.getQueryText()))
             );
         }
 
-        String query = (String)valueFromNode(node.getQueryText());
+        String query = (String)mappedValueFromNode(columnReference.getColumnName(),
+                node.getQueryText());
         jsonBuilder.startObject("match")
                 .field(columnReference.getColumnName(), query)
                 .endObject();

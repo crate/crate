@@ -1,6 +1,5 @@
 package org.cratedb.plugin;
 
-import com.google.common.collect.Lists;
 import org.cratedb.module.SQLModule;
 import org.cratedb.rest.action.RestSQLAction;
 import org.cratedb.service.InformationSchemaService;
@@ -33,6 +32,9 @@ public class SQLPlugin extends AbstractPlugin {
         // Set default analyzer
         settingsBuilder.put("index.analysis.analyzer.default.type", "keyword");
 
+        // do not map source on GetRequests
+        // evaluated in elasticsearch ShardGetService.innerGet
+        settingsBuilder.put("index.mapper.map_source", false);
         return settingsBuilder.build();
     }
 

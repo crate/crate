@@ -50,6 +50,19 @@ data is inserted, otherwise an error is returned.
 Data Types
 ==========
 
+boolean
+-------
+
+A basic boolean type. Accepting ``true`` and ``false`` as values. Example::
+
+    cr> create table my_bool_table (
+    ...   first_column boolean
+    ... )
+    CREATE OK (... sec)
+
+    cr> drop table my_bool_table
+    DROP OK (... sec)
+
 string
 ------
 
@@ -66,6 +79,8 @@ number
 
 Crate supports a set of number types: ``integer``, ``long``, ``short``, ``double``,
 ``float`` and ``byte``. All types have the same ranges as corresponding `Java types`_.
+You can insert any number for any type, be it a ``float``, ``integer``, or ``byte``
+as long as its within the corresponding range.
 Example::
 
     cr> create table my_table3 (
@@ -82,14 +97,34 @@ timestamp
 ---------
 
 The timestamp type is a special type which maps to a formatted string. Internally it maps to
-a ``long``, adding the parsing from long to string and vice versa. All timestamps a treat as UTC.
-The default format is dateOptionalTime_ and cannot be changed currently. It will also accept a
-``long`` representing UTC milliseconds since the epoch. Example::
+the UTC milliseconds since 1970-01-01T00:00:00Z stored as ``long``. They are always returned as ``long``.
+The default format is dateOptionalTime_ and cannot be changed currently.
+Formatted date strings containing timezone offset information will be converted to UTC.
+Formated string without timezone offset information will be treated as UTC.
+Timestamps will also accept a ``long`` representing UTC milliseconds since the epoch or
+a ``float`` or ``double`` representing UTC seconds since the epoch with milliseconds as
+fractions. Example::
 
     cr> create table my_table4 (
+    ...   id integer,
     ...   first_column timestamp
     ... )
     CREATE OK (... sec)
+
+    cr> insert into my_table4 (id, first_column) values (0, '1970-01-01T00:00:00')
+    INSERT OK, 1 row affected (... sec)
+
+    cr> insert into my_table4 (id, first_column) values (1, '1970-01-01T00:00:00+0100')
+    INSERT OK, 1 row affected (... sec)
+
+    cr> insert into my_table4 (id, first_column) values (2, 0)
+    INSERT OK, 1 row affected (... sec)
+
+    cr> insert into my_table4 (id, first_column) values (3, 1.0)
+    INSERT OK, 1 row affected (... sec)
+
+    cr> insert into my_table4 (id, first_column) values (3, 'wrong')
+    ValidationException[Validation failed for first_column: Invalid timestamp ISODate string]
 
 
 Sharding

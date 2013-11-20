@@ -400,7 +400,7 @@ Inserting data to ``Crate`` is done by using the SQL ``INSERT`` statement.
 
 Inserting a row::
 
-    cr> insert into locations values ('2013-09-12T21:43:59.000Z', 'Blagulon Kappa is the planet to which the police are native.', 'Planet', 'Blagulon Kappa', 7)
+    cr> insert into locations values ('14', '2013-09-12T21:43:59.000Z', 'Blagulon Kappa is the planet to which the police are native.', 'Planet', 'Blagulon Kappa', 7)
     INSERT OK, 1 row affected (... sec)
 
 Inserting multiple rows at once (aka. bulk insert) can be done by defining

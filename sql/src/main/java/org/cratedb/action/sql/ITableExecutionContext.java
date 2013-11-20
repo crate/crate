@@ -1,12 +1,12 @@
 package org.cratedb.action.sql;
 
-import org.elasticsearch.index.mapper.DocumentMapper;
+import org.cratedb.sql.types.SQLFieldMapper;
 
 import java.util.List;
 
 public interface ITableExecutionContext {
 
-    public DocumentMapper mapper();
+    public SQLFieldMapper mapper();
     public Object mappedValue(String name, Object value);
     public List<String> primaryKeys();
     public List<String> primaryKeysIncludingDefault();

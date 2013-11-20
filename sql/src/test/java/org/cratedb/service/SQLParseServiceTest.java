@@ -43,6 +43,8 @@ public class SQLParseServiceTest extends AbstractCrateNodesTests {
         // later on if something else makes more sense.
     }
 
+
+
     @Test
     public void testUnparseSelect() throws Exception {
         String unparsed = sqlParseService.unparse("SelECT mycol froM mytable wheRe a IS not" +

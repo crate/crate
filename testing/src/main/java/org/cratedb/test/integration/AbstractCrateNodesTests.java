@@ -1,6 +1,8 @@
 package org.cratedb.test.integration;
 
 import org.elasticsearch.AbstractNodesTests;
+import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -11,6 +13,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoFailures;
 
 public class AbstractCrateNodesTests extends AbstractNodesTests {
 
@@ -59,5 +63,10 @@ public class AbstractCrateNodesTests extends AbstractNodesTests {
     public void closeNode(String id) {
         deleteTemporaryDataDirectory(id);
         super.closeNode(id);
+    }
+
+    public void refresh(Client client) {
+        RefreshResponse actionGet = client.admin().indices().prepareRefresh().execute().actionGet();
+        assertNoFailures(actionGet);
     }
 }

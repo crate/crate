@@ -2,19 +2,19 @@ package org.cratedb.action.sql;
 
 import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
-import org.cratedb.core.Constants;
 import org.cratedb.core.IndexMetaDataExtractor;
 import org.cratedb.information_schema.InformationSchemaTableExecutionContext;
 import org.cratedb.information_schema.InformationSchemaTableExecutionContextFactory;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.TableAliasSchemaException;
 import org.cratedb.sql.TableUnknownException;
+import org.cratedb.sql.types.SQLFieldMapper;
+import org.cratedb.sql.types.SQLFieldMapperFactory;
 import org.elasticsearch.action.support.IgnoreIndices;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 
@@ -29,6 +29,7 @@ public class NodeExecutionContext {
     private final QueryPlanner queryPlanner;
     private final InformationSchemaTableExecutionContextFactory factory;
     private final Settings settings;
+    private final SQLFieldMapperFactory sqlFieldMapperFactory;
  
     @Inject
     public NodeExecutionContext(IndicesService indicesService,
@@ -36,15 +37,23 @@ public class NodeExecutionContext {
                                 AnalyzerService analyzerService,
                                 QueryPlanner queryPlanner,
                                 InformationSchemaTableExecutionContextFactory factory,
-                                Settings settings) {
+                                Settings settings,
+                                SQLFieldMapperFactory sqlFieldMapperFactory) {
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.analyzerService = analyzerService;
         this.queryPlanner = queryPlanner;
         this.factory = factory;
         this.settings = settings;
+        this.sqlFieldMapperFactory = sqlFieldMapperFactory;
     }
 
+    /**
+     * create a new TableExecutionContext for the table described by schema and table
+     * @param schema the name of the schema this table is in
+     * @param table the name of the table
+     * @return an implementation of ITableExecutionContext or null if no context could be created
+     */
     public ITableExecutionContext tableContext(String schema, String table) {
         if (schema != null && schema.equalsIgnoreCase(InformationSchemaTableExecutionContext.SCHEMA_NAME)) {
             return factory.create(table);
@@ -74,25 +83,19 @@ public class NodeExecutionContext {
                 throw new CrateException("Unknown error while comparing table meta data", e);
             }
         }
-
-        // TODO: remove documentMapper
-        // the documentMapper isn't available on nodes that don't contain the index.
-        DocumentMapper dm = indicesService.indexServiceSafe(concreteIndices[0]).mapperService()
-                .documentMapper
-                (Constants
-                    .DEFAULT_MAPPING_TYPE);
-
         IndexMetaData indexMetaData = clusterService.state().metaData().index(concreteIndices[0]);
+        if (indexMetaData != null) {
+            IndexMetaDataExtractor metaDataExtractor = new IndexMetaDataExtractor(indexMetaData);
+            SQLFieldMapper sqlFieldMapper = sqlFieldMapperFactory.create(metaDataExtractor);
 
-        if (dm != null && indexMetaData != null){
-            return new TableExecutionContext(table,
-                    indexMetaData.mappingOrDefault(Constants.DEFAULT_MAPPING_TYPE), dm, tableIsAlias);
-        } else if (indexMetaData != null) {
-            return new TableExecutionContext(table,
-                    indexMetaData.mappingOrDefault(Constants.DEFAULT_MAPPING_TYPE), tableIsAlias);
+            return new TableExecutionContext(
+                    table,
+                    metaDataExtractor,
+                    sqlFieldMapper,
+                    tableIsAlias);
+        } else {
+            return null;
         }
-
-        return null;
     }
 
     public QueryPlanner queryPlanner() {
@@ -104,7 +107,7 @@ public class NodeExecutionContext {
     }
 
     private boolean compareIndicesMetaData(String[] indices) throws IOException {
-        if (settings.getAsBoolean("crate.table_alias.schema_check", true) == false) {
+        if (!settings.getAsBoolean("crate.table_alias.schema_check", true)) {
             return true;
         }
 
