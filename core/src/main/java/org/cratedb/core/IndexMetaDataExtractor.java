@@ -322,9 +322,9 @@ public class IndexMetaDataExtractor {
                     columnProperties.get("type").equals("object")) {
 
                 boolean dynamic = columnProperties.get("dynamic") == null ||
-                        !columnProperties.get("dynamic").equals("strict") ||
-                        columnProperties.get("dynamic").equals(false) ||
-                        Booleans.isExplicitFalse((String)columnProperties.get("dynamic"));
+                        (!columnProperties.get("dynamic").equals("strict") &&
+                        !columnProperties.get("dynamic").equals(false) &&
+                        !Booleans.isExplicitFalse((String)columnProperties.get("dynamic")));
 
                 String objectColumnName = getColumnName(prefix, columnEntry.getKey());
                 // add object column before child columns
