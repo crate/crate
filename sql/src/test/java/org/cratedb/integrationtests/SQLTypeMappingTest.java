@@ -343,7 +343,7 @@ public class SQLTypeMappingTest extends AbstractCrateNodesTests {
                 "{\"fields\":[\"boolean_field\",\"byte_field\",\"craty_field\",\"double_field\"," +
                     "\"float_field\",\"id\",\"integer_field\",\"long_field\",\"short_field\"," +
                     "\"string_field\",\"timestamp_field\"]," +
-                    "\"query\":{\"term\":{\"timestamp_field\":0}},\"size\":1000}",
+                    "\"query\":{\"term\":{\"timestamp_field\":0}},\"size\":10000}",
                 stmt.xcontent.toUtf8());
     }
 
@@ -432,8 +432,30 @@ public class SQLTypeMappingTest extends AbstractCrateNodesTests {
         execute("insert into t1 (id, new_col) values (?,?)", new Object[]{0, "1970-01-01"});
         refresh(node1.client());
         SQLResponse response = execute("select id, new_col from t1 where id=0");
-        // TODO: type guessing
-        assertEquals("1970-01-01", response.rows()[0][1]);
+        assertEquals(0, response.rows()[0][1]);
+    }
+
+    @Test
+    public void testInsertNewCratyColumn() throws Exception {
+        setUpSimple();
+        execute("insert into t1 (id, new_col) values (?,?)", new Object[]{
+                0,
+                new HashMap<String, Object>(){{
+                    put("a_date", "1970-01-01");
+                    put("an_int", 127);
+                    put("a_long", Long.MAX_VALUE);
+                    put("a_boolean", true);
+                }}
+        });
+        refresh(node1.client());
+
+        SQLResponse response = execute("select id, new_col from t1 where id=0");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> mapped = (Map<String, Object>)response.rows()[0][1];
+        assertEquals(0, mapped.get("a_date"));
+        assertEquals(127, mapped.get("an_int"));
+        assertEquals(0x7fffffffffffffffL, mapped.get("a_long"));
+        assertEquals(true, mapped.get("a_boolean"));
     }
 
     @Test
@@ -452,8 +474,7 @@ public class SQLTypeMappingTest extends AbstractCrateNodesTests {
         Map<String, Object> selectedCraty = (Map<String, Object>)response.rows()[0][0];
 
         assertThat((String)selectedCraty.get("new_col"), is("a string"));
-        // TODO: type guessing
-        assertEquals("1970-01-01T00:00:00", selectedCraty.get("another_new_col"));
+        assertEquals(0, selectedCraty.get("another_new_col"));
     }
 
     @Test

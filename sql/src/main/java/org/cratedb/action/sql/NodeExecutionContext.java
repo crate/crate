@@ -2,6 +2,7 @@ package org.cratedb.action.sql;
 
 import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
+import org.cratedb.core.ColumnDefinition;
 import org.cratedb.core.IndexMetaDataExtractor;
 import org.cratedb.information_schema.InformationSchemaTableExecutionContext;
 import org.cratedb.information_schema.InformationSchemaTableExecutionContextFactory;
@@ -114,7 +115,7 @@ public class NodeExecutionContext {
         IndexMetaData indexMetaData = clusterService.state().metaData().index(indices[0]);
         IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(indexMetaData);
         String routingColumn = extractor.getRoutingColumn();
-        List<IndexMetaDataExtractor.ColumnDefinition> columnDefinitionList = extractor
+        List<ColumnDefinition> columnDefinitionList = extractor
                 .getColumnDefinitions();
         List<IndexMetaDataExtractor.Index> indexList = extractor.getIndices();
 
@@ -127,7 +128,7 @@ public class NodeExecutionContext {
                     || (routingColumn == null && routingColumnOther != null)) {
                 return false;
             }
-            List<IndexMetaDataExtractor.ColumnDefinition> columnDefinitionListOther =
+            List<ColumnDefinition> columnDefinitionListOther =
                     extractorOther.getColumnDefinitions();
             if (columnDefinitionList.size() != columnDefinitionListOther.size()) {
                 return false;

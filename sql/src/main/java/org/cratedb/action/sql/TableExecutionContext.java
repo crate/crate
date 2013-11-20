@@ -101,8 +101,7 @@ public class TableExecutionContext implements ITableExecutionContext {
     @Override
     @SuppressWarnings("unchecked")
     public boolean hasCol(String colName) {
-        return ((Map<String, Object>)mapping().get("properties"))
-                .containsKey(colName);
+        return indexMetaDataExtractor.getColumnDefinitionsMap().get(colName) != null;
     }
 
     /**

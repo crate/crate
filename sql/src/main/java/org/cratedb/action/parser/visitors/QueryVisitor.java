@@ -22,7 +22,6 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.util.*;
 
 
@@ -656,7 +655,8 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 throw new SQLParseException("Filtering by _score can only be done using a " +
                         "greater-than or greater-equals operator");
             }
-            stmt.scoreMinimum = (BigDecimal)value;
+            // type validated by SQLFieldMapper
+            stmt.scoreMinimum = ((Number) value).doubleValue();
             jsonBuilder.field("match_all", new HashMap<>());
             return null;
         }

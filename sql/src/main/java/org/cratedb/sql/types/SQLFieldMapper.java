@@ -2,7 +2,10 @@ package org.cratedb.sql.types;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import org.cratedb.core.BuiltInColumnDefinition;
+import org.cratedb.core.ColumnDefinition;
 import org.cratedb.core.IndexMetaDataExtractor;
 import org.cratedb.sql.ColumnUnknownException;
 import org.cratedb.sql.TypeUnknownException;
@@ -11,21 +14,32 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.assistedinject.Assisted;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class SQLFieldMapper {
     private final IndexMetaDataExtractor metaDataExtractor;
-    private final Map<String, Tuple<IndexMetaDataExtractor.ColumnDefinition, SQLType>> columnSqlTypes = new HashMap<>();
+    private final Map<String, Tuple<ColumnDefinition, SQLType>> columnSqlTypes = new HashMap<>();
+    private static final Pattern numberPattern = Pattern.compile("\\d+");
+    private static final ImmutableMap<String, Tuple<ColumnDefinition, SQLType>> builtInColumnTypes =
+            new ImmutableMap.Builder<String, Tuple<ColumnDefinition, SQLType>>()
+            .put(
+                    "_score",
+                    new Tuple<>((ColumnDefinition)BuiltInColumnDefinition.SCORE_COLUMN,
+                        (SQLType)new DoubleSQLType()))
+            .build();
 
     @Inject
     public SQLFieldMapper(Map<String, SQLType> sqlTypes,
                           @Assisted IndexMetaDataExtractor extractor) {
         this.metaDataExtractor = extractor;
 
+        columnSqlTypes.putAll(builtInColumnTypes);
         SQLType columnType;
-        for (IndexMetaDataExtractor.ColumnDefinition columnDefinition : metaDataExtractor.getColumnDefinitions()) {
+        for (ColumnDefinition columnDefinition : metaDataExtractor.getColumnDefinitions()) {
             columnType = sqlTypes.get(columnDefinition.dataType);
             if (columnType == null) {
                 throw new TypeUnknownException(columnDefinition.dataType);
@@ -34,20 +48,68 @@ public class SQLFieldMapper {
         }
     }
 
+    /**
+     * guess the type of a given value and map it if a type could be guessed
+     *
+     * @param value the value to guess the type from and map
+     * @return the mapped value
+     * @throws TypeUnknownException if no type could be guessed
+     */
+    public Object guessAndMapType(Object value) throws TypeUnknownException, SQLType.ConvertException {
+
+        if (value instanceof String) {
+            if (!numberPattern.matcher((String)value).matches()) {
+                try {
+                    return new TimeStampSQLType().toXContent(value);
+                } catch(SQLType.ConvertException|IllegalArgumentException e) {
+                    // no date, fall through to String
+                }
+            }
+            return new StringSQLType().toXContent(value);
+        }
+        else if (value instanceof Boolean) {
+            return new BooleanSQLType().toXContent(value);
+        }
+        else if (value instanceof Number) {
+            if ((value instanceof Double) || (value instanceof Float) || (value instanceof BigDecimal)) {
+                return new DoubleSQLType().toXContent(value);
+            } else if (((Number)value).longValue() < Integer.MIN_VALUE || Integer.MAX_VALUE < ((Number)value).longValue() ){
+                return new LongSQLType().toXContent(value);
+            } else {
+                return new IntegerSQLType().toXContent(value);
+            }
+
+        } else if (value instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> mappedCraty = ((Map<String, Object>)new CratySQLType().toXContent(value));
+            for (Map.Entry<String, Object> entry : mappedCraty.entrySet()) {
+                mappedCraty.put(entry.getKey(), guessAndMapType(entry.getValue()));
+            }
+            return mappedCraty;
+        }
+        throw new TypeUnknownException(value.getClass().getSimpleName());
+    }
+
 
     @SuppressWarnings("unchecked")
-    public Object convertToXContentValue(String columnName,
-                                         Object value) throws ColumnUnknownException,
-            ValidationException {
+    public Object convertToXContentValue(String columnName, Object value)
+            throws ColumnUnknownException, TypeUnknownException, ValidationException {
         Object converted;
-        Tuple<IndexMetaDataExtractor.ColumnDefinition, SQLType> columnAndType = columnSqlTypes.get(columnName);
+        Tuple<ColumnDefinition, SQLType> columnAndType = columnSqlTypes.get(columnName);
         if (columnAndType == null) {
             columnAndType = getParentColumnAndType(columnName);
-            if ((columnAndType != null && columnAndType.v1().dynamic)
+            if ((columnAndType != null && !columnAndType.v1().strict)
                         ||
                 (columnAndType == null && metaDataExtractor.isDynamic())) {
-                // TODO: apply dynamic mapping configurations - type guessing
-                return value;
+
+                if (columnAndType != null && !columnAndType.v1().dynamic) {
+                    return value;
+                }
+                try {
+                    return guessAndMapType(value);
+                } catch (SQLType.ConvertException e) {
+                    throw new ValidationException(columnName, e.getMessage());
+                }
             } else {
                 throw new ColumnUnknownException(metaDataExtractor.getIndexName(), columnName);
             }
@@ -79,7 +141,7 @@ public class SQLFieldMapper {
      * @param columnName the name of the column to get its parent from
      * @return a Tuple of ColumnDefinition and SQLType or null
      */
-    private Tuple<IndexMetaDataExtractor.ColumnDefinition, SQLType> getParentColumnAndType(String columnName) {
+    private Tuple<ColumnDefinition, SQLType> getParentColumnAndType(String columnName) {
         List<String> pathElements = Lists.newArrayList(Splitter.on('.').split(columnName));
         if (pathElements.size()>1) {
             String joined = Joiner.on('.').join(pathElements.subList(0, pathElements.size()-1));
@@ -91,7 +153,7 @@ public class SQLFieldMapper {
 
     @SuppressWarnings("unchecked")
     public Object convertToDisplayValue(String columnName, Object value) {
-        Tuple<IndexMetaDataExtractor.ColumnDefinition, SQLType> columnAndType = columnSqlTypes.get(columnName);
+        Tuple<ColumnDefinition, SQLType> columnAndType = columnSqlTypes.get(columnName);
         if (columnAndType.v2() == null) {
             return value;
         } else {

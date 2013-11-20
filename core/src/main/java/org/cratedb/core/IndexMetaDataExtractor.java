@@ -13,44 +13,6 @@ import java.util.*;
  */
 public class IndexMetaDataExtractor {
 
-    public static class ColumnDefinition {
-        public final String tableName;
-        public final String columnName;
-        public final String dataType;
-        public final boolean dynamic;
-        public final int ordinalPosition;
-
-        /**
-         * Create a new ColumnDefinition
-         * @param tableName the name of the table this column is in
-         * @param columnName the name of the column
-         * @param dataType the dataType of the column
-         * @param ordinalPosition the position in the table
-         * @param dynamic applies only to objects - if the new columns can be added,
-         *                always false for "normal" columns
-         */
-        public ColumnDefinition(String tableName, String columnName, String dataType,
-                                int ordinalPosition, boolean dynamic) {
-            this.tableName = tableName;
-            this.columnName = columnName;
-            this.dataType = dataType;
-            this.ordinalPosition = ordinalPosition;
-            this.dynamic = dynamic;
-        }
-    }
-
-    /*
-     * Columndefinition that contains other columns
-     */
-    public static class ObjectColumnDefinition extends ColumnDefinition {
-        public final List<ColumnDefinition> nestedColumns = new ArrayList<>();
-
-
-        public ObjectColumnDefinition(String tableName, String columnName, String dataType, int ordinalPosition, boolean dynamic) {
-            super(tableName, columnName, dataType, ordinalPosition, dynamic);
-        }
-    }
-
     public static class Index {
         public final String tableName;
         public final String indexName;
@@ -230,7 +192,7 @@ public class IndexMetaDataExtractor {
     private String getColumnDataType(Map<String, Object> columnProperties) {
         String dataType = (String)columnProperties.get("type");
         if (dataType == null && columnProperties.get("properties") != null ||
-                dataType.equals("object")) {
+                dataType.equals("object") || dataType.equals("nested")) {
             // TODO: whats about nested object schema?
             dataType = "craty";
 
@@ -310,7 +272,8 @@ public class IndexMetaDataExtractor {
                                         columnName,
                                         getColumnDataType(multiColumnProperties),
                                         startPos++,
-                                        false
+                                        false,
+                                        true
                                 )
                         );
                     }
@@ -319,10 +282,13 @@ public class IndexMetaDataExtractor {
                     &&
                     columnProperties.containsKey("properties"))
                     ||
-                    columnProperties.get("type").equals("object")) {
-
+                    columnProperties.get("type").equals("object")
+                    ||
+                    columnProperties.get("type").equals("nested")) {
+                boolean strict = columnProperties.get("dynamic") != null
+                        && columnProperties.get("dynamic").equals("strict");
                 boolean dynamic = columnProperties.get("dynamic") == null ||
-                        (!columnProperties.get("dynamic").equals("strict") &&
+                        (!strict &&
                         !columnProperties.get("dynamic").equals(false) &&
                         !Booleans.isExplicitFalse((String)columnProperties.get("dynamic")));
 
@@ -333,7 +299,8 @@ public class IndexMetaDataExtractor {
                         objectColumnName,
                         getColumnDataType(columnProperties),
                         startPos++,
-                        dynamic
+                        dynamic,
+                        strict
                 );
                 if (columnProperties.get("properties") != null) {
 
@@ -357,7 +324,8 @@ public class IndexMetaDataExtractor {
                                 columnName,
                                 getColumnDataType(columnProperties),
                                 startPos++,
-                                false
+                                false,
+                                true
                         )
                 );
             }

@@ -5,6 +5,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.StringField;
+import org.cratedb.core.ColumnDefinition;
 import org.cratedb.core.IndexMetaDataExtractor;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -69,13 +70,13 @@ public class ColumnsTable extends AbstractInformationSchemaTable {
         for (IndexMetaData indexMetaData : clusterState.metaData().indices().values()) {
             IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(indexMetaData);
 
-            for (IndexMetaDataExtractor.ColumnDefinition columnDefinition : extractor.getColumnDefinitions()) {
+            for (ColumnDefinition columnDefinition : extractor.getColumnDefinitions()) {
                 addColumnDocument(columnDefinition);
             }
         }
     }
 
-    private void addColumnDocument(IndexMetaDataExtractor.ColumnDefinition columnDefinition) throws IOException {
+    private void addColumnDocument(ColumnDefinition columnDefinition) throws IOException {
         Document doc = new Document();
         tableNameField.setStringValue(columnDefinition.tableName);
         doc.add(tableNameField);
