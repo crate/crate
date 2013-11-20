@@ -21,9 +21,7 @@ import org.junit.rules.ExpectedException;
 import java.io.IOException;
 
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
 
@@ -66,7 +64,7 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
         SQLResponse response = execute("CREATE ANALYZER a1 WITH (" +
                 "  TOKENIZER standard" +
                 ")");
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
         Settings customAnalyzerSettings = getPersistentClusterSettings();
 
         assertThat(
