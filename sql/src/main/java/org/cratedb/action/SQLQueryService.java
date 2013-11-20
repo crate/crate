@@ -52,7 +52,7 @@ public class SQLQueryService {
         this.aggFunctionMap = aggFunctionMap;
     }
 
-    public Map<String, Map<Integer, GroupByRow>> query(String[] reducers, String concreteIndex,
+    public Map<String, Map<GroupByKey, GroupByRow>> query(String[] reducers, String concreteIndex,
                                                        ParsedStatement stmt, int shardId)
         throws Exception
     {

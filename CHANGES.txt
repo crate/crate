@@ -4,6 +4,9 @@ Changes for Crate
 
 Unreleased
 ==========
+ 
+ - optimized internal data structures that are used when executing a group by
+   query. This should reduce memory consumption and speed up serialization.
 
  - Increased default ``SELECT`` limit to 10000.
    Also use this default limit on ``GROUP BY`` queries if no limit is defined explicit.

@@ -3,6 +3,10 @@ package org.cratedb.integrationtests;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Ordering;
+import org.apache.log4j.Level;
+import org.cratedb.action.SQLQueryService;
+import org.cratedb.action.TransportDistributedSQLAction;
+import org.cratedb.action.TransportSQLReduceHandler;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
@@ -19,6 +23,7 @@ import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -1548,6 +1553,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     public void testCountWithGroupByOrderOnKeyAscAndLimit() throws Exception {
         groupBySetup();
 
+
         execute("select count(*), race from characters group by race order by race asc limit 2");
 
         assertEquals(2, response.rowCount());
@@ -1823,6 +1829,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         // generated using sqlalchemy
         // session.query(func.count(Test.col1), Test.col2).group_by(Test.col2).order_by(desc(func.count(Test.col1))).all()
 
+
         execute("create table test (col1 integer primary key, col2 string)");
         execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
         execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
@@ -1872,6 +1879,8 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     @Test
     public void testGroupByNestedObject() throws Exception {
         groupBySetup();
+        Loggers.getLogger(TransportDistributedSQLAction.class).setLevel("TRACE");
+        Loggers.getLogger(TransportSQLReduceHandler.class).setLevel("TRACE");
 
         execute("select count(*), details['job'] from characters group by details['job'] order by count(*), details['job']");
         assertEquals(3, response.rowCount());
@@ -1881,6 +1890,31 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals("Sandwitch Maker", response.rows()[1][1]);
         assertEquals(4L, response.rows()[2][0]);
         assertNull(null, response.rows()[2][1]);
+    }
+
+    @Test
+    public void testGroupByEmpty() throws Exception {
+        execute("create table test (col1 string)");
+        refresh();
+
+        execute("select count(*), col1 from test group by col1");
+        assertEquals(0, response.rowCount());
+    }
+
+    @Test
+    public void testGroupByMultiValueField() throws Exception {
+        groupBySetup();
+
+        execute("insert into characters (race, gender, name) values (?, ?, ?)",
+            new Object[] { new String[] {"Android"}, new String[] {"male", "robot"}, "Marvin2"}
+        );
+        execute("insert into characters (race, gender, name) values (?, ?, ?)",
+            new Object[] { new String[] {"Android"}, new String[] {"male", "robot"}, "Marvin3"}
+        );
+        refresh();
+
+
+        // TODO: should throw an exception - group by on array not supported
     }
 
     @Test

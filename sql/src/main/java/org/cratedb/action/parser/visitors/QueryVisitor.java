@@ -4,6 +4,7 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggExprFactory;
+import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.OrderByColumnIdx;
@@ -81,11 +82,54 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         stmt.query = rootQuery;
         stmt.xcontent = jsonBuilder.bytes();
 
+        buildIdxMap();
+
         if (stmt.isInformationSchemaQuery()) {
             stmt.type(ParsedStatement.ActionType.INFORMATION_SCHEMA);
         } else {
             // only non-information schema queries can be optimized
             queryPlanner.finalizeWhereClause(stmt);
+        }
+    }
+
+    /**
+     * if it's a group by sql request {@link org.cratedb.action.groupby.GroupByRow}'s are built on
+     * the mapper/reducer.
+     * the idxMap is used to map resultColumnList idx to the groupByRows internal idx.
+     *
+     * E.g. ResultColumnList: [CountAggExpr, ColumnDesc(city), AvgAggExpr, ColumnDesc(country)]
+     *      Group By: country, city
+     *
+     * maps to
+     *
+     * GroupByRow:
+     *   GroupByKey [country, city]
+     *   AggStates [Count, Avg]
+     *
+     * So that groupByRow.get(idxMap[0]) will return the CountAggState.
+     */
+    protected void buildIdxMap() {
+        if (!stmt.hasGroupBy()) {
+            return;
+        }
+
+        stmt.idxMap = new Integer[stmt.resultColumnList.size()];
+        int aggIdx = 0;
+        int idx = 0;
+        for (ColumnDescription columnDescription : stmt.resultColumnList) {
+            switch (columnDescription.type) {
+                case ColumnDescription.Types.AGGREGATE_COLUMN:
+                    stmt.idxMap[idx] = aggIdx + stmt.groupByColumnNames.size();
+                    aggIdx++;
+                    break;
+
+                case ColumnDescription.Types.CONSTANT_COLUMN:
+                    stmt.idxMap[idx] = stmt.groupByColumnNames.indexOf(
+                        ((ColumnReferenceDescription)columnDescription).name);
+                    break;
+            }
+
+            idx++;
         }
     }
 
@@ -242,6 +286,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
         Set<String> fields = new LinkedHashSet<>();
         stmt.resultColumnList = new ArrayList<>(columnList.size());
+        stmt.aggregateExpressions = new ArrayList<>();
 
         for (ResultColumn column : columnList) {
             if (column instanceof AllResultColumn) {
@@ -308,7 +353,9 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             if (operand != null) {
                 validateCountOperand(operand);
             }
-            stmt.resultColumnList.add(AggExprFactory.createAggExpr("COUNT(*)"));
+            AggExpr aggExpr = AggExprFactory.createAggExpr("COUNT(*)");
+            stmt.resultColumnList.add(aggExpr);
+            stmt.aggregateExpressions.add(aggExpr);
             String alias = column.getName() != null ? column.getName() : node.getAggregateName();
             stmt.countRequest(true);
             stmt.addOutputField(alias, node.getAggregateName());

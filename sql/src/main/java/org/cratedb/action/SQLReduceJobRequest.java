@@ -21,17 +21,20 @@ public class SQLReduceJobRequest extends TransportRequest {
     public int expectedShardResults;
     public Integer limit;
     public OrderByColumnIdx[] orderByIndices;
+    public Integer[] idxMap;
+
 
     public SQLReduceJobRequest() {
 
     }
 
     public SQLReduceJobRequest(UUID contextId, int expectedShardResults,
-                               Integer limit, OrderByColumnIdx[] orderByIndices) {
+                               Integer limit, Integer[] idxMap, OrderByColumnIdx[] orderByIndices) {
         this.contextId = contextId;
         this.expectedShardResults = expectedShardResults;
         this.limit = limit;
         this.orderByIndices = orderByIndices;
+        this.idxMap = idxMap;
     }
 
     @Override
@@ -42,6 +45,11 @@ public class SQLReduceJobRequest extends TransportRequest {
         orderByIndices = new OrderByColumnIdx[in.readVInt()];
         for (int i = 0; i < orderByIndices.length; i++) {
             orderByIndices[i] = OrderByColumnIdx.readFromStream(in);
+        }
+
+        idxMap = new Integer[in.readVInt()];
+        for (int i = 0; i < idxMap.length; i++) {
+            idxMap[i] = in.readVInt();
         }
 
         if (in.readBoolean()) {
@@ -58,6 +66,12 @@ public class SQLReduceJobRequest extends TransportRequest {
         out.writeVInt(orderByIndices.length);
         for (OrderByColumnIdx index : orderByIndices) {
             index.writeTo(out);
+        }
+
+        out.writeVInt(idxMap.length);
+        for (Integer idx : idxMap) {
+            out.writeVInt(idx);
+
         }
 
         if (limit != null) {

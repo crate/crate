@@ -1,16 +1,13 @@
 package org.cratedb.action;
 
 import org.cratedb.action.groupby.GroupByRow;
-import org.cratedb.action.groupby.aggregate.AggState;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
-import static com.google.common.collect.Maps.newHashMap;
 
 /**
  * Result of a group by operation.
@@ -20,64 +17,111 @@ import static com.google.common.collect.Maps.newHashMap;
  */
 public class SQLGroupByResult implements Streamable {
 
-    public Map<Integer, GroupByRow> result = newHashMap();
+    /**
+     * optimization: the preSerializationResult is set on the mapper
+     * after the SQLGroupByResult is sent from the Mapper to the Reducer
+     * the result is filled
+     *
+     * the serialization is basically abused to convert the Collection into a List
+     */
+    public List<GroupByRow> result;
+    private Collection<GroupByRow> preSerializationResult;
 
     public SQLGroupByResult() {
         // empty ctor - serialization
+        result = new ArrayList<>(0);
     }
 
-    public SQLGroupByResult(Map<Integer, GroupByRow> result) {
-        this.result = result;
+    public SQLGroupByResult(Collection<GroupByRow> result) {
+        this.preSerializationResult = result;
+    }
+
+    /**
+     * Only use this for testing, the result is not serialized!
+     * @param result
+     */
+    public SQLGroupByResult(List<GroupByRow> result) {
+       this.result = result;
     }
 
     public void merge(SQLGroupByResult otherResult) {
         merge(otherResult.result);
     }
 
-    /**
-     * merge the content of "mapperResult" into "result"
-     *
-     * a an entry (identified by key) in mapperResult that is missing in result is added to result
-     * if the entry is in result the values are merged.
-     * @param mapperResult
-     */
-    protected void merge(Map<Integer, GroupByRow> mapperResult) {
-        for (Map.Entry<Integer, GroupByRow> entry : mapperResult.entrySet()) {
-            GroupByRow currentRow = result.get(entry.getKey());
-            if (currentRow == null) {
-                result.put(entry.getKey(), entry.getValue());
-            } else {
-                GroupByRow otherRow = entry.getValue();
-                assert currentRow.size() == otherRow.size();
+    protected void merge(List<GroupByRow> mapperResult) {
+        assert result != null;
+        assert mapperResult != null;
 
-                for (Map.Entry<Integer, AggState> aggEntry : otherRow.aggregateStates.entrySet()) {
-                    AggState currentState = currentRow.aggregateStates.get(aggEntry.getKey());
-                    currentState.merge(aggEntry.getValue());
+        if (result.isEmpty()) {
+            result = mapperResult;
+            return;
+        }
+        if (mapperResult.isEmpty()) {
+            return;
+        }
+
+        List<GroupByRow> newResult = new ArrayList<>();
+
+        ListIterator<GroupByRow> thisIterator = result.listIterator();
+        ListIterator<GroupByRow> otherIterator = mapperResult.listIterator();
+
+        GroupByRow otherRow;
+        GroupByRow thisRow;
+
+        while(thisIterator.hasNext() || otherIterator.hasNext()) {
+            if (!otherIterator.hasNext()) {
+                newResult.add(thisIterator.next());
+            } else if (!thisIterator.hasNext()) {
+                newResult.add(otherIterator.next());
+            } else {
+
+                thisRow = result.get(thisIterator.nextIndex());
+                otherRow = mapperResult.get(otherIterator.nextIndex());
+
+                switch (thisRow.key.compareTo(otherRow.key)) {
+                    case 0:
+                        thisRow.merge(otherRow);
+                        newResult.add(thisRow);
+                        thisIterator.next();
+                        otherIterator.next();
+                        break;
+                    case -1:
+                        newResult.add(thisRow);
+                        thisIterator.next();
+                        break;
+                    case 1:
+                        newResult.add(otherRow);
+                        otherIterator.next();
+                        break;
                 }
             }
         }
+
+        result = newResult;
     }
 
     public int size() {
+        if (preSerializationResult != null) {
+            return preSerializationResult.size();
+        }
         return result.size();
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        int mapSize = in.readVInt();
-        result = new HashMap<>(mapSize);
-        for (int i = 0; i < mapSize; i++) {
-            int key = in.readInt();
-            result.put(key, GroupByRow.readGroupByRow(in));
+        int resultSize = in.readVInt();
+        result = new ArrayList<>();
+
+        for (int i = 0; i < resultSize; i++) {
+            result.add(GroupByRow.readGroupByRow(in));
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(result.size());
-        for (Map.Entry<Integer, GroupByRow> entry : result.entrySet()) {
-            out.writeInt(entry.getKey());
-            entry.getValue().writeTo(out);
+        out.writeVInt(preSerializationResult.size());
+        for (GroupByRow groupByRow : preSerializationResult) {
+            groupByRow.writeTo(out);
         }
     }
 

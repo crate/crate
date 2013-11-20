@@ -1,6 +1,7 @@
 package org.cratedb.action;
 
 import com.google.common.collect.MinMaxPriorityQueue;
+import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.GroupByRowComparator;
 import org.cratedb.action.groupby.aggregate.AggState;
@@ -28,10 +29,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -132,18 +130,28 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
     protected SQLShardResponse shardOperation(SQLShardRequest request) throws ElasticSearchException {
         ParsedStatement stmt = sqlParseService.parse(request.sqlRequest.stmt(), request.sqlRequest.args());
-        logger.trace("shard operation on: {} shard: {}", clusterService.localNode().getId(), request.shardId);
+        long now = 0;
+
+        if (logger.isTraceEnabled()) {
+            logger.trace("shard operation on: {} shard: {}", clusterService.localNode().getId(), request.shardId);
+            now = new Date().getTime();
+        }
 
         try {
-            Map<String, Map<Integer, GroupByRow>> distributedCollectResult =
+            Map<String, Map<GroupByKey, GroupByRow>> distributedCollectResult =
                 sqlQueryService.query(request.reducers, request.concreteIndex, stmt, request.shardId);
 
-            for (String reducer : request.reducers) {
 
+            long numResults = 0;
+            for (String reducer : request.reducers) {
                 SQLMapperResultRequest mapperResultRequest = new SQLMapperResultRequest();
                 mapperResultRequest.contextId = request.contextId;
-                mapperResultRequest.groupByResult = new SQLGroupByResult(distributedCollectResult.get(reducer));
+                mapperResultRequest.groupByResult =
+                    new SQLGroupByResult(distributedCollectResult.get(reducer).values());
 
+                numResults += mapperResultRequest.groupByResult.size();
+
+                // TODO: could be optimized if reducerNode == mapperNode to avoid transportService
                 DiscoveryNode node = clusterService.state().getNodes().get(reducer);
                 transportService.submitRequest(
                     node,
@@ -153,9 +161,15 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                     EmptyTransportResponseHandler.INSTANCE_SAME
                 );
             }
+
+            if (logger.isTraceEnabled()) {
+                logger.trace("[{}] shard: {} collecting {} results took {} ms",
+                    clusterService.localNode().getId(), request.shardId, numResults, (new Date().getTime() - now));
+            }
         } catch (Exception e) {
             throw new CrateException(e);
         }
+
 
         return new SQLShardResponse();
     }
@@ -192,7 +206,8 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             this.listener = listener;
 
             MinMaxPriorityQueue.Builder<GroupByRow> rowBuilder =
-                MinMaxPriorityQueue.orderedBy(new GroupByRowComparator(parsedStatement.orderByIndices()));
+                MinMaxPriorityQueue.orderedBy(
+                    new GroupByRowComparator(parsedStatement.idxMap, parsedStatement.orderByIndices()));
 
             if (parsedStatement.limit != null) {
                 rowBuilder.maximumSize(parsedStatement.limit);
@@ -256,12 +271,8 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             while ( (row = groupByResult.pollFirst()) != null) {
                 currentRow++;
 
-                for (Map.Entry<Integer, AggState> aggStateEntry : row.aggregateStates.entrySet()) {
-                    rows[currentRow][aggStateEntry.getKey()] = aggStateEntry.getValue().value();
-                }
-
-                for (Map.Entry<Integer, Object> objectEntry : row.regularColumns.entrySet()) {
-                    rows[currentRow][objectEntry.getKey()] = objectEntry.getValue();
+                for (int c = 0; c < parsedStatement.outputFields().size(); c++) {
+                    rows[currentRow][c] = row.get(parsedStatement.idxMap[c]);
                 }
             }
 
@@ -293,9 +304,10 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             if (node == null) {
                 throw new NodeNotConnectedException(node, "Can't perform reduce operation on node");
             }
+            // TODO: send statement
             final SQLReduceJobRequest request = new SQLReduceJobRequest(
                 contextId, expectedShardResponses, parsedStatement.limit,
-                parsedStatement.orderByIndices()
+                parsedStatement.idxMap, parsedStatement.orderByIndices()
             );
 
             if (reducer.equals(nodes.getLocalNodeId())) {

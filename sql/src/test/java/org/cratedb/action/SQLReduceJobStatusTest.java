@@ -1,41 +1,49 @@
 package org.cratedb.action;
 
+import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.aggregate.AggState;
 import org.cratedb.action.groupby.aggregate.count.CountAggState;
 import org.cratedb.action.sql.OrderByColumnIdx;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
 public class SQLReduceJobStatusTest {
+
     @Test
     public void testToSortedArray() throws Exception {
+        /**
+         * after the reducing phase the GroupByRows are sorted and a limit is applied
+         * test here that the sorting / limiting works correctly:
+         */
 
         OrderByColumnIdx[] orderBy = new OrderByColumnIdx[] {
             new OrderByColumnIdx(0, false)
         };
-        SQLReduceJobStatus status = new SQLReduceJobStatus(1, 2, orderBy);
-        Map<Integer, GroupByRow> resultAsMap = new HashMap<>();
-        addRow(resultAsMap, 1, 3);
-        addRow(resultAsMap, 2, 2);
-        addRow(resultAsMap, 3, 45);
-        addRow(resultAsMap, 4, 8);
-        addRow(resultAsMap, 5, 40);
-        SQLGroupByResult result = new SQLGroupByResult(resultAsMap);
+
+        Integer[] idxMap = new Integer[] { 1 };
+
+
+        // result ist from 1 shard, limit is 2; order by first column
+        SQLReduceJobStatus status = new SQLReduceJobStatus(1, 2, idxMap, orderBy);
+        GroupByRow[] rows = new GroupByRow[]{
+            new GroupByRow(new GroupByKey(new Object[]{ 1}), new CountAggState() {{ value = 3; }}),
+            new GroupByRow(new GroupByKey(new Object[]{ 2}), new CountAggState() {{ value = 2; }}),
+            new GroupByRow(new GroupByKey(new Object[]{ 3}), new CountAggState() {{ value = 45; }}),
+            new GroupByRow(new GroupByKey(new Object[]{ 4}), new CountAggState() {{ value = 8; }}),
+            new GroupByRow(new GroupByKey(new Object[]{ 5}), new CountAggState() {{ value = 40; }}),
+        };
+
+        SQLGroupByResult result = new SQLGroupByResult(Arrays.asList(rows));
         GroupByRow[] sortedRows = status.toSortedArray(result);
 
         assertEquals(2, sortedRows.length);
-        assertEquals(45L, ((AggState)sortedRows[0].get(0)).value());
-        assertEquals(40L, ((AggState)sortedRows[1].get(0)).value());
-    }
-
-    private void addRow(Map<Integer, GroupByRow> resultAsMap, int idx, final int aggValue) {
-        GroupByRow row = new GroupByRow();
-        row.aggregateStates.put(0, new CountAggState() {{ value = aggValue; }});
-        resultAsMap.put(idx, row);
+        assertEquals(45L, sortedRows[0].get(1));
+        assertEquals(40L, sortedRows[1].get(1));
     }
 }

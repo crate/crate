@@ -9,29 +9,28 @@ import java.util.Comparator;
 public class GroupByRowComparator implements Comparator<GroupByRow> {
 
     private final OrderByColumnIdx[] orderByIndices;
+    private final Integer[] idxMap;
 
-    public GroupByRowComparator(OrderByColumnIdx[] orderByIndices) {
+    public GroupByRowComparator(Integer[] idxMap, OrderByColumnIdx[] orderByIndices) {
+        this.idxMap = idxMap;
         this.orderByIndices = orderByIndices;
     }
 
     @Override
     public int compare(GroupByRow o1, GroupByRow o2) {
-
-        Ordering<Comparable> ordering = Ordering.natural();
-        Ordering<Comparable> reverseOrdering = Ordering.natural().reverse();
         ComparisonChain chain = ComparisonChain.start();
         for (OrderByColumnIdx orderByIndex : orderByIndices) {
-            Object left = o1.get(orderByIndex.index);
-            Object right = o2.get(orderByIndex.index);
+            Object left = o1.get(idxMap[orderByIndex.index]);
+            Object right = o2.get(idxMap[orderByIndex.index]);
 
-            if (left == null) {
-                return 1;
-            }
-
-            if (orderByIndex.isAsc) {
-                chain = chain.compare((Comparable)left, (Comparable)right, ordering);
+            if (left != null && right != null) {
+                chain = chain.compare((Comparable)left, (Comparable)right, orderByIndex.ordering);
+            } else if (right != null) {
+                chain = chain.compare(0, 1);
+            } else if (left != null) {
+                chain = chain.compare(1, 0);
             } else {
-                chain = chain.compare((Comparable)left, (Comparable)right, reverseOrdering);
+                chain = chain.compare(0, 0);
             }
         }
 

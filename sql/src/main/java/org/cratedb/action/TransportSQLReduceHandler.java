@@ -13,6 +13,7 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
+import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -43,19 +44,26 @@ public class TransportSQLReduceHandler {
     }
 
     public SQLReduceJobResponse reduceOperationStart(SQLReduceJobRequest request) {
-        logger.trace("received reduce job request. Creating context");
-
         SQLReduceJobStatus reduceJobStatus = new SQLReduceJobStatus(
-            request.expectedShardResults, request.limit, request.orderByIndices
+            request.expectedShardResults, request.limit, request.idxMap, request.orderByIndices
         );
         activeReduceJobs.put(request.contextId, reduceJobStatus);
-        logger.trace("created context "
-            + request.contextId + " on node " + clusterService.localNode().getId());
+
+        long now = 0;
+        if (logger.isTraceEnabled()) {
+            logger.trace("Received SQLReduce Job. Created context {} on node {}",
+                request.contextId, clusterService.localNode().getId()
+            );
+            now = new Date().getTime();
+        }
 
         try {
             if (!reduceJobStatus.shardsToProcess.await(2, TimeUnit.MINUTES)) {
                 throw new SQLReduceJobTimeoutException();
             }
+
+            logger.trace("Completed SQLReduceJob {} on node {}. Took {} ms",
+                request.contextId, clusterService.localNode().id(), (new Date().getTime() - now));
 
             return new SQLReduceJobResponse(reduceJobStatus);
 
@@ -111,15 +119,38 @@ public class TransportSQLReduceHandler {
                  */
             } while (status == null);
 
-            logger.trace("received mapper result for {} on node {}",
-                request.contextId, clusterService.localNode().getId());
+            long now = 0;
+            if (logger.isTraceEnabled()) {
+                logger.trace("[{}]: context {} received result from mapper",
+                    clusterService.localNode().getId(),
+                    request.contextId
+                );
+                now = new Date().getTime();
+            }
 
             synchronized (status.lock) {
                 status.groupByResult.merge(request.groupByResult);
             }
+
+            if (logger.isTraceEnabled()) {
+                logger.trace("[{}]: context {} merging mapper result took {} ms. Now we got {} results",
+                    clusterService.localNode().getId(),
+                    request.contextId,
+                    (new Date().getTime() - now),
+                    status.groupByResult.size()
+                );
+            }
+
             status.shardsToProcess.countDown();
 
-            logger.trace("shards left: {}", status.shardsToProcess.getCount());
+            if (logger.isTraceEnabled()) {
+                logger.trace("[{}]: context {} shards left: {}",
+                    clusterService.localNode().getId(),
+                    request.contextId,
+                    status.shardsToProcess.getCount()
+                );
+            }
+
             channel.sendResponse(TransportResponse.Empty.INSTANCE);
         }
 
