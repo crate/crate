@@ -4,6 +4,8 @@ Changes for Crate
 
 Unreleased
 ==========
+
+ - Added ``duration`` property to SQLResponse, reflecting the duration of a SQL query.
  
  - optimized internal data structures that are used when executing a group by
    query. This should reduce memory consumption and speed up serialization.
@@ -13,8 +15,8 @@ Unreleased
 
  - Fix: NPE was thrown when using a star select on an index with no defined mappings
 
-- new es upstream commit: new setting ``index.mapper.map_source`` to control whether source values
-   get mapped when returning
+ - new es upstream commit: new setting ``index.mapper.map_source`` to control whether source
+   values get mapped when returning
 
  - fix: correct type validation and mapping on all handler nodes, even on nodes without table-shard
    according to table definition

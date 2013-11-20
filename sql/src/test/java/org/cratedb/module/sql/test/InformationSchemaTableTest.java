@@ -160,7 +160,7 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
             public void onFailure(Throwable e) {
                 fail(e.getMessage());
             }
-        });
+        }, System.currentTimeMillis());
     }
 
     @Test
@@ -190,6 +190,6 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
             public void onFailure(Throwable e) {
                 fail(e.getMessage());
             }
-        });
+        }, System.currentTimeMillis());
     }
 }

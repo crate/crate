@@ -12,18 +12,22 @@ public class SQLRequest extends ActionRequest<SQLRequest> {
 
     private String stmt;
     private Object[] args;
+    private long creationTime;
 
     public SQLRequest(String stmt, Object[] args) {
         this.stmt = stmt;
         args(args);
+        this.creationTime = System.currentTimeMillis();
     }
 
     public SQLRequest(String stmt) {
         this.stmt = stmt;
         this.args = new Object[0];
+        this.creationTime = System.currentTimeMillis();
     }
 
     public SQLRequest() {
+        this.creationTime = System.currentTimeMillis();
     }
 
     public String stmt() {
@@ -47,6 +51,10 @@ public class SQLRequest extends ActionRequest<SQLRequest> {
         return this;
     }
 
+    public long creationTime() {
+        return creationTime;
+    }
+
     @Override
     public ActionRequestValidationException validate() {
         return null;
@@ -61,6 +69,7 @@ public class SQLRequest extends ActionRequest<SQLRequest> {
         for (int i = 0; i < length; i++) {
             args[i] = in.readGenericValue();
         }
+        creationTime = in.readVLong();
     }
 
     @Override
@@ -71,6 +80,7 @@ public class SQLRequest extends ActionRequest<SQLRequest> {
         for (int i = 0; i < args.length; i++) {
             out.writeGenericValue(args[i]);
         }
+        out.writeVLong(creationTime);
     }
 
 }

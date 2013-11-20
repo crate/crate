@@ -42,11 +42,11 @@ public class SQLResponseBuilder {
         this.stmt = stmt;
     }
 
-    public SQLResponse buildResponse(IndexResponse indexResponse) {
-        return buildEmptyResponse(1);
+    public SQLResponse buildResponse(IndexResponse indexResponse, long requestStartedTime) {
+        return buildEmptyResponse(1, requestStartedTime);
     }
 
-    public SQLResponse buildResponse(BulkResponse bulkResponse) {
+    public SQLResponse buildResponse(BulkResponse bulkResponse, long requestStartedTime) {
         // Pseudo row count by counting non-failed responses
         // This assumes one document was hit by each request, which is only true for e.g.
         // multiple IndexRequests.
@@ -57,12 +57,12 @@ public class SQLResponseBuilder {
                 rowsAffected++;
             }
         }
-        return buildEmptyResponse(rowsAffected);
+        return buildEmptyResponse(rowsAffected, requestStartedTime);
     }
 
-    public SQLResponse buildResponse(GetResponse getResponse) {
+    public SQLResponse buildResponse(GetResponse getResponse, long requestStartedTime) {
         if (! getResponse.isExists()) {
-            return buildEmptyResponse(0);
+            return buildEmptyResponse(0, requestStartedTime);
         }
 
         SQLResponse response = new SQLResponse();
@@ -76,11 +76,13 @@ public class SQLResponseBuilder {
         response.cols(stmt.cols());
         response.rows(rows);
         response.rowCount(1);
+        response.requestStartedTime(requestStartedTime);
 
         return response;
     }
 
-    public SQLResponse buildResponse(MultiGetResponse multiGetItemResponses) {
+    public SQLResponse buildResponse(MultiGetResponse multiGetItemResponses,
+                                     long requestStartedTime) {
         SQLResponse response = new SQLResponse();
         SQLFields fields = new SQLFields(stmt.outputFields);
         List<Object[]> rows = new ArrayList<>();
@@ -102,61 +104,68 @@ public class SQLResponseBuilder {
         response.cols(stmt.cols());
         response.rows(rows.toArray(new Object[rows.size()][stmt.outputFields.size()]));
         response.rowCount(successful);
+        response.requestStartedTime(requestStartedTime);
         return response;
     }
 
-    public SQLResponse buildResponse(DeleteByQueryResponse deleteByQueryResponse) {
+    public SQLResponse buildResponse(DeleteByQueryResponse deleteByQueryResponse,
+                                     long requestStartedTime) {
         // TODO: add rows affected
-        return buildEmptyResponse(-1);
+        return buildEmptyResponse(-1, requestStartedTime);
     }
 
-    public SQLResponse buildResponse(DeleteResponse deleteResponse) {
+    public SQLResponse buildResponse(DeleteResponse deleteResponse, long requestStartedTime) {
         int rowCount = 0;
         if (! deleteResponse.isNotFound()) {
             rowCount = 1;
         }
 
-        return buildEmptyResponse(rowCount);
+        return buildEmptyResponse(rowCount, requestStartedTime);
     }
 
-    public SQLResponse buildResponse(UpdateResponse updateResponse) {
-        return buildEmptyResponse(1);
+    public SQLResponse buildResponse(UpdateResponse updateResponse, long requestStartedTime) {
+        return buildEmptyResponse(1, requestStartedTime);
     }
 
-    public SQLResponse buildResponse(CreateIndexResponse createIndexResponse) {
-        return buildEmptyResponse(0);
+    public SQLResponse buildResponse(CreateIndexResponse createIndexResponse,
+                                     long requestStartedTime) {
+        return buildEmptyResponse(0, requestStartedTime);
     }
 
-    public SQLResponse buildResponse(DeleteIndexResponse deleteIndexResponse) {
-        return buildEmptyResponse(0);
+    public SQLResponse buildResponse(DeleteIndexResponse deleteIndexResponse,
+                                     long requestStartedTime) {
+        return buildEmptyResponse(0, requestStartedTime);
     }
 
-    public SQLResponse buildMissingDocumentResponse() {
-        return buildEmptyResponse(0);
+    public SQLResponse buildMissingDocumentResponse(long requestStartedTime) {
+        return buildEmptyResponse(0, requestStartedTime);
     }
 
-    private SQLResponse buildEmptyResponse(int rowCount) {
+    private SQLResponse buildEmptyResponse(int rowCount, long requestStartedTime) {
         SQLResponse response = new SQLResponse();
         response.cols(stmt.cols());
         response.rows(new Object[0][0]);
         response.rowCount(rowCount);
+        response.requestStartedTime(requestStartedTime);
 
         return response;
     }
 
 
-    public SQLResponse buildResponse(SearchResponse searchResponse, InternalSQLFacet facet) {
+    public SQLResponse buildResponse(SearchResponse searchResponse,
+                                     InternalSQLFacet facet,
+                                     long requestStartedTime) {
         facet.reduce(stmt);
-        return new SQLResponse(stmt.cols(), facet.rows(), facet.rowCount());
+        return new SQLResponse(stmt.cols(), facet.rows(), facet.rowCount(), requestStartedTime);
     }
 
-    public SQLResponse buildResponse(CountResponse countResponse) {
+    public SQLResponse buildResponse(CountResponse countResponse, long requestStartedTime) {
         Object[][] rows = new Object[1][];
         rows[0] = new Object[] { countResponse.getCount() };
-        return new SQLResponse(stmt.cols(), rows, rows.length);
+        return new SQLResponse(stmt.cols(), rows, rows.length, requestStartedTime);
     }
 
-    public SQLResponse buildResponse(SearchResponse searchResponse) {
+    public SQLResponse buildResponse(SearchResponse searchResponse, long requestStartedTime) {
 
         if (searchResponse.getFailedShards() > 0) {
             ExceptionHelper.exceptionOnSearchShardFailures(searchResponse.getShardFailures());
@@ -164,7 +173,8 @@ public class SQLResponseBuilder {
 
         if (stmt.useFacet()){
             return buildResponse(searchResponse,
-                searchResponse.getFacets().facet(InternalSQLFacet.class, "sql"));
+                    searchResponse.getFacets().facet(InternalSQLFacet.class, "sql"),
+                    requestStartedTime);
         }
         SQLFields fields = new SQLFields(stmt.outputFields);
         SearchHit[] searchHits = searchResponse.getHits().getHits();
@@ -181,21 +191,23 @@ public class SQLResponseBuilder {
         response.cols(stmt.cols());
         response.rows(rows);
         response.rowCount(rows.length);
+        response.requestStartedTime(requestStartedTime);
         return response;
     }
 
-    public SQLResponse buildResponse(ClusterUpdateSettingsResponse clusterUpdateSettingsResponse) {
-        return buildEmptyResponse(0);
+    public SQLResponse buildResponse(ClusterUpdateSettingsResponse clusterUpdateSettingsResponse,
+                                     long requestStartedTime) {
+        return buildEmptyResponse(0, requestStartedTime);
     }
 
-    public SQLResponse buildResponse(ImportResponse importResponse) {
+    public SQLResponse buildResponse(ImportResponse importResponse, long requestStartedTime) {
         int rowCount = 0;
         for (NodeImportResponse nodeImportResponse : importResponse.getResponses()) {
             for (Importer.ImportCounts importCounts : nodeImportResponse.result().importCounts) {
                 rowCount += importCounts.successes;
             }
         }
-        return buildEmptyResponse(rowCount);
+        return buildEmptyResponse(rowCount, requestStartedTime);
     }
 
 }

@@ -63,9 +63,10 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
 
     @Test
     public void createSimpleAnalyzer() throws IOException {
-        execute("CREATE ANALYZER a1 WITH (" +
+        SQLResponse response = execute("CREATE ANALYZER a1 WITH (" +
                 "  TOKENIZER standard" +
                 ")");
+        assertTrue(response.duration() > 0);
         Settings customAnalyzerSettings = getPersistentClusterSettings();
 
         assertThat(

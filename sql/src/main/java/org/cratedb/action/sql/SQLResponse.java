@@ -23,14 +23,16 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
     private Object[][] rows;
     private String[] cols;
     private long rowCount = NO_ROW_COUNT;
+    private long requestStartedTime = -1L;
 
     public SQLResponse() {
     }
 
-    public SQLResponse(String[] cols, Object[][] rows, long rowCount) {
+    public SQLResponse(String[] cols, Object[][] rows, long rowCount, long requestStartedTime) {
         this.cols = cols;
         this.rows = rows;
         this.rowCount = rowCount;
+        this.requestStartedTime = requestStartedTime;
     }
 
     @Override
@@ -66,7 +68,6 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
         return rows;
     }
 
-    @Override
     public long rowCount() {
         return rowCount;
     }
@@ -81,6 +82,17 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
 
     public void rows(Object[][] rows) {
         this.rows = rows;
+    }
+
+    public long duration() {
+        if (requestStartedTime > 0) {
+            return System.currentTimeMillis()- requestStartedTime;
+        }
+        return 0;
+    }
+
+    public void requestStartedTime(long requestStartedTime) {
+        this.requestStartedTime = requestStartedTime;
     }
 
     @Override
@@ -99,6 +111,7 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
                 rows[i][j] = in.readGenericValue();
             }
         }
+        requestStartedTime = in.readVLong();
     }
 
     @Override
@@ -113,6 +126,7 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
                 out.writeGenericValue(rows[i][j]);
             }
         }
+        out.writeVLong(requestStartedTime);
     }
 
     @Override
@@ -121,6 +135,7 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
                 "cols=" + ((cols!=null) ? Arrays.toString(cols): null) +
                 ", rows=" + ((rows!=null) ? rows.length: -1)  +
                 ", rowCount=" + rowCount  +
+                ", duration=" + duration()  +
                 '}';
     }
 }
