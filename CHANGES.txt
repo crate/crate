@@ -6,9 +6,15 @@ Unreleased
 ==========
 
  - Added ``duration`` property to SQLResponse, reflecting the duration of a SQL query.
- 
+
  - optimized internal data structures that are used when executing a group by
    query. This should reduce memory consumption and speed up serialization.
+
+ - map builtin column ``_score`` explicitly to double
+
+ - type guessing on added columns (as root column or in dynamic object/craty)
+
+ - interpret nested types in indexmapping as craty
 
  - Increased default ``SELECT`` limit to 10000.
    Also use this default limit on ``GROUP BY`` queries if no limit is defined explicit.

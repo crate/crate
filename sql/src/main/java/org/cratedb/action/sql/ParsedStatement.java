@@ -13,7 +13,6 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
-import java.math.BigDecimal;
 import java.util.*;
 
 public class ParsedStatement {
@@ -36,7 +35,7 @@ public class ParsedStatement {
     public List<IndexRequest> indexRequests;
 
     public Long versionFilter;
-    public BigDecimal scoreMinimum;
+    public Double scoreMinimum;
     public String stmt;
     public Query query;
 
