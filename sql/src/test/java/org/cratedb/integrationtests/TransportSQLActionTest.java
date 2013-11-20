@@ -3,8 +3,6 @@ package org.cratedb.integrationtests;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Ordering;
-import org.apache.log4j.Level;
-import org.cratedb.action.SQLQueryService;
 import org.cratedb.action.TransportDistributedSQLAction;
 import org.cratedb.action.TransportSQLReduceHandler;
 import org.cratedb.action.sql.SQLAction;
@@ -77,7 +75,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("select \"_id\" as b, \"_version\" as a from test");
         assertArrayEquals(new String[]{"b", "a"}, response.cols());
         assertEquals(1, response.rowCount());
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 
     @Test
@@ -341,7 +339,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
         execute("delete from test");
         assertEquals(-1, response.rowCount());
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
         execute("select \"_id\" from test");
         assertEquals(0, response.rowCount());
     }
@@ -546,7 +544,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("insert into test (\"firstName\", \"lastName\") values('Youri', 'Zoon')");
         assertEquals(1, response.rowCount());
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
 
         execute("select * from test where \"firstName\" = 'Youri'");
@@ -805,7 +803,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("update test set message='b' where message = 'hello'");
 
         assertEquals(1, response.rowCount());
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
 
         execute("select message from test where message='b'");
@@ -1363,7 +1361,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("select some_id, foo from test where some_id='124'");
         assertEquals(1, response.rowCount());
         assertEquals("124", response.rows()[0][0]);
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 
 
@@ -1377,7 +1375,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("delete from test where some_id='123'");
         assertEquals(1, response.rowCount());
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
 
         execute("select * from test where some_id='123'");
@@ -1394,7 +1392,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("update test set foo='bar1' where some_id='123'");
         assertEquals(1, response.rowCount());
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
 
         execute("select foo from test where some_id='123'");
@@ -1413,7 +1411,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("SELECT * FROM test WHERE some_id='1' OR some_id='2'");
         assertEquals(2, response.rowCount());
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
         execute("SELECT * FROM test WHERE some_id=? OR some_id=?", new Object[]{"1", "2"});
         assertEquals(2, response.rowCount());
@@ -1435,7 +1433,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("SELECT some_id, foo FROM test WHERE some_id='4' OR some_id='3'");
         assertEquals(1, response.rowCount());
         assertThat(Arrays.asList(response.rows()[0]), hasItems(new Object[]{"3", "baz"}));
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
         execute("SELECT some_id, foo FROM test WHERE some_id='4' OR some_id='99'");
         assertEquals(0, response.rowCount());
@@ -1452,7 +1450,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("SELECT * FROM test WHERE some_id IN (?,?,?)", new Object[]{"1", "2", "3"});
         assertEquals(3, response.rowCount());
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 
     @Test
@@ -1465,7 +1463,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         refresh();
 
         execute("DELETE FROM test WHERE some_Id IN (?, ?, ?)", new Object[]{"1", "2", "4"});
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
 
         execute("SELECT some_id FROM test");
@@ -1480,7 +1478,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("select count(*), race from characters group by race", null);
         assertEquals(3, response.rowCount());
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 
 
@@ -1490,7 +1488,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("select count(*), race from characters group by race");
         assertEquals(3, response.rowCount());
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
         List<Tuple<Long, String>> result = newArrayList();
 
@@ -1754,7 +1752,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     @Test
     public void testCreateTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());
 
@@ -1938,7 +1936,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
                 .actionGet().isExists());
 
         execute("drop table test");
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
         assertFalse(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());
     }
@@ -2294,25 +2292,25 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         assertEquals(3, response.rows()[0][1]);
         assertEquals(10, response.rows()[0][2]);
         assertEquals("id", response.rows()[0][3]);
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
         execute("select * from information_schema.columns");
         assertEquals(2L, response.rowCount());
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
         execute("select * from information_schema.table_constraints");
         assertEquals(1L, response.rowCount());
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
         execute("select * from information_schema.indices");
         assertEquals(2L, response.rowCount());
         assertEquals("id", response.rows()[0][1]);
         assertEquals("quote_fulltext", response.rows()[1][1]);
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
         execute("select * from information_schema.routines");
         assertEquals(102L, response.rowCount());
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 
     private void nonExistingColumnSetup() {
@@ -2410,7 +2408,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         execute("copy quotes from ?", new Object[]{filePath});
         // 2 nodes on same machine resulting in double affected rows
         assertEquals(6L, response.rowCount());
-        assertTrue(response.duration() > 0);
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
 
         execute("select * from quotes");
