@@ -9,8 +9,10 @@ import java.util.Comparator;
 public class GroupByRowComparator implements Comparator<GroupByRow> {
 
     private final OrderByColumnIdx[] orderByIndices;
+    private final Integer[] idxMap;
 
-    public GroupByRowComparator(OrderByColumnIdx[] orderByIndices) {
+    public GroupByRowComparator(Integer[] idxMap, OrderByColumnIdx[] orderByIndices) {
+        this.idxMap = idxMap;
         this.orderByIndices = orderByIndices;
     }
 
@@ -18,8 +20,8 @@ public class GroupByRowComparator implements Comparator<GroupByRow> {
     public int compare(GroupByRow o1, GroupByRow o2) {
         ComparisonChain chain = ComparisonChain.start();
         for (OrderByColumnIdx orderByIndex : orderByIndices) {
-            Object left = o1.get(orderByIndex.index);
-            Object right = o2.get(orderByIndex.index);
+            Object left = o1.get(idxMap[orderByIndex.index]);
+            Object right = o2.get(idxMap[orderByIndex.index]);
 
             if (left != null && right != null) {
                 chain = chain.compare((Comparable)left, (Comparable)right, orderByIndex.ordering);

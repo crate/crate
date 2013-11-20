@@ -45,7 +45,7 @@ public class TransportSQLReduceHandler {
 
     public SQLReduceJobResponse reduceOperationStart(SQLReduceJobRequest request) {
         SQLReduceJobStatus reduceJobStatus = new SQLReduceJobStatus(
-            request.expectedShardResults, request.limit, request.orderByIndices
+            request.expectedShardResults, request.limit, request.idxMap, request.orderByIndices
         );
         activeReduceJobs.put(request.contextId, reduceJobStatus);
 
@@ -132,19 +132,24 @@ public class TransportSQLReduceHandler {
                 status.groupByResult.merge(request.groupByResult);
             }
 
-            logger.trace("[{}]: context {} merging mapper result took {} ms. Now we got {} results",
-                clusterService.localNode().getId(),
-                request.contextId,
-                (new Date().getTime() - now),
-                status.groupByResult.size()
-            );
+            if (logger.isTraceEnabled()) {
+                logger.trace("[{}]: context {} merging mapper result took {} ms. Now we got {} results",
+                    clusterService.localNode().getId(),
+                    request.contextId,
+                    (new Date().getTime() - now),
+                    status.groupByResult.size()
+                );
+            }
+
             status.shardsToProcess.countDown();
 
-            logger.trace("[{}]: context {} shards left: {}",
-                clusterService.localNode().getId(),
-                request.contextId,
-                status.shardsToProcess.getCount()
-            );
+            if (logger.isTraceEnabled()) {
+                logger.trace("[{}]: context {} shards left: {}",
+                    clusterService.localNode().getId(),
+                    request.contextId,
+                    status.shardsToProcess.getCount()
+                );
+            }
 
             channel.sendResponse(TransportResponse.Empty.INSTANCE);
         }

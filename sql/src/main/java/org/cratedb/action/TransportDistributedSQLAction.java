@@ -28,12 +28,8 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
-import org.joda.time.DateTime;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -210,7 +206,8 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             this.listener = listener;
 
             MinMaxPriorityQueue.Builder<GroupByRow> rowBuilder =
-                MinMaxPriorityQueue.orderedBy(new GroupByRowComparator(parsedStatement.orderByIndices()));
+                MinMaxPriorityQueue.orderedBy(
+                    new GroupByRowComparator(parsedStatement.idxMap, parsedStatement.orderByIndices()));
 
             if (parsedStatement.limit != null) {
                 rowBuilder.maximumSize(parsedStatement.limit);
@@ -275,7 +272,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 currentRow++;
 
                 for (int c = 0; c < parsedStatement.outputFields().size(); c++) {
-                    rows[currentRow][c] = row.get(c);
+                    rows[currentRow][c] = row.get(parsedStatement.idxMap[c]);
                 }
             }
 
@@ -307,9 +304,10 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             if (node == null) {
                 throw new NodeNotConnectedException(node, "Can't perform reduce operation on node");
             }
+            // TODO: send statement
             final SQLReduceJobRequest request = new SQLReduceJobRequest(
                 contextId, expectedShardResponses, parsedStatement.limit,
-                parsedStatement.orderByIndices()
+                parsedStatement.idxMap, parsedStatement.orderByIndices()
             );
 
             if (reducer.equals(nodes.getLocalNodeId())) {

@@ -13,8 +13,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import static com.google.common.collect.Maps.newHashMap;
-
 /**
  * Represents the resulting row of a "select with group by" statement.
  *
@@ -31,24 +29,20 @@ public class GroupByRow implements Streamable {
 
     public GroupByKey key;
     public AggState[] aggStates;
-    public Integer[] idxMap;
 
     public GroupByRow() {}
 
-    public GroupByRow(Integer[] idxMap, GroupByKey key, AggState... aggStates) {
-        this.idxMap = idxMap;
+    public GroupByRow(GroupByKey key, AggState... aggStates) {
         this.aggStates = aggStates;
         this.key = key;
     }
 
-    public static GroupByRow createEmptyRow(Integer[] idxMap,
-                                            GroupByKey key,
+    public static GroupByRow createEmptyRow(GroupByKey key,
                                             List<AggExpr> aggExprs,
                                             Map<String, AggFunction> aggregateFunctions) {
         GroupByRow row = new GroupByRow();
         row.key = key;
         row.aggStates = new AggState[aggExprs.size()];
-        row.idxMap = idxMap;
 
         for (int i = 0; i < row.aggStates.length; i++) {
             row.aggStates[i] = aggregateFunctions.get(aggExprs.get(i).functionName).createAggState();
@@ -57,12 +51,15 @@ public class GroupByRow implements Streamable {
         return row;
     }
 
+    /**
+     * get key value or state.
+     * Use {@link org.cratedb.action.sql.ParsedStatement#idxMap} to access by ResultColumnList index
+     */
     public Object get(int idx) {
-        int realIdx = idxMap[idx];
-        if (realIdx > (key.size() - 1)) {
-            return aggStates[realIdx - key.size()].value();
+        if (idx > (key.size() - 1)) {
+            return aggStates[idx - key.size()].value();
         }
-        return key.get(realIdx);
+        return key.get(idx);
     }
 
     @Override
@@ -91,11 +88,6 @@ public class GroupByRow implements Streamable {
         for (int i = 0; i < aggStates.length; i++) {
             aggStates[i] = AggStateReader.readFrom(in);
         }
-
-        idxMap = new Integer[in.readVInt()];
-        for (int i = 0; i < idxMap.length; i++) {
-            idxMap[i] = in.readVInt();
-        }
     }
 
     @Override
@@ -104,11 +96,6 @@ public class GroupByRow implements Streamable {
         out.writeVInt(aggStates.length);
         for (AggState aggState : aggStates) {
             aggState.writeTo(out);
-        }
-
-        out.writeVInt(idxMap.length);
-        for (Integer idx : idxMap) {
-            out.writeVInt(idx);
         }
     }
 

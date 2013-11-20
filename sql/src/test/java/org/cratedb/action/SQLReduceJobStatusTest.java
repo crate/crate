@@ -22,29 +22,28 @@ public class SQLReduceJobStatusTest {
          * test here that the sorting / limiting works correctly:
          */
 
-
         OrderByColumnIdx[] orderBy = new OrderByColumnIdx[] {
             new OrderByColumnIdx(0, false)
         };
 
-        // first column maps to the CountAggState
         Integer[] idxMap = new Integer[] { 1 };
 
+
         // result ist from 1 shard, limit is 2; order by first column
-        SQLReduceJobStatus status = new SQLReduceJobStatus(1, 2, orderBy);
+        SQLReduceJobStatus status = new SQLReduceJobStatus(1, 2, idxMap, orderBy);
         GroupByRow[] rows = new GroupByRow[]{
-            new GroupByRow(idxMap, new GroupByKey(new Object[]{ 1}), new CountAggState() {{ value = 3; }}),
-            new GroupByRow(idxMap, new GroupByKey(new Object[]{ 1}), new CountAggState() {{ value = 2; }}),
-            new GroupByRow(idxMap, new GroupByKey(new Object[]{ 1}), new CountAggState() {{ value = 45; }}),
-            new GroupByRow(idxMap, new GroupByKey(new Object[]{ 1}), new CountAggState() {{ value = 8; }}),
-            new GroupByRow(idxMap, new GroupByKey(new Object[]{ 1}), new CountAggState() {{ value = 40; }}),
+            new GroupByRow(new GroupByKey(new Object[]{ 1}), new CountAggState() {{ value = 3; }}),
+            new GroupByRow(new GroupByKey(new Object[]{ 2}), new CountAggState() {{ value = 2; }}),
+            new GroupByRow(new GroupByKey(new Object[]{ 3}), new CountAggState() {{ value = 45; }}),
+            new GroupByRow(new GroupByKey(new Object[]{ 4}), new CountAggState() {{ value = 8; }}),
+            new GroupByRow(new GroupByKey(new Object[]{ 5}), new CountAggState() {{ value = 40; }}),
         };
 
         SQLGroupByResult result = new SQLGroupByResult(Arrays.asList(rows));
         GroupByRow[] sortedRows = status.toSortedArray(result);
 
         assertEquals(2, sortedRows.length);
-        assertEquals(45L, sortedRows[0].get(0));
-        assertEquals(40L, sortedRows[1].get(0));
+        assertEquals(45L, sortedRows[0].get(1));
+        assertEquals(40L, sortedRows[1].get(1));
     }
 }

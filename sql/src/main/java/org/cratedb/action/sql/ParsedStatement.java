@@ -68,6 +68,7 @@ public class ParsedStatement {
     public Set<String> columnsWithFilter = new HashSet<>();
     public int orClauses = 0;
     public List<OrderByColumnName> orderByColumns = new ArrayList<>();
+    public Integer[] idxMap;
 
     public String[] getRoutingValues() {
         return routingValues.toArray(new String[routingValues.size()]);

@@ -17,12 +17,13 @@ public class SQLReduceJobStatus {
 
     public SQLReduceJobStatus(int shardsToProcess,
                               Integer limit,
+                              Integer[] idxMap,
                               OrderByColumnIdx[] orderByIndices)
     {
         this.limit = limit;
         this.groupByResult = new SQLGroupByResult();
         this.shardsToProcess = new CountDownLatch(shardsToProcess);
-        this.comparator = new GroupByRowComparator(orderByIndices);
+        this.comparator = new GroupByRowComparator(idxMap, orderByIndices);
     }
 
     public GroupByRow[] toSortedArray(SQLGroupByResult groupByResult)
