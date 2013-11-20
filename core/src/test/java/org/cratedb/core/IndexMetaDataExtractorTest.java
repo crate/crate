@@ -40,7 +40,6 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
     @AfterClass
     public static void closeNode() {
         if (node != null) {
-            node.stop();
             node.close();
         }
         node = null;
