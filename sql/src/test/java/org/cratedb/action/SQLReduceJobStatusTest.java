@@ -2,11 +2,15 @@ package org.cratedb.action;
 
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
+import org.cratedb.action.groupby.aggregate.AggExpr;
+import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.AggState;
+import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountAggState;
 import org.cratedb.action.sql.OrderByColumnIdx;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,9 +32,10 @@ public class SQLReduceJobStatusTest {
 
         Integer[] idxMap = new Integer[] { 1 };
 
-
         // result ist from 1 shard, limit is 2; order by first column
-        SQLReduceJobStatus status = new SQLReduceJobStatus(1, 2, idxMap, orderBy);
+        SQLReduceJobStatus status = new SQLReduceJobStatus(1, 2, idxMap, orderBy,
+            new HashMap<String, AggFunction>(), new ArrayList<AggExpr>()
+        );
         GroupByRow[] rows = new GroupByRow[]{
             new GroupByRow(new GroupByKey(new Object[]{ 1}), new CountAggState() {{ value = 3; }}),
             new GroupByRow(new GroupByKey(new Object[]{ 2}), new CountAggState() {{ value = 2; }}),

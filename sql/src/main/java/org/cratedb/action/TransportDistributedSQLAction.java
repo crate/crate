@@ -4,6 +4,7 @@ import com.google.common.collect.MinMaxPriorityQueue;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.GroupByRowComparator;
+import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
@@ -87,6 +88,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
     private final SQLParseService sqlParseService;
     private final SQLQueryService sqlQueryService;
     private final TransportSQLReduceHandler transportSQLReduceHandler;
+    private final Map<String, AggFunction> aggFunctionMap;
     final String executor = ThreadPool.Names.SEARCH;
     final String transportShardAction = "crate/sql/shard/gather";
 
@@ -97,13 +99,15 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                                             TransportService transportService,
                                             SQLParseService sqlParseService,
                                             TransportSQLReduceHandler transportSQLReduceHandler,
-                                            SQLQueryService sqlQueryService) {
+                                            SQLQueryService sqlQueryService,
+                                            Map<String, AggFunction> aggFunctionMap) {
         super(settings, threadPool);
         this.sqlParseService = sqlParseService;
         this.sqlQueryService = sqlQueryService;
         this.clusterService = clusterService;
         this.transportService = transportService;
         this.transportSQLReduceHandler = transportSQLReduceHandler;
+        this.aggFunctionMap = aggFunctionMap;
     }
 
     @Override
@@ -332,10 +336,14 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             if (node == null) {
                 throw new NodeNotConnectedException(node, "Can't perform reduce operation on node");
             }
-            // TODO: send statement
+
             final SQLReduceJobRequest request = new SQLReduceJobRequest(
-                contextId, expectedShardResponses, parsedStatement.limit,
-                parsedStatement.idxMap, parsedStatement.orderByIndices()
+                contextId,
+                expectedShardResponses,
+                parsedStatement.limit,
+                parsedStatement.idxMap,
+                parsedStatement.orderByIndices(),
+                parsedStatement.aggregateExpressions
             );
 
             if (reducer.equals(nodes.getLocalNodeId())) {
@@ -483,7 +491,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
             @Override
             public SQLReduceJobResponse newInstance() {
-                return new SQLReduceJobResponse();
+                return new SQLReduceJobResponse(aggFunctionMap, parsedStatement.aggregateExpressions);
             }
 
             @Override

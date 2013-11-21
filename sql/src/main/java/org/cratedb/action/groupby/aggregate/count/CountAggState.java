@@ -17,7 +17,6 @@ public class CountAggState extends AggState {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeByte((byte)0);
         out.writeVLong(value);
     }
 

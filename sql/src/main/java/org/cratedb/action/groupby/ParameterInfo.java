@@ -1,6 +1,12 @@
 package org.cratedb.action.groupby;
 
-public class ParameterInfo {
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Streamable;
+
+import java.io.IOException;
+
+public class ParameterInfo implements Streamable {
 
     public boolean isAllColumn;
 
@@ -19,5 +25,15 @@ public class ParameterInfo {
     @Override
     public int hashCode() {
         return (isAllColumn ? 1 : 0);
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        isAllColumn = in.readBoolean();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeBoolean(isAllColumn);
     }
 }

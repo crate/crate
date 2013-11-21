@@ -4,6 +4,9 @@ Changes for Crate
 
 Unreleased
 ==========
+ 
+ - further optimization of the internal data structure serialization used while
+   executing a group by query.
 
  - Throw a proper error if a multi-value field is encountered during group by
    instead of returning an incorrect result.
