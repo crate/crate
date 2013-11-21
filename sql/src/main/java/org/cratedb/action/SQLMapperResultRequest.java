@@ -1,12 +1,13 @@
 package org.cratedb.action;
 
+import org.cratedb.core.concurrent.FutureConcurrentMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 public class SQLMapperResultRequest extends TransportRequest {
 
@@ -15,13 +16,13 @@ public class SQLMapperResultRequest extends TransportRequest {
 
     // fields below are only set/available on the receiver side.
     public SQLReduceJobStatus status;
-    private Map<UUID, SQLReduceJobStatus> reduceJobs;
+    private FutureConcurrentMap<UUID, SQLReduceJobStatus> reduceJobs;
 
     public SQLMapperResultRequest() {
 
     }
 
-    public SQLMapperResultRequest(Map<UUID, SQLReduceJobStatus> reduceJobs) {
+    public SQLMapperResultRequest(FutureConcurrentMap<UUID, SQLReduceJobStatus> reduceJobs) {
         this.reduceJobs = reduceJobs;
     }
 
@@ -29,26 +30,16 @@ public class SQLMapperResultRequest extends TransportRequest {
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         contextId = new UUID(in.readLong(), in.readLong());
-        initStatus(contextId);
+        try {
+            status = reduceJobs.get(contextId, 30, TimeUnit.SECONDS);
+        } catch (Exception e ) {
+            throw new IOException(e);
+        }
         groupByResult = SQLGroupByResult.readSQLGroupByResult(
             status.aggFunctionMap,
             status.parsedStatement.aggregateExpressions,
             in
         );
-    }
-
-    private void initStatus(UUID contextId) {
-        do {
-            status = reduceJobs.get(contextId);
-
-            /**
-             * Possible race condition.
-             * Mapper sends MapResult before the ReduceJob Context was established.
-             *
-             * TODO: use some kind of blockingConcurrentMap for activeReduceJobs or
-             * use some kind of listener pattern.
-             */
-        } while (status == null);
     }
 
     @Override

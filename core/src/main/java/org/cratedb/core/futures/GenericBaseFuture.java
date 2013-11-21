@@ -1,4 +1,4 @@
-package org.cratedb.blob;
+package org.cratedb.core.futures;
 
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.util.concurrent.BaseFuture;

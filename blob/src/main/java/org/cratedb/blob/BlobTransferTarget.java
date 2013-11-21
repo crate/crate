@@ -4,6 +4,7 @@ import org.cratedb.blob.exceptions.DigestMismatchException;
 import org.cratedb.blob.pending_transfer.*;
 import org.cratedb.blob.v2.BlobIndices;
 import org.cratedb.blob.v2.BlobShard;
+import org.cratedb.core.futures.GenericBaseFuture;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.component.AbstractComponent;
