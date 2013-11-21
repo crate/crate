@@ -2,6 +2,7 @@ package org.cratedb.action;
 
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.core.concurrent.FutureConcurrentMap;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.SQLReduceJobTimeoutException;
@@ -9,7 +10,6 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequestHandler;
@@ -19,15 +19,13 @@ import org.elasticsearch.transport.TransportService;
 import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
 public class TransportSQLReduceHandler {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
     private final TransportService transportService;
-    private final ConcurrentMap<UUID, SQLReduceJobStatus> activeReduceJobs =
-        ConcurrentCollections.newConcurrentMap();
+    private final FutureConcurrentMap<UUID, SQLReduceJobStatus> activeReduceJobs = FutureConcurrentMap.newMap();
     private final ClusterService clusterService;
     private final Map<String, AggFunction> aggFunctionMap;
     private final SQLParseService sqlParseService;

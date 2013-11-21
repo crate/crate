@@ -11,6 +11,7 @@ evaluationDependsOn(':testing')
 
 dependencies {
     compile project(':es')
+    compile project(':core')
     testCompile project(':testing')
 }
 
