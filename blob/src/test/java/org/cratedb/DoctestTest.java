@@ -1,13 +1,12 @@
 package org.cratedb;
 
 import org.apache.lucene.util.AbstractRandomizedTest;
-import org.cratedb.test.integration.DoctestTestCase;
-import org.junit.Ignore;
+import org.cratedb.test.integration.DoctestClusterTestCase;
 import org.junit.Test;
 
 
 @AbstractRandomizedTest.IntegrationTests
-public class DoctestTest extends DoctestTestCase {
+public class DoctestTest extends DoctestClusterTestCase {
 
     @Test
     public void testBlob() throws Exception {
