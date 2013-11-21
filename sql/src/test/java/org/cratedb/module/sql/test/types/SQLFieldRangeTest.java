@@ -92,6 +92,10 @@ public class SQLFieldRangeTest {
                             put("index", "not_analyzed");
                         }});
                     }});
+                    put("ip_field", new HashMap<String, Object>() {{
+                        put("type", "ip");
+                        put("index", "not_analyzed");
+                    }});
                 }});
             }});
 
@@ -115,6 +119,7 @@ public class SQLFieldRangeTest {
                     put(StringSQLType.NAME, new StringSQLType());
                     put(CratySQLType.NAME, new CratySQLType());
                     put(TimeStampSQLType.NAME, new TimeStampSQLType());
+                    put(IpSQLType.NAME, new IpSQLType());
                 }},
                 new IndexMetaDataExtractor(metaData));
     }

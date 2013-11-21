@@ -16,7 +16,7 @@ public class CratySQLType extends SQLType {
         try {
             return (Map)value;
         } catch(ClassCastException e) {
-            throw new ConvertException(String.format("Invalid %s", typeName()));
+            throw new ConvertException(typeName());
         }
     }
 }

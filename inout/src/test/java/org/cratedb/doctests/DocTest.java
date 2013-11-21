@@ -47,7 +47,6 @@ public class DocTest extends DoctestTestCase {
                 .build();
         esSetup2 = new StoreEsSetup(s2);
         esSetup2.execute(deleteAll());
-        Thread.sleep(100);
     }
 
     @After

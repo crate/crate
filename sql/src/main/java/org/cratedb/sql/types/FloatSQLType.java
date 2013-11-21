@@ -14,7 +14,7 @@ public class FloatSQLType extends SQLType {
         if (value instanceof Number) {
             return ((Number) value).floatValue();
         } else {
-            throw new ConvertException(String.format("Invalid %s", typeName()));
+            throw new ConvertException(typeName());
         }
     }
 }

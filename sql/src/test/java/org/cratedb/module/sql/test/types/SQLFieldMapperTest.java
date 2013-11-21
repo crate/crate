@@ -83,6 +83,10 @@ public class SQLFieldMapperTest extends AbstractCrateNodesTests {
                         }});
                     }});
                 }});
+                put("ip_field", new HashMap<String, Object>() {{
+                    put("type", "ip");
+                    put("index", "not_analyzed");
+                }});
             }});
 
         }};
@@ -110,6 +114,7 @@ public class SQLFieldMapperTest extends AbstractCrateNodesTests {
                     put(StringSQLType.NAME, new StringSQLType());
                     put(CratySQLType.NAME, new CratySQLType());
                     put(TimeStampSQLType.NAME, new TimeStampSQLType());
+                    put(IpSQLType.NAME, new IpSQLType());
                 }},
                 new IndexMetaDataExtractor(metaData));
     }
@@ -125,6 +130,7 @@ public class SQLFieldMapperTest extends AbstractCrateNodesTests {
                 10000.0));
         assertEquals("value", this.mapper.convertToXContentValue("string_field", "value"));
         assertEquals(true, this.mapper.convertToXContentValue("boolean_field", true));
+        assertEquals("127.0.0.1", this.mapper.convertToXContentValue("ip_field", "127.0.0.1"));
     }
 
     @Test

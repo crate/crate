@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - refactoring of Doctest TestCases
+
+ - internal: support for mapping ip-types (stored as string)
+
  - Added ``duration`` property to SQLResponse, reflecting the duration of a SQL query.
 
  - optimized internal data structures that are used when executing a group by

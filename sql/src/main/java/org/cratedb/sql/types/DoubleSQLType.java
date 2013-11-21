@@ -13,7 +13,7 @@ public class DoubleSQLType extends SQLType {
         if (value instanceof Number) {
             return ((Number) value).doubleValue();
         } else {
-            throw new ConvertException(String.format("Invalid %s", typeName()));
+            throw new ConvertException(typeName());
         }
     }
 }

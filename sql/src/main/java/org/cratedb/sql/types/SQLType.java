@@ -11,8 +11,12 @@ public abstract class SQLType {
      * Exception thrown on conversion to XContent
      */
     public static class ConvertException extends Exception {
-        public ConvertException(String msg) {
-            super(msg);
+        public ConvertException(String type) {
+            super(String.format("Invalid %s", type));
+        }
+
+        public ConvertException(String type, String message) {
+            super(String.format("Invalid %s: %s", type, message));
         }
     }
 
