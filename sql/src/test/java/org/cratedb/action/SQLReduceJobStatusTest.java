@@ -8,6 +8,7 @@ import org.cratedb.action.groupby.aggregate.AggState;
 import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountAggState;
 import org.cratedb.action.sql.OrderByColumnIdx;
+import org.cratedb.action.sql.ParsedStatement;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -26,15 +27,18 @@ public class SQLReduceJobStatusTest {
          * test here that the sorting / limiting works correctly:
          */
 
-        OrderByColumnIdx[] orderBy = new OrderByColumnIdx[] {
-            new OrderByColumnIdx(0, false)
-        };
+        // TODO:
+        ParsedStatement stmt = new ParsedStatement("" +
+            "select count(*) from dummy group by dummyCol order by count(*)");
 
-        Integer[] idxMap = new Integer[] { 1 };
+        stmt.orderByIndices = new ArrayList<OrderByColumnIdx>() {{
+            add(new OrderByColumnIdx(0, false));
+        }};
+        stmt.idxMap = new Integer[] { 1 };
 
         // result ist from 1 shard, limit is 2; order by first column
-        SQLReduceJobStatus status = new SQLReduceJobStatus(1, 2, idxMap, orderBy,
-            new HashMap<String, AggFunction>(), new ArrayList<AggExpr>()
+        SQLReduceJobStatus status = new SQLReduceJobStatus(stmt, 1,
+            new HashMap<String, AggFunction>()
         );
         GroupByRow[] rows = new GroupByRow[]{
             new GroupByRow(new GroupByKey(new Object[]{ 1}), new CountAggState() {{ value = 3; }}),

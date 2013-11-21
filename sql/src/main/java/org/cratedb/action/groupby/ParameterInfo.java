@@ -6,6 +6,13 @@ import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
 
+/**
+ * used to specify the parameters of the aggregateExpressions.
+ *
+ *  e.g. count(*) ->  ParameterInfo with isAllColumn true
+ *
+ *  intended to be extended to be used for example for avg(columnName)
+ */
 public class ParameterInfo implements Streamable {
 
     public boolean isAllColumn;

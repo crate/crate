@@ -31,8 +31,8 @@ public class SQLMapperResultRequest extends TransportRequest {
         contextId = new UUID(in.readLong(), in.readLong());
         initStatus(contextId);
         groupByResult = SQLGroupByResult.readSQLGroupByResult(
-            status.groupByResult.aggFunctions,
-            status.groupByResult.aggExprs,
+            status.aggFunctionMap,
+            status.parsedStatement.aggregateExpressions,
             in
         );
     }

@@ -1,6 +1,8 @@
 package org.cratedb.action;
 
 import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.SQLReduceJobTimeoutException;
 import org.elasticsearch.cluster.ClusterService;
@@ -28,6 +30,7 @@ public class TransportSQLReduceHandler {
         ConcurrentCollections.newConcurrentMap();
     private final ClusterService clusterService;
     private final Map<String, AggFunction> aggFunctionMap;
+    private final SQLParseService sqlParseService;
 
     public static class Actions {
         public static final String START_REDUCE_JOB = "crate/sql/shard/reduce/start_job";
@@ -37,7 +40,9 @@ public class TransportSQLReduceHandler {
     @Inject
     public TransportSQLReduceHandler(TransportService transportService,
                                      ClusterService clusterService,
+                                     SQLParseService sqlParseService,
                                      Map<String, AggFunction> aggFunctionMap) {
+        this.sqlParseService = sqlParseService;
         this.clusterService = clusterService;
         this.transportService = transportService;
         this.aggFunctionMap = aggFunctionMap;
@@ -50,14 +55,12 @@ public class TransportSQLReduceHandler {
     }
 
     public SQLReduceJobResponse reduceOperationStart(SQLReduceJobRequest request) {
+        ParsedStatement parsedStatement =
+            sqlParseService.parse(request.request.stmt(), request.request.args());
+
         SQLReduceJobStatus reduceJobStatus = new SQLReduceJobStatus(
-            request.expectedShardResults,
-            request.limit,
-            request.idxMap,
-            request.orderByIndices,
-            aggFunctionMap,
-            request.aggregateExpressions
-        );
+            parsedStatement, request.expectedShardResults, aggFunctionMap);
+
         activeReduceJobs.put(request.contextId, reduceJobStatus);
 
         long now = 0;

@@ -340,10 +340,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             final SQLReduceJobRequest request = new SQLReduceJobRequest(
                 contextId,
                 expectedShardResponses,
-                parsedStatement.limit,
-                parsedStatement.idxMap,
-                parsedStatement.orderByIndices(),
-                parsedStatement.aggregateExpressions
+                sqlRequest
             );
 
             if (reducer.equals(nodes.getLocalNodeId())) {
@@ -491,7 +488,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
             @Override
             public SQLReduceJobResponse newInstance() {
-                return new SQLReduceJobResponse(aggFunctionMap, parsedStatement.aggregateExpressions);
+                return new SQLReduceJobResponse(aggFunctionMap, parsedStatement);
             }
 
             @Override
