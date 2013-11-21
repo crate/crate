@@ -4,7 +4,7 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.core.Constants;
+import org.cratedb.Constants;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.ColumnUnknownException;
 import org.cratedb.sql.SQLParseException;

@@ -1,7 +1,7 @@
 package org.cratedb.module.sql.test.types;
 
-import org.cratedb.core.Constants;
-import org.cratedb.core.IndexMetaDataExtractor;
+import org.cratedb.Constants;
+import org.cratedb.index.IndexMetaDataExtractor;
 import org.cratedb.sql.ValidationException;
 import org.cratedb.sql.types.*;
 import org.cratedb.test.integration.AbstractCrateNodesTests;
