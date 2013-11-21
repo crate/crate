@@ -1,11 +1,13 @@
 package org.cratedb.test.integration;
 
 import org.elasticsearch.AbstractNodesTests;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.node.Node;
 
 import java.io.IOException;
@@ -70,8 +72,34 @@ public class AbstractCrateNodesTests extends AbstractNodesTests {
         assertNoFailures(actionGet);
     }
 
+    public void createIndex(String indexName) {
+        createIndex(client(), indexName);
+    }
+
+    public void createIndex(Client client, String indexName) {
+        createIndex(client, indexName, null, null, null);
+    }
+
+    public void createIndex(String indexName, Settings indexSettings) {
+        createIndex(client(), indexName, indexSettings, null, null);
+    }
+
     public void createIndex(Client client, String indexName, Settings indexSettings) {
-        client.admin().indices().prepareCreate(indexName).setSettings(indexSettings).execute().actionGet();
+        createIndex(client, indexName, indexSettings, null, null);
+    }
+
+    public void createIndex(String indexName, Settings indexSettings, String type, XContentBuilder builder) {
+        createIndex(client(), indexName, indexSettings, type, builder);
+    }
+
+    public void createIndex(Client client, String indexName, Settings indexSettings, String type, XContentBuilder builder) {
+        if (indexSettings == null) { indexSettings = ImmutableSettings.EMPTY; }
+        CreateIndexRequestBuilder requestBuilder = client.admin().indices().prepareCreate(indexName);
+        requestBuilder.setSettings(indexSettings);
+        if (type != null && builder != null) {
+            requestBuilder.addMapping(type, builder);
+        }
+        requestBuilder.execute().actionGet();
         refresh(client);
     }
 }

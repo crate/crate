@@ -1,23 +1,15 @@
 package org.cratedb.integrationtests;
 
 import org.codehaus.jackson.map.ObjectMapper;
-import org.cratedb.action.sql.SQLRequestBuilder;
-import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.SQLCrateClusterTest;
 import org.cratedb.action.sql.parser.SQLXContentSourceContext;
 import org.cratedb.action.sql.parser.SQLXContentSourceParser;
-import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
 import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.Before;
 import org.junit.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 
-import java.io.IOException;
-
-public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
+public class RestSqlActionTest extends SQLCrateClusterTest {
 
     private long responseDuration;
 
@@ -31,21 +23,12 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
         new Setup(this).setUpLocations();
     }
 
-    private String sql(String source) throws IOException {
-        XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
-        builder.generator().usePrettyPrint();
-        SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client());
-        requestBuilder.source(new BytesArray(source));
-        SQLResponse response = requestBuilder.execute().actionGet();
-        response.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        responseDuration = response.duration();
-        return builder.string();
-    }
+
+
 
     @Test
     public void testSqlRequest() throws Exception {
-        String json = sql("{\"stmt\": \"select * from locations where id = '1'\"}");
-
+        String json = restSQLExecute("{\"stmt\": \"select * from locations where id = '1'\"}");
         JSONAssert.assertEquals(
                 "{\n" +
                         "  \"cols\" : [ \"date\", \"description\", \"id\", \"kind\", \"name\", " +
@@ -65,10 +48,10 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
     @Test
     public void testSqlRequestWithArgs() throws Exception {
 
-        String json = sql("{\n" +
-            "    \"stmt\": \"select * from locations where id = $2\",\n" +
-            "    \"args\": [[\"1\", \"2\"], \"1\", 1, 2, 2.0, 99999999999999999999999999999999]\n" +
-            "}\n");
+        String json = restSQLExecute("{\n" +
+                "    \"stmt\": \"select * from locations where id = $2\",\n" +
+                "    \"args\": [[\"1\", \"2\"], \"1\", 1, 2, 2.0, 99999999999999999999999999999999]\n" +
+                "}\n");
         JSONAssert.assertEquals(
             "{\n" +
                 "  \"cols\" : [ \"date\", \"description\", \"id\", \"kind\", \"name\", " +
@@ -86,10 +69,10 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
     @Test
     public void testSqlRequestWithNullArgs() throws Exception {
 
-        String json = sql("{\n" +
-            "    \"stmt\": \"insert into locations (id, name, kind) values (?, ?)\",\n" +
-            "    \"args\": [\"100\", \"Somewhere\", null]\n" +
-            "}\n");
+        String json = restSQLExecute("{\n" +
+                "    \"stmt\": \"insert into locations (id, name, kind) values (?, ?)\",\n" +
+                "    \"args\": [\"100\", \"Somewhere\", null]\n" +
+                "}\n");
 
         JSONAssert.assertEquals(
             "{\n" +

@@ -3,20 +3,12 @@ package org.cratedb.integrationtests;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Ordering;
-import org.cratedb.action.sql.SQLAction;
-import org.cratedb.action.sql.SQLRequest;
+import org.cratedb.SQLCrateClusterTest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.*;
 import org.cratedb.sql.types.TimeStampSQLType;
-import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.client.Requests;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
@@ -35,33 +27,35 @@ import static com.google.common.collect.Maps.newHashMap;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.hamcrest.Matchers.*;
 
-public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
+public class TransportSQLActionTest extends SQLCrateClusterTest {
 
     private SQLResponse response;
 
     private String copyFilePath = TransportSQLActionTest.class.getResource(
                                             "/essetup/data/copy").getPath();
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
+
     @Override
     protected int numberOfNodes() {
         return 2;
     }
 
-    private void execute(String stmt, Object[] args) {
-        response = client().execute(SQLAction.INSTANCE, new SQLRequest(stmt, args)).actionGet();
-    }
-
-    private void execute(String stmt) {
-        response = client().execute(SQLAction.INSTANCE, new SQLRequest(stmt)).actionGet();
-    }
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Override
     public Settings getSettings() {
         // set number of replicas to 0 for getting a green cluster when using only one node
         return randomSettingsBuilder().put("number_of_replicas", 0).build();
+    }
+
+    /**
+     * override execute to store response in property for easier access
+     */
+    @Override
+    protected SQLResponse execute(String stmt, Object[] args) {
+        response = super.execute(stmt, args);
+        return response;
     }
 
     @Test
@@ -1734,58 +1728,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         execute("select race from characters where details['job'] like 'sol%'");
         assertEquals(2L, response.rowCount());
-    }
-
-
-
-
-    private String getIndexMapping(String index) throws IOException {
-        ClusterStateRequest request = Requests.clusterStateRequest()
-                .filterRoutingTable(true)
-                .filterNodes(true)
-                .filteredIndices(index);
-        ClusterStateResponse response = client().admin().cluster().state(request)
-                .actionGet();
-
-        MetaData metaData = response.getState().metaData();
-        XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
-
-        IndexMetaData indexMetaData = metaData.iterator().next();
-        for (MappingMetaData mappingMd : indexMetaData.mappings().values()) {
-            builder.field(mappingMd.type());
-            builder.map(mappingMd.sourceAsMap());
-        }
-        builder.endObject();
-
-        return builder.string();
-    }
-
-    private String getIndexSettings(String index) throws IOException {
-        ClusterStateRequest request = Requests.clusterStateRequest()
-                .filterRoutingTable(true)
-                .filterNodes(true)
-                .filteredIndices(index);
-        ClusterStateResponse response = client().admin().cluster().state(request)
-                .actionGet();
-
-        MetaData metaData = response.getState().metaData();
-        XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
-
-        for (IndexMetaData indexMetaData : metaData) {
-            builder.startObject(indexMetaData.index(), XContentBuilder.FieldCaseConversion.NONE);
-            builder.startObject("settings");
-            Settings settings = indexMetaData.settings();
-            for (Map.Entry<String, String> entry : settings.getAsMap().entrySet()) {
-                builder.field(entry.getKey(), entry.getValue());
-            }
-            builder.endObject();
-
-            builder.endObject();
-        }
-
-        builder.endObject();
-
-        return builder.string();
     }
 
     @Test

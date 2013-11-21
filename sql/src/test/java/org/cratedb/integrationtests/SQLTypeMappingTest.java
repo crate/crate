@@ -1,16 +1,13 @@
 package org.cratedb.integrationtests;
 
-import org.cratedb.action.sql.ParsedStatement;
-import org.cratedb.action.sql.SQLAction;
-import org.cratedb.action.sql.SQLRequest;
-import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.Constants;
+import org.cratedb.SQLCrateNodesTest;
+import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.ColumnUnknownException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.ValidationException;
-import org.cratedb.test.integration.AbstractCrateNodesTests;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -21,12 +18,11 @@ import org.junit.rules.ExpectedException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
-public class SQLTypeMappingTest extends AbstractCrateNodesTests {
+public class SQLTypeMappingTest extends SQLCrateNodesTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -52,46 +48,15 @@ public class SQLTypeMappingTest extends AbstractCrateNodesTests {
 
     @After
     public void cleanUp() throws Exception {
-        Set<String> indices = node1.client().admin().cluster().prepareState().execute()
-                .actionGet()
-                .getState().metaData().getIndices().keySet();
-        node1.client().admin().indices()
-                .prepareDelete(indices.toArray(new String[indices.size()]))
-                .execute()
-                .actionGet();
+        wipeIndices(node1.client());
         refresh(node1.client());
     }
 
     @AfterClass
-    public static void shutdownNode() throws Exception {
+    public static void shutdownNodes() throws Exception {
         parseService = null;
-        if (node1 != null) {
-            node1.stop();
-            node1.close();
-            node1 = null;
-        }
-        if (node2 != null) {
-            node2.stop();
-            node2.close();
-            node2 = null;
-        }
-    }
-
-    public SQLResponse execute(Client client, String stmt, Object[]  args) {
-        return client.execute(SQLAction.INSTANCE, new SQLRequest(stmt, args)).actionGet();
-    }
-
-    public SQLResponse execute(Client client, String stmt) {
-        return execute(client, stmt, new Object[0]);
-    }
-
-    public SQLResponse execute(String stmt, Object[] args) {
-        Client client = ((getRandom().nextInt(10) % 2) == 0 ? node1.client() : node2.client());
-        return execute(client, stmt, args);
-    }
-
-    public SQLResponse execute(String stmt) {
-        return execute(stmt, new Object[0]);
+        node1 = null;
+        node2 = null;
     }
 
     private void setUpSimple() throws IOException {
@@ -157,14 +122,10 @@ public class SQLTypeMappingTest extends AbstractCrateNodesTests {
                     .endObject()
                 .endObject()
                 .endObject();
-        node1.client().admin().indices().prepareCreate("t1")
-                .setSettings(ImmutableSettings.builder()
-                        .put("number_of_replicas", 0)
-                        .put("number_of_shards", 2)
-                        .put("index.mapper.map_source", false))
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
-                .execute().actionGet();
-        refresh(node1.client());
+        createIndex(node1.client(), "t1", ImmutableSettings.builder()
+                .put("number_of_replicas", 0)
+                .put("number_of_shards", 2)
+                .put("index.mapper.map_source", false).build(), Constants.DEFAULT_MAPPING_TYPE, builder);
     }
 
     @Test
