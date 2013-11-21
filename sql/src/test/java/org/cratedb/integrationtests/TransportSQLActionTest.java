@@ -1891,8 +1891,6 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     @Test
     public void testGroupByNestedObject() throws Exception {
         groupBySetup();
-        Loggers.getLogger(TransportDistributedSQLAction.class).setLevel("TRACE");
-        Loggers.getLogger(TransportSQLReduceHandler.class).setLevel("TRACE");
 
         execute("select count(*), details['job'] from characters group by details['job'] order by count(*), details['job']");
         assertEquals(3, response.rowCount());
@@ -1915,6 +1913,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     @Test
     public void testGroupByMultiValueField() throws Exception {
+        expectedException.expect(GroupByOnArrayUnsupportedException.class);
         groupBySetup();
 
         execute("insert into characters (race, gender, name) values (?, ?, ?)",
@@ -1925,8 +1924,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         );
         refresh();
 
-
-        // TODO: should throw an exception - group by on array not supported
+        execute("select gender from characters group by gender");
     }
 
     @Test

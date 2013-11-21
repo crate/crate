@@ -4,7 +4,6 @@ import com.google.common.collect.MinMaxPriorityQueue;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.GroupByRowComparator;
-import org.cratedb.action.groupby.aggregate.AggState;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
@@ -32,6 +31,7 @@ import org.elasticsearch.transport.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.google.common.collect.Sets.newHashSet;
 
@@ -137,39 +137,58 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             now = new Date().getTime();
         }
 
+
+        CrateException exception = null;
+        Map<String, Map<GroupByKey, GroupByRow>> distributedCollectResult = null;
+
         try {
-            Map<String, Map<GroupByKey, GroupByRow>> distributedCollectResult =
+            distributedCollectResult =
                 sqlQueryService.query(request.reducers, request.concreteIndex, stmt, request.shardId);
-
-
-            long numResults = 0;
-            for (String reducer : request.reducers) {
-                SQLMapperResultRequest mapperResultRequest = new SQLMapperResultRequest();
-                mapperResultRequest.contextId = request.contextId;
-                mapperResultRequest.groupByResult =
-                    new SQLGroupByResult(distributedCollectResult.get(reducer).values());
-
-                numResults += mapperResultRequest.groupByResult.size();
-
-                // TODO: could be optimized if reducerNode == mapperNode to avoid transportService
-                DiscoveryNode node = clusterService.state().getNodes().get(reducer);
-                transportService.submitRequest(
-                    node,
-                    TransportSQLReduceHandler.Actions.RECEIVE_PARTIAL_RESULT,
-                    mapperResultRequest,
-                    TransportRequestOptions.options(),
-                    EmptyTransportResponseHandler.INSTANCE_SAME
-                );
-            }
-
-            if (logger.isTraceEnabled()) {
-                logger.trace("[{}] shard: {} collecting {} results took {} ms",
-                    clusterService.localNode().getId(), request.shardId, numResults, (new Date().getTime() - now));
-            }
+        } catch (CrateException e) {
+            exception = e;
         } catch (Exception e) {
-            throw new CrateException(e);
+            exception = new CrateException(e);
         }
 
+        if (exception != null) {
+            // create an empty fake result to send to the reducers.
+            distributedCollectResult = new HashMap<>();
+            for (String reducer : request.reducers) {
+                distributedCollectResult.put(reducer, new HashMap<GroupByKey, GroupByRow>());
+            }
+        }
+
+        long numResults = 0;
+        for (String reducer : request.reducers) {
+
+            SQLMapperResultRequest mapperResultRequest = new SQLMapperResultRequest();
+            mapperResultRequest.contextId = request.contextId;
+            mapperResultRequest.groupByResult =
+                new SQLGroupByResult(distributedCollectResult.get(reducer).values());
+
+            numResults += mapperResultRequest.groupByResult.size();
+
+            // TODO: could be optimized if reducerNode == mapperNode to avoid transportService
+            DiscoveryNode node = clusterService.state().getNodes().get(reducer);
+            transportService.submitRequest(
+                node,
+                TransportSQLReduceHandler.Actions.RECEIVE_PARTIAL_RESULT,
+                mapperResultRequest,
+                TransportRequestOptions.options(),
+                EmptyTransportResponseHandler.INSTANCE_SAME
+            );
+        }
+
+        if (logger.isTraceEnabled()) {
+            logger.trace("[{}] shard: {} collecting {} results took {} ms",
+                clusterService.localNode().getId(), request.shardId, numResults, (new Date().getTime() - now));
+        }
+
+        // throw the exception after a result has been sent to the reducers so that they won't wait
+        // for a mapper result which they will never receive.
+        if (exception != null) {
+            throw exception;
+        }
 
         return new SQLShardResponse();
     }
@@ -196,8 +215,11 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         private final String[] reducers;
         private final int expectedShardResponses;
         private final DiscoveryNodes nodes;
+        private final AtomicLong shardResponseCounter;
         private final AtomicLong reduceResponseCounter;
-        private final AtomicBoolean done;
+        private final AtomicBoolean reducerErrors;
+        private final AtomicBoolean shardErrors;
+        private final AtomicReference<Throwable> lastException;
         private final MinMaxPriorityQueue<GroupByRow> groupByResult;
 
         AsyncBroadcastAction(DistributedSQLRequest request, ActionListener<SQLResponse> listener) {
@@ -228,9 +250,13 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             shardsIts = shards(clusterState, parsedStatement.indices(), concreteIndices);
             expectedShardResponses = shardsIts.size();
             reducers = extractNodes(shardsIts);
-            done = new AtomicBoolean(false);
+
+            lastException = new AtomicReference<>(null);
+            shardErrors = new AtomicBoolean(false);
+            reducerErrors = new AtomicBoolean(false);
 
             reduceResponseCounter = new AtomicLong(reducers.length);
+            shardResponseCounter = new AtomicLong(expectedShardResponses);
         }
 
         public void start() {
@@ -316,8 +342,12 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 threadPool.executor(executor).execute(new Runnable() {
                     @Override
                     public void run() {
-                        onReduceJobResponse(
-                            transportSQLReduceHandler.reduceOperationStart(request));
+                        try {
+                            onReduceJobResponse(
+                                transportSQLReduceHandler.reduceOperationStart(request));
+                        } catch (Exception e) {
+                            onReduceJobFailure(e);
+                        }
                     }
                 });
             } else {
@@ -336,36 +366,32 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 shardIndex++;
                 final ShardRouting shard = shardIt.firstOrNull();
                 if (shard != null) {
-                    performMapperOperation(contextId, shard, shard.index(), shardIndex);
+                    performMapperOperation(contextId, shard, shard.index());
                 } else {
-                    onMapperOperation(null, shardIndex,
-                        new NoShardAvailableActionException(shardIt.shardId()));
+                    onMapperFailure(new NoShardAvailableActionException(shardIt.shardId()));
                 }
             }
         }
 
-        private void performMapperOperation(UUID contextId, ShardRouting shard,
-                                            String concreteIndex, int shardIndex) {
+        private void performMapperOperation(UUID contextId, ShardRouting shard, String concreteIndex) {
             assert shard != null;
 
             SQLShardRequest shardRequest = newShardRequest(
                 sqlRequest, concreteIndex, shard.id(), contextId, reducers
             );
             if (shardOnLocalNode(shard)) {
-                executeMapperLocal(shard, shardRequest, shardIndex);
+                executeMapperLocal(shardRequest);
             } else {
-                executeMapperRemote(shard, shardRequest, shardIndex);
+                executeMapperRemote(shard, shardRequest);
             }
         }
 
         private void executeMapperRemote(final ShardRouting shard,
-                                         final SQLShardRequest shardRequest,
-                                         final int shardIndex)
+                                         final SQLShardRequest shardRequest)
         {
             DiscoveryNode node = nodes.get(shard.currentNodeId());
             if (node == null) {
-                onMapperOperation(shard, shardIndex,
-                    new NoShardAvailableActionException(shard.shardId()));
+                onMapperFailure(new NoShardAvailableActionException(shard.shardId()));
                 return;
             }
 
@@ -378,13 +404,13 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
                     @Override
                     public void handleResponse(SQLShardResponse response) {
-                        onMapperOperation(shard, shardIndex, response);
+                        onMapperOperation();
 
                     }
 
                     @Override
                     public void handleException(TransportException exp) {
-                        onMapperOperation(shard, shardIndex, exp);
+                        onMapperFailure(exp);
                     }
 
                     @Override
@@ -395,34 +421,43 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         }
 
 
-        private void executeMapperLocal(final ShardRouting shard,
-                                        final SQLShardRequest shardRequest,
-                                        final int shardIndex) {
+        private void executeMapperLocal(final SQLShardRequest shardRequest) {
             threadPool.executor(executor).execute(new Runnable() {
                 @Override
                 public void run() {
-                    onMapperOperation(shard, shardIndex, shardOperation(shardRequest));
+                    try {
+                        shardOperation(shardRequest);
+                        onMapperOperation();
+                    } catch (Exception e) {
+                        onMapperFailure(e);
+                    }
                 }
             });
         }
 
-        private void onMapperOperation(ShardRouting shard, int shardIndex,
-                                       SQLShardResponse sqlShardResponse) {
-            // response with result is sent from the reducers. Nothing to do here.
+        private void onMapperOperation() {
+            shardResponseCounter.decrementAndGet();
+            tryFinishResponse();
         }
 
-        private void onMapperOperation(ShardRouting shard, int shardIndex, Throwable e) {
-            // if one shard fails the reducer will run in a timeout because it waits for all shard results
-            // here we can return early so the client doesn't have to wait.
-            if (!done.get()) {
-                done.set(true);
-                listener.onFailure(e);
-            }
-            logger.error("Error from shard {}", e, shard.id());
+        private void onMapperFailure(Throwable e) {
+            shardErrors.set(true);
+            lastException.set(e);
+            onMapperOperation();
         }
 
         private boolean shardOnLocalNode(ShardRouting shard) {
             return shard.currentNodeId().equals(nodes.getLocalNodeId());
+        }
+
+        private void tryFinishResponse() {
+            if (shardResponseCounter.get() == 0 && reduceResponseCounter.get() == 0) {
+                if (reducerErrors.get() || shardErrors.get()) {
+                    listener.onFailure(lastException.get());
+                } else {
+                    sendSqlResponse();
+                }
+            }
         }
 
         private void onReduceJobResponse(SQLReduceJobResponse response) {
@@ -430,9 +465,15 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 Collections.addAll(groupByResult, response.result);
             }
 
-            if (reduceResponseCounter.decrementAndGet() == 0) {
-                sendSqlResponse();
-            }
+            reduceResponseCounter.decrementAndGet();
+            tryFinishResponse();
+        }
+
+        private void onReduceJobFailure(Throwable e) {
+            reducerErrors.set(true);
+            lastException.set(e);
+            reduceResponseCounter.decrementAndGet();
+            tryFinishResponse();
         }
 
         class ReduceTransportResponseHandler extends BaseTransportResponseHandler<SQLReduceJobResponse> {
@@ -452,11 +493,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
             @Override
             public void handleException(TransportException exp) {
-                if (!done.get()) {
-                    done.set(true);
-                    listener.onFailure(exp.getRootCause());
-                }
-                logger.error("Failure while reducing group by result", exp.getRootCause());
+                onReduceJobFailure(exp.getRootCause());
             }
 
             @Override
