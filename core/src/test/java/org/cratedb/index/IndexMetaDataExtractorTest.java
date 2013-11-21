@@ -1,28 +1,31 @@
 package org.cratedb.index;
 
 import org.cratedb.Constants;
-import org.cratedb.test.integration.AbstractCrateNodesTests;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.node.internal.InternalNode;
-import org.junit.AfterClass;
-import org.junit.Before;
+import org.elasticsearch.common.xcontent.XContentHelper;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
-public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
-
-    private static InternalNode node = null;
+public class IndexMetaDataExtractorTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -31,35 +34,31 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
 
-    @Before
-    public void before() {
-        if (node == null) {
-            node = (InternalNode)startNode(getClass().getName());
-        }
+    private IndexMetaData getIndexMetaData(String indexName, XContentBuilder builder) throws IOException {
+        return getIndexMetaData(indexName, builder, ImmutableSettings.Builder.EMPTY_SETTINGS);
     }
+    private IndexMetaData getIndexMetaData(String indexName, XContentBuilder builder, Settings settings)
+        throws IOException
+    {
+        byte[] data = builder.bytes().toBytes();
+        Map<String, Object> mappingSource = XContentHelper.convertToMap(data, true).v2();
+        mappingSource = sortProperties(mappingSource);
 
-    @AfterClass
-    public static void closeNode() {
-        if (node != null) {
-            node.close();
-        }
-        node = null;
-    }
+        ImmutableSettings.Builder settingsBuilder = ImmutableSettings.builder()
+            .put("index.number_of_shards", 1)
+            .put("index.number_of_replicas", 0)
+            .put(settings);
 
-    private void refresh() {
-        refresh(node.client());
-    }
-    private IndexMetaData getIndexMetaData(String indexName) {
-        ClusterStateResponse stateResponse = node.client().admin().cluster()
-                .prepareState().execute().actionGet();
-        return stateResponse.getState().metaData().indices().get(indexName);
+        return IndexMetaData.builder(indexName)
+            .settings(settingsBuilder)
+            .putMapping(new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE, mappingSource))
+            .build();
     }
 
     @Test
     public void testExtractColumnDefinitions() throws Exception {
         XContentBuilder builder = XContentFactory.jsonBuilder()
                 .startObject()
-                    .startObject(Constants.DEFAULT_MAPPING_TYPE)
                         .startObject("_meta")
                             .field("primary_keys", "id")
                         .endObject()
@@ -102,14 +101,10 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
                                 .endObject()
                             .endObject()
                         .endObject()
-                    .endObject()
                 .endObject();
-        node.client().admin().indices().prepareCreate("test1")
-                .setSettings(ImmutableSettings.builder().put("number_of_replicas", 0))
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
-                .execute().actionGet();
-        refresh();
-        IndexMetaData metaData = getIndexMetaData("test1");
+
+
+        IndexMetaData metaData = getIndexMetaData("test1", builder);
         IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
         List<ColumnDefinition> columnDefinitions = extractor.getColumnDefinitions();
 
@@ -179,11 +174,52 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
         assertTrue(columnDefinitions.get(8).strict);
     }
 
+    private Map<String, Object> sortProperties(Map<String, Object> mappingSource) {
+        return sortProperties(mappingSource, false);
+    }
+
+    /**
+     * in the DocumentMapper that ES uses at some place the properties of the mapping are sorted.
+     * this logic doesn't seem to be triggered if the IndexMetaData is created using the
+     * IndexMetaData.Builder.
+     *
+     * in order to have the same behaviour as if a Node was started and a index with mapping was created
+     * using the ES tools pre-sort the mapping here.
+     */
+    @SuppressWarnings("unchecked")
+    private Map<String,Object> sortProperties(Map<String, Object> mappingSource, boolean doSort) {
+        Map<String, Object> map;
+        if (doSort) {
+            map = new TreeMap<>();
+        } else {
+            map = new HashMap<>();
+        }
+
+        boolean sortNext;
+        Object value;
+        for (Map.Entry<String, Object> entry : mappingSource.entrySet()) {
+            value = entry.getValue();
+            sortNext = entry.getKey().equals("properties");
+
+            if (value instanceof Map) {
+                map.put(entry.getKey(), sortProperties((Map) entry.getValue(), sortNext));
+            } else {
+                map.put(entry.getKey(), entry.getValue());
+            }
+        }
+
+        return map;
+    }
+
     @Test
     public void testExtractColumnDefinitionsFromEmptyIndex() throws Exception {
-        node.client().admin().indices().prepareCreate("test2").execute().actionGet();
-        refresh();
-        IndexMetaData metaData = getIndexMetaData("test2");
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+            .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .endObject()
+            .endObject();
+        IndexMetaData metaData = getIndexMetaData("test2", builder);
+
         IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
         List<ColumnDefinition> columnDefinitions = extractor.getColumnDefinitions();
         assertEquals(0, columnDefinitions.size());
@@ -218,12 +254,7 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
                         .endObject()
                     .endObject()
                 .endObject();
-        node.client().admin().indices().prepareCreate("test3")
-                .setSettings(ImmutableSettings.builder().put("number_of_replicas", 0))
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
-                .execute().actionGet();
-        refresh();
-        IndexMetaData metaData = getIndexMetaData("test3");
+        IndexMetaData metaData = getIndexMetaData("test3", builder);
         IndexMetaDataExtractor extractor1 = new IndexMetaDataExtractor(metaData);
         assertThat(extractor1.getPrimaryKeys().size(), is(1));
         assertThat(extractor1.getPrimaryKeys(), contains("id"));
@@ -235,21 +266,20 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
                             .startObject("content")
                                 .field("type", "string")
                                 .field("index", "not_analyzed")
-
                             .endObject()
                         .endObject()
                     .endObject()
                 .endObject();
-        node.client().admin().indices().prepareCreate("test4")
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
-                .execute().actionGet();
-        refresh();
 
-        IndexMetaDataExtractor extractor2 = new IndexMetaDataExtractor(getIndexMetaData("test4"));
+        IndexMetaDataExtractor extractor2 = new IndexMetaDataExtractor(getIndexMetaData("test4", builder));
         assertThat(extractor2.getPrimaryKeys().size(), is(0));
 
-        node.client().admin().indices().prepareCreate("test5").execute().actionGet();
-        IndexMetaDataExtractor extractor3 = new IndexMetaDataExtractor(getIndexMetaData("test5"));
+        builder = XContentFactory.jsonBuilder()
+            .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .endObject()
+            .endObject();
+        IndexMetaDataExtractor extractor3 = new IndexMetaDataExtractor(getIndexMetaData("test5", builder));
         assertThat(extractor3.getPrimaryKeys().size(), is(0));
     }
 
@@ -301,13 +331,8 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
                         .endObject()
                     .endObject()
                 .endObject();
-        node.client().admin().indices().prepareCreate("test6")
-                .setSettings(ImmutableSettings.builder().put("number_of_replicas", 0))
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
-                .execute().actionGet();
-        refresh();
 
-        IndexMetaData metaData = getIndexMetaData("test6");
+        IndexMetaData metaData = getIndexMetaData("test6", builder);
         IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
         List<IndexMetaDataExtractor.Index> indices = extractor.getIndices();
 
@@ -343,10 +368,12 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
 
     @Test
     public void extractIndicesFromEmptyIndex() throws Exception {
-        node.client().admin().indices().prepareCreate("test7").execute().actionGet();
-        refresh();
-
-        IndexMetaData metaData = getIndexMetaData("test7");
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+            .startObject()
+            .startObject(Constants.DEFAULT_MAPPING_TYPE)
+            .endObject()
+            .endObject();
+        IndexMetaData metaData = getIndexMetaData("test7", builder);
         IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
         List<IndexMetaDataExtractor.Index> indices = extractor.getIndices();
         assertEquals(0, indices.size());
@@ -402,13 +429,8 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
                         .endObject()
                     .endObject()
                 .endObject();
-        node.client().admin().indices().prepareCreate("test8")
-                .setSettings(ImmutableSettings.builder().put("number_of_replicas", 0))
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
-                .execute().actionGet();
-        refresh();
 
-        IndexMetaData metaData = getIndexMetaData("test8");
+        IndexMetaData metaData = getIndexMetaData("test8", builder);
         IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
 
         assertThat(extractor.getRoutingColumn(), is("id"));
@@ -424,13 +446,8 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
                         .endObject()
                     .endObject()
                 .endObject();
-        node.client().admin().indices().prepareCreate("test9")
-                .setSettings(ImmutableSettings.builder().put("number_of_replicas", 0))
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
-                .execute().actionGet();
-        refresh();
 
-        metaData = getIndexMetaData("test9");
+        metaData = getIndexMetaData("test9", builder);
         extractor = new IndexMetaDataExtractor(metaData);
 
         assertThat(extractor.getRoutingColumn(), is("_id"));
@@ -456,15 +473,8 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
                         .endObject()
                     .endObject()
                 .endObject();
-        node.client().admin().indices().prepareCreate("test10")
-                .setSettings(ImmutableSettings.builder()
-                        .put("number_of_replicas", 0)
-                        .put("number_of_shards", 2))
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
-                .execute().actionGet();
-        refresh();
 
-        metaData = getIndexMetaData("test10");
+        metaData = getIndexMetaData("test10", builder);
         extractor = new IndexMetaDataExtractor(metaData);
 
         assertThat(extractor.getRoutingColumn(), is("id"));
@@ -472,10 +482,12 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
 
     @Test
     public void extractRoutingColumnFromEmptyIndex() throws Exception {
-        node.client().admin().indices().prepareCreate("test11").execute().actionGet();
-        refresh();
-
-        IndexMetaData metaData = getIndexMetaData("test11");
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+            .startObject()
+            .startObject(Constants.DEFAULT_MAPPING_TYPE)
+            .endObject()
+            .endObject();
+        IndexMetaData metaData = getIndexMetaData("test11", builder);
         IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
         assertThat(extractor.getRoutingColumn(), is("_id"));
     }
@@ -532,14 +544,7 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
                         .endObject()
                     .endObject()
                 .endObject();
-        node.client().admin().indices().prepareCreate("test12")
-                .setSettings(ImmutableSettings.builder()
-                        .put("number_of_replicas", 0)
-                        .put("number_of_shards", 2))
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
-                .execute().actionGet();
-        refresh();
-        IndexMetaData metaData = getIndexMetaData("test12");
+        IndexMetaData metaData = getIndexMetaData("test12", builder);
         IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
         List<ColumnDefinition> columns = extractor.getColumnDefinitions();
 
@@ -612,14 +617,8 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
                 .endObject()
                 .endObject()
                 .endObject();
-        node.client().admin().indices().prepareCreate("test13")
-                .setSettings(ImmutableSettings.builder()
-                        .put("number_of_replicas", 0)
-                        .put("number_of_shards", 2)
-                        .put("index.mapper.dynamic", false))
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
-                .execute().actionGet();
-        IndexMetaData metaData = getIndexMetaData("test13");
+        IndexMetaData metaData = getIndexMetaData("test13", builder,
+            ImmutableSettings.builder().put("index.mapper.dynamic", false).build());
         IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
         assertFalse(extractor.isDynamic());
 
@@ -634,14 +633,9 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
                 .endObject()
                 .endObject()
                 .endObject();
-        node.client().admin().indices().prepareCreate("test14")
-                .setSettings(ImmutableSettings.builder()
-                        .put("number_of_replicas", 0)
-                        .put("number_of_shards", 2)
-                        .put("index.mapper.dynamic", false))
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
-                .execute().actionGet();
-        metaData = getIndexMetaData("test13");
+
+        metaData = getIndexMetaData("test13", builder,
+            ImmutableSettings.builder().put("index.mapper.dynamic", false).build());
         extractor = new IndexMetaDataExtractor(metaData);
         assertFalse(extractor.isDynamic());
 
@@ -656,13 +650,7 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
                         .endObject()
                     .endObject()
                 .endObject();
-        node.client().admin().indices().prepareCreate("test15")
-                .setSettings(ImmutableSettings.builder()
-                        .put("number_of_replicas", 0)
-                        .put("number_of_shards", 2))
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
-                .execute().actionGet();
-        metaData = getIndexMetaData("test15");
+        metaData = getIndexMetaData("test15", builder);
         extractor = new IndexMetaDataExtractor(metaData);
         assertFalse(extractor.isDynamic());
 
@@ -677,13 +665,7 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
                 .endObject()
                 .endObject()
                 .endObject();
-        node.client().admin().indices().prepareCreate("test16")
-                .setSettings(ImmutableSettings.builder()
-                        .put("number_of_replicas", 0)
-                        .put("number_of_shards", 2))
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
-                .execute().actionGet();
-        metaData = getIndexMetaData("test16");
+        metaData = getIndexMetaData("test16", builder);
         extractor = new IndexMetaDataExtractor(metaData);
         assertFalse(extractor.isDynamic());
 
@@ -697,13 +679,7 @@ public class IndexMetaDataExtractorTest extends AbstractCrateNodesTests {
                 .endObject()
                 .endObject()
                 .endObject();
-        node.client().admin().indices().prepareCreate("test17")
-                .setSettings(ImmutableSettings.builder()
-                        .put("number_of_replicas", 0)
-                        .put("number_of_shards", 2))
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
-                .execute().actionGet();
-        metaData = getIndexMetaData("test17");
+        metaData = getIndexMetaData("test17", builder);
         extractor = new IndexMetaDataExtractor(metaData);
         assertTrue(extractor.isDynamic());
 

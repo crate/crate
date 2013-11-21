@@ -4,6 +4,8 @@ Changes for Crate
 
 Unreleased
 ==========
+
+ - improved test-run speed by not starting nodes unnecessarily
  
  - further optimization of the internal data structure serialization used while
    executing a group by query.
