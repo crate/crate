@@ -4,7 +4,6 @@ import com.google.common.base.Joiner;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.AggState;
-import org.cratedb.action.groupby.aggregate.AggStateReader;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -30,7 +29,18 @@ public class GroupByRow implements Streamable {
     public GroupByKey key;
     public AggState[] aggStates;
 
-    public GroupByRow() {}
+
+    private Map<String, AggFunction> aggregateFunctions;
+    private List<AggExpr> aggExprs;
+
+
+    public GroupByRow() {
+    }
+
+    public GroupByRow(Map<String, AggFunction> aggregateFunctions, List<AggExpr> aggExprs) {
+        this.aggregateFunctions = aggregateFunctions;
+        this.aggExprs = aggExprs;
+    }
 
     public GroupByRow(GroupByKey key, AggState... aggStates) {
         this.aggStates = aggStates;
@@ -74,8 +84,15 @@ public class GroupByRow implements Streamable {
         return key.size() + aggStates.length;
     }
 
-    public static GroupByRow readGroupByRow(StreamInput in) throws IOException {
-        GroupByRow row = new GroupByRow();
+    public void merge(GroupByRow otherRow) {
+        for (int i = 0; i < aggStates.length; i++) {
+            aggStates[i].merge(otherRow.aggStates[i]);
+        }
+    }
+
+    public static GroupByRow readGroupByRow(Map<String, AggFunction> aggregateFunctions,
+                                            List<AggExpr> aggExprs, StreamInput in) throws IOException {
+        GroupByRow row = new GroupByRow(aggregateFunctions, aggExprs);
         row.readFrom(in);
         return row;
     }
@@ -83,25 +100,19 @@ public class GroupByRow implements Streamable {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         key = GroupByKey.readFromStreamInput(in);
-        aggStates = new AggState[in.readVInt()];
-
+        aggStates = new AggState[aggExprs.size()];
         for (int i = 0; i < aggStates.length; i++) {
-            aggStates[i] = AggStateReader.readFrom(in);
+            aggStates[i] = aggregateFunctions.get(aggExprs.get(i).functionName).createAggState();
+            aggStates[i].readFrom(in);
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         key.writeTo(out);
-        out.writeVInt(aggStates.length);
         for (AggState aggState : aggStates) {
             aggState.writeTo(out);
         }
     }
 
-    public void merge(GroupByRow otherRow) {
-        for (int i = 0; i < aggStates.length; i++) {
-            aggStates[i].merge(otherRow.aggStates[i]);
-        }
-    }
 }

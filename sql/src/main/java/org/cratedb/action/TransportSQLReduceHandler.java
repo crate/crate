@@ -1,5 +1,8 @@
 package org.cratedb.action;
 
+import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.SQLReduceJobTimeoutException;
 import org.elasticsearch.cluster.ClusterService;
@@ -14,6 +17,7 @@ import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.Date;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -25,6 +29,8 @@ public class TransportSQLReduceHandler {
     private final ConcurrentMap<UUID, SQLReduceJobStatus> activeReduceJobs =
         ConcurrentCollections.newConcurrentMap();
     private final ClusterService clusterService;
+    private final Map<String, AggFunction> aggFunctionMap;
+    private final SQLParseService sqlParseService;
 
     public static class Actions {
         public static final String START_REDUCE_JOB = "crate/sql/shard/reduce/start_job";
@@ -32,9 +38,14 @@ public class TransportSQLReduceHandler {
     }
 
     @Inject
-    public TransportSQLReduceHandler(TransportService transportService, ClusterService clusterService) {
+    public TransportSQLReduceHandler(TransportService transportService,
+                                     ClusterService clusterService,
+                                     SQLParseService sqlParseService,
+                                     Map<String, AggFunction> aggFunctionMap) {
+        this.sqlParseService = sqlParseService;
         this.clusterService = clusterService;
         this.transportService = transportService;
+        this.aggFunctionMap = aggFunctionMap;
     }
 
     public void registerHandler() {
@@ -44,9 +55,12 @@ public class TransportSQLReduceHandler {
     }
 
     public SQLReduceJobResponse reduceOperationStart(SQLReduceJobRequest request) {
+        ParsedStatement parsedStatement =
+            sqlParseService.parse(request.request.stmt(), request.request.args());
+
         SQLReduceJobStatus reduceJobStatus = new SQLReduceJobStatus(
-            request.expectedShardResults, request.limit, request.idxMap, request.orderByIndices
-        );
+            parsedStatement, request.expectedShardResults, aggFunctionMap);
+
         activeReduceJobs.put(request.contextId, reduceJobStatus);
 
         long now = 0;
@@ -100,24 +114,12 @@ public class TransportSQLReduceHandler {
     private class RecievePartialResultHandler implements TransportRequestHandler<SQLMapperResultRequest> {
         @Override
         public SQLMapperResultRequest newInstance() {
-            return new SQLMapperResultRequest();
+            return new SQLMapperResultRequest(activeReduceJobs);
         }
 
         @Override
         public void messageReceived(SQLMapperResultRequest request, TransportChannel channel) throws Exception {
-            SQLReduceJobStatus status;
-
-            do {
-                status = activeReduceJobs.get(request.contextId);
-
-                /**
-                 * Possible race condition.
-                 * Mapper sends MapResult before the ReduceJob Context was established.
-                 *
-                 * TODO: use some kind of blockingConcurrentMap for activeReduceJobs or
-                 * use some kind of listener pattern.
-                 */
-            } while (status == null);
+            SQLReduceJobStatus status = request.status;
 
             long now = 0;
             if (logger.isTraceEnabled()) {

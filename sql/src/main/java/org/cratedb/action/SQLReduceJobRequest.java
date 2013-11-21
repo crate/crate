@@ -1,6 +1,6 @@
 package org.cratedb.action;
 
-import org.cratedb.action.sql.OrderByColumnIdx;
+import org.cratedb.action.sql.SQLRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
@@ -17,24 +17,16 @@ import java.util.UUID;
  */
 public class SQLReduceJobRequest extends TransportRequest {
 
+    public SQLRequest request;
     public UUID contextId;
     public int expectedShardResults;
-    public Integer limit;
-    public OrderByColumnIdx[] orderByIndices;
-    public Integer[] idxMap;
 
+    public SQLReduceJobRequest() {}
 
-    public SQLReduceJobRequest() {
-
-    }
-
-    public SQLReduceJobRequest(UUID contextId, int expectedShardResults,
-                               Integer limit, Integer[] idxMap, OrderByColumnIdx[] orderByIndices) {
+    public SQLReduceJobRequest(UUID contextId, int expectedShardResults, SQLRequest request) {
         this.contextId = contextId;
         this.expectedShardResults = expectedShardResults;
-        this.limit = limit;
-        this.orderByIndices = orderByIndices;
-        this.idxMap = idxMap;
+        this.request = request;
     }
 
     @Override
@@ -42,19 +34,9 @@ public class SQLReduceJobRequest extends TransportRequest {
         super.readFrom(in);
         contextId = new UUID(in.readLong(), in.readLong());
         expectedShardResults = in.readVInt();
-        orderByIndices = new OrderByColumnIdx[in.readVInt()];
-        for (int i = 0; i < orderByIndices.length; i++) {
-            orderByIndices[i] = OrderByColumnIdx.readFromStream(in);
-        }
 
-        idxMap = new Integer[in.readVInt()];
-        for (int i = 0; i < idxMap.length; i++) {
-            idxMap[i] = in.readVInt();
-        }
-
-        if (in.readBoolean()) {
-            limit = in.readVInt();
-        }
+        request = new SQLRequest();
+        request.readFrom(in);
     }
 
     @Override
@@ -63,22 +45,6 @@ public class SQLReduceJobRequest extends TransportRequest {
         out.writeLong(contextId.getMostSignificantBits());
         out.writeLong(contextId.getLeastSignificantBits());
         out.writeVInt(expectedShardResults);
-        out.writeVInt(orderByIndices.length);
-        for (OrderByColumnIdx index : orderByIndices) {
-            index.writeTo(out);
-        }
-
-        out.writeVInt(idxMap.length);
-        for (Integer idx : idxMap) {
-            out.writeVInt(idx);
-
-        }
-
-        if (limit != null) {
-            out.writeBoolean(true);
-            out.writeVInt(limit);
-        } else {
-            out.writeBoolean(false);
-        }
+        request.writeTo(out);
     }
 }

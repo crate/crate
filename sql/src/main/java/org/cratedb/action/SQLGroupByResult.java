@@ -1,6 +1,8 @@
 package org.cratedb.action;
 
 import org.cratedb.action.groupby.GroupByRow;
+import org.cratedb.action.groupby.aggregate.AggExpr;
+import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -17,6 +19,9 @@ import java.util.*;
  */
 public class SQLGroupByResult implements Streamable {
 
+    public Map<String, AggFunction> aggFunctions;
+    public List<AggExpr> aggExprs;
+
     /**
      * optimization: the preSerializationResult is set on the mapper
      * after the SQLGroupByResult is sent from the Mapper to the Reducer
@@ -27,11 +32,6 @@ public class SQLGroupByResult implements Streamable {
     public List<GroupByRow> result;
     private Collection<GroupByRow> preSerializationResult;
 
-    public SQLGroupByResult() {
-        // empty ctor - serialization
-        result = new ArrayList<>(0);
-    }
-
     public SQLGroupByResult(Collection<GroupByRow> result) {
         this.preSerializationResult = result;
     }
@@ -41,7 +41,13 @@ public class SQLGroupByResult implements Streamable {
      * @param result
      */
     public SQLGroupByResult(List<GroupByRow> result) {
-       this.result = result;
+        this.result = result;
+    }
+
+    SQLGroupByResult(Map<String, AggFunction> aggFunctions, List<AggExpr> aggExprs) {
+        this.result = new ArrayList<>(0);
+        this.aggFunctions = aggFunctions;
+        this.aggExprs = aggExprs;
     }
 
     public void merge(SQLGroupByResult otherResult) {
@@ -110,10 +116,10 @@ public class SQLGroupByResult implements Streamable {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         int resultSize = in.readVInt();
-        result = new ArrayList<>();
+        result = new ArrayList<>(resultSize);
 
         for (int i = 0; i < resultSize; i++) {
-            result.add(GroupByRow.readGroupByRow(in));
+            result.add(GroupByRow.readGroupByRow(aggFunctions, aggExprs, in));
         }
     }
 
@@ -125,8 +131,11 @@ public class SQLGroupByResult implements Streamable {
         }
     }
 
-    public static SQLGroupByResult readSQLGroupByResult(StreamInput in) throws IOException {
-        SQLGroupByResult result = new SQLGroupByResult();
+    public static SQLGroupByResult readSQLGroupByResult(Map<String, AggFunction> aggregateFunctions,
+                                                        List<AggExpr> aggExprs, StreamInput in)
+        throws IOException
+    {
+        SQLGroupByResult result = new SQLGroupByResult(aggregateFunctions, aggExprs);
         result.readFrom(in);
         return result;
     }

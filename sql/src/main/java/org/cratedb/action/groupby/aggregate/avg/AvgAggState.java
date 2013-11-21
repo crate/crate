@@ -20,7 +20,6 @@ public class AvgAggState extends AggState {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeByte((byte)1);
         out.writeVLong(sum);
         out.writeVLong(count);
     }
