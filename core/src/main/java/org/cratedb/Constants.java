@@ -1,4 +1,4 @@
-package org.cratedb.core;
+package org.cratedb;
 
 public class Constants {
     /**

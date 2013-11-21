@@ -8,7 +8,7 @@ configurations {
     all*.exclude group: 'org.elasticsearch'
 }
 
-evaluationDependsOn(':app')
+//evaluationDependsOn(':app')
 
 
 dependencies {

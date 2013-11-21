@@ -2,7 +2,7 @@ package org.cratedb.action.parser;
 
 import org.cratedb.action.import_.ImportRequest;
 import org.cratedb.action.sql.ParsedStatement;
-import org.cratedb.core.Constants;
+import org.cratedb.Constants;
 import org.cratedb.sql.parser.parser.NodeTypes;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;

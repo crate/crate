@@ -5,3 +5,4 @@
 /.project
 /.settings/
 /build/
+/src/main/resources/crate-build.properties

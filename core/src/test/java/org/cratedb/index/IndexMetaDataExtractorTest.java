@@ -1,5 +1,6 @@
-package org.cratedb.core;
+package org.cratedb.index;
 
+import org.cratedb.Constants;
 import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.metadata.IndexMetaData;

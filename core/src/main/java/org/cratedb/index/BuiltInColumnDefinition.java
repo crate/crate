@@ -1,4 +1,4 @@
-package org.cratedb.core;
+package org.cratedb.index;
 
 public class BuiltInColumnDefinition extends ColumnDefinition {
     /**

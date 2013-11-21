@@ -143,7 +143,7 @@ while true; do
     case $1 in
         -v)
             "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Dcrate.path.home="$CRATE_HOME" -cp "$CRATE_CLASSPATH" $props \
-                    org.elasticsearch.Version
+                    org.cratedb.Version
             exit 0
         ;;
         -p)

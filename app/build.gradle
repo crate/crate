@@ -7,32 +7,49 @@ configurations {
     all*.exclude group: 'org.elasticsearch'
 }
 
+task getVersion (dependsOn: 'classes') << {
+    def stdout = new ByteArrayOutputStream()
+    javaexec {
+        classpath = sourceSets.main.runtimeClasspath
+        main = 'org.cratedb.Version'
+        standardOutput = stdout
+    }
+    ext.version = stdout.toString().trim().split(" ")[1].replace(',','')
+}
+
 task dist {
     dependsOn ':docs:itest', distTar, distZip
 }
 
 distTar {
-    dependsOn ":docs:sphinx"
+    dependsOn ":docs:sphinx", getVersion
     compression = Compression.GZIP
     baseName = 'crate'
     extension = 'tar.gz'
+    doFirst {
+        version = getVersion.version
+    }
 }
 
 distZip {
-    dependsOn ":docs:sphinx"
+    dependsOn ":docs:sphinx", getVersion
     baseName = 'crate'
+    doFirst {
+        version = getVersion.version
+    }
 }
 
 ext {
     downloadDir = new File(buildDir, 'downloads')
     plugin_head_version = '3b6740cfd0a79c60516ce8fbd78f018c1f38e08e'
-    plugin_bigdesk_version = '2.2.1'
+    plugin_bigdesk_version = '2.2.2c'
     plugin_segmentspy_version = '0.2.0'
 }
 
 evaluationDependsOn(':es')
 
 dependencies {
+    compile project(':core')
     compile project(':es')
     compile project(':sql')
     compile project(':elasticsearch-crate-plugin')
@@ -45,9 +62,6 @@ installDist.dependsOn(jar, ":docs:sphinx")
 
 def docsDir = project(":docs").projectDir
 def rootDir = project.parent.projectDir
-
-def versionFile = new File(project(":elasticsearch-crate-plugin").projectDir, "crate-admin/dist/version.json")
-versionFile.text = '{"version": {"crate": "' + project.parent.version + '"}}'
 
 distributions {
     main {
@@ -76,7 +90,6 @@ distributions {
             }
             into('plugins/crate-admin/_site'){
                 from new File(project(":elasticsearch-crate-plugin").projectDir, 'crate-admin/dist')
-                from versionFile
             }
             into('plugins') {
                 from 'plugins'
@@ -118,7 +131,7 @@ task downloadPlugins << {
             "head_${plugin_head_version}.zip")
     extractTopfolder(dest, 'plugins/head/_site')
     dest = download(
-            "https://github.com/lukas-vlcek/bigdesk/archive/v${plugin_bigdesk_version}.zip",
+            "https://github.com/crate/bigdesk/archive/v${plugin_bigdesk_version}.zip",
             "bigdesk_${plugin_bigdesk_version}.zip"
             )
     extractTopfolder(dest, 'plugins/bigdesk/_site')

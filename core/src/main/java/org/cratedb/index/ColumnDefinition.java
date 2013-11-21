@@ -1,4 +1,4 @@
-package org.cratedb.core;
+package org.cratedb.index;
 
 public class ColumnDefinition {
     public final String tableName;
