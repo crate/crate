@@ -14,7 +14,7 @@ public class BooleanSQLType extends SQLType {
         try {
             return (Boolean)value;
         } catch (ClassCastException e) {
-            throw new ConvertException(String.format("Invalid %s", typeName()));
+            throw new ConvertException(typeName());
         }
     }
 }

@@ -6,12 +6,12 @@ public class TypeUnknownException extends CrateException {
     private final String type;
 
     public TypeUnknownException(String type, Throwable e) {
-        super("Unkown type", e);
+        super(String.format("Unkown type '%s'", type), e);
         this.type = type;
     }
 
     public TypeUnknownException(String type) {
-        super("Unknown type");
+        super(String.format("Unkown type '%s'", type));
         this.type = type;
     }
 

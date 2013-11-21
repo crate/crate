@@ -4,9 +4,10 @@ import org.junit.After;
 import org.junit.Before;
 
 /**
- * Doctest Testcase with full control over configuring, starting and stopping crate nodes
+ * Doctest Testcase that starts a crate cluster in the background
  */
-public class DoctestTestCase extends AbstractCrateNodesTests {
+public abstract class DoctestClusterTestCase extends AbstractSharedCrateClusterTest {
+
     private DoctestRunner doctestRunner = new DoctestRunner();
 
     @Before
@@ -22,5 +23,4 @@ public class DoctestTestCase extends AbstractCrateNodesTests {
     public void execDocFile(String filePath, Class<?> klass) {
         doctestRunner.execDocFile(filePath, klass);
     }
-
 }

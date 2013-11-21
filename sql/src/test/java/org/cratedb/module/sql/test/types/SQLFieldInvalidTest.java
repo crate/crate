@@ -88,6 +88,10 @@ public class SQLFieldInvalidTest {
                         }});
                     }});
                 }});
+                put("ip_field", new HashMap<String, Object>() {{
+                    put("type", "ip");
+                    put("index", "not_analyzed");
+                }});
             }});
 
         }};
@@ -110,6 +114,7 @@ public class SQLFieldInvalidTest {
                     put(StringSQLType.NAME, new StringSQLType());
                     put(CratySQLType.NAME, new CratySQLType());
                     put(TimeStampSQLType.NAME, new TimeStampSQLType());
+                    put(IpSQLType.NAME, new IpSQLType());
                 }},
                 new IndexMetaDataExtractor(metaData));
     }
@@ -166,6 +171,10 @@ public class SQLFieldInvalidTest {
                 {
                         "date_field",
                         new Object[]{"No Date", true, false, new HashMap<String, Object>()}
+                },
+                {
+                        "ip_field",
+                        new Object[]{"no ip", true, false, 1, -1, Long.MAX_VALUE, 99.9, new HashMap<String, Object>()}
                 }
 
         };

@@ -87,7 +87,7 @@ public class TableVisitor extends BaseVisitor {
         String columnType = node.getType().getTypeName().toLowerCase();
         List<String> allowedColumnTypeList = Arrays.asList(allowedColumnTypes);
         if (!allowedColumnTypeList.contains(columnType)) {
-            throw new SQLParseException("Unsupported type");
+            throw new SQLParseException(String.format("Unsupported type: '%s'", columnType));
         }
         // map timestamp to date
         columnType = columnType.equals("timestamp") ? "date" : columnType;

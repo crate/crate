@@ -69,4 +69,9 @@ public class AbstractCrateNodesTests extends AbstractNodesTests {
         RefreshResponse actionGet = client.admin().indices().prepareRefresh().execute().actionGet();
         assertNoFailures(actionGet);
     }
+
+    public void createIndex(Client client, String indexName, Settings indexSettings) {
+        client.admin().indices().prepareCreate(indexName).setSettings(indexSettings).execute().actionGet();
+        refresh(client);
+    }
 }

@@ -10,10 +10,10 @@ public abstract class NumericSQLType extends SQLType {
         try {
             number = (Number) value;
         } catch(ClassCastException e) {
-            throw new ConvertException(String.format("invalid %s", typeName()));
+            throw new ConvertException(typeName());
         }
         if (!checkRange(number)) {
-            throw new ConvertException(String.format("%s out of bounds", typeName()));
+            throw new ConvertException(typeName(), "out of bounds");
         }
         return convertNumber(number);
     }

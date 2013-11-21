@@ -14,6 +14,6 @@ public class StringSQLType extends SQLType {
         if ((value instanceof CharSequence)||(value instanceof Character)) {
             return value.toString();
         }
-        throw new ConvertException(String.format("Invalid %s", typeName()));
+        throw new ConvertException(typeName());
     }
 }

@@ -151,6 +151,10 @@ public class SQLTypeMappingTest extends AbstractCrateNodesTests {
                             .endObject()
                         .endObject()
                     .endObject()
+                    .startObject("ip_field")
+                        .field("type", "ip")
+                        .field("index", "not_analyzed")
+                    .endObject()
                 .endObject()
                 .endObject();
         node1.client().admin().indices().prepareCreate("t1")
@@ -341,9 +345,9 @@ public class SQLTypeMappingTest extends AbstractCrateNodesTests {
                 "timestamp_field='1970-01-01T00:00:00'");
         assertEquals(
                 "{\"fields\":[\"boolean_field\",\"byte_field\",\"craty_field\",\"double_field\"," +
-                    "\"float_field\",\"id\",\"integer_field\",\"long_field\",\"short_field\"," +
-                    "\"string_field\",\"timestamp_field\"]," +
-                    "\"query\":{\"term\":{\"timestamp_field\":0}},\"size\":10000}",
+                        "\"float_field\",\"id\",\"integer_field\",\"ip_field\",\"long_field\"," +
+                        "\"short_field\",\"string_field\",\"timestamp_field\"]," +
+                        "\"query\":{\"term\":{\"timestamp_field\":0}},\"size\":10000}",
                 stmt.xcontent.toUtf8());
     }
 
@@ -351,7 +355,7 @@ public class SQLTypeMappingTest extends AbstractCrateNodesTests {
     public void testInvalidWhereClause() throws Exception {
 
         expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("Validation failed for byte_field: byte out of bounds");
+        expectedException.expectMessage("Validation failed for byte_field: Invalid byte: out of bounds");
 
         setUpSimple();
         ParsedStatement stmt = parseService.parse("delete from t1 where byte_field=129");
@@ -360,7 +364,7 @@ public class SQLTypeMappingTest extends AbstractCrateNodesTests {
     @Test
     public void testInvalidWhereInWhereClause() throws Exception {
         expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("Validation failed for byte_field: invalid byte");
+        expectedException.expectMessage("Validation failed for byte_field: Invalid byte");
 
         setUpSimple();
         ParsedStatement stmt = parseService.parse("update t1 set byte_field=0 where byte_field in ('0')");
@@ -385,16 +389,18 @@ public class SQLTypeMappingTest extends AbstractCrateNodesTests {
                 "boolean_field=?," +
                 "string_field=?," +
                 "timestamp_field=?," +
-                "craty_field=?" +
+                "craty_field=?," +
+                "ip_field=?" +
                 "where id=0", new Object[]{
                     Byte.MAX_VALUE, Short.MIN_VALUE, Integer.MAX_VALUE, Long.MIN_VALUE,
-                    1.0, Math.PI, true, "a string", "2013-11-20", new HashMap<String, Object>() {{put("inner", "2013-11-20");}}
+                    1.0, Math.PI, true, "a string", "2013-11-20",
+                    new HashMap<String, Object>() {{put("inner", "2013-11-20");}}, "127.0.0.1"
         });
         refresh(node1.client());
 
         SQLResponse response = execute("select id, byte_field, short_field, integer_field, long_field," +
                 "float_field, double_field, boolean_field, string_field, timestamp_field," +
-                "craty_field from t1 where id=0");
+                "craty_field, ip_field from t1 where id=0");
         assertEquals(1, response.rowCount());
         assertEquals(0, response.rows()[0][0]);
         assertEquals(127, response.rows()[0][1]);
@@ -407,6 +413,7 @@ public class SQLTypeMappingTest extends AbstractCrateNodesTests {
         assertEquals("a string", response.rows()[0][8]);
         assertEquals(1384905600000L, response.rows()[0][9]);
         assertEquals(new HashMap<String, Object>() {{ put("inner", 1384905600000L); }}, response.rows()[0][10]);
+        assertEquals("127.0.0.1", response.rows()[0][11]);
     }
 
     @Test
@@ -414,9 +421,11 @@ public class SQLTypeMappingTest extends AbstractCrateNodesTests {
         setUpSimple();
         execute("insert into t1 (id, string_field, boolean_field, byte_field, short_field, integer_field," +
                 "long_field, float_field, double_field, craty_field," +
-                "timestamp_field) values " +
+                "timestamp_field, ip_field) values " +
                 "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", new Object[]{
-                0, "Blabla", true, 120, 1000, 1200000, 120000000000L, 1.4, 3.456789, new HashMap<String, Object>(){{put("inner", "1970-01-01");}}, "1970-01-01"
+                0, "Blabla", true, 120, 1000, 1200000,
+                120000000000L, 1.4, 3.456789, new HashMap<String, Object>(){{put("inner", "1970-01-01");}},
+                "1970-01-01", "127.0.0.1"
         });
         refresh(node1.client());
         SQLResponse getResponse = execute("select * from t1 where id=0");

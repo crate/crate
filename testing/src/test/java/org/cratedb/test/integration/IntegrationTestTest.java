@@ -2,7 +2,7 @@ package org.cratedb.test.integration;
 
 import org.junit.Test;
 
-public class IntegrationTestTest extends DoctestTestCase {
+public class IntegrationTestTest extends DoctestClusterTestCase {
 
     @Test
     public void testBlobIndexGetsCreated() throws Exception {

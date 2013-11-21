@@ -5,6 +5,7 @@ import org.apache.lucene.util.AbstractRandomizedTest;
 import org.cratedb.test.integration.DoctestTestCase;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -15,14 +16,19 @@ import static com.github.tlrx.elasticsearch.test.EsSetup.fromClassPath;
 @AbstractRandomizedTest.IntegrationTests
 public class DocTest extends DoctestTestCase {
 
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
     StoreEsSetup esSetup, esSetup2;
 
     @Before
-    public void setUp() throws Exception {
-        super.setUp();
+    public void setUpNodes() throws Exception {
 
         Settings s1 = ImmutableSettings.settingsBuilder()
                 .put("cluster.name", "a")
+                .put("http.port", 9202)
+                .put("transport.tcp.port", 9302)
                 .put("node.local", false)
                 .build();
 
@@ -34,11 +40,19 @@ public class DocTest extends DoctestTestCase {
         esSetup.client().admin().indices().prepareRefresh("users").execute().actionGet();
 
         Settings s2 = ImmutableSettings.settingsBuilder()
+                .put("http.port", 9203)
+                .put("transport.tcp.port", 9303)
                 .put("cluster.name", "b")
                 .put("node.local", false)
                 .build();
         esSetup2 = new StoreEsSetup(s2);
         esSetup2.execute(deleteAll());
+    }
+
+    @After
+    public void tearDownNodes() throws Exception {
+        esSetup.terminate();
+        esSetup2.terminate();
     }
 
     @Test

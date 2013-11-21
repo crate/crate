@@ -22,8 +22,7 @@ public class TimeStampSQLType extends SQLType {
             try {
                 return formatter.parseMillis((String) value);
             } catch (IllegalArgumentException e) {
-                throw new ConvertException(String.format("Invalid %s ISODate string",
-                        typeName()));
+                throw new ConvertException(typeName(), "Invalid ISO-date string");
             }
         }
         else if ((value instanceof Float)||(value instanceof Double)) {
@@ -35,7 +34,7 @@ public class TimeStampSQLType extends SQLType {
             // interpret as milliseconds since the Java epoch of 1970-01-01T00:00:00Z
             return ((Number) value).longValue();
         }
-        throw new ConvertException(String.format("Invalid %s", typeName()));
+        throw new ConvertException(typeName());
     }
 
     @Override

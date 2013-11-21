@@ -11,6 +11,10 @@ Unreleased
  - Throw a proper error if a multi-value field is encountered during group by
    instead of returning an incorrect result.
 
+ - refactoring of Doctest TestCases
+
+ - internal: support for mapping ip-types (stored as string)
+
  - Added ``duration`` property to SQLResponse, reflecting the duration of a SQL query.
 
  - optimized internal data structures that are used when executing a group by
