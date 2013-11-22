@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fix: offset didn't work correctly for group by queries.
+
  - fixed primary key handling in inout plugin
 
  - fixed a bug where special fields might not get applied in inout

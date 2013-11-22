@@ -8,6 +8,7 @@ import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.OrderByColumnIdx;
 import org.cratedb.action.sql.ParsedStatement;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -33,11 +34,15 @@ public class SQLReduceJobStatus {
         this.comparator = new GroupByRowComparator(parsedStatement.idxMap, parsedStatement.orderByIndices());
     }
 
-    public GroupByRow[] toSortedArray(SQLGroupByResult groupByResult)
+    public Collection<GroupByRow> sortGroupByResult(SQLGroupByResult groupByResult)
     {
         MinMaxPriorityQueue.Builder<GroupByRow> rowBuilder = MinMaxPriorityQueue.orderedBy(this.comparator);
         if (parsedStatement.limit != null) {
-            rowBuilder.maximumSize(parsedStatement.limit);
+            int limit = parsedStatement.limit;
+            if (parsedStatement.offset != null) {
+                limit += parsedStatement.offset;
+            }
+            rowBuilder.maximumSize(limit);
         }
 
         MinMaxPriorityQueue<GroupByRow> q = rowBuilder.create();
@@ -45,6 +50,6 @@ public class SQLReduceJobStatus {
             q.add(groupByRow);
         }
 
-        return q.toArray(new GroupByRow[q.size()]);
+        return q;
     }
 }

@@ -8,9 +8,7 @@ import org.cratedb.action.sql.OrderByColumnIdx;
 import org.cratedb.action.sql.ParsedStatement;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.*;
 
 import static org.junit.Assert.assertEquals;
 
@@ -46,10 +44,10 @@ public class SQLReduceJobStatusTest {
         };
 
         SQLGroupByResult result = new SQLGroupByResult(Arrays.asList(rows));
-        GroupByRow[] sortedRows = status.toSortedArray(result);
+        List<GroupByRow> sortedRows = new ArrayList<>(status.sortGroupByResult(result));
 
-        assertEquals(2, sortedRows.length);
-        assertEquals(45L, sortedRows[0].get(1));
-        assertEquals(40L, sortedRows[1].get(1));
+        assertEquals(2, sortedRows.size());
+        assertEquals(45L, sortedRows.get(0).get(1));
+        assertEquals(40L, sortedRows.get(1).get(1));
     }
 }
