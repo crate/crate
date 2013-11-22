@@ -1618,6 +1618,10 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
     }
 
     private void groupBySetup() throws Exception {
+        groupBySetup("integer");
+    }
+
+    private void groupBySetup(String numericType) throws Exception {
         XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
             .startObject("default")
             .startObject("properties")
@@ -1630,7 +1634,10 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
                     .field("index", "not_analyzed")
                 .endObject()
                 .startObject("age")
-                    .field("type", "integer")
+                    .field("type", numericType)
+                .endObject()
+                .startObject("birthdate")
+                    .field("type", "date")
                 .endObject()
                 .startObject("name")
                     .field("type", "string")
@@ -1652,8 +1659,8 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
 
         Map<String, String> details = newHashMap();
         details.put("job", "Sandwitch Maker");
-        execute("insert into characters (race, gender, age, name, details) values (?, ?, ?, ?, ?)",
-            new Object[] {"Human", "male", 34, "Arthur Dent", details});
+        execute("insert into characters (race, gender, age, birthdate, name, details) values (?, ?, ?, ?, ?)",
+            new Object[] {"Human", "male", 34, "1975-10-01", "Arthur Dent", details});
 
         details = newHashMap();
         details.put("job", "Mathematician");
@@ -1661,6 +1668,7 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
             new Object[] {"Human", "female", 32, "Trillian", details});
         execute("insert into characters (race, gender, age, name) values (?, ?, ?, ?)",
             new Object[] {"Human", "male", 112, "Ford Perfect"});
+
         execute("insert into characters (race, gender, name) values ('Android', 'male', 'Marving')");
         execute("insert into characters (race, gender, name) values ('Vogon', 'male', 'Jeltz')");
         execute("insert into characters (race, gender, name) values ('Vogon', 'male', 'Kwaltz')");
@@ -2588,5 +2596,73 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
                 String.format("delete from %s where id=?", tableAlias),
                 new Object[]{1}
         );
+    }
+
+    @Test
+    public void selectGroupByAggregateMinInteger() throws Exception {
+        groupBySetup("integer");
+        refresh();
+
+        execute("select min(age) as minAge, gender from characters group by gender order by gender");
+        assertEquals(new String[]{"minage", "gender"}, response.cols());
+        assertEquals(2L, response.rowCount());
+        assertEquals(32, response.rows()[0][0]);
+        assertEquals(34, response.rows()[1][0]);
+    }
+
+    @Test
+    public void selectGroupByAggregateMinFloat() throws Exception {
+        groupBySetup("float");
+        refresh();
+
+        execute("select min(age) as minAge, gender from characters group by gender order by gender");
+        assertEquals(2L, response.rowCount());
+        assertEquals(32.0f, response.rows()[0][0]);
+        assertEquals(34.0f, response.rows()[1][0]);
+    }
+
+    @Test
+    public void selectGroupByAggregateMinDouble() throws Exception {
+        groupBySetup("double");
+        refresh();
+
+        execute("select min(age) as minAge, gender from characters group by gender order by gender");
+        assertEquals(2L, response.rowCount());
+        assertEquals(32.0d, response.rows()[0][0]);
+        assertEquals(34.0d, response.rows()[1][0]);
+    }
+
+    @Test
+    public void selectGroupByAggregateMinLong() throws Exception {
+        groupBySetup("long");
+        refresh();
+
+        execute("select min(age) as minAge, gender from characters group by gender order by gender");
+        assertEquals(2L, response.rowCount());
+        assertEquals(32L, response.rows()[0][0]);
+        assertEquals(34L, response.rows()[1][0]);
+    }
+
+    @Test
+    public void selectGroupByAggregateMinString() throws Exception {
+        groupBySetup();
+        refresh();
+
+        execute("select min(name) as minName, gender from characters group by gender order by gender");
+        assertEquals(2L, response.rowCount());
+        assertEquals("Trillian", response.rows()[0][0]);
+        assertEquals("Arthur Dent", response.rows()[1][0]);
+    }
+
+    @Test
+    public void selectGroupByAggregateMinDate() throws Exception {
+        groupBySetup();
+        refresh();
+
+        execute("select min(birthdate) as minBirthdate, gender from characters group by gender " +
+                "order by gender");
+        assertEquals(2L, response.rowCount());
+        assertEquals(276912000000L, response.rows()[0][0]);
+        assertEquals(38361600000L, response.rows()[1][0]);
     }
 }

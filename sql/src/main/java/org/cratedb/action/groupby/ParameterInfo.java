@@ -16,8 +16,8 @@ import java.io.IOException;
 public class ParameterInfo implements Streamable {
 
     public boolean isAllColumn;
+    public String columnName;
 
-    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof ParameterInfo)) return false;
@@ -26,21 +26,24 @@ public class ParameterInfo implements Streamable {
 
         if (isAllColumn != that.isAllColumn) return false;
 
+        if (columnName != that.columnName) return false;
+
         return true;
     }
 
-    @Override
     public int hashCode() {
-        return (isAllColumn ? 1 : 0);
+        return (isAllColumn ? 1 : columnName.hashCode());
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         isAllColumn = in.readBoolean();
+        columnName = in.readString();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeBoolean(isAllColumn);
+        out.writeString(columnName);
     }
 }

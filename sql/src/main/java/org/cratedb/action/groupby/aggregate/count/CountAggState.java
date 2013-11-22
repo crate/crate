@@ -21,7 +21,7 @@ public class CountAggState extends AggState {
     }
 
     @Override
-    public void merge(AggState other) {
+    public void reduce(AggState other) {
         assert other instanceof CountAggState;
         value += ((CountAggState)other).value;
     }

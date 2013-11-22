@@ -358,6 +358,16 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             String alias = column.getName() != null ? column.getName() : node.getAggregateName();
             stmt.countRequest(true);
             stmt.addOutputField(alias, node.getAggregateName());
+        } else if (node.getAggregateName().startsWith("MIN")) {
+            ColumnReference operand = (ColumnReference)node.getOperand();
+            if (operand == null) {
+                throw new SQLParseException("Missing parameter for MIN() function");
+            }
+            AggExpr aggExpr = AggExprFactory.createAggExpr("MIN", operand.getColumnName());
+            stmt.resultColumnList.add(aggExpr);
+            stmt.aggregateExpressions.add(aggExpr);
+            String alias = column.getName() != null ? column.getName() : operand.getColumnName();
+            stmt.addOutputField(alias, operand.getColumnName());
         } else {
             throw new SQLParseException("Unsupported Aggregate function " + node.getAggregateName());
         }

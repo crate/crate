@@ -67,7 +67,7 @@ task compileJavaCC {
 task bench(type: Test) {
     description = 'Run the Crate JUnit Benchmarks'
     group = 'crate'
-    benchmark_dir = '/tmp/crate-junit-benchmarks/'
+    def benchmark_dir = '/tmp/crate-junit-benchmarks/'
 
     // Properties for JUnit Benchmarks
     systemProperty 'jub.consumers', 'CONSOLE,H2,XML'

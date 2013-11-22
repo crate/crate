@@ -31,7 +31,7 @@ public class GroupByRow implements Streamable {
 
 
     private Map<String, AggFunction> aggregateFunctions;
-    private List<AggExpr> aggExprs;
+    public List<AggExpr> aggExprs;
 
 
     public GroupByRow() {
@@ -50,15 +50,13 @@ public class GroupByRow implements Streamable {
     public static GroupByRow createEmptyRow(GroupByKey key,
                                             List<AggExpr> aggExprs,
                                             Map<String, AggFunction> aggregateFunctions) {
-        GroupByRow row = new GroupByRow();
-        row.key = key;
-        row.aggStates = new AggState[aggExprs.size()];
+        AggState[] aggStates = new AggState[aggExprs.size()];
 
-        for (int i = 0; i < row.aggStates.length; i++) {
-            row.aggStates[i] = aggregateFunctions.get(aggExprs.get(i).functionName).createAggState();
+        for (int i = 0; i < aggStates.length; i++) {
+            aggStates[i] = aggregateFunctions.get(aggExprs.get(i).functionName).createAggState();
         }
 
-        return row;
+        return new GroupByRow(key, aggStates);
     }
 
     /**
@@ -86,7 +84,7 @@ public class GroupByRow implements Streamable {
 
     public synchronized  void merge(GroupByRow otherRow) {
         for (int i = 0; i < aggStates.length; i++) {
-            aggStates[i].merge(otherRow.aggStates[i]);
+            aggStates[i].reduce(otherRow.aggStates[i]);
         }
     }
 
