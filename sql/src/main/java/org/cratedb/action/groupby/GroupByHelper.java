@@ -8,7 +8,7 @@ import java.util.Comparator;
 
 public class GroupByHelper {
 
-    public static Collection<GroupByRow> sortRows(Collection<GroupByRow> rows,
+    public static MinMaxPriorityQueue<GroupByRow> sortRows(Collection<GroupByRow> rows,
                                                   Comparator<GroupByRow> comparator,
                                                   Integer limit,
                                                   Integer offset) {
@@ -29,14 +29,15 @@ public class GroupByHelper {
         return q;
     }
 
-    public static Object[][] sortedRowsToObjectArray(Collection<GroupByRow> rows,
+    public static Object[][] sortedRowsToObjectArray(MinMaxPriorityQueue<GroupByRow> rows,
                                                      ParsedStatement parsedStatement,
                                                      int offset) {
         Object[][] result = new Object[rows.size() - offset][parsedStatement.outputFields().size()];
         int currentRow = -1;
         int remainingOffset = offset;
 
-        for (GroupByRow row : rows) {
+        GroupByRow row;
+        while ((row = rows.pollFirst()) != null) {
             if (remainingOffset > 0) {
                 remainingOffset--;
                 continue;
