@@ -5,12 +5,15 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/11/22 0.19.5
+=================
+
  - fix: offset didn't work correctly for group by queries.
 
  - fixed primary key handling in inout plugin
 
  - fixed a bug where special fields might not get applied in inout
-   plugin import when a subobject occours in a row
+   plugin import when a sub-object occurs in a row
 
  - error that group by doesn't work on columns that contain arrays is now
    already raised in the query parsing step if possible.

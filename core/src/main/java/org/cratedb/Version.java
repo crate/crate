@@ -17,7 +17,7 @@ public class Version {
     // the (internal) format of the id is there so we can easily do after/before checks on the id
 
     public static final int V_0_19_5_ID = /*00*/190599;
-    public static final Version V_0_19_5 = new Version(V_0_19_5_ID, true, org.elasticsearch.Version.V_0_90_5);
+    public static final Version V_0_19_5 = new Version(V_0_19_5_ID, false, org.elasticsearch.Version.V_0_90_5);
 
     public static final Version CURRENT = V_0_19_5;
 
