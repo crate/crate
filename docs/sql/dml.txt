@@ -288,7 +288,7 @@ This is useful if used in conjunction with aggregation functions::
 
 .. note::
 
-    Grouping on multi-value fields doesn't work. If such a field is encounted
+    Grouping on multi-value fields doesn't work. If such a field is encountered
     during a group by operation an error is thrown.
 
 Fulltext search

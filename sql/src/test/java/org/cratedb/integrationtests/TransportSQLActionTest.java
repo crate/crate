@@ -120,6 +120,16 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     @Test
+    public void testGroupByOnAnalyzedColumn() throws Exception {
+        expectedException.expect(GroupByOnArrayUnsupportedException.class);
+
+        execute("create table test1 (col1 string index using fulltext)");
+        refresh();
+
+        execute("select count(*) from test1 group by col1");
+    }
+
+    @Test
     public void testSelectStarWithOther() throws Exception {
         prepareCreate("test")
                 .addMapping("default",

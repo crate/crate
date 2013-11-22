@@ -2,6 +2,7 @@ package org.cratedb.information_schema;
 
 import com.google.common.collect.ImmutableMap;
 import org.cratedb.action.sql.ITableExecutionContext;
+import org.cratedb.index.ColumnDefinition;
 import org.cratedb.sql.TableUnknownException;
 import org.cratedb.sql.types.SQLFieldMapper;
 import org.elasticsearch.common.inject.Inject;
@@ -70,5 +71,11 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
 
     public boolean tableIsAlias() {
         return false;
+    }
+
+    @Override
+    public boolean isMultiValued(String columnName) {
+        // TODO: implement correctly once group by on information_schema is implemented
+        throw new UnsupportedOperationException("This info is currently not available");
     }
 }

@@ -13,6 +13,7 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.information_schema.InformationSchemaColumn;
 import org.cratedb.information_schema.InformationSchemaTableExecutionContext;
 import org.cratedb.service.SQLParseService;
+import org.cratedb.sql.GroupByOnArrayUnsupportedException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
@@ -23,7 +24,6 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
 import java.util.*;
-
 
 
 public class QueryVisitor extends BaseVisitor implements Visitor {
@@ -186,11 +186,11 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     }
 
     public void visit(SelectNode node) throws Exception {
+        visit(node.getFromList());
+
         if (node.getGroupByList() != null) {
             addGroupByColumns(node.getGroupByList());
         }
-
-        visit(node.getFromList());
         visit(node.getResultColumns());
 
         if (stmt.countRequest()) {
@@ -223,7 +223,13 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     private void addGroupByColumns(GroupByList groupByList) {
         stmt.groupByColumnNames = new ArrayList<>(groupByList.size());
 
+        String columnName;
         for (GroupByColumn column : groupByList) {
+            columnName = column.getColumnExpression().getColumnName();
+            if (tableContext.isMultiValued(columnName))
+            {
+                throw new GroupByOnArrayUnsupportedException(columnName);
+            }
             stmt.groupByColumnNames.add(column.getColumnExpression().getColumnName());
         }
     }

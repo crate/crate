@@ -1,5 +1,6 @@
 package org.cratedb.action.sql;
 
+import org.cratedb.index.ColumnDefinition;
 import org.cratedb.index.IndexMetaDataExtractor;
 import org.cratedb.sql.ValidationException;
 import org.cratedb.sql.types.SQLFieldMapper;
@@ -16,6 +17,7 @@ public class TableExecutionContext implements ITableExecutionContext {
     private final ESLogger logger = Loggers.getLogger(getClass());
     private final IndexMetaDataExtractor indexMetaDataExtractor;
     private final String tableName;
+    private final Map<String, ColumnDefinition> columnDefinitions;
     private SQLFieldMapper sqlFieldMapper;
     private boolean tableIsAlias = false;
 
@@ -25,6 +27,7 @@ public class TableExecutionContext implements ITableExecutionContext {
         this.tableName = name;
         this.sqlFieldMapper = sqlFieldMapper;
         this.tableIsAlias = tableIsAlias;
+        this.columnDefinitions = indexMetaDataExtractor.getColumnDefinitionsMap();
     }
 
 
@@ -35,6 +38,15 @@ public class TableExecutionContext implements ITableExecutionContext {
     @Override
     public SQLFieldMapper mapper() {
         return sqlFieldMapper;
+    }
+
+    public boolean isMultiValued(String columnName) {
+        return columnDefinitions.get(columnName) != null
+            && columnDefinitions.get(columnName).isMultiValued();
+    }
+
+    public ColumnDefinition getColumnDefinition(String columnName) {
+        return columnDefinitions.get(columnName);
     }
 
     /**
@@ -101,7 +113,7 @@ public class TableExecutionContext implements ITableExecutionContext {
     @Override
     @SuppressWarnings("unchecked")
     public boolean hasCol(String colName) {
-        return indexMetaDataExtractor.getColumnDefinitionsMap().get(colName) != null;
+        return columnDefinitions.get(colName) != null;
     }
 
     /**
