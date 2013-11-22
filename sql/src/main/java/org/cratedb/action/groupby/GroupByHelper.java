@@ -2,42 +2,30 @@ package org.cratedb.action.groupby;
 
 import com.google.common.collect.MinMaxPriorityQueue;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.core.collections.SortedPriorityQueueIterator;
 import org.cratedb.service.SQLParseService;
 
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.PriorityQueue;
 
 public class GroupByHelper {
 
-    public static MinMaxPriorityQueue<GroupByRow> sortRows(Collection<GroupByRow> rows,
-                                                  Comparator<GroupByRow> comparator,
-                                                  Integer limit,
-                                                  Integer offset) {
-
-        MinMaxPriorityQueue.Builder<GroupByRow> rowBuilder = MinMaxPriorityQueue.orderedBy(comparator);
-        int nonNullOffset = (offset != null) ? offset : 0;
-
-        if (limit != null) {
-            rowBuilder.maximumSize(limit + nonNullOffset);
-        } else {
-            rowBuilder.maximumSize(SQLParseService.DEFAULT_SELECT_LIMIT + nonNullOffset);
-        }
-
-        MinMaxPriorityQueue<GroupByRow> q = rowBuilder.create();
+    public static SortedPriorityQueueIterator<GroupByRow> sortRows(Collection<GroupByRow> rows,
+                                                                   Comparator<GroupByRow> comparator,
+                                                                   int totalLimit) {
+        PriorityQueue<GroupByRow> q = new PriorityQueue<>(totalLimit, comparator);
         q.addAll(rows);
-
-        return q;
+        return new SortedPriorityQueueIterator<>(q, totalLimit);
     }
 
-    public static Object[][] sortedRowsToObjectArray(MinMaxPriorityQueue<GroupByRow> rows,
-                                                     ParsedStatement parsedStatement,
-                                                     int offset) {
-        Object[][] result = new Object[rows.size() - offset][parsedStatement.outputFields().size()];
+    public static Object[][] sortedRowsToObjectArray(SortedPriorityQueueIterator<GroupByRow> rows,
+                                                     ParsedStatement parsedStatement) {
+        Object[][] result = new Object[rows.size() - parsedStatement.offset()][parsedStatement.outputFields().size()];
         int currentRow = -1;
-        int remainingOffset = offset;
+        int remainingOffset = parsedStatement.offset();
 
-        GroupByRow row;
-        while ((row = rows.pollFirst()) != null) {
+        for (GroupByRow row : rows) {
             if (remainingOffset > 0) {
                 remainingOffset--;
                 continue;

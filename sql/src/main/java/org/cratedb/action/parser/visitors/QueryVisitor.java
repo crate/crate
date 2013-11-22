@@ -164,21 +164,15 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             visit(node.getOrderByList());
         }
 
-        stmt.offset = (Integer)valueFromNode(node.getOffsetClause());
-        stmt.limit = (Integer)valueFromNode(node.getFetchFirstClause());
+        stmt.offset((Integer)valueFromNode(node.getOffsetClause()));
+        stmt.limit((Integer)valueFromNode(node.getFetchFirstClause()));
 
         if (!stmt.hasGroupBy()) {
-            if (stmt.offset != null) {
-                jsonBuilder.field("from", stmt.offset);
+            if (stmt.offset() > 0) {
+                jsonBuilder.field("from", stmt.offset());
             }
 
-            Integer limit;
-            if (stmt.limit != null) {
-                limit = stmt.limit;
-            } else {
-                limit = SQLParseService.DEFAULT_SELECT_LIMIT;
-            }
-            jsonBuilder.field("size", limit);
+            jsonBuilder.field("size", stmt.limit());
         }
 
         // if query can be optimized to GET or MULTI_GET its done in #afterVisit

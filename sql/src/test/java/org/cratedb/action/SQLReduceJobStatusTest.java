@@ -29,7 +29,7 @@ public class SQLReduceJobStatusTest {
             add(new OrderByColumnIdx(0, false));
         }};
         stmt.idxMap = new Integer[] { 1 };
-        stmt.limit = 2;
+        stmt.limit(2);
 
         // result ist from 1 shard, limit is 2; order by first column
         SQLReduceJobStatus status = new SQLReduceJobStatus(stmt, 1,
