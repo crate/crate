@@ -19,6 +19,8 @@ import java.io.IOException;
 
 public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
 
+    private long responseDuration;
+
     @Override
     protected int numberOfNodes() {
         return 1;
@@ -36,12 +38,14 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
         requestBuilder.source(new BytesArray(source));
         SQLResponse response = requestBuilder.execute().actionGet();
         response.toXContent(builder, ToXContent.EMPTY_PARAMS);
+        responseDuration = response.duration();
         return builder.string();
     }
 
     @Test
     public void testSqlRequest() throws Exception {
         String json = sql("{\"stmt\": \"select * from locations where id = '1'\"}");
+
         JSONAssert.assertEquals(
                 "{\n" +
                         "  \"cols\" : [ \"date\", \"description\", \"id\", \"kind\", \"name\", " +
@@ -51,9 +55,10 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
                         " West ripple of the Galaxy is said to be easier by a factor of about " +
                         "seventeen million.\", \"1\", \"Galaxy\", \"North West Ripple\", 1, " +
                         "null ] ],\n" +
-                        " \"rowcount\": 1" +
+                        " \"rowcount\": 1," +
+                        " \"duration\": " + responseDuration +
                         "}"
-                , json, true);
+                , json, false);
     }
 
 
@@ -72,9 +77,10 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
                 "\"Relative to life on NowWhat, living on an affluent world in the North" +
                 " West ripple of the Galaxy is said to be easier by a factor of about " +
                 "seventeen million.\", \"1\", \"Galaxy\", \"North West Ripple\", 1, null ] ],\n" +
-                " \"rowcount\": 1" +
+                " \"rowcount\": 1," +
+                " \"duration\": " + responseDuration +
                 "}"
-            , json, true);
+            , json, false);
     }
 
     @Test
@@ -89,8 +95,9 @@ public class RestSqlActionTest extends AbstractSharedCrateClusterTest {
             "{\n" +
                 "  \"cols\" : [ ],\n" +
                 "  \"rows\" : [ ],\n" +
-                "  \"rowcount\" : 1\n" +
-                "}", json, true);
+                "  \"rowcount\" : 1,\n" +
+                "  \"duration\" : \n" + responseDuration +
+                "}", json, false);
     }
 
     @Test

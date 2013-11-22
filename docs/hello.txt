@@ -64,7 +64,8 @@ Now we can add the first quote to the database::
     {
       "cols" : [ ],
       "rows" : [ ],
-      "rowcount" : 1
+      "rowcount" : 1,
+      "duration" : ...
     }
 
 Refresh in order to make the result immediatly visible in subsequent queries::
@@ -90,7 +91,8 @@ We can now view what we have just inserted like this::
     {
       "cols" : [ "author", "content" ],
       "rows" : [ [ "Me", "Hello Crate!" ] ],
-      "rowcount" : 1
+      "rowcount" : 1,
+      "duration" : ...
     }
 
 Let's add another quote::
@@ -103,7 +105,8 @@ Let's add another quote::
     {
       "cols" : [ ],
       "rows" : [ ],
-      "rowcount" : 1
+      "rowcount" : 1,
+      "duration" : ...
     }
 
 Refresh again::
@@ -128,7 +131,8 @@ Looking up only Ford's quotes::
     {
       "cols" : [ "content" ],
       "rows" : [ [ "Don't panic... don't panic..." ] ],
-      "rowcount" : 1
+      "rowcount" : 1,
+      "duration" : ...
     }
 
 
