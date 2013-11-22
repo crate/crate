@@ -1555,6 +1555,21 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
     }
 
     @Test
+    public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimitAndOffset() throws Exception {
+        groupBySetup();
+
+        execute("select count(*), gender, race from characters group by race, gender order by count(*) desc, race asc limit 2 offset 2");
+
+        assertEquals(2, response.rowCount());
+        assertEquals(1L, response.rows()[0][0]);
+        assertEquals("male", response.rows()[0][1]);
+        assertEquals("Android", response.rows()[0][2]);
+        assertEquals(1L, response.rows()[1][0]);
+        assertEquals("female", response.rows()[1][1]);
+        assertEquals("Human", response.rows()[1][2]);
+    }
+
+    @Test
     public void testCountWithGroupByOrderOnAggDescFuncAndLimit() throws Exception {
         groupBySetup();
 

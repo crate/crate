@@ -225,6 +225,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         private final AtomicBoolean shardErrors;
         private final AtomicReference<Throwable> lastException;
         private final MinMaxPriorityQueue<GroupByRow> groupByResult;
+        private final int offset;
 
         AsyncBroadcastAction(DistributedSQLRequest request, ActionListener<SQLResponse> listener) {
             this.parsedStatement = request.parsedStatement;
@@ -235,10 +236,11 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 MinMaxPriorityQueue.orderedBy(
                     new GroupByRowComparator(parsedStatement.idxMap, parsedStatement.orderByIndices()));
 
+            offset = (parsedStatement.offset != null) ? parsedStatement.offset : 0;
             if (parsedStatement.limit != null) {
-                rowBuilder.maximumSize(parsedStatement.limit);
+                rowBuilder.maximumSize(parsedStatement.limit + offset);
             } else {
-                rowBuilder.maximumSize(SQLParseService.DEFAULT_SELECT_LIMIT);
+                rowBuilder.maximumSize(SQLParseService.DEFAULT_SELECT_LIMIT + offset);
             }
             this.groupByResult = rowBuilder.create();
             clusterState = clusterService.state();
@@ -280,7 +282,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         }
 
         public void sendSqlResponse() {
-            long rowCount = groupByResult.size();
+            long rowCount = groupByResult.size() - offset;
             try {
                 listener.onResponse(
                     new SQLResponse(parsedStatement.cols(),
@@ -296,11 +298,17 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
         private Object[][] groupbyResultToRows(ParsedStatement parsedStatement,
                                                MinMaxPriorityQueue<GroupByRow> groupByResult) {
-            Object[][] rows = new Object[groupByResult.size()][parsedStatement.outputFields().size()];
+            Object[][] rows = new Object[groupByResult.size() - offset][parsedStatement.outputFields().size()];
 
             GroupByRow row;
             int currentRow = -1;
+            int remainingOffset = offset;
             while ( (row = groupByResult.pollFirst()) != null) {
+                if (remainingOffset > 0) {
+                    remainingOffset -= 1;
+                    continue;
+                }
+
                 currentRow++;
 
                 for (int c = 0; c < parsedStatement.outputFields().size(); c++) {
@@ -467,7 +475,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
         private void onReduceJobResponse(SQLReduceJobResponse response) {
             synchronized (groupByResult) {
-                Collections.addAll(groupByResult, response.result);
+                groupByResult.addAll(response.result);
             }
 
             reduceResponseCounter.decrementAndGet();

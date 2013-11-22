@@ -9,15 +9,13 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-import java.util.PriorityQueue;
+import java.util.*;
 
 public class SQLReduceJobResponse extends ActionResponse {
 
     private ParsedStatement parsedStatement;
     private Map<String,AggFunction> aggFunctionMap;
-    public GroupByRow[] result;
+    public Collection<GroupByRow> result;
 
 
     public SQLReduceJobResponse(Map<String, AggFunction> aggFunctionMap,
@@ -27,23 +25,24 @@ public class SQLReduceJobResponse extends ActionResponse {
     }
 
     public SQLReduceJobResponse(SQLReduceJobStatus jobStatus) {
-        this.result = jobStatus.toSortedArray(jobStatus.groupByResult);
+        this.result = jobStatus.sortGroupByResult(jobStatus.groupByResult);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        result = new GroupByRow[in.readVInt()];
-        for (int i = 0; i < result.length; i++) {
-            result[i] = GroupByRow.readGroupByRow(
-                aggFunctionMap, parsedStatement.aggregateExpressions, in);
+        int resultLength = in.readVInt();
+        result = new ArrayList<>(resultLength);
+        for (int i = 0; i < resultLength; i++) {
+            result.add(GroupByRow.readGroupByRow(
+                aggFunctionMap, parsedStatement.aggregateExpressions, in));
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeVInt(result.length);
+        out.writeVInt(result.size());
         for (GroupByRow row : result) {
             row.writeTo(out);
         }
