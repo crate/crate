@@ -2,6 +2,7 @@ package org.cratedb.action.groupby;
 
 import com.google.common.collect.MinMaxPriorityQueue;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.service.SQLParseService;
 
 import java.util.Collection;
 import java.util.Comparator;
@@ -14,13 +15,12 @@ public class GroupByHelper {
                                                   Integer offset) {
 
         MinMaxPriorityQueue.Builder<GroupByRow> rowBuilder = MinMaxPriorityQueue.orderedBy(comparator);
+        int nonNullOffset = (offset != null) ? offset : 0;
 
         if (limit != null) {
-            int limitPlusOffset = limit;
-            if (offset != null) {
-                limitPlusOffset += offset;
-            }
-            rowBuilder.maximumSize(limitPlusOffset);
+            rowBuilder.maximumSize(limit + nonNullOffset);
+        } else {
+            rowBuilder.maximumSize(SQLParseService.DEFAULT_SELECT_LIMIT + nonNullOffset);
         }
 
         MinMaxPriorityQueue<GroupByRow> q = rowBuilder.create();

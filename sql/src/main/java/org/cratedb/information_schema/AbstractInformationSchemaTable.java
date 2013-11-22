@@ -106,7 +106,7 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
 
         TopDocs docs;
         if (stmt.hasGroupBy()) {
-            SQLResponse response = doGroupByQuery(stmt);
+            SQLResponse response = doGroupByQuery(stmt, requestStartedTime);
             activeSearches.decrementAndGet();
             listener.onResponse(response);
             return;
@@ -124,7 +124,7 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
         listener.onResponse(response);
     }
 
-    protected SQLResponse doGroupByQuery(ParsedStatement stmt) throws IOException {
+    protected SQLResponse doGroupByQuery(ParsedStatement stmt, long requestStartedTime) throws IOException {
         assert stmt.hasGroupBy();
 
         SQLGroupingCollector collector = new SQLGroupingCollector(
@@ -136,10 +136,16 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
 
         indexSearcher.search(stmt.query, collector);
 
-        return groupByRowsToSQLResponse(stmt, collector.partitionedResult.get("DUMMY").values());
+        return groupByRowsToSQLResponse(
+            stmt,
+            collector.partitionedResult.get("DUMMY").values(),
+            requestStartedTime
+        );
     }
 
-    private SQLResponse groupByRowsToSQLResponse(ParsedStatement stmt, Collection<GroupByRow> rows) {
+    private SQLResponse groupByRowsToSQLResponse(ParsedStatement stmt,
+                                                 Collection<GroupByRow> rows,
+                                                 long requestStartedTime) {
         GroupByRowComparator comparator = new GroupByRowComparator(stmt.idxMap, stmt.orderByIndices());
 
         int offset = (stmt.offset != null ? stmt.offset : 0);
@@ -151,7 +157,7 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
                 offset
             ),
             rows.size() - offset,
-            -1
+            requestStartedTime
         );
     }
 
