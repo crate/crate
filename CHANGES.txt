@@ -5,11 +5,16 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fixed primary key handling in inout plugin
+
+ - fixed a bug where special fields might not get applied in inout
+   plugin import when a subobject occours in a row
+
  - error that group by doesn't work on columns that contain arrays is now
    already raised in the query parsing step if possible.
 
  - improved test-run speed by not starting nodes unnecessarily
- 
+
  - further optimization of the internal data structure serialization used while
    executing a group by query.
 
@@ -208,7 +213,7 @@ Unreleased
  - removed `*` and `?` as wildcard characters for the `LIKE` clause to be more
    consistent with the SQL standard.
 
- - Optimize simple Select Queries with where clauses like <pk_col>=<constant_value> OR <pk_col>=<constant_value> 
+ - Optimize simple Select Queries with where clauses like <pk_col>=<constant_value> OR <pk_col>=<constant_value>
    and without order-by- or group-by-clauses to use MultiGetRequests
 
 2013/10/21 0.16.0

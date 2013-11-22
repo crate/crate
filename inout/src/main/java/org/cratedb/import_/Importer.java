@@ -56,8 +56,6 @@ public class Importer {
     private final TimeValue flushInterval = TimeValue.timeValueSeconds(5);
     private final int concurrentRequests = 4;
 
-    private Map<Tuple<String, String>, List<String>> indexTypePrimaryKeysCache = new HashMap<>();
-
     @Inject
     public Importer(Injector injector, ClusterService clusterService) {
         this.injector = injector;
@@ -151,6 +149,7 @@ public class Importer {
 
     private ImportCounts handleFile(File file, String index, String type, int bulkSize, boolean compression) {
         if (file.isFile() && file.canRead()) {
+            String pk = getPrimaryKey(index);
             ImportBulkListener bulkListener = new ImportBulkListener(file.getAbsolutePath());
             BulkProcessor bulkProcessor = BulkProcessor.builder(client, bulkListener)
                     .setBulkActions(bulkSize)
@@ -170,7 +169,7 @@ public class Importer {
                 while ((line = r.readLine()) != null) {
                     IndexRequest indexRequest;
                     try {
-                        indexRequest = parseObject(line, index, type);
+                        indexRequest = parseObject(line, index, type, pk);
                     } catch (ObjectImportException e) {
                         bulkListener.addFailure();
                         continue;
@@ -208,22 +207,34 @@ public class Importer {
         return null;
     }
 
-    private IndexRequest parseObject(String line,
-                                     String index,
-                                     String type) throws ObjectImportException {
-        XContentParser parser = null;
+    public static IndexRequest parseObject(String line,
+            String index,
+            String type, String pk) throws ObjectImportException {
+        XContentParser parser;
         try {
             IndexRequest indexRequest = new IndexRequest();
             parser = XContentFactory.xContent(line.getBytes()).createParser(line.getBytes());
             Token token;
             XContentBuilder sourceBuilder = XContentFactory.contentBuilder(XContentType.JSON);
+            boolean checkPK = (pk != null);
             long ttl = 0;
-            while ((token = parser.nextToken()) != Token.END_OBJECT) {
-                if (token == XContentParser.Token.FIELD_NAME) {
+            int depth = 0;
+            while (true) {
+                token = parser.nextToken();
+                if (token == Token.START_OBJECT){
+                    depth ++;
+                } else if (token == Token.END_OBJECT){
+                    depth --;
+                    if (depth==0){
+                        break;
+                    }
+                }
+                if ((depth==1) &&  token == XContentParser.Token.FIELD_NAME) {
                     String fieldName = parser.currentName();
                     token = parser.nextToken();
                     if (fieldName.equals(IdFieldMapper.NAME) && token == Token.VALUE_STRING) {
                         indexRequest.id(parser.text());
+                        checkPK = false;
                     } else if (fieldName.equals(IndexFieldMapper.NAME) && token == Token.VALUE_STRING) {
                         indexRequest.index(parser.text());
                     } else if (fieldName.equals(TypeFieldMapper.NAME) && token == Token.VALUE_STRING) {
@@ -237,9 +248,13 @@ public class Importer {
                     } else if (fieldName.equals("_version") && token == Token.VALUE_NUMBER) {
                         indexRequest.version(parser.longValue());
                         indexRequest.versionType(VersionType.EXTERNAL);
-                    } else if (fieldName.equals(SourceFieldMapper.NAME) && token == Token.START_OBJECT) {
-                        sourceBuilder.copyCurrentStructure(parser);
-                    } else if(indexTypePrimaryKeys(index, type).contains(fieldName)) {
+                    } else if (token == Token.START_OBJECT){
+                        if (fieldName.equals(SourceFieldMapper.NAME)) {
+                            sourceBuilder.copyCurrentStructure(parser);
+                        } else {
+                            depth ++;
+                        }
+                    } else if(checkPK && pk.equals(fieldName)) {
                         indexRequest.id(parser.text());
                     }
                 } else if (token == null) {
@@ -432,7 +447,7 @@ public class Importer {
         }
     }
 
-    class ObjectImportException extends ElasticSearchException {
+    static class ObjectImportException extends ElasticSearchException {
 
         private static final long serialVersionUID = 2405764408378929056L;
 
@@ -469,36 +484,40 @@ public class Importer {
         return new Tuple<>(path, file_pattern);
     }
 
-    public List<String> indexTypePrimaryKeys(String index, String type) {
-        Tuple cacheKey = new Tuple(index, type);
-        if (!indexTypePrimaryKeysCache.containsKey(cacheKey)) {
-            IndexMetaData indexMetaData = clusterService.state().metaData().index(index);
-            MappingMetaData mappingMetaData = indexMetaData.mappingOrDefault(type);
-            List<String> pks = new ArrayList<>();
+    private String getPrimaryKey(String index) {
+        // TODO: use meta data service from sql once this is package gets integrated
+        // This also only supports single column keys
 
-            if (mappingMetaData != null) {
-                try {
-                    Object metaProperty = mappingMetaData.sourceAsMap().get("_meta");
-                    if (metaProperty != null) {
-                        Object srcPks = ((Map)metaProperty).get("primary_keys");
-                        if (srcPks instanceof String) {
-                            pks.add((String)srcPks);
-                        } else if (srcPks instanceof List) {
-                            pks.addAll((List)srcPks);
+        if (index==null){
+            // if a dynamic import is done we do not support primary keys,
+            // since this is not from sql in this case
+            return null;
+        }
+        IndexMetaData indexMetaData = clusterService.state().metaData().index(index);
+        if (indexMetaData==null){
+            return null;
+        }
+        MappingMetaData mappingMetaData = indexMetaData.mappingOrDefault("default");
+        if (mappingMetaData != null) {
+            Object metaProperty = null;
+            try {
+                metaProperty = mappingMetaData.sourceAsMap().get("_meta");
+            } catch (IOException e) {
+                return null;
+            }
+            if (metaProperty != null) {
+                    Object srcPks = ((Map)metaProperty).get("primary_keys");
+                    if (srcPks instanceof String) {
+                        return (String)srcPks;
+                    } else if (srcPks instanceof List) {
+                        if (((List) srcPks).size() == 1){
+                            return ((List<String>) srcPks).get(0);
                         }
                     }
-
-                } catch (IOException e) {
-                }
             }
 
-            if (pks.isEmpty()) {
-                pks.add("_id"); // Default Primary Key
-            }
-            indexTypePrimaryKeysCache.put(cacheKey, pks);
         }
-
-        return indexTypePrimaryKeysCache.get(cacheKey);
+        return null;
     }
 
 }
