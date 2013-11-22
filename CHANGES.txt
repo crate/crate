@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/11/22 0.19.6
+=================
+
  - fix: added sql query duration to SQL xcontent response
 
 2013/11/22 0.19.5
