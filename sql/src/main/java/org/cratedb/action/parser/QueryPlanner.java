@@ -50,7 +50,7 @@ public class QueryPlanner {
         if (stmt.nodeType() != NodeTypes.CURSOR_NODE
             || stmt.hasOrderBy()
             || stmt.hasGroupBy()
-            || (stmt.limit != null && stmt.limit < stmt.primaryKeyValues.size()))
+            || (stmt.limit() < stmt.primaryKeyValues.size()))
         {
             stmt.routingValues = stmt.primaryKeyValues;
             stmt.primaryKeyValues = new HashSet<>();

@@ -8,6 +8,7 @@ import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.OrderByColumnIdx;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.service.SQLParseService;
 
 import java.util.Collection;
 import java.util.List;
@@ -38,6 +39,6 @@ public class SQLReduceJobStatus {
     public Collection<GroupByRow> sortGroupByResult(SQLGroupByResult groupByResult)
     {
         return GroupByHelper.sortRows(
-            groupByResult.result, comparator, parsedStatement.limit, parsedStatement.offset);
+            groupByResult.result, comparator, parsedStatement.totalLimit());
     }
 }

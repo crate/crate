@@ -100,10 +100,6 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
             sort = getSort(stmt);
         }
 
-        Integer limit = initLimit(stmt);
-        Integer offset = initOffset(stmt);
-        limit += offset;
-
         TopDocs docs;
         if (stmt.hasGroupBy()) {
             SQLResponse response = doGroupByQuery(stmt, requestStartedTime);
@@ -112,14 +108,13 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
             return;
         }
 
-
         if (sort != null) {
-            docs = indexSearcher.search(stmt.query, null, limit, sort);
+            docs = indexSearcher.search(stmt.query, null, stmt.totalLimit(), sort);
         } else {
-            docs = indexSearcher.search(stmt.query, null, limit);
+            docs = indexSearcher.search(stmt.query, null, stmt.totalLimit());
         }
 
-        SQLResponse response = docsToSQLResponse(indexSearcher, stmt, docs, offset, requestStartedTime);
+        SQLResponse response = docsToSQLResponse(indexSearcher, stmt, docs, stmt.offset(), requestStartedTime);
         activeSearches.decrementAndGet();
         listener.onResponse(response);
     }
@@ -151,15 +146,13 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
                                                  long requestStartedTime) {
         GroupByRowComparator comparator = new GroupByRowComparator(stmt.idxMap, stmt.orderByIndices());
 
-        int offset = (stmt.offset != null ? stmt.offset : 0);
         return new SQLResponse(
             stmt.cols(),
             GroupByHelper.sortedRowsToObjectArray(
-                GroupByHelper.sortRows(rows, comparator, stmt.limit, stmt.offset),
-                stmt,
-                offset
+                GroupByHelper.sortRows(rows, comparator, stmt.totalLimit()),
+                stmt
             ),
-            rows.size() - offset,
+            rows.size() - stmt.offset(),
             requestStartedTime
         );
     }
@@ -237,25 +230,6 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
         } catch (IOException e) {
             throw new CrateException(e);
         }
-    }
-
-
-    // Mothers little Helpers
-
-    protected Integer initOffset(ParsedStatement stmt) {
-        Integer offset = 0;
-        if (stmt.offset != null) {
-            offset = stmt.offset;
-        }
-        return offset;
-    }
-
-    protected Integer initLimit(ParsedStatement stmt) {
-        Integer limit = stmt.limit;
-        if (limit == null) {
-            limit = SQLParseService.DEFAULT_SELECT_LIMIT;
-        }
-        return limit;
     }
 
     protected Sort getSort(ParsedStatement stmt) {
