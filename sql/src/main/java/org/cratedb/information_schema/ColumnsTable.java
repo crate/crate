@@ -5,10 +5,12 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.StringField;
+import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.index.ColumnDefinition;
 import org.cratedb.index.IndexMetaDataExtractor;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.common.inject.Inject;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -35,7 +37,9 @@ public class ColumnsTable extends AbstractInformationSchemaTable {
     IntField ordinalPositionField = new IntField(Columns.ORDINAL_POSITION, 0, Field.Store.YES);
     StringField dataTypeField = new StringField(Columns.DATA_TYPE, "", Field.Store.YES);
 
-    public ColumnsTable() {
+    @Inject
+    public ColumnsTable(Map<String, AggFunction> aggFunctionMap) {
+        super(aggFunctionMap);
         fieldMapper.put(
                 Columns.TABLE_NAME,
                 new InformationSchemaStringColumn(Columns.TABLE_NAME)

@@ -1,6 +1,7 @@
 package org.cratedb.action;
 
 import com.google.common.collect.MinMaxPriorityQueue;
+import org.cratedb.action.groupby.GroupByHelper;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.GroupByRowComparator;
@@ -286,7 +287,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             try {
                 listener.onResponse(
                     new SQLResponse(parsedStatement.cols(),
-                        groupbyResultToRows(parsedStatement, groupByResult),
+                        GroupByHelper.sortedRowsToObjectArray(groupByResult, parsedStatement, offset),
                         rowCount,
                         sqlRequest.creationTime()
                     )
@@ -294,29 +295,6 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             } catch (Throwable e) {
                 listener.onFailure(e);
             }
-        }
-
-        private Object[][] groupbyResultToRows(ParsedStatement parsedStatement,
-                                               MinMaxPriorityQueue<GroupByRow> groupByResult) {
-            Object[][] rows = new Object[groupByResult.size() - offset][parsedStatement.outputFields().size()];
-
-            GroupByRow row;
-            int currentRow = -1;
-            int remainingOffset = offset;
-            while ( (row = groupByResult.pollFirst()) != null) {
-                if (remainingOffset > 0) {
-                    remainingOffset -= 1;
-                    continue;
-                }
-
-                currentRow++;
-
-                for (int c = 0; c < parsedStatement.outputFields().size(); c++) {
-                    rows[currentRow][c] = row.get(parsedStatement.idxMap[c]);
-                }
-            }
-
-            return rows;
         }
 
         private String[] extractNodes(GroupShardsIterator shardsIts) {

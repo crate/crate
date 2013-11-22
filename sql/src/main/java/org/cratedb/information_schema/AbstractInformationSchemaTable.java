@@ -1,5 +1,6 @@
 package org.cratedb.information_schema;
 
+import com.google.common.collect.MinMaxPriorityQueue;
 import com.google.common.io.Files;
 import org.apache.lucene.codecs.lucene42.Lucene42Codec;
 import org.apache.lucene.document.Document;
@@ -10,6 +11,11 @@ import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.Version;
+import org.cratedb.action.groupby.GroupByHelper;
+import org.cratedb.action.groupby.GroupByRow;
+import org.cratedb.action.groupby.GroupByRowComparator;
+import org.cratedb.action.groupby.SQLGroupingCollector;
+import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.OrderByColumnName;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLResponse;
@@ -34,6 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class AbstractInformationSchemaTable implements InformationSchemaTable {
 
     protected final IndexWriterConfig indexWriterConfig;
+    private final Map<String, AggFunction> aggFunctionMap;
     protected IndexWriter indexWriter = null;
 
     protected final Object indexLock = new Object();
@@ -43,10 +50,11 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
     protected AtomicInteger activeSearches = new AtomicInteger(0);
     protected Directory indexDirectory;
 
-    public AbstractInformationSchemaTable() {
+    public AbstractInformationSchemaTable(Map<String, AggFunction> aggFunctionMap) {
         this.searcherFactory = new SearcherFactory();
         this.indexWriterConfig = new IndexWriterConfig(Version.LUCENE_44, null);
         this.indexWriterConfig.setCodec(new Lucene42Codec());
+        this.aggFunctionMap = aggFunctionMap;
     }
 
     @Override
@@ -97,6 +105,14 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
         limit += offset;
 
         TopDocs docs;
+        if (stmt.hasGroupBy()) {
+            SQLResponse response = doGroupByQuery(stmt);
+            activeSearches.decrementAndGet();
+            listener.onResponse(response);
+            return;
+        }
+
+
         if (sort != null) {
             docs = indexSearcher.search(stmt.query, null, limit, sort);
         } else {
@@ -107,6 +123,38 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
         activeSearches.decrementAndGet();
         listener.onResponse(response);
     }
+
+    protected SQLResponse doGroupByQuery(ParsedStatement stmt) throws IOException {
+        assert stmt.hasGroupBy();
+
+        SQLGroupingCollector collector = new SQLGroupingCollector(
+            stmt,
+            new InformationSchemaFieldLookup(fieldMapper()),
+            aggFunctionMap,
+            new String[] { "DUMMY" }
+        );
+
+        indexSearcher.search(stmt.query, collector);
+
+        return groupByRowsToSQLResponse(stmt, collector.partitionedResult.get("DUMMY").values());
+    }
+
+    private SQLResponse groupByRowsToSQLResponse(ParsedStatement stmt, Collection<GroupByRow> rows) {
+        GroupByRowComparator comparator = new GroupByRowComparator(stmt.idxMap, stmt.orderByIndices());
+
+        int offset = (stmt.offset != null ? stmt.offset : 0);
+        return new SQLResponse(
+            stmt.cols(),
+            GroupByHelper.sortedRowsToObjectArray(
+                GroupByHelper.sortRows(rows, comparator, stmt.limit, stmt.offset),
+                stmt,
+                offset
+            ),
+            rows.size() - offset,
+            -1
+        );
+    }
+
 
     @Override
     public void index(ClusterState clusterState) {

@@ -1,6 +1,7 @@
 package org.cratedb.action;
 
 import com.google.common.collect.MinMaxPriorityQueue;
+import org.cratedb.action.groupby.GroupByHelper;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.GroupByRowComparator;
 import org.cratedb.action.groupby.aggregate.AggExpr;
@@ -36,20 +37,7 @@ public class SQLReduceJobStatus {
 
     public Collection<GroupByRow> sortGroupByResult(SQLGroupByResult groupByResult)
     {
-        MinMaxPriorityQueue.Builder<GroupByRow> rowBuilder = MinMaxPriorityQueue.orderedBy(this.comparator);
-        if (parsedStatement.limit != null) {
-            int limit = parsedStatement.limit;
-            if (parsedStatement.offset != null) {
-                limit += parsedStatement.offset;
-            }
-            rowBuilder.maximumSize(limit);
-        }
-
-        MinMaxPriorityQueue<GroupByRow> q = rowBuilder.create();
-        for (GroupByRow groupByRow : groupByResult.result) {
-            q.add(groupByRow);
-        }
-
-        return q;
+        return GroupByHelper.sortRows(
+            groupByResult.result, comparator, parsedStatement.limit, parsedStatement.offset);
     }
 }
