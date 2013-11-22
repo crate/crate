@@ -127,6 +127,9 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
     protected SQLResponse doGroupByQuery(ParsedStatement stmt, long requestStartedTime) throws IOException {
         assert stmt.hasGroupBy();
 
+        // the regular group-by workflow involves reducers.
+        // the GroupingCollector will partition the results by reducer to then do a distributed reduce.
+        // here DUMMY is used as a pseudo reducer because information-schema group by doesn't involve reducers..
         SQLGroupingCollector collector = new SQLGroupingCollector(
             stmt,
             new InformationSchemaFieldLookup(fieldMapper()),
