@@ -5,9 +5,11 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.Term;
+import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.index.IndexMetaDataExtractor;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.common.inject.Inject;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -40,7 +42,10 @@ public class IndicesTable extends AbstractInformationSchemaTable {
     // only internal used
     StringField uidField = new StringField("uid", "", Field.Store.YES);
 
-    public IndicesTable() {
+
+    @Inject
+    public IndicesTable(Map<String, AggFunction> aggFunctionMap) {
+        super(aggFunctionMap);
         fieldMapper.put(
                 Columns.TABLE_NAME,
                 new InformationSchemaStringColumn(Columns.TABLE_NAME)

@@ -6,6 +6,7 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.search.MatchAllDocsQuery;
+import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
@@ -23,9 +24,7 @@ import org.junit.*;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 
@@ -34,13 +33,18 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
+    Map<String, AggFunction> aggFunctionMap = new HashMap<>();
+
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
 
-    public static class TestInformationSchemaTable extends
-            AbstractInformationSchemaTable {
+    public static class TestInformationSchemaTable extends AbstractInformationSchemaTable {
         public static final String NAME = "nodes";
+
+        public TestInformationSchemaTable(Map<String, AggFunction> aggFunctionMap) {
+            super(aggFunctionMap);
+        }
 
         @Override
         public void doIndex(ClusterState clusterState) throws IOException {
@@ -113,7 +117,7 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
 
     @Test
     public void initTestTable() {
-        testTable = new TestInformationSchemaTable();
+        testTable = new TestInformationSchemaTable(aggFunctionMap);
         assertFalse(testTable.initialized());
         testTable.init();
         assertTrue(testTable.initialized());
@@ -121,7 +125,7 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
 
     @Test
     public void lazyInitializeOnIndex() {
-        testTable = new TestInformationSchemaTable();
+        testTable = new TestInformationSchemaTable(aggFunctionMap);
         ClusterState state = client().admin().cluster().prepareState().execute().actionGet()
                 .getState();
         assertFalse(testTable.initialized());
@@ -131,7 +135,7 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
 
     @Test
     public void indexThenQuery() {
-        testTable = new TestInformationSchemaTable();
+        testTable = new TestInformationSchemaTable(aggFunctionMap);
         ClusterState state = client().admin().cluster().prepareState().execute().actionGet()
                 .getState();
         testTable.index(state);
@@ -165,7 +169,7 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
 
     @Test
     public void emptyQuery() {
-        testTable = new TestInformationSchemaTable();
+        testTable = new TestInformationSchemaTable(aggFunctionMap);
         testTable.init();
         assertEquals(0L, testTable.count());
 

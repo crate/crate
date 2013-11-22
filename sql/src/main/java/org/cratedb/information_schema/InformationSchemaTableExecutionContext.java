@@ -75,7 +75,6 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
 
     @Override
     public boolean isMultiValued(String columnName) {
-        // TODO: implement correctly once group by on information_schema is implemented
-        throw new UnsupportedOperationException("This info is currently not available");
+        return fieldMapper().get(columnName).allowMultipleValues;
     }
 }

@@ -14,8 +14,7 @@ cluster.
 
     Currently unsupported are:
 
-        - select count(*)
-        - group by
+        - using aggregate functions without group by.
 
 Tables
 ======

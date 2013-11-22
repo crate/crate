@@ -2,6 +2,7 @@ package org.cratedb.action.parser;
 
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
+import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.parser.visitors.QueryVisitor;
 import org.cratedb.action.sql.ITableExecutionContext;
 import org.cratedb.action.sql.NodeExecutionContext;
@@ -16,6 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -225,12 +227,13 @@ public class LuceneQueryVisitorTest {
     }
 
     private ParsedStatement parse(String statement) throws StandardException {
+        final Map<String, AggFunction> aggFunctionMap = new HashMap<>();
         ParsedStatement stmt = new ParsedStatement(statement);
         QueryPlanner queryPlanner = mock(QueryPlanner.class);
         NodeExecutionContext context = mock(NodeExecutionContext.class);
         ITableExecutionContext tableContext = new InformationSchemaTableExecutionContext
                 (new HashMap<String, InformationSchemaTable>(){{
-                    put("tables", new TablesTable());
+                    put("tables", new TablesTable(aggFunctionMap));
                 }}, "tables");
         when(context.queryPlanner()).thenReturn(queryPlanner);
         when(context.tableContext(anyString(), anyString())).thenReturn(tableContext);

@@ -4,9 +4,11 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
+import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.index.IndexMetaDataExtractor;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.common.inject.Inject;
 
 import java.io.IOException;
 import java.util.LinkedHashMap;
@@ -33,7 +35,10 @@ public class TableConstraintsTable extends AbstractInformationSchemaTable {
         // UNIQUE, CHECK, FOREIGN KEY etc.
     }
 
-    public TableConstraintsTable() {
+    @Inject
+    public TableConstraintsTable(Map<String, AggFunction> aggFunctionMap) {
+        super(aggFunctionMap);
+
         fieldMapper.put(
                 Columns.TABLE_NAME,
                 new InformationSchemaStringColumn(Columns.TABLE_NAME)

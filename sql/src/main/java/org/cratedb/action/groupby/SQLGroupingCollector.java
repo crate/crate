@@ -11,6 +11,7 @@ import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.sql.ParsedStatement;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Map;
 import java.util.TreeMap;
 

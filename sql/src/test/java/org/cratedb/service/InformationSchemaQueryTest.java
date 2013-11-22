@@ -82,6 +82,8 @@ public class InformationSchemaQueryTest extends AbstractCrateNodesTests {
         }
     }
 
+
+
     private void exec(String statement) throws Exception {
         exec(statement, new Object[0]);
     }
@@ -89,6 +91,16 @@ public class InformationSchemaQueryTest extends AbstractCrateNodesTests {
     private void exec(String statement, Object[] args) throws Exception {
         ParsedStatement stmt = parseService.parse(statement, args);
         response = informationSchemaService.execute(stmt, System.currentTimeMillis()).actionGet();
+    }
+
+    @Test
+    public void testGroupByOnInformationSchema() throws Exception {
+        exec("select count(*) from information_schema.columns group by table_name order by count(*) desc");
+        assertEquals(3L, response.rowCount());
+
+        exec("select count(*) from information_schema.columns group by column_name order by count(*) desc");
+        assertEquals(2L, response.rowCount());
+        assertEquals(3L, response.rows()[0][0]);
     }
 
     @Test

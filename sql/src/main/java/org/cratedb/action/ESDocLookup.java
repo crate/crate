@@ -3,10 +3,8 @@ package org.cratedb.action;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.cratedb.sql.GroupByOnArrayUnsupportedException;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.index.fielddata.AtomicFieldData;
 import org.elasticsearch.index.fielddata.ScriptDocValues;
 import org.elasticsearch.search.lookup.DocLookup;
-import org.elasticsearch.search.lookup.FieldLookup;
 import org.elasticsearch.search.lookup.SearchLookup;
 
 import java.util.List;
