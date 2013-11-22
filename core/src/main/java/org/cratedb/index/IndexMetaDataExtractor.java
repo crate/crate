@@ -5,6 +5,7 @@ import org.cratedb.Constants;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.Booleans;
+import org.elasticsearch.common.collect.Tuple;
 
 import java.io.IOException;
 import java.util.*;
@@ -69,20 +70,15 @@ public class IndexMetaDataExtractor {
         public static Index create(String tableName, String indexName,
                                    String columnName, Map<String, Object> columnProperties,
                                    Map<String, List<String>> indexColumns) {
-            String method;
             Map<String, String> properties = new HashMap<>();
             List<String> columns = new ArrayList<>();
 
-            String index = (String)columnProperties.get("index");
-            String analyzer = (String)columnProperties.get("analyzer");
-            if (index != null && index.equals("no")) {
+            Tuple<String, String> analyzerTuple = getAnalyzer(columnProperties);
+            if (analyzerTuple.v1() == null && analyzerTuple.v2() == null) {
                 return null;
-            } else if ((index == null && analyzer == null)
-                    || (index != null && index.equals("not_analyzed"))) {
-                method = "plain";
-            } else {
-                method = "fulltext";
             }
+            String analyzer = analyzerTuple.v1();
+            String method = analyzerTuple.v2();
 
             if (analyzer != null) {
                 properties.put("analyzer", analyzer);
@@ -203,6 +199,22 @@ public class IndexMetaDataExtractor {
         return dataType;
     }
 
+    private static Tuple<String, String> getAnalyzer(Map<String, Object> columnProperties) {
+        String index = (String)columnProperties.get("index");
+        String analyzer = (String)columnProperties.get("analyzer");
+        String method;
+
+        if (index != null && index.equals("no")) {
+            return new Tuple<String, String>(null, null);
+        } else if ((index == null && analyzer == null)
+            || (index != null && index.equals("not_analyzed"))) {
+            method = "plain";
+        } else {
+            method = "fulltext";
+        }
+        return new Tuple<>(analyzer, method);
+    }
+
     private String getColumnName(String prefix, String columnName) {
         if (prefix == null) { return columnName; }
         return String.format("%s.%s", prefix, columnName);
@@ -268,14 +280,15 @@ public class IndexMetaDataExtractor {
 
                         String columnName = getColumnName(prefix, columnEntry.getKey());
                         columns.add(
-                                new ColumnDefinition(
-                                        indexName,
-                                        columnName,
-                                        getColumnDataType(multiColumnProperties),
-                                        startPos++,
-                                        false,
-                                        true
-                                )
+                            new ColumnDefinition(
+                                indexName,
+                                columnName,
+                                getColumnDataType(multiColumnProperties),
+                                getAnalyzer(multiColumnProperties).v2(),
+                                startPos++,
+                                false,
+                                true
+                            )
                         );
                     }
                 }
@@ -296,12 +309,13 @@ public class IndexMetaDataExtractor {
                 String objectColumnName = getColumnName(prefix, columnEntry.getKey());
                 // add object column before child columns
                 ObjectColumnDefinition objectColumnDefinition = new ObjectColumnDefinition(
-                        indexName,
-                        objectColumnName,
-                        getColumnDataType(columnProperties),
-                        startPos++,
-                        dynamic,
-                        strict
+                    indexName,
+                    objectColumnName,
+                    getColumnDataType(columnProperties),
+                    getAnalyzer(columnProperties).v2(),
+                    startPos++,
+                    dynamic,
+                    strict
                 );
                 if (columnProperties.get("properties") != null) {
 
@@ -320,14 +334,15 @@ public class IndexMetaDataExtractor {
             } else {
                 String columnName = getColumnName(prefix, columnEntry.getKey());
                 columns.add(
-                        new ColumnDefinition(
-                                indexName,
-                                columnName,
-                                getColumnDataType(columnProperties),
-                                startPos++,
-                                false,
-                                true
-                        )
+                    new ColumnDefinition(
+                        indexName,
+                        columnName,
+                        getColumnDataType(columnProperties),
+                        getAnalyzer(columnProperties).v2(),
+                        startPos++,
+                        false,
+                        true
+                    )
                 );
             }
         }

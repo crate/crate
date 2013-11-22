@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - error that group by doesn't work on columns that contain arrays is now
+   already raised in the query parsing step if possible.
+
  - improved test-run speed by not starting nodes unnecessarily
  
  - further optimization of the internal data structure serialization used while

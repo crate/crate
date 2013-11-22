@@ -6,6 +6,7 @@ import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
+import org.cratedb.index.ColumnDefinition;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
@@ -51,12 +52,14 @@ public class QueryVisitorTest {
     private ParsedStatement execStatement(String sql, Object[] args) throws StandardException {
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
         TableExecutionContext tec = mock(TableExecutionContext.class);
+        ColumnDefinition colDef = new ColumnDefinition("locations", "whatever", "string", "plain", 0, false, false);
         // Disable query planner here to save mocking
         Settings settings = ImmutableSettings.builder().put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, false).build();
         QueryPlanner queryPlanner = new QueryPlanner(settings);
         when(nec.queryPlanner()).thenReturn(queryPlanner);
         when(nec.tableContext(null, "locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("a", "b"));
+        when(tec.getColumnDefinition(anyString())).thenReturn(colDef);
         when(tec.hasCol(anyString())).thenReturn(true);
 
         SQLParseService parseService = new SQLParseService(nec);
