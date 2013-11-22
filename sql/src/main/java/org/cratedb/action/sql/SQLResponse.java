@@ -17,6 +17,7 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
         static final XContentBuilderString COLS = new XContentBuilderString("cols");
         static final XContentBuilderString ROWS = new XContentBuilderString("rows");
         static final XContentBuilderString ROWCOUNT = new XContentBuilderString("rowcount");
+        static final XContentBuilderString DURATION = new XContentBuilderString("duration");
     }
     public static final long NO_ROW_COUNT = -1L;
 
@@ -53,6 +54,8 @@ public class SQLResponse extends ActionResponse implements ToXContent, SQLResult
         if (hasRowCount()) {
             builder.field(Fields.ROWCOUNT, rowCount());
         }
+        builder.field(Fields.DURATION, duration());
+
         return builder;
     }
 
