@@ -9,6 +9,7 @@ import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.core.collections.LimitingCollectionIterator;
 import org.cratedb.core.collections.SortedPriorityQueueIterator;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.CrateException;
@@ -227,18 +228,19 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         private final AtomicBoolean reducerErrors;
         private final AtomicBoolean shardErrors;
         private final AtomicReference<Throwable> lastException;
-        private final PriorityQueue<GroupByRow> groupByResult;
+        private final List<GroupByRow> groupByResult;
+        private final GroupByRowComparator comparator;
 
         AsyncBroadcastAction(DistributedSQLRequest request, ActionListener<SQLResponse> listener) {
             this.parsedStatement = request.parsedStatement;
             this.sqlRequest = request.sqlRequest;
             this.listener = listener;
 
-            GroupByRowComparator comparator = new GroupByRowComparator(
+            comparator = new GroupByRowComparator(
                 parsedStatement.idxMap, parsedStatement.orderByIndices()
             );
 
-            groupByResult = new PriorityQueue<>(parsedStatement.totalLimit(), comparator);
+            groupByResult = new ArrayList<>(parsedStatement.totalLimit());
             clusterState = clusterService.state();
 
             // TODO: TransportBroadcastOperationAction does checkGlobalBlock, required?
@@ -279,11 +281,13 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
         public void sendSqlResponse() {
             long rowCount = Math.min(groupByResult.size(), parsedStatement.limit());
+            Collections.sort(groupByResult, comparator);
             try {
                 listener.onResponse(
-                    new SQLResponse(parsedStatement.cols(),
+                    new SQLResponse(
+                        parsedStatement.cols(),
                         GroupByHelper.sortedRowsToObjectArray(
-                            new SortedPriorityQueueIterator<>(groupByResult, parsedStatement.totalLimit()),
+                            new LimitingCollectionIterator<>(groupByResult, parsedStatement.totalLimit()),
                             parsedStatement
                         ),
                         rowCount,
@@ -450,7 +454,6 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         }
 
         private void onReduceJobResponse(SQLReduceJobResponse response) {
-            // TODO: check of BlockingPriorityQueue is faster.
             synchronized (groupByResult) {
                 groupByResult.addAll(response.result);
             }
