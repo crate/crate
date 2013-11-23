@@ -128,9 +128,7 @@ public class TransportSQLReduceHandler {
                 now = new Date().getTime();
             }
 
-            synchronized (status.lock) {
-                status.groupByResult.merge(request.groupByResult);
-            }
+            status.merge(request.groupByResult);
 
             if (logger.isTraceEnabled()) {
                 logger.trace("[{}]: context {} merging mapper result took {} ms. Now we got {} results",

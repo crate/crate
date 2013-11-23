@@ -84,7 +84,7 @@ public class GroupByRow implements Streamable {
         return key.size() + aggStates.length;
     }
 
-    public void merge(GroupByRow otherRow) {
+    public synchronized  void merge(GroupByRow otherRow) {
         for (int i = 0; i < aggStates.length; i++) {
             aggStates[i].merge(otherRow.aggStates[i]);
         }
