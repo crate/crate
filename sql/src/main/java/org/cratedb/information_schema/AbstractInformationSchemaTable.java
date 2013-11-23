@@ -133,16 +133,12 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
         );
 
         indexSearcher.search(stmt.query, collector);
-
-        return groupByRowsToSQLResponse(
-            stmt,
-            collector.partitionedResult.get("DUMMY").values(),
-            requestStartedTime
-        );
+        List<GroupByRow> rows = new ArrayList<>(collector.partitionedResult.get("DUMMY").values());
+        return groupByRowsToSQLResponse(stmt, rows, requestStartedTime);
     }
 
     private SQLResponse groupByRowsToSQLResponse(ParsedStatement stmt,
-                                                 Collection<GroupByRow> rows,
+                                                 List<GroupByRow> rows,
                                                  long requestStartedTime) {
         GroupByRowComparator comparator = new GroupByRowComparator(stmt.idxMap, stmt.orderByIndices());
 
