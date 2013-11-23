@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - group by performance improvements.
+
  - the `group by` clause now also works if information_schema tables are
    queried.
 
