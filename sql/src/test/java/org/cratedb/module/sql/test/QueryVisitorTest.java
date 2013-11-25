@@ -1,6 +1,9 @@
 package org.cratedb.module.sql.test;
 
 import com.google.common.collect.ImmutableSet;
+import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
+import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.NodeExecutionContext;
@@ -57,6 +60,13 @@ public class QueryVisitorTest {
         Settings settings = ImmutableSettings.builder().put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, false).build();
         QueryPlanner queryPlanner = new QueryPlanner(settings);
         when(nec.queryPlanner()).thenReturn(queryPlanner);
+        when(nec.availableAggFunctions()).thenReturn(
+                new HashMap<String, AggFunction>(){{
+                    put(CountAggFunction.COUNT_ROWS_NAME, new CountAggFunction());
+                    put(CountAggFunction.NAME, new CountAggFunction());
+                    put(MinAggFunction.NAME, new MinAggFunction());
+                }}
+        );
         when(nec.tableContext(null, "locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("a", "b"));
         when(tec.getColumnDefinition(anyString())).thenReturn(colDef);

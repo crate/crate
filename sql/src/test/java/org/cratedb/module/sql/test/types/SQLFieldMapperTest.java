@@ -121,7 +121,7 @@ public class SQLFieldMapperTest extends AbstractCrateNodesTests {
 
     @Test
     public void testBuiltinTypes() {
-        assertEquals(new Integer(100).byteValue(), this.mapper.convertToXContentValue("byte_field", 100L));
+        assertEquals(100, this.mapper.convertToXContentValue("byte_field", 100L));
         assertEquals(new Integer(100).shortValue(), this.mapper.convertToXContentValue("short_field", 100L));
         assertEquals(100, this.mapper.convertToXContentValue("integer_field", 100L));
         assertEquals(new Long(100L), this.mapper.convertToXContentValue("long_field", 100));

@@ -23,6 +23,8 @@ import java.util.Map;
 
 public class SQLCrateClusterTest extends AbstractSharedCrateClusterTest {
 
+    protected long responseDuration;
+
     /**
      * Execute an SQL Statement on a random node of the cluster
      *
@@ -122,6 +124,7 @@ public class SQLCrateClusterTest extends AbstractSharedCrateClusterTest {
         requestBuilder.source(new BytesArray(source));
         SQLResponse response = requestBuilder.execute().actionGet();
         response.toXContent(builder, ToXContent.EMPTY_PARAMS);
+        responseDuration = response.duration();
         return builder.string();
     }
 }

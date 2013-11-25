@@ -11,7 +11,6 @@ import org.skyscreamer.jsonassert.JSONAssert;
 
 public class RestSqlActionTest extends SQLCrateClusterTest {
 
-    private long responseDuration;
 
     @Override
     protected int numberOfNodes() {
@@ -22,9 +21,6 @@ public class RestSqlActionTest extends SQLCrateClusterTest {
     public void setUpIndex() throws Exception {
         new Setup(this).setUpLocations();
     }
-
-
-
 
     @Test
     public void testSqlRequest() throws Exception {

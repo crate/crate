@@ -1660,13 +1660,13 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
 
         Map<String, String> details = newHashMap();
         details.put("job", "Sandwitch Maker");
-        execute("insert into characters (race, gender, age, birthdate, name, details) values (?, ?, ?, ?, ?)",
+        execute("insert into characters (race, gender, age, birthdate, name, details) values (?, ?, ?, ?, ?, ?)",
             new Object[] {"Human", "male", 34, "1975-10-01", "Arthur Dent", details});
 
         details = newHashMap();
         details.put("job", "Mathematician");
-        execute("insert into characters (race, gender, age, name, details) values (?, ?, ?, ?, ?)",
-            new Object[] {"Human", "female", 32, "Trillian", details});
+        execute("insert into characters (race, gender, age, birthdate, name, details) values (?, ?, ?, ?, ?, ?)",
+            new Object[] {"Human", "female", 32, "1978-10-11", "Trillian", details});
         execute("insert into characters (race, gender, age, name) values (?, ?, ?, ?)",
             new Object[] {"Human", "male", 112, "Ford Perfect"});
 
@@ -2693,8 +2693,9 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
         assertEquals(2L, response.rowCount());
         assertEquals("female", response.rows()[0][1]);
         assertEquals(276912000000L, response.rows()[0][0]);
+
         assertEquals("male", response.rows()[1][1]);
-        assertEquals(38361600000L, response.rows()[1][0]);
+        assertEquals(181353600000L, response.rows()[1][0]);
     }
 
     @Test

@@ -131,7 +131,7 @@ public class SQLFieldRangeTest {
                     Byte.MAX_VALUE, Byte.MAX_VALUE + 1}, Integer.class},
                 {"short_field", new Number[]{Short.MIN_VALUE - 1, Short.MIN_VALUE, 0,
                         Short.MAX_VALUE,
-                        Short.MAX_VALUE + 1}, Integer.class},
+                        Short.MAX_VALUE + 1}, Short.class},
                 {"integer_field", new Number[]{Integer.MIN_VALUE - 1L, Integer.MIN_VALUE, 0,
                         Integer.MAX_VALUE, Integer.MAX_VALUE + 1L}, Integer.class}
         };

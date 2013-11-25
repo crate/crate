@@ -129,7 +129,6 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
             aggFunctionMap,
             new String[] { "DUMMY" }
         );
-
         indexSearcher.search(stmt.query, collector);
         List<GroupByRow> rows = new ArrayList<>(collector.partitionedResult.get("DUMMY").values());
         return groupByRowsToSQLResponse(stmt, rows, requestStartedTime);
