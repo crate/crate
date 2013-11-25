@@ -24,7 +24,7 @@ public class LimitingCollectionIterator<E> implements Collection<E>, Iterator<E>
 
     @Override
     public boolean isEmpty() {
-        return limit == 0 && collection.isEmpty();
+        return limit == 0 || collection.isEmpty();
     }
 
     @Override
