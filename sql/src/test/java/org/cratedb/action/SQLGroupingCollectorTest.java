@@ -1,13 +1,11 @@
 package org.cratedb.action;
 
-import com.google.common.collect.ImmutableMap;
 import junit.framework.TestCase;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.cratedb.action.groupby.*;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
-import org.cratedb.action.groupby.aggregate.count.CountAggState;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.sql.ParsedStatement;
 import org.junit.After;

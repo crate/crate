@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
+import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.inject.Inject;
@@ -51,8 +52,8 @@ public class RoutinesTable extends AbstractInformationSchemaTable {
             Field.Store.YES);
 
     @Inject
-    public RoutinesTable(AnalyzerService analyzerService) {
-        super();
+    public RoutinesTable(Map<String, AggFunction> aggFunctionMap, AnalyzerService analyzerService) {
+        super(aggFunctionMap);
         this.analyzerService = analyzerService;
     }
 
