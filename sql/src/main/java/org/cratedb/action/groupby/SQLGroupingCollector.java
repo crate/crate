@@ -6,14 +6,11 @@ import org.apache.lucene.search.Scorer;
 import org.cratedb.action.GroupByFieldLookup;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
-import org.cratedb.action.parser.ColumnDescription;
-import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.sql.ParsedStatement;
 
 import java.io.IOException;
-import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 import static com.google.common.collect.Maps.newHashMap;
 
@@ -62,7 +59,7 @@ public class SQLGroupingCollector extends Collector {
 
         assert parsedStatement.groupByColumnNames != null;
         for (String reducer : reducers) {
-            partitionedResult.put(reducer, new TreeMap<GroupByKey, GroupByRow>());
+            partitionedResult.put(reducer, new HashMap<GroupByKey, GroupByRow>());
         }
 
     }

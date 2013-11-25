@@ -145,7 +145,7 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
         return new SQLResponse(
             stmt.cols(),
             GroupByHelper.sortedRowsToObjectArray(
-                GroupByHelper.sortRows(rows, comparator, stmt.totalLimit()),
+                GroupByHelper.sortAndTrimRows(rows, comparator, stmt.totalLimit()),
                 stmt
             ),
             rows.size() - stmt.offset(),
