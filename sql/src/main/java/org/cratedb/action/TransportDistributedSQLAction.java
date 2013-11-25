@@ -1,6 +1,5 @@
 package org.cratedb.action;
 
-import com.google.common.collect.MinMaxPriorityQueue;
 import org.cratedb.action.groupby.GroupByHelper;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
@@ -10,7 +9,6 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.core.collections.LimitingCollectionIterator;
-import org.cratedb.core.collections.SortedPriorityQueueIterator;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.ElasticSearchException;
@@ -37,7 +35,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.google.common.collect.Sets.newCopyOnWriteArraySet;
 import static com.google.common.collect.Sets.newHashSet;
 
 /**

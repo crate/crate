@@ -10,6 +10,8 @@ public class GroupByHelper {
     public static Collection<GroupByRow> trimRows(List<GroupByRow> rows,
                                                   Comparator<GroupByRow> comparator,
                                                   int totalLimit) {
+        // sorting/trim is only called if if something CAN be trimmed.
+        // Otherwise the sorting would just be overhead because the Handler node will sort everything anyway.
         if (rows.size() > totalLimit) {
             return sortAndTrimRows(rows, comparator, totalLimit);
         }
