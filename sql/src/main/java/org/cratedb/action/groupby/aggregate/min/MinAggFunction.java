@@ -16,12 +16,13 @@ public class MinAggFunction extends AggFunction<MinAggState> {
             .add(StringSQLType.NAME)
             .add(TimeStampSQLType.NAME)
             .build();
-    private MinAggState newAggState = new MinAggState();
 
     @Override
     public void iterate(MinAggState state, Object columnValue) {
-        newAggState.value = columnValue;
-        state.reduce(newAggState);
+        if (state.compareValue(columnValue) == 1) {
+            state.value = columnValue;
+        }
+
     }
 
     @Override

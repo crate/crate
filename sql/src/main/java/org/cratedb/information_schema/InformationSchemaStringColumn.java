@@ -40,6 +40,6 @@ public class InformationSchemaStringColumn extends InformationSchemaColumn {
 
     @Override
     public ColumnDefinition getColumnDefinition(String tableName, int ordinalPosition) {
-        return new ColumnDefinition(tableName, name, "string", ordinalPosition, false, true);
+        return new ColumnDefinition(tableName, name, "string", null, ordinalPosition, false, true);
     }
 }

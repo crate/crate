@@ -1622,6 +1622,7 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
     }
 
     private void groupBySetup(String numericType) throws Exception {
+
         XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
             .startObject("default")
             .startObject("properties")

@@ -135,7 +135,7 @@ public class TransportSQLReduceHandler {
                     clusterService.localNode().getId(),
                     request.contextId,
                     (new Date().getTime() - now),
-                    status.groupByResult.size()
+                    status.groupByResult != null ? status.groupByResult.size() : 0
                 );
             }
 

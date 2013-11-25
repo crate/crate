@@ -7,6 +7,8 @@ import org.cratedb.action.GroupByFieldLookup;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.ParsedStatement;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -27,6 +29,7 @@ public class SQLGroupingCollector extends Collector {
     private final ParsedStatement parsedStatement;
     private final Map<String, AggFunction> aggFunctionMap;
 
+    private ESLogger logger = Loggers.getLogger(this.getClass());
     /**
      * Partitioned and grouped results.
      *
