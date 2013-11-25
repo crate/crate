@@ -1,15 +1,11 @@
 package org.cratedb.action;
 
-import com.google.common.collect.MinMaxPriorityQueue;
 import org.cratedb.action.groupby.GroupByHelper;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.GroupByRowComparator;
-import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
-import org.cratedb.action.sql.OrderByColumnIdx;
 import org.cratedb.action.sql.ParsedStatement;
-import org.cratedb.service.SQLParseService;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 
 import java.util.ArrayList;
@@ -51,19 +47,13 @@ public class SQLReduceJobStatus {
     }
 
     public void merge(SQLGroupByResult groupByResult) {
-        GroupByRow currentRow;
-        GroupByRow raceCondRow;
+        GroupByRow existingRow;
         for (GroupByRow row : groupByResult.result) {
-            currentRow = reducedResult.get(row.key);
-            if (currentRow == null) {
-                raceCondRow = reducedResult.putIfAbsent(row.key, row);
-                if (raceCondRow == null) {
-                    continue;
-                }
-                raceCondRow.merge(row);
-            } else {
-                currentRow.merge(row);
+            existingRow = reducedResult.putIfAbsent(row.key, row);
+            if (existingRow == null) {
+                continue;
             }
+            existingRow.merge(row);
         }
     }
 }
