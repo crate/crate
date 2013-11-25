@@ -27,7 +27,8 @@ public class GroupByHelper {
 
     public static Object[][] sortedRowsToObjectArray(Collection<GroupByRow> rows,
                                                      ParsedStatement parsedStatement) {
-        Object[][] result = new Object[rows.size() - parsedStatement.offset()][parsedStatement.outputFields().size()];
+        int rowCount = Math.max(0, rows.size() - parsedStatement.offset());
+        Object[][] result = new Object[rowCount][parsedStatement.outputFields().size()];
         int currentRow = -1;
         int remainingOffset = parsedStatement.offset();
 

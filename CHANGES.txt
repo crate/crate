@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fixed a bug that occured if the offset in a group by query was larger then
+   the number of rows in the result-set
+
  - group by performance improvements.
 
  - the `group by` clause now also works if information_schema tables are

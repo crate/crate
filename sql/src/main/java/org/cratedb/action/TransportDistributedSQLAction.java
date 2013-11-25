@@ -277,19 +277,15 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         }
 
         public void sendSqlResponse() {
-            long rowCount = Math.min(groupByResult.size(), parsedStatement.limit());
-            Collections.sort(groupByResult, comparator);
             try {
+                Collections.sort(groupByResult, comparator);
+                Object[][] rows = GroupByHelper.sortedRowsToObjectArray(
+                    new LimitingCollectionIterator<>(groupByResult, parsedStatement.totalLimit()),
+                    parsedStatement
+                );
+
                 listener.onResponse(
-                    new SQLResponse(
-                        parsedStatement.cols(),
-                        GroupByHelper.sortedRowsToObjectArray(
-                            new LimitingCollectionIterator<>(groupByResult, parsedStatement.totalLimit()),
-                            parsedStatement
-                        ),
-                        rowCount,
-                        sqlRequest.creationTime()
-                    )
+                    new SQLResponse(parsedStatement.cols(), rows, rows.length, sqlRequest.creationTime())
                 );
             } catch (Throwable e) {
                 listener.onFailure(e);
