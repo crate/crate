@@ -7,13 +7,7 @@ import org.cratedb.sql.SQLParseException;
 
 public class AggExprFactory {
 
-    public static AggExpr createAggExpr(String aggregateName) {
-        return createAggExpr(aggregateName, null);
-    }
-
     public static AggExpr createAggExpr(String aggregateName, String aggregateParam) {
-
-
         ParameterInfo param;
         switch (aggregateName) {
             case "COUNT":

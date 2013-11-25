@@ -7,8 +7,6 @@ import org.cratedb.action.GroupByFieldLookup;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.ParsedStatement;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -29,7 +27,6 @@ public class SQLGroupingCollector extends Collector {
     private final ParsedStatement parsedStatement;
     private final Map<String, AggFunction> aggFunctionMap;
 
-    private ESLogger logger = Loggers.getLogger(this.getClass());
     /**
      * Partitioned and grouped results.
      *
@@ -92,9 +89,7 @@ public class SQLGroupingCollector extends Collector {
         for (int i = 0; i < parsedStatement.aggregateExpressions.size(); i++) {
             AggExpr aggExpr = parsedStatement.aggregateExpressions.get(i);
             Object value = null;
-            if (!aggExpr.parameterInfo.isAllColumn && aggExpr.parameterInfo.columnName == null) {
-                throw new UnsupportedOperationException(String.format("select %s() not supported!", aggExpr.functionName));
-            }
+
             if (aggExpr.parameterInfo.columnName != null) {
                 value = groupByFieldLookup.lookupField(aggExpr.parameterInfo.columnName);
             }

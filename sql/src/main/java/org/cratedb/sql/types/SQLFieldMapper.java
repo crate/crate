@@ -4,6 +4,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import org.cratedb.DataType;
 import org.cratedb.index.BuiltInColumnDefinition;
 import org.cratedb.index.ColumnDefinition;
 import org.cratedb.index.IndexMetaDataExtractor;
@@ -33,7 +34,7 @@ public class SQLFieldMapper {
             .build();
 
     @Inject
-    public SQLFieldMapper(Map<String, SQLType> sqlTypes,
+    public SQLFieldMapper(Map<DataType, SQLType> sqlTypes,
                           @Assisted IndexMetaDataExtractor extractor) {
         this.metaDataExtractor = extractor;
 
@@ -42,7 +43,7 @@ public class SQLFieldMapper {
         for (ColumnDefinition columnDefinition : metaDataExtractor.getColumnDefinitions()) {
             columnType = sqlTypes.get(columnDefinition.dataType);
             if (columnType == null) {
-                throw new TypeUnknownException(columnDefinition.dataType);
+                throw new TypeUnknownException(columnDefinition.dataType.getName());
             }
             columnSqlTypes.put(columnDefinition.columnName, new Tuple<>(columnDefinition, columnType));
         }

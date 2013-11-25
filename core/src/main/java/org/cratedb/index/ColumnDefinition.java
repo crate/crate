@@ -1,9 +1,11 @@
 package org.cratedb.index;
 
+import org.cratedb.DataType;
+
 public class ColumnDefinition {
     public final String tableName;
     public final String columnName;
-    public final String dataType;
+    public final DataType dataType;
     public final String analyzer_method;
     public final boolean dynamic;
     public final boolean strict;
@@ -20,7 +22,7 @@ public class ColumnDefinition {
      *                always false for "normal" columns
      * @param strict applied only to objects - if new columns can be added
      */
-    public ColumnDefinition(String tableName, String columnName, String dataType, String analyzer_method,
+    public ColumnDefinition(String tableName, String columnName, DataType dataType, String analyzer_method,
                             int ordinalPosition, boolean dynamic, boolean strict) {
         this.tableName = tableName;
         this.columnName = columnName;

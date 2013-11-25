@@ -49,4 +49,8 @@ public class ParameterInfo implements Streamable {
         out.writeString(columnName);
     }
 
+    @Override
+    public String toString() {
+        return (isAllColumn ? "*" : columnName);
+    }
 }

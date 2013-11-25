@@ -1,6 +1,7 @@
 package org.cratedb.module.sql.test.types;
 
 import org.cratedb.Constants;
+import org.cratedb.DataType;
 import org.cratedb.index.IndexMetaDataExtractor;
 import org.cratedb.sql.ValidationException;
 import org.cratedb.sql.types.*;
@@ -103,18 +104,18 @@ public class SQLFieldMapperTest extends AbstractCrateNodesTests {
     public void before() throws IOException {
         IndexMetaData metaData = getMetaData();
         this.mapper = new SQLFieldMapper(
-                new HashMap<String, SQLType>() {{
-                    put(BooleanSQLType.NAME, new BooleanSQLType());
-                    put(ByteSQLType.NAME, new ByteSQLType());
-                    put(ShortSQLType.NAME, new ShortSQLType());
-                    put(IntegerSQLType.NAME, new IntegerSQLType());
-                    put(LongSQLType.NAME, new LongSQLType());
-                    put(FloatSQLType.NAME, new FloatSQLType());
-                    put(DoubleSQLType.NAME, new DoubleSQLType());
-                    put(StringSQLType.NAME, new StringSQLType());
-                    put(CratySQLType.NAME, new CratySQLType());
-                    put(TimeStampSQLType.NAME, new TimeStampSQLType());
-                    put(IpSQLType.NAME, new IpSQLType());
+                new HashMap<DataType, SQLType>() {{
+                    put(DataType.BOOLEAN, new BooleanSQLType());
+                    put(DataType.BYTE, new ByteSQLType());
+                    put(DataType.SHORT, new ShortSQLType());
+                    put(DataType.INTEGER, new IntegerSQLType());
+                    put(DataType.LONG, new LongSQLType());
+                    put(DataType.FLOAT, new FloatSQLType());
+                    put(DataType.DOUBLE, new DoubleSQLType());
+                    put(DataType.STRING, new StringSQLType());
+                    put(DataType.CRATY, new CratySQLType());
+                    put(DataType.TIMESTAMP, new TimeStampSQLType());
+                    put(DataType.IP, new IpSQLType());
                 }},
                 new IndexMetaDataExtractor(metaData));
     }

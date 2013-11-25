@@ -1,6 +1,7 @@
 package org.cratedb.index;
 
 import org.cratedb.Constants;
+import org.cratedb.DataType;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -111,63 +112,63 @@ public class IndexMetaDataExtractorTest {
         assertEquals(9, columnDefinitions.size());
 
         assertThat(columnDefinitions.get(0).columnName, is("content"));
-        assertThat(columnDefinitions.get(0).dataType, is("string"));
+        assertThat(columnDefinitions.get(0).dataType, is(DataType.STRING));
         assertThat(columnDefinitions.get(0).ordinalPosition, is(1));
         assertThat(columnDefinitions.get(0).tableName, is("test1"));
         assertFalse(columnDefinitions.get(0).dynamic);
         assertTrue(columnDefinitions.get(0).strict);
 
         assertThat(columnDefinitions.get(1).columnName, is("datum"));
-        assertThat(columnDefinitions.get(1).dataType, is("timestamp"));
+        assertThat(columnDefinitions.get(1).dataType, is(DataType.TIMESTAMP));
         assertThat(columnDefinitions.get(1).ordinalPosition, is(2));
         assertThat(columnDefinitions.get(1).tableName, is("test1"));
         assertFalse(columnDefinitions.get(1).dynamic);
         assertTrue(columnDefinitions.get(1).strict);
 
         assertThat(columnDefinitions.get(2).columnName, is("id"));
-        assertThat(columnDefinitions.get(2).dataType, is("integer"));
+        assertThat(columnDefinitions.get(2).dataType, is(DataType.INTEGER));
         assertThat(columnDefinitions.get(2).ordinalPosition, is(3));
         assertThat(columnDefinitions.get(2).tableName, is("test1"));
         assertFalse(columnDefinitions.get(2).dynamic);
         assertTrue(columnDefinitions.get(2).strict);
 
         assertThat(columnDefinitions.get(3).columnName, is("nested"));
-        assertThat(columnDefinitions.get(3).dataType, is("craty"));
+        assertThat(columnDefinitions.get(3).dataType, is(DataType.CRATY));
         assertThat(columnDefinitions.get(3).ordinalPosition, is(4));
         assertThat(columnDefinitions.get(3).tableName, is("test1"));
         assertTrue(columnDefinitions.get(3).dynamic);
         assertFalse(columnDefinitions.get(3).strict);
 
         assertThat(columnDefinitions.get(4).columnName, is("nested.inner_nested"));
-        assertThat(columnDefinitions.get(4).dataType, is("timestamp"));
+        assertThat(columnDefinitions.get(4).dataType, is(DataType.TIMESTAMP));
         assertThat(columnDefinitions.get(4).ordinalPosition, is(5));
         assertThat(columnDefinitions.get(4).tableName, is("test1"));
         assertFalse(columnDefinitions.get(4).dynamic);
         assertTrue(columnDefinitions.get(4).strict);
 
         assertThat(columnDefinitions.get(5).columnName, is("person"));
-        assertThat(columnDefinitions.get(5).dataType, is("craty"));
+        assertThat(columnDefinitions.get(5).dataType, is(DataType.CRATY));
         assertThat(columnDefinitions.get(5).ordinalPosition, is(6));
         assertThat(columnDefinitions.get(5).tableName, is("test1"));
         assertTrue(columnDefinitions.get(5).dynamic);
         assertFalse(columnDefinitions.get(5).strict);
 
         assertThat(columnDefinitions.get(6).columnName, is("person.birthday"));
-        assertThat(columnDefinitions.get(6).dataType, is("timestamp"));
+        assertThat(columnDefinitions.get(6).dataType, is(DataType.TIMESTAMP));
         assertThat(columnDefinitions.get(6).ordinalPosition, is(7));
         assertThat(columnDefinitions.get(6).tableName, is("test1"));
         assertFalse(columnDefinitions.get(6).dynamic);
         assertTrue(columnDefinitions.get(6).strict);
 
         assertThat(columnDefinitions.get(7).columnName, is("person.first_name"));
-        assertThat(columnDefinitions.get(7).dataType, is("string"));
+        assertThat(columnDefinitions.get(7).dataType, is(DataType.STRING));
         assertThat(columnDefinitions.get(7).ordinalPosition, is(8));
         assertThat(columnDefinitions.get(7).tableName, is("test1"));
         assertFalse(columnDefinitions.get(7).dynamic);
         assertTrue(columnDefinitions.get(7).strict);
 
         assertThat(columnDefinitions.get(8).columnName, is("title"));
-        assertThat(columnDefinitions.get(8).dataType, is("string"));
+        assertThat(columnDefinitions.get(8).dataType, is(DataType.STRING));
         assertThat(columnDefinitions.get(8).ordinalPosition, is(9));
         assertThat(columnDefinitions.get(8).tableName, is("test1"));
         assertFalse(columnDefinitions.get(8).dynamic);
@@ -552,7 +553,7 @@ public class IndexMetaDataExtractorTest {
 
         assertThat(columns.get(0).columnName, is("craty_field"));
         assertThat(columns.get(0).dynamic, is(true));
-        assertThat(columns.get(0).dataType, is("craty"));
+        assertThat(columns.get(0).dataType, is(DataType.CRATY));
         assertThat(columns.get(0).ordinalPosition, is(1));
         assertThat(columns.get(0).tableName, is("test12"));
         assertTrue(columns.get(0) instanceof ObjectColumnDefinition);
@@ -561,21 +562,21 @@ public class IndexMetaDataExtractorTest {
 
         assertEquals(columns.get(1), objectColumn.nestedColumns.get(0));
         assertThat(columns.get(1).columnName, is("craty_field.created"));
-        assertThat(columns.get(1).dataType, is("timestamp"));
+        assertThat(columns.get(1).dataType, is(DataType.TIMESTAMP));
         assertThat(columns.get(1).ordinalPosition, is(2));
         assertFalse(columns.get(1).dynamic);
         assertThat(columns.get(1).tableName, is("test12"));
 
         assertEquals(columns.get(2), objectColumn.nestedColumns.get(1));
         assertThat(columns.get(2).columnName, is("craty_field.size"));
-        assertThat(columns.get(2).dataType, is("byte"));
+        assertThat(columns.get(2).dataType, is(DataType.BYTE));
         assertThat(columns.get(2).ordinalPosition, is(3));
         assertFalse(columns.get(2).dynamic);
         assertThat(columns.get(2).tableName, is("test12"));
 
         assertThat(columns.get(3).columnName, is("no_dynamic_field"));
         assertThat(columns.get(3).dynamic, is(false));
-        assertThat(columns.get(3).dataType, is("craty"));
+        assertThat(columns.get(3).dataType, is(DataType.CRATY));
         assertThat(columns.get(3).ordinalPosition, is(4));
         assertThat(columns.get(3).tableName, is("test12"));
         assertTrue(columns.get(3) instanceof ObjectColumnDefinition);
@@ -584,21 +585,21 @@ public class IndexMetaDataExtractorTest {
 
         assertEquals(columns.get(4), objectColumn.nestedColumns.get(0));
         assertThat(columns.get(4).columnName, is("no_dynamic_field.dynamic_again"));
-        assertThat(columns.get(4).dataType, is("craty"));
+        assertThat(columns.get(4).dataType, is(DataType.CRATY));
         assertThat(columns.get(4).ordinalPosition, is(5));
         assertTrue(columns.get(4).dynamic);
         assertThat(columns.get(4).tableName, is("test12"));
 
         assertEquals(columns.get(5), objectColumn.nestedColumns.get(1));
         assertThat(columns.get(5).columnName, is("no_dynamic_field.dynamic_again.field"));
-        assertThat(columns.get(5).dataType, is("timestamp"));
+        assertThat(columns.get(5).dataType, is(DataType.TIMESTAMP));
         assertThat(columns.get(5).ordinalPosition, is(6));
         assertFalse(columns.get(5).dynamic);
         assertThat(columns.get(5).tableName, is("test12"));
 
         assertEquals(columns.get(6), objectColumn.nestedColumns.get(2));
         assertThat(columns.get(6).columnName, is("no_dynamic_field.path"));
-        assertThat(columns.get(6).dataType, is("string"));
+        assertThat(columns.get(6).dataType, is(DataType.STRING));
         assertThat(columns.get(6).ordinalPosition, is(7));
         assertFalse(columns.get(6).dynamic);
         assertThat(columns.get(6).tableName, is("test12"));

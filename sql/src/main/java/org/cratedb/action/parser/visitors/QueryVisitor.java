@@ -349,7 +349,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
      * extract/build an AggExpr from an AggregateNode
      * @param node an instance of AggregateNode
      * @return an instance of AggExpr, will never be null
-     * @throws if no AggExpr could be extracted, e.g. because no valid parameter was given
+     * @throws SQLParseException if no AggExpr could be extracted, e.g. because no valid parameter was given
      */
     private AggExpr getAggregateExpression(AggregateNode node) throws SQLParseException {
         String aggregateName = node.getAggregateName();

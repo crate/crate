@@ -2697,11 +2697,4 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
         assertEquals("male", response.rows()[1][1]);
         assertEquals(181353600000L, response.rows()[1][0]);
     }
-
-    @Test
-    public void selectGroupByAggregateMinStar() throws Exception {
-        expectedException.expect(SQLParseException.class);
-
-        execute("select min(*) from characters group by gender");
-    }
 }

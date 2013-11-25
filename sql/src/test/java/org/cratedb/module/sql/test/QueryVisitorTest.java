@@ -1,6 +1,7 @@
 package org.cratedb.module.sql.test;
 
 import com.google.common.collect.ImmutableSet;
+import org.cratedb.DataType;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
 import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
@@ -55,7 +56,7 @@ public class QueryVisitorTest {
     private ParsedStatement execStatement(String sql, Object[] args) throws StandardException {
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
         TableExecutionContext tec = mock(TableExecutionContext.class);
-        ColumnDefinition colDef = new ColumnDefinition("locations", "whatever", "string", "plain", 0, false, false);
+        ColumnDefinition colDef = new ColumnDefinition("locations", "whatever", DataType.STRING, "plain", 0, false, false);
         // Disable query planner here to save mocking
         Settings settings = ImmutableSettings.builder().put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, false).build();
         QueryPlanner queryPlanner = new QueryPlanner(settings);

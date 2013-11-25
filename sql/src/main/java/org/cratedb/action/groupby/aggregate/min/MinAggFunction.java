@@ -1,20 +1,18 @@
 package org.cratedb.action.groupby.aggregate.min;
 
 import com.google.common.collect.ImmutableSet;
+import org.cratedb.DataType;
 import org.cratedb.action.groupby.aggregate.AggFunction;
-import org.cratedb.sql.types.SQLTypes;
-import org.cratedb.sql.types.StringSQLType;
-import org.cratedb.sql.types.TimeStampSQLType;
 
 import java.util.Set;
 
 public class MinAggFunction extends AggFunction<MinAggState> {
 
     public static final String NAME = "MIN";
-    public static final Set<String> supportedColumnTypes = new ImmutableSet.Builder<String>()
-            .addAll(SQLTypes.NUMERIC_TYPES.keySet())
-            .add(StringSQLType.NAME)
-            .add(TimeStampSQLType.NAME)
+    public static final Set<DataType> supportedColumnTypes = new ImmutableSet.Builder<DataType>()
+            .addAll(DataType.NUMERIC_TYPES)
+            .add(DataType.STRING)
+            .add(DataType.TIMESTAMP)
             .build();
 
     @Override
@@ -30,7 +28,7 @@ public class MinAggFunction extends AggFunction<MinAggState> {
     }
 
     @Override
-    public Set<String> supportedColumnTypes() {
+    public Set<DataType> supportedColumnTypes() {
         return supportedColumnTypes;
     }
 
