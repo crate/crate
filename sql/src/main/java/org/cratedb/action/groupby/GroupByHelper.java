@@ -7,11 +7,20 @@ import java.util.*;
 
 public class GroupByHelper {
 
-    public static Collection<GroupByRow> sortRows(List<GroupByRow> rows,
+    public static Collection<GroupByRow> trimRows(List<GroupByRow> rows,
                                                   Comparator<GroupByRow> comparator,
                                                   int totalLimit) {
+        if (rows.size() > totalLimit) {
+            return sortAndTrimRows(rows, comparator, totalLimit);
+        }
+        return rows;
+    }
+
+    public static Collection<GroupByRow> sortAndTrimRows(List<GroupByRow> rows,
+                                                         Comparator<GroupByRow> comparator,
+                                                         int totalLimit) {
         Collections.sort(rows, comparator);
-        return new LimitingCollectionIterator<GroupByRow>(rows, totalLimit);
+        return new LimitingCollectionIterator<>(rows, totalLimit);
     }
 
     public static Object[][] sortedRowsToObjectArray(Collection<GroupByRow> rows,

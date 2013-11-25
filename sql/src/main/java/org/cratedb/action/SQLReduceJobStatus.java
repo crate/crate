@@ -46,7 +46,7 @@ public class SQLReduceJobStatus {
         List<GroupByRow> rowList = new ArrayList<>(rows.size());
         rowList.addAll(rows);
 
-        return GroupByHelper.sortRows(
+        return GroupByHelper.trimRows(
             rowList, comparator, parsedStatement.totalLimit());
     }
 
