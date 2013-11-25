@@ -22,7 +22,6 @@ public class MinAggFunction extends AggFunction<MinAggState> {
         if (state.compareValue(columnValue) == 1) {
             state.value = columnValue;
         }
-
     }
 
     @Override
