@@ -1,43 +1,35 @@
 package org.cratedb.action.groupby;
 
-import com.google.common.collect.MinMaxPriorityQueue;
 import org.cratedb.action.sql.ParsedStatement;
-import org.cratedb.service.SQLParseService;
+import org.cratedb.core.collections.LimitingCollectionIterator;
 
-import java.util.Collection;
-import java.util.Comparator;
+import java.util.*;
 
 public class GroupByHelper {
 
-    public static MinMaxPriorityQueue<GroupByRow> sortRows(Collection<GroupByRow> rows,
+    public static Collection<GroupByRow> trimRows(List<GroupByRow> rows,
                                                   Comparator<GroupByRow> comparator,
-                                                  Integer limit,
-                                                  Integer offset) {
-
-        MinMaxPriorityQueue.Builder<GroupByRow> rowBuilder = MinMaxPriorityQueue.orderedBy(comparator);
-        int nonNullOffset = (offset != null) ? offset : 0;
-
-        if (limit != null) {
-            rowBuilder.maximumSize(limit + nonNullOffset);
-        } else {
-            rowBuilder.maximumSize(SQLParseService.DEFAULT_SELECT_LIMIT + nonNullOffset);
+                                                  int totalLimit) {
+        if (rows.size() > totalLimit) {
+            return sortAndTrimRows(rows, comparator, totalLimit);
         }
-
-        MinMaxPriorityQueue<GroupByRow> q = rowBuilder.create();
-        q.addAll(rows);
-
-        return q;
+        return rows;
     }
 
-    public static Object[][] sortedRowsToObjectArray(MinMaxPriorityQueue<GroupByRow> rows,
-                                                     ParsedStatement parsedStatement,
-                                                     int offset) {
-        Object[][] result = new Object[rows.size() - offset][parsedStatement.outputFields().size()];
-        int currentRow = -1;
-        int remainingOffset = offset;
+    public static Collection<GroupByRow> sortAndTrimRows(List<GroupByRow> rows,
+                                                         Comparator<GroupByRow> comparator,
+                                                         int totalLimit) {
+        Collections.sort(rows, comparator);
+        return new LimitingCollectionIterator<>(rows, totalLimit);
+    }
 
-        GroupByRow row;
-        while ((row = rows.pollFirst()) != null) {
+    public static Object[][] sortedRowsToObjectArray(Collection<GroupByRow> rows,
+                                                     ParsedStatement parsedStatement) {
+        Object[][] result = new Object[rows.size() - parsedStatement.offset()][parsedStatement.outputFields().size()];
+        int currentRow = -1;
+        int remainingOffset = parsedStatement.offset();
+
+        for (GroupByRow row : rows) {
             if (remainingOffset > 0) {
                 remainingOffset--;
                 continue;

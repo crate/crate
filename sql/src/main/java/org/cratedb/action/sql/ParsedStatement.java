@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.search.Query;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.parser.ColumnDescription;
+import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.parser.parser.NodeTypes;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -107,8 +108,34 @@ public class ParsedStatement {
     public List<ColumnDescription> resultColumnList;
     public List<AggExpr> aggregateExpressions;
 
-    public Integer limit = null;
-    public Integer offset = null;
+    private Integer limit = null;
+    private Integer offset = null;
+
+    public void offset(Integer offset) {
+        this.offset = offset;
+    }
+
+    public int offset() {
+        if (offset == null) {
+            return 0;
+        }
+        return offset;
+    }
+
+    public void limit(Integer limit) {
+        this.limit = limit;
+    }
+
+    public int limit() {
+        if (limit == null) {
+            return SQLParseService.DEFAULT_SELECT_LIMIT;
+        }
+        return limit;
+    }
+
+    public int totalLimit() {
+        return limit() + offset();
+    }
 
     public List<OrderByColumnIdx> orderByIndices;
     public OrderByColumnIdx[] orderByIndices() {

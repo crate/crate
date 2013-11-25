@@ -140,8 +140,8 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
                 .getState();
         testTable.index(state);
         ParsedStatement stmt = new ParsedStatement("select id, name, address, many from nodes");
-        stmt.limit = 1000;
-        stmt.offset = 0;
+        stmt.limit(1000);
+        stmt.offset(0);
         stmt.orderByColumns = new ArrayList<>();
         stmt.query = new MatchAllDocsQuery();
         stmt.outputFields.add(new Tuple<>("id", "id"));
@@ -174,8 +174,7 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
         assertEquals(0L, testTable.count());
 
         ParsedStatement stmt = new ParsedStatement("select id, name, address, many from nodes");
-        stmt.limit = 1000;
-        stmt.offset = 0;
+        stmt.limit(1000);
         stmt.orderByColumns = new ArrayList<>();
         stmt.query = new MatchAllDocsQuery();
         stmt.outputFields.add(new Tuple<>("id", "id"));

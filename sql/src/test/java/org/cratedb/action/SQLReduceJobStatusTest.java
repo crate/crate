@@ -29,22 +29,20 @@ public class SQLReduceJobStatusTest {
             add(new OrderByColumnIdx(0, false));
         }};
         stmt.idxMap = new Integer[] { 1 };
-        stmt.limit = 2;
+        stmt.limit(2);
 
         // result ist from 1 shard, limit is 2; order by first column
         SQLReduceJobStatus status = new SQLReduceJobStatus(stmt, 1,
             new HashMap<String, AggFunction>()
         );
-        GroupByRow[] rows = new GroupByRow[]{
-            new GroupByRow(new GroupByKey(new Object[]{ 1}), new CountAggState() {{ value = 3; }}),
-            new GroupByRow(new GroupByKey(new Object[]{ 2}), new CountAggState() {{ value = 2; }}),
-            new GroupByRow(new GroupByKey(new Object[]{ 3}), new CountAggState() {{ value = 45; }}),
-            new GroupByRow(new GroupByKey(new Object[]{ 4}), new CountAggState() {{ value = 8; }}),
-            new GroupByRow(new GroupByKey(new Object[]{ 5}), new CountAggState() {{ value = 40; }}),
-        };
+        List<GroupByRow> rows = new ArrayList<>();
+        rows.add(new GroupByRow(new GroupByKey(new Object[]{ 1}), new CountAggState() {{ value = 3; }}));
+        rows.add(new GroupByRow(new GroupByKey(new Object[]{ 2}), new CountAggState() {{ value = 2; }}));
+        rows.add(new GroupByRow(new GroupByKey(new Object[]{ 3}), new CountAggState() {{ value = 45; }}));
+        rows.add(new GroupByRow(new GroupByKey(new Object[]{ 4}), new CountAggState() {{ value = 8; }}));
+        rows.add(new GroupByRow(new GroupByKey(new Object[]{ 5}), new CountAggState() {{ value = 40; }}));
 
-        SQLGroupByResult result = new SQLGroupByResult(Arrays.asList(rows));
-        List<GroupByRow> sortedRows = new ArrayList<>(status.sortGroupByResult(result));
+        List<GroupByRow> sortedRows = new ArrayList<>(status.sortGroupByResult(rows));
 
         assertEquals(2, sortedRows.size());
         assertEquals(45L, sortedRows.get(0).get(1));
