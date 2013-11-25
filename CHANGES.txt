@@ -2,8 +2,8 @@
 Changes for Crate
 =================
 
-Unreleased
-==========
+2013/11/25 0.19.7
+=================
 
  - fixed a bug that occured if the offset in a group by query was larger then
    the number of rows in the result-set

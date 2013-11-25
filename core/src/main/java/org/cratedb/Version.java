@@ -17,11 +17,16 @@ public class Version {
     // the (internal) format of the id is there so we can easily do after/before checks on the id
 
     public static final int V_0_19_5_ID = /*00*/190599;
-    public static final Version V_0_19_5 = new Version(V_0_19_5_ID, false, org.elasticsearch.Version.V_0_90_5);
+    public static final Version V_0_19_5 = new Version(V_0_19_5_ID, false,
+            org.elasticsearch.Version.V_0_90_5);
     public static final int V_0_19_6_ID = /*00*/190699;
-    public static final Version V_0_19_6 = new Version(V_0_19_6_ID, false, org.elasticsearch.Version.V_0_90_5);
+    public static final Version V_0_19_6 = new Version(V_0_19_6_ID, false,
+            org.elasticsearch.Version.V_0_90_5);
+    public static final int V_0_19_7_ID = /*00*/190799;
+    public static final Version V_0_19_7 = new Version(V_0_19_7_ID, false,
+            org.elasticsearch.Version.V_0_90_5);
 
-    public static final Version CURRENT = V_0_19_6;
+    public static final Version CURRENT = V_0_19_7;
 
     static {
         assert CURRENT.esVersion == org.elasticsearch.Version.CURRENT : "Version must be " +

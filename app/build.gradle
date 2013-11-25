@@ -148,6 +148,7 @@ task(runDebug, dependsOn: 'classes', type: JavaExec) {
     main = 'org.cratedb.bootstrap.CrateF'
     debug = true
     classpath = sourceSets.main.runtimeClasspath
+    maxHeapSize = '512m'
 }
 
 sourceSets {
