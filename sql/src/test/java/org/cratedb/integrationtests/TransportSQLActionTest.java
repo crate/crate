@@ -1491,6 +1491,7 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
     @Test
     public void testCountWithGroupBy() throws Exception {
+
         groupBySetup();
 
         execute("select count(*), race from characters group by race");
@@ -1514,8 +1515,11 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
 
         Collections.sort(result, ordering);
         assertEquals("Android", result.get(0).v2());
+        assertThat(result.get(0).v1(), is(1L));
         assertEquals("Vogon", result.get(1).v2());
+        assertThat(result.get(1).v1(), is(2L));
         assertEquals("Human", result.get(2).v2());
+        assertThat(result.get(2).v1(), is(3L));
     }
 
     @Test
@@ -1647,7 +1651,9 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
             .endObject();
 
 
-        prepareCreate("characters").addMapping("default", mapping).execute().actionGet();
+        prepareCreate("characters")
+                .addMapping("default", mapping)
+                .execute().actionGet();
         ensureGreen();
 
         Map<String, String> details = newHashMap();
@@ -1659,10 +1665,11 @@ public class TransportSQLActionTest extends AbstractSharedCrateClusterTest {
         details.put("job", "Mathematician");
         execute("insert into characters (race, gender, age, name, details) values (?, ?, ?, ?, ?)",
             new Object[] {"Human", "female", 32, "Trillian", details});
-        execute("insert into characters (race, gender, name, details) values ('Human', 'male', 'Ford Perfect')");
-        execute("insert into characters (race, gender, name, details) values ('Android', 'male', 'Marving')");
-        execute("insert into characters (race, gender, name, details) values ('Vogon', 'male', 'Jeltz')");
-        execute("insert into characters (race, gender, name, details) values ('Vogon', 'male', 'Kwaltz')");
+        execute("insert into characters (race, gender, age, name) values (?, ?, ?, ?)",
+            new Object[] {"Human", "male", 112, "Ford Perfect"});
+        execute("insert into characters (race, gender, name) values ('Android', 'male', 'Marving')");
+        execute("insert into characters (race, gender, name) values ('Vogon', 'male', 'Jeltz')");
+        execute("insert into characters (race, gender, name) values ('Vogon', 'male', 'Kwaltz')");
         refresh();
 
         execute("select count(*) from characters");

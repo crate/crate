@@ -1,12 +1,14 @@
 package org.cratedb.action;
 
 import org.apache.lucene.search.Query;
-import org.cratedb.action.groupby.*;
+import org.cratedb.Constants;
+import org.cratedb.action.groupby.GroupByKey;
+import org.cratedb.action.groupby.GroupByRow;
+import org.cratedb.action.groupby.SQLGroupingCollector;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.ParsedStatement;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -87,9 +89,11 @@ public class SQLQueryService {
 
         IndexService indexService = indicesService.indexServiceSafe(concreteIndex);
         IndexShard indexShard = indexService.shardSafe(shardId);
+        ShardSearchRequest request = new ShardSearchRequest();
+        request.types(new String[]{Constants.DEFAULT_MAPPING_TYPE});
 
         return new SearchContext(0,
-            new ShardSearchRequest(), shardTarget, indexShard.acquireSearcher(), indexService,
+            request, shardTarget, indexShard.acquireSearcher(), indexService,
             indexShard, scriptService, cacheRecycler
         );
     }

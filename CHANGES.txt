@@ -8,6 +8,8 @@ Unreleased
  - fixed a bug that occured if the offset in a group by query was larger then
    the number of rows in the result-set
 
+ - fix: group by did not work correctly on nested columns due to missing mapping
+
  - group by performance improvements.
 
  - the `group by` clause now also works if information_schema tables are
