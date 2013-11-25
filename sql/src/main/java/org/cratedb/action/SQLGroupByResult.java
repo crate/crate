@@ -50,6 +50,11 @@ public class SQLGroupByResult implements Streamable {
         this.aggExprs = aggExprs;
     }
 
+    /**
+     * use {@link SQLReduceJobStatus#merge(SQLGroupByResult)} instead.
+     * @param otherResult
+     */
+    @Deprecated
     public void merge(SQLGroupByResult otherResult) {
         merge(otherResult.result);
     }

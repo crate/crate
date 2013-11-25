@@ -11,7 +11,7 @@ import java.util.Arrays;
 
 public class GroupByKey implements Streamable, Comparable<GroupByKey> {
 
-    private Object[] keyValue;
+    public Object[] keyValue;
     Ordering<Comparable> ordering = Ordering.natural();
 
     public GroupByKey() {
@@ -33,6 +33,15 @@ public class GroupByKey implements Streamable, Comparable<GroupByKey> {
     @Override
     public int hashCode() {
         return Arrays.hashCode(keyValue);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof GroupByKey)) {
+            return super.equals(obj);
+        }
+
+        return Arrays.equals(keyValue, ((GroupByKey) obj).keyValue);
     }
 
     @Override

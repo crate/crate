@@ -1,6 +1,5 @@
 package org.cratedb.action;
 
-import com.google.common.collect.MinMaxPriorityQueue;
 import org.cratedb.action.groupby.GroupByHelper;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
@@ -9,6 +8,7 @@ import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.core.collections.LimitingCollectionIterator;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.ElasticSearchException;
@@ -225,25 +225,19 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         private final AtomicBoolean reducerErrors;
         private final AtomicBoolean shardErrors;
         private final AtomicReference<Throwable> lastException;
-        private final MinMaxPriorityQueue<GroupByRow> groupByResult;
-        private final int offset;
+        private final List<GroupByRow> groupByResult;
+        private final GroupByRowComparator comparator;
 
         AsyncBroadcastAction(DistributedSQLRequest request, ActionListener<SQLResponse> listener) {
             this.parsedStatement = request.parsedStatement;
             this.sqlRequest = request.sqlRequest;
             this.listener = listener;
 
-            MinMaxPriorityQueue.Builder<GroupByRow> rowBuilder =
-                MinMaxPriorityQueue.orderedBy(
-                    new GroupByRowComparator(parsedStatement.idxMap, parsedStatement.orderByIndices()));
+            comparator = new GroupByRowComparator(
+                parsedStatement.idxMap, parsedStatement.orderByIndices()
+            );
 
-            offset = (parsedStatement.offset != null) ? parsedStatement.offset : 0;
-            if (parsedStatement.limit != null) {
-                rowBuilder.maximumSize(parsedStatement.limit + offset);
-            } else {
-                rowBuilder.maximumSize(SQLParseService.DEFAULT_SELECT_LIMIT + offset);
-            }
-            this.groupByResult = rowBuilder.create();
+            groupByResult = new ArrayList<>(parsedStatement.totalLimit());
             clusterState = clusterService.state();
 
             // TODO: TransportBroadcastOperationAction does checkGlobalBlock, required?
@@ -283,11 +277,16 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         }
 
         public void sendSqlResponse() {
-            long rowCount = groupByResult.size() - offset;
+            long rowCount = Math.min(groupByResult.size(), parsedStatement.limit());
+            Collections.sort(groupByResult, comparator);
             try {
                 listener.onResponse(
-                    new SQLResponse(parsedStatement.cols(),
-                        GroupByHelper.sortedRowsToObjectArray(groupByResult, parsedStatement, offset),
+                    new SQLResponse(
+                        parsedStatement.cols(),
+                        GroupByHelper.sortedRowsToObjectArray(
+                            new LimitingCollectionIterator<>(groupByResult, parsedStatement.totalLimit()),
+                            parsedStatement
+                        ),
                         rowCount,
                         sqlRequest.creationTime()
                     )
