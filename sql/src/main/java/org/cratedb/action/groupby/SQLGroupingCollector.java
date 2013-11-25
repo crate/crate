@@ -89,8 +89,8 @@ public class SQLGroupingCollector extends Collector {
         for (int i = 0; i < parsedStatement.aggregateExpressions.size(); i++) {
             AggExpr aggExpr = parsedStatement.aggregateExpressions.get(i);
             Object value = null;
-            if (!aggExpr.parameterInfo.isAllColumn && aggExpr.parameterInfo.columnName != null) {
-                throw new UnsupportedOperationException("select aggFunc() not supported!");
+            if (!aggExpr.parameterInfo.isAllColumn && aggExpr.parameterInfo.columnName == null) {
+                throw new UnsupportedOperationException(String.format("select %s() not supported!", aggExpr.functionName));
             }
             if (aggExpr.parameterInfo.columnName != null) {
                 value = groupByFieldLookup.lookupField(aggExpr.parameterInfo.columnName);

@@ -26,7 +26,9 @@ public class ParameterInfo implements Streamable {
 
         if (isAllColumn != that.isAllColumn) return false;
 
-        if (columnName != that.columnName) return false;
+        if (columnName != null && !columnName.equals(that.columnName)) return false;
+
+        if (that.columnName != null && !that.columnName.equals(columnName)) return false;
 
         return true;
     }
@@ -46,4 +48,5 @@ public class ParameterInfo implements Streamable {
         out.writeBoolean(isAllColumn);
         out.writeString(columnName);
     }
+
 }

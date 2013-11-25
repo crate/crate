@@ -2604,7 +2604,7 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
         refresh();
 
         execute("select min(age) as minAge, gender from characters group by gender order by gender");
-        assertEquals(new String[]{"minage", "gender"}, response.cols());
+        assertArrayEquals(new String[]{"MIN(age)", "gender"}, response.cols());
         assertEquals(2L, response.rowCount());
         assertEquals(32, response.rows()[0][0]);
         assertEquals(34, response.rows()[1][0]);
@@ -2615,8 +2615,9 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
         groupBySetup("float");
         refresh();
 
-        execute("select min(age) as minAge, gender from characters group by gender order by gender");
+        execute("select min(age), gender from characters group by gender order by gender");
         assertEquals(2L, response.rowCount());
+        assertEquals("MIN(age)", response.cols()[0]);
         assertEquals(32.0f, response.rows()[0][0]);
         assertEquals(34.0f, response.rows()[1][0]);
     }
@@ -2629,6 +2630,30 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
         execute("select min(age) as minAge, gender from characters group by gender order by gender");
         assertEquals(2L, response.rowCount());
         assertEquals(32.0d, response.rows()[0][0]);
+        assertEquals(34.0d, response.rows()[1][0]);
+    }
+
+    @Test
+    public void selectGroupByAggregateMinOrderByMin() throws Exception {
+        groupBySetup("double");
+        refresh();
+
+        execute("select min(age) as minAge, gender from characters group by gender order by min(age) desc");
+        assertEquals(2L, response.rowCount());
+
+        assertEquals("male", response.rows()[0][1]);
+        assertEquals(34.0d, response.rows()[0][0]);
+
+        assertEquals("female", response.rows()[1][1]);
+        assertEquals(32.0d, response.rows()[1][0]);
+
+        execute("select min(age) as minAge, gender from characters group by gender order by min(age) asc");
+        assertEquals(2L, response.rowCount());
+
+        assertEquals("female", response.rows()[0][1]);
+        assertEquals(32.0d, response.rows()[0][0]);
+
+        assertEquals("male", response.rows()[1][1]);
         assertEquals(34.0d, response.rows()[1][0]);
     }
 
@@ -2662,7 +2687,16 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
         execute("select min(birthdate) as minBirthdate, gender from characters group by gender " +
                 "order by gender");
         assertEquals(2L, response.rowCount());
+        assertEquals("female", response.rows()[0][1]);
         assertEquals(276912000000L, response.rows()[0][0]);
+        assertEquals("male", response.rows()[1][1]);
         assertEquals(38361600000L, response.rows()[1][0]);
+    }
+
+    @Test
+    public void selectGroupByAggregateMinStar() throws Exception {
+        expectedException.expect(SQLParseException.class);
+
+        execute("select min(*) from characters group by gender");
     }
 }

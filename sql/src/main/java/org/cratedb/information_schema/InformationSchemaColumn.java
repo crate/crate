@@ -4,6 +4,7 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.MultiTermQuery;
 import org.apache.lucene.search.MultiTermQueryWrapperFilter;
 import org.apache.lucene.search.SortField;
+import org.cratedb.index.ColumnDefinition;
 
 public abstract class InformationSchemaColumn {
 
@@ -21,4 +22,6 @@ public abstract class InformationSchemaColumn {
                                               boolean includeLower, boolean includeUpper);
     public abstract MultiTermQueryWrapperFilter rangeFilter(
         Object from, Object to, boolean includeLower, boolean includeUpper);
+
+    public abstract ColumnDefinition getColumnDefinition(String tableName, int ordinalPosition);
 }

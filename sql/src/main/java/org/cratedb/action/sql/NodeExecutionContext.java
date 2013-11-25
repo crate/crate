@@ -1,5 +1,7 @@
 package org.cratedb.action.sql;
 
+import com.google.common.collect.ImmutableMap;
+import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.index.ColumnDefinition;
@@ -21,6 +23,7 @@ import org.elasticsearch.indices.IndicesService;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 public class NodeExecutionContext {
 
@@ -31,6 +34,7 @@ public class NodeExecutionContext {
     private final InformationSchemaTableExecutionContextFactory factory;
     private final Settings settings;
     private final SQLFieldMapperFactory sqlFieldMapperFactory;
+    private final ImmutableMap<String, AggFunction> availableAggFunctions;
  
     @Inject
     public NodeExecutionContext(IndicesService indicesService,
@@ -39,7 +43,8 @@ public class NodeExecutionContext {
                                 QueryPlanner queryPlanner,
                                 InformationSchemaTableExecutionContextFactory factory,
                                 Settings settings,
-                                SQLFieldMapperFactory sqlFieldMapperFactory) {
+                                SQLFieldMapperFactory sqlFieldMapperFactory,
+                                Map<String, AggFunction> availableAggFunctions) {
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.analyzerService = analyzerService;
@@ -47,6 +52,7 @@ public class NodeExecutionContext {
         this.factory = factory;
         this.settings = settings;
         this.sqlFieldMapperFactory = sqlFieldMapperFactory;
+        this.availableAggFunctions = ImmutableMap.copyOf(availableAggFunctions);
     }
 
     /**
@@ -154,5 +160,9 @@ public class NodeExecutionContext {
         }
 
         return true;
+    }
+
+    public Map<String, AggFunction> availableAggFunctions() {
+        return this.availableAggFunctions;
     }
 }

@@ -14,11 +14,12 @@ import java.io.IOException;
  *      the receiver has to get the ParsedStatement beforehand and then use it
  *      to instantiate the correct concrete AggState instances.
  */
-public abstract class AggState implements Comparable<AggState>, Streamable {
+public abstract class AggState<T extends AggState> implements Comparable<T>, Streamable {
+
 
     public Object value;
 
-    public abstract void reduce(AggState other);
+    public abstract void reduce(T other);
 
     public Object value() {
         return value;
@@ -62,5 +63,4 @@ public abstract class AggState implements Comparable<AggState>, Streamable {
 
         return 0;
     }
-
 }

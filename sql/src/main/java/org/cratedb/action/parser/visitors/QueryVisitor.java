@@ -4,15 +4,17 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggExprFactory;
+import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
 import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.OrderByColumnIdx;
 import org.cratedb.action.sql.OrderByColumnName;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.index.ColumnDefinition;
 import org.cratedb.information_schema.InformationSchemaColumn;
 import org.cratedb.information_schema.InformationSchemaTableExecutionContext;
-import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.GroupByOnArrayUnsupportedException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
@@ -235,14 +237,13 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             for (OrderByColumn column : node) {
 
                 if (column.getExpression().getNodeType() == NodeTypes.AGGREGATE_NODE) {
+
                     AggregateNode aggNode = (AggregateNode)column.getExpression();
-                    if (aggNode.getAggregateName().startsWith("COUNT")) {
-                        if (aggNode.getOperand() != null) {
-                            validateCountOperand(aggNode.getOperand());
-                        }
-                        AggExpr aggExpr = AggExprFactory.createAggExpr("COUNT(*)");
+                    AggExpr aggExpr = getAggregateExpression(aggNode);
+                    if (aggExpr != null) {
                         idx = stmt.resultColumnList.indexOf(aggExpr);
                     }
+
                 } else {
                     String columnName = column.getExpression().getColumnName();
                     ColumnReferenceDescription colrefDesc = new ColumnReferenceDescription(columnName);
@@ -344,37 +345,67 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         }
     }
 
-    private void handleAggregateNode(ParsedStatement stmt, ResultColumn column) {
+    /**
+     * extract/build an AggExpr from an AggregateNode
+     * @param node an instance of AggregateNode
+     * @return an instance of AggExpr, will never be null
+     * @throws if no AggExpr could be extracted, e.g. because no valid parameter was given
+     */
+    private AggExpr getAggregateExpression(AggregateNode node) throws SQLParseException {
+        String aggregateName = node.getAggregateName();
+        AggExpr aggExpr;
 
-        AggregateNode node = (AggregateNode)column.getExpression();
-        if (node.getAggregateName().startsWith("COUNT")) {
-            ValueNode operand = node.getOperand();
+        AggFunction<?> aggFunction = context.availableAggFunctions().get(aggregateName);
+        if (aggFunction == null) {
+            throw new SQLParseException(String.format("Unknown aggregate function %s", aggregateName));
+        }
+        ValueNode operand = node.getOperand();
+
+        if (aggregateName.startsWith(CountAggFunction.NAME)) {
             if (operand != null) {
                 validateCountOperand(operand);
             }
-            AggExpr aggExpr = AggExprFactory.createAggExpr("COUNT(*)");
-            stmt.resultColumnList.add(aggExpr);
-            stmt.aggregateExpressions.add(aggExpr);
-            String alias = column.getName() != null ? column.getName() : node.getAggregateName();
-            stmt.countRequest(true);
-            stmt.addOutputField(alias, node.getAggregateName());
-        } else if (node.getAggregateName().startsWith("MIN")) {
-            ColumnReference operand = (ColumnReference)node.getOperand();
-            if (operand == null) {
-                throw new SQLParseException("Missing parameter for MIN() function");
-            }
-            AggExpr aggExpr = AggExprFactory.createAggExpr("MIN", operand.getColumnName());
-            stmt.resultColumnList.add(aggExpr);
-            stmt.aggregateExpressions.add(aggExpr);
-            String alias = column.getName() != null ? column.getName() : operand.getColumnName();
-            stmt.addOutputField(alias, operand.getColumnName());
+            aggExpr = AggExprFactory.createAggExpr(aggregateName, operand == null ? null : operand.getColumnName());
         } else {
-            throw new SQLParseException("Unsupported Aggregate function " + node.getAggregateName());
+            if (operand != null) {
+                // check columns
+                ColumnDefinition columnDefinition = tableContext.getColumnDefinition(operand.getColumnName());
+                if (aggFunction.supportedColumnTypes().contains(columnDefinition.dataType)) {
+                    aggExpr = AggExprFactory.createAggExpr(aggregateName, operand.getColumnName());
+                } else {
+                    throw new SQLParseException(
+                            String.format("Invalid column type '%s' for aggregate function %s",
+                                    columnDefinition.dataType, aggregateName));
+                }
+            } else {
+                throw new SQLParseException(String.format("Missing parameter for %s() function", aggregateName));
+            }
+
+        }
+        return aggExpr;
+    }
+
+    private void handleAggregateNode(ParsedStatement stmt, ResultColumn column) {
+
+        AggregateNode node = (AggregateNode)column.getExpression();
+        AggExpr aggExpr = getAggregateExpression(node);
+
+        if (aggExpr != null) {
+            if (aggExpr.functionName.startsWith(CountAggFunction.NAME)) {
+                stmt.countRequest(true);
+            }
+            stmt.resultColumnList.add(aggExpr);
+            stmt.aggregateExpressions.add(aggExpr);
+            String alias = aggExpr.toString();
+
+            stmt.addOutputField(alias, node.getAggregateName());
         }
     }
 
+
     /**
      * verify that the operand in the count function translates to a count(*)
+     * or a column reference referencing the primary key
      * because anything else isn't supported right now.
      *
      * @param operand

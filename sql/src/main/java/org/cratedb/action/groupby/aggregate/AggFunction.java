@@ -1,7 +1,11 @@
 package org.cratedb.action.groupby.aggregate;
 
-public abstract class AggFunction {
+import java.util.Set;
 
-    public abstract void iterate(AggState state, Object columnValue);
-    public abstract AggState createAggState();
+public abstract class AggFunction<T extends AggState> {
+
+    public abstract void iterate(T state, Object columnValue);
+    public abstract T createAggState();
+    public abstract Set<String> supportedColumnTypes();
+
 }

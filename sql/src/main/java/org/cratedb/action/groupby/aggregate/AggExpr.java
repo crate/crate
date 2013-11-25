@@ -62,4 +62,15 @@ public class AggExpr extends ColumnDescription {
         expr.readFrom(in);
         return expr;
     }
+
+    @Override
+    public String toString() {
+        if (parameterInfo != null) {
+            return String.format("%s(%s)", functionName,
+                    (parameterInfo.isAllColumn ? "*" : parameterInfo.columnName));
+
+        } else {
+            return functionName;
+        }
+    }
 }
