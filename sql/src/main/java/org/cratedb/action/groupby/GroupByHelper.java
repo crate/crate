@@ -1,9 +1,14 @@
 package org.cratedb.action.groupby;
 
+import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
+import org.cratedb.action.sql.ITableExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.core.collections.LimitingCollectionIterator;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 public class GroupByHelper {
 
@@ -26,7 +31,8 @@ public class GroupByHelper {
     }
 
     public static Object[][] sortedRowsToObjectArray(Collection<GroupByRow> rows,
-                                                     ParsedStatement parsedStatement) {
+                                                     ParsedStatement parsedStatement,
+                                                     ITableExecutionContext tableExecutionContext) {
         int rowCount = Math.max(0, rows.size() - parsedStatement.offset());
         Object[][] result = new Object[rowCount][parsedStatement.outputFields().size()];
         int currentRow = -1;
@@ -41,6 +47,20 @@ public class GroupByHelper {
             currentRow++;
             for (int i = 0; i < result[currentRow].length; i++) {
                 result[currentRow][i] = row.get(parsedStatement.idxMap[i]);
+
+                Object value = null;
+                int idx = parsedStatement.idxMap[i];
+
+                if (idx < row.key.size() || row.aggExprs.get(idx-row.key.size()).parameterInfo.isAllColumn) {
+                    value = row.get(idx);
+                } else if (row.aggExprs.get(idx-row.key.size()).functionName.equalsIgnoreCase(MinAggFunction.NAME) &&
+                        tableExecutionContext != null) {
+                    value = tableExecutionContext.mapper().convertToXContentValue(
+                            row.aggExprs.get(idx-row.key.size()).parameterInfo.columnName,
+                            row.get(idx)
+                    );
+                }
+                result[currentRow][i] = value;
             }
         }
 

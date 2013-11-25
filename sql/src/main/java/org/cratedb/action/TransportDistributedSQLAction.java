@@ -5,9 +5,7 @@ import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.GroupByRowComparator;
 import org.cratedb.action.groupby.aggregate.AggFunction;
-import org.cratedb.action.sql.ParsedStatement;
-import org.cratedb.action.sql.SQLRequest;
-import org.cratedb.action.sql.SQLResponse;
+
 import org.cratedb.core.collections.LimitingCollectionIterator;
 import org.cratedb.action.sql.*;
 import org.cratedb.service.SQLParseService;
@@ -24,7 +22,6 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -290,7 +287,8 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 Collections.sort(groupByResult, comparator);
                 Object[][] rows = GroupByHelper.sortedRowsToObjectArray(
                     new LimitingCollectionIterator<>(groupByResult, parsedStatement.totalLimit()),
-                    parsedStatement
+                    parsedStatement,
+                    tableExecutionContext
                 );
 
                 listener.onResponse(

@@ -1,6 +1,5 @@
 package org.cratedb.information_schema;
 
-import com.google.common.collect.MinMaxPriorityQueue;
 import com.google.common.io.Files;
 import org.apache.lucene.codecs.lucene42.Lucene42Codec;
 import org.apache.lucene.document.Document;
@@ -19,7 +18,6 @@ import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.OrderByColumnName;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterState;
@@ -146,7 +144,8 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
             stmt.cols(),
             GroupByHelper.sortedRowsToObjectArray(
                 GroupByHelper.sortAndTrimRows(rows, comparator, stmt.totalLimit()),
-                stmt
+                stmt,
+                null // TODO: add context here
             ),
             rows.size() - stmt.offset(),
             requestStartedTime

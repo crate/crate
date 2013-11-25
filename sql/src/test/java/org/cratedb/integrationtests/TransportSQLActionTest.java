@@ -2606,7 +2606,10 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
         execute("select min(age) as minAge, gender from characters group by gender order by gender");
         assertArrayEquals(new String[]{"MIN(age)", "gender"}, response.cols());
         assertEquals(2L, response.rowCount());
+        assertEquals("female", response.rows()[0][1]);
         assertEquals(32, response.rows()[0][0]);
+
+        assertEquals("male", response.rows()[1][1]);
         assertEquals(34, response.rows()[1][0]);
     }
 

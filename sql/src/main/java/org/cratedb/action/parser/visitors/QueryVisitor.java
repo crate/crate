@@ -398,7 +398,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             stmt.aggregateExpressions.add(aggExpr);
             String alias = aggExpr.toString();
 
-            stmt.addOutputField(alias, node.getAggregateName());
+            stmt.addOutputField(alias, alias);
         }
     }
 
