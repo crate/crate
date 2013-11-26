@@ -63,8 +63,8 @@ public class TransportSQLReduceHandler {
 
         long now = 0;
         if (logger.isTraceEnabled()) {
-            logger.trace("Received SQLReduce Job. Created context {} on node {}",
-                request.contextId, clusterService.localNode().getId()
+            logger.trace("[{}]: context {} Received SQLReduce Job and created context",
+                clusterService.localNode().getId(), request.contextId
             );
             now = new Date().getTime();
         }
@@ -74,8 +74,8 @@ public class TransportSQLReduceHandler {
                 throw new SQLReduceJobTimeoutException();
             }
 
-            logger.trace("Completed SQLReduceJob {} on node {}. Took {} ms",
-                request.contextId, clusterService.localNode().id(), (new Date().getTime() - now));
+            logger.trace("[{}]: context: {} completed SQLReduceJob. Took {} ms",
+                clusterService.localNode().id(), request.contextId, (new Date().getTime() - now));
 
             return new SQLReduceJobResponse(reduceJobStatus);
 
@@ -135,7 +135,7 @@ public class TransportSQLReduceHandler {
                     clusterService.localNode().getId(),
                     request.contextId,
                     (new Date().getTime() - now),
-                    status.groupByResult.size()
+                    status.reducedResult.size()
                 );
             }
 

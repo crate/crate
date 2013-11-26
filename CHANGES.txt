@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - added more trace logs
+
  - fixed classpath overloading issue.
 
 2013/11/25 0.19.7
