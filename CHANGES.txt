@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - added more trace logs
+
 2013/11/26 0.19.8
 =================
 
