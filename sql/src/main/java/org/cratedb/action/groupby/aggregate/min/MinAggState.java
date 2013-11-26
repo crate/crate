@@ -28,7 +28,7 @@ public class MinAggState<T extends Comparable<T>> extends AggState<MinAggState<T
             return;
         }
 
-        if (compareTo(other) == 1) {
+        if (compareTo(other) > 0) {
             value = other.value;
         }
     }

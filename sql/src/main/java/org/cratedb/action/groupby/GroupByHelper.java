@@ -3,11 +3,9 @@ package org.cratedb.action.groupby;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.action.parser.ColumnReferenceDescription;
-import org.cratedb.action.sql.ITableExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.core.collections.LimitingCollectionIterator;
 import org.cratedb.sql.types.SQLFieldMapper;
-import org.elasticsearch.common.collect.Tuple;
 
 import java.util.*;
 
@@ -107,7 +105,6 @@ public class GroupByHelper {
                 continue;
             }
             currentRow++;
-
             for (int i = 0; i < result[currentRow].length; i++) {
                 result[currentRow][i] = fieldExtractors[i].getValue(row);
             }
