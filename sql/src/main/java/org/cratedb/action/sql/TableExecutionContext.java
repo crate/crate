@@ -16,12 +16,12 @@ public class TableExecutionContext implements ITableExecutionContext {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
     private final IndexMetaDataExtractor indexMetaDataExtractor;
-    private final String tableName;
+    public final String tableName;
     private final Map<String, ColumnDefinition> columnDefinitions;
     private SQLFieldMapper sqlFieldMapper;
     private boolean tableIsAlias = false;
 
-    TableExecutionContext(String name, IndexMetaDataExtractor indexMetaDataExtractor,
+    public TableExecutionContext(String name, IndexMetaDataExtractor indexMetaDataExtractor,
                           SQLFieldMapper sqlFieldMapper, boolean tableIsAlias) {
         this.indexMetaDataExtractor = indexMetaDataExtractor;
         this.tableName = name;

@@ -14,6 +14,7 @@ import org.cratedb.index.ColumnDefinition;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
+import org.cratedb.stubs.HitchhikerMocks;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -61,13 +62,7 @@ public class QueryVisitorTest {
         Settings settings = ImmutableSettings.builder().put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, false).build();
         QueryPlanner queryPlanner = new QueryPlanner(settings);
         when(nec.queryPlanner()).thenReturn(queryPlanner);
-        when(nec.availableAggFunctions()).thenReturn(
-                new HashMap<String, AggFunction>(){{
-                    put(CountAggFunction.COUNT_ROWS_NAME, new CountAggFunction());
-                    put(CountAggFunction.NAME, new CountAggFunction());
-                    put(MinAggFunction.NAME, new MinAggFunction());
-                }}
-        );
+        when(nec.availableAggFunctions()).thenReturn(HitchhikerMocks.aggFunctionMap);
         when(nec.tableContext(null, "locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("a", "b"));
         when(tec.getColumnDefinition(anyString())).thenReturn(colDef);
