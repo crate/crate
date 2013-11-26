@@ -264,10 +264,6 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             this.sqlRequest = request.sqlRequest;
             this.listener = listener;
 
-            comparator = new GroupByRowComparator(
-                parsedStatement.idxMap, parsedStatement.orderByIndices()
-            );
-
             groupByResult = new ArrayList<>(parsedStatement.totalLimit());
             clusterState = clusterService.state();
 
@@ -293,6 +289,13 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             // TODO: put this into a service class
             tableExecutionContext = nodeExecutionContext.tableContext(
                     parsedStatement.schemaName(), parsedStatement.tableName());
+
+            // here extractors without mapping are used because for sorting there is no need
+            // to cast the values to the correct type.
+            comparator = new GroupByRowComparator(
+                GroupByHelper.buildFieldExtractor(parsedStatement, null),
+                parsedStatement.orderByIndices()
+            );
             contextId = UUID.randomUUID();
         }
 
@@ -322,7 +325,6 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                     contextId
                 );
             }
-
 
             try {
                 Collections.sort(groupByResult, comparator);

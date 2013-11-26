@@ -33,10 +33,13 @@ public class SQLReduceJobStatus {
         this.aggFunctionMap = aggFunctionMap;
         this.reducedResult = ConcurrentCollections.newConcurrentMap();
         this.shardsToProcess = new CountDownLatch(shardsToProcess);
-        this.comparator = new GroupByRowComparator(parsedStatement.idxMap, parsedStatement.orderByIndices());
+        this.comparator = new GroupByRowComparator(
+            GroupByHelper.buildFieldExtractor(parsedStatement, null),
+            parsedStatement.orderByIndices()
+        );
     }
 
-    public Collection<GroupByRow> sortGroupByResult(Collection<GroupByRow> rows)
+    public Collection<GroupByRow> trimRows(Collection<GroupByRow> rows)
     {
         List<GroupByRow> rowList = new ArrayList<>(rows.size());
         rowList.addAll(rows);

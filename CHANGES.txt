@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - minor group by optimization (replaced idxMap with value extractors)
+
  - grouping performance tuning
 
  - added more trace logs
