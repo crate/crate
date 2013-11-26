@@ -58,13 +58,13 @@ The ``MIN`` aggregation function returns the smallest value in a column.
 Its single argument is a column name and its return value is always of the type of that column.
 Example::
 
-    cr> select min(position), kind from locations where name not like 'North %' group by kind order by kind asc
+    cr> select min(position), kind from locations where name not like 'North %' group by kind order by min(position) asc, kind asc
     +---------------+-------------+
     | MIN(position) | kind        |
     +---------------+-------------+
-    | 2             | Galaxy      |
     | 1             | Planet      |
     | 1             | Star System |
+    | 2             | Galaxy      |
     +---------------+-------------+
     SELECT 3 rows in set (... sec)
 

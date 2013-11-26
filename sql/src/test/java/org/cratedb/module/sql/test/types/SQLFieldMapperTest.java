@@ -1,11 +1,10 @@
 package org.cratedb.module.sql.test.types;
 
 import org.cratedb.Constants;
-import org.cratedb.DataType;
+import org.cratedb.SQLCrateNodesTest;
 import org.cratedb.index.IndexMetaDataExtractor;
 import org.cratedb.sql.ValidationException;
-import org.cratedb.sql.types.*;
-import org.cratedb.test.integration.AbstractCrateNodesTests;
+import org.cratedb.sql.types.SQLFieldMapper;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.junit.Before;
@@ -17,7 +16,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SQLFieldMapperTest extends AbstractCrateNodesTests {
+public class SQLFieldMapperTest extends SQLCrateNodesTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -104,19 +103,7 @@ public class SQLFieldMapperTest extends AbstractCrateNodesTests {
     public void before() throws IOException {
         IndexMetaData metaData = getMetaData();
         this.mapper = new SQLFieldMapper(
-                new HashMap<DataType, SQLType>() {{
-                    put(DataType.BOOLEAN, new BooleanSQLType());
-                    put(DataType.BYTE, new ByteSQLType());
-                    put(DataType.SHORT, new ShortSQLType());
-                    put(DataType.INTEGER, new IntegerSQLType());
-                    put(DataType.LONG, new LongSQLType());
-                    put(DataType.FLOAT, new FloatSQLType());
-                    put(DataType.DOUBLE, new DoubleSQLType());
-                    put(DataType.STRING, new StringSQLType());
-                    put(DataType.CRATY, new CratySQLType());
-                    put(DataType.TIMESTAMP, new TimeStampSQLType());
-                    put(DataType.IP, new IpSQLType());
-                }},
+                SQL_TYPES,
                 new IndexMetaDataExtractor(metaData));
     }
 

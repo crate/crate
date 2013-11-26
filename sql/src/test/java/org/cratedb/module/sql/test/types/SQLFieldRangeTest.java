@@ -1,10 +1,10 @@
 package org.cratedb.module.sql.test.types;
 
 import org.cratedb.Constants;
-import org.cratedb.DataType;
+import org.cratedb.SQLCrateNodesTest;
 import org.cratedb.index.IndexMetaDataExtractor;
 import org.cratedb.sql.ValidationException;
-import org.cratedb.sql.types.*;
+import org.cratedb.sql.types.SQLFieldMapper;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.junit.Before;
@@ -109,19 +109,7 @@ public class SQLFieldRangeTest {
                 .putMapping(mappingMetaData)
                 .build();
         this.mapper = new SQLFieldMapper(
-                new HashMap<DataType, SQLType>() {{
-                    put(DataType.BOOLEAN, new BooleanSQLType());
-                    put(DataType.BYTE, new ByteSQLType());
-                    put(DataType.SHORT, new ShortSQLType());
-                    put(DataType.INTEGER, new IntegerSQLType());
-                    put(DataType.LONG, new LongSQLType());
-                    put(DataType.FLOAT, new FloatSQLType());
-                    put(DataType.DOUBLE, new DoubleSQLType());
-                    put(DataType.STRING, new StringSQLType());
-                    put(DataType.CRATY, new CratySQLType());
-                    put(DataType.TIMESTAMP, new TimeStampSQLType());
-                    put(DataType.IP, new IpSQLType());
-                }},
+                SQLCrateNodesTest.SQL_TYPES,
                 new IndexMetaDataExtractor(metaData));
     }
 
