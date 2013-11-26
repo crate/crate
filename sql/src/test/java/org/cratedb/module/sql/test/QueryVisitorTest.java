@@ -71,6 +71,7 @@ public class QueryVisitorTest {
         when(nec.tableContext(null, "locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("a", "b"));
         when(tec.getColumnDefinition(anyString())).thenReturn(colDef);
+        when(tec.getColumnDefinition("nothing")).thenReturn(null);
         when(tec.hasCol(anyString())).thenReturn(true);
 
         SQLParseService parseService = new SQLParseService(nec);
@@ -969,5 +970,32 @@ public class QueryVisitorTest {
         execStatement("select kind, \"_score\" from locations where match(kind, ?) " +
                 "and \"_score\" <= 0.05",
                 new Object[]{"Star", "Star"});
+    }
+
+    @Test
+    public void testMinAggWithoutArgs() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        execStatement("select min() from locations group by departement");
+    }
+
+    @Test
+    public void testMinWithNonExistingColumn() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Unknown column 'nothing'");
+        execStatement("select min(nothing) from locations group by departement");
+    }
+
+    @Test
+    public void testCountAggWithoutArgs() throws Exception {
+
+        expectedException.expect(SQLParseException.class);
+        execStatement("select count() from locations group by departement");
+    }
+
+    @Test
+    public void selectGroupByAggregateMinStar() throws Exception {
+        expectedException.expect(SQLParseException.class);
+
+        execStatement("select min(*) from locations group by gender");
     }
 }
