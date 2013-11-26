@@ -3,12 +3,15 @@ package org.cratedb.action;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.groupby.aggregate.AggState;
 import org.cratedb.action.groupby.aggregate.count.CountAggState;
 import org.cratedb.action.sql.OrderByColumnIdx;
 import org.cratedb.action.sql.ParsedStatement;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
@@ -36,12 +39,26 @@ public class SQLReduceJobStatusTest {
             new HashMap<String, AggFunction>()
         );
         List<GroupByRow> rows = new ArrayList<>();
-        rows.add(new GroupByRow(new GroupByKey(new Object[]{ 1}), new CountAggState() {{ value = 3; }}));
-        rows.add(new GroupByRow(new GroupByKey(new Object[]{ 2}), new CountAggState() {{ value = 2; }}));
-        rows.add(new GroupByRow(new GroupByKey(new Object[]{ 3}), new CountAggState() {{ value = 45; }}));
-        rows.add(new GroupByRow(new GroupByKey(new Object[]{ 4}), new CountAggState() {{ value = 8; }}));
-        rows.add(new GroupByRow(new GroupByKey(new Object[]{ 5}), new CountAggState() {{ value = 40; }}));
-
+        rows.add(new GroupByRow(new GroupByKey(new Object[]{ 1}),
+                new ArrayList<AggState>(1) {{
+                    add(new CountAggState() {{ value = 3; }});
+                }}));
+        rows.add(new GroupByRow(new GroupByKey(new Object[]{ 1}),
+                new ArrayList<AggState>(1) {{
+                    add(new CountAggState() {{ value = 2; }});
+                }}));
+        rows.add(new GroupByRow(new GroupByKey(new Object[]{ 1}),
+                new ArrayList<AggState>(1) {{
+                    add(new CountAggState() {{ value = 45; }});
+                }}));
+        rows.add(new GroupByRow(new GroupByKey(new Object[]{ 1}),
+                new ArrayList<AggState>(1) {{
+                    add(new CountAggState() {{ value = 8; }});
+                }}));
+        rows.add(new GroupByRow(new GroupByKey(new Object[]{ 1}),
+                new ArrayList<AggState>(1) {{
+                    add(new CountAggState() {{ value = 40; }});
+                }}));
         List<GroupByRow> sortedRows = new ArrayList<>(status.sortGroupByResult(rows));
 
         assertEquals(2, sortedRows.size());

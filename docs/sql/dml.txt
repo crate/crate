@@ -234,6 +234,9 @@ Query for a property of an inner object::
     +-----------+----------------+
     SELECT 1 row in set (... sec)
 
+
+.. _sql_dml_aggregation:
+
 Data Aggregation
 ----------------
 
@@ -241,19 +244,23 @@ Data Aggregation
 
     :ref:`aggregation`
 
-There are two ways of doing aggregation, one on the result of a whole query and one
-on the separate groups of a :ref:`sql_dml_group_by` query.
++---------+---------------+----------------------------------+-----------------------+----------+
+| Name    | Arguments     | Description                      | Return Type           | Scope    |
++=========+===============+==================================+=======================+==========+
+| COUNT(*)| Star as       | Counts the number of rows        | long                  | Group by |
+|         | Parameter or  | that match the query.            |                       | Requests |
+|         | as Constant   |                                  |                       | and      |
+|         | or the primary|                                  |                       | "normal" |
+|         | key column    |                                  |                       | requests |
++---------+---------------+----------------------------------+-----------------------+----------+
+| MIN     | column name of| returns the smallest of the      | the input             | Group by |
+|         | a numeric,    | values in the argument column    | column type           | Requests |
+|         | date or string| in case of strings this          |                       |          |
+|         | column        | means the lexicographically      |                       |          |
+|         |               | smallest                         |                       |          |
++---------+---------------+----------------------------------+-----------------------+----------+
 
-COUNT(*)
-........
-
-This aggregation function simply returns the number of rows that match the query.
-
-It currently is the only aggregation function that can be used without ``group by`` in `crate`.
-`count(columName)` is also possible, but currently only works on a primary key column.
-The semantics are the same.
-The return value is always of type ``long``.
-::
+Some Examples::
 
     cr> select count(*) from locations
     +----------+
@@ -263,7 +270,14 @@ The return value is always of type ``long``.
     +----------+
     SELECT 1 row in set (... sec)
 
-``COUNT(*)`` can also be used on group by queries::
+    cr> select count(*) from locations where kind='Planet'
+    +----------+
+    | COUNT(*) |
+    +----------+
+    | 5        |
+    +----------+
+    SELECT 1 row in set (... sec)
+
 
     cr> select count(*), kind from locations group by kind order by kind asc
     +----------+-------------+
@@ -275,50 +289,26 @@ The return value is always of type ``long``.
     +----------+-------------+
     SELECT 3 rows in set (... sec)
 
-.. note::
 
-    The count() aggregate function can also be called with parameter
-    substitution. But only if the value evaluates to a '*'.
-
-.. seealso::
-
-    :doc:`rest`
-
-
-MIN
-...
-
-The ``MIN`` aggregation function returns the smallest value in a column.
-Its single argument is a column name and its return value is always of the type of that column.
-Example::
-
-    cr> select min(date), kind from locations group by kind order by min(date)
-    +--------------+-------------+
-    | MIN(date)    | kind        |
-    +--------------+-------------+
-    | 308534400000 | Star System |
-    | 308534400000 | Planet      |
-    | 308534400000 | Galaxy      |
-    +--------------+-------------+
-    SELECT 3 rows in set (... sec)
-
-
-``MIN`` returns ``NULL`` if the column does not contain any value but ``NULL``.
-It is allowed on numeric columns (``byte``, ``short``, ``integer``, ``long``, ``float``, ``double``),
-on ``timestamp`` and ``string`` columns. On ``string`` columns it will return the lexicographically
-smallest. ``NULL`` values are ignored::
-
-    cr> select min(name), kind from locations group by kind order by kind asc
+    cr> select min(name), kind from locations group by kind order by min(name) asc
     +------------------------------------+-------------+
     | MIN(name)                          | kind        |
     +------------------------------------+-------------+
-    | Galactic Sector QQ7 Active J Gamma | Galaxy      |
     |                                    | Planet      |
     | Aldebaran                          | Star System |
+    | Galactic Sector QQ7 Active J Gamma | Galaxy      |
     +------------------------------------+-------------+
     SELECT 3 rows in set (... sec)
 
-``MIN`` can currently only be used on ``group by`` queries.
+    cr> select count(*), min(name), kind from locations group by kind
+    +----------+------------------------------------+-------------+
+    | COUNT(*) | MIN(name)                          | kind        |
+    +----------+------------------------------------+-------------+
+    | 4        | Aldebaran                          | Star System |
+    | 5        |                                    | Planet      |
+    | 4        | Galactic Sector QQ7 Active J Gamma | Galaxy      |
+    +----------+------------------------------------+-------------+
+    SELECT 3 rows in set (... sec)
 
 .. _sql_dml_group_by:
 

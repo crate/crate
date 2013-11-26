@@ -239,11 +239,8 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         private final AtomicReference<Throwable> lastException;
         private final List<GroupByRow> groupByResult;
         private final GroupByRowComparator comparator;
-<<<<<<< HEAD
         private final ITableExecutionContext tableExecutionContext;
-=======
         private final UUID contextId;
->>>>>>> origin/master
 
         AsyncBroadcastAction(DistributedSQLRequest request, ActionListener<SQLResponse> listener) {
             this.parsedStatement = request.parsedStatement;
@@ -275,14 +272,10 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
             reduceResponseCounter = new AtomicLong(reducers.length);
             shardResponseCounter = new AtomicLong(expectedShardResponses);
-<<<<<<< HEAD
-
             // TODO: put this into a service class
             tableExecutionContext = nodeExecutionContext.tableContext(
                     parsedStatement.schemaName(), parsedStatement.tableName());
-=======
             contextId = UUID.randomUUID();
->>>>>>> origin/master
         }
 
         public void start() {

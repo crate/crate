@@ -4,7 +4,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Ordering;
 import org.cratedb.SQLCrateClusterTest;
-import org.cratedb.action.TransportSQLReduceHandler;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.*;
 import org.cratedb.sql.types.TimeStampSQLType;
@@ -12,7 +11,6 @@ import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsReques
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -1624,7 +1622,6 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
     }
 
     private void groupBySetup(String numericType) throws Exception {
-        Loggers.getLogger(TransportSQLReduceHandler.class).setLevel("TRACE");
 
         XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
             .startObject("default")
@@ -2693,4 +2690,5 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
         assertEquals("male", response.rows()[1][1]);
         assertEquals(181353600000L, response.rows()[1][0]);
     }
+
 }

@@ -9,6 +9,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -27,7 +28,7 @@ import java.util.Map;
 public class GroupByRow implements Streamable {
 
     public GroupByKey key;
-    public AggState[] aggStates;
+    public List<AggState> aggStates;
 
 
     private Map<String, AggFunction> aggregateFunctions;
@@ -42,7 +43,7 @@ public class GroupByRow implements Streamable {
         this.aggExprs = aggExprs;
     }
 
-    public GroupByRow(GroupByKey key, AggState... aggStates) {
+    public GroupByRow(GroupByKey key, List<AggState> aggStates) {
         this.aggStates = aggStates;
         this.key = key;
     }
@@ -50,12 +51,12 @@ public class GroupByRow implements Streamable {
     public static GroupByRow createEmptyRow(GroupByKey key,
                                             List<AggExpr> aggExprs,
                                             Map<String, AggFunction> aggregateFunctions) {
-        AggState[] aggStates = new AggState[aggExprs.size()];
+        List<AggState> aggStates = new ArrayList<>(aggExprs.size());
 
         AggExpr aggExpr;
-        for (int i = 0; i < aggStates.length; i++) {
+        for (int i = 0; i < aggExprs.size(); i++) {
             aggExpr = aggExprs.get(i);
-            aggStates[i] = aggregateFunctions.get(aggExpr.functionName).createAggState(aggExpr);
+            aggStates.add(aggregateFunctions.get(aggExpr.functionName).createAggState(aggExpr));
         }
 
         GroupByRow row = new GroupByRow(key, aggStates);
@@ -70,7 +71,7 @@ public class GroupByRow implements Streamable {
      */
     public Object get(int idx) {
         if (idx > (key.size() - 1)) {
-            return aggStates[idx - key.size()].value();
+            return aggStates.get(idx - key.size()).value();
         }
         return key.get(idx);
     }
@@ -117,12 +118,13 @@ public class GroupByRow implements Streamable {
     }
 
     public int size() {
-        return key.size() + aggStates.length;
+        return key.size() + aggStates.size();
     }
 
+    @SuppressWarnings("unchecked")
     public synchronized  void merge(GroupByRow otherRow) {
-        for (int i = 0; i < aggStates.length; i++) {
-            aggStates[i].reduce(otherRow.aggStates[i]);
+        for (int i = 0; i < aggStates.size(); i++) {
+            aggStates.get(i).reduce(otherRow.aggStates.get(i));
         }
     }
 
@@ -136,12 +138,12 @@ public class GroupByRow implements Streamable {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         key = GroupByKey.readFromStreamInput(in);
-        aggStates = new AggState[aggExprs.size()];
+        aggStates = new ArrayList<>(aggExprs.size());
         AggExpr aggExpr;
-        for (int i = 0; i < aggStates.length; i++) {
+        for (int i = 0; i < aggExprs.size(); i++) {
             aggExpr = aggExprs.get(i);
-            aggStates[i] = aggregateFunctions.get(aggExpr.functionName).createAggState(aggExpr);
-            aggStates[i].readFrom(in);
+            aggStates.add(i, aggregateFunctions.get(aggExpr.functionName).createAggState(aggExpr));
+            aggStates.get(i).readFrom(in);
         }
     }
 
