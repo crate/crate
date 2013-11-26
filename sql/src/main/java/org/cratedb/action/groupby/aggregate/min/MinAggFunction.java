@@ -4,14 +4,11 @@ import com.google.common.collect.ImmutableSet;
 import org.cratedb.DataType;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 
 import java.util.Set;
 
 public class MinAggFunction<T extends Comparable<T>> extends AggFunction<MinAggState<T>> {
 
-    public ESLogger logger = Loggers.getLogger(this.getClass());
     public static final String NAME = "MIN";
     public static final Set<DataType> supportedColumnTypes = new ImmutableSet.Builder<DataType>()
             .addAll(DataType.NUMERIC_TYPES)
@@ -22,7 +19,6 @@ public class MinAggFunction<T extends Comparable<T>> extends AggFunction<MinAggS
     @Override
     public void iterate(MinAggState<T> state, Object columnValue) {
         int res = state.compareValue((T)columnValue);
-        logger.info("COMPARE {} to {}: {}", state.value(), columnValue, res);
         if (res > 0) {
             state.setValue((T)columnValue);
         }
