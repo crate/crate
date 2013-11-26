@@ -5,6 +5,8 @@ import org.apache.lucene.search.MultiTermQueryWrapperFilter;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TermRangeFilter;
 import org.apache.lucene.search.TermRangeQuery;
+import org.cratedb.DataType;
+import org.cratedb.index.ColumnDefinition;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 public class InformationSchemaStringColumn extends InformationSchemaColumn {
@@ -35,5 +37,10 @@ public class InformationSchemaStringColumn extends InformationSchemaColumn {
                                                    boolean includeLower, boolean includeUpper) {
         return new TermRangeFilter(name, BytesRefs.toBytesRef(from), BytesRefs.toBytesRef(to),
             includeLower, includeUpper);
+    }
+
+    @Override
+    public ColumnDefinition getColumnDefinition(String tableName, int ordinalPosition) {
+        return new ColumnDefinition(tableName, name, DataType.STRING, null, ordinalPosition, false, true);
     }
 }

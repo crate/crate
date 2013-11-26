@@ -10,8 +10,8 @@ import org.elasticsearch.common.io.stream.Streamable;
  *      the receiver has to get the ParsedStatement beforehand and then use it
  *      to instantiate the correct concrete AggState instances.
  */
-public abstract class AggState implements Comparable<AggState>, Streamable {
+public abstract class AggState<T extends AggState> implements Comparable<T>, Streamable {
 
-    public abstract void merge(AggState other);
     public abstract Object value();
+    public abstract void reduce(T other);
 }

@@ -1,6 +1,10 @@
 package org.cratedb.module.sql.test;
 
 import com.google.common.collect.ImmutableSet;
+import org.cratedb.DataType;
+import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
+import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.NodeExecutionContext;
@@ -52,14 +56,22 @@ public class QueryVisitorTest {
     private ParsedStatement execStatement(String sql, Object[] args) throws StandardException {
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
         TableExecutionContext tec = mock(TableExecutionContext.class);
-        ColumnDefinition colDef = new ColumnDefinition("locations", "whatever", "string", "plain", 0, false, false);
+        ColumnDefinition colDef = new ColumnDefinition("locations", "whatever", DataType.STRING, "plain", 0, false, false);
         // Disable query planner here to save mocking
         Settings settings = ImmutableSettings.builder().put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, false).build();
         QueryPlanner queryPlanner = new QueryPlanner(settings);
         when(nec.queryPlanner()).thenReturn(queryPlanner);
+        when(nec.availableAggFunctions()).thenReturn(
+                new HashMap<String, AggFunction>(){{
+                    put(CountAggFunction.COUNT_ROWS_NAME, new CountAggFunction());
+                    put(CountAggFunction.NAME, new CountAggFunction());
+                    put(MinAggFunction.NAME, new MinAggFunction());
+                }}
+        );
         when(nec.tableContext(null, "locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("a", "b"));
         when(tec.getColumnDefinition(anyString())).thenReturn(colDef);
+        when(tec.getColumnDefinition("nothing")).thenReturn(null);
         when(tec.hasCol(anyString())).thenReturn(true);
 
         SQLParseService parseService = new SQLParseService(nec);
@@ -958,5 +970,32 @@ public class QueryVisitorTest {
         execStatement("select kind, \"_score\" from locations where match(kind, ?) " +
                 "and \"_score\" <= 0.05",
                 new Object[]{"Star", "Star"});
+    }
+
+    @Test
+    public void testMinAggWithoutArgs() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        execStatement("select min() from locations group by departement");
+    }
+
+    @Test
+    public void testMinWithNonExistingColumn() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Unknown column 'nothing'");
+        execStatement("select min(nothing) from locations group by departement");
+    }
+
+    @Test
+    public void testCountAggWithoutArgs() throws Exception {
+
+        expectedException.expect(SQLParseException.class);
+        execStatement("select count() from locations group by departement");
+    }
+
+    @Test
+    public void selectGroupByAggregateMinStar() throws Exception {
+        expectedException.expect(SQLParseException.class);
+
+        execStatement("select min(*) from locations group by gender");
     }
 }

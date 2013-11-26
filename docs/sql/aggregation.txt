@@ -1,0 +1,87 @@
+
+.. _aggregation:
+
+===========
+Aggregation
+===========
+
+There are two ways of doing aggregation, one on the result of a whole query and one
+on the separate groups of a :ref:`sql_dml_group_by` query.
+
+For a short summary of aggregation functions see :ref:`sql_dml_aggregation`.
+
+COUNT(*)
+........
+
+This aggregation function simply returns the number of rows that match the query.
+
+It currently is the only aggregation function that can be used without ``group by`` in `crate`.
+`count(columName)` is also possible, but currently only works on a primary key column.
+The semantics are the same.
+The return value is always of type ``long``.
+::
+
+    cr> select count(*) from locations
+    +----------+
+    | COUNT(*) |
+    +----------+
+    | 13       |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+``COUNT(*)`` can also be used on group by queries::
+
+    cr> select count(*), kind from locations group by kind order by kind asc
+    +----------+-------------+
+    | COUNT(*) | kind        |
+    +----------+-------------+
+    | 4        | Galaxy      |
+    | 5        | Planet      |
+    | 4        | Star System |
+    +----------+-------------+
+    SELECT 3 rows in set (... sec)
+
+.. note::
+
+    The count() aggregate function can also be called with parameter
+    substitution. But only if the value evaluates to a '*'.
+
+.. seealso::
+
+    :doc:`rest`
+
+
+MIN
+...
+
+The ``MIN`` aggregation function returns the smallest value in a column.
+Its single argument is a column name and its return value is always of the type of that column.
+Example::
+
+    cr> select min(position), kind from locations where name not like 'North %' group by kind order by min(position) asc, kind asc
+    +---------------+-------------+
+    | MIN(position) | kind        |
+    +---------------+-------------+
+    | 1             | Planet      |
+    | 1             | Star System |
+    | 2             | Galaxy      |
+    +---------------+-------------+
+    SELECT 3 rows in set (... sec)
+
+
+``MIN`` returns ``NULL`` if the column does not contain any value but ``NULL``.
+It is allowed on numeric columns (``byte``, ``short``, ``integer``, ``long``, ``float``, ``double``),
+on ``timestamp`` and ``string`` columns. On ``string`` columns it will return the lexicographically
+smallest. ``NULL`` values are ignored::
+
+    cr> select min(name), kind from locations group by kind order by kind asc
+    +------------------------------------+-------------+
+    | MIN(name)                          | kind        |
+    +------------------------------------+-------------+
+    | Galactic Sector QQ7 Active J Gamma | Galaxy      |
+    |                                    | Planet      |
+    | Aldebaran                          | Star System |
+    +------------------------------------+-------------+
+    SELECT 3 rows in set (... sec)
+
+``MIN`` can currently only be used on ``group by`` queries.

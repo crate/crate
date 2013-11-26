@@ -2,9 +2,11 @@ package org.cratedb.action;
 
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
+import org.cratedb.action.groupby.aggregate.AggState;
 import org.cratedb.action.groupby.aggregate.count.CountAggState;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 
 import static org.hamcrest.Matchers.is;
@@ -21,16 +23,37 @@ public class SQLGroupByResultTest {
     public void testMerge() throws Exception {
 
         SQLGroupByResult result1 = new SQLGroupByResult(Arrays.asList(
-            new GroupByRow(new GroupByKey(new Object[] {"k1"}), new CountAggState() {{ value = 1; }}),
-            new GroupByRow(new GroupByKey(new Object[] {"k2"}), new CountAggState() {{ value = 2; }}),
-            new GroupByRow(new GroupByKey(new Object[] {"k3"}), new CountAggState() {{ value = 3; }})
+            new GroupByRow(new GroupByKey(new Object[] {"k1"}),
+                    new ArrayList<AggState>(1) {{
+                        add(new CountAggState() {{ value = 1; }});
+                    }}),
+            new GroupByRow(new GroupByKey(new Object[] {"k2"}),
+                    new ArrayList<AggState>(1) {{
+                        add(new CountAggState() {{ value = 2; }});
+                    }}),
+            new GroupByRow(new GroupByKey(new Object[] {"k3"}),
+                    new ArrayList<AggState>(1) {{
+                        add(new CountAggState() {{ value = 3; }});
+                    }})
         ));
 
         SQLGroupByResult result2 = new SQLGroupByResult(Arrays.asList(
-            new GroupByRow(new GroupByKey(new Object[] {"k2"}), new CountAggState() {{ value = 2; }}),
-            new GroupByRow(new GroupByKey(new Object[] {"k3"}), new CountAggState() {{ value = 3; }}),
-            new GroupByRow(new GroupByKey(new Object[] {"k4"}), new CountAggState() {{ value = 4; }}),
-            new GroupByRow(new GroupByKey(new Object[] {"k5"}), new CountAggState() {{ value = 5; }})
+                new GroupByRow(new GroupByKey(new Object[] {"k2"}),
+                        new ArrayList<AggState>(1) {{
+                            add(new CountAggState() {{ value = 2; }});
+                        }}),
+                new GroupByRow(new GroupByKey(new Object[] {"k3"}),
+                        new ArrayList<AggState>(1) {{
+                            add(new CountAggState() {{ value = 3; }});
+                        }}),
+                new GroupByRow(new GroupByKey(new Object[] {"k4"}),
+                        new ArrayList<AggState>(1) {{
+                            add(new CountAggState() {{ value = 4; }});
+                        }}),
+                new GroupByRow(new GroupByKey(new Object[] {"k5"}),
+                        new ArrayList<AggState>(1) {{
+                            add(new CountAggState() {{ value = 5; }});
+                        }})
         ));
 
         result1.merge(result2);
@@ -46,11 +69,17 @@ public class SQLGroupByResultTest {
     @Test
     public void testMerge2() throws Exception {
         SQLGroupByResult result1 = new SQLGroupByResult(Arrays.asList(
-            new GroupByRow(new GroupByKey(new Object[] {"k1"}), new CountAggState() {{ value = 1; }})
+                new GroupByRow(new GroupByKey(new Object[] {"k1"}),
+                        new ArrayList<AggState>(1) {{
+                            add(new CountAggState() {{ value = 1; }});
+                        }})
         ));
 
         SQLGroupByResult result2 = new SQLGroupByResult(Arrays.asList(
-            new GroupByRow(new GroupByKey(new Object[] {"k1"}), new CountAggState() {{ value = 2; }})
+                new GroupByRow(new GroupByKey(new Object[] {"k1"}),
+                        new ArrayList<AggState>(1) {{
+                            add(new CountAggState() {{ value = 2; }});
+                        }})
         ));
 
         result1.merge(result2);
@@ -63,15 +92,33 @@ public class SQLGroupByResultTest {
     @Test
     public void testMerge3() throws Exception {
         SQLGroupByResult result1 = new SQLGroupByResult(Arrays.asList(
-            new GroupByRow(new GroupByKey(new Object[] {"k2"}), new CountAggState() {{ value = 2; }}),
-            new GroupByRow(new GroupByKey(new Object[] {"k4"}), new CountAggState() {{ value = 3; }})
+                new GroupByRow(new GroupByKey(new Object[] {"k2"}),
+                        new ArrayList<AggState>(1) {{
+                            add(new CountAggState() {{ value = 2; }});
+                        }}),
+                new GroupByRow(new GroupByKey(new Object[] {"k4"}),
+                        new ArrayList<AggState>(1) {{
+                            add(new CountAggState() {{ value = 3; }});
+                        }})
         ));
 
         SQLGroupByResult result2 = new SQLGroupByResult(Arrays.asList(
-            new GroupByRow(new GroupByKey(new Object[] {"k1"}), new CountAggState() {{ value = 2; }}),
-            new GroupByRow(new GroupByKey(new Object[] {"k3"}), new CountAggState() {{ value = 3; }}),
-            new GroupByRow(new GroupByKey(new Object[] {"k4"}), new CountAggState() {{ value = 4; }}),
-            new GroupByRow(new GroupByKey(new Object[] {"k5"}), new CountAggState() {{ value = 5; }})
+                new GroupByRow(new GroupByKey(new Object[] {"k1"}),
+                        new ArrayList<AggState>(1) {{
+                            add(new CountAggState() {{ value = 2; }});
+                        }}),
+                new GroupByRow(new GroupByKey(new Object[] {"k3"}),
+                        new ArrayList<AggState>(1) {{
+                            add(new CountAggState() {{ value = 3; }});
+                        }}),
+                new GroupByRow(new GroupByKey(new Object[] {"k4"}),
+                        new ArrayList<AggState>(1) {{
+                            add(new CountAggState() {{ value = 4; }});
+                        }}),
+                new GroupByRow(new GroupByKey(new Object[] {"k5"}),
+                        new ArrayList<AggState>(1) {{
+                            add(new CountAggState() {{ value = 5; }});
+                        }})
         ));
 
         result1.merge(result2);

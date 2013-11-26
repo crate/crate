@@ -1,9 +1,10 @@
 package org.cratedb.module.sql.test.types;
 
 import org.cratedb.Constants;
+import org.cratedb.SQLCrateNodesTest;
 import org.cratedb.index.IndexMetaDataExtractor;
 import org.cratedb.sql.ValidationException;
-import org.cratedb.sql.types.*;
+import org.cratedb.sql.types.SQLFieldMapper;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.junit.Before;
@@ -108,19 +109,7 @@ public class SQLFieldRangeTest {
                 .putMapping(mappingMetaData)
                 .build();
         this.mapper = new SQLFieldMapper(
-                new HashMap<String, SQLType>() {{
-                    put(BooleanSQLType.NAME, new BooleanSQLType());
-                    put(ByteSQLType.NAME, new ByteSQLType());
-                    put(ShortSQLType.NAME, new ShortSQLType());
-                    put(IntegerSQLType.NAME, new IntegerSQLType());
-                    put(LongSQLType.NAME, new LongSQLType());
-                    put(FloatSQLType.NAME, new FloatSQLType());
-                    put(DoubleSQLType.NAME, new DoubleSQLType());
-                    put(StringSQLType.NAME, new StringSQLType());
-                    put(CratySQLType.NAME, new CratySQLType());
-                    put(TimeStampSQLType.NAME, new TimeStampSQLType());
-                    put(IpSQLType.NAME, new IpSQLType());
-                }},
+                SQLCrateNodesTest.SQL_TYPES,
                 new IndexMetaDataExtractor(metaData));
     }
 
@@ -131,7 +120,7 @@ public class SQLFieldRangeTest {
                     Byte.MAX_VALUE, Byte.MAX_VALUE + 1}, Integer.class},
                 {"short_field", new Number[]{Short.MIN_VALUE - 1, Short.MIN_VALUE, 0,
                         Short.MAX_VALUE,
-                        Short.MAX_VALUE + 1}, Integer.class},
+                        Short.MAX_VALUE + 1}, Short.class},
                 {"integer_field", new Number[]{Integer.MIN_VALUE - 1L, Integer.MIN_VALUE, 0,
                         Integer.MAX_VALUE, Integer.MAX_VALUE + 1L}, Integer.class}
         };

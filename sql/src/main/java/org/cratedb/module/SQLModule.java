@@ -1,8 +1,11 @@
 package org.cratedb.module;
 
+import org.cratedb.DataType;
 import org.cratedb.action.TransportSQLReduceHandler;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
+import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
+
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.TransportSQLAction;
@@ -36,6 +39,9 @@ public class SQLModule extends AbstractModule {
         MapBinder<String, AggFunction> aggFunctionBinder =
             MapBinder.newMapBinder(binder(), String.class, AggFunction.class);
         aggFunctionBinder.addBinding(CountAggFunction.NAME).to(CountAggFunction.class).asEagerSingleton();
+        aggFunctionBinder.addBinding(CountAggFunction.COUNT_ROWS_NAME).to(CountAggFunction.class).asEagerSingleton();
+        aggFunctionBinder.addBinding(MinAggFunction.NAME).to(MinAggFunction.class).asEagerSingleton();
+
 
         transportActionsBinder.addBinding(SQLAction.INSTANCE).to(TransportSQLAction.class).asEagerSingleton();
         transportActionsBinder.addBinding(ClusterUpdateCrateSettingsAction.INSTANCE).to(TransportClusterUpdateCrateSettingsAction.class).asEagerSingleton();
@@ -55,19 +61,19 @@ public class SQLModule extends AbstractModule {
         informationSchemaTables.addBinding(IndicesTable.NAME).to(IndicesTable.class).asEagerSingleton();
 
         // SQL Types
-        MapBinder<String, SQLType> sqlTypeMapBinder = MapBinder.newMapBinder(binder(),
-                String.class, SQLType.class);
-        sqlTypeMapBinder.addBinding(BooleanSQLType.NAME).to(BooleanSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(StringSQLType.NAME).to(StringSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(ByteSQLType.NAME).to(ByteSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(ShortSQLType.NAME).to(ShortSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(IntegerSQLType.NAME).to(IntegerSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(LongSQLType.NAME).to(LongSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(FloatSQLType.NAME).to(FloatSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(DoubleSQLType.NAME).to(DoubleSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(TimeStampSQLType.NAME).to(TimeStampSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(CratySQLType.NAME).to(CratySQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(IpSQLType.NAME).to(IpSQLType.class).asEagerSingleton();
+        MapBinder<DataType, SQLType> sqlTypeMapBinder = MapBinder.newMapBinder(binder(),
+                DataType.class, SQLType.class);
+        sqlTypeMapBinder.addBinding(DataType.BOOLEAN).to(BooleanSQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(DataType.STRING).to(StringSQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(DataType.BYTE).to(ByteSQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(DataType.SHORT).to(ShortSQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(DataType.INTEGER).to(IntegerSQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(DataType.LONG).to(LongSQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(DataType.FLOAT).to(FloatSQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(DataType.DOUBLE).to(DoubleSQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(DataType.TIMESTAMP).to(TimeStampSQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(DataType.CRATY).to(CratySQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(DataType.IP).to(IpSQLType.class).asEagerSingleton();
 
         // get a factory for InformationSchemaTableExecutionContext
         bind(InformationSchemaTableExecutionContextFactory.class).toProvider(FactoryProvider

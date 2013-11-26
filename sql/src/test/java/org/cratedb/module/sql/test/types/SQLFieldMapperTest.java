@@ -1,10 +1,10 @@
 package org.cratedb.module.sql.test.types;
 
 import org.cratedb.Constants;
+import org.cratedb.SQLCrateNodesTest;
 import org.cratedb.index.IndexMetaDataExtractor;
 import org.cratedb.sql.ValidationException;
-import org.cratedb.sql.types.*;
-import org.cratedb.test.integration.AbstractCrateNodesTests;
+import org.cratedb.sql.types.SQLFieldMapper;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.junit.Before;
@@ -16,7 +16,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class SQLFieldMapperTest extends AbstractCrateNodesTests {
+public class SQLFieldMapperTest extends SQLCrateNodesTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -103,26 +103,14 @@ public class SQLFieldMapperTest extends AbstractCrateNodesTests {
     public void before() throws IOException {
         IndexMetaData metaData = getMetaData();
         this.mapper = new SQLFieldMapper(
-                new HashMap<String, SQLType>() {{
-                    put(BooleanSQLType.NAME, new BooleanSQLType());
-                    put(ByteSQLType.NAME, new ByteSQLType());
-                    put(ShortSQLType.NAME, new ShortSQLType());
-                    put(IntegerSQLType.NAME, new IntegerSQLType());
-                    put(LongSQLType.NAME, new LongSQLType());
-                    put(FloatSQLType.NAME, new FloatSQLType());
-                    put(DoubleSQLType.NAME, new DoubleSQLType());
-                    put(StringSQLType.NAME, new StringSQLType());
-                    put(CratySQLType.NAME, new CratySQLType());
-                    put(TimeStampSQLType.NAME, new TimeStampSQLType());
-                    put(IpSQLType.NAME, new IpSQLType());
-                }},
+                SQL_TYPES,
                 new IndexMetaDataExtractor(metaData));
     }
 
     @Test
     public void testBuiltinTypes() {
         assertEquals(100, this.mapper.convertToXContentValue("byte_field", 100L));
-        assertEquals(100, this.mapper.convertToXContentValue("short_field", 100L));
+        assertEquals(new Integer(100).shortValue(), this.mapper.convertToXContentValue("short_field", 100L));
         assertEquals(100, this.mapper.convertToXContentValue("integer_field", 100L));
         assertEquals(new Long(100L), this.mapper.convertToXContentValue("long_field", 100));
         assertEquals(new Float(100.0), this.mapper.convertToXContentValue("float_field", 100.0));
@@ -161,7 +149,7 @@ public class SQLFieldMapperTest extends AbstractCrateNodesTests {
         @SuppressWarnings("unchecked")
         Map<String, Object> mappedMap = (Map<String, Object>)mapped;
         assertEquals("The Total Perspective Vortex", mappedMap.get("title"));
-        assertEquals(1024, mappedMap.get("size"));
+        assertEquals(new Integer(1024).shortValue(), mappedMap.get("size"));
         assertEquals(1384732800000L, mappedMap.get("created"));
 
         assertEquals(1384732800000L, this.mapper.convertToXContentValue("craty_field.created",

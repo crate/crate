@@ -1,12 +1,12 @@
 package org.cratedb.service;
 
 import com.google.common.base.Joiner;
+import org.cratedb.SQLCrateNodesTest;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.SQLParseException;
-import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.node.internal.InternalNode;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.contains;
 
-public class InformationSchemaServiceTest extends AbstractCrateNodesTests {
+public class InformationSchemaServiceTest extends SQLCrateNodesTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -77,11 +77,7 @@ public class InformationSchemaServiceTest extends AbstractCrateNodesTests {
     public static void shutdownNode() throws Exception {
         parseService = null;
         informationSchemaService = null;
-        if (node != null) {
-            node.stop();
-            node.close();
-            node = null;
-        }
+        node = null;
     }
 
     @Test
@@ -125,7 +121,7 @@ public class InformationSchemaServiceTest extends AbstractCrateNodesTests {
      * @throws Exception
      */
     private void execUsingClient(String statement, Object[] args) throws Exception {
-        response = node.client().execute(SQLAction.INSTANCE, new SQLRequest(statement, args)).actionGet();
+        response = execute(statement, args);
     }
 
     private void execUsingClient(String statement) throws Exception {

@@ -6,7 +6,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class CountAggState extends AggState {
+public class CountAggState<T> extends AggState<CountAggState<T>> {
 
     public long value;
 
@@ -20,10 +20,8 @@ public class CountAggState extends AggState {
         out.writeVLong(value);
     }
 
-    @Override
-    public void merge(AggState other) {
-        assert other instanceof CountAggState;
-        value += ((CountAggState)other).value;
+    public void reduce(CountAggState<T> other) {
+        value += other.value;
     }
 
     @Override
@@ -37,9 +35,8 @@ public class CountAggState extends AggState {
     }
 
     @Override
-    public int compareTo(AggState o) {
-        // let it crash if AggState isn't a CountAggState since it's not comparable
-        CountAggState countAggState = (CountAggState)o;
-        return Long.compare(value, countAggState.value);
+    public int compareTo(CountAggState<T> o) {
+        return Long.compare(value, o.value);
+
     }
 }

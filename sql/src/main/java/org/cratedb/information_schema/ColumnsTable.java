@@ -91,7 +91,7 @@ public class ColumnsTable extends AbstractInformationSchemaTable {
         ordinalPositionField.setIntValue(columnDefinition.ordinalPosition);
         doc.add(ordinalPositionField);
 
-        dataTypeField.setStringValue(columnDefinition.dataType);
+        dataTypeField.setStringValue(columnDefinition.dataType.getName());
         doc.add(dataTypeField);
 
         indexWriter.addDocument(doc);

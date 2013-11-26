@@ -18,6 +18,7 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
     private final String tableName;
 
     private final ImmutableMap<String, InformationSchemaTable> tablesMap;
+    private final ImmutableMap<String, ColumnDefinition> columnDefinitions;
 
     @Inject
     public InformationSchemaTableExecutionContext(Map<String,
@@ -27,6 +28,12 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
             throw new TableUnknownException(tableName);
         }
         this.tableName = tableName;
+        ImmutableMap.Builder<String, ColumnDefinition> builder = new ImmutableMap.Builder<>();
+        int position = 0;
+        for (Map.Entry<String, InformationSchemaColumn> entry: this.tablesMap.get(this.tableName).fieldMapper().entrySet()) {
+            builder.put(entry.getKey(), entry.getValue().getColumnDefinition(tableName, position++));
+        }
+        this.columnDefinitions = builder.build();
     }
 
     public ImmutableMap<String, InformationSchemaColumn> fieldMapper() {
@@ -62,6 +69,11 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
     @Override
     public boolean hasCol(String name) {
         return tablesMap.get(tableName).fieldMapper().containsKey(name);
+    }
+
+    @Override
+    public ColumnDefinition getColumnDefinition(String name) {
+        return columnDefinitions.get(name);
     }
 
     @Override

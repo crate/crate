@@ -16,7 +16,7 @@ public class ShortSQLType extends NumericSQLType {
 
     @Override
     protected Object convertNumber(Number value) throws ConvertException {
-        return value.intValue();
+        return value.shortValue();
     }
 
 }

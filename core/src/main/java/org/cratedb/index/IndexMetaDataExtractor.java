@@ -2,6 +2,7 @@ package org.cratedb.index;
 
 import com.google.common.base.Joiner;
 import org.cratedb.Constants;
+import org.cratedb.DataType;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.Booleans;
@@ -183,20 +184,44 @@ public class IndexMetaDataExtractor {
     /**
      * extract dataType from given columnProperties
      *
+     *
      * @param columnProperties map of String to Object containing column properties
-     * @return dataType of the column with columnProperties as String
+     * @return dataType of the column with columnProperties
      */
-    private String getColumnDataType(Map<String, Object> columnProperties) {
-        String dataType = (String)columnProperties.get("type");
-        if (dataType == null && columnProperties.get("properties") != null ||
-                dataType.equals("object") || dataType.equals("nested")) {
-            // TODO: whats about nested object schema?
-            dataType = "craty";
-
-        } else if (dataType.equals("date")) {
-            dataType = "timestamp";
+    private DataType getColumnDataType(Map<String, Object> columnProperties) {
+        String typeName = (String)columnProperties.get("type");
+        if (typeName == null) {
+            if (columnProperties.get("properties") != null) {
+                return DataType.CRATY;
+            }
+        } else {
+            switch(typeName.toLowerCase()) {
+                case "date":
+                    return DataType.TIMESTAMP;
+                case "string":
+                    return DataType.STRING;
+                case "boolean":
+                    return DataType.BOOLEAN;
+                case "byte":
+                    return DataType.BYTE;
+                case "short":
+                    return DataType.SHORT;
+                case "integer":
+                    return DataType.INTEGER;
+                case "long":
+                    return DataType.LONG;
+                case "float":
+                    return DataType.FLOAT;
+                case "double":
+                    return DataType.DOUBLE;
+                case "ip":
+                    return DataType.IP;
+                case "object":
+                case "nested":
+                    return DataType.CRATY;
+                }
         }
-        return dataType;
+        return null;
     }
 
     private static Tuple<String, String> getAnalyzer(Map<String, Object> columnProperties) {
@@ -224,7 +249,6 @@ public class IndexMetaDataExtractor {
      * return a list of ColumnDefinitions for the table defined as "default"-mapping in this index
      *
      * @return a list of ColumnDefinitions
-     * @throws IOException
      */
 
     public List<ColumnDefinition> getColumnDefinitions() {

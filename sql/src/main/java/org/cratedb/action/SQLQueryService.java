@@ -60,7 +60,9 @@ public class SQLQueryService {
     {
         SearchContext context = buildSearchContext(concreteIndex, shardId);
         SearchContext.setCurrent(context);
-        logger.trace("Parsing xcontentQuery:\n " + stmt.xcontent.toUtf8());
+        if (logger.isTraceEnabled()) {
+            logger.trace("Parsing xcontentQuery:\n " + stmt.xcontent.toUtf8());
+        }
         parser.parse(context, stmt.xcontent);
         context.preProcess();
 

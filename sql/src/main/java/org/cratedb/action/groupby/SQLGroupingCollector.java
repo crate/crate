@@ -6,6 +6,7 @@ import org.apache.lucene.search.Scorer;
 import org.cratedb.action.GroupByFieldLookup;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.groupby.aggregate.AggState;
 import org.cratedb.action.sql.ParsedStatement;
 
 import java.io.IOException;
@@ -55,6 +56,7 @@ public class SQLGroupingCollector extends Collector {
         this.parsedStatement = parsedStatement;
         this.groupByFieldLookup = groupByFieldLookup;
         this.reducers = reducers;
+        
 
         assert parsedStatement.groupByColumnNames != null;
         for (String reducer : reducers) {
@@ -64,9 +66,6 @@ public class SQLGroupingCollector extends Collector {
         this.aggFunctions = new AggFunction[parsedStatement.aggregateExpressions.size()];
         for (int i = 0; i < parsedStatement.aggregateExpressions.size(); i++) {
             AggExpr aggExpr = parsedStatement.aggregateExpressions.get(i);
-            if (!aggExpr.parameterInfo.isAllColumn) {
-                throw new UnsupportedOperationException("select aggFunc(column) not supported!");
-            }
             aggFunctions[i] = aggFunctionMap.get(aggExpr.functionName);
         }
     }
@@ -90,12 +89,20 @@ public class SQLGroupingCollector extends Collector {
         GroupByRow row = resultMap.get(key);
 
         if (row == null) {
-            row = GroupByRow.createEmptyRow(key, aggFunctions);
+            row = GroupByRow.createEmptyRow(key, parsedStatement.aggregateExpressions, aggFunctions);
             resultMap.put(key, row);
         }
 
         for (int i = 0; i < aggFunctions.length; i++) {
-            aggFunctions[i].iterate(row.aggStates[i], null);
+            AggExpr aggExpr = parsedStatement.aggregateExpressions.get(i);
+            Object value = null;
+
+            if (aggExpr.parameterInfo.columnName != null) {
+                value = groupByFieldLookup.lookupField(aggExpr.parameterInfo.columnName);
+            }
+
+            AggFunction<AggState> function = aggFunctions[i];
+            function.iterate(row.aggStates.get(i), value);
         }
     }
 

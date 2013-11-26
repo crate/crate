@@ -1,5 +1,7 @@
 package org.cratedb.index;
 
+import org.cratedb.DataType;
+
 public class BuiltInColumnDefinition extends ColumnDefinition {
     /**
      * common tableName for BuiltInColumnDefinitions
@@ -7,7 +9,7 @@ public class BuiltInColumnDefinition extends ColumnDefinition {
     public static final String VIRTUAL_SYSTEM_COLUMN_TABLE = "__";
 
     public static final BuiltInColumnDefinition SCORE_COLUMN =
-            new BuiltInColumnDefinition("_score", "double", null, -1, false, true);
+            new BuiltInColumnDefinition("_score", DataType.DOUBLE, null, -1, false, true);
 
     /**
      * @param columnName      the name of the column
@@ -17,7 +19,7 @@ public class BuiltInColumnDefinition extends ColumnDefinition {
      *                        always false for "normal" columns
      * @param strict          applied only to objects - if new columns can be added
      */
-    private BuiltInColumnDefinition(String columnName, String dataType, String analyzer,
+    private BuiltInColumnDefinition(String columnName, DataType dataType, String analyzer,
                                     int ordinalPosition, boolean dynamic, boolean strict) {
         super(VIRTUAL_SYSTEM_COLUMN_TABLE, columnName, dataType, analyzer, ordinalPosition, dynamic, strict);
     }

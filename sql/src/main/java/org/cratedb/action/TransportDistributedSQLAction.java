@@ -5,10 +5,9 @@ import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.GroupByRowComparator;
 import org.cratedb.action.groupby.aggregate.AggFunction;
-import org.cratedb.action.sql.ParsedStatement;
-import org.cratedb.action.sql.SQLRequest;
-import org.cratedb.action.sql.SQLResponse;
+
 import org.cratedb.core.collections.LimitingCollectionIterator;
+import org.cratedb.action.sql.*;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.ElasticSearchException;
@@ -55,8 +54,8 @@ import static com.google.common.collect.Sets.newHashSet;
  *      The partial results are then sent to the reducers.
  *
  * Reducers:
- *      Will receive a partial result from each mapper and merge that result
- *      The merged result is then sent to the original handler node for a final merge.
+ *      Will receive a partial result from each mapper and reduce that result
+ *      The merged result is then sent to the original handler node for a final reduce.
  *
  *  @startuml
  *  actor "Caller" as c
@@ -71,11 +70,11 @@ import static com.google.common.collect.Sets.newHashSet;
  *  h -> ms: SQLShardRequest(contextId, reducers)
  *  ms -> ms: Query Lucene
  *  ms -> r: SQLMapperResultRequest(contextId)
- *  r -> r: merge ReduceResult
+ *  r -> r: reduce ReduceResult
  *  r -> r: numMapperRequests -= 1
  *  r -> r: wait for reduceResult of all mappers
  *  r -> h: send SQLReduceJobResponse
- *  h -> h: merge reduceResult
+ *  h -> h: reduce reduceResult
  *  h -> h: wait for reduceResult of all reducers
  *  h -> h: reduceResult to SQLResponse
  *  h -> c: SQLResponse
@@ -89,6 +88,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
     private final TransportService transportService;
     private final SQLParseService sqlParseService;
     private final SQLQueryService sqlQueryService;
+    private final NodeExecutionContext nodeExecutionContext; // TODO: put this into a service class
     private final TransportSQLReduceHandler transportSQLReduceHandler;
     private final Map<String, AggFunction> aggFunctionMap;
     final String executor = ThreadPool.Names.SEARCH;
@@ -102,10 +102,12 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                                             SQLParseService sqlParseService,
                                             TransportSQLReduceHandler transportSQLReduceHandler,
                                             SQLQueryService sqlQueryService,
+                                            NodeExecutionContext nodeExecutionContext,
                                             Map<String, AggFunction> aggFunctionMap) {
         super(settings, threadPool);
         this.sqlParseService = sqlParseService;
         this.sqlQueryService = sqlQueryService;
+        this.nodeExecutionContext = nodeExecutionContext;
         this.clusterService = clusterService;
         this.transportService = transportService;
         this.transportSQLReduceHandler = transportSQLReduceHandler;
@@ -254,6 +256,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         private final AtomicReference<Throwable> lastException;
         private final List<GroupByRow> groupByResult;
         private final GroupByRowComparator comparator;
+        private final ITableExecutionContext tableExecutionContext;
         private final UUID contextId;
 
         AsyncBroadcastAction(DistributedSQLRequest request, ActionListener<SQLResponse> listener) {
@@ -286,6 +289,10 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
             reduceResponseCounter = new AtomicLong(reducers.length);
             shardResponseCounter = new AtomicLong(expectedShardResponses);
+
+            // TODO: put this into a service class
+            tableExecutionContext = nodeExecutionContext.tableContext(
+                    parsedStatement.schemaName(), parsedStatement.tableName());
             contextId = UUID.randomUUID();
         }
 
@@ -321,7 +328,8 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 Collections.sort(groupByResult, comparator);
                 Object[][] rows = GroupByHelper.sortedRowsToObjectArray(
                     new LimitingCollectionIterator<>(groupByResult, parsedStatement.totalLimit()),
-                    parsedStatement
+                    parsedStatement,
+                    GroupByHelper.buildFieldExtractor(parsedStatement, tableExecutionContext.mapper())
                 );
 
                 if (logger.isTraceEnabled()) {

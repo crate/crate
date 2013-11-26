@@ -234,10 +234,33 @@ Query for a property of an inner object::
     +-----------+----------------+
     SELECT 1 row in set (... sec)
 
+
+.. _sql_dml_aggregation:
+
 Data Aggregation
 ----------------
 
-Currently the only supported aggregation function in `crate` is `count(*)`::
+.. seealso::
+
+    :ref:`aggregation`
+
++---------+---------------+----------------------------------+-----------------------+----------+
+| Name    | Arguments     | Description                      | Return Type           | Scope    |
++=========+===============+==================================+=======================+==========+
+| COUNT(*)| Star as       | Counts the number of rows        | long                  | Group by |
+|         | Parameter or  | that match the query.            |                       | Requests |
+|         | as Constant   |                                  |                       | and      |
+|         | or the primary|                                  |                       | "normal" |
+|         | key column    |                                  |                       | requests |
++---------+---------------+----------------------------------+-----------------------+----------+
+| MIN     | column name of| returns the smallest of the      | the input             | Group by |
+|         | a numeric,    | values in the argument column    | column type           | Requests |
+|         | date or string| in case of strings this          |                       |          |
+|         | column        | means the lexicographically      |                       |          |
+|         |               | smallest                         |                       |          |
++---------+---------------+----------------------------------+-----------------------+----------+
+
+Some Examples::
 
     cr> select count(*) from locations
     +----------+
@@ -247,19 +270,47 @@ Currently the only supported aggregation function in `crate` is `count(*)`::
     +----------+
     SELECT 1 row in set (... sec)
 
-.. note::
+    cr> select count(*) from locations where kind='Planet'
+    +----------+
+    | COUNT(*) |
+    +----------+
+    | 5        |
+    +----------+
+    SELECT 1 row in set (... sec)
 
-    The count() aggregate function can also be called with parameter
-    substitution. But only if the value evaluates to a '*'.
 
-.. seealso::
+    cr> select count(*), kind from locations group by kind order by kind asc
+    +----------+-------------+
+    | COUNT(*) | kind        |
+    +----------+-------------+
+    | 4        | Galaxy      |
+    | 5        | Planet      |
+    | 4        | Star System |
+    +----------+-------------+
+    SELECT 3 rows in set (... sec)
 
-    :doc:`rest`
 
-.. note::
+    cr> select min(name), kind from locations group by kind order by min(name) asc
+    +------------------------------------+-------------+
+    | MIN(name)                          | kind        |
+    +------------------------------------+-------------+
+    |                                    | Planet      |
+    | Aldebaran                          | Star System |
+    | Galactic Sector QQ7 Active J Gamma | Galaxy      |
+    +------------------------------------+-------------+
+    SELECT 3 rows in set (... sec)
 
-    count(columName) works also, but currently only on a primary key column.
-    
+    cr> select count(*), min(name), kind from locations group by kind
+    +----------+------------------------------------+-------------+
+    | COUNT(*) | MIN(name)                          | kind        |
+    +----------+------------------------------------+-------------+
+    | 4        | Aldebaran                          | Star System |
+    | 5        |                                    | Planet      |
+    | 4        | Galactic Sector QQ7 Active J Gamma | Galaxy      |
+    +----------+------------------------------------+-------------+
+    SELECT 3 rows in set (... sec)
+
+.. _sql_dml_group_by:
 
 Group by
 --------
