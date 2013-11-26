@@ -11,6 +11,8 @@ import org.cratedb.action.groupby.aggregate.count.CountAggState;
 import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.action.sql.OrderByColumnIdx;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.service.SQLParseService;
+import org.cratedb.stubs.HitchhikerMocks;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -27,21 +29,9 @@ public class SQLReduceJobStatusTest {
          * after the reducing phase the GroupByRows are sorted and a limit is applied
          * test here that the sorting / limiting works correctly:
          */
-
-        // TODO:
-        ParsedStatement stmt = new ParsedStatement("" +
-            "select count(*) from dummy group by dummyCol order by count(*)");
-
-        stmt.resultColumnList = new ArrayList<ColumnDescription>() {{
-            add(new AggExpr(
-                CountAggFunction.COUNT_ROWS_NAME,
-                new ParameterInfo() {{ isAllColumn = true; }}
-            ));
-        }};
-        stmt.orderByIndices = new ArrayList<OrderByColumnIdx>() {{
-            add(new OrderByColumnIdx(0, false));
-        }};
-        stmt.limit(2);
+        SQLParseService parseService = new SQLParseService(HitchhikerMocks.nodeExecutionContext());
+        ParsedStatement stmt = parseService.parse(
+            "select count(*) from characters group by race order by count(*) desc limit 2");
 
         // result ist from 1 shard, limit is 2; order by first column
         SQLReduceJobStatus status = new SQLReduceJobStatus(stmt, 1,
