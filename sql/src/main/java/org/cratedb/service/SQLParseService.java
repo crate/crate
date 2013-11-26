@@ -11,11 +11,16 @@ import org.cratedb.sql.parser.parser.ParameterNode;
 import org.cratedb.sql.parser.parser.SQLParser;
 import org.cratedb.sql.parser.parser.StatementNode;
 import org.cratedb.sql.parser.unparser.NodeToString;
+import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import java.util.List;
 
 public class SQLParseService {
+
+    final ESLogger logger = Loggers.getLogger(getClass());
 
     public static final Integer DEFAULT_SELECT_LIMIT = 10000;
     public final NodeExecutionContext context;
@@ -30,9 +35,14 @@ public class SQLParseService {
     }
 
     public ParsedStatement parse(String statement, Object[] args) throws SQLParseException {
+        StopWatch stopWatch = null;
+        ParsedStatement stmt = new ParsedStatement(statement);
+
+        if (logger.isTraceEnabled()) {
+            stopWatch = new StopWatch().start();
+        }
         try {
             SQLParser parser = new SQLParser();
-            ParsedStatement stmt = new ParsedStatement(statement);
             StatementNode statementNode = parser.parseStatement(statement);
             BaseVisitor visitor;
             switch (statementNode.getNodeType()) {
@@ -54,12 +64,18 @@ public class SQLParseService {
                     break;
             }
             statementNode.accept(visitor);
-            return stmt;
         } catch (CrateException ex) {
             throw ex;
         } catch (Exception ex) {
             throw new SQLParseException(ex.getMessage(), ex);
         }
+
+        if (logger.isTraceEnabled()) {
+            assert stopWatch != null;
+            stopWatch.stop();
+            logger.trace("Parsing sql statement took {}", stopWatch.totalTime().getMillis());
+        }
+        return stmt;
     }
 
     /**
