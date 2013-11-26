@@ -3,7 +3,7 @@ package org.cratedb.action.groupby;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Scorer;
-import org.cratedb.action.GroupByFieldLookup;
+import org.cratedb.action.FieldLookup;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.ParsedStatement;
@@ -22,7 +22,7 @@ import static com.google.common.collect.Maps.newHashMap;
 public class SQLGroupingCollector extends Collector {
 
     protected final String[] reducers;
-    private final GroupByFieldLookup groupByFieldLookup;
+    private final FieldLookup fieldLookup;
     private final ParsedStatement parsedStatement;
     private final AggFunction[] aggFunctions;
     private final ArrayList<Integer> aggExprToSeenMap;
@@ -50,11 +50,11 @@ public class SQLGroupingCollector extends Collector {
     public Map<String, Map<GroupByKey, GroupByRow>> partitionedResult = newHashMap();
 
     public SQLGroupingCollector(ParsedStatement parsedStatement,
-                                GroupByFieldLookup groupByFieldLookup,
+                                FieldLookup fieldLookup,
                                 Map<String, AggFunction> aggFunctionMap,
                                 String[] reducers) {
         this.parsedStatement = parsedStatement;
-        this.groupByFieldLookup = groupByFieldLookup;
+        this.fieldLookup = fieldLookup;
         this.reducers = reducers;
 
         for (String reducer : reducers) {
@@ -88,14 +88,14 @@ public class SQLGroupingCollector extends Collector {
     protected GroupByKey getGroupByKey() throws IOException {
         Object[] keyValue = new Object[parsedStatement.groupByColumnNames.size()];
         for (int i = 0; i < parsedStatement.groupByColumnNames.size(); i++) {
-            keyValue[i] = groupByFieldLookup.lookupField(parsedStatement.groupByColumnNames.get(i));
+            keyValue[i] = fieldLookup.lookupField(parsedStatement.groupByColumnNames.get(i));
         }
         return new GroupByKey(keyValue);
     }
 
     @Override
     public void collect(int doc) throws IOException {
-        groupByFieldLookup.setNextDocId(doc);
+        fieldLookup.setNextDocId(doc);
         GroupByKey key = getGroupByKey();
 
         String reducer = partitionByKey(reducers, key);
@@ -115,7 +115,7 @@ public class SQLGroupingCollector extends Collector {
             Object value = null;
 
             if (aggExpr.parameterInfo != null) {
-                value = groupByFieldLookup.lookupField(aggExpr.parameterInfo.columnName);
+                value = fieldLookup.lookupField(aggExpr.parameterInfo.columnName);
             }
             function.iterate(row.aggStates.get(i), value);
         }
@@ -127,7 +127,7 @@ public class SQLGroupingCollector extends Collector {
 
     @Override
     public void setNextReader(AtomicReaderContext context) throws IOException {
-        groupByFieldLookup.setNextReader(context);
+        fieldLookup.setNextReader(context);
     }
 
     @Override

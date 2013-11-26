@@ -9,7 +9,7 @@ public class DoubleSQLType extends SQLType {
     }
 
     @Override
-    protected Object doConvert(Object value) throws ConvertException {
+    protected Object doMapValue(Object value) throws ConvertException {
         if (value instanceof Number) {
             return ((Number) value).doubleValue();
         } else {

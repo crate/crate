@@ -480,11 +480,11 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
 
         client().prepareIndex("test", "default", "id1")
                 .setSource("{\"date\": " +
-                        new TimeStampSQLType().toXContent("2013-10-01") + "}")
+                        new TimeStampSQLType().mappedValue("2013-10-01") + "}")
                 .execute().actionGet();
         client().prepareIndex("test", "default", "id2")
                 .setSource("{\"date\": " +
-                        new TimeStampSQLType().toXContent("2013-10-02") + "}")
+                        new TimeStampSQLType().mappedValue("2013-10-02") + "}")
                 .execute().actionGet();
         refresh();
         execute(
@@ -501,11 +501,11 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
                 .execute().actionGet();
         client().prepareIndex("test", "default", "id1")
                 .setSource("{\"date\": " +
-                        new TimeStampSQLType().toXContent("2013-10-01") + "}")
+                        new TimeStampSQLType().mappedValue("2013-10-01") + "}")
                 .execute().actionGet();
         client().prepareIndex("test", "default", "id2")
                 .setSource("{\"date\":" +
-                        new TimeStampSQLType().toXContent("2013-10-02") + "}")
+                        new TimeStampSQLType().mappedValue("2013-10-02") + "}")
                 .execute().actionGet();
         refresh();
         execute(

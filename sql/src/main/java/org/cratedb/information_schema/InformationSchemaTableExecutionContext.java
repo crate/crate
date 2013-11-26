@@ -3,6 +3,8 @@ package org.cratedb.information_schema;
 import com.google.common.collect.ImmutableMap;
 import org.cratedb.action.sql.ITableExecutionContext;
 import org.cratedb.index.ColumnDefinition;
+import org.cratedb.lucene.LuceneFieldMapper;
+import org.cratedb.lucene.fields.LuceneField;
 import org.cratedb.sql.TableUnknownException;
 import org.cratedb.sql.types.SQLFieldMapper;
 import org.elasticsearch.common.inject.Inject;
@@ -30,13 +32,15 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
         this.tableName = tableName;
         ImmutableMap.Builder<String, ColumnDefinition> builder = new ImmutableMap.Builder<>();
         int position = 0;
-        for (Map.Entry<String, InformationSchemaColumn> entry: this.tablesMap.get(this.tableName).fieldMapper().entrySet()) {
+        for (Map.Entry<String, LuceneField> entry: this.tablesMap.get(this.tableName).fieldMapper()
+                .entrySet()) {
             builder.put(entry.getKey(), entry.getValue().getColumnDefinition(tableName, position++));
         }
         this.columnDefinitions = builder.build();
     }
 
-    public ImmutableMap<String, InformationSchemaColumn> fieldMapper() {
+    @Override
+    public LuceneFieldMapper luceneFieldMapper() {
         return tablesMap.get(tableName).fieldMapper();
     }
 
@@ -87,6 +91,6 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
 
     @Override
     public boolean isMultiValued(String columnName) {
-        return fieldMapper().get(columnName).allowMultipleValues;
+        return luceneFieldMapper().get(columnName).allowMultipleValues;
     }
 }

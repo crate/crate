@@ -22,12 +22,12 @@ public abstract class SQLType {
 
     public abstract String typeName();
 
-    public Object toXContent(@Nullable Object value) throws ConvertException {
+    public Object mappedValue(@Nullable Object value) throws ConvertException {
         if (value == null) { return null; }
-        return doConvert(value);
+        return doMapValue(value);
     }
 
-    protected abstract Object doConvert(Object value) throws ConvertException;
+    protected abstract Object doMapValue(Object value) throws ConvertException;
 
     public Object toDisplayValue(@Nullable Object value) {
         return value;

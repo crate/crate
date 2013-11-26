@@ -7,6 +7,7 @@ import org.cratedb.index.ColumnDefinition;
 import org.cratedb.index.IndexMetaDataExtractor;
 import org.cratedb.information_schema.InformationSchemaTableExecutionContext;
 import org.cratedb.information_schema.InformationSchemaTableExecutionContextFactory;
+import org.cratedb.stats.ShardStatsTableExecutionContext;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.TableAliasSchemaException;
 import org.cratedb.sql.TableUnknownException;
@@ -34,7 +35,8 @@ public class NodeExecutionContext {
     private final Settings settings;
     private final SQLFieldMapperFactory sqlFieldMapperFactory;
     private final Map<String, AggFunction> availableAggFunctions;
- 
+    private final ShardStatsTableExecutionContext shardStatsTableExecutionContext;
+
     @Inject
     public NodeExecutionContext(IndicesService indicesService,
                                 ClusterService clusterService,
@@ -43,6 +45,7 @@ public class NodeExecutionContext {
                                 InformationSchemaTableExecutionContextFactory factory,
                                 Settings settings,
                                 SQLFieldMapperFactory sqlFieldMapperFactory,
+                                ShardStatsTableExecutionContext shardStatsTableExecutionContext,
                                 Map<String, AggFunction> availableAggFunctions) {
         this.indicesService = indicesService;
         this.clusterService = clusterService;
@@ -52,6 +55,7 @@ public class NodeExecutionContext {
         this.settings = settings;
         this.sqlFieldMapperFactory = sqlFieldMapperFactory;
         this.availableAggFunctions = availableAggFunctions;
+        this.shardStatsTableExecutionContext = shardStatsTableExecutionContext;
     }
 
     /**
@@ -63,6 +67,9 @@ public class NodeExecutionContext {
     public ITableExecutionContext tableContext(String schema, String table) {
         if (schema != null && schema.equalsIgnoreCase(InformationSchemaTableExecutionContext.SCHEMA_NAME)) {
             return factory.create(table);
+        }
+        if (schema != null && schema.equalsIgnoreCase(ShardStatsTableExecutionContext.SCHEMA_NAME)) {
+            return shardStatsTableExecutionContext;
         }
 
         // resolve aliases to the concreteIndices

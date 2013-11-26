@@ -83,7 +83,7 @@ public class SQLGroupingCollectorTest extends TestCase {
         assertThat((Long)(row.aggStates.get(0).value()), is(1L));
     }
 
-    class DummyGroupKeyLookup implements GroupByFieldLookup {
+    class DummyGroupKeyLookup implements FieldLookup {
 
 
         private HashMap<Integer, HashMap<String, Object>> dummyValues = new HashMap<Integer, HashMap<String, Object>>() {{

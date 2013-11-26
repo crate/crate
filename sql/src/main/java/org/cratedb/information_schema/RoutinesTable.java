@@ -1,12 +1,12 @@
 package org.cratedb.information_schema;
 
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
+import org.cratedb.lucene.fields.StringLuceneField;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -37,13 +37,6 @@ public class RoutinesTable extends AbstractInformationSchemaTable {
     }
     public static final String BUILTIN = "BUILTIN";
 
-    private ImmutableMap<String, InformationSchemaColumn> fieldMapper = new ImmutableMap
-            .Builder<String, InformationSchemaColumn>()
-            .put(Columns.ROUTINE_NAME, new InformationSchemaStringColumn(Columns.ROUTINE_NAME))
-            .put(Columns.ROUTINE_TYPE, new InformationSchemaStringColumn(Columns.ROUTINE_TYPE))
-            .put(Columns.ROUTINE_DEFINITION, new InformationSchemaStringColumn(Columns.ROUTINE_DEFINITION))
-            .build();
-
     private final AnalyzerService analyzerService;
 
     StringField routineNameField = new StringField(Columns.ROUTINE_NAME, "", Field.Store.YES);
@@ -55,6 +48,13 @@ public class RoutinesTable extends AbstractInformationSchemaTable {
     public RoutinesTable(Map<String, AggFunction> aggFunctionMap, AnalyzerService analyzerService) {
         super(aggFunctionMap);
         this.analyzerService = analyzerService;
+        fieldMapper.put(Columns.ROUTINE_NAME,
+                new StringLuceneField(Columns.ROUTINE_NAME));
+        fieldMapper.put(Columns.ROUTINE_TYPE,
+                new StringLuceneField(Columns.ROUTINE_TYPE));
+        fieldMapper.put(Columns.ROUTINE_DEFINITION,
+                new StringLuceneField(Columns.ROUTINE_DEFINITION));
+
     }
 
     @Override
@@ -130,13 +130,4 @@ public class RoutinesTable extends AbstractInformationSchemaTable {
         }
     }
 
-    @Override
-    public Iterable<String> cols() {
-        return fieldMapper().keySet();
-    }
-
-    @Override
-    public ImmutableMap<String, InformationSchemaColumn> fieldMapper() {
-        return fieldMapper;
-    }
 }

@@ -1,15 +1,15 @@
 package org.cratedb.information_schema;
 
-import com.google.common.collect.ImmutableMap;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.lucene.LuceneFieldMapper;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterState;
 
 public interface InformationSchemaTable {
     public Iterable<String> cols();
-    public ImmutableMap<String, InformationSchemaColumn> fieldMapper();
+    public LuceneFieldMapper fieldMapper();
 
     /**
      * initialize this table and its resources

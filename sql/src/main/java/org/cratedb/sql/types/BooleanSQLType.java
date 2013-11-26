@@ -10,7 +10,7 @@ public class BooleanSQLType extends SQLType {
     }
 
     @Override
-    protected Object doConvert(Object value) throws ConvertException {
+    protected Object doMapValue(Object value) throws ConvertException {
         try {
             return (Boolean)value;
         } catch (ClassCastException e) {

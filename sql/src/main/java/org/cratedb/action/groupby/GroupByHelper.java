@@ -9,7 +9,7 @@ import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.core.collections.LimitingCollectionIterator;
-import org.cratedb.sql.types.SQLFieldMapper;
+import org.cratedb.mapper.FieldMapper;
 
 import java.util.*;
 
@@ -73,7 +73,7 @@ public class GroupByHelper {
      * see also {@link GroupByFieldExtractor}
      */
     public static GroupByFieldExtractor[] buildFieldExtractor(ParsedStatement parsedStatement,
-                                                              final SQLFieldMapper fieldMapper) {
+                                                              final FieldMapper fieldMapper) {
         GroupByFieldExtractor[] extractors = new GroupByFieldExtractor[parsedStatement.resultColumnList.size()];
 
         int colIdx = 0;
@@ -89,9 +89,9 @@ public class GroupByHelper {
                     extractors[colIdx] = new GroupByFieldExtractor(aggStateIdx) {
                         @Override
                         public Object getValue(GroupByRow row) {
-                            return fieldMapper.convertToXContentValue(
-                                ((AggExpr) columnDescription).parameterInfo.columnName,
-                                row.aggStates.get(idx).value()
+                            return fieldMapper.mappedValue(
+                                    ((AggExpr) columnDescription).parameterInfo.columnName,
+                                    row.aggStates.get(idx).value()
                             );
                         }
                     };
