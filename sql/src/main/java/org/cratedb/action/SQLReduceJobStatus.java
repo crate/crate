@@ -24,7 +24,6 @@ public class SQLReduceJobStatus {
     public final ConcurrentMap<GroupByKey, GroupByRow> reducedResult;
 
     CountDownLatch shardsToProcess;
-    SQLGroupByResult groupByResult;
 
     public SQLReduceJobStatus(ParsedStatement parsedStatement,
                               int shardsToProcess,
