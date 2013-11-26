@@ -48,14 +48,13 @@ public class GroupByRow implements Streamable {
     }
 
     public static GroupByRow createEmptyRow(GroupByKey key,
-                                            List<AggExpr> aggExprs,
-                                            Map<String, AggFunction> aggregateFunctions) {
+                                            AggFunction[] aggFunctions) {
         GroupByRow row = new GroupByRow();
         row.key = key;
-        row.aggStates = new AggState[aggExprs.size()];
+        row.aggStates = new AggState[aggFunctions.length];
 
         for (int i = 0; i < row.aggStates.length; i++) {
-            row.aggStates[i] = aggregateFunctions.get(aggExprs.get(i).functionName).createAggState();
+            row.aggStates[i] = aggFunctions[i].createAggState();
         }
 
         return row;

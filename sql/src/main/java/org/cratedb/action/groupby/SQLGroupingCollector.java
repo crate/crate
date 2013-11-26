@@ -26,6 +26,7 @@ public class SQLGroupingCollector extends Collector {
     private final GroupByFieldLookup groupByFieldLookup;
     private final ParsedStatement parsedStatement;
     private final Map<String, AggFunction> aggFunctionMap;
+    private final AggFunction[] aggFunctions;
 
     /**
      * Partitioned and grouped results.
@@ -62,6 +63,14 @@ public class SQLGroupingCollector extends Collector {
             partitionedResult.put(reducer, new HashMap<GroupByKey, GroupByRow>());
         }
 
+        this.aggFunctions = new AggFunction[parsedStatement.aggregateExpressions.size()];
+        for (int i = 0; i < parsedStatement.aggregateExpressions.size(); i++) {
+            AggExpr aggExpr = parsedStatement.aggregateExpressions.get(i);
+            if (!aggExpr.parameterInfo.isAllColumn) {
+                throw new UnsupportedOperationException("select aggFunc(column) not supported!");
+            }
+            aggFunctions[i] = aggFunctionMap.get(aggExpr.functionName);
+        }
     }
 
     @Override
@@ -81,20 +90,14 @@ public class SQLGroupingCollector extends Collector {
         Map<GroupByKey, GroupByRow> resultMap = partitionedResult.get(reducer);
 
         GroupByRow row = resultMap.get(key);
+
         if (row == null) {
-            row = GroupByRow.createEmptyRow(key, parsedStatement.aggregateExpressions, aggFunctionMap);
+            row = GroupByRow.createEmptyRow(key, aggFunctions);
             resultMap.put(key, row);
         }
 
-        for (int i = 0; i < parsedStatement.aggregateExpressions.size(); i++) {
-            AggExpr aggExpr = parsedStatement.aggregateExpressions.get(i);
-            Object value = null;
-            if (!aggExpr.parameterInfo.isAllColumn) {
-                throw new UnsupportedOperationException("select aggFunc(column) not supported!");
-            }
-
-            AggFunction function = aggFunctionMap.get(aggExpr.functionName);
-            function.iterate(row.aggStates[i], value);
+        for (int i = 0; i < aggFunctions.length; i++) {
+            aggFunctions[i].iterate(row.aggStates[i], null);
         }
     }
 
