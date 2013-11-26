@@ -1,0 +1,24 @@
+
+.. _aggregation:
+
+===========
+Aggregation
+===========
+
+Summary of the existing Aggregation Functions
+
++---------+---------------+----------------------------------+-----------------------+----------+
+| Name    | Arguments     | Description                      | Return Type           | Scope    |
++=========+===============+==================================+=======================+==========+
+| COUNT(*)| Star as       | Counts the number of rows        | long                  | Group by |
+|         | Parameter or  | that match the query.            |                       | Requests |
+|         | as Constant   |                                  |                       | and      |
+|         | or the primary|                                  |                       | "normal" |
+|         | key column    |                                  |                       | requests |
++---------+---------------+----------------------------------+-----------------------+----------+
+| MIN     | column name of| returns the smallest of the      | the input             | Group by |
+|         | a numeric,    | values in the argument column    | column type           | Requests |
+|         | date or string| in case of strings this          |                       |          |
+|         | column        | means the lexicographically      |                       |          |
+|         |               | smallest                         |                       |          |
++---------+---------------+----------------------------------+-----------------------+----------+

@@ -372,6 +372,9 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             if (operand != null) {
                 // check columns
                 ColumnDefinition columnDefinition = tableContext.getColumnDefinition(operand.getColumnName());
+                if (columnDefinition == null) {
+                    throw new SQLParseException(String.format("Unknown column '%s'", operand.getColumnName()));
+                }
                 if (aggFunction.supportedColumnTypes().contains(columnDefinition.dataType)) {
                     aggExpr = AggExprFactory.createAggExpr(aggregateName, operand.getColumnName(), columnDefinition.dataType);
                 } else {

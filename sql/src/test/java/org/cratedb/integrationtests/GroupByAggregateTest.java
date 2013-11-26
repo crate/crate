@@ -44,6 +44,14 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
     }
 
     @Test
+    public void testMinWithNonExistingColumn() throws Exception {
+        setUpEmployees();
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Unknown column 'nothing'");
+        execute("select min(nothing) from employees group by departement");
+    }
+
+    @Test
     public void testCountAggWithoutArgs() throws Exception {
         setUpEmployees();
 
