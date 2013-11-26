@@ -25,7 +25,6 @@ public class SQLGroupingCollector extends Collector {
     private final String[] reducers;
     private final GroupByFieldLookup groupByFieldLookup;
     private final ParsedStatement parsedStatement;
-    private final Map<String, AggFunction> aggFunctionMap;
     private final AggFunction[] aggFunctions;
 
     /**
@@ -56,7 +55,6 @@ public class SQLGroupingCollector extends Collector {
         this.parsedStatement = parsedStatement;
         this.groupByFieldLookup = groupByFieldLookup;
         this.reducers = reducers;
-        this.aggFunctionMap = aggFunctionMap;
 
         assert parsedStatement.groupByColumnNames != null;
         for (String reducer : reducers) {
