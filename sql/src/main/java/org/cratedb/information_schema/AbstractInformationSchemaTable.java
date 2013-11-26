@@ -144,7 +144,7 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
             GroupByHelper.sortedRowsToObjectArray(
                 GroupByHelper.sortAndTrimRows(rows, comparator, stmt.totalLimit()),
                 stmt,
-                null // TODO: add context here
+                GroupByHelper.buildFieldExtractor(stmt, null)
             ),
             rows.size() - stmt.offset(),
             requestStartedTime

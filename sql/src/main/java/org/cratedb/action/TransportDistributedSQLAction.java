@@ -289,6 +289,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
             reduceResponseCounter = new AtomicLong(reducers.length);
             shardResponseCounter = new AtomicLong(expectedShardResponses);
+
             // TODO: put this into a service class
             tableExecutionContext = nodeExecutionContext.tableContext(
                     parsedStatement.schemaName(), parsedStatement.tableName());
@@ -328,7 +329,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 Object[][] rows = GroupByHelper.sortedRowsToObjectArray(
                     new LimitingCollectionIterator<>(groupByResult, parsedStatement.totalLimit()),
                     parsedStatement,
-                    tableExecutionContext
+                    GroupByHelper.buildFieldExtractor(parsedStatement, tableExecutionContext.mapper())
                 );
 
                 if (logger.isTraceEnabled()) {
