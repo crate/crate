@@ -75,13 +75,13 @@ public class SQLGroupingCollectorTest extends TestCase {
 
 
         GroupByRow row = result.get(new GroupByKey(new Object[] {"austria", "bregenz"}));
-        assertThat((Long)(row.get(2)), is(2L));
+        assertThat((Long)(row.aggStates.get(0).value()), is(2L));
 
         row = result.get(new GroupByKey(new Object[] {null, "somecity1"}));
-        assertThat((Long)(row.get(2)), is(1L));
+        assertThat((Long)(row.aggStates.get(0).value()), is(1L));
 
         row = result.get(new GroupByKey(new Object[] {"germany", "somecity1"}));
-        assertThat((Long)(row.get(2)), is(1L));
+        assertThat((Long)(row.aggStates.get(0).value()), is(1L));
     }
 
     class DummyGroupKeyLookup implements GroupByFieldLookup {

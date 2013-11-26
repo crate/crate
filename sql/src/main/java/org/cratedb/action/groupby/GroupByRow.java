@@ -64,17 +64,6 @@ public class GroupByRow implements Streamable {
         return row;
     }
 
-    /**
-     * get key value or state.
-     * Use {@link org.cratedb.action.sql.ParsedStatement#idxMap} to access by ResultColumnList index
-     */
-    public Object get(int idx) {
-        if (idx > (key.size() - 1)) {
-            return aggStates.get(idx - key.size()).value();
-        }
-        return key.get(idx);
-    }
-
     @Override
     public String toString() {
         return "GroupByRow{" +
@@ -88,7 +77,7 @@ public class GroupByRow implements Streamable {
     }
 
     @SuppressWarnings("unchecked")
-    public synchronized  void merge(GroupByRow otherRow) {
+    public synchronized void merge(GroupByRow otherRow) {
         for (int i = 0; i < aggStates.size(); i++) {
             aggStates.get(i).reduce(otherRow.aggStates.get(i));
         }

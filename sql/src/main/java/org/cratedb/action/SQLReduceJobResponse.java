@@ -1,7 +1,6 @@
 package org.cratedb.action;
 
 import org.cratedb.action.groupby.GroupByRow;
-import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.ParsedStatement;
 import org.elasticsearch.action.ActionResponse;
@@ -25,7 +24,7 @@ public class SQLReduceJobResponse extends ActionResponse {
     }
 
     public SQLReduceJobResponse(SQLReduceJobStatus jobStatus) {
-        this.result = jobStatus.sortGroupByResult(jobStatus.reducedResult.values());
+        this.result = jobStatus.trimRows(jobStatus.reducedResult.values());
     }
 
     @Override

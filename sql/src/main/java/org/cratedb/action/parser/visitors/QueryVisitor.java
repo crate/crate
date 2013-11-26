@@ -83,54 +83,11 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         stmt.query = rootQuery;
         stmt.xcontent = jsonBuilder.bytes();
 
-        buildIdxMap();
-
         if (stmt.isInformationSchemaQuery()) {
             stmt.type(ParsedStatement.ActionType.INFORMATION_SCHEMA);
         } else {
             // only non-information schema queries can be optimized
             queryPlanner.finalizeWhereClause(stmt);
-        }
-    }
-
-    /**
-     * if it's a group by sql request {@link org.cratedb.action.groupby.GroupByRow}'s are built on
-     * the mapper/reducer.
-     * the idxMap is used to map resultColumnList idx to the groupByRows internal idx.
-     *
-     * E.g. ResultColumnList: [CountAggExpr, ColumnDesc(city), AvgAggExpr, ColumnDesc(country)]
-     *      Group By: country, city
-     *
-     * maps to
-     *
-     * GroupByRow:
-     *   GroupByKey [country, city]
-     *   AggStates [Count, Avg]
-     *
-     * So that groupByRow.get(idxMap[0]) will return the CountAggState.
-     */
-    protected void buildIdxMap() {
-        if (!stmt.hasGroupBy()) {
-            return;
-        }
-
-        stmt.idxMap = new Integer[stmt.resultColumnList.size()];
-        int aggIdx = 0;
-        int idx = 0;
-        for (ColumnDescription columnDescription : stmt.resultColumnList) {
-            switch (columnDescription.type) {
-                case ColumnDescription.Types.AGGREGATE_COLUMN:
-                    stmt.idxMap[idx] = aggIdx + stmt.groupByColumnNames.size();
-                    aggIdx++;
-                    break;
-
-                case ColumnDescription.Types.CONSTANT_COLUMN:
-                    stmt.idxMap[idx] = stmt.groupByColumnNames.indexOf(
-                        ((ColumnReferenceDescription)columnDescription).name);
-                    break;
-            }
-
-            idx++;
         }
     }
 

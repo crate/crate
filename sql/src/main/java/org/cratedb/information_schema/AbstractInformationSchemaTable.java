@@ -10,10 +10,7 @@ import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.Version;
-import org.cratedb.action.groupby.GroupByHelper;
-import org.cratedb.action.groupby.GroupByRow;
-import org.cratedb.action.groupby.GroupByRowComparator;
-import org.cratedb.action.groupby.SQLGroupingCollector;
+import org.cratedb.action.groupby.*;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.OrderByColumnName;
 import org.cratedb.action.sql.ParsedStatement;
@@ -137,14 +134,15 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
     private SQLResponse groupByRowsToSQLResponse(ParsedStatement stmt,
                                                  List<GroupByRow> rows,
                                                  long requestStartedTime) {
-        GroupByRowComparator comparator = new GroupByRowComparator(stmt.idxMap, stmt.orderByIndices());
+        GroupByFieldExtractor[] extractors = GroupByHelper.buildFieldExtractor(stmt, null);
+        GroupByRowComparator comparator = new GroupByRowComparator(extractors, stmt.orderByIndices());
 
         return new SQLResponse(
             stmt.cols(),
             GroupByHelper.sortedRowsToObjectArray(
                 GroupByHelper.sortAndTrimRows(rows, comparator, stmt.totalLimit()),
                 stmt,
-                GroupByHelper.buildFieldExtractor(stmt, null)
+                extractors
             ),
             rows.size() - stmt.offset(),
             requestStartedTime
