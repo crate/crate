@@ -87,7 +87,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
     private final TransportService transportService;
     private final SQLParseService sqlParseService;
     private final SQLQueryService sqlQueryService;
-    private final NodeExecutionContext nodeExecutionContext;
+    private final NodeExecutionContext nodeExecutionContext; // TODO: put this into a service class
     private final TransportSQLReduceHandler transportSQLReduceHandler;
     private final Map<String, AggFunction> aggFunctionMap;
     final String executor = ThreadPool.Names.SEARCH;
@@ -262,6 +262,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             reduceResponseCounter = new AtomicLong(reducers.length);
             shardResponseCounter = new AtomicLong(expectedShardResponses);
 
+            // TODO: put this into a service class
             tableExecutionContext = nodeExecutionContext.tableContext(
                     parsedStatement.schemaName(), parsedStatement.tableName());
         }

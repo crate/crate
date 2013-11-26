@@ -52,4 +52,16 @@ public enum DataType {
             CRATY,
             IP
     );
+
+    public static final ImmutableSet<DataType> INTEGER_TYPES = ImmutableSet.of(
+            BYTE,
+            SHORT,
+            INTEGER,
+            LONG
+    );
+
+    public static final ImmutableSet<DataType> DECIMAL_TYPES = ImmutableSet.of(
+            FLOAT,
+            DOUBLE
+    );
 }

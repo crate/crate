@@ -1,6 +1,5 @@
 package org.cratedb.action.sql;
 
-import com.google.common.collect.ImmutableMap;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
@@ -34,7 +33,7 @@ public class NodeExecutionContext {
     private final InformationSchemaTableExecutionContextFactory factory;
     private final Settings settings;
     private final SQLFieldMapperFactory sqlFieldMapperFactory;
-    private final ImmutableMap<String, AggFunction> availableAggFunctions;
+    private final Map<String, AggFunction> availableAggFunctions;
  
     @Inject
     public NodeExecutionContext(IndicesService indicesService,
@@ -52,7 +51,7 @@ public class NodeExecutionContext {
         this.factory = factory;
         this.settings = settings;
         this.sqlFieldMapperFactory = sqlFieldMapperFactory;
-        this.availableAggFunctions = ImmutableMap.copyOf(availableAggFunctions);
+        this.availableAggFunctions = availableAggFunctions;
     }
 
     /**

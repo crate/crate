@@ -1,5 +1,6 @@
 package org.cratedb.action.groupby.aggregate;
 
+import org.cratedb.DataType;
 import org.cratedb.action.groupby.ParameterInfo;
 import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
 import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
@@ -7,10 +8,11 @@ import org.cratedb.sql.SQLParseException;
 
 public class AggExprFactory {
 
-    public static AggExpr createAggExpr(String aggregateName, String aggregateParam) {
+    public static AggExpr createAggExpr(String aggregateName, String aggregateParam, DataType dataType) {
         ParameterInfo param;
         switch (aggregateName) {
             case "COUNT":
+                // TODO: count all not null values of a column
             case "COUNT(*)":
                 param = new ParameterInfo();
                 param.isAllColumn = true;
@@ -18,6 +20,7 @@ public class AggExprFactory {
             case "MIN":
                 param = new ParameterInfo();
                 param.columnName = aggregateParam;
+                param.dataType = dataType;
                 return new AggExpr(MinAggFunction.NAME, param);
             default:
                 throw new SQLParseException("Unsupported Aggregate function " + aggregateName);

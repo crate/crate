@@ -1,9 +1,11 @@
 package org.cratedb.action.groupby;
 
+import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
 import org.cratedb.action.sql.ITableExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.core.collections.LimitingCollectionIterator;
+import org.cratedb.sql.types.SQLFieldMapper;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -45,23 +47,30 @@ public class GroupByHelper {
             }
 
             currentRow++;
-            for (int i = 0; i < result[currentRow].length; i++) {
-                result[currentRow][i] = row.get(parsedStatement.idxMap[i]);
-
-                Object value = null;
-                int idx = parsedStatement.idxMap[i];
-
-                if (idx < row.key.size() || row.aggExprs.get(idx-row.key.size()).parameterInfo.isAllColumn) {
-                    value = row.get(idx);
-                } else if (row.aggExprs.get(idx-row.key.size()).functionName.equalsIgnoreCase(MinAggFunction.NAME) &&
-                        tableExecutionContext != null) {
-                    value = tableExecutionContext.mapper().convertToXContentValue(
-                            row.aggExprs.get(idx-row.key.size()).parameterInfo.columnName,
-                            row.get(idx)
-                    );
+            if (tableExecutionContext != null) {
+                SQLFieldMapper sqlFieldMapper = tableExecutionContext.mapper();
+                for (int i = 0; i < result[currentRow].length; i++) {
+                    Object value = null;
+                    int idx = parsedStatement.idxMap[i];
+                    AggExpr aggExpr = row.getAggExpr(idx);
+                    if (aggExpr == null || aggExpr.parameterInfo.isAllColumn) {
+                        value = row.get(idx);
+                    } else if (aggExpr.functionName.equalsIgnoreCase(MinAggFunction.NAME)) {
+                        value = sqlFieldMapper.convertToXContentValue(
+                                row.getAggExpr(idx).parameterInfo.columnName,
+                                row.get(idx)
+                        );
+                    }
+                    result[currentRow][i] = value;
                 }
-                result[currentRow][i] = value;
+            } else {
+                // simple loop, no mapper available
+                for (int i = 0; i < result[currentRow].length; i++) {
+                    int idx = parsedStatement.idxMap[i];
+                    result[currentRow][i] = row.get(idx);
+                }
             }
+
         }
 
         return result;

@@ -1,6 +1,7 @@
 package org.cratedb.action.groupby.aggregate.count;
 
 import org.cratedb.DataType;
+import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 
 import java.util.Set;
@@ -17,7 +18,8 @@ public class CountAggFunction extends AggFunction<CountAggState> {
     }
 
     @Override
-    public CountAggState createAggState() {
+    public CountAggState createAggState(AggExpr aggExpr) {
+        // TODO: count on columns
         return new CountAggState();
     }
 

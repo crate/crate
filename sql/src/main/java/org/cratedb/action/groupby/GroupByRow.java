@@ -52,8 +52,10 @@ public class GroupByRow implements Streamable {
                                             Map<String, AggFunction> aggregateFunctions) {
         AggState[] aggStates = new AggState[aggExprs.size()];
 
+        AggExpr aggExpr;
         for (int i = 0; i < aggStates.length; i++) {
-            aggStates[i] = aggregateFunctions.get(aggExprs.get(i).functionName).createAggState();
+            aggExpr = aggExprs.get(i);
+            aggStates[i] = aggregateFunctions.get(aggExpr.functionName).createAggState(aggExpr);
         }
 
         GroupByRow row = new GroupByRow(key, aggStates);
@@ -71,6 +73,39 @@ public class GroupByRow implements Streamable {
             return aggStates[idx - key.size()].value();
         }
         return key.get(idx);
+    }
+
+    /**
+     * get the AggExpr for the idx/position in the resultColumnList of this GroupByRow
+     *
+     * Example::
+     *
+     *      select count(*), avg(income) from employees group by departement;
+     *
+     *      getAggExpr(0) -> AggExpr: count(*)
+     *      getAggExpr(1) -> AggExpr: avg(income)
+     *
+     * @param idx the position in the resultcolumnList
+     * @return the AggExpr or null if none was found
+     */
+    public AggExpr getAggExpr(int idx) {
+        if (aggExprs == null) { return null; }
+        try {
+            return aggExprs.get(idx - key.size());
+        } catch (IndexOutOfBoundsException e) {
+            return null;
+        }
+    }
+
+    /**
+     * get the index/position of an AggExpr in this row
+     * @param aggExpr the AggExpr to get the index of
+     * @return the index/position as an int, -1 if AggExpr does not exist
+     */
+    public int getIdx(AggExpr aggExpr) {
+        if (aggExprs == null) { return -1; }
+        int idx = aggExprs.indexOf(aggExpr);
+        return (idx >= 0 ? idx += key.size() : idx);
     }
 
     @Override
@@ -102,8 +137,10 @@ public class GroupByRow implements Streamable {
     public void readFrom(StreamInput in) throws IOException {
         key = GroupByKey.readFromStreamInput(in);
         aggStates = new AggState[aggExprs.size()];
+        AggExpr aggExpr;
         for (int i = 0; i < aggStates.length; i++) {
-            aggStates[i] = aggregateFunctions.get(aggExprs.get(i).functionName).createAggState();
+            aggExpr = aggExprs.get(i);
+            aggStates[i] = aggregateFunctions.get(aggExpr.functionName).createAggState(aggExpr);
             aggStates[i].readFrom(in);
         }
     }

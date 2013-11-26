@@ -6,6 +6,7 @@ import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.SQLGroupingCollector;
 import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
@@ -36,6 +37,7 @@ public class SQLQueryService {
     private final CacheRecycler cacheRecycler;
     private final SQLXContentQueryParser parser;
     private final IndicesService indicesService;
+    private final NodeExecutionContext nodeExecutionContext;
     private final Map<String, AggFunction> aggFunctionMap;
 
     @Inject
@@ -44,13 +46,15 @@ public class SQLQueryService {
                            IndicesService indicesService,
                            Map<String, AggFunction> aggFunctionMap,
                            SQLXContentQueryParser sqlxContentQueryParser,
-                           CacheRecycler cacheRecycler)
+                           CacheRecycler cacheRecycler,
+                           NodeExecutionContext nodeExecutionContext)
     {
         this.clusterService = clusterService;
         this.scriptService = scriptService;
         this.cacheRecycler = cacheRecycler;
         this.indicesService = indicesService;
         this.parser = sqlxContentQueryParser;
+        this.nodeExecutionContext = nodeExecutionContext;
         this.aggFunctionMap = aggFunctionMap;
     }
 
@@ -60,7 +64,9 @@ public class SQLQueryService {
     {
         SearchContext context = buildSearchContext(concreteIndex, shardId);
         SearchContext.setCurrent(context);
-        logger.trace("Parsing xcontentQuery:\n " + stmt.xcontent.toUtf8());
+        if (logger.isTraceEnabled()) {
+            logger.trace("Parsing xcontentQuery:\n " + stmt.xcontent.toUtf8());
+        }
         parser.parse(context, stmt.xcontent);
         context.preProcess();
 

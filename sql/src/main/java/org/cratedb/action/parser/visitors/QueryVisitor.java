@@ -365,13 +365,15 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             if (operand != null) {
                 validateCountOperand(operand);
             }
-            aggExpr = AggExprFactory.createAggExpr(aggregateName, operand == null ? null : operand.getColumnName());
+            // TODO: count on column
+            aggExpr = AggExprFactory.createAggExpr(aggregateName,
+                    operand == null ? null : operand.getColumnName(), null);
         } else {
             if (operand != null) {
                 // check columns
                 ColumnDefinition columnDefinition = tableContext.getColumnDefinition(operand.getColumnName());
                 if (aggFunction.supportedColumnTypes().contains(columnDefinition.dataType)) {
-                    aggExpr = AggExprFactory.createAggExpr(aggregateName, operand.getColumnName());
+                    aggExpr = AggExprFactory.createAggExpr(aggregateName, operand.getColumnName(), columnDefinition.dataType);
                 } else {
                     throw new SQLParseException(
                             String.format("Invalid column type '%s' for aggregate function %s",
