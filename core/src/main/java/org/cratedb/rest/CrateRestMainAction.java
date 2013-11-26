@@ -1,4 +1,4 @@
-package org.elasticsearch.rest.action.main;
+package org.cratedb.rest;
 
 import org.apache.lucene.util.Constants;
 import org.cratedb.Build;
@@ -13,19 +13,26 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.*;
+import org.elasticsearch.rest.action.main.RestMainAction;
 import org.elasticsearch.rest.action.support.RestXContentBuilder;
 
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.HEAD;
 
-public class RestMainAction extends BaseRestHandler {
+public class CrateRestMainAction extends BaseRestHandler {
 
     private final Version version;
+    private final RestController controller;
 
     @Inject
-    public RestMainAction(Settings settings, Client client, RestController controller) {
+    public CrateRestMainAction(Settings settings, Client client, RestController controller) {
         super(settings, client);
         this.version = Version.CURRENT;
+        this.controller = controller;
+        registerHandler();
+    }
+
+    public void registerHandler() {
         controller.registerHandler(GET, "/", this);
         controller.registerHandler(HEAD, "/", this);
     }
