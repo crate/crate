@@ -2,6 +2,11 @@
 Changes for Crate
 =================
 
+Unreleased
+==========
+
+ - fixed classpath overloading issue.
+
 2013/11/25 0.19.7
 =================
 
