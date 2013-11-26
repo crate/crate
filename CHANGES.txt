@@ -9,6 +9,8 @@ Unreleased
 
  - ``MAX`` aggregate function
 
+ - minor group by optimization (replaced idxMap with value extractors)
+
  - grouping performance tuning
 
  - added more trace logs
