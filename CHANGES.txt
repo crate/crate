@@ -7,6 +7,16 @@ Unreleased
 
  - ``MIN`` Aggregate Function, basic infrastructure for column/value based aggregation
 
+2013/11/26 0.19.8
+=================
+
+ - added more trace logs
+
+ - fixed classpath overloading issue.
+
+2013/11/25 0.19.7
+=================
+
  - fixed a bug that occured if the offset in a group by query was larger then
    the number of rows in the result-set
 

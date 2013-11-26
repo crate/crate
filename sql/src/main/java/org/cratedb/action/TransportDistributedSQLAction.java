@@ -22,6 +22,7 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -140,7 +141,11 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         long now = 0;
 
         if (logger.isTraceEnabled()) {
-            logger.trace("shard operation on: {} shard: {}", clusterService.localNode().getId(), request.shardId);
+            logger.trace("[{}] context {} shard operation shard: {}",
+                clusterService.localNode().getId(),
+                request.contextId,
+                request.shardId
+            );
             now = new Date().getTime();
         }
 
@@ -187,8 +192,13 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         }
 
         if (logger.isTraceEnabled()) {
-            logger.trace("[{}] shard: {} collecting {} results took {} ms",
-                clusterService.localNode().getId(), request.shardId, numResults, (new Date().getTime() - now));
+            logger.trace("[{}] context: {} shard {} collecting {} results took {} ms",
+                clusterService.localNode().getId(),
+                request.contextId,
+                request.shardId,
+                numResults,
+                (new Date().getTime() - now)
+            );
         }
 
         // throw the exception after a result has been sent to the reducers so that they won't wait
@@ -229,7 +239,11 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         private final AtomicReference<Throwable> lastException;
         private final List<GroupByRow> groupByResult;
         private final GroupByRowComparator comparator;
+<<<<<<< HEAD
         private final ITableExecutionContext tableExecutionContext;
+=======
+        private final UUID contextId;
+>>>>>>> origin/master
 
         AsyncBroadcastAction(DistributedSQLRequest request, ActionListener<SQLResponse> listener) {
             this.parsedStatement = request.parsedStatement;
@@ -261,10 +275,14 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
             reduceResponseCounter = new AtomicLong(reducers.length);
             shardResponseCounter = new AtomicLong(expectedShardResponses);
+<<<<<<< HEAD
 
             // TODO: put this into a service class
             tableExecutionContext = nodeExecutionContext.tableContext(
                     parsedStatement.schemaName(), parsedStatement.tableName());
+=======
+            contextId = UUID.randomUUID();
+>>>>>>> origin/master
         }
 
         public void start() {
@@ -278,12 +296,23 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 }
             }
 
-            UUID contextId = UUID.randomUUID();
-            sendReduceRequests(contextId);
-            sendShardRequests(contextId);
+            sendReduceRequests();
+            sendShardRequests();
         }
 
         public void sendSqlResponse() {
+            StopWatch stopWatch = null;
+
+            if (logger.isTraceEnabled()) {
+                stopWatch = new StopWatch().start();
+                logger.trace(
+                    "[{}]: context: {} got all reduceJob responses. Sorting and generating SQLResponse",
+                    clusterService.localNode().getId(),
+                    contextId
+                );
+            }
+
+
             try {
                 Collections.sort(groupByResult, comparator);
                 Object[][] rows = GroupByHelper.sortedRowsToObjectArray(
@@ -291,6 +320,17 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                     parsedStatement,
                     tableExecutionContext
                 );
+
+                if (logger.isTraceEnabled()) {
+                    assert stopWatch != null;
+                    stopWatch.stop();
+                    logger.trace(
+                        "[{}]: context: {} sorted and prepared rows for SQLResponse. Took {} ms",
+                        clusterService.localNode().getId(),
+                        contextId,
+                        stopWatch.totalTime().getMillis()
+                    );
+                }
 
                 listener.onResponse(
                     new SQLResponse(parsedStatement.cols(), rows, rows.length, sqlRequest.creationTime())
@@ -313,14 +353,14 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             return nodes.toArray(new String[nodes.size()]);
         }
 
-        private void sendReduceRequests(UUID contextId) {
+        private void sendReduceRequests() {
             for (String reducer : reducers) {
-                performReduceOperation(reducer, contextId);
+                performReduceOperation(reducer);
             }
 
         }
 
-        private void performReduceOperation(String reducer, UUID contextId) {
+        private void performReduceOperation(String reducer) {
             DiscoveryNode node = nodes.get(reducer);
             if (node == null) {
                 throw new NodeNotConnectedException(node, "Can't perform reduce operation on node");
@@ -354,20 +394,20 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             }
         }
 
-        private void sendShardRequests(UUID contextId) {
+        private void sendShardRequests() {
             int shardIndex = -1;
             for (final ShardIterator shardIt : shardsIts) {
                 shardIndex++;
                 final ShardRouting shard = shardIt.firstOrNull();
                 if (shard != null) {
-                    performMapperOperation(contextId, shard, shard.index());
+                    performMapperOperation(shard, shard.index());
                 } else {
                     onMapperFailure(new NoShardAvailableActionException(shardIt.shardId()));
                 }
             }
         }
 
-        private void performMapperOperation(UUID contextId, ShardRouting shard, String concreteIndex) {
+        private void performMapperOperation(ShardRouting shard, String concreteIndex) {
             assert shard != null;
 
             SQLShardRequest shardRequest = newShardRequest(
@@ -455,8 +495,26 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         }
 
         private void onReduceJobResponse(SQLReduceJobResponse response) {
+            StopWatch stopWatch = null;
+            if (logger.isTraceEnabled()) {
+                logger.trace("[{}]: context: {} received response from reducer.",
+                    clusterService.localNode().getId(),
+                    contextId
+                );
+                stopWatch = new StopWatch().start();
+            }
+
             synchronized (groupByResult) {
                 groupByResult.addAll(response.result);
+            }
+
+            if (logger.isTraceEnabled()) {
+                assert stopWatch != null;
+                stopWatch.stop();
+                logger.trace("[{}]: context: {} adding reduceJob took {} ms",
+                    clusterService.localNode().getId(),
+                    contextId,
+                    stopWatch.totalTime().getMillis());
             }
 
             reduceResponseCounter.decrementAndGet();
