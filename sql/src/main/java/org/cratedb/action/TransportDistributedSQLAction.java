@@ -138,20 +138,18 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
     protected SQLShardResponse shardOperation(SQLShardRequest request) throws ElasticSearchException {
         ParsedStatement stmt = sqlParseService.parse(request.sqlRequest.stmt(), request.sqlRequest.args());
-        long now = 0;
+        StopWatch stopWatch = null;
+        CrateException exception = null;
+        Map<String, Map<GroupByKey, GroupByRow>> distributedCollectResult = null;
 
         if (logger.isTraceEnabled()) {
+            stopWatch = new StopWatch().start();
             logger.trace("[{}] context {} shard operation shard: {}",
                 clusterService.localNode().getId(),
                 request.contextId,
                 request.shardId
             );
-            now = new Date().getTime();
         }
-
-
-        CrateException exception = null;
-        Map<String, Map<GroupByKey, GroupByRow>> distributedCollectResult = null;
 
         try {
             distributedCollectResult =
@@ -162,23 +160,32 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             exception = new CrateException(e);
         }
 
-        if (exception != null) {
-            // create an empty fake result to send to the reducers.
-            distributedCollectResult = new HashMap<>();
-            for (String reducer : request.reducers) {
-                distributedCollectResult.put(reducer, new HashMap<GroupByKey, GroupByRow>());
-            }
+
+        if (logger.isTraceEnabled()) {
+            assert stopWatch != null;
+            stopWatch.stop();
+            logger.trace("[{}] context: {} shard {} collecting took {} ms",
+                clusterService.localNode().getId(),
+                request.contextId,
+                request.shardId,
+                stopWatch.totalTime().getMillis()
+            );
         }
 
-        long numResults = 0;
+        if (exception != null) {
+            // create an empty fake result to send to the reducers.
+            distributedCollectResult = createEmptyCollectResult(request);
+        }
+
         for (String reducer : request.reducers) {
+            if (logger.isTraceEnabled()) {
+                stopWatch = new StopWatch().start();
+            }
 
             SQLMapperResultRequest mapperResultRequest = new SQLMapperResultRequest();
             mapperResultRequest.contextId = request.contextId;
             mapperResultRequest.groupByResult =
                 new SQLGroupByResult(distributedCollectResult.get(reducer).values());
-
-            numResults += mapperResultRequest.groupByResult.size();
 
             // TODO: could be optimized if reducerNode == mapperNode to avoid transportService
             DiscoveryNode node = clusterService.state().getNodes().get(reducer);
@@ -189,16 +196,18 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 TransportRequestOptions.options(),
                 EmptyTransportResponseHandler.INSTANCE_SAME
             );
-        }
 
-        if (logger.isTraceEnabled()) {
-            logger.trace("[{}] context: {} shard {} collecting {} results took {} ms",
-                clusterService.localNode().getId(),
-                request.contextId,
-                request.shardId,
-                numResults,
-                (new Date().getTime() - now)
-            );
+            if (logger.isTraceEnabled()) {
+                assert stopWatch != null;
+                stopWatch.stop();
+                logger.trace("[{}] context: {} shard {} sending to reducer {} (write to buffer) took {} ms",
+                    clusterService.localNode().getId(),
+                    request.contextId,
+                    request.shardId,
+                    reducer,
+                    stopWatch.totalTime().getMillis()
+                );
+            }
         }
 
         // throw the exception after a result has been sent to the reducers so that they won't wait
@@ -208,6 +217,14 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         }
 
         return new SQLShardResponse();
+    }
+
+    private Map<String, Map<GroupByKey, GroupByRow>> createEmptyCollectResult(SQLShardRequest request) {
+        Map<String, Map<GroupByKey, GroupByRow>> distributedCollectResult = new HashMap<>(request.reducers.length);
+        for (String reducer : request.reducers) {
+            distributedCollectResult.put(reducer, new HashMap<GroupByKey, GroupByRow>(0));
+        }
+        return distributedCollectResult;
     }
 
     protected GroupShardsIterator shards(ClusterState clusterState,

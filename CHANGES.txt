@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - grouping performance tuning
+
+ - added more trace logs
+
  - ``MIN`` Aggregate Function, basic infrastructure for column/value based aggregation
 
 2013/11/26 0.19.8

@@ -26,7 +26,7 @@ public class SQLGroupingCollector extends Collector {
     private final String[] reducers;
     private final GroupByFieldLookup groupByFieldLookup;
     private final ParsedStatement parsedStatement;
-    private final Map<String, AggFunction> aggFunctionMap;
+    private final AggFunction[] aggFunctions;
 
     /**
      * Partitioned and grouped results.
@@ -56,13 +56,18 @@ public class SQLGroupingCollector extends Collector {
         this.parsedStatement = parsedStatement;
         this.groupByFieldLookup = groupByFieldLookup;
         this.reducers = reducers;
-        this.aggFunctionMap = aggFunctionMap;
+        
 
         assert parsedStatement.groupByColumnNames != null;
         for (String reducer : reducers) {
             partitionedResult.put(reducer, new HashMap<GroupByKey, GroupByRow>());
         }
 
+        this.aggFunctions = new AggFunction[parsedStatement.aggregateExpressions.size()];
+        for (int i = 0; i < parsedStatement.aggregateExpressions.size(); i++) {
+            AggExpr aggExpr = parsedStatement.aggregateExpressions.get(i);
+            aggFunctions[i] = aggFunctionMap.get(aggExpr.functionName);
+        }
     }
 
     @Override
@@ -82,12 +87,13 @@ public class SQLGroupingCollector extends Collector {
         Map<GroupByKey, GroupByRow> resultMap = partitionedResult.get(reducer);
 
         GroupByRow row = resultMap.get(key);
+
         if (row == null) {
-            row = GroupByRow.createEmptyRow(key, parsedStatement.aggregateExpressions, aggFunctionMap);
+            row = GroupByRow.createEmptyRow(key, parsedStatement.aggregateExpressions, aggFunctions);
             resultMap.put(key, row);
         }
 
-        for (int i = 0; i < parsedStatement.aggregateExpressions.size(); i++) {
+        for (int i = 0; i < aggFunctions.length; i++) {
             AggExpr aggExpr = parsedStatement.aggregateExpressions.get(i);
             Object value = null;
 
@@ -95,7 +101,7 @@ public class SQLGroupingCollector extends Collector {
                 value = groupByFieldLookup.lookupField(aggExpr.parameterInfo.columnName);
             }
 
-            AggFunction<AggState> function = aggFunctionMap.get(aggExpr.functionName);
+            AggFunction<AggState> function = aggFunctions[i];
             function.iterate(row.aggStates.get(i), value);
         }
     }
