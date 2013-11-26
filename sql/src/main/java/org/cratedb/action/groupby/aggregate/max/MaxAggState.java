@@ -6,10 +6,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-/**
- * MIN Aggregation Function
- * @param <T>
- */
+
 public class MaxAggState<T extends Comparable<T>> extends AggState<MaxAggState<T>> {
 
     private T value = null;
