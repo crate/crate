@@ -7,11 +7,15 @@ Unreleased
 
  - minor group by optimization (replaced idxMap with value extractors)
 
+ - ``MAX`` aggregate function
+
+ - minor group by optimization (replaced idxMap with value extractors)
+
  - grouping performance tuning
 
  - added more trace logs
 
- - ``MIN`` Aggregate Function, basic infrastructure for column/value based aggregation
+ - ``MIN`` aggregate function, basic infrastructure for column/value based aggregation
 
 2013/11/26 0.19.8
 =================

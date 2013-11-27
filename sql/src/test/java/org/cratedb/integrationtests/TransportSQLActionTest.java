@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.*;
 public class TransportSQLActionTest extends SQLCrateClusterTest {
 
     private SQLResponse response;
+    private Setup setup = new Setup(this);
 
     private String copyFilePath = TransportSQLActionTest.class.getResource(
                                             "/essetup/data/copy").getPath();
@@ -53,7 +54,7 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
      * override execute to store response in property for easier access
      */
     @Override
-    protected SQLResponse execute(String stmt, Object[] args) {
+    public SQLResponse execute(String stmt, Object[] args) {
         response = super.execute(stmt, args);
         return response;
     }
@@ -1475,7 +1476,7 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
 
     @Test
     public void testCountWithGroupByNullArgs() throws Exception {
-        groupBySetup();
+        this.setup.groupBySetup();
 
         execute("select count(*), race from characters group by race", null);
         assertEquals(3, response.rowCount());
@@ -1486,7 +1487,7 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
     @Test
     public void testCountWithGroupBy() throws Exception {
 
-        groupBySetup();
+        this.setup.groupBySetup();
 
         execute("select count(*), race from characters group by race");
         assertEquals(3, response.rowCount());
@@ -1513,12 +1514,12 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
         assertEquals("Vogon", result.get(1).v2());
         assertThat(result.get(1).v1(), is(2L));
         assertEquals("Human", result.get(2).v2());
-        assertThat(result.get(2).v1(), is(3L));
+        assertThat(result.get(2).v1(), is(4L));
     }
 
     @Test
     public void testCountWithGroupByWithWhereClause() throws Exception {
-        groupBySetup();
+        this.setup.groupBySetup();
 
         execute("select count(*), race from characters where race = 'Human' group by race");
         assertEquals(1, response.rowCount());
@@ -1526,7 +1527,7 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
 
     @Test
     public void testCountWithGroupByOrderOnAggAscFuncAndLimit() throws Exception {
-        groupBySetup();
+        this.setup.groupBySetup();
 
         execute("select count(*), race from characters group by race order by count(*) asc limit 2");
 
@@ -1539,37 +1540,37 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
 
     @Test
     public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimit() throws Exception {
-        groupBySetup();
+        this.setup.groupBySetup();
 
         execute("select count(*), gender, race from characters group by race, gender order by count(*) desc, race asc limit 2");
 
         assertEquals(2, response.rowCount());
         assertEquals(2L, response.rows()[0][0]);
-        assertEquals("male", response.rows()[0][1]);
+        assertEquals("female", response.rows()[0][1]);
         assertEquals("Human", response.rows()[0][2]);
         assertEquals(2L, response.rows()[1][0]);
         assertEquals("male", response.rows()[1][1]);
-        assertEquals("Vogon", response.rows()[1][2]);
-    }
-
-    @Test
-    public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimitAndOffset() throws Exception {
-        groupBySetup();
-
-        execute("select count(*), gender, race from characters group by race, gender order by count(*) desc, race asc limit 2 offset 2");
-
-        assertEquals(2, response.rowCount());
-        assertEquals(1L, response.rows()[0][0]);
-        assertEquals("male", response.rows()[0][1]);
-        assertEquals("Android", response.rows()[0][2]);
-        assertEquals(1L, response.rows()[1][0]);
-        assertEquals("female", response.rows()[1][1]);
         assertEquals("Human", response.rows()[1][2]);
     }
 
     @Test
+    public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimitAndOffset() throws Exception {
+        this.setup.groupBySetup();
+
+        execute("select count(*), gender, race from characters group by race, gender order by count(*) desc, race asc limit 2 offset 2");
+
+        assertEquals(2, response.rowCount());
+        assertEquals(2L, response.rows()[0][0]);
+        assertEquals("male", response.rows()[0][1]);
+        assertEquals("Vogon", response.rows()[0][2]);
+        assertEquals(1L, response.rows()[1][0]);
+        assertEquals("male", response.rows()[1][1]);
+        assertEquals("Android", response.rows()[1][2]);
+    }
+
+    @Test
     public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimitAndTooLargeOffset() throws Exception {
-        groupBySetup();
+        this.setup.groupBySetup();
 
         execute("select count(*), gender, race from characters group by race, gender order by count(*) desc, race asc limit 2 offset 20");
 
@@ -1579,12 +1580,12 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
 
     @Test
     public void testCountWithGroupByOrderOnAggDescFuncAndLimit() throws Exception {
-        groupBySetup();
+        this.setup.groupBySetup();
 
         execute("select count(*), race from characters group by race order by count(*) desc limit 2");
 
         assertEquals(2, response.rowCount());
-        assertEquals(3L, response.rows()[0][0]);
+        assertEquals(4L, response.rows()[0][0]);
         assertEquals("Human", response.rows()[0][1]);
         assertEquals(2L, response.rows()[1][0]);
         assertEquals("Vogon", response.rows()[1][1]);
@@ -1592,7 +1593,7 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
 
     @Test
     public void testCountWithGroupByOrderOnKeyAscAndLimit() throws Exception {
-        groupBySetup();
+        this.setup.groupBySetup();
 
 
         execute("select count(*), race from characters group by race order by race asc limit 2");
@@ -1600,88 +1601,26 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
         assertEquals(2, response.rowCount());
         assertEquals(1L, response.rows()[0][0]);
         assertEquals("Android", response.rows()[0][1]);
-        assertEquals(3L, response.rows()[1][0]);
+        assertEquals(4L, response.rows()[1][0]);
         assertEquals("Human", response.rows()[1][1]);
     }
 
     @Test
     public void testCountWithGroupByOrderOnKeyDescAndLimit() throws Exception {
-        groupBySetup();
+        this.setup.groupBySetup();
 
         execute("select count(*), race from characters group by race order by race desc limit 2");
 
         assertEquals(2, response.rowCount());
         assertEquals(2L, response.rows()[0][0]);
         assertEquals("Vogon", response.rows()[0][1]);
-        assertEquals(3L, response.rows()[1][0]);
+        assertEquals(4L, response.rows()[1][0]);
         assertEquals("Human", response.rows()[1][1]);
-    }
-
-    private void groupBySetup() throws Exception {
-        groupBySetup("integer");
-    }
-
-    private void groupBySetup(String numericType) throws Exception {
-
-        XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
-            .startObject("default")
-            .startObject("properties")
-                .startObject("race")
-                    .field("type", "string")
-                    .field("index", "not_analyzed")
-                .endObject()
-                .startObject("gender")
-                    .field("type", "string")
-                    .field("index", "not_analyzed")
-                .endObject()
-                .startObject("age")
-                    .field("type", numericType)
-                .endObject()
-                .startObject("birthdate")
-                    .field("type", "date")
-                .endObject()
-                .startObject("name")
-                    .field("type", "string")
-                    .field("index", "not_analyzed")
-                .endObject()
-                .startObject("details")
-                    .field("type", "object")
-                    .field("index", "not_analyzed")
-                .endObject()
-            .endObject()
-            .endObject()
-            .endObject();
-
-
-        prepareCreate("characters")
-                .addMapping("default", mapping)
-                .execute().actionGet();
-        ensureGreen();
-
-        Map<String, String> details = newHashMap();
-        details.put("job", "Sandwitch Maker");
-        execute("insert into characters (race, gender, age, birthdate, name, details) values (?, ?, ?, ?, ?, ?)",
-            new Object[] {"Human", "male", 34, "1975-10-01", "Arthur Dent", details});
-
-        details = newHashMap();
-        details.put("job", "Mathematician");
-        execute("insert into characters (race, gender, age, birthdate, name, details) values (?, ?, ?, ?, ?, ?)",
-            new Object[] {"Human", "female", 32, "1978-10-11", "Trillian", details});
-        execute("insert into characters (race, gender, age, name) values (?, ?, ?, ?)",
-            new Object[] {"Human", "male", 112, "Ford Perfect"});
-
-        execute("insert into characters (race, gender, name) values ('Android', 'male', 'Marving')");
-        execute("insert into characters (race, gender, name) values ('Vogon', 'male', 'Jeltz')");
-        execute("insert into characters (race, gender, name) values ('Vogon', 'male', 'Kwaltz')");
-        refresh();
-
-        execute("select count(*) from characters");
-        assertEquals(6L, response.rows()[0][0]);
     }
 
     @Test
     public void testSelectWithWhereLike() throws Exception {
-        groupBySetup();
+        this.setup.groupBySetup();
 
         execute("select name from characters where name like '%ltz'");
         assertEquals(2L, response.rowCount());
@@ -1819,8 +1758,8 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
 
         execute(
             "SELECT count(?) AS count_1, test.col2 AS test_col2 FROM test " +
-                "GROUP BY test.col2 order by count(?) desc",
-            new Object[] { "*", "*" }
+                "GROUP BY test.col2 order by count_1 desc",
+            new Object[] { "*" }
         );
 
         assertEquals(2L, response.rows()[0][0]);
@@ -1840,7 +1779,7 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
 
         execute(
             "SELECT count(test.col1) AS count_1, test.col2 AS test_col2 FROM test " +
-                "GROUP BY test.col2 order by count(test.col1) desc"
+                "GROUP BY test.col2 order by count_1 desc"
         );
 
         assertEquals(2L, response.rows()[0][0]);
@@ -1880,7 +1819,7 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
 
     @Test
     public void testGroupByNestedObject() throws Exception {
-        groupBySetup();
+        this.setup.groupBySetup();
 
         execute("select count(*), details['job'] from characters group by details['job'] order by count(*), details['job']");
         assertEquals(3, response.rowCount());
@@ -1888,7 +1827,7 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
         assertEquals("Mathematician", response.rows()[0][1]);
         assertEquals(1L, response.rows()[1][0]);
         assertEquals("Sandwitch Maker", response.rows()[1][1]);
-        assertEquals(4L, response.rows()[2][0]);
+        assertEquals(5L, response.rows()[2][0]);
         assertNull(null, response.rows()[2][1]);
     }
 
@@ -1904,7 +1843,7 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
     @Test
     public void testGroupByMultiValueField() throws Exception {
         expectedException.expect(GroupByOnArrayUnsupportedException.class);
-        groupBySetup();
+        this.setup.groupBySetup();
 
         execute("insert into characters (race, gender, name) values (?, ?, ?)",
             new Object[] { new String[] {"Android"}, new String[] {"male", "robot"}, "Marvin2"}
@@ -2597,98 +2536,6 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
                 String.format("delete from %s where id=?", tableAlias),
                 new Object[]{1}
         );
-    }
-
-    @Test
-    public void selectGroupByAggregateMinInteger() throws Exception {
-        groupBySetup("integer");
-
-        execute("select min(age) as minAge, gender from characters group by gender order by gender");
-        assertArrayEquals(new String[]{"MIN(age)", "gender"}, response.cols());
-        assertEquals(2L, response.rowCount());
-        assertEquals("female", response.rows()[0][1]);
-        assertEquals(32, response.rows()[0][0]);
-
-        assertEquals("male", response.rows()[1][1]);
-        assertEquals(34, response.rows()[1][0]);
-    }
-
-    @Test
-    public void selectGroupByAggregateMinFloat() throws Exception {
-        groupBySetup("float");
-
-        execute("select min(age), gender from characters group by gender order by gender");
-        assertEquals(2L, response.rowCount());
-        assertEquals("MIN(age)", response.cols()[0]);
-        assertEquals(32.0f, response.rows()[0][0]);
-        assertEquals(34.0f, response.rows()[1][0]);
-    }
-
-    @Test
-    public void selectGroupByAggregateMinDouble() throws Exception {
-        groupBySetup("double");
-
-        execute("select min(age) as minAge, gender from characters group by gender order by gender");
-        assertEquals(2L, response.rowCount());
-        assertEquals(32.0d, response.rows()[0][0]);
-        assertEquals(34.0d, response.rows()[1][0]);
-    }
-
-    @Test
-    public void selectGroupByAggregateMinOrderByMin() throws Exception {
-        groupBySetup("double");
-
-        execute("select min(age) as minAge, gender from characters group by gender order by min(age) desc");
-        assertEquals(2L, response.rowCount());
-
-        assertEquals("male", response.rows()[0][1]);
-        assertEquals(34.0d, response.rows()[0][0]);
-
-        assertEquals("female", response.rows()[1][1]);
-        assertEquals(32.0d, response.rows()[1][0]);
-
-        execute("select min(age) as minAge, gender from characters group by gender order by min(age) asc");
-        assertEquals(2L, response.rowCount());
-
-        assertEquals("female", response.rows()[0][1]);
-        assertEquals(32.0d, response.rows()[0][0]);
-
-        assertEquals("male", response.rows()[1][1]);
-        assertEquals(34.0d, response.rows()[1][0]);
-    }
-
-    @Test
-    public void selectGroupByAggregateMinLong() throws Exception {
-        groupBySetup("long");
-
-        execute("select min(age) as minAge, gender from characters group by gender order by gender");
-        assertEquals(2L, response.rowCount());
-        assertEquals(32L, response.rows()[0][0]);
-        assertEquals(34L, response.rows()[1][0]);
-    }
-
-    @Test
-    public void selectGroupByAggregateMinString() throws Exception {
-        groupBySetup();
-
-        execute("select min(name) as minName, gender from characters group by gender order by gender");
-        assertEquals(2L, response.rowCount());
-        assertEquals("Trillian", response.rows()[0][0]);
-        assertEquals("Arthur Dent", response.rows()[1][0]);
-    }
-
-    @Test
-    public void selectGroupByAggregateMinDate() throws Exception {
-        groupBySetup();
-
-        execute("select min(birthdate) as minBirthdate, gender from characters group by gender " +
-                "order by gender");
-        assertEquals(2L, response.rowCount());
-        assertEquals("female", response.rows()[0][1]);
-        assertEquals(276912000000L, response.rows()[0][0]);
-
-        assertEquals("male", response.rows()[1][1]);
-        assertEquals(181353600000L, response.rows()[1][0]);
     }
 
 }

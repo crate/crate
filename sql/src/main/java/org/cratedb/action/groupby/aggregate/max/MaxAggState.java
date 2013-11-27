@@ -1,4 +1,4 @@
-package org.cratedb.action.groupby.aggregate.min;
+package org.cratedb.action.groupby.aggregate.max;
 
 import org.cratedb.action.groupby.aggregate.AggState;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -7,10 +7,10 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 
 /**
- * MIN Aggregation Function State
+ * MIN Aggregation Function
  * @param <T>
  */
-public class MinAggState<T extends Comparable<T>> extends AggState<MinAggState<T>> {
+public class MaxAggState<T extends Comparable<T>> extends AggState<MaxAggState<T>> {
 
     private T value = null;
 
@@ -20,7 +20,7 @@ public class MinAggState<T extends Comparable<T>> extends AggState<MinAggState<T
     }
 
     @Override
-    public void reduce(MinAggState<T> other) {
+    public void reduce(MaxAggState<T> other) {
         if (other.value == null) {
             return;
         } else if (value == null) {
@@ -28,7 +28,7 @@ public class MinAggState<T extends Comparable<T>> extends AggState<MinAggState<T
             return;
         }
 
-        if (compareTo(other) > 0) {
+        if (compareTo(other) < 0) {
             value = other.value;
         }
     }
@@ -39,15 +39,16 @@ public class MinAggState<T extends Comparable<T>> extends AggState<MinAggState<T
     }
 
     @Override
-    public int compareTo(MinAggState<T> o) {
+    public int compareTo(MaxAggState<T> o) {
         if (o == null) return -1;
         return compareValue(o.value);
     }
 
     public int compareValue(T otherValue) {
-        if (value == null) return (otherValue == null ? 0 : 1);
-        if (otherValue == null) return -1;
-        return value.compareTo(otherValue);
+        if (value == null) return (otherValue == null ? 0 : -1);
+        if (otherValue == null) return 1;
+
+        return Integer.signum(value.compareTo(otherValue));
     }
 
     @Override

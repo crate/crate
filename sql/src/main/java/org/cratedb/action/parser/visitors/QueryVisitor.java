@@ -19,6 +19,7 @@ import org.cratedb.sql.GroupByOnArrayUnsupportedException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.NotFilter;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -191,21 +192,23 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         if (stmt.hasGroupBy()) {
             stmt.orderByIndices = new ArrayList<>();
             int idx = -1;
+
+            List<String> outputFieldNames = new ArrayList<>();
+            for (Tuple<String, String> outputField : stmt.outputFields()) {
+                outputFieldNames.add(outputField.v1());
+            }
+
             for (OrderByColumn column : node) {
-
+                String columnName;
                 if (column.getExpression().getNodeType() == NodeTypes.AGGREGATE_NODE) {
-
-                    AggregateNode aggNode = (AggregateNode)column.getExpression();
-                    AggExpr aggExpr = getAggregateExpression(aggNode);
-                    if (aggExpr != null) {
-                        idx = stmt.resultColumnList.indexOf(aggExpr);
-                    }
-
+                    AggExpr aggExpr = getAggregateExpression((AggregateNode)column.getExpression());
+                    columnName = aggExpr.toString();
+                } else if (column.getExpression().getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE ){
+                    columnName = ((NestedColumnReference)column.getExpression()).sqlPathString();
                 } else {
-                    String columnName = column.getExpression().getColumnName();
-                    ColumnReferenceDescription colrefDesc = new ColumnReferenceDescription(columnName);
-                    idx = stmt.resultColumnList.indexOf(colrefDesc);
+                    columnName = column.getExpression().getColumnName();
                 }
+                idx = outputFieldNames.indexOf(columnName);
 
                 if (idx < 0) {
                     throw new SQLParseException(
@@ -360,7 +363,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             stmt.aggregateExpressions.add(aggExpr);
             String alias = aggExpr.toString();
 
-            stmt.addOutputField(alias, alias);
+            stmt.addOutputField(column.getName() != null ? column.getName() : alias, alias);
         }
     }
 

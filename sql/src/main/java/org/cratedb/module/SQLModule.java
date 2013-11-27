@@ -4,6 +4,7 @@ import org.cratedb.DataType;
 import org.cratedb.action.TransportSQLReduceHandler;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
+import org.cratedb.action.groupby.aggregate.max.MaxAggFunction;
 import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
 
 import org.cratedb.action.sql.NodeExecutionContext;
@@ -41,7 +42,7 @@ public class SQLModule extends AbstractModule {
         aggFunctionBinder.addBinding(CountAggFunction.NAME).to(CountAggFunction.class).asEagerSingleton();
         aggFunctionBinder.addBinding(CountAggFunction.COUNT_ROWS_NAME).to(CountAggFunction.class).asEagerSingleton();
         aggFunctionBinder.addBinding(MinAggFunction.NAME).to(MinAggFunction.class).asEagerSingleton();
-
+        aggFunctionBinder.addBinding(MaxAggFunction.NAME).to(MaxAggFunction.class).asEagerSingleton();
 
         transportActionsBinder.addBinding(SQLAction.INSTANCE).to(TransportSQLAction.class).asEagerSingleton();
         transportActionsBinder.addBinding(ClusterUpdateCrateSettingsAction.INSTANCE).to(TransportClusterUpdateCrateSettingsAction.class).asEagerSingleton();

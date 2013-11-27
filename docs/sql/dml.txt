@@ -240,6 +240,11 @@ Query for a property of an inner object::
 Data Aggregation
 ----------------
 
+Crate supports aggregations by using the aggregation functions listed below on ``SELECT`` statements.
+Not all aggregation functions are available for all ``SELECT`` statements. Most aggregation
+functions can only be used on ``GROUP BY`` request. For the applicable scope please consult the
+column ``Scope`` in the table below.
+
 .. seealso::
 
     :ref:`aggregation`
@@ -258,6 +263,12 @@ Data Aggregation
 |         | date or string| in case of strings this          |                       |          |
 |         | column        | means the lexicographically      |                       |          |
 |         |               | smallest                         |                       |          |
++---------+---------------+----------------------------------+-----------------------+----------+
+| MAX     | column name of| returns the biggest of the       | the input             | Group by |
+|         | a numeric,    | values in the argument column    | column type           | Requests |
+|         | date or string| in case of strings this          |                       |          |
+|         | column        | means the lexicographically      |                       |          |
+|         |               | biggest                          |                       |          |
 +---------+---------------+----------------------------------+-----------------------+----------+
 
 Some Examples::
@@ -289,6 +300,15 @@ Some Examples::
     +----------+-------------+
     SELECT 3 rows in set (... sec)
 
+    cr> select max(position), kind from locations group by kind order by max(position) desc
+    +---------------+-------------+
+    | MAX(position) | kind        |
+    +---------------+-------------+
+    | 6             | Galaxy      |
+    | 5             | Planet      |
+    | 4             | Star System |
+    +---------------+-------------+
+    SELECT 3 rows in set (... sec)
 
     cr> select min(name), kind from locations group by kind order by min(name) asc
     +------------------------------------+-------------+

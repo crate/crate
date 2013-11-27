@@ -2,9 +2,6 @@ package org.cratedb.module.sql.test;
 
 import com.google.common.collect.ImmutableSet;
 import org.cratedb.DataType;
-import org.cratedb.action.groupby.aggregate.AggFunction;
-import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
-import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.NodeExecutionContext;
@@ -67,6 +64,9 @@ public class QueryVisitorTest {
         when(tec.allCols()).thenReturn(ImmutableSet.of("a", "b"));
         when(tec.getColumnDefinition(anyString())).thenReturn(colDef);
         when(tec.getColumnDefinition("nothing")).thenReturn(null);
+        when(tec.getColumnDefinition("bool")).thenReturn(
+                new ColumnDefinition("locations", "bool", DataType.BOOLEAN, "plain", 1, false, false)
+        );
         when(tec.hasCol(anyString())).thenReturn(true);
 
         SQLParseService parseService = new SQLParseService(nec);
@@ -992,5 +992,41 @@ public class QueryVisitorTest {
         expectedException.expect(SQLParseException.class);
 
         execStatement("select min(*) from locations group by gender");
+    }
+
+    @Test
+    public void testMaxAggWithoutArgs() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        execStatement("select max() from locations group by departement");
+    }
+
+    @Test
+    public void testMaxWithNonExistingColumn() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Unknown column 'nothing'");
+        execStatement("select max(nothing) from locations group by departement");
+    }
+
+    @Test
+    public void selectGroupByAggregateMaxStar() throws Exception {
+        expectedException.expect(SQLParseException.class);
+
+        execStatement("select max(*) from locations group by gender");
+    }
+
+    @Test
+    public void testMaxWithWrongColumnType() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Invalid column type 'boolean' for aggregate function MAX");
+
+        execStatement("select max(bool) from locations group by gender");
+    }
+
+    @Test
+    public void testMinWithWrongColumnType() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Invalid column type 'boolean' for aggregate function MIN");
+
+        execStatement("select min(bool) from locations group by gender");
     }
 }

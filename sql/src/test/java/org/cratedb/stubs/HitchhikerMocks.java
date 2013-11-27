@@ -4,6 +4,7 @@ import org.cratedb.Constants;
 import org.cratedb.DataType;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
+import org.cratedb.action.groupby.aggregate.max.MaxAggFunction;
 import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
 import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.NodeExecutionContext;
@@ -36,6 +37,7 @@ public class HitchhikerMocks {
         put(CountAggFunction.COUNT_ROWS_NAME, new CountAggFunction());
         put(CountAggFunction.NAME, new CountAggFunction());
         put(MinAggFunction.NAME, new MinAggFunction());
+        put(MaxAggFunction.NAME, new MaxAggFunction());
     }};
     public static Map<DataType, SQLType> sqlTypes = new HashMap<DataType, SQLType>() {{
         put(DataType.BOOLEAN, new BooleanSQLType());

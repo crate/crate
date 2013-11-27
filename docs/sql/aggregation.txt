@@ -54,7 +54,7 @@ The return value is always of type ``long``.
 MIN
 ...
 
-The ``MIN`` aggregation function returns the smallest value in a column.
+The ``MIN`` aggregation function returns the smallest value in a column that is not ``NULL``.
 Its single argument is a column name and its return value is always of the type of that column.
 Example::
 
@@ -72,7 +72,7 @@ Example::
 ``MIN`` returns ``NULL`` if the column does not contain any value but ``NULL``.
 It is allowed on numeric columns (``byte``, ``short``, ``integer``, ``long``, ``float``, ``double``),
 on ``timestamp`` and ``string`` columns. On ``string`` columns it will return the lexicographically
-smallest. ``NULL`` values are ignored::
+smallest.::
 
     cr> select min(name), kind from locations group by kind order by kind asc
     +------------------------------------+-------------+
@@ -85,3 +85,30 @@ smallest. ``NULL`` values are ignored::
     SELECT 3 rows in set (... sec)
 
 ``MIN`` can currently only be used on ``group by`` queries.
+
+
+MAX
+...
+
+It behaves exactly like ``MIN`` but returns the biggest value in a column that is not ``NULL``.
+Some Examples::
+
+    cr> select max(position), kind from locations group by kind order by kind desc
+    +---------------+-------------+
+    | MAX(position) | kind        |
+    +---------------+-------------+
+    | 4             | Star System |
+    | 5             | Planet      |
+    | 6             | Galaxy      |
+    +---------------+-------------+
+    SELECT 3 rows in set (... sec)
+
+    cr> select max(name), kind from locations group by kind order by max(name) desc
+    +-------------------+-------------+
+    | MAX(name)         | kind        |
+    +-------------------+-------------+
+    | Outer Eastern Rim | Galaxy      |
+    | Bartledan         | Planet      |
+    | Altair            | Star System |
+    +-------------------+-------------+
+    SELECT 3 rows in set (... sec)
