@@ -9,16 +9,24 @@ import org.cratedb.action.groupby.aggregate.min.MinAggState;
 import org.cratedb.action.groupby.aggregate.sum.SumAggState;
 import org.cratedb.action.parser.ColumnDescription;
 
+import java.util.HashSet;
+
 public class AggExpr extends ColumnDescription {
 
     private AggStateCreator aggStateCreator;
+    public boolean isDistinct;
     public String functionName;
     public ParameterInfo parameterInfo;
 
-    public AggExpr(String functionName, final ParameterInfo parameterInfo) {
+    public AggExpr() {
+        super(Types.CONSTANT_COLUMN);
+    }
+
+    public AggExpr(String functionName, final ParameterInfo parameterInfo, boolean isDistinct) {
         super(Types.AGGREGATE_COLUMN);
         this.functionName = functionName;
         this.parameterInfo = parameterInfo;
+        this.isDistinct = isDistinct;
 
         createAggStateCreator(functionName, parameterInfo);
     }
@@ -126,7 +134,9 @@ public class AggExpr extends ColumnDescription {
         aggStateCreator = new AggStateCreator() {
             @Override
             AggState create() {
-                return new CountAggState();
+                CountAggState aggState = new CountAggState();
+                aggState.isDistinct = isDistinct;
+                return aggState;
             }
         };
     }
@@ -177,7 +187,8 @@ public class AggExpr extends ColumnDescription {
     @Override
     public String toString() {
         if (parameterInfo != null) {
-            return String.format("%s(%s)", functionName, parameterInfo.toString());
+            return String.format("%s(%s%s)", functionName, (isDistinct ? "DISTINCT " : ""),
+                parameterInfo.toString());
         } else {
             return functionName;
         }

@@ -7,11 +7,17 @@ import org.cratedb.action.groupby.aggregate.AggFunction;
 import java.util.Set;
 
 public class AvgAggFunction extends AggFunction<AvgAggState> {
+
     public static final String NAME = "AVG";
     public static final ImmutableSet<DataType> supportedColumnTypes = new ImmutableSet.Builder<DataType>()
             .addAll(DataType.NUMERIC_TYPES)
             .add(DataType.TIMESTAMP)
             .build();
+
+    @Override
+    public String name() {
+        return NAME;
+    }
 
     @Override
     public void iterate(AvgAggState state, Object columnValue) {

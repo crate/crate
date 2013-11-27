@@ -71,7 +71,9 @@ public class QueryVisitorTest {
                 new ColumnDefinition("locations", "bool", DataType.BOOLEAN, "plain", 1, false, false)
         );
         when(tec.getColumnDefinition("numeric_field")).thenReturn(
-                new ColumnDefinition("locations", "numeric", DataType.DOUBLE, "plain", 2, false, false)
+                new ColumnDefinition("locations", "numeric", DataType.DOUBLE, "plain", 2, false, false));
+        when(tec.getColumnDefinition("age")).thenReturn(
+            new ColumnDefinition("locations", "age", DataType.INTEGER, null, 1, false, false)
         );
         when(tec.hasCol(anyString())).thenReturn(true);
 
@@ -95,21 +97,6 @@ public class QueryVisitorTest {
     public void testSelectWithNumericConstantValue() throws StandardException, IOException {
         expectedException.expect(SQLParseException.class);
         execStatement("select 1 from locations");
-    }
-
-    @Test
-    public void testSelectCountWrongParameter() throws Exception {
-        expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("'select count(?)' only works with '*' as parameter");
-        execStatement("select count(?) from locations", new Object[] {"foobar"});
-    }
-
-    @Test
-    public void testSelectCountNonPrimaryKeyColumn() throws Exception {
-        expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage(
-                "select count(columnName) is currently only supported on primary key columns");
-        execStatement("select count(a) from locations");
     }
 
     @Test(expected = SQLParseException.class)
@@ -1057,7 +1044,7 @@ public class QueryVisitorTest {
         execStatement("select avg(numeric_field) from locations");
         assertEquals(1, stmt.aggregateExpressions().size());
         assertEquals(AvgAggFunction.NAME, stmt.aggregateExpressions().get(0).functionName);
-        assertEquals(ParameterInfo.columnParameterInfo("numeric_field", DataType.DOUBLE), stmt.aggregateExpressions().get(0).parameterInfo);
+        assertEquals(new ParameterInfo("numeric_field", DataType.DOUBLE), stmt.aggregateExpressions().get(0).parameterInfo);
 
         assertTrue(stmt.isGlobalAggregate());
     }
@@ -1099,6 +1086,27 @@ public class QueryVisitorTest {
         execStatement("select min(bla), col, avg(numeric_field) from locations");
     }
 
+    @Test
+    public void testNoAvgDistinct() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        execStatement("select avg(distinct age) from locations group by stuff");
+    }
 
+    @Test
+    public void testNoSumDistinct() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        execStatement("select sum(distinct age) from locations group by stuff");
+    }
 
+    @Test
+    public void testNoMinDistinct() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        execStatement("select min(distinct age) from locations group by stuff");
+    }
+
+    @Test
+    public void testNoMaxDistinct() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        execStatement("select max(distinct age) from locations group by stuff");
+    }
 }

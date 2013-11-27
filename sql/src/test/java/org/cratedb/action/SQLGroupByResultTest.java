@@ -24,7 +24,6 @@ public class SQLGroupByResultTest {
         ParsedStatement stmt = parseService.parse("select count(*) from characters group by gender");
         SQLReduceJobStatus jobStatus = new SQLReduceJobStatus(stmt, 1);
 
-
         GroupByKey k1 = new GroupByKey(new Object[] { "k1" });
         GroupByKey k2 = new GroupByKey(new Object[] { "k2" });
         GroupByKey k3 = new GroupByKey(new Object[] { "k3" });

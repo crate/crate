@@ -18,6 +18,11 @@ public class MaxAggFunction<T extends Comparable<T>> extends AggFunction<MaxAggS
             .build();
 
     @Override
+    public String name() {
+        return NAME;
+    }
+
+    @Override
     public void iterate(MaxAggState<T> state, Object columnValue) {
         if (state.compareValue((T)columnValue) < 0) {
             state.setValue((T)columnValue);

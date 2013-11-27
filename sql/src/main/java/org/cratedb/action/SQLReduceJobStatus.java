@@ -19,6 +19,7 @@ public class SQLReduceJobStatus {
     public final Object lock = new Object();
     public final ParsedStatement parsedStatement;
     public final ConcurrentMap<GroupByKey, GroupByRow> reducedResult;
+    public final List<Integer> seenIdxMapper;
 
     CountDownLatch shardsToProcess;
 
@@ -26,6 +27,7 @@ public class SQLReduceJobStatus {
                               int shardsToProcess)
     {
         this.parsedStatement = parsedStatement;
+        this.seenIdxMapper = GroupByHelper.getSeenIdxMap(parsedStatement.aggregateExpressions);
         this.reducedResult = ConcurrentCollections.newConcurrentMap();
         this.shardsToProcess = new CountDownLatch(shardsToProcess);
         this.comparator = new GroupByRowComparator(
@@ -37,6 +39,9 @@ public class SQLReduceJobStatus {
     public Collection<GroupByRow> trimRows(Collection<GroupByRow> rows)
     {
         List<GroupByRow> rowList = new ArrayList<>(rows.size());
+        for (GroupByRow row : rows) {
+            row.terminatePartial();
+        }
         rowList.addAll(rows);
 
         return GroupByHelper.trimRows(

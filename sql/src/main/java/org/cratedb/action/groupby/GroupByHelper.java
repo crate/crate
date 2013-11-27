@@ -22,6 +22,23 @@ public class GroupByHelper {
             MaxAggFunction.NAME
     );
 
+    public static List<Integer> getSeenIdxMap(Collection<AggExpr> aggregateExpressions) {
+        List<Integer> idxMap = new ArrayList<>();
+        Set<String> distinctColumns = new HashSet<>();
+        int seenIdx = 0;
+        for (AggExpr expr : aggregateExpressions) {
+            if (expr.isDistinct) {
+                if (!distinctColumns.contains(expr.parameterInfo.columnName)) {
+                    distinctColumns.add(expr.parameterInfo.columnName);
+                    idxMap.add(seenIdx);
+                    seenIdx++;
+                }
+            }
+        }
+
+        return idxMap;
+    }
+
     public static Collection<GroupByRow> trimRows(List<GroupByRow> rows,
                                                   Comparator<GroupByRow> comparator,
                                                   int totalLimit) {
@@ -71,8 +88,8 @@ public class GroupByHelper {
                         @Override
                         public Object getValue(GroupByRow row) {
                             return fieldMapper.convertToXContentValue(
-                                    ((AggExpr) columnDescription).parameterInfo.columnName,
-                                    row.aggStates.get(idx).value()
+                                ((AggExpr) columnDescription).parameterInfo.columnName,
+                                row.aggStates.get(idx).value()
                             );
                         }
                     };

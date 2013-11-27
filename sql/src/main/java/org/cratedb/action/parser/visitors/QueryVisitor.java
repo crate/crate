@@ -2,8 +2,8 @@ package org.cratedb.action.parser.visitors;
 
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
+import org.cratedb.action.groupby.ParameterInfo;
 import org.cratedb.action.groupby.aggregate.AggExpr;
-import org.cratedb.action.groupby.aggregate.AggExprFactory;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
 import org.cratedb.action.parser.ColumnReferenceDescription;
@@ -123,7 +123,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             visit(node.getOrderByList());
         }
 
-        stmt.offset((Integer)valueFromNode(node.getOffsetClause()));
+        stmt.offset((Integer) valueFromNode(node.getOffsetClause()));
         stmt.limit((Integer)valueFromNode(node.getFetchFirstClause()));
 
         if (!stmt.hasGroupBy()) {
@@ -321,41 +321,54 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
      */
     private AggExpr getAggregateExpression(AggregateNode node) throws SQLParseException {
         String aggregateName = node.getAggregateName();
-        AggExpr aggExpr;
 
         AggFunction<?> aggFunction = context.availableAggFunctions().get(aggregateName);
         if (aggFunction == null) {
             throw new SQLParseException(String.format("Unknown aggregate function %s", aggregateName));
         }
-        ValueNode operand = node.getOperand();
 
-        if (aggregateName.startsWith(CountAggFunction.NAME)) {
-            if (operand != null) {
-                validateCountOperand(operand);
-            }
-            // TODO: count on column
-            aggExpr = AggExprFactory.createAggExpr(aggregateName,
-                    operand == null ? null : operand.getColumnName(), null);
-        } else {
-            if (operand != null) {
-                // check columns
-                ColumnDefinition columnDefinition = tableContext.getColumnDefinition(operand.getColumnName());
-                if (columnDefinition == null) {
-                    throw new SQLParseException(String.format("Unknown column '%s'", operand.getColumnName()));
-                }
-                if (aggFunction.supportedColumnTypes().contains(columnDefinition.dataType)) {
-                    aggExpr = AggExprFactory.createAggExpr(aggregateName, operand.getColumnName(), columnDefinition.dataType);
-                } else {
-                    throw new SQLParseException(
-                            String.format("Invalid column type '%s' for aggregate function %s",
-                                    columnDefinition.dataType, aggregateName));
-                }
-            } else {
-                throw new SQLParseException(String.format("Missing parameter for %s() function", aggregateName));
-            }
-
+        if (node.isDistinct() && !aggFunction.supportsDistinct()) {
+            throw new SQLParseException(
+                String.format("The distinct keyword can't be used with the %s function", aggregateName));
         }
-        return aggExpr;
+
+        ValueNode operand = node.getOperand();
+        ParameterInfo parameterInfo = null;
+        if (operand != null) {
+            parameterInfo = resolveParameterInfo(operand, aggFunction);
+        }
+
+        return new AggExpr(aggregateName, parameterInfo, node.isDistinct());
+    }
+
+    private ParameterInfo resolveParameterInfo(ValueNode node, AggFunction aggFunction) {
+        assert node != null;
+        String columnName;
+
+        switch (node.getNodeType()) {
+            case NodeTypes.PARAMETER_NODE:
+                // value of the parameterNode is a literal, Currently a literal is considered a "isAllColumn"
+                return null;
+            case NodeTypes.COLUMN_REFERENCE:
+                columnName = node.getColumnName();
+                break;
+            default:
+                throw new SQLParseException("Got an unsupported argument to a aggregate function");
+        }
+
+        // check columns
+        ColumnDefinition columnDefinition = tableContext.getColumnDefinition(columnName);
+        if (columnDefinition == null) {
+            throw new SQLParseException(String.format("Unknown column '%s'", columnName));
+        }
+        if (!aggFunction.supportedColumnTypes().contains(columnDefinition.dataType)) {
+            throw new SQLParseException(
+                String.format("Invalid column type '%s' for aggregate function %s",
+                    columnDefinition.dataType, aggFunction.name())
+            );
+        }
+
+        return new ParameterInfo(columnName, columnDefinition.dataType);
     }
 
     private void handleAggregateNode(ParsedStatement stmt, ResultColumn column) {
@@ -364,7 +377,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         AggExpr aggExpr = getAggregateExpression(node);
 
         if (aggExpr != null) {
-            if (aggExpr.functionName.startsWith(CountAggFunction.NAME)) {
+            if (aggExpr.functionName.startsWith(CountAggFunction.NAME) && !node.isDistinct()) {
                 stmt.countRequest(true);
             }
             stmt.resultColumnList.add(aggExpr);
@@ -372,37 +385,6 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             String alias = aggExpr.toString();
 
             stmt.addOutputField(column.getName() != null ? column.getName() : alias, alias);
-        }
-    }
-
-
-    /**
-     * verify that the operand in the count function translates to a count(*)
-     * or a column reference referencing the primary key
-     * because anything else isn't supported right now.
-     *
-     * @param operand
-     */
-    private void validateCountOperand(ValueNode operand) throws SQLParseException {
-        switch (operand.getNodeType()) {
-            case NodeTypes.PARAMETER_NODE:
-                ParameterNode parameterNode = (ParameterNode)operand;
-                Object value = args[parameterNode.getParameterNumber()];
-                if (!value.equals("*")) {
-                    throw new SQLParseException("'select count(?)' only works with '*' as parameter");
-                }
-                break;
-            case NodeTypes.COLUMN_REFERENCE:
-                if (!tableContext.primaryKeys().contains(operand.getColumnName())) {
-                    throw new SQLParseException(
-                        "select count(columnName) is currently only supported on primary key columns"
-                    );
-                }
-                break;
-
-            default:
-                throw new SQLParseException(
-                    "Got an unsupported argument to the count aggregate function");
         }
     }
 

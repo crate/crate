@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - the `COUNT` aggregation function now supports the `DISTINCT` keyword.
+
  - aggregations are now allowed on normal ``SELECT`` statements, not only ``GROUP BY`` statements
 
  - ``AVG`` aggregate function

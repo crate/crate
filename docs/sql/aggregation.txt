@@ -52,6 +52,31 @@ The return value is always of type ``long``.
 
     :doc:`rest`
 
+COUNT(DISTINCT columnName)
+==========================
+
+The `count` aggregation function also supports the `DISTINCT` keyword. This
+keyword changes the behaviour of the function so that it will only count rows
+if the value passed to the function wasn't seen already in a previous row::
+
+    cr> select count(distinct kind), count(*), date from locations group by date
+    ... order by count(distinct kind) desc, count(*) desc
+    +----------------------+----------+---------------+
+    | COUNT(DISTINCT kind) | COUNT(*) | date          |
+    +----------------------+----------+---------------+
+    | 3                    | 8        | 1373932800000 |
+    | 3                    | 4        | 308534400000  |
+    | 1                    | 1        | 1367366400000 |
+    +----------------------+----------+---------------+
+     SELECT 3 rows in set (... sec)
+
+    cr> select count(distinct kind) from locations
+    +----------------------+
+    | COUNT(DISTINCT kind) |
+    +----------------------+
+    | 3                    |
+    +----------------------+
+    SELECT 1 row in set (... sec)
 
 MIN
 ===

@@ -1,6 +1,7 @@
 package org.cratedb.action.groupby;
 
 import org.cratedb.action.GroupByFieldLookup;
+import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.core.collections.CyclicIterator;
@@ -19,7 +20,24 @@ public class GlobalSQLGroupingCollector extends SQLGroupingCollector {
         super(parsedStatement, groupByFieldLookup, aggFunctionMap, reducers);
 
         assert parsedStatement.isGlobalAggregate();
-        reducerIter = new CyclicIterator<>(Arrays.asList(this.reducers));
+        boolean hasDistinctAggExpr = false;
+        for (AggExpr aggExpr : parsedStatement.aggregateExpressions) {
+            if (aggExpr.isDistinct) {
+                hasDistinctAggExpr = true;
+                break;
+            }
+        }
+
+        /**
+         * distinct requires that one reducer has a complete set of all seenValues
+         * in order for the {@link org.cratedb.action.groupby.aggregate.AggState#terminatePartial()}
+         * to generate the correct value.
+         */
+        if (hasDistinctAggExpr) {
+            reducerIter = new CyclicIterator<>(Arrays.asList(this.reducers[0]));
+        } else {
+            reducerIter = new CyclicIterator<>(Arrays.asList(this.reducers));
+        }
     }
 
     /**

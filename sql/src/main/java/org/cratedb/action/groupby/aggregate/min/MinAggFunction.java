@@ -17,6 +17,11 @@ public class MinAggFunction<T extends Comparable<T>> extends AggFunction<MinAggS
             .build();
 
     @Override
+    public String name() {
+        return NAME;
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public void iterate(MinAggState<T> state, Object columnValue) {
         if (state.compareValue((T)columnValue) > 0) {

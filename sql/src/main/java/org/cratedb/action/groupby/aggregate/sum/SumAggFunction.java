@@ -15,6 +15,11 @@ public class SumAggFunction extends AggFunction<SumAggState> {
             .build();
 
     @Override
+    public String name() {
+        return NAME;
+    }
+
+    @Override
     public void iterate(SumAggState state, Object columnValue) {
         if (columnValue != null && columnValue instanceof Number) {
             state.add(columnValue);
