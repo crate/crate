@@ -10,6 +10,8 @@ import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountAggState;
 import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.service.SQLParseService;
+import org.cratedb.stubs.HitchhikerMocks;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -24,14 +26,9 @@ public class SQLGroupByResultTest {
     @Test
     public void testMerge() throws Exception {
 
-        ParsedStatement stmt = new ParsedStatement("select count(*) from dummy group by keycol");
-        stmt.resultColumnList = new ArrayList<ColumnDescription>() {{
-            add(new AggExpr(
-                CountAggFunction.COUNT_ROWS_NAME,
-                new ParameterInfo() {{ isAllColumn = true; }}
-            ));
-        }};
-        SQLReduceJobStatus jobStatus = new SQLReduceJobStatus(stmt, 1, new HashMap<String, AggFunction>());
+        SQLParseService parseService = new SQLParseService(HitchhikerMocks.nodeExecutionContext());
+        ParsedStatement stmt = parseService.parse("select count(*) from characters group by gender");
+        SQLReduceJobStatus jobStatus = new SQLReduceJobStatus(stmt, 1);
 
         GroupByKey k1 = new GroupByKey(new Object[] { "k1" });
         GroupByKey k2 = new GroupByKey(new Object[] { "k2" });

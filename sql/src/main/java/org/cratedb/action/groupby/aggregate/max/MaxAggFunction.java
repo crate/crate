@@ -24,20 +24,6 @@ public class MaxAggFunction<T extends Comparable<T>> extends AggFunction<MaxAggS
         }
     }
 
-    @Override
-    public MaxAggState createAggState(AggExpr aggExpr) {
-        assert aggExpr.parameterInfo != null;
-        if (DataType.DECIMAL_TYPES.contains(aggExpr.parameterInfo.dataType)) {
-            return new MaxAggState<Double>();
-        } else if (DataType.INTEGER_TYPES.contains(aggExpr.parameterInfo.dataType) ||
-                aggExpr.parameterInfo.dataType == DataType.TIMESTAMP) {
-            return new MaxAggState<Long>();
-        } else if (aggExpr.parameterInfo.dataType == DataType.STRING) {
-            return new MaxAggState<String>();
-        }
-        // shouldn't happen
-        throw new IllegalArgumentException("Illegal AggExpr for MAX");
-    }
 
     @Override
     public Set<DataType> supportedColumnTypes() {

@@ -88,7 +88,7 @@ public class SQLGroupingCollector extends Collector {
         GroupByRow row = resultMap.get(key);
 
         if (row == null) {
-            row = GroupByRow.createEmptyRow(key, parsedStatement.aggregateExpressions, aggFunctions);
+            row = GroupByRow.createEmptyRow(key, parsedStatement.aggregateExpressions);
             resultMap.put(key, row);
         }
 

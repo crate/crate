@@ -548,7 +548,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
             @Override
             public SQLReduceJobResponse newInstance() {
-                return new SQLReduceJobResponse(aggFunctionMap, parsedStatement);
+                return new SQLReduceJobResponse(parsedStatement);
             }
 
             @Override
