@@ -54,10 +54,10 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
         refresh();
     }
 
-  
     @Test
     public void selectGroupByAggregateMinInteger() throws Exception {
        this.setup.groupBySetup("integer");
+
 
         execute("select min(age) as minage, gender from characters group by gender order by gender");
         assertArrayEquals(new String[]{"minage", "gender"}, response.cols());

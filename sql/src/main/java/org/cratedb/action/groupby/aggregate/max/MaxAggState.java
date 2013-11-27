@@ -6,7 +6,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-
 public class MaxAggState<T extends Comparable<T>> extends AggState<MaxAggState<T>> {
 
     private T value = null;
