@@ -521,6 +521,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 groupByResult.addAll(response.result);
             }
 
+
             if (logger.isTraceEnabled()) {
                 assert stopWatch != null;
                 stopWatch.stop();

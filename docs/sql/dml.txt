@@ -241,46 +241,47 @@ Data Aggregation
 ----------------
 
 Crate supports aggregations by using the aggregation functions listed below on ``SELECT`` statements.
-Not all aggregation functions are available for all ``SELECT`` statements. Most aggregation
-functions can only be used on ``GROUP BY`` request. For the applicable scope please consult the
-column ``Scope`` in the table below.
 
+Aggregation works on all the rows that match a query or on
+all matching rows in every distinct *group* of a ``GROUP BY`` statement.
+Aggregating ``SELECT`` statements without ``GROUP BY`` will
+always return one row, as they do an aggregation operation on the matching rows as one group.
 
 .. seealso::
 
     :ref:`aggregation`
 
-+---------+---------------+----------------------------------+-----------------------+----------+
-| Name    | Arguments     | Description                      | Return Type           | Scope    |
-+=========+===============+==================================+=======================+==========+
-| COUNT(*)| Star as       | Counts the number of rows        | long                  | Group by |
-|         | Parameter or  | that match the query.            |                       | Requests |
-|         | as Constant   |                                  |                       | and      |
-|         | or the primary|                                  |                       | "normal" |
-|         | key column    |                                  |                       | requests |
-+---------+---------------+----------------------------------+-----------------------+----------+
-| MIN     | column name of| returns the smallest of the      | the input             | Group by |
-|         | a numeric,    | values in the argument column    | column type           | Requests |
-|         | timestamp     | in case of strings this          |                       |          |
-|         | or string     | means the lexicographically      |                       |          |
-|         | column        | smallest. NULL-values are ignored|                       |          |
-+---------+---------------+----------------------------------+-----------------------+----------+
-| MAX     | column name of| returns the biggest of the       | the input             | Group by |
-|         | a numeric,    | values in the argument column    | column type           | Requests |
-|         | timestamp     | in case of strings this          |                       |          |
-|         | or string     | means the lexicographically      |                       |          |
-|         | column        | biggest. NULL-values are ignored |                       |          |
-+---------+---------------+----------------------------------+-----------------------+----------+
-| SUM     | column name of| returns the sum of the values in | double                | Group by |
-|         | a numeric or  | the argument column.             |                       | Requests |
-|         | timestamp     | NULL-values are ignored.         |                       |          |
-|         | column        |                                  |                       |          |
-+---------+---------------+----------------------------------+-----------------------+----------+
-| AVG     | column name of| returns the arithmetic mean of   | double                | Group by |
-|         | a numeric or  | the values in the argument       |                       | Requests |
-|         | timestamp     | column.                          |                       |          |
-|         | column        | NULL-values are ignored.         |                       |          |
-+---------+---------------+----------------------------------+-----------------------+----------+
++---------+---------------+----------------------------------+-----------------------+
+| Name    | Arguments     | Description                      | Return Type           |
++=========+===============+==================================+=======================+
+| COUNT(*)| Star as       | Counts the number of rows        | long                  |
+|         | Parameter or  | that match the query.            |                       |
+|         | as Constant   |                                  |                       |
+|         | or the primary|                                  |                       |
+|         | key column    |                                  |                       |
++---------+---------------+----------------------------------+-----------------------+
+| MIN     | column name of| returns the smallest of the      | the input             |
+|         | a numeric,    | values in the argument column    | column type or NULL   |
+|         | timestamp     | in case of strings this          | if all values in that |
+|         | or string     | means the lexicographically      | matching rows in that |
+|         | column        | smallest. NULL-values are ignored| column are NULL       |
++---------+---------------+----------------------------------+-----------------------+
+| MAX     | column name of| returns the biggest of the       | the input             |
+|         | a numeric,    | values in the argument column    | column type or NULL   |
+|         | timestamp     | in case of strings this          | if all values of all  |
+|         | or string     | means the lexicographically      | matching rows in that |
+|         | column        | biggest. NULL-values are ignored | column are NULL       |
++---------+---------------+----------------------------------+-----------------------+
+| SUM     | column name of| returns the sum of the values in | double or NULL        |
+|         | a numeric or  | the argument column.             | if all values of all  |
+|         | timestamp     | NULL-values are ignored.         | matching rows in that |
+|         | column        |                                  | column are NULL       |
++---------+---------------+----------------------------------+-----------------------+
+| AVG     | column name of| returns the arithmetic mean of   | double or NULL        |
+|         | a numeric or  | the values in the argument       | if all values of all  |
+|         | timestamp     | column.                          | matching rows in that |
+|         | column        | NULL-values are ignored.         | column are NULL       |
++---------+---------------+----------------------------------+-----------------------+
 
 Some Examples::
 
@@ -300,6 +301,21 @@ Some Examples::
     +----------+
     SELECT 1 row in set (... sec)
 
+    cr> select max(name) from locations
+    +-------------------+
+    | MAX(name)         |
+    +-------------------+
+    | Outer Eastern Rim |
+    +-------------------+
+    SELECT 1 row in set (... sec)
+
+    cr> select min(date) from locations
+    +--------------+
+    | MIN(date)    |
+    +--------------+
+    | 308534400000 |
+    +--------------+
+    SELECT 1 row in set (... sec)
 
     cr> select count(*), kind from locations group by kind order by kind asc
     +----------+-------------+

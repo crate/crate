@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - aggregations are now allowed on normal ``SELECT`` statements, not only ``GROUP BY`` statements
+
  - ``AVG`` aggregate function
 
  - ``SUM`` aggregate function

@@ -518,4 +518,59 @@ public class InformationSchemaServiceTest extends SQLCrateNodesTest {
         assertEquals("analyzer=standard", response.rows()[3][4]);
     }
 
+    @Test
+    public void testGlobalAggregation() throws Exception {
+        execUsingClient("select max(ordinal_position) from information_schema.columns");
+        assertEquals(1, response.rowCount());
+
+        assertNull(response.rows()[0][0]);
+
+        execUsingClient("create table t1 (id integer, col1 string)");
+        execUsingClient("select max(ordinal_position) from information_schema.columns");
+        assertEquals(1, response.rowCount());
+
+        assertEquals(2, response.rows()[0][0]);
+
+    }
+
+    @Test
+    public void testGlobalAggregationMany() throws Exception {
+        execUsingClient("create table t1 (id integer, col1 string) clustered into 10 shards replicas 14");
+        execUsingClient("create table t2 (id integer, col1 string) clustered into 5 shards replicas 7");
+        execUsingClient("create table t3 (id integer, col1 string) clustered into 3 shards replicas 2");
+        execUsingClient("select min(number_of_replicas), max(number_of_replicas), avg(number_of_replicas)," +
+                "sum(number_of_shards) from information_schema.tables");
+        assertEquals(1, response.rowCount());
+
+        assertEquals(2, response.rows()[0][0]);
+        assertEquals(14, response.rows()[0][1]);
+        assertEquals(7.666666666666667d, response.rows()[0][2]);
+        assertEquals(18.0d, response.rows()[0][3]);
+    }
+
+    @Test
+    public void testGlobalAggregationWithWhere() throws Exception {
+        execUsingClient("create table t1 (id integer, col1 string) clustered into 10 shards replicas 14");
+        execUsingClient("create table t2 (id integer, col1 string) clustered into 5 shards replicas 7");
+        execUsingClient("create table t3 (id integer, col1 string) clustered into 3 shards replicas 2");
+        execUsingClient("select min(number_of_replicas), max(number_of_replicas), avg(number_of_replicas)," +
+                "sum(number_of_shards) from information_schema.tables where table_name != 't1'");
+        assertEquals(1, response.rowCount());
+
+        assertEquals(2, response.rows()[0][0]);
+        assertEquals(7, response.rows()[0][1]);
+        assertEquals(4.5d, response.rows()[0][2]);
+        assertEquals(8.0d, response.rows()[0][3]);
+    }
+
+    @Test
+    public void testGlobalAggregationWithAlias() throws Exception {
+        execUsingClient("create table t1 (id integer, col1 string) clustered into 10 shards replicas 14");
+        execUsingClient("create table t2 (id integer, col1 string) clustered into 5 shards replicas 7");
+        execUsingClient("create table t3 (id integer, col1 string) clustered into 3 shards replicas 2");
+        execUsingClient("select min(number_of_replicas) as min_replicas from information_schema.tables where table_name = 't1'");
+        assertEquals(1, response.rowCount());
+
+        assertEquals(14, response.rows()[0][0]);
+    }
 }

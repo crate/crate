@@ -96,7 +96,7 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
         }
 
         TopDocs docs;
-        if (stmt.hasGroupBy()) {
+        if (stmt.hasGroupBy() || stmt.isGlobalAggregate()) {
             SQLResponse response = doGroupByQuery(stmt, requestStartedTime);
             activeSearches.decrementAndGet();
             listener.onResponse(response);
@@ -115,17 +115,28 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
     }
 
     protected SQLResponse doGroupByQuery(ParsedStatement stmt, long requestStartedTime) throws IOException {
-        assert stmt.hasGroupBy();
+        assert stmt.hasGroupBy() || stmt.isGlobalAggregate();
 
         // the regular group-by workflow involves reducers.
         // the GroupingCollector will partition the results by reducer to then do a distributed reduce.
         // here DUMMY is used as a pseudo reducer because information-schema group by doesn't involve reducers..
-        SQLGroupingCollector collector = new SQLGroupingCollector(
-            stmt,
-            new InformationSchemaFieldLookup(fieldMapper()),
-            aggFunctionMap,
-            new String[] { "DUMMY" }
-        );
+        SQLGroupingCollector collector;
+        if (stmt.isGlobalAggregate()) {
+            collector = new GlobalSQLGroupingCollector(
+                    stmt,
+                    new InformationSchemaFieldLookup(fieldMapper()),
+                    aggFunctionMap,
+                    new String[] { "DUMMY" }
+            );
+        } else {
+            collector = new SQLGroupingCollector(
+                    stmt,
+                    new InformationSchemaFieldLookup(fieldMapper()),
+                    aggFunctionMap,
+                    new String[] { "DUMMY" }
+            );
+        }
+
         indexSearcher.search(stmt.query, collector);
         List<GroupByRow> rows = new ArrayList<>(collector.partitionedResult.get("DUMMY").values());
         return groupByRowsToSQLResponse(stmt, rows, requestStartedTime);
@@ -137,14 +148,15 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
         GroupByFieldExtractor[] extractors = GroupByHelper.buildFieldExtractor(stmt, null);
         GroupByRowComparator comparator = new GroupByRowComparator(extractors, stmt.orderByIndices());
 
-        return new SQLResponse(
-            stmt.cols(),
-            GroupByHelper.sortedRowsToObjectArray(
+        Object[][] sortedRows = GroupByHelper.sortedRowsToObjectArray(
                 GroupByHelper.sortAndTrimRows(rows, comparator, stmt.totalLimit()),
                 stmt,
                 extractors
-            ),
-            rows.size() - stmt.offset(),
+        );
+        return new SQLResponse(
+            stmt.cols(),
+            sortedRows,
+            sortedRows.length,
             requestStartedTime
         );
     }

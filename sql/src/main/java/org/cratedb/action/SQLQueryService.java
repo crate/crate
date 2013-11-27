@@ -2,6 +2,7 @@ package org.cratedb.action;
 
 import org.apache.lucene.search.Query;
 import org.cratedb.Constants;
+import org.cratedb.action.groupby.GlobalSQLGroupingCollector;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.SQLGroupingCollector;
@@ -67,12 +68,22 @@ public class SQLQueryService {
         context.preProcess();
 
         Query query = context.query();
-        SQLGroupingCollector collector = new SQLGroupingCollector(
-            stmt,
-            new ESDocLookup(context.lookup().doc()),
-            aggFunctionMap,
-            reducers
-        );
+        SQLGroupingCollector collector;
+        if (stmt.isGlobalAggregate()) {
+            collector = new GlobalSQLGroupingCollector(
+                    stmt,
+                    new ESDocLookup(context.lookup().doc()),
+                    aggFunctionMap,
+                    reducers
+            );
+        } else {
+            collector = new SQLGroupingCollector(
+                    stmt,
+                    new ESDocLookup(context.lookup().doc()),
+                    aggFunctionMap,
+                    reducers
+            );
+        }
 
         try {
             context.searcher().search(query, collector);
