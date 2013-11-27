@@ -1,11 +1,6 @@
 package org.cratedb.action.groupby;
 
 import org.cratedb.DataType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
-
-import java.io.IOException;
 
 /**
  * used to specify the parameters of the aggregateExpressions.
@@ -14,11 +9,30 @@ import java.io.IOException;
  *
  *  intended to be extended to be used for example for avg(columnName)
  */
-public class ParameterInfo implements Streamable {
+public class ParameterInfo {
 
     public boolean isAllColumn;
     public String columnName = null;
     public DataType dataType = null; // dataType of the column to aggregate on
+
+    /**
+     * empty constructor, only used by
+     */
+    private ParameterInfo() {}
+
+    public ParameterInfo(String columnName, DataType dataType, boolean isAllColumn) {
+        this.columnName = columnName;
+        this.dataType = dataType;
+        this.isAllColumn = isAllColumn;
+    }
+
+    public static ParameterInfo columnParameterInfo(String columnName, DataType dataType) {
+        return new ParameterInfo(columnName, dataType, false);
+    }
+
+    public static ParameterInfo allColumnParameterInfo() {
+        return new ParameterInfo(null, null, true);
+    }
 
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -39,20 +53,6 @@ public class ParameterInfo implements Streamable {
 
     public int hashCode() {
         return (isAllColumn ? 1 : columnName.hashCode());
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        isAllColumn = in.readBoolean();
-        columnName = in.readString();
-        dataType = DataType.values()[in.readVInt()];
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeBoolean(isAllColumn);
-        out.writeString(columnName);
-        out.writeVInt(dataType.ordinal());
     }
 
     @Override

@@ -134,3 +134,22 @@ as a double value. Its single argument is the column name of a numeric column or
 
     cr> select sum(name), kind from locations group by kind order by sum(name) desc
     SQLParseException[Invalid column type 'string' for aggregate function SUM]
+
+AVG
+===
+
+The ``AVG`` aggregation function returns the arithmetic mean, the *average*,
+of all values in a column that are not ``NULL`` as a double value. It accepts all numeric columns
+and timestamp columns as single argument. Using ``AVG`` on other column types is not allowed.
+
+Example::
+
+    cr> select avg(position), kind from locations group by kind order by kind
+    +---------------+-------------+
+    | AVG(position) | kind        |
+    +---------------+-------------+
+    | 3.25          | Galaxy      |
+    | 3.0           | Planet      |
+    | 2.5           | Star System |
+    +---------------+-------------+
+    SELECT 3 rows in set (... sec)

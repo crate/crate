@@ -1,12 +1,6 @@
 package org.cratedb.action.parser;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
-
-import java.io.IOException;
-
-public class ColumnDescription implements Streamable {
+public class ColumnDescription {
 
     public static class Types {
         public final static byte AGGREGATE_COLUMN = 0;
@@ -17,15 +11,5 @@ public class ColumnDescription implements Streamable {
 
     public ColumnDescription(byte type) {
         this.type = type;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        type = in.readByte();
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeByte(type);
     }
 }

@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - ``AVG`` aggregate function
+
  - ``SUM`` aggregate function
 
  - ``MAX`` aggregate function

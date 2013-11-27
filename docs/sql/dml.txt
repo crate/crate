@@ -273,8 +273,13 @@ column ``Scope`` in the table below.
 +---------+---------------+----------------------------------+-----------------------+----------+
 | SUM     | column name of| returns the sum of the values in | double                | Group by |
 |         | a numeric or  | the argument column.             |                       | Requests |
-|         | timestamp     | NULL-values are ignored          |                       |          |
+|         | timestamp     | NULL-values are ignored.         |                       |          |
 |         | column        |                                  |                       |          |
++---------+---------------+----------------------------------+-----------------------+----------+
+| AVG     | column name of| returns the arithmetic mean of   | double                | Group by |
+|         | a numeric or  | the values in the argument       |                       | Requests |
+|         | timestamp     | column.                          |                       |          |
+|         | column        | NULL-values are ignored.         |                       |          |
 +---------+---------------+----------------------------------+-----------------------+----------+
 
 Some Examples::
@@ -345,7 +350,6 @@ Some Examples::
     | 15.0          | Planet      |
     +---------------+-------------+
     SELECT 3 rows in set (... sec)
-
 
 .. _sql_dml_group_by:
 

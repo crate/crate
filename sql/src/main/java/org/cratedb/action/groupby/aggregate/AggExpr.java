@@ -2,15 +2,12 @@ package org.cratedb.action.groupby.aggregate;
 
 import org.cratedb.DataType;
 import org.cratedb.action.groupby.ParameterInfo;
+import org.cratedb.action.groupby.aggregate.avg.AvgAggState;
 import org.cratedb.action.groupby.aggregate.count.CountAggState;
 import org.cratedb.action.groupby.aggregate.max.MaxAggState;
 import org.cratedb.action.groupby.aggregate.min.MinAggState;
 import org.cratedb.action.groupby.aggregate.sum.SumAggState;
 import org.cratedb.action.parser.ColumnDescription;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
 
 public class AggExpr extends ColumnDescription {
 
@@ -34,20 +31,23 @@ public class AggExpr extends ColumnDescription {
      */
     private void createAggStateCreator(String functionName, ParameterInfo parameterInfo) {
         switch (functionName) {
+            case "AVG":
+                createAvgAggState();
+                break;
             case "COUNT":
                 createCountAggState();
                 break;
             case "COUNT(*)":
                 createCountAggState();
                 break;
-            case "SUM":
-                createSumAggState();
-                break;
             case "MAX":
                 createMaxAggState(parameterInfo);
                 break;
             case "MIN":
                 createMinAggState(parameterInfo);
+                break;
+            case "SUM":
+                createSumAggState();
                 break;
             default:
                 throw new IllegalArgumentException("Unknown function " + functionName);
@@ -131,6 +131,15 @@ public class AggExpr extends ColumnDescription {
         };
     }
 
+    private void createAvgAggState() {
+        aggStateCreator = new AggStateCreator() {
+            @Override
+            AggState create() {
+                return new AvgAggState();
+            }
+        };
+    }
+
     /**
      * internally used to create the {@link #createAggState()} method.
      */
@@ -163,21 +172,6 @@ public class AggExpr extends ColumnDescription {
         int result = functionName.hashCode();
         result = 31 * result + parameterInfo.hashCode();
         return result;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        functionName = in.readString();
-        parameterInfo = new ParameterInfo();
-        parameterInfo.readFrom(in);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeString(functionName);
-        parameterInfo.writeTo(out);
     }
 
     @Override

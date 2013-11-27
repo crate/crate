@@ -3,6 +3,7 @@ package org.cratedb.stubs;
 import org.cratedb.Constants;
 import org.cratedb.DataType;
 import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.groupby.aggregate.avg.AvgAggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
 import org.cratedb.action.groupby.aggregate.max.MaxAggFunction;
 import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
@@ -40,7 +41,9 @@ public class HitchhikerMocks {
         put(MinAggFunction.NAME, new MinAggFunction());
         put(MaxAggFunction.NAME, new MaxAggFunction());
         put(SumAggFunction.NAME, new SumAggFunction());
+        put(AvgAggFunction.NAME, new AvgAggFunction());
     }};
+
     public static Map<DataType, SQLType> sqlTypes = new HashMap<DataType, SQLType>() {{
         put(DataType.BOOLEAN, new BooleanSQLType());
         put(DataType.STRING, new StringSQLType());

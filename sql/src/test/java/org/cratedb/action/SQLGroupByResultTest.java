@@ -2,13 +2,8 @@ package org.cratedb.action;
 
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
-import org.cratedb.action.groupby.ParameterInfo;
-import org.cratedb.action.groupby.aggregate.AggExpr;
-import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.AggState;
-import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountAggState;
-import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.stubs.HitchhikerMocks;
@@ -16,7 +11,6 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -29,6 +23,7 @@ public class SQLGroupByResultTest {
         SQLParseService parseService = new SQLParseService(HitchhikerMocks.nodeExecutionContext());
         ParsedStatement stmt = parseService.parse("select count(*) from characters group by gender");
         SQLReduceJobStatus jobStatus = new SQLReduceJobStatus(stmt, 1);
+
 
         GroupByKey k1 = new GroupByKey(new Object[] { "k1" });
         GroupByKey k2 = new GroupByKey(new Object[] { "k2" });
