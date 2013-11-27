@@ -32,8 +32,7 @@ public class SQLGroupingCollectorTest extends TestCase {
 
     @Test
     public void testGroupBySingleColumnWithCount() throws Exception {
-        ParameterInfo paramInfo = new ParameterInfo();
-        paramInfo.isAllColumn = true;
+        ParameterInfo paramInfo = ParameterInfo.allColumnParameterInfo();
 
         ParsedStatement stmt = new ParsedStatement(
             "select count(*), city, country from ... group by country, city order by count(*) desc"

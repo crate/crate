@@ -275,4 +275,44 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
         assertEquals(45.0d, response.rows()[3][0]);
 
     }
+
+    @Test
+    public void testGroupByAvgDouble() throws Exception {
+        execute("select avg(income), departement from employees group by departement order by departement asc");
+        assertEquals(4, response.rowCount());
+
+        assertEquals("HR", response.rows()[0][1]);
+        assertEquals(500000000.245d, response.rows()[0][0]);
+
+        assertEquals("engineering", response.rows()[1][1]);
+        assertEquals(5000.0d, response.rows()[1][0]);
+
+        assertEquals("internship", response.rows()[2][1]);
+        assertEquals(null, response.rows()[2][0]);
+
+        assertEquals("management", response.rows()[3][1]);
+        assertEquals(Double.MAX_VALUE, response.rows()[3][0]);
+    }
+
+    @Test
+    public void testGroupByAvgMany() throws Exception {
+        execute("select avg(income), avg(age), departement from employees group by departement order by departement asc");
+        assertEquals(4, response.rowCount());
+
+        assertEquals("HR", response.rows()[0][2]);
+        assertEquals(500000000.245d, response.rows()[0][0]);
+        assertEquals(12.0d, response.rows()[0][1]);
+
+        assertEquals("engineering", response.rows()[1][2]);
+        assertEquals(5000.0d, response.rows()[1][0]);
+        assertEquals(50.5d, response.rows()[1][1]);
+
+        assertEquals("internship", response.rows()[2][2]);
+        assertEquals(null, response.rows()[2][0]);
+        assertEquals(28.0d, response.rows()[2][1]);
+
+        assertEquals("management", response.rows()[3][2]);
+        assertEquals(Double.MAX_VALUE, response.rows()[3][0]);
+        assertEquals(45.0d, response.rows()[3][1]);
+    }
 }

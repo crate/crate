@@ -1037,4 +1037,12 @@ public class QueryVisitorTest {
 
         execStatement("select sum(bool) from locations group by stuff");
     }
+
+    @Test
+    public void testGroupByAggAvgInvalidColumn() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Invalid column type 'boolean' for aggregate function AVG");
+
+        execStatement("select avg(bool) from locations group by stuff");
+    }
 }

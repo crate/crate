@@ -88,7 +88,7 @@ public class Setup {
 
     }
 
-    public void     setUpEmployees() {
+    public void setUpEmployees() {
         test.execute("create table employees (" +
                 " name string, " +
                 " departement string," +
