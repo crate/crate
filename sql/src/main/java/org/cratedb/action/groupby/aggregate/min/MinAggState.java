@@ -7,7 +7,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 
 /**
- * marker class
+ * MIN Aggregation Function State
  * @param <T>
  */
 public class MinAggState<T extends Comparable<T>> extends AggState<MinAggState<T>> {
@@ -47,8 +47,7 @@ public class MinAggState<T extends Comparable<T>> extends AggState<MinAggState<T
     public int compareValue(T otherValue) {
         if (value == null) return (otherValue == null ? 0 : 1);
         if (otherValue == null) return -1;
-
-        return Integer.signum(value.compareTo(otherValue));
+        return value.compareTo(otherValue);
     }
 
     @Override

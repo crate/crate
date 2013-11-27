@@ -32,7 +32,7 @@ public class SQLCrateClusterTest extends AbstractSharedCrateClusterTest {
      * @param args the arguments to replace placeholders ("?") in the statement
      * @return the SQLResponse
      */
-    protected SQLResponse execute(String stmt, Object[] args) {
+    public SQLResponse execute(String stmt, Object[] args) {
         return client().execute(SQLAction.INSTANCE, new SQLRequest(stmt, args)).actionGet();
     }
 
@@ -42,7 +42,7 @@ public class SQLCrateClusterTest extends AbstractSharedCrateClusterTest {
      * @param stmt the SQL Statement
      * @return the SQLResponse
      */
-    protected SQLResponse execute(String stmt) {
+    public SQLResponse execute(String stmt) {
         return execute(stmt, new Object[0]);
     }
 

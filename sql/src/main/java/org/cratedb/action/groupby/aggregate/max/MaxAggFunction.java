@@ -8,7 +8,7 @@ import org.cratedb.action.groupby.aggregate.AggFunction;
 
 import java.util.Set;
 
-public class MaxAggFunction extends AggFunction<MaxAggState> {
+public class MaxAggFunction<T extends Comparable<T>> extends AggFunction<MaxAggState<T>> {
 
     public static final String NAME = "MAX";
     public static final Set<DataType> supportedColumnTypes = new ImmutableSet.Builder<DataType>()
@@ -18,9 +18,9 @@ public class MaxAggFunction extends AggFunction<MaxAggState> {
             .build();
 
     @Override
-    public void iterate(MaxAggState state, Object columnValue) {
-        if (state.compareValue(columnValue) < 0) {
-            state.setValue(columnValue);
+    public void iterate(MaxAggState<T> state, Object columnValue) {
+        if (state.compareValue((T)columnValue) < 0) {
+            state.setValue((T)columnValue);
         }
     }
 
@@ -28,15 +28,15 @@ public class MaxAggFunction extends AggFunction<MaxAggState> {
     public MaxAggState createAggState(AggExpr aggExpr) {
         assert aggExpr.parameterInfo != null;
         if (DataType.DECIMAL_TYPES.contains(aggExpr.parameterInfo.dataType)) {
-            return new MaxAggStateDouble();
+            return new MaxAggState<Double>();
         } else if (DataType.INTEGER_TYPES.contains(aggExpr.parameterInfo.dataType) ||
                 aggExpr.parameterInfo.dataType == DataType.TIMESTAMP) {
-            return new MaxAggStateLong();
+            return new MaxAggState<Long>();
         } else if (aggExpr.parameterInfo.dataType == DataType.STRING) {
-            return new MaxAggStateString();
+            return new MaxAggState<String>();
         }
         // shouldn't happen
-        throw new IllegalArgumentException("Illegal AggExpr for MIN");
+        throw new IllegalArgumentException("Illegal AggExpr for MAX");
     }
 
     @Override
