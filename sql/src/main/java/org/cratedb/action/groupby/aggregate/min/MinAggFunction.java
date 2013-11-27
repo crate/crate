@@ -25,23 +25,10 @@ public class MinAggFunction<T extends Comparable<T>> extends AggFunction<MinAggS
     }
 
     @Override
-    public MinAggState createAggState(AggExpr aggExpr) {
-        assert aggExpr.parameterInfo != null;
-        if (DataType.DECIMAL_TYPES.contains(aggExpr.parameterInfo.dataType)) {
-            return new MinAggState<Double>();
-        } else if (DataType.INTEGER_TYPES.contains(aggExpr.parameterInfo.dataType) ||
-                aggExpr.parameterInfo.dataType == DataType.TIMESTAMP) {
-            return new MinAggState<Long>();
-        } else if (aggExpr.parameterInfo.dataType == DataType.STRING) {
-            return new MinAggState<String>();
-        }
-        // shouldn't happen
-        throw new IllegalArgumentException("Illegal AggExpr for MIN");
-    }
-
-    @Override
     public Set<DataType> supportedColumnTypes() {
         return supportedColumnTypes;
     }
+
+
 
 }

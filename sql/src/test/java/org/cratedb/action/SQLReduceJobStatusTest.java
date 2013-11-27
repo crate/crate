@@ -34,9 +34,7 @@ public class SQLReduceJobStatusTest {
             "select count(*) from characters group by race order by count(*) desc limit 2");
 
         // result ist from 1 shard, limit is 2; order by first column
-        SQLReduceJobStatus status = new SQLReduceJobStatus(stmt, 1,
-            new HashMap<String, AggFunction>()
-        );
+        SQLReduceJobStatus status = new SQLReduceJobStatus(stmt, 1);
         List<GroupByRow> rows = new ArrayList<>();
         rows.add(new GroupByRow(new GroupByKey(new Object[]{ 1}),
                 new ArrayList<AggState>(1) {{

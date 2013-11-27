@@ -36,7 +36,6 @@ public class SQLMapperResultRequest extends TransportRequest {
             throw new IOException(e);
         }
         groupByResult = SQLGroupByResult.readSQLGroupByResult(
-            status.aggFunctionMap,
             status.parsedStatement.aggregateExpressions,
             in
         );

@@ -19,7 +19,6 @@ import java.util.*;
  */
 public class SQLGroupByResult implements Streamable {
 
-    public Map<String, AggFunction> aggFunctions;
     public List<AggExpr> aggExprs;
 
     /**
@@ -29,86 +28,23 @@ public class SQLGroupByResult implements Streamable {
      *
      * the serialization is basically abused to convert the Collection into a List
      */
-    public List<GroupByRow> result;
+    private List<GroupByRow> result;
     private Collection<GroupByRow> preSerializationResult;
 
     public SQLGroupByResult(Collection<GroupByRow> result) {
         this.preSerializationResult = result;
     }
 
-    /**
-     * Only use this for testing, the result is not serialized!
-     * @param result
-     */
-    public SQLGroupByResult(List<GroupByRow> result) {
-        this.result = result;
+    public Collection<GroupByRow> result() {
+        if (result != null) {
+            return result;
+        } else {
+            return preSerializationResult;
+        }
     }
 
-    SQLGroupByResult(Map<String, AggFunction> aggFunctions, List<AggExpr> aggExprs) {
-        this.result = new ArrayList<>(0);
-        this.aggFunctions = aggFunctions;
+    SQLGroupByResult(List<AggExpr> aggExprs) {
         this.aggExprs = aggExprs;
-    }
-
-    /**
-     * use {@link SQLReduceJobStatus#merge(SQLGroupByResult)} instead.
-     * @param otherResult
-     */
-    @Deprecated
-    public void merge(SQLGroupByResult otherResult) {
-        merge(otherResult.result);
-    }
-
-    protected void merge(List<GroupByRow> mapperResult) {
-        assert result != null;
-        assert mapperResult != null;
-
-        if (result.isEmpty()) {
-            result = mapperResult;
-            return;
-        }
-        if (mapperResult.isEmpty()) {
-            return;
-        }
-
-        List<GroupByRow> newResult = new ArrayList<>();
-
-        ListIterator<GroupByRow> thisIterator = result.listIterator();
-        ListIterator<GroupByRow> otherIterator = mapperResult.listIterator();
-
-        GroupByRow otherRow;
-        GroupByRow thisRow;
-
-        while(thisIterator.hasNext() || otherIterator.hasNext()) {
-            if (!otherIterator.hasNext()) {
-                newResult.add(thisIterator.next());
-            } else if (!thisIterator.hasNext()) {
-                newResult.add(otherIterator.next());
-            } else {
-
-                thisRow = result.get(thisIterator.nextIndex());
-                otherRow = mapperResult.get(otherIterator.nextIndex());
-
-                switch (thisRow.key.compareTo(otherRow.key)) {
-                    case 0:
-                        thisRow.merge(otherRow);
-                        newResult.add(thisRow);
-                        thisIterator.next();
-                        otherIterator.next();
-                        break;
-                    case -1:
-                        newResult.add(thisRow);
-                        thisIterator.next();
-                        break;
-                    case 1:
-                        newResult.add(otherRow);
-                        otherIterator.next();
-                        break;
-                }
-            }
-        }
-
-        result = newResult;
     }
 
     public int size() {
@@ -124,7 +60,7 @@ public class SQLGroupByResult implements Streamable {
         result = new ArrayList<>(resultSize);
 
         for (int i = 0; i < resultSize; i++) {
-            result.add(GroupByRow.readGroupByRow(aggFunctions, aggExprs, in));
+            result.add(GroupByRow.readGroupByRow(aggExprs, in));
         }
     }
 
@@ -136,11 +72,10 @@ public class SQLGroupByResult implements Streamable {
         }
     }
 
-    public static SQLGroupByResult readSQLGroupByResult(Map<String, AggFunction> aggregateFunctions,
-                                                        List<AggExpr> aggExprs, StreamInput in)
+    public static SQLGroupByResult readSQLGroupByResult(List<AggExpr> aggExprs, StreamInput in)
         throws IOException
     {
-        SQLGroupByResult result = new SQLGroupByResult(aggregateFunctions, aggExprs);
+        SQLGroupByResult result = new SQLGroupByResult(aggExprs);
         result.readFrom(in);
         return result;
     }

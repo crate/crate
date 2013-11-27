@@ -23,11 +23,6 @@ public class SumAggFunction extends AggFunction<SumAggState> {
     }
 
     @Override
-    public SumAggState createAggState(AggExpr aggExpr) {
-        return new SumAggState();
-    }
-
-    @Override
     public Set<DataType> supportedColumnTypes() {
         return supportedColumnTypes;
     }

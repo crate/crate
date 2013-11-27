@@ -13,13 +13,10 @@ import java.util.*;
 public class SQLReduceJobResponse extends ActionResponse {
 
     private ParsedStatement parsedStatement;
-    private Map<String,AggFunction> aggFunctionMap;
     public Collection<GroupByRow> result;
 
 
-    public SQLReduceJobResponse(Map<String, AggFunction> aggFunctionMap,
-                                ParsedStatement parsedStatement) {
-        this.aggFunctionMap = aggFunctionMap;
+    public SQLReduceJobResponse(ParsedStatement parsedStatement) {
         this.parsedStatement = parsedStatement;
     }
 
@@ -33,8 +30,7 @@ public class SQLReduceJobResponse extends ActionResponse {
         int resultLength = in.readVInt();
         result = new ArrayList<>(resultLength);
         for (int i = 0; i < resultLength; i++) {
-            result.add(GroupByRow.readGroupByRow(
-                aggFunctionMap, parsedStatement.aggregateExpressions, in));
+            result.add(GroupByRow.readGroupByRow(parsedStatement.aggregateExpressions, in));
         }
     }
 

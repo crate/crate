@@ -1,6 +1,5 @@
 package org.cratedb.action;
 
-import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.core.concurrent.FutureConcurrentMap;
 import org.cratedb.service.SQLParseService;
@@ -17,7 +16,6 @@ import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.Date;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -27,7 +25,6 @@ public class TransportSQLReduceHandler {
     private final TransportService transportService;
     private final FutureConcurrentMap<UUID, SQLReduceJobStatus> activeReduceJobs = FutureConcurrentMap.newMap();
     private final ClusterService clusterService;
-    private final Map<String, AggFunction> aggFunctionMap;
     private final SQLParseService sqlParseService;
 
     public static class Actions {
@@ -38,12 +35,10 @@ public class TransportSQLReduceHandler {
     @Inject
     public TransportSQLReduceHandler(TransportService transportService,
                                      ClusterService clusterService,
-                                     SQLParseService sqlParseService,
-                                     Map<String, AggFunction> aggFunctionMap) {
+                                     SQLParseService sqlParseService) {
         this.sqlParseService = sqlParseService;
         this.clusterService = clusterService;
         this.transportService = transportService;
-        this.aggFunctionMap = aggFunctionMap;
     }
 
     public void registerHandler() {
@@ -57,7 +52,8 @@ public class TransportSQLReduceHandler {
             sqlParseService.parse(request.request.stmt(), request.request.args());
 
         SQLReduceJobStatus reduceJobStatus = new SQLReduceJobStatus(
-            parsedStatement, request.expectedShardResults, aggFunctionMap);
+            parsedStatement, request.expectedShardResults
+        );
 
         activeReduceJobs.put(request.contextId, reduceJobStatus);
 

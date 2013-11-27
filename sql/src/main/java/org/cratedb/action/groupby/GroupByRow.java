@@ -31,15 +31,9 @@ public class GroupByRow implements Streamable {
     public List<AggState> aggStates;
 
 
-    private Map<String, AggFunction> aggregateFunctions;
     public List<AggExpr> aggExprs;
 
-
-    public GroupByRow() {
-    }
-
-    public GroupByRow(Map<String, AggFunction> aggregateFunctions, List<AggExpr> aggExprs) {
-        this.aggregateFunctions = aggregateFunctions;
+    GroupByRow(List<AggExpr> aggExprs) {
         this.aggExprs = aggExprs;
     }
 
@@ -48,15 +42,10 @@ public class GroupByRow implements Streamable {
         this.key = key;
     }
 
-    public static GroupByRow createEmptyRow(GroupByKey key,
-                                            List<AggExpr> aggExprs,
-                                            AggFunction[] aggregateFunctions) {
+    public static GroupByRow createEmptyRow(GroupByKey key, List<AggExpr> aggExprs) {
         List<AggState> aggStates = new ArrayList<>(aggExprs.size());
-
-        AggExpr aggExpr;
-        for (int i = 0; i < aggregateFunctions.length; i++) {
-            aggExpr = aggExprs.get(i);
-            aggStates.add(aggregateFunctions[i].createAggState(aggExpr));
+        for (AggExpr aggExpr : aggExprs) {
+            aggStates.add(aggExpr.createAggState());
         }
 
         GroupByRow row = new GroupByRow(key, aggStates);
@@ -83,9 +72,8 @@ public class GroupByRow implements Streamable {
         }
     }
 
-    public static GroupByRow readGroupByRow(Map<String, AggFunction> aggregateFunctions,
-                                            List<AggExpr> aggExprs, StreamInput in) throws IOException {
-        GroupByRow row = new GroupByRow(aggregateFunctions, aggExprs);
+    public static GroupByRow readGroupByRow(List<AggExpr> aggExprs, StreamInput in) throws IOException {
+        GroupByRow row = new GroupByRow(aggExprs);
         row.readFrom(in);
         return row;
     }
@@ -97,7 +85,7 @@ public class GroupByRow implements Streamable {
         AggExpr aggExpr;
         for (int i = 0; i < aggExprs.size(); i++) {
             aggExpr = aggExprs.get(i);
-            aggStates.add(i, aggregateFunctions.get(aggExpr.functionName).createAggState(aggExpr));
+            aggStates.add(i, aggExpr.createAggState());
             aggStates.get(i).readFrom(in);
         }
     }
@@ -109,5 +97,4 @@ public class GroupByRow implements Streamable {
             aggState.writeTo(out);
         }
     }
-
 }
