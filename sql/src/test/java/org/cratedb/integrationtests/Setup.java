@@ -87,4 +87,29 @@ public class Setup {
         test.refresh();
 
     }
+
+    public void     setUpEmployees() {
+        test.execute("create table employees (" +
+                " name string, " +
+                " departement string," +
+                " hired timestamp, " +
+                " age short," +
+                " income double, " +
+                " good boolean" +
+                ") replicas 0");
+        test.ensureGreen();
+        test.execute("insert into employees (name, departement, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
+                new Object[]{"dilbert", "engineering", "1985-01-01", 47, 4000.0, true});
+        test.execute("insert into employees (name, departement, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
+                new Object[]{"wally", "engineering", "2000-01-01", 54, 6000.0, true});
+        test.execute("insert into employees (name, departement, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
+                new Object[]{"pointy haired boss", "management", "2010-10-10", 45, Double.MAX_VALUE, false});
+        test.execute("insert into employees (name, departement, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
+                new Object[]{"catbert", "HR", "1990-01-01", 12, 999999999.99, null, false});
+        test.execute("insert into employees (name, departement, income) values (?, ?, ?)",
+                new Object[]{"ratbert", "HR", 0.50});
+        test.execute("insert into employees (name, departement, age) values (?, ?, ?)",
+                new Object[]{"asok", "internship", 28});
+        test.refresh();
+    }
 }

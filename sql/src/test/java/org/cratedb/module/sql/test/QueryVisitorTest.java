@@ -2,10 +2,6 @@ package org.cratedb.module.sql.test;
 
 import com.google.common.collect.ImmutableSet;
 import org.cratedb.DataType;
-import org.cratedb.action.groupby.aggregate.AggFunction;
-import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
-import org.cratedb.action.groupby.aggregate.max.MaxAggFunction;
-import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.NodeExecutionContext;
@@ -1032,5 +1028,13 @@ public class QueryVisitorTest {
         expectedException.expectMessage("Invalid column type 'boolean' for aggregate function MIN");
 
         execStatement("select min(bool) from locations group by gender");
+    }
+
+    @Test
+    public void testGroupByAggSumInvalidColumn() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Invalid column type 'boolean' for aggregate function SUM");
+
+        execStatement("select sum(bool) from locations group by stuff");
     }
 }

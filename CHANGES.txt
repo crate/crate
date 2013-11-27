@@ -5,7 +5,7 @@ Changes for Crate
 Unreleased
 ==========
 
- - minor group by optimization (replaced idxMap with value extractors)
+ - ``SUM`` aggregate function
 
  - ``MAX`` aggregate function
 

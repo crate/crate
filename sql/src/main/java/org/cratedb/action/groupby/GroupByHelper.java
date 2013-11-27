@@ -1,15 +1,29 @@
 package org.cratedb.action.groupby;
 
+import com.google.common.collect.ImmutableSet;
 import org.cratedb.action.groupby.aggregate.AggExpr;
+import org.cratedb.action.groupby.aggregate.max.MaxAggFunction;
+import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
 import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.core.collections.LimitingCollectionIterator;
 import org.cratedb.sql.types.SQLFieldMapper;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 public class GroupByHelper {
+
+    /**
+     * Aggregation functions whose values need to be mapped before returning the GroupByResult
+     */
+    public static final ImmutableSet<String> MAPPED_AGG_FUNCTIONS = ImmutableSet.of(
+            MinAggFunction.NAME,
+            MaxAggFunction.NAME
+    );
 
     public static Collection<GroupByRow> trimRows(List<GroupByRow> rows,
                                                   Comparator<GroupByRow> comparator,
@@ -53,23 +67,24 @@ public class GroupByHelper {
         for (final ColumnDescription columnDescription : parsedStatement.resultColumnList) {
             if (columnDescription instanceof AggExpr) {
                 // fieldMapper is null in case of group by on information schema
-                if (((AggExpr) columnDescription).parameterInfo.isAllColumn || fieldMapper == null) {
-                    extractors[colIdx] = new GroupByFieldExtractor(aggStateIdx) {
-                        @Override
-                        public Object getValue(GroupByRow row) {
-                            return row.aggStates.get(idx).value();
-                        }
-                    };
-                } else {
+                if (fieldMapper != null && MAPPED_AGG_FUNCTIONS.contains(((AggExpr) columnDescription).functionName)) {
                     // need to use fieldMapper to convert long to int/short, etc..
                     // groupingCollector/fieldcache doesn't return the correct types.
                     extractors[colIdx] = new GroupByFieldExtractor(aggStateIdx) {
                         @Override
                         public Object getValue(GroupByRow row) {
                             return fieldMapper.convertToXContentValue(
-                                ((AggExpr) columnDescription).parameterInfo.columnName,
-                                row.aggStates.get(idx).value()
+                                    ((AggExpr) columnDescription).parameterInfo.columnName,
+                                    row.aggStates.get(idx).value()
                             );
+                        }
+                    };
+                } else {
+
+                    extractors[colIdx] = new GroupByFieldExtractor(aggStateIdx) {
+                        @Override
+                        public Object getValue(GroupByRow row) {
+                            return row.aggStates.get(idx).value();
                         }
                     };
                 }

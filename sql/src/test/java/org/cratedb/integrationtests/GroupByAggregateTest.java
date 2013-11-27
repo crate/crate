@@ -2,6 +2,7 @@ package org.cratedb.integrationtests;
 
 import org.cratedb.SQLCrateClusterTest;
 import org.cratedb.action.sql.SQLResponse;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -10,14 +11,22 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
 
     private SQLResponse response;
     private Setup setup = new Setup(this);
-    
+    private boolean setUpDone = false;
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-
 
     @Override
     protected int numberOfNodes() {
         return 2;
+    }
+
+    @Before
+    public void initTestData() {
+        if (!setUpDone) {
+            this.setup.setUpEmployees();
+            setUpDone = true;
+        }
     }
 
     /**
@@ -29,35 +38,9 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
         return response;
     }
 
-    public void setUpEmployees() {
-        execute("create table employees (" +
-                " name string, " +
-                " departement string," +
-                " hired timestamp, " +
-                " age short," +
-                " income double, " +
-                " good boolean" +
-                ") replicas 0");
-        ensureGreen();
-        execute("insert into employees (name, departement, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
-                new Object[]{"dilbert", "engineering", "1985-01-01", 47, 4000.0, true});
-        execute("insert into employees (name, departement, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
-                new Object[]{"wally", "engineering", "2000-01-01", 54, 6000.0, true});
-        execute("insert into employees (name, departement, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
-                new Object[]{"pointy haired boss", "management", "2010-10-10", 45, Double.MAX_VALUE, false});
-        execute("insert into employees (name, departement, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
-                new Object[]{"catbert", "HR", "1990-01-01", 12, 999999999.99, null, false});
-        execute("insert into employees (name, departement, income) values (?, ?, ?)",
-                new Object[]{"ratbert", "HR", 0.50});
-        execute("insert into employees (name, departement, age) values (?, ?)",
-                new Object[]{"asok", "internship", 28});
-        refresh();
-    }
-
     @Test
     public void selectGroupByAggregateMinInteger() throws Exception {
-       this.setup.groupBySetup("integer");
-
+        this.setup.groupBySetup("integer");
 
         execute("select min(age) as minage, gender from characters group by gender order by gender");
         assertArrayEquals(new String[]{"minage", "gender"}, response.cols());
@@ -71,7 +54,7 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
 
     @Test
     public void selectGroupByAggregateMinFloat() throws Exception {
-       this.setup.groupBySetup("float");
+        this.setup.groupBySetup("float");
 
         execute("select min(age), gender from characters group by gender order by gender");
         assertEquals(2L, response.rowCount());
@@ -171,7 +154,6 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
 
     @Test
     public void selectGroupByAggregateMaxDate() throws Exception {
-        setUpEmployees();
 
         execute("select max(hired), departement from employees group by departement " +
                 "order by departement asc");
@@ -217,7 +199,6 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
 
     @Test
     public void selectGroupByAggregateMaxDouble() throws Exception {
-        setUpEmployees();
 
         execute("select max(income), departement from employees group by departement order by departement");
         assertEquals(4L, response.rowCount());
@@ -256,5 +237,42 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
         assertEquals("male", response.rows()[1][1]);
         assertEquals(112.0d, response.rows()[1][0]);
     }
+    @Test
+    public void testGroupByAggSumDouble() throws Exception {
 
+        execute("select sum(income), departement from employees group by departement order by sum(income) asc");
+        assertEquals(4, response.rowCount());
+
+        assertEquals("internship", response.rows()[0][1]);
+        assertNull(response.rows()[0][0]);
+
+        assertEquals("engineering", response.rows()[1][1]);
+        assertEquals(10000.0, response.rows()[1][0]);
+
+        assertEquals("HR", response.rows()[2][1]);
+        assertEquals(1000000000.49, response.rows()[2][0]);
+
+        assertEquals("management", response.rows()[3][1]);
+        assertEquals(Double.MAX_VALUE, response.rows()[3][0]);
+    }
+
+    @Test
+    public void testGroupByAggSumShort() throws Exception {
+
+        execute("select sum(age), departement from employees group by departement order by departement asc");
+        assertEquals(4, response.rowCount());
+
+        assertEquals("HR", response.rows()[0][1]);
+        assertEquals(12.0d, response.rows()[0][0]);
+
+        assertEquals("engineering", response.rows()[1][1]);
+        assertEquals(101.0d, response.rows()[1][0]);
+
+        assertEquals("internship", response.rows()[2][1]);
+        assertEquals(28.0d, response.rows()[2][0]);
+
+        assertEquals("management", response.rows()[3][1]);
+        assertEquals(45.0d, response.rows()[3][0]);
+
+    }
 }

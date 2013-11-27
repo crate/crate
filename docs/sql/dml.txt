@@ -245,6 +245,7 @@ Not all aggregation functions are available for all ``SELECT`` statements. Most 
 functions can only be used on ``GROUP BY`` request. For the applicable scope please consult the
 column ``Scope`` in the table below.
 
+
 .. seealso::
 
     :ref:`aggregation`
@@ -260,15 +261,20 @@ column ``Scope`` in the table below.
 +---------+---------------+----------------------------------+-----------------------+----------+
 | MIN     | column name of| returns the smallest of the      | the input             | Group by |
 |         | a numeric,    | values in the argument column    | column type           | Requests |
-|         | date or string| in case of strings this          |                       |          |
-|         | column        | means the lexicographically      |                       |          |
-|         |               | smallest                         |                       |          |
+|         | timestamp     | in case of strings this          |                       |          |
+|         | or string     | means the lexicographically      |                       |          |
+|         | column        | smallest. NULL-values are ignored|                       |          |
 +---------+---------------+----------------------------------+-----------------------+----------+
 | MAX     | column name of| returns the biggest of the       | the input             | Group by |
 |         | a numeric,    | values in the argument column    | column type           | Requests |
-|         | date or string| in case of strings this          |                       |          |
-|         | column        | means the lexicographically      |                       |          |
-|         |               | biggest                          |                       |          |
+|         | timestamp     | in case of strings this          |                       |          |
+|         | or string     | means the lexicographically      |                       |          |
+|         | column        | biggest. NULL-values are ignored |                       |          |
++---------+---------------+----------------------------------+-----------------------+----------+
+| SUM     | column name of| returns the sum of the values in | double                | Group by |
+|         | a numeric or  | the argument column.             |                       | Requests |
+|         | timestamp     | NULL-values are ignored          |                       |          |
+|         | column        |                                  |                       |          |
 +---------+---------------+----------------------------------+-----------------------+----------+
 
 Some Examples::
@@ -329,6 +335,17 @@ Some Examples::
     | 4        | Galactic Sector QQ7 Active J Gamma | Galaxy      |
     +----------+------------------------------------+-------------+
     SELECT 3 rows in set (... sec)
+
+    cr> select sum(position) as sum_positions, kind from locations group by kind order by sum_positions
+    +---------------+-------------+
+    | sum_positions | kind        |
+    +---------------+-------------+
+    | 10.0          | Star System |
+    | 13.0          | Galaxy      |
+    | 15.0          | Planet      |
+    +---------------+-------------+
+    SELECT 3 rows in set (... sec)
+
 
 .. _sql_dml_group_by:
 
