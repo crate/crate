@@ -1,4 +1,4 @@
-package org.cratedb.action.groupby.aggregate.max;
+package org.cratedb.action.groupby.aggregate.sum;
 
 import org.cratedb.action.groupby.aggregate.AggState;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -6,9 +6,9 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class MaxAggState<T extends Comparable<T>> extends AggState<MaxAggState<T>> {
+public class SumAggState extends AggState<SumAggState> {
 
-    private T value = null;
+    private Double value = null;
 
     @Override
     public Object value() {
@@ -16,35 +16,28 @@ public class MaxAggState<T extends Comparable<T>> extends AggState<MaxAggState<T
     }
 
     @Override
-    public void reduce(MaxAggState<T> other) {
+    public void reduce(SumAggState other) {
         if (other.value == null) {
             return;
         } else if (value == null) {
             value = other.value;
             return;
         }
+        value += other.value;
+    }
 
-        if (compareTo(other) < 0) {
-            value = other.value;
+    public void add(Object value) {
+        if (this.value == null) {
+            this.value = ((Number)value).doubleValue();
+        } else {
+            this.value += ((Number)value).doubleValue();
         }
     }
 
-
-    public void setValue(T value) {
-        this.value = value;
-    }
-
     @Override
-    public int compareTo(MaxAggState<T> o) {
-        if (o == null) return -1;
-        return compareValue(o.value);
-    }
-
-    public int compareValue(T otherValue) {
-        if (value == null) return (otherValue == null ? 0 : -1);
-        if (otherValue == null) return 1;
-
-        return Integer.signum(value.compareTo(otherValue));
+    public int compareTo(SumAggState o) {
+        if (o == null) return 1;
+        return Double.compare(value, o.value);
     }
 
     @Override
@@ -52,7 +45,7 @@ public class MaxAggState<T extends Comparable<T>> extends AggState<MaxAggState<T
     public void readFrom(StreamInput in) throws IOException {
         value = null;
         if (!in.readBoolean()) {
-            value = (T)in.readGenericValue();
+            value = in.readDouble();
         }
 
     }
@@ -61,7 +54,7 @@ public class MaxAggState<T extends Comparable<T>> extends AggState<MaxAggState<T
     public void writeTo(StreamOutput out) throws IOException {
         out.writeBoolean(value == null);
         if (value != null) {
-            out.writeGenericValue(value);
+            out.writeDouble(value);
         }
     }
 }

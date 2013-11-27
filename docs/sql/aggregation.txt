@@ -11,7 +11,7 @@ on the separate groups of a :ref:`sql_dml_group_by` query.
 For a short summary of aggregation functions see :ref:`sql_dml_aggregation`.
 
 COUNT(*)
-........
+========
 
 This aggregation function simply returns the number of rows that match the query.
 
@@ -52,7 +52,7 @@ The return value is always of type ``long``.
 
 
 MIN
-...
+===
 
 The ``MIN`` aggregation function returns the smallest value in a column that is not ``NULL``.
 Its single argument is a column name and its return value is always of the type of that column.
@@ -88,7 +88,7 @@ smallest.::
 
 
 MAX
-...
+===
 
 It behaves exactly like ``MIN`` but returns the biggest value in a column that is not ``NULL``.
 Some Examples::
@@ -112,3 +112,25 @@ Some Examples::
     | Altair            | Star System |
     +-------------------+-------------+
     SELECT 3 rows in set (... sec)
+
+SUM
+===
+
+The ``SUM`` aggregation function returns the sum of all the values in a column that are not ``NULL``
+as a double value. Its single argument is the column name of a numeric column or timestamp column.
+``SUM`` can not be used on other column types.
+
+::
+
+    cr> select sum(position), kind from locations group by kind order by sum(position) asc
+    +---------------+-------------+
+    | SUM(position) | kind        |
+    +---------------+-------------+
+    | 10.0          | Star System |
+    | 13.0          | Galaxy      |
+    | 15.0          | Planet      |
+    +---------------+-------------+
+    SELECT 3 rows in set (... sec)
+
+    cr> select sum(name), kind from locations group by kind order by sum(name) desc
+    SQLParseException[Invalid column type 'string' for aggregate function SUM]

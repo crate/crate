@@ -1029,4 +1029,12 @@ public class QueryVisitorTest {
 
         execStatement("select min(bool) from locations group by gender");
     }
+
+    @Test
+    public void testGroupByAggSumInvalidColumn() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Invalid column type 'boolean' for aggregate function SUM");
+
+        execStatement("select sum(bool) from locations group by stuff");
+    }
 }

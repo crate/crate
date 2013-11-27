@@ -6,7 +6,6 @@ import org.apache.lucene.search.Scorer;
 import org.cratedb.action.GroupByFieldLookup;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
-import org.cratedb.action.groupby.aggregate.AggState;
 import org.cratedb.action.sql.ParsedStatement;
 
 import java.io.IOException;
@@ -101,7 +100,7 @@ public class SQLGroupingCollector extends Collector {
                 value = groupByFieldLookup.lookupField(aggExpr.parameterInfo.columnName);
             }
 
-            AggFunction<AggState> function = aggFunctions[i];
+            AggFunction function = aggFunctions[i];
             function.iterate(row.aggStates.get(i), value);
         }
     }

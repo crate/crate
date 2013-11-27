@@ -5,6 +5,7 @@ import org.cratedb.action.groupby.ParameterInfo;
 import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
 import org.cratedb.action.groupby.aggregate.max.MaxAggFunction;
 import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
+import org.cratedb.action.groupby.aggregate.sum.SumAggFunction;
 import org.cratedb.sql.SQLParseException;
 
 public class AggExprFactory {
@@ -28,6 +29,11 @@ public class AggExprFactory {
                 param.columnName = aggregateParam;
                 param.dataType = dataType;
                 return new AggExpr(MaxAggFunction.NAME, param);
+            case "SUM":
+                param = new ParameterInfo();
+                param.columnName = aggregateParam;
+                param.dataType = dataType;
+                return new AggExpr(SumAggFunction.NAME, param);
             default:
                 throw new SQLParseException("Unsupported Aggregate function " + aggregateName);
         }
