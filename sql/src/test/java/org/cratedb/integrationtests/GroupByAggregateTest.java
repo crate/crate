@@ -74,6 +74,42 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
     }
 
     @Test
+    public void testCountDistinctGlobal() throws Exception {
+        execute("select count(distinct department), count(*) from employees");
+
+        assertEquals(1L, response.rowCount());
+        assertEquals(4L, response.rows()[0][0]);
+        assertEquals(6L, response.rows()[0][1]);
+    }
+
+    @Test
+    public void testCountDistinctGroupBy() throws Exception {
+        this.setup.groupBySetup("integer");
+        execute("select count(distinct gender), count(*), race from characters group by race order by count(*) desc");
+
+        assertEquals(3L, response.rowCount());
+        assertEquals(2L, response.rows()[0][0]);
+        assertEquals(4L, response.rows()[0][1]);
+        assertEquals("Human", response.rows()[0][2]);
+
+        assertEquals(1L, response.rows()[1][0]);
+        assertEquals(2L, response.rows()[1][1]);
+        assertEquals("Vogon", response.rows()[1][2]);
+
+        assertEquals(1L, response.rows()[2][0]);
+        assertEquals(1L, response.rows()[2][1]);
+        assertEquals("Android", response.rows()[2][2]);
+    }
+
+    @Test
+    public void testCountDistinctGroupByOrderByCountDistinct() throws Exception {
+        this.setup.groupBySetup("integer");
+        execute("select count(distinct gender), count(*), race from characters group by race order by count(distinct gender) desc");
+        assertEquals(3L, response.rowCount());
+        assertEquals(2L, response.rows()[0][0]);
+    }
+
+    @Test
     public void selectGroupByAggregateMinOrderByMin() throws Exception {
         this.setup.groupBySetup("double");
 
@@ -155,8 +191,8 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
     @Test
     public void selectGroupByAggregateMaxDate() throws Exception {
 
-        execute("select max(hired), departement from employees group by departement " +
-                "order by departement asc");
+        execute("select max(hired), department from employees group by department " +
+                "order by department asc");
         assertEquals(4L, response.rowCount());
 
         assertEquals("HR", response.rows()[0][1]);
@@ -200,7 +236,7 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
     @Test
     public void selectGroupByAggregateMaxDouble() throws Exception {
 
-        execute("select max(income), departement from employees group by departement order by departement");
+        execute("select max(income), department from employees group by department order by department");
         assertEquals(4L, response.rowCount());
         assertEquals(999999999.99d, response.rows()[0][0]);
         assertEquals("HR", response.rows()[0][1]);
@@ -240,7 +276,7 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
     @Test
     public void testGroupByAggSumDouble() throws Exception {
 
-        execute("select sum(income), departement from employees group by departement order by sum(income) asc");
+        execute("select sum(income), department from employees group by department order by sum(income) asc");
         assertEquals(4, response.rowCount());
 
         assertEquals("internship", response.rows()[0][1]);
@@ -259,7 +295,7 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
     @Test
     public void testGroupByAggSumShort() throws Exception {
 
-        execute("select sum(age), departement from employees group by departement order by departement asc");
+        execute("select sum(age), department from employees group by department order by department asc");
         assertEquals(4, response.rowCount());
 
         assertEquals("HR", response.rows()[0][1]);
@@ -278,7 +314,7 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
 
     @Test
     public void testGroupByAvgDouble() throws Exception {
-        execute("select avg(income), departement from employees group by departement order by departement asc");
+        execute("select avg(income), department from employees group by department order by department asc");
         assertEquals(4, response.rowCount());
 
         assertEquals("HR", response.rows()[0][1]);
@@ -296,7 +332,7 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
 
     @Test
     public void testGroupByAvgMany() throws Exception {
-        execute("select avg(income), avg(age), departement from employees group by departement order by departement asc");
+        execute("select avg(income), avg(age), department from employees group by department order by department asc");
         assertEquals(4, response.rowCount());
 
         assertEquals("HR", response.rows()[0][2]);

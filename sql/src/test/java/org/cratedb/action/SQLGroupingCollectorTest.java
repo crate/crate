@@ -32,13 +32,11 @@ public class SQLGroupingCollectorTest extends TestCase {
 
     @Test
     public void testGroupBySingleColumnWithCount() throws Exception {
-        ParameterInfo paramInfo = ParameterInfo.allColumnParameterInfo();
-
         ParsedStatement stmt = new ParsedStatement(
             "select count(*), city, country from ... group by country, city order by count(*) desc"
         );
 
-        AggExpr countAggExpr = new AggExpr(CountAggFunction.NAME, paramInfo);
+        AggExpr countAggExpr = new AggExpr(CountAggFunction.NAME, null, false);
         stmt.groupByColumnNames = Arrays.asList("country", "city");
         stmt.resultColumnList = Arrays.asList(
             countAggExpr,

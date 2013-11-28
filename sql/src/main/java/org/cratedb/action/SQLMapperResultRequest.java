@@ -37,6 +37,7 @@ public class SQLMapperResultRequest extends TransportRequest {
         }
         groupByResult = SQLGroupByResult.readSQLGroupByResult(
             status.parsedStatement.aggregateExpressions,
+            status.seenIdxMapper,
             in
         );
     }

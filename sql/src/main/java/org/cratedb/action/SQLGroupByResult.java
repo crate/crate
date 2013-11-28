@@ -19,6 +19,7 @@ import java.util.*;
  */
 public class SQLGroupByResult implements Streamable {
 
+    private List<Integer> seenIdxMapper;
     public List<AggExpr> aggExprs;
 
     /**
@@ -43,8 +44,9 @@ public class SQLGroupByResult implements Streamable {
         }
     }
 
-    SQLGroupByResult(List<AggExpr> aggExprs) {
+    SQLGroupByResult(List<AggExpr> aggExprs, List<Integer> seenIdxMapper) {
         this.aggExprs = aggExprs;
+        this.seenIdxMapper = seenIdxMapper;
     }
 
     public int size() {
@@ -60,7 +62,7 @@ public class SQLGroupByResult implements Streamable {
         result = new ArrayList<>(resultSize);
 
         for (int i = 0; i < resultSize; i++) {
-            result.add(GroupByRow.readGroupByRow(aggExprs, in));
+            result.add(GroupByRow.readGroupByRow(aggExprs, seenIdxMapper, in));
         }
     }
 
@@ -72,10 +74,11 @@ public class SQLGroupByResult implements Streamable {
         }
     }
 
-    public static SQLGroupByResult readSQLGroupByResult(List<AggExpr> aggExprs, StreamInput in)
+    public static SQLGroupByResult readSQLGroupByResult(List<AggExpr> aggExprs,
+                                                        List<Integer> seenIdxMapper, StreamInput in)
         throws IOException
     {
-        SQLGroupByResult result = new SQLGroupByResult(aggExprs);
+        SQLGroupByResult result = new SQLGroupByResult(aggExprs, seenIdxMapper);
         result.readFrom(in);
         return result;
     }

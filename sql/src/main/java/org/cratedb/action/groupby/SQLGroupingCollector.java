@@ -9,8 +9,7 @@ import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.ParsedStatement;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static com.google.common.collect.Maps.newHashMap;
 
@@ -26,6 +25,8 @@ public class SQLGroupingCollector extends Collector {
     private final GroupByFieldLookup groupByFieldLookup;
     private final ParsedStatement parsedStatement;
     private final AggFunction[] aggFunctions;
+    private final ArrayList<Integer> aggExprToSeenMap;
+    private final int numDistinctColumns;
 
     /**
      * Partitioned and grouped results.
@@ -60,11 +61,25 @@ public class SQLGroupingCollector extends Collector {
             partitionedResult.put(reducer, new HashMap<GroupByKey, GroupByRow>());
         }
 
-        this.aggFunctions = new AggFunction[parsedStatement.aggregateExpressions.size()];
+        aggFunctions = new AggFunction[parsedStatement.aggregateExpressions.size()];
+        aggExprToSeenMap = new ArrayList<>();
+        int seenIdx = 0;
+        HashSet<String> distinctColumns = new HashSet<>();
+
         for (int i = 0; i < parsedStatement.aggregateExpressions.size(); i++) {
             AggExpr aggExpr = parsedStatement.aggregateExpressions.get(i);
             aggFunctions[i] = aggFunctionMap.get(aggExpr.functionName);
+
+            if (aggExpr.isDistinct) {
+                if (!distinctColumns.contains(aggExpr.parameterInfo.columnName)) {
+                    distinctColumns.add(aggExpr.parameterInfo.columnName);
+                    aggExprToSeenMap.add(seenIdx);
+                    seenIdx++;
+                }
+            }
         }
+
+        numDistinctColumns = distinctColumns.size();
     }
 
     @Override
@@ -90,19 +105,19 @@ public class SQLGroupingCollector extends Collector {
         GroupByRow row = resultMap.get(key);
 
         if (row == null) {
-            row = GroupByRow.createEmptyRow(key, parsedStatement.aggregateExpressions);
+            row = GroupByRow.createEmptyRow(
+                key, parsedStatement.aggregateExpressions, aggExprToSeenMap, numDistinctColumns);
             resultMap.put(key, row);
         }
 
         for (int i = 0; i < aggFunctions.length; i++) {
             AggExpr aggExpr = parsedStatement.aggregateExpressions.get(i);
+            AggFunction function = aggFunctions[i];
             Object value = null;
 
-            if (aggExpr.parameterInfo.columnName != null) {
+            if (aggExpr.parameterInfo != null) {
                 value = groupByFieldLookup.lookupField(aggExpr.parameterInfo.columnName);
             }
-
-            AggFunction function = aggFunctions[i];
             function.iterate(row.aggStates.get(i), value);
         }
     }
