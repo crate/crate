@@ -106,8 +106,8 @@ public class GroupByHelper {
     public static Object[][] sortedRowsToObjectArray(Collection<GroupByRow> rows,
                                                      ParsedStatement parsedStatement,
                                                      GroupByFieldExtractor[] fieldExtractors) {
-        int rowCount = parsedStatement.isGlobalAggregate() ? 1 : Math.max(0, rows.size() - parsedStatement.offset());
-        Object[][] result = new Object[rowCount][parsedStatement.outputFields().size()];
+        int rowCount = Math.max(0, rows.size() - parsedStatement.offset());
+        Object[][] result = new Object[parsedStatement.isGlobalAggregate() ? 1 : rowCount][parsedStatement.outputFields().size()];
         int currentRow = -1;
         int remainingOffset = parsedStatement.offset();
         if (parsedStatement.isGlobalAggregate()) {
