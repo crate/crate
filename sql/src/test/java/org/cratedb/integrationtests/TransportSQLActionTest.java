@@ -1542,7 +1542,7 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
     public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimit() throws Exception {
         this.setup.groupBySetup();
 
-        execute("select count(*), gender, race from characters group by race, gender order by count(*) desc, race asc limit 2");
+        execute("select count(*), gender, race from characters group by race, gender order by count(*) desc, race, gender asc limit 2");
 
         assertEquals(2, response.rowCount());
         assertEquals(2L, response.rows()[0][0]);
@@ -2537,5 +2537,81 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
                 new Object[]{1}
         );
     }
+
+
+    /* GLOBAL AGGREGATE */
+
+    @Test
+    public void testGlobalAggregateSimple() throws Exception {
+        this.setup.groupBySetup();
+
+        execute("select max(age) from characters");
+
+        assertEquals(1, response.rowCount());
+        assertEquals("MAX(age)", response.cols()[0]);
+        assertEquals(112, response.rows()[0][0]);
+
+        execute("select min(name) from characters");
+
+        assertEquals(1, response.rowCount());
+        assertEquals("MIN(name)", response.cols()[0]);
+        assertEquals("Anjie", response.rows()[0][0]);
+
+        execute("select avg(age) as median_age from characters");
+        assertEquals(1, response.rowCount());
+        assertEquals("median_age", response.cols()[0]);
+        assertEquals(55.25d, response.rows()[0][0]);
+
+        execute("select sum(age) as sum_age from characters");
+        assertEquals(1, response.rowCount());
+        assertEquals("sum_age", response.cols()[0]);
+        assertEquals(221.0d, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testGlobalAggregateWithoutNulls() throws Exception {
+        this.setup.groupBySetup();
+
+        execute("select sum(age) from characters");
+
+        SQLResponse first_response = this.response;
+
+        execute("select sum(age) from characters where age is not null");
+
+        assertEquals(
+                first_response.rowCount(),
+                this.response.rowCount()
+        );
+        assertEquals(
+                first_response.rows()[0][0],
+                this.response.rows()[0][0]
+        );
+    }
+
+    @Test
+    public void testGlobalAggregateNullRowWithoutMatchingRows() throws Exception {
+        this.setup.groupBySetup();
+        execute("select sum(age), avg(age) from characters where characters.age > 112");
+        assertEquals(1, response.rowCount());
+        assertNull(response.rows()[0][0]);
+        assertNull(response.rows()[0][1]);
+
+        execute("select sum(age) from characters limit 0");
+        assertEquals(1, response.rowCount());
+        assertNull(response.rows()[0][0]);
+    }
+
+    @Test
+    public void testGlobalAggregateMany() throws Exception {
+        this.setup.groupBySetup();
+        execute("select sum(age), min(age), max(age), avg(age) from characters");
+        assertEquals(1, response.rowCount());
+        assertEquals(221.0d, response.rows()[0][0]);
+        assertEquals(32, response.rows()[0][1]);
+        assertEquals(112, response.rows()[0][2]);
+        assertEquals(55.25d, response.rows()[0][3]);
+    }
+
+
 
 }

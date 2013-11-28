@@ -6,7 +6,6 @@ import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggExprFactory;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
-import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.OrderByColumnIdx;
@@ -293,16 +292,25 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             stmt.addOutputField(columnAlias, columnName);
         }
 
-        /**
-         * In case of GroupBy the {@link org.cratedb.action.groupby.SQLGroupingCollector}
-         * handles the field lookup
-         *
-         * only the "query" key of the generated XContent can be parsed by the parser used in
-         * {@link org.cratedb.action.SQLQueryService}
-         */
-        if (fields.size() > 0 && !stmt.hasGroupBy()) {
-            jsonBuilder.field("fields", fields);
+
+        if (!stmt.hasGroupBy()) {
+            /**
+             * In case of GroupBy the {@link org.cratedb.action.groupby.SQLGroupingCollector}
+             * handles the field lookup
+             *
+             * only the "query" key of the generated XContent can be parsed by the parser used in
+             * {@link org.cratedb.action.SQLQueryService}
+             */
+            if (fields.size() > 0) {
+                jsonBuilder.field("fields", fields);
+            }
+            int aggExpressionsSize = stmt.aggregateExpressions().size();
+            if (aggExpressionsSize > 0 && aggExpressionsSize < stmt.outputFields.size()) {
+                throw new SQLParseException("Only aggregate expressions allowed here");
+            }
         }
+
+
     }
 
     /**

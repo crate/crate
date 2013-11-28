@@ -22,7 +22,7 @@ import static com.google.common.collect.Maps.newHashMap;
  */
 public class SQLGroupingCollector extends Collector {
 
-    private final String[] reducers;
+    protected final String[] reducers;
     private final GroupByFieldLookup groupByFieldLookup;
     private final ParsedStatement parsedStatement;
     private final AggFunction[] aggFunctions;
@@ -55,9 +55,7 @@ public class SQLGroupingCollector extends Collector {
         this.parsedStatement = parsedStatement;
         this.groupByFieldLookup = groupByFieldLookup;
         this.reducers = reducers;
-        
 
-        assert parsedStatement.groupByColumnNames != null;
         for (String reducer : reducers) {
             partitionedResult.put(reducer, new HashMap<GroupByKey, GroupByRow>());
         }
@@ -73,14 +71,18 @@ public class SQLGroupingCollector extends Collector {
     public void setScorer(Scorer scorer) throws IOException {
     }
 
-    @Override
-    public void collect(int doc) throws IOException {
-        groupByFieldLookup.setNextDocId(doc);
+    protected GroupByKey getGroupByKey() throws IOException {
         Object[] keyValue = new Object[parsedStatement.groupByColumnNames.size()];
         for (int i = 0; i < parsedStatement.groupByColumnNames.size(); i++) {
             keyValue[i] = groupByFieldLookup.lookupField(parsedStatement.groupByColumnNames.get(i));
         }
-        GroupByKey key = new GroupByKey(keyValue);
+        return new GroupByKey(keyValue);
+    }
+
+    @Override
+    public void collect(int doc) throws IOException {
+        groupByFieldLookup.setNextDocId(doc);
+        GroupByKey key = getGroupByKey();
 
         String reducer = partitionByKey(reducers, key);
         Map<GroupByKey, GroupByRow> resultMap = partitionedResult.get(reducer);
@@ -105,7 +107,7 @@ public class SQLGroupingCollector extends Collector {
         }
     }
 
-    private String partitionByKey(String[] reducers, GroupByKey key) {
+    protected String partitionByKey(String[] reducers, GroupByKey key) {
         return reducers[Math.abs(key.hashCode()) % reducers.length];
     }
 

@@ -2,6 +2,8 @@ package org.cratedb.module.sql.test;
 
 import com.google.common.collect.ImmutableSet;
 import org.cratedb.DataType;
+import org.cratedb.action.groupby.ParameterInfo;
+import org.cratedb.action.groupby.aggregate.avg.AvgAggFunction;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.NodeExecutionContext;
@@ -26,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -67,6 +70,9 @@ public class QueryVisitorTest {
         when(tec.getColumnDefinition("bool")).thenReturn(
                 new ColumnDefinition("locations", "bool", DataType.BOOLEAN, "plain", 1, false, false)
         );
+        when(tec.getColumnDefinition("numeric_field")).thenReturn(
+                new ColumnDefinition("locations", "numeric", DataType.DOUBLE, "plain", 2, false, false)
+        );
         when(tec.hasCol(anyString())).thenReturn(true);
 
         SQLParseService parseService = new SQLParseService(nec);
@@ -102,7 +108,7 @@ public class QueryVisitorTest {
     public void testSelectCountNonPrimaryKeyColumn() throws Exception {
         expectedException.expect(SQLParseException.class);
         expectedException.expectMessage(
-            "select count(columnName) is currently only supported on primary key columns");
+                "select count(columnName) is currently only supported on primary key columns");
         execStatement("select count(a) from locations");
     }
 
@@ -848,8 +854,8 @@ public class QueryVisitorTest {
     public void testSelectWithWhereLikeReversed() throws Exception {
         execStatement("select kind from locations where 'P_' like kind");
         assertEquals(
-            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P?\"}},\"size\":10000}",
-            getSource()
+                "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P?\"}},\"size\":10000}",
+                getSource()
         );
     }
 
@@ -865,7 +871,7 @@ public class QueryVisitorTest {
     public void testSelectByVersionException() throws Exception {
         expectedException.expect(SQLParseException.class);
         expectedException.expectMessage(
-            "_version is only valid in the WHERE clause if paired with a single primary key column and crate.planner.optimize.pk_queries enabled");
+                "_version is only valid in the WHERE clause if paired with a single primary key column and crate.planner.optimize.pk_queries enabled");
         execStatement("select kind from locations where \"_version\" = 1");
     }
 
@@ -873,7 +879,7 @@ public class QueryVisitorTest {
     public void testDeleteByVersionWithoutPlannerException() throws Exception {
         expectedException.expect(SQLParseException.class);
         expectedException.expectMessage(
-            "_version is only valid in the WHERE clause if paired with a single primary key column and crate.planner.optimize.pk_queries enabled");
+                "_version is only valid in the WHERE clause if paired with a single primary key column and crate.planner.optimize.pk_queries enabled");
         execStatement("delete from locations where \"_id\" = 1 and \"_version\" = 1");
     }
 
@@ -1045,4 +1051,54 @@ public class QueryVisitorTest {
 
         execStatement("select avg(bool) from locations group by stuff");
     }
+
+    @Test
+    public void testAggOnGlobalSelect() throws Exception {
+        execStatement("select avg(numeric_field) from locations");
+        assertEquals(1, stmt.aggregateExpressions().size());
+        assertEquals(AvgAggFunction.NAME, stmt.aggregateExpressions().get(0).functionName);
+        assertEquals(ParameterInfo.columnParameterInfo("numeric_field", DataType.DOUBLE), stmt.aggregateExpressions().get(0).parameterInfo);
+
+        assertTrue(stmt.isGlobalAggregate());
+    }
+
+    @Test
+    public void testAggOnGlobalFalseOnGroupBy() throws Exception {
+        execStatement("select avg(numeric_field) from locations group by stuff");
+        assertFalse(stmt.isGlobalAggregate());
+    }
+
+    @Test
+    public void testAggOnGlobalManyAggs() throws Exception {
+        execStatement("select avg(numeric_field), sum(numeric_field), max(some_field) from locations");
+        assertEquals(3, stmt.aggregateExpressions().size());
+        assertTrue(stmt.isGlobalAggregate());
+    }
+
+    @Test
+    public void testAggOnGlobalWithNormalColumns1() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Only aggregate expressions allowed here");
+
+        execStatement("select avg(numeric_field), col from locations");
+    }
+
+    @Test
+    public void testAggOnGlobalWithNormalColumns2() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Only aggregate expressions allowed here");
+
+        execStatement("select col, avg(numeric_field) from locations");
+    }
+
+    @Test
+    public void testAggOnGlobalWithNormalColumns3() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Only aggregate expressions allowed here");
+
+        execStatement("select min(bla), col, avg(numeric_field) from locations");
+    }
+
+
+
 }

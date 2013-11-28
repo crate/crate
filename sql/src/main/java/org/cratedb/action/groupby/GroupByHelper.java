@@ -10,10 +10,7 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.core.collections.LimitingCollectionIterator;
 import org.cratedb.sql.types.SQLFieldMapper;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 public class GroupByHelper {
 
@@ -109,10 +106,27 @@ public class GroupByHelper {
     public static Object[][] sortedRowsToObjectArray(Collection<GroupByRow> rows,
                                                      ParsedStatement parsedStatement,
                                                      GroupByFieldExtractor[] fieldExtractors) {
-        int rowCount = Math.max(0, rows.size() - parsedStatement.offset());
+        int rowCount = parsedStatement.isGlobalAggregate() ? 1 : Math.max(0, rows.size() - parsedStatement.offset());
         Object[][] result = new Object[rowCount][parsedStatement.outputFields().size()];
         int currentRow = -1;
         int remainingOffset = parsedStatement.offset();
+        if (parsedStatement.isGlobalAggregate()) {
+            if (rowCount == 0) {
+                // fill with initial (mostly NULL) values
+                for (int i=0;i<result[0].length;i++) {
+                    result[0][i] = parsedStatement.aggregateExpressions().get(i).createAggState().value();
+                }
+                return result;
+            } else {
+                // final merge
+                Iterator<GroupByRow> iter = rows.iterator();
+                final GroupByRow resultRow = iter.next();
+                while (iter.hasNext()) {
+                    resultRow.merge(iter.next());
+                }
+                rows = new ArrayList<GroupByRow>(1) {{ add(resultRow); }};
+            }
+        }
 
         for (GroupByRow row : rows) {
             if (remainingOffset > 0) {

@@ -84,6 +84,15 @@ public class ParsedStatement {
         return schemaName() != null && schemaName().equalsIgnoreCase("information_schema");
     }
 
+    /**
+     * returns true if this statement will result in a global aggregate operation
+     */
+    public boolean isGlobalAggregate() {
+        return aggregateExpressions().size() > 0 &&
+                !countRequest() &&
+                !hasGroupBy();
+    }
+
     public static enum ActionType {
         SEARCH_ACTION,
         INSERT_ACTION,
@@ -106,6 +115,14 @@ public class ParsedStatement {
     public List<String> groupByColumnNames;
     public List<ColumnDescription> resultColumnList;
     public List<AggExpr> aggregateExpressions;
+    @SuppressWarnings("unchecked")
+    public List<AggExpr> aggregateExpressions() {
+        if (aggregateExpressions == null) {
+            return Collections.EMPTY_LIST;
+        } else {
+            return aggregateExpressions;
+        }
+    }
 
     private Integer limit = null;
     private Integer offset = null;
@@ -250,7 +267,7 @@ public class ParsedStatement {
     }
 
     public boolean countRequest() {
-        return !hasGroupBy() && countRequest;
+        return !hasGroupBy() && countRequest && aggregateExpressions().size() == 1;
     }
 
     public boolean hasGroupBy() {

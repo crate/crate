@@ -7,6 +7,9 @@ Aggregation
 
 There are two ways of doing aggregation, one on the result of a whole query and one
 on the separate groups of a :ref:`sql_dml_group_by` query.
+Aggregation Function will always return one result value for a single group.
+You can imagine the matching rows of a ``SELECT`` statement without ``GROUP BY``
+as one group. One row will always be returned.
 
 For a short summary of aggregation functions see :ref:`sql_dml_aggregation`.
 
@@ -15,7 +18,6 @@ COUNT(*)
 
 This aggregation function simply returns the number of rows that match the query.
 
-It currently is the only aggregation function that can be used without ``group by`` in `crate`.
 `count(columName)` is also possible, but currently only works on a primary key column.
 The semantics are the same.
 The return value is always of type ``long``.
@@ -69,6 +71,14 @@ Example::
     SELECT 3 rows in set (... sec)
 
 
+    cr> select min(date) from locations
+    +--------------+
+    | MIN(date)    |
+    +--------------+
+    | 308534400000 |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
 ``MIN`` returns ``NULL`` if the column does not contain any value but ``NULL``.
 It is allowed on numeric columns (``byte``, ``short``, ``integer``, ``long``, ``float``, ``double``),
 on ``timestamp`` and ``string`` columns. On ``string`` columns it will return the lexicographically
@@ -83,8 +93,6 @@ smallest.::
     | Aldebaran                          | Star System |
     +------------------------------------+-------------+
     SELECT 3 rows in set (... sec)
-
-``MIN`` can currently only be used on ``group by`` queries.
 
 
 MAX
@@ -103,6 +111,16 @@ Some Examples::
     +---------------+-------------+
     SELECT 3 rows in set (... sec)
 
+
+    cr> select max(position) from locations
+    +---------------+
+    | MAX(position) |
+    +---------------+
+    | 6             |
+    +---------------+
+    SELECT 1 row in set (... sec)
+
+
     cr> select max(name), kind from locations group by kind order by max(name) desc
     +-------------------+-------------+
     | MAX(name)         | kind        |
@@ -112,6 +130,7 @@ Some Examples::
     | Altair            | Star System |
     +-------------------+-------------+
     SELECT 3 rows in set (... sec)
+
 
 SUM
 ===
@@ -131,6 +150,14 @@ as a double value. Its single argument is the column name of a numeric column or
     | 15.0          | Planet      |
     +---------------+-------------+
     SELECT 3 rows in set (... sec)
+
+    cr> select sum(position) as position_sum from locations
+    +--------------+
+    | position_sum |
+    +--------------+
+    | 38.0         |
+    +--------------+
+    SELECT 1 row in set (... sec)
 
     cr> select sum(name), kind from locations group by kind order by sum(name) desc
     SQLParseException[Invalid column type 'string' for aggregate function SUM]

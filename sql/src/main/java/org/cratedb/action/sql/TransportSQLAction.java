@@ -278,7 +278,9 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                             new ImportResponseListener(stmt, listener, request.creationTime()));
                     break;
                 default:
-                    if (stmt.hasGroupBy()) {
+                    // TODO: don't simply run globalAggregate Queries like Group By Queries
+                    // Disable Reducers!!!
+                    if (stmt.hasGroupBy() || stmt.isGlobalAggregate()) {
                         transportDistributedSQLAction.execute(
                             new DistributedSQLRequest(request, stmt),
                             new DistributedSQLResponseListener(stmt, listener, request.creationTime()));
