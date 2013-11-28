@@ -7,6 +7,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+
 public class GroupByAggregateTest extends SQLCrateClusterTest {
 
     private SQLResponse response;
@@ -350,5 +352,65 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
         assertEquals("management", response.rows()[3][2]);
         assertEquals(Double.MAX_VALUE, response.rows()[3][0]);
         assertEquals(45.0d, response.rows()[3][1]);
+    }
+
+    @Test
+    public void testGroupByAny() throws Exception {
+        this.setup.groupBySetup();
+
+        execute("select any(name), race from characters group by race order by race asc");
+        SQLResponse any_response = response;
+        assertEquals(3, any_response.rowCount());
+
+        assertEquals("Android", any_response.rows()[0][1]);
+        assertEquals(1,
+                execute("select name from characters where race=? AND name=? ",
+                        new Object[]{"Android", any_response.rows()[0][0]})
+                        .rowCount()
+        );
+        assertEquals("Human", any_response.rows()[1][1]);
+        assertEquals(1,
+                execute("select name from characters where race=? AND name=? ",
+                        new Object[]{"Human", any_response.rows()[1][0]})
+                        .rowCount()
+        );
+        assertEquals("Vogon", any_response.rows()[2][1]);
+        assertEquals(1,
+                execute("select name from characters where race=? AND name=? ",
+                        new Object[]{"Vogon", any_response.rows()[2][0]})
+                        .rowCount()
+        );
+
+    }
+
+    @Test
+    public void testGlobalAggregateAny() throws Exception {
+        this.setup.groupBySetup();
+        execute("select any(age) from characters");
+        assertEquals(1, response.rowCount());
+        assertEquals(1,
+                execute("select count(*) from characters where age=?",
+                        new Object[]{response.rows()[0][0]})
+                        .rowCount()
+        );
+    }
+
+    @Test
+    public void testAggregateAnyOnBoolean() throws Exception {
+        execute("select any(good) from employees");
+        assertEquals(1, response.rowCount());
+        assertNotNull(response.rows()[0][0]);
+        assertThat(response.rows()[0][0], instanceOf(Boolean.class));
+
+        execute("select any(good) from employees where name='dilbert'");
+        assertEquals(1, response.rowCount());
+        assertEquals(true, response.rows()[0][0]);
+
+        execute("select any(good), department from employees group by department order by department asc");
+        assertEquals(4, response.rowCount());
+        assertEquals(false, response.rows()[0][0]); // by accident only single values exist in groups
+        assertEquals(true, response.rows()[1][0]);
+        assertNull(response.rows()[2][0]);
+        assertEquals(false, response.rows()[3][0]);
     }
 }

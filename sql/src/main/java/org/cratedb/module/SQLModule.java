@@ -3,6 +3,7 @@ package org.cratedb.module;
 import org.cratedb.DataType;
 import org.cratedb.action.TransportSQLReduceHandler;
 import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.groupby.aggregate.any.AnyAggFunction;
 import org.cratedb.action.groupby.aggregate.avg.AvgAggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
 import org.cratedb.action.groupby.aggregate.max.MaxAggFunction;
@@ -47,6 +48,7 @@ public class SQLModule extends AbstractModule {
         aggFunctionBinder.addBinding(MaxAggFunction.NAME).to(MaxAggFunction.class).asEagerSingleton();
         aggFunctionBinder.addBinding(SumAggFunction.NAME).to(SumAggFunction.class).asEagerSingleton();
         aggFunctionBinder.addBinding(AvgAggFunction.NAME).to(AvgAggFunction.class).asEagerSingleton();
+        aggFunctionBinder.addBinding(AnyAggFunction.NAME).to(AnyAggFunction.class).asEagerSingleton();
 
         transportActionsBinder.addBinding(SQLAction.INSTANCE).to(TransportSQLAction.class).asEagerSingleton();
         transportActionsBinder.addBinding(ClusterUpdateCrateSettingsAction.INSTANCE).to(TransportClusterUpdateCrateSettingsAction.class).asEagerSingleton();

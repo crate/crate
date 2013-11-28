@@ -53,6 +53,19 @@ public enum DataType {
             IP
     );
 
+    public static final ImmutableSet<DataType> PRIMITIVE_TYPES = ImmutableSet.of(
+            BYTE,
+            SHORT,
+            INTEGER,
+            LONG,
+            FLOAT,
+            DOUBLE,
+            BOOLEAN,
+            STRING,
+            TIMESTAMP,
+            IP
+    );
+
     public static final ImmutableSet<DataType> INTEGER_TYPES = ImmutableSet.of(
             BYTE,
             SHORT,

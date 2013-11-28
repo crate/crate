@@ -2,14 +2,13 @@ package org.cratedb.action.groupby.aggregate;
 
 import org.cratedb.DataType;
 import org.cratedb.action.groupby.ParameterInfo;
+import org.cratedb.action.groupby.aggregate.any.AnyAggState;
 import org.cratedb.action.groupby.aggregate.avg.AvgAggState;
 import org.cratedb.action.groupby.aggregate.count.CountAggState;
 import org.cratedb.action.groupby.aggregate.max.MaxAggState;
 import org.cratedb.action.groupby.aggregate.min.MinAggState;
 import org.cratedb.action.groupby.aggregate.sum.SumAggState;
 import org.cratedb.action.parser.ColumnDescription;
-
-import java.util.HashSet;
 
 public class AggExpr extends ColumnDescription {
 
@@ -56,6 +55,9 @@ public class AggExpr extends ColumnDescription {
                 break;
             case "SUM":
                 createSumAggState();
+                break;
+            case "ANY":
+                createAnyAggState(parameterInfo);
                 break;
             default:
                 throw new IllegalArgumentException("Unknown function " + functionName);
@@ -148,6 +150,42 @@ public class AggExpr extends ColumnDescription {
                 return new AvgAggState();
             }
         };
+    }
+
+    private void createAnyAggState(ParameterInfo parameterInfo) {
+        if (parameterInfo.dataType == DataType.STRING || parameterInfo.dataType == DataType.IP) {
+            aggStateCreator = new AggStateCreator() {
+                @Override
+                AggState create() {
+                    return new AnyAggState<String>();
+                }
+            };
+        } else if (DataType.INTEGER_TYPES.contains(parameterInfo.dataType) ||
+                DataType.TIMESTAMP == parameterInfo.dataType) {
+            aggStateCreator = new AggStateCreator() {
+                @Override
+                AggState create() {
+                    return new AnyAggState<Long>();
+                }
+            };
+        } else if (DataType.DECIMAL_TYPES.contains(parameterInfo.dataType)) {
+            aggStateCreator = new AggStateCreator() {
+                @Override
+                AggState create() {
+                    return new AnyAggState<Double>();
+                }
+            };
+        } else if (parameterInfo.dataType == DataType.BOOLEAN) {
+            aggStateCreator = new AggStateCreator() {
+                @Override
+                AggState create() {
+                    return new AnyAggState<Boolean>();
+                }
+            };
+        } else {
+            throw new IllegalArgumentException("Illegal ParameterInfo for ANY");
+        }
+
     }
 
     /**

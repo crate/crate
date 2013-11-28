@@ -104,8 +104,9 @@ public class Setup {
                 new Object[]{"wally", "engineering", "2000-01-01", 54, 6000.0, true});
         test.execute("insert into employees (name, department, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
                 new Object[]{"pointy haired boss", "management", "2010-10-10", 45, Double.MAX_VALUE, false});
+
         test.execute("insert into employees (name, department, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
-                new Object[]{"catbert", "HR", "1990-01-01", 12, 999999999.99, null, false});
+                new Object[]{"catbert", "HR", "1990-01-01", 12, 999999999.99, false});
         test.execute("insert into employees (name, department, income) values (?, ?, ?)",
                 new Object[]{"ratbert", "HR", 0.50});
         test.execute("insert into employees (name, department, age) values (?, ?, ?)",

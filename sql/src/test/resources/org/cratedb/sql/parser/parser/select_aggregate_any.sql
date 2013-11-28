@@ -1,0 +1,1 @@
+select any(col1) from table1 group by col2 having any(col1) > 0 order by any(col1)

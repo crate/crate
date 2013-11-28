@@ -71,10 +71,15 @@ public class QueryVisitorTest {
                 new ColumnDefinition("locations", "bool", DataType.BOOLEAN, "plain", 1, false, false)
         );
         when(tec.getColumnDefinition("numeric_field")).thenReturn(
-                new ColumnDefinition("locations", "numeric", DataType.DOUBLE, "plain", 2, false, false));
-        when(tec.getColumnDefinition("age")).thenReturn(
-            new ColumnDefinition("locations", "age", DataType.INTEGER, null, 1, false, false)
+                new ColumnDefinition("locations", "numeric_field", DataType.DOUBLE, "plain", 2, false, false)
         );
+        when(tec.getColumnDefinition("craty_field")).thenReturn(
+                new ColumnDefinition("locations", "craty_field", DataType.CRATY, "plain", 3, false, false)
+        );
+        when(tec.getColumnDefinition("age")).thenReturn(
+                new ColumnDefinition("locations", "age", DataType.INTEGER, null, 1, false, false)
+        );
+
         when(tec.hasCol(anyString())).thenReturn(true);
 
         SQLParseService parseService = new SQLParseService(nec);
@@ -1084,6 +1089,13 @@ public class QueryVisitorTest {
         expectedException.expectMessage("Only aggregate expressions allowed here");
 
         execStatement("select min(bla), col, avg(numeric_field) from locations");
+    }
+
+    @Test
+    public void testGroupByAnyOnCraty() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Invalid column type 'craty' for aggregate function ANY");
+        execStatement("select any(craty_field) from locations");
     }
 
     @Test
