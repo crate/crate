@@ -7,7 +7,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.hamcrest.Matchers.isIn;
 
 public class GroupByAggregateTest extends SQLCrateClusterTest {
 
@@ -399,8 +399,7 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
     public void testAggregateAnyOnBoolean() throws Exception {
         execute("select any(good) from employees");
         assertEquals(1, response.rowCount());
-        assertNotNull(response.rows()[0][0]);
-        assertThat(response.rows()[0][0], instanceOf(Boolean.class));
+        assertThat(response.rows()[0][0], isIn(new Object[]{true, false, null}));
 
         execute("select any(good) from employees where name='dilbert'");
         assertEquals(1, response.rowCount());
@@ -408,9 +407,9 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
 
         execute("select any(good), department from employees group by department order by department asc");
         assertEquals(4, response.rowCount());
-        assertEquals(false, response.rows()[0][0]); // by accident only single values exist in groups
-        assertEquals(true, response.rows()[1][0]);
+        assertThat(response.rows()[0][0], isIn(new Object[]{true, null}));
+        assertEquals(true, response.rows()[1][0]);  // by accident only single values exist in group
         assertNull(response.rows()[2][0]);
-        assertEquals(false, response.rows()[3][0]);
+        assertThat(response.rows()[3][0], isIn(new Object[]{false, null}));
     }
 }
