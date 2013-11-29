@@ -407,9 +407,16 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
 
         execute("select any(good), department from employees group by department order by department asc");
         assertEquals(4, response.rowCount());
-        assertThat(response.rows()[0][0], isIn(new Object[]{true, null}));
+        assertEquals("HR", response.rows()[0][1]);
+        assertThat(response.rows()[0][0], isIn(new Object[]{false, null}));
+
+        assertEquals("engineering", response.rows()[1][1]);
         assertEquals(true, response.rows()[1][0]);  // by accident only single values exist in group
+
+        assertEquals("internship", response.rows()[2][1]);
         assertNull(response.rows()[2][0]);
-        assertThat(response.rows()[3][0], isIn(new Object[]{false, null}));
+
+        assertEquals("management", response.rows()[3][1]);
+        assertEquals(false, response.rows()[3][0]);
     }
 }
