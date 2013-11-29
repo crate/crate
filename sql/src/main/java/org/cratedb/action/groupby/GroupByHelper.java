@@ -2,6 +2,7 @@ package org.cratedb.action.groupby;
 
 import com.google.common.collect.ImmutableSet;
 import org.cratedb.action.groupby.aggregate.AggExpr;
+import org.cratedb.action.groupby.aggregate.any.AnyAggFunction;
 import org.cratedb.action.groupby.aggregate.max.MaxAggFunction;
 import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
 import org.cratedb.action.parser.ColumnDescription;
@@ -19,7 +20,8 @@ public class GroupByHelper {
      */
     public static final ImmutableSet<String> MAPPED_AGG_FUNCTIONS = ImmutableSet.of(
             MinAggFunction.NAME,
-            MaxAggFunction.NAME
+            MaxAggFunction.NAME,
+            AnyAggFunction.NAME
     );
 
     public static List<Integer> getSeenIdxMap(Collection<AggExpr> aggregateExpressions) {

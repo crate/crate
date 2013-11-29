@@ -44,7 +44,7 @@ public class MaxAggState<T extends Comparable<T>> extends AggState<MaxAggState<T
         if (value == null) return (otherValue == null ? 0 : -1);
         if (otherValue == null) return 1;
 
-        return Integer.signum(value.compareTo(otherValue));
+        return value.compareTo(otherValue);
     }
 
     @Override

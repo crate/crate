@@ -205,3 +205,43 @@ Example::
     | 2.5           | Star System |
     +---------------+-------------+
     SELECT 3 rows in set (... sec)
+
+
+ANY
+===
+
+The ``ANY`` aggregation function returns a single value of a column.
+Which value it returns is not defined.
+It accepts references to columns of all primitive types.
+Using ``ANY`` on ``Craty`` columns is not supported.
+Its return type is the type of its parameter column and can be ``NULL``
+if the column contains ``NULL`` values.
+
+Example::
+
+    cr> select any(position) from locations
+    +---------------+
+    | ANY(position) |
+    +---------------+
+    | ...           |
+    +---------------+
+    SELECT 1 row in set (... sec)
+
+    cr> select any(name), kind from locations
+    ... where kind!='PLANET' group by kind order by kind desc
+    +-...-+-------------+
+    | ... | kind        |
+    +-...-+-------------+
+    | ... | Star System |
+    | ... | Planet      |
+    | ... | Galaxy      |
+    +-...-+-------------+
+    SELECT 3 rows in set (... sec)
+
+
+An example use case is to group a table with many rows per user by ``user_id`` and get the ``username``
+for every group, that means every user. This works as rows with same ``user_id`` have the same ``username``.
+This method performs better than grouping on ``username`` as grouping on number types is generally faster than
+on strings.
+The advantage is that the ``ANY`` function does very little to no computation
+as for example ``MAX`` aggregation function would do.

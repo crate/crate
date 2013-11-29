@@ -282,6 +282,13 @@ always return one row, as they do an aggregation operation on the matching rows 
 |         | timestamp     | column.                          | matching rows in that |
 |         | column        | NULL-values are ignored.         | column are NULL       |
 +---------+---------------+----------------------------------+-----------------------+
+| ANY     | column name of| returns an undefined value of    | the input             |
+|         | a primitive   | all the values in the argument   | column type or NULL   |
+|         | typed         | column that are not NULL.        | if all values of all  |
+|         | column        |                                  | matching rows in that |
+|         | (all but      |                                  | column are NULL       |
+|         | craty)        |                                  |                       |
++---------+---------------+----------------------------------+-----------------------+
 
 Some Examples::
 

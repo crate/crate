@@ -351,6 +351,7 @@ class SQLGrammar
         case AVG:
         case MIN:
         case SUM:
+        case ANY:
         case GROUP_CONCAT:
             // This is a built-in aggregate
             retval = true;
@@ -1293,6 +1294,10 @@ class SQLGrammar
             retval = "SUM";
             break;
 
+        case ANY:
+            retval = "ANY";
+            break;
+
         case COUNT:
             retval = "COUNT";
             break;
@@ -1328,6 +1333,10 @@ class SQLGrammar
 
         case COUNT:
             retval = "CountAggregateDefinition";
+            break;
+
+        case ANY:
+            retval = "AnyAggregateDefinition";
             break;
 
         case GROUP_CONCAT:
@@ -9945,7 +9954,8 @@ builtInAggregateType() throws StandardException :
         retval = <MAX> |
         retval = <AVG> |
         retval = <MIN> |
-        retval = <SUM>
+        retval = <SUM> |
+        retval = <ANY>
     )
     {
         return retval;
