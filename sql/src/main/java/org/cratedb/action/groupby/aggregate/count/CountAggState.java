@@ -5,7 +5,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Set;
 
 public class CountAggState extends AggState<CountAggState> {
@@ -14,11 +13,6 @@ public class CountAggState extends AggState<CountAggState> {
 
     // not serialized;
     public Set<Object> seenValues;
-    public boolean isDistinct;
-
-    public CountAggState() {
-        isDistinct = false;
-    }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {

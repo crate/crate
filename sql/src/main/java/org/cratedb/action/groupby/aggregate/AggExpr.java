@@ -42,8 +42,6 @@ public class AggExpr extends ColumnDescription {
                 createAvgAggState();
                 break;
             case "COUNT":
-                createCountAggState();
-                break;
             case "COUNT(*)":
                 createCountAggState();
                 break;
@@ -136,9 +134,7 @@ public class AggExpr extends ColumnDescription {
         aggStateCreator = new AggStateCreator() {
             @Override
             AggState create() {
-                CountAggState aggState = new CountAggState();
-                aggState.isDistinct = isDistinct;
-                return aggState;
+                return new CountAggState();
             }
         };
     }

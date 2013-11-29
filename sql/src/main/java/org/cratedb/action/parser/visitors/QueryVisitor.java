@@ -5,7 +5,8 @@ import org.apache.lucene.search.*;
 import org.cratedb.action.groupby.ParameterInfo;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
-import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
+import org.cratedb.action.groupby.aggregate.count.CountColumnAggFunction;
+import org.cratedb.action.groupby.aggregate.count.CountDistinctAggFunction;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.OrderByColumnIdx;
@@ -188,7 +189,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     }
 
     private void visit(OrderByList node) throws IOException, StandardException {
-        if (stmt.hasGroupBy()) {
+        if (stmt.hasGroupBy() || stmt.isGlobalAggregate()) {
             stmt.orderByIndices = new ArrayList<>();
             int idx = -1;
 
@@ -322,7 +323,14 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     private AggExpr getAggregateExpression(AggregateNode node) throws SQLParseException {
         String aggregateName = node.getAggregateName();
 
-        AggFunction<?> aggFunction = context.availableAggFunctions().get(aggregateName);
+        AggFunction<?> aggFunction;
+        if (aggregateName.equals(CountColumnAggFunction.NAME) && node.isDistinct()) {
+            // special case for count(distinct <col>)
+            aggFunction = context.availableAggFunctions().get(CountDistinctAggFunction.NAME);
+        } else {
+            aggFunction = context.availableAggFunctions().get(aggregateName);
+        }
+
         if (aggFunction == null) {
             throw new SQLParseException(String.format("Unknown aggregate function %s", aggregateName));
         }
@@ -377,7 +385,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         AggExpr aggExpr = getAggregateExpression(node);
 
         if (aggExpr != null) {
-            if (aggExpr.functionName.startsWith(CountAggFunction.NAME) && !node.isDistinct()) {
+            if (aggExpr.functionName.startsWith(CountColumnAggFunction.NAME) && !node.isDistinct()) {
                 stmt.countRequest(true);
             }
             stmt.resultColumnList.add(aggExpr);

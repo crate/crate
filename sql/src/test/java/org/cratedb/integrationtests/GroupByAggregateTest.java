@@ -419,4 +419,36 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
         assertEquals("management", response.rows()[3][1]);
         assertEquals(false, response.rows()[3][0]);
     }
+
+    public void testGroupByCountOnColumn() throws Exception {
+        execute("select department, count(income), count(*) " +
+                "from employees group by department order by department asc");
+        assertEquals(4, response.rowCount());
+
+        assertEquals("HR", response.rows()[0][0]);
+        assertEquals(2L, response.rows()[0][1]);
+        assertEquals(2L, response.rows()[0][2]);
+
+        assertEquals("engineering", response.rows()[1][0]);
+        assertEquals(2L, response.rows()[1][1]);
+        assertEquals(2L, response.rows()[1][2]);
+
+        assertEquals("internship", response.rows()[2][0]);
+        assertEquals(0L, response.rows()[2][1]);
+        assertEquals(1L, response.rows()[2][2]);
+
+        assertEquals("management", response.rows()[3][0]);
+        assertEquals(1L, response.rows()[3][1]);
+        assertEquals(1L, response.rows()[3][2]);
+    }
+
+    @Test
+    public void testGlobalCountOnColumn() throws Exception {
+        execute("select count(*), count(good), count(distinct good) from employees");
+        assertEquals(1, response.rowCount());
+        assertEquals(6L, response.rows()[0][0]);
+        assertEquals(4L, response.rows()[0][1]);
+        assertEquals(2L, response.rows()[0][2]);
+    }
+
 }

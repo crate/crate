@@ -5,7 +5,7 @@ import org.apache.lucene.index.AtomicReaderContext;
 import org.cratedb.action.groupby.*;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
-import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
+import org.cratedb.action.groupby.aggregate.count.CountColumnAggFunction;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.sql.ParsedStatement;
 import org.junit.After;
@@ -36,7 +36,7 @@ public class SQLGroupingCollectorTest extends TestCase {
             "select count(*), city, country from ... group by country, city order by count(*) desc"
         );
 
-        AggExpr countAggExpr = new AggExpr(CountAggFunction.NAME, null, false);
+        AggExpr countAggExpr = new AggExpr(CountColumnAggFunction.NAME, null, false);
         stmt.groupByColumnNames = Arrays.asList("country", "city");
         stmt.resultColumnList = Arrays.asList(
             countAggExpr,
@@ -47,7 +47,7 @@ public class SQLGroupingCollectorTest extends TestCase {
 
         DummyGroupKeyLookup dummyGroupKeyLookup = new DummyGroupKeyLookup();
         Map<String, AggFunction> aggFunctionMap = new HashMap<>();
-        aggFunctionMap.put(CountAggFunction.NAME, new CountAggFunction());
+        aggFunctionMap.put(CountColumnAggFunction.NAME, new CountColumnAggFunction());
 
         SQLGroupingCollector collector = new SQLGroupingCollector(
             stmt, dummyGroupKeyLookup, aggFunctionMap, new String[] { "r1" }
