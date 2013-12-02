@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - performance-tuning: concrete serialization of aggstates
+
  - ``COUNT`` aggregate function can now be used on column names, counting all rows with values that
    are not ``NULL``.
 
