@@ -1,7 +1,6 @@
 package org.cratedb.action.import_;
 
 import org.elasticsearch.action.support.nodes.NodesOperationRequest;
-import org.elasticsearch.common.Required;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -32,12 +31,10 @@ public class ImportRequest extends NodesOperationRequest<ImportRequest> {
         return source;
     }
 
-    @Required
     public ImportRequest source(String source) {
         return this.source(new BytesArray(source), false);
     }
 
-    @Required
     public ImportRequest source(BytesReference source, boolean unsafe) {
         this.source = source;
         return this;

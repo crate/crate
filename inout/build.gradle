@@ -10,7 +10,6 @@ configurations {
 dependencies {
     compile project(':es')
     testCompile project(':testing')
-    testCompile 'com.github.tlrx:elasticsearch-test:0.0.9'
 }
 
 sourceSets {

@@ -3,7 +3,6 @@ package org.cratedb.action.searchinto;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.broadcast.BroadcastOperationRequest;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.Required;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -63,13 +62,11 @@ public class SearchIntoRequest extends
         return source;
     }
 
-    @Required
     public SearchIntoRequest source(String source) {
         return this.source(new BytesArray(source), false);
     }
 
 
-    @Required
     public SearchIntoRequest source(BytesReference source, boolean unsafe) {
         this.source = source;
         this.querySourceUnsafe = unsafe;

@@ -79,6 +79,7 @@ be closed first and then reopened::
 
     >>> ep.pput("/test/_settings", {"analysis": {"analyzer": {"myan": {"type": "stop", "stopwords": ["nice"]}}}})
     {
+        "acknowledged": true, 
         "ok": true
     }
 

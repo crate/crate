@@ -3,10 +3,12 @@ package org.cratedb.integrationtests;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Ordering;
-import org.cratedb.SQLCrateClusterTest;
+import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.*;
 import org.cratedb.sql.types.TimeStampSQLType;
+import org.cratedb.test.integration.CrateIntegrationTest;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.Nullable;
@@ -17,6 +19,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.skyscreamer.jsonassert.JSONAssert;
 
 import java.io.File;
 import java.io.IOException;
@@ -27,7 +30,8 @@ import static com.google.common.collect.Maps.newHashMap;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.hamcrest.Matchers.*;
 
-public class TransportSQLActionTest extends SQLCrateClusterTest {
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL, numNodes = 2, transportClientRatio = 0)
+public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     private SQLResponse response;
     private Setup setup = new Setup(this);
@@ -39,16 +43,6 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
     public ExpectedException expectedException = ExpectedException.none();
 
 
-    @Override
-    protected int numberOfNodes() {
-        return 2;
-    }
-
-    @Override
-    public Settings getSettings() {
-        // set number of replicas to 0 for getting a green cluster when using only one node
-        return randomSettingsBuilder().put("number_of_replicas", 0).build();
-    }
 
     /**
      * override execute to store response in property for easier access
@@ -100,6 +94,7 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
                     "firstName", "type=string",
                     "lastName", "type=string")
                 .execute().actionGet();
+        waitForRelocation(ClusterHealthStatus.GREEN);
         execute("select * from test");
         assertArrayEquals(new String[]{"firstName", "lastName"}, response.cols());
         assertEquals(0, response.rowCount());
@@ -107,8 +102,8 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
 
     @Test
     public void testSelectStarEmptyMapping() throws Exception {
-        prepareCreate("test")
-                .execute().actionGet();
+        prepareCreate("test").execute().actionGet();
+        ensureGreen();
         execute("select * from test");
         assertArrayEquals(new String[]{}, response.cols());
         assertEquals(0, response.rowCount());
@@ -1697,11 +1692,11 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
                 "\"settings\":{" +
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
-                "\"index.version.created\":\"900599\"" +
+                "\"index.version.created\":\"900799\"" +
                 "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
-        assertEquals(expectedSettings, getIndexSettings("test"));
+        JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
 
         // test index usage
         execute("insert into test (col1, col2) values (1, 'foo')");
@@ -1810,11 +1805,11 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
                 "\"settings\":{" +
                     "\"index.number_of_replicas\":\"2\"," +
                     "\"index.number_of_shards\":\"10\"," +
-                    "\"index.version.created\":\"900599\"" +
+                    "\"index.version.created\":\"900799\"" +
                 "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
-        assertEquals(expectedSettings, getIndexSettings("test"));
+        JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
     }
 
     @Test
@@ -1834,7 +1829,7 @@ public class TransportSQLActionTest extends SQLCrateClusterTest {
     @Test
     public void testGroupByEmpty() throws Exception {
         execute("create table test (col1 string)");
-        refresh();
+        waitForRelocation(ClusterHealthStatus.GREEN);
 
         execute("select count(*), col1 from test group by col1");
         assertEquals(0, response.rowCount());

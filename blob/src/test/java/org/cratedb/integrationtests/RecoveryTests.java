@@ -12,7 +12,7 @@ import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
-import org.cratedb.test.integration.AbstractCrateNodesTests;
+import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
@@ -33,7 +33,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.hamcrest.core.IsEqual.equalTo;
 
-public class RecoveryTests extends AbstractCrateNodesTests {
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 0, transportClientRatio = 0)
+public class RecoveryTests extends CrateIntegrationTest {
 
     private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(25, TimeUnit.MINUTES);
 
@@ -61,10 +62,6 @@ public class RecoveryTests extends AbstractCrateNodesTests {
         logger.addAppender(consoleAppender);
     }
 
-    @After
-    public void shutdownNodes() {
-        closeAllNodes();
-    }
 
     private byte[] getDigest(String content) {
         try {
@@ -122,11 +119,11 @@ public class RecoveryTests extends AbstractCrateNodesTests {
     public void testPrimaryRelocationWhileIndexing() throws Exception {
         final int numberOfRelocations = 1;
         final int numberOfWriters = 2;
-        logger.info("--> starting [node1] ...");
-        startNode("node1");
+
+        final String node1 = cluster().startNode();
 
         logger.info("--> creating test index ...");
-        client("node1").admin().indices().prepareCreate("test")
+        cluster().client(node1).admin().indices().prepareCreate("test")
                 .setSettings(settingsBuilder()
                         .put("index.number_of_shards", 1)
                         .put("index.number_of_replicas", 0)
@@ -134,11 +131,11 @@ public class RecoveryTests extends AbstractCrateNodesTests {
                             ).execute().actionGet();
 
         logger.info("--> starting [node2] ...");
-        startNode("node2");
+        final String node2 = cluster().startNode();
 
-        client("node1").admin().cluster().prepareHealth(
+        cluster().client(node1).admin().cluster().prepareHealth(
                 "test").setWaitForGreenStatus().execute().actionGet();
-        client("node2").admin().cluster().prepareHealth(
+        cluster().client(node2).admin().cluster().prepareHealth(
                 "test").setWaitForGreenStatus().execute().actionGet();
 
         final AtomicLong idGenerator = new AtomicLong();
@@ -157,7 +154,7 @@ public class RecoveryTests extends AbstractCrateNodesTests {
                         logger.info("**** starting blob upload thread {}", indexerId);
                         while (!stop.get()) {
                             long id = idGenerator.incrementAndGet();
-                            uploadFile(client("node1"), genFile(id));
+                            uploadFile(cluster().client(node1), genFile(id));
                             indexCounter.incrementAndGet();
                         }
                         logger.info("**** done indexing thread {}", indexerId);
@@ -172,7 +169,7 @@ public class RecoveryTests extends AbstractCrateNodesTests {
         }
 
         logger.info("--> waiting for 2 blobs to be uploaded ...");
-        while (client("node1").execute(BlobStatsAction.INSTANCE, new BlobStatsRequest().indices(
+        while (cluster().client(node1).execute(BlobStatsAction.INSTANCE, new BlobStatsRequest().indices(
                 "test"))
                 .actionGet().blobShardStats()[0].blobStats().count() < 2) {
             Thread.sleep(10);
@@ -181,20 +178,20 @@ public class RecoveryTests extends AbstractCrateNodesTests {
 
         logger.info("--> starting relocations...");
         for (int i = 0; i < numberOfRelocations; i++) {
-            String fromNode = "node" + (1 + (i % 2));
-            String toNode = "node1".equals(fromNode) ? "node2" : "node1";
+            String fromNode = (i % 2 == 0) ? node1 : node2;
+            String toNode = node1.equals(fromNode) ? node2 : node1;
             logger.info("--> START relocate the shard from {} to {}", fromNode, toNode);
-            client("node1").admin().cluster().prepareReroute()
+            cluster().client(node1).admin().cluster().prepareReroute()
                     .add(new MoveAllocationCommand(new ShardId("test", 0), fromNode, toNode))
                     .execute().actionGet();
-            ClusterHealthResponse clusterHealthResponse = client("node1").admin().cluster()
+            ClusterHealthResponse clusterHealthResponse = cluster().client(node1).admin().cluster()
                     .prepareHealth()
                     .setWaitForEvents(Priority.LANGUID)
                     .setWaitForRelocatingShards(0)
                     .setTimeout(ACCEPTABLE_RELOCATION_TIME).execute().actionGet();
 
             assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
-            clusterHealthResponse = client("node2").admin().cluster()
+            clusterHealthResponse = cluster().client(node2).admin().cluster()
                     .prepareHealth()
                     .setWaitForEvents(Priority.LANGUID)
                     .setWaitForRelocatingShards(0)
@@ -209,7 +206,7 @@ public class RecoveryTests extends AbstractCrateNodesTests {
         stopLatch.await();
         logger.info("--> uploading threads stopped");
 
-        BlobStatsResponse response = client("node2")
+        BlobStatsResponse response = cluster().client(node2)
                 .execute(BlobStatsAction.INSTANCE, new BlobStatsRequest().indices(
                         "test")).actionGet();
         long numBlobs = response.blobShardStats()[0].blobStats().count();

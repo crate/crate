@@ -1,7 +1,10 @@
 package org.cratedb.module.sql.benchmark;
 
 import org.cratedb.action.parser.QueryPlanner;
-import org.cratedb.test.integration.AbstractCrateNodesTests;
+import org.cratedb.test.integration.CrateIntegrationTest;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -19,25 +22,24 @@ import static org.cratedb.test.integration.PathAccessor.bytesFromPath;
 import static org.cratedb.test.integration.PathAccessor.stringFromPath;
 
 
-public class BenchmarkBase extends AbstractCrateNodesTests {
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 0, transportClientRatio = 0)
+public class BenchmarkBase extends CrateIntegrationTest {
 
-    public static final String NODE1 = "node1";
-    public static final String NODE2 = "node2";
+    public String NODE1 = null;
+    public String NODE2 = null;
     public static final String INDEX_NAME = "countries";
     public static final String SETTINGS = "/essetup/settings/bench.json";
     public static final String MAPPING = "/essetup/mappings/bench.json";
     public static final String DATA = "/essetup/data/bench.json";
-    public static List<Node> startedNodes = new ArrayList<>(2);
 
     @Before
     public void prepareBenchmarkRun() throws Exception {
 
-        for (String nodeId : new String[]{NODE1, NODE2}) {
-            Node insertNode = node(nodeId);
-            if (insertNode==null) {
-                startedNodes.add(startNode(nodeId, getNodeSettings(nodeId)));
-            }
-        }
+        // TODO: start node global in static beforeClass
+
+        NODE1 = cluster().startNode(getNodeSettings(1));
+        NODE2 = cluster().startNode(getNodeSettings(2));
+
         if (!indexExists()) {
             getClient(false).admin().indices().prepareCreate(INDEX_NAME).setSettings(
                     ImmutableSettings.builder().loadFromClasspath(SETTINGS).build())
@@ -49,18 +51,8 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
         }
     }
 
-    @AfterClass
-    public static void shutDownNodes() {
-        for (Node node: startedNodes) {
-            if (node != null && !node.isClosed()) {
-                node.close();
-            }
-        }
-        startedNodes.clear();
-    }
-
     public boolean nodesStarted() {
-        return node(NODE1) != null && node(NODE2) != null;
+        return NODE1 != null && NODE2 != null;
     }
 
     public boolean indexExists() {
@@ -77,13 +69,13 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
         refresh(getClient(false));
     }
 
-    public Settings getNodeSettings(String nodeId) {
+    public Settings getNodeSettings(int nodeId) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder().put("index.store.type", "memory");
         switch (nodeId) {
-            case NODE1:
+            case 1:
                 builder.put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, true);
                 break;
-            case NODE2:
+            case 2:
                 builder.put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, false);
                 break;
         }
@@ -91,7 +83,7 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
     }
 
     public Client getClient(boolean queryPlannerEnabled) {
-        return client(queryPlannerEnabled ? NODE1: NODE2);
+        return queryPlannerEnabled ? cluster().client(NODE1) : cluster().client(NODE2);
     }
 
     public void loadBulk(String path, boolean queryPlannerEnabled) throws Exception {

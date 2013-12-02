@@ -8,11 +8,14 @@ import org.cratedb.action.import_.ImportRequest;
 import org.cratedb.action.import_.ImportResponse;
 import org.cratedb.action.restore.RestoreAction;
 import org.cratedb.module.AbstractRestActionTest;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.get.GetRequestBuilder;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Test;
 
 import java.io.File;
@@ -21,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import static com.github.tlrx.elasticsearch.test.EsSetup.*;
+import static org.cratedb.test.integration.PathAccessor.stringFromPath;
 
 public class RestRestoreActionTest extends AbstractRestActionTest {
 
@@ -29,37 +32,43 @@ public class RestRestoreActionTest extends AbstractRestActionTest {
      * Restore previously dumped data from the default location
      */
     @Test
-    public void testRestoreDumpedData() {
-
+    public void testRestoreDumpedData() throws Exception {
         deleteDefaultDir();
-
         setUpSecondNode();
         // create sample data
-        esSetup.execute(deleteAll(), createIndex("users").withSettings(
-                fromClassPath("essetup/settings/test_b.json")).withMapping("d",
-                        fromClassPath("essetup/mappings/test_b.json")));
-        esSetup.execute(index("users", "d", "1").withSource("{\"name\": \"item1\"}"));
-        esSetup.execute(index("users", "d", "2").withSource("{\"name\": \"item2\"}"));
-        esSetup2.client().admin().cluster().prepareHealth().setWaitForGreenStatus().
+        deleteAll();
+
+        prepareCreate("users").setSettings(
+            ImmutableSettings.builder().loadFromClasspath("essetup/settings/test_b.json").build()
+        ).addMapping("d", stringFromPath("/essetup/mappings/test_b.json", getClass())).execute().actionGet();
+
+        waitForRelocation(ClusterHealthStatus.GREEN);
+
+        client().index(new IndexRequest("users", "d", "1").source("{\"name\": \"item1\"}")).actionGet();
+        client().index(new IndexRequest("users", "d", "2").source("{\"name\": \"item2\"}")).actionGet();
+        refresh();
+
+        client().admin().cluster().prepareHealth().setWaitForGreenStatus().
             setWaitForNodes("2").setWaitForRelocatingShards(0).execute().actionGet();
 
         // dump data and recreate empty index
         executeDumpRequest("");
 
         // delete all
-        esSetup.execute(deleteAll());
-        esSetup.client().admin().cluster().prepareHealth().setWaitForGreenStatus().execute().actionGet();
+        deleteAll();
+        client().admin().cluster().prepareHealth().setWaitForGreenStatus().execute().actionGet();
 
         // run restore without pyload relative directory
         ImportResponse response = executeRestoreRequest("");
         List<Map<String, Object>> imports = getImports(response);
+        refresh();
         assertEquals(2, imports.size());
 
         assertTrue(existsWithField("1", "name", "item1", "users", "d"));
         assertTrue(existsWithField("2", "name", "item2", "users", "d"));
 
         ClusterStateRequest clusterStateRequest = Requests.clusterStateRequest().filteredIndices("users");
-        IndexMetaData metaData = esSetup.client().admin().cluster().state(clusterStateRequest).actionGet().getState().metaData().index("users");
+        IndexMetaData metaData = client().admin().cluster().state(clusterStateRequest).actionGet().getState().metaData().index("users");
         assertEquals("{\"d\":{\"properties\":{\"name\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"store\":true,\"omit_norms\":true,\"index_options\":\"docs\"}}}}",
                 metaData.mappings().get("d").source().toString());
         assertEquals(2, metaData.numberOfShards());
@@ -68,7 +77,7 @@ public class RestRestoreActionTest extends AbstractRestActionTest {
 
 
     private boolean existsWithField(String id, String field, String value, String index, String type) {
-        GetRequestBuilder rb = new GetRequestBuilder(esSetup.client(), index);
+        GetRequestBuilder rb = new GetRequestBuilder(client(), index);
         GetResponse res = rb.setType(type).setId(id).execute().actionGet();
         return res.isExists() && res.getSourceAsMap().get(field).equals(value);
     }
@@ -91,13 +100,13 @@ public class RestRestoreActionTest extends AbstractRestActionTest {
     private ImportResponse executeRestoreRequest(String source) {
         ImportRequest request = new ImportRequest();
         request.source(source);
-        return esSetup.client().execute(RestoreAction.INSTANCE, request).actionGet();
+        return client().execute(RestoreAction.INSTANCE, request).actionGet();
     }
 
     private ExportResponse executeDumpRequest(String source) {
         ExportRequest exportRequest = new ExportRequest();
         exportRequest.source(source);
-        return esSetup.client().execute(DumpAction.INSTANCE, exportRequest).actionGet();
+        return client().execute(DumpAction.INSTANCE, exportRequest).actionGet();
     }
 
     /**
@@ -106,7 +115,7 @@ public class RestRestoreActionTest extends AbstractRestActionTest {
     private void deleteDefaultDir() {
         ExportRequest exportRequest = new ExportRequest();
         exportRequest.source("{\"output_file\": \"dump\", \"fields\": [\"_source\", \"_id\", \"_index\", \"_type\"], \"force_overwrite\": true, \"explain\": true}");
-        ExportResponse explain = esSetup.client().execute(ExportAction.INSTANCE, exportRequest).actionGet();
+        ExportResponse explain = client().execute(ExportAction.INSTANCE, exportRequest).actionGet();
 
         try {
             Map<String, Object> res = toMap(explain);

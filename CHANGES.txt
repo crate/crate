@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - updated elasticsearch to 0.90.7
+
  - Queries on the shard stats table using aggregates without group by are supported now.
 
  - Also list unassigned shards when querying shard stats table.
