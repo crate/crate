@@ -20,7 +20,7 @@ public class AnyAggFunction<T> extends AggFunction<AnyAggState<T>> {
 
     @Override
     public void iterate(AnyAggState<T> state, Object columnValue) {
-        state.add((T)columnValue);
+        state.add(columnValue);
     }
 
     @Override

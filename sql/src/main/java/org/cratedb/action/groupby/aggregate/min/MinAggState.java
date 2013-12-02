@@ -1,16 +1,12 @@
 package org.cratedb.action.groupby.aggregate.min;
 
 import org.cratedb.action.groupby.aggregate.AggState;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
 
 /**
  * MIN Aggregation Function State
  * @param <T>
  */
-public class MinAggState<T extends Comparable<T>> extends AggState<MinAggState<T>> {
+public abstract class MinAggState<T extends Comparable<T>> extends AggState<MinAggState<T>> {
 
     private T value = null;
 
@@ -48,23 +44,5 @@ public class MinAggState<T extends Comparable<T>> extends AggState<MinAggState<T
         if (value == null) return (otherValue == null ? 0 : 1);
         if (otherValue == null) return -1;
         return value.compareTo(otherValue);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public void readFrom(StreamInput in) throws IOException {
-        value = null;
-        if (!in.readBoolean()) {
-            value = (T)in.readGenericValue();
-        }
-
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeBoolean(value == null);
-        if (value != null) {
-            out.writeGenericValue(value);
-        }
     }
 }

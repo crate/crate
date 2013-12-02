@@ -9,6 +9,10 @@ import org.cratedb.action.groupby.aggregate.max.MaxAggState;
 import org.cratedb.action.groupby.aggregate.min.MinAggState;
 import org.cratedb.action.groupby.aggregate.sum.SumAggState;
 import org.cratedb.action.parser.ColumnDescription;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import java.io.IOException;
 
 public class AggExpr extends ColumnDescription {
 
@@ -69,14 +73,42 @@ public class AggExpr extends ColumnDescription {
             aggStateCreator = new AggStateCreator() {
                 @Override
                 AggState create() {
-                    return new MinAggState<String>();
+                    return new MinAggState<String>() {
+
+                        @Override
+                        public void readFrom(StreamInput in) throws IOException {
+                            this.setValue(in.readOptionalString());
+                        }
+
+                        @Override
+                        public void writeTo(StreamOutput out) throws IOException {
+                            out.writeOptionalString((String)this.value());
+                        }
+                    };
                 }
             };
         } else if (DataType.DECIMAL_TYPES.contains(parameterInfo.dataType)) {
             aggStateCreator = new AggStateCreator() {
                 @Override
                 AggState create() {
-                    return new MinAggState<Double>();
+                    return new MinAggState<Double>() {
+
+                        @Override
+                        public void readFrom(StreamInput in) throws IOException {
+                            if (!in.readBoolean()) {
+                                setValue(in.readDouble());
+                            }
+                        }
+
+                        @Override
+                        public void writeTo(StreamOutput out) throws IOException {
+                            Double value = (Double)value();
+                            out.writeBoolean(value == null);
+                            if (value != null) {
+                                out.writeDouble(value);
+                            }
+                        }
+                    };
                 }
             };
         } else if (DataType.INTEGER_TYPES.contains(parameterInfo.dataType)
@@ -85,7 +117,24 @@ public class AggExpr extends ColumnDescription {
             aggStateCreator = new AggStateCreator() {
                 @Override
                 AggState create() {
-                    return new MinAggState<Long>();
+                    return new MinAggState<Long>() {
+
+                        @Override
+                        public void readFrom(StreamInput in) throws IOException {
+                            if (!in.readBoolean()) {
+                                setValue(in.readLong());
+                            }
+                        }
+
+                        @Override
+                        public void writeTo(StreamOutput out) throws IOException {
+                            Long value = (Long)value();
+                            out.writeBoolean(value == null);
+                            if (value != null) {
+                                out.writeLong(value);
+                            }
+                        }
+                    };
                 }
             };
         } else {
@@ -98,14 +147,44 @@ public class AggExpr extends ColumnDescription {
             aggStateCreator = new AggStateCreator() {
                 @Override
                 AggState create() {
-                    return new MaxAggState<String>();
+                    return new MaxAggState<String>() {
+
+                        @Override
+                        @SuppressWarnings("unchecked")
+                        public void readFrom(StreamInput in) throws IOException {
+                            setValue(in.readOptionalString());
+
+                        }
+
+                        @Override
+                        public void writeTo(StreamOutput out) throws IOException {
+                            out.writeOptionalString((String)value());
+                        }
+                    };
                 }
             };
         } else if (DataType.DECIMAL_TYPES.contains(parameterInfo.dataType)) {
             aggStateCreator = new AggStateCreator() {
                 @Override
                 AggState create() {
-                    return new MaxAggState<Double>();
+                    return new MaxAggState<Double>() {
+
+                        @Override
+                        public void readFrom(StreamInput in) throws IOException {
+                            if (!in.readBoolean()) {
+                                setValue(in.readDouble());
+                            }
+                        }
+
+                        @Override
+                        public void writeTo(StreamOutput out) throws IOException {
+                            Double value = (Double)value();
+                            out.writeBoolean(value == null);
+                            if (value != null) {
+                                out.writeDouble(value);
+                            }
+                        }
+                    };
                 }
             };
         } else if (DataType.INTEGER_TYPES.contains(parameterInfo.dataType)
@@ -114,7 +193,23 @@ public class AggExpr extends ColumnDescription {
             aggStateCreator = new AggStateCreator() {
                 @Override
                 AggState create() {
-                    return new MaxAggState<Long>();
+                    return new MaxAggState<Long>() {
+                        @Override
+                        public void readFrom(StreamInput in) throws IOException {
+                            if (!in.readBoolean()) {
+                                setValue(in.readLong());
+                            }
+                        }
+
+                        @Override
+                        public void writeTo(StreamOutput out) throws IOException {
+                            Long value = (Long)value();
+                            out.writeBoolean(value == null);
+                            if (value != null) {
+                                out.writeLong(value);
+                            }
+                        }
+                    };
                 }
             };
         } else {
@@ -149,12 +244,34 @@ public class AggExpr extends ColumnDescription {
         };
     }
 
+    /**
+     * create AnyAggStates with concrete serialization methods
+     *
+     * These are defined here for performance reasons (no if checks and such)
+     * @param parameterInfo
+     */
     private void createAnyAggState(ParameterInfo parameterInfo) {
         if (parameterInfo.dataType == DataType.STRING || parameterInfo.dataType == DataType.IP) {
             aggStateCreator = new AggStateCreator() {
                 @Override
                 AggState create() {
-                    return new AnyAggState<String>();
+                    return new AnyAggState<String>() {
+
+                        @Override
+                        public void add(Object otherValue) {
+                            this.value = (String)otherValue;
+                        }
+
+                        @Override
+                        public void readFrom(StreamInput in) throws IOException {
+                            this.value = in.readOptionalString();
+                        }
+
+                        @Override
+                        public void writeTo(StreamOutput out) throws IOException {
+                            out.writeOptionalString(this.value);
+                        }
+                    };
                 }
             };
         } else if (DataType.INTEGER_TYPES.contains(parameterInfo.dataType) ||
@@ -162,21 +279,85 @@ public class AggExpr extends ColumnDescription {
             aggStateCreator = new AggStateCreator() {
                 @Override
                 AggState create() {
-                    return new AnyAggState<Long>();
+                    return new AnyAggState<Long>() {
+
+                        @Override
+                        public void add(Object otherValue) {
+                            this.value = (Long)otherValue;
+                        }
+
+                        @Override
+                        public void readFrom(StreamInput in) throws IOException {
+                            if (!in.readBoolean()) {
+                                this.value = in.readLong();
+                            }
+                        }
+
+                        @Override
+                        public void writeTo(StreamOutput out) throws IOException {
+                            out.writeBoolean(this.value == null);
+                            if (this.value != null) {
+                                out.writeLong(this.value);
+                            }
+                        }
+                    };
                 }
             };
         } else if (DataType.DECIMAL_TYPES.contains(parameterInfo.dataType)) {
             aggStateCreator = new AggStateCreator() {
                 @Override
                 AggState create() {
-                    return new AnyAggState<Double>();
+                    return new AnyAggState<Double>() {
+
+                        @Override
+                        public void add(Object otherValue) {
+                            this.value = (Double)otherValue;
+                        }
+
+                        @Override
+                        public void readFrom(StreamInput in) throws IOException {
+                            if (!in.readBoolean()) {
+                                this.value = in.readDouble();
+                            }
+
+                        }
+
+                        @Override
+                        public void writeTo(StreamOutput out) throws IOException {
+                            out.writeBoolean(this.value == null);
+                            if (this.value != null) {
+                                out.writeDouble(this.value);
+                            }
+                        }
+                    };
                 }
             };
         } else if (parameterInfo.dataType == DataType.BOOLEAN) {
             aggStateCreator = new AggStateCreator() {
                 @Override
                 AggState create() {
-                    return new AnyAggState<Boolean>();
+                    return new AnyAggState<Boolean>() {
+
+                        @Override
+                        public void add(Object otherValue) {
+                            if (otherValue instanceof String) {
+                                // this is how lucene stores the truth
+                                this.value = ((String) otherValue).charAt(0) == 'T';
+                            } else {
+                                this.value = (Boolean)otherValue;
+                            }
+                        }
+
+                        @Override
+                        public void readFrom(StreamInput in) throws IOException {
+                            this.value = in.readOptionalBoolean();
+                        }
+
+                        @Override
+                        public void writeTo(StreamOutput out) throws IOException {
+                            out.writeOptionalBoolean(this.value);
+                        }
+                    };
                 }
             };
         } else {
