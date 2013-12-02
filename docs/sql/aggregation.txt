@@ -13,8 +13,14 @@ as one group. One row will always be returned.
 
 For a short summary of aggregation functions see :ref:`sql_dml_aggregation`.
 
+COUNT
+=====
+
+
+.. _aggregation-count-star:
+
 COUNT(*)
-========
+--------
 
 This aggregation function simply returns the number of rows that match the query.
 
@@ -52,12 +58,32 @@ The return value is always of type ``long``.
 
     :doc:`rest`
 
+COUNT(columnName)
+-----------------
+
+In contrast to the :ref:`aggregation-count-star` function
+the ``COUNT`` function used with a column name as parameter will return the number of rows
+with a non-``NULL`` value in that column.
+
+Example::
+
+    cr> select count(name), count(*), date from locations group by date
+    ... order by count(name) desc, count(*) desc
+    +-------------+----------+---------------+
+    | COUNT(name) | COUNT(*) | date          |
+    +-------------+----------+---------------+
+    | 7           | 8        | 1373932800000 |
+    | 4           | 4        | 308534400000  |
+    | 1           | 1        | 1367366400000 |
+    +-------------+----------+---------------+
+    SELECT 3 rows in set (... sec)
+
 COUNT(DISTINCT columnName)
-==========================
+--------------------------
 
 The `count` aggregation function also supports the `DISTINCT` keyword. This
-keyword changes the behaviour of the function so that it will only count rows
-if the value passed to the function wasn't seen already in a previous row::
+keyword changes the behaviour of the function so that it will only count the number
+of distinct values in this column that are not ``NULL``::
 
     cr> select count(distinct kind), count(*), date from locations group by date
     ... order by count(distinct kind) desc, count(*) desc
@@ -228,15 +254,14 @@ Example::
     SELECT 1 row in set (... sec)
 
     cr> select any(name), kind from locations
-    ... where kind!='PLANET' group by kind order by kind desc
+    ... where kind!='Planet' group by kind order by kind desc
     +-...-+-------------+
     | ... | kind        |
     +-...-+-------------+
     | ... | Star System |
-    | ... | Planet      |
     | ... | Galaxy      |
     +-...-+-------------+
-    SELECT 3 rows in set (... sec)
+    SELECT 2 rows in set (... sec)
 
 
 An example use case is to group a table with many rows per user by ``user_id`` and get the ``username``

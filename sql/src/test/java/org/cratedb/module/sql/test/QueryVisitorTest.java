@@ -27,9 +27,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -828,8 +826,8 @@ public class QueryVisitorTest {
     public void testSelectWithWhereLikePrefixQueryUnderscoreEscaped() throws Exception {
         execStatement("select kind from locations where kind like 'P\\_'");
         assertEquals(
-            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P_\"}},\"size\":10000}",
-            getSource()
+                "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P_\"}},\"size\":10000}",
+                getSource()
         );
     }
 
@@ -837,8 +835,8 @@ public class QueryVisitorTest {
     public void testSelectWithWhereLikePrefixQueryQuestionmark() throws Exception {
         execStatement("select kind from locations where kind like 'P?'");
         assertEquals(
-            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\\\\?\"}},\"size\":10000}",
-            getSource()
+                "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\\\\?\"}},\"size\":10000}",
+                getSource()
         );
     }
 
@@ -1121,4 +1119,49 @@ public class QueryVisitorTest {
         expectedException.expect(SQLParseException.class);
         execStatement("select max(distinct age) from locations group by stuff");
     }
+
+    @Test
+    public void testCountStar() throws Exception {
+        execStatement("select count(*) from locations");
+        assertEquals(1, stmt.aggregateExpressions().size());
+        assertEquals("COUNT(*)", stmt.aggregateExpressions().get(0).functionName);
+        assertNull(stmt.aggregateExpressions().get(0).parameterInfo);
+        assertFalse(stmt.aggregateExpressions().get(0).isDistinct);
+        assertTrue(stmt.countRequest());
+    }
+
+    @Test
+    public void testCountColumn() throws Exception {
+        execStatement("select count(col) from locations order by count(col)");
+        assertEquals(1, stmt.aggregateExpressions().size());
+        assertEquals("COUNT", stmt.aggregateExpressions().get(0).functionName);
+        assertEquals("col", stmt.aggregateExpressions().get(0).parameterInfo.columnName);
+        assertFalse(stmt.aggregateExpressions().get(0).isDistinct);
+        assertFalse(stmt.countRequest());
+    }
+
+    @Test
+    public void testCountDistinct() throws Exception {
+        execStatement("select count(distinct col) from locations order by count(distinct col)");
+        assertEquals(1, stmt.aggregateExpressions().size());
+        assertEquals("COUNT_DISTINCT", stmt.aggregateExpressions().get(0).functionName);
+        assertEquals("col", stmt.aggregateExpressions().get(0).parameterInfo.columnName);
+        assertTrue(stmt.aggregateExpressions().get(0).isDistinct);
+        assertFalse(stmt.countRequest());
+    }
+
+    @Test
+    public void countOnNonExistingColumn() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Unknown column 'nothing'");
+        execStatement("select count(nothing) from locations");
+    }
+
+    @Test
+    public void countDistinctOnNonExistingColumn() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Unknown column 'nothing'");
+        execStatement("select count(distinct nothing) from locations");
+    }
+
 }

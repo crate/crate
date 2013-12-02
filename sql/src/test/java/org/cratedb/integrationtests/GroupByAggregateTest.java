@@ -1,7 +1,10 @@
 package org.cratedb.integrationtests;
 
 import org.cratedb.SQLCrateClusterTest;
+import org.cratedb.action.TransportDistributedSQLAction;
+import org.cratedb.action.TransportSQLReduceHandler;
 import org.cratedb.action.sql.SQLResponse;
+import org.elasticsearch.common.logging.Loggers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -22,6 +25,7 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
     protected int numberOfNodes() {
         return 2;
     }
+
 
     @Before
     public void initTestData() {
@@ -386,6 +390,7 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
     @Test
     public void testGlobalAggregateAny() throws Exception {
         this.setup.groupBySetup();
+
         execute("select any(age) from characters");
         assertEquals(1, response.rowCount());
         assertEquals(1,
@@ -419,4 +424,39 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
         assertEquals("management", response.rows()[3][1]);
         assertEquals(false, response.rows()[3][0]);
     }
+
+    public void testGroupByCountOnColumn() throws Exception {
+        execute("select department, count(income), count(*) " +
+                "from employees group by department order by department asc");
+        assertEquals(4, response.rowCount());
+
+        assertEquals("HR", response.rows()[0][0]);
+        assertEquals(2L, response.rows()[0][1]);
+        assertEquals(2L, response.rows()[0][2]);
+
+        assertEquals("engineering", response.rows()[1][0]);
+        assertEquals(2L, response.rows()[1][1]);
+        assertEquals(2L, response.rows()[1][2]);
+
+        assertEquals("internship", response.rows()[2][0]);
+        assertEquals(0L, response.rows()[2][1]);
+        assertEquals(1L, response.rows()[2][2]);
+
+        assertEquals("management", response.rows()[3][0]);
+        assertEquals(1L, response.rows()[3][1]);
+        assertEquals(1L, response.rows()[3][2]);
+    }
+
+    @Test
+    public void testGlobalCountOnColumn() throws Exception {
+        Loggers.getLogger(TransportDistributedSQLAction.class).setLevel("TRACE");
+        Loggers.getLogger(TransportSQLReduceHandler.class).setLevel("TRACE");
+
+        execute("select count(*), count(good), count(distinct good) from employees");
+        assertEquals(1, response.rowCount());
+        assertEquals(6L, response.rows()[0][0]);
+        assertEquals(4L, response.rows()[0][1]);
+        assertEquals(2L, response.rows()[0][2]);
+    }
+
 }

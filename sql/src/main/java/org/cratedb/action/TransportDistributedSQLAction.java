@@ -5,9 +5,8 @@ import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.GroupByRowComparator;
 import org.cratedb.action.groupby.aggregate.AggFunction;
-
-import org.cratedb.core.collections.LimitingCollectionIterator;
 import org.cratedb.action.sql.*;
+import org.cratedb.core.collections.LimitingCollectionIterator;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.ElasticSearchException;
@@ -277,7 +276,13 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             nodes = clusterState.nodes();
             shardsIts = shards(clusterState, parsedStatement.indices(), concreteIndices);
             expectedShardResponses = shardsIts.size();
-            reducers = extractNodes(shardsIts);
+
+            /**
+             * distinct requires that one reducer has a complete set of all seenValues
+             * in order for the {@link org.cratedb.action.groupby.aggregate.AggState#terminatePartial()}
+             * to generate the correct value.
+             */
+            reducers = extractNodes(shardsIts, this.parsedStatement.hasDistinctAggregate ? 1 : -1);
 
             lastException = new AtomicReference<>(null);
             shardErrors = new AtomicBoolean(false);
@@ -353,12 +358,20 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             }
         }
 
-        private String[] extractNodes(GroupShardsIterator shardsIts) {
+        /**
+         * extract nodes of shards shardIterator
+         * @param shardsIts ShardIterator of shards containing a certain index
+         * @param numberOfNodes the maximum number of nodes to extract, if -1 all available nodes will be extracted
+         * @return Array of nodeIds
+         */
+        private String[] extractNodes(GroupShardsIterator shardsIts, int numberOfNodes) {
             Set<String> nodes = newHashSet();
+
+            if (numberOfNodes < 0) { numberOfNodes = Integer.MAX_VALUE; }
 
             ShardRouting shardRouting;
             for (ShardIterator shardsIt : shardsIts) {
-                while ((shardRouting = shardsIt.nextOrNull()) != null) {
+                while ((shardRouting = shardsIt.nextOrNull()) != null && nodes.size() < numberOfNodes) {
                     nodes.add(shardRouting.currentNodeId());
                 }
             }

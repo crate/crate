@@ -5,7 +5,9 @@ import org.cratedb.DataType;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.any.AnyAggFunction;
 import org.cratedb.action.groupby.aggregate.avg.AvgAggFunction;
-import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
+import org.cratedb.action.groupby.aggregate.count.CountColumnAggFunction;
+import org.cratedb.action.groupby.aggregate.count.CountDistinctAggFunction;
+import org.cratedb.action.groupby.aggregate.count.CountStarAggFunction;
 import org.cratedb.action.groupby.aggregate.max.MaxAggFunction;
 import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
 import org.cratedb.action.groupby.aggregate.sum.SumAggFunction;
@@ -37,8 +39,9 @@ public class HitchhikerMocks {
 
     // maps that are usually created by the injector.
     public static Map<String, AggFunction> aggFunctionMap = new HashMap<String, AggFunction>() {{
-        put(CountAggFunction.COUNT_ROWS_NAME, new CountAggFunction());
-        put(CountAggFunction.NAME, new CountAggFunction());
+        put(CountStarAggFunction.NAME, new CountStarAggFunction());
+        put(CountColumnAggFunction.NAME, new CountColumnAggFunction());
+        put(CountDistinctAggFunction.NAME, new CountDistinctAggFunction());
         put(MinAggFunction.NAME, new MinAggFunction());
         put(MaxAggFunction.NAME, new MaxAggFunction());
         put(SumAggFunction.NAME, new SumAggFunction());

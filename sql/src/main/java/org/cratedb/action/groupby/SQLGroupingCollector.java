@@ -63,7 +63,7 @@ public class SQLGroupingCollector extends Collector {
 
         aggFunctions = new AggFunction[parsedStatement.aggregateExpressions.size()];
         aggExprToSeenMap = new ArrayList<>();
-        int seenIdx = 0;
+        int seenIdx = -1;
         HashSet<String> distinctColumns = new HashSet<>();
 
         for (int i = 0; i < parsedStatement.aggregateExpressions.size(); i++) {
@@ -73,12 +73,11 @@ public class SQLGroupingCollector extends Collector {
             if (aggExpr.isDistinct) {
                 if (!distinctColumns.contains(aggExpr.parameterInfo.columnName)) {
                     distinctColumns.add(aggExpr.parameterInfo.columnName);
-                    aggExprToSeenMap.add(seenIdx);
                     seenIdx++;
                 }
+                aggExprToSeenMap.add(seenIdx);
             }
         }
-
         numDistinctColumns = distinctColumns.size();
     }
 

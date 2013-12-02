@@ -5,7 +5,9 @@ import org.cratedb.action.TransportSQLReduceHandler;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.any.AnyAggFunction;
 import org.cratedb.action.groupby.aggregate.avg.AvgAggFunction;
-import org.cratedb.action.groupby.aggregate.count.CountAggFunction;
+import org.cratedb.action.groupby.aggregate.count.CountColumnAggFunction;
+import org.cratedb.action.groupby.aggregate.count.CountDistinctAggFunction;
+import org.cratedb.action.groupby.aggregate.count.CountStarAggFunction;
 import org.cratedb.action.groupby.aggregate.max.MaxAggFunction;
 import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
 
@@ -42,8 +44,9 @@ public class SQLModule extends AbstractModule {
 
         MapBinder<String, AggFunction> aggFunctionBinder =
             MapBinder.newMapBinder(binder(), String.class, AggFunction.class);
-        aggFunctionBinder.addBinding(CountAggFunction.NAME).to(CountAggFunction.class).asEagerSingleton();
-        aggFunctionBinder.addBinding(CountAggFunction.COUNT_ROWS_NAME).to(CountAggFunction.class).asEagerSingleton();
+        aggFunctionBinder.addBinding(CountColumnAggFunction.NAME).to(CountColumnAggFunction.class).asEagerSingleton();
+        aggFunctionBinder.addBinding(CountStarAggFunction.NAME).to(CountStarAggFunction.class).asEagerSingleton();
+        aggFunctionBinder.addBinding(CountDistinctAggFunction.NAME).to(CountDistinctAggFunction.class).asEagerSingleton();
         aggFunctionBinder.addBinding(MinAggFunction.NAME).to(MinAggFunction.class).asEagerSingleton();
         aggFunctionBinder.addBinding(MaxAggFunction.NAME).to(MaxAggFunction.class).asEagerSingleton();
         aggFunctionBinder.addBinding(SumAggFunction.NAME).to(SumAggFunction.class).asEagerSingleton();
