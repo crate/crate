@@ -284,9 +284,9 @@ always return one row, as they do an aggregation operation on the matching rows 
 +---------+---------------+----------------------------------+-----------------------+
 | ANY     | column name of| returns an undefined value of    | the input             |
 |         | a primitive   | all the values in the argument   | column type or NULL   |
-|         | typed         | column that are not NULL.        | if all values of all  |
+|         | typed         | column. Can be NULL.             | if some value of the  |
 |         | column        |                                  | matching rows in that |
-|         | (all but      |                                  | column are NULL       |
+|         | (all but      |                                  | column is NULL        |
 |         | craty)        |                                  |                       |
 +---------+---------------+----------------------------------+-----------------------+
 
@@ -306,6 +306,14 @@ Some Examples::
     +----------+
     | 5        |
     +----------+
+    SELECT 1 row in set (... sec)
+
+    cr> select count(name), count(*) from locations
+    +-------------+----------+
+    | COUNT(name) | COUNT(*) |
+    +-------------+----------+
+    | 12          | 13       |
+    +-------------+----------+
     SELECT 1 row in set (... sec)
 
     cr> select max(name) from locations

@@ -7,6 +7,7 @@ import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountColumnAggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountDistinctAggFunction;
+import org.cratedb.action.groupby.aggregate.count.CountStarAggFunction;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.OrderByColumnIdx;
@@ -324,12 +325,16 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         String aggregateName = node.getAggregateName();
 
         AggFunction<?> aggFunction;
-        if (aggregateName.equals(CountColumnAggFunction.NAME) && node.isDistinct()) {
-            // special case for count(distinct <col>)
-            aggFunction = context.availableAggFunctions().get(CountDistinctAggFunction.NAME);
-        } else {
-            aggFunction = context.availableAggFunctions().get(aggregateName);
+        if (aggregateName.equals(CountColumnAggFunction.NAME)) {
+            if (node.isDistinct()) {
+                aggregateName = CountDistinctAggFunction.NAME;
+            } else if (node.getOperand().getNodeType() == NodeTypes.PARAMETER_NODE) {
+                // COUNT(*) with parameter
+                aggregateName = CountStarAggFunction.NAME;
+            }
         }
+        aggFunction = context.availableAggFunctions().get(aggregateName);
+
 
         if (aggFunction == null) {
             throw new SQLParseException(String.format("Unknown aggregate function %s", aggregateName));
@@ -385,14 +390,17 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         AggExpr aggExpr = getAggregateExpression(node);
 
         if (aggExpr != null) {
-            if (aggExpr.functionName.startsWith(CountColumnAggFunction.NAME) && !node.isDistinct()) {
+            if (aggExpr.functionName.startsWith(CountStarAggFunction.NAME)) {
                 stmt.countRequest(true);
             }
             stmt.resultColumnList.add(aggExpr);
             stmt.aggregateExpressions.add(aggExpr);
-            String alias = aggExpr.toString();
+            if (aggExpr.isDistinct) {
+                stmt.hasDistinctAggregate = true;
+            }
+            String columnName = aggExpr.toString();
 
-            stmt.addOutputField(column.getName() != null ? column.getName() : alias, alias);
+            stmt.addOutputField(column.getName() != null ? column.getName() : columnName, columnName);
         }
     }
 

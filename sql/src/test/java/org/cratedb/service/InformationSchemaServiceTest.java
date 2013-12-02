@@ -573,4 +573,11 @@ public class InformationSchemaServiceTest extends SQLCrateNodesTest {
 
         assertEquals(14, response.rows()[0][0]);
     }
+
+    @Test
+    public void testGlobalCountDistinct() throws Exception {
+        execUsingClient("select count(distinct routine_type) from information_schema.routines order by count(distinct routine_type)");
+        assertEquals(1, response.rowCount());
+        assertEquals(4L, response.rows()[0][0]);
+    }
 }

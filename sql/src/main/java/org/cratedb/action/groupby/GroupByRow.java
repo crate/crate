@@ -141,13 +141,14 @@ public class GroupByRow implements Streamable {
 
         aggStates = new ArrayList<>(aggExprs.size());
         AggExpr aggExpr;
+        int seenIdxIndex = 0;
         for (int i = 0; i < aggExprs.size(); i++) {
             aggExpr = aggExprs.get(i);
             aggStates.add(i, aggExpr.createAggState());
             aggStates.get(i).readFrom(in);
 
             if (aggExpr.isDistinct) {
-                aggStates.get(i).setSeenValuesRef(seenValuesList.get(seenIdxMapping.get(i)));
+                aggStates.get(i).setSeenValuesRef(seenValuesList.get(seenIdxMapping.get(seenIdxIndex++)));
             }
         }
     }

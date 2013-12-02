@@ -5,7 +5,7 @@ import org.cratedb.action.groupby.aggregate.AggFunction;
 
 import java.util.Set;
 
-public class CountColumnAggFunction<T> extends AggFunction<CountAggState> {
+public class CountColumnAggFunction extends AggFunction<CountAggState> {
 
     public static String NAME = "COUNT";
 

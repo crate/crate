@@ -9,7 +9,7 @@ import java.util.Set;
 
 public class CountAggState extends AggState<CountAggState> {
 
-    public long value;
+    public long value = 0;
 
     // not serialized;
     public Set<Object> seenValues;

@@ -18,7 +18,7 @@ public class AggExpr extends ColumnDescription {
     public ParameterInfo parameterInfo;
 
     public AggExpr() {
-        super(Types.CONSTANT_COLUMN);
+        super(Types.AGGREGATE_COLUMN);
     }
 
     public AggExpr(String functionName, final ParameterInfo parameterInfo, boolean isDistinct) {
@@ -43,6 +43,7 @@ public class AggExpr extends ColumnDescription {
                 break;
             case "COUNT":
             case "COUNT(*)":
+            case "COUNT_DISTINCT":
                 createCountAggState();
                 break;
             case "MAX":
@@ -221,8 +222,10 @@ public class AggExpr extends ColumnDescription {
     @Override
     public String toString() {
         if (parameterInfo != null) {
-            return String.format("%s(%s%s)", functionName, (isDistinct ? "DISTINCT " : ""),
-                parameterInfo.toString());
+            return String.format("%s(%s%s)",
+                    functionName.split("_")[0],
+                    (isDistinct ? "DISTINCT " : ""),
+                    parameterInfo.toString());
         } else {
             return functionName;
         }

@@ -123,6 +123,7 @@ public class ParsedStatement {
             return aggregateExpressions;
         }
     }
+    public boolean hasDistinctAggregate = false;
 
     private Integer limit = null;
     private Integer offset = null;

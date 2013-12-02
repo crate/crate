@@ -1,7 +1,10 @@
 package org.cratedb.integrationtests;
 
 import org.cratedb.SQLCrateClusterTest;
+import org.cratedb.action.TransportDistributedSQLAction;
+import org.cratedb.action.TransportSQLReduceHandler;
 import org.cratedb.action.sql.SQLResponse;
+import org.elasticsearch.common.logging.Loggers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -22,6 +25,7 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
     protected int numberOfNodes() {
         return 2;
     }
+
 
     @Before
     public void initTestData() {
@@ -386,6 +390,7 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
     @Test
     public void testGlobalAggregateAny() throws Exception {
         this.setup.groupBySetup();
+
         execute("select any(age) from characters");
         assertEquals(1, response.rowCount());
         assertEquals(1,
@@ -444,6 +449,9 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
 
     @Test
     public void testGlobalCountOnColumn() throws Exception {
+        Loggers.getLogger(TransportDistributedSQLAction.class).setLevel("TRACE");
+        Loggers.getLogger(TransportSQLReduceHandler.class).setLevel("TRACE");
+
         execute("select count(*), count(good), count(distinct good) from employees");
         assertEquals(1, response.rowCount());
         assertEquals(6L, response.rows()[0][0]);

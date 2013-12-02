@@ -139,6 +139,9 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
 
         indexSearcher.search(stmt.query, collector);
         List<GroupByRow> rows = new ArrayList<>(collector.partitionedResult.get("DUMMY").values());
+        for (GroupByRow row : rows) {
+            row.terminatePartial();
+        }
         return groupByRowsToSQLResponse(stmt, rows, requestStartedTime);
     }
 

@@ -1144,7 +1144,7 @@ public class QueryVisitorTest {
     public void testCountDistinct() throws Exception {
         execStatement("select count(distinct col) from locations order by count(distinct col)");
         assertEquals(1, stmt.aggregateExpressions().size());
-        assertEquals("COUNT", stmt.aggregateExpressions().get(0).functionName);
+        assertEquals("COUNT_DISTINCT", stmt.aggregateExpressions().get(0).functionName);
         assertEquals("col", stmt.aggregateExpressions().get(0).parameterInfo.columnName);
         assertTrue(stmt.aggregateExpressions().get(0).isDistinct);
         assertFalse(stmt.countRequest());
