@@ -2,7 +2,6 @@ package org.cratedb.action.groupby.aggregate.sum;
 
 import com.google.common.collect.ImmutableSet;
 import org.cratedb.DataType;
-import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 
 import java.util.Set;
@@ -20,10 +19,11 @@ public class SumAggFunction extends AggFunction<SumAggState> {
     }
 
     @Override
-    public void iterate(SumAggState state, Object columnValue) {
+    public boolean iterate(SumAggState state, Object columnValue) {
         if (columnValue != null && columnValue instanceof Number) {
             state.add(columnValue);
         }
+        return true;
     }
 
     @Override

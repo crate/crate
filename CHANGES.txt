@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - performance-tuning: faster ANY processing in ``group by`` requests 
+
  - Shard stats table is using a pool for it's MemoryIndex now.
 
  - Implemented ``stats`` schema with virtual table ``shards``, usable for gathering real-time

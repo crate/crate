@@ -5,6 +5,7 @@ import org.apache.lucene.search.*;
 import org.cratedb.action.groupby.ParameterInfo;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.groupby.aggregate.any.AnyAggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountColumnAggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountDistinctAggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountStarAggFunction;
@@ -401,6 +402,9 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             stmt.aggregateExpressions.add(aggExpr);
             if (aggExpr.isDistinct) {
                 stmt.hasDistinctAggregate = true;
+            }
+            if (aggExpr.functionName.equals(AnyAggFunction.NAME)) {
+                stmt.hasStoppableAggregate = true;
             }
             String columnName = aggExpr.toString();
 

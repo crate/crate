@@ -129,6 +129,7 @@ public class ParsedStatement {
             return aggregateExpressions;
         }
     }
+    public boolean hasStoppableAggregate = false; // true if any aggregate is able to terminate collection earlier
     public boolean hasDistinctAggregate = false;
 
     // If -1, reducer count is evaluated dynamically
