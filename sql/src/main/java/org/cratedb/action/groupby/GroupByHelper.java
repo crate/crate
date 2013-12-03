@@ -27,14 +27,14 @@ public class GroupByHelper {
     public static List<Integer> getSeenIdxMap(Collection<AggExpr> aggregateExpressions) {
         List<Integer> idxMap = new ArrayList<>();
         Set<String> distinctColumns = new HashSet<>();
-        int seenIdx = 0;
+        int seenIdx = -1;
         for (AggExpr expr : aggregateExpressions) {
             if (expr.isDistinct) {
                 if (!distinctColumns.contains(expr.parameterInfo.columnName)) {
                     distinctColumns.add(expr.parameterInfo.columnName);
-                    idxMap.add(seenIdx);
                     seenIdx++;
                 }
+                idxMap.add(seenIdx);
             }
         }
 

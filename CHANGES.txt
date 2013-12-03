@@ -5,7 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
- - performance-tuning: faster ANY processing in ``group by`` requests 
+ - fix: fixed stalled cluster on using more than one COUNT(DISTINCT col) in a statement
+
+ - performance-tuning: faster ANY processing in ``group by`` requests
 
  - Shard stats table is using a pool for it's MemoryIndex now.
 
