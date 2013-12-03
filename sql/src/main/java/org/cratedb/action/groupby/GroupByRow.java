@@ -44,8 +44,9 @@ public class GroupByRow implements Streamable {
         this.aggStates = aggStates;
         if (aggStates != null) {
             this.continueCollectingFlags = new boolean[aggStates.size()];
-        }
             Arrays.fill(this.continueCollectingFlags, true);
+        }
+
         this.key = key;
         this.aggExprs = aggExprs;
         this.seenValuesList = seenValuesList;
