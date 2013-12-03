@@ -27,6 +27,7 @@ public class SQLGroupingCollector extends Collector {
     private final AggFunction[] aggFunctions;
     private final ArrayList<Integer> aggExprToSeenMap;
     private final int numDistinctColumns;
+    private SQLGroupingAggregateHandler aggregateHandler;
 
     /**
      * Partitioned and grouped results.
@@ -79,6 +80,11 @@ public class SQLGroupingCollector extends Collector {
             }
         }
         numDistinctColumns = distinctColumns.size();
+        if (parsedStatement.hasStoppableAggregate) {
+            aggregateHandler = new CheckingSQLGroupingAggregateHandler();
+        } else {
+            aggregateHandler = new SimpleSQLGroupingAggregateHandler();
+        }
     }
 
     @Override
@@ -105,20 +111,11 @@ public class SQLGroupingCollector extends Collector {
 
         if (row == null) {
             row = GroupByRow.createEmptyRow(
-                key, parsedStatement.aggregateExpressions, aggExprToSeenMap, numDistinctColumns);
+                    key, parsedStatement.aggregateExpressions, aggExprToSeenMap, numDistinctColumns);
             resultMap.put(key, row);
         }
-
-        for (int i = 0; i < aggFunctions.length; i++) {
-            AggExpr aggExpr = parsedStatement.aggregateExpressions.get(i);
-            AggFunction function = aggFunctions[i];
-            Object value = null;
-
-            if (aggExpr.parameterInfo != null) {
-                value = fieldLookup.lookupField(aggExpr.parameterInfo.columnName);
-            }
-            function.iterate(row.aggStates.get(i), value);
-        }
+        aggregateHandler.handleAggregates(row, fieldLookup,
+                parsedStatement.aggregateExpressions(), aggFunctions);
     }
 
     protected String partitionByKey(String[] reducers, GroupByKey key) {

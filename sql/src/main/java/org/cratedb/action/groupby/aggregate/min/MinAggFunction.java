@@ -2,7 +2,6 @@ package org.cratedb.action.groupby.aggregate.min;
 
 import com.google.common.collect.ImmutableSet;
 import org.cratedb.DataType;
-import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 
 import java.util.Set;
@@ -23,10 +22,11 @@ public class MinAggFunction<T extends Comparable<T>> extends AggFunction<MinAggS
 
     @Override
     @SuppressWarnings("unchecked")
-    public void iterate(MinAggState<T> state, Object columnValue) {
+    public boolean iterate(MinAggState<T> state, Object columnValue) {
         if (state.compareValue((T)columnValue) > 0) {
             state.setValue((T)columnValue);
         }
+        return true;
     }
 
     @Override

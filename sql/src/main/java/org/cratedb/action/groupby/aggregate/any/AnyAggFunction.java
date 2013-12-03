@@ -19,8 +19,9 @@ public class AnyAggFunction<T> extends AggFunction<AnyAggState<T>> {
     }
 
     @Override
-    public void iterate(AnyAggState<T> state, Object columnValue) {
+    public boolean iterate(AnyAggState<T> state, Object columnValue) {
         state.add(columnValue);
+        return false;
     }
 
     @Override

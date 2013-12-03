@@ -2,19 +2,13 @@ package org.cratedb.module.sql.benchmark;
 
 import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.test.integration.AbstractCrateNodesTests;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.Requests;
-import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.test.hamcrest.ElasticsearchAssertions;
 import org.junit.AfterClass;
 import org.junit.Before;
 
@@ -23,7 +17,6 @@ import java.util.List;
 
 import static org.cratedb.test.integration.PathAccessor.bytesFromPath;
 import static org.cratedb.test.integration.PathAccessor.stringFromPath;
-import static org.hamcrest.Matchers.equalTo;
 
 
 public class BenchmarkBase extends AbstractCrateNodesTests {
@@ -49,10 +42,7 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
             getClient(false).admin().indices().prepareCreate(INDEX_NAME).setSettings(
                     ImmutableSettings.builder().loadFromClasspath(SETTINGS).build())
                     .addMapping("default", stringFromPath(MAPPING, InsertBenchmark.class)).execute().actionGet();
-            ClusterHealthResponse actionGet = client().admin().cluster()
-                    .health(Requests.clusterHealthRequest().waitForGreenStatus().waitForEvents(Priority.LANGUID).waitForRelocatingShards(0)).actionGet();
-            assertThat(actionGet.isTimedOut(), equalTo(false));
-            assertThat(actionGet.getStatus(), equalTo(ClusterHealthStatus.GREEN));
+            refresh(client());
             if (loadData()) {
                 doLoadData();
             }
@@ -83,12 +73,8 @@ public class BenchmarkBase extends AbstractCrateNodesTests {
 
     public void doLoadData() throws Exception {
         loadBulk(DATA, false);
-        ClusterHealthRequest request = Requests.clusterHealthRequest().waitForRelocatingShards(0);
-
-        ClusterHealthResponse actionGet = getClient(false).admin().cluster().health(request).actionGet();
-        assertThat(actionGet.isTimedOut(), equalTo(false));
-        ElasticsearchAssertions.assertNoFailures(getClient(false).admin().indices().prepareRefresh().execute().actionGet());
-        ElasticsearchAssertions.assertNoFailures(getClient(true).admin().indices().prepareRefresh().execute().actionGet());
+        refresh(getClient(true));
+        refresh(getClient(false));
     }
 
     public Settings getNodeSettings(String nodeId) {
