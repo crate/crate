@@ -36,7 +36,7 @@ This table can be queried for gathering real-time shard statistics of one, multi
 Aggregate functions are currently only supported in conjunction with grouping::
 
     cr> select count(*), table_name from stats.shards where table_name not like 'my_table%'
-    ... group by table_name order by table_name
+    ... and state = 'STARTED' group by table_name order by table_name
     +----------+------------+
     | COUNT(*) | table_name |
     +----------+------------+
