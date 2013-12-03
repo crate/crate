@@ -277,6 +277,11 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                     transportImportAction.execute(importRequest,
                             new ImportResponseListener(stmt, listener, request.creationTime()));
                     break;
+                case STATS:
+                    transportDistributedSQLAction.execute(
+                            new DistributedSQLRequest(request, stmt),
+                            new DistributedSQLResponseListener(stmt, listener, request.creationTime()));
+                    break;
                 default:
                     // TODO: don't simply run globalAggregate Queries like Group By Queries
                     // Disable Reducers!!!

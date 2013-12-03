@@ -1,12 +1,13 @@
 package org.cratedb.information_schema;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.StringField;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.index.IndexMetaDataExtractor;
+import org.cratedb.lucene.fields.IntegerLuceneField;
+import org.cratedb.lucene.fields.StringLuceneField;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Inject;
@@ -16,19 +17,20 @@ import java.util.Map;
 
 public class TablesTable extends AbstractInformationSchemaTable {
 
-    private ImmutableMap<String, InformationSchemaColumn> fieldMapper = new ImmutableMap
-            .Builder<String, InformationSchemaColumn>()
-            .put(Columns.TABLE_NAME, new InformationSchemaStringColumn(Columns.TABLE_NAME))
-            .put(Columns.NUMBER_OF_SHARDS, new InformationSchemaIntegerColumn(Columns.NUMBER_OF_SHARDS))
-            .put(Columns.NUMBER_OF_REPLICAS, new InformationSchemaIntegerColumn(Columns.NUMBER_OF_REPLICAS))
-            .put(Columns.ROUTING_COLUMN, new InformationSchemaStringColumn(Columns.ROUTING_COLUMN))
-            .build();
-
     public static final String NAME = "tables";
 
     @Inject
     public TablesTable(Map<String, AggFunction> aggFunctionMap) {
         super(aggFunctionMap);
+        fieldMapper.put(Columns.TABLE_NAME,
+                new StringLuceneField(Columns.TABLE_NAME));
+        fieldMapper.put(Columns.NUMBER_OF_SHARDS,
+                new IntegerLuceneField(Columns.NUMBER_OF_SHARDS));
+        fieldMapper.put(Columns.NUMBER_OF_REPLICAS,
+                new IntegerLuceneField(Columns.NUMBER_OF_REPLICAS));
+        fieldMapper.put(Columns.ROUTING_COLUMN,
+                new StringLuceneField(Columns.ROUTING_COLUMN));
+
     }
 
     public class Columns {
@@ -36,16 +38,6 @@ public class TablesTable extends AbstractInformationSchemaTable {
         public static final String NUMBER_OF_SHARDS = "number_of_shards";
         public static final String NUMBER_OF_REPLICAS = "number_of_replicas";
         public static final String ROUTING_COLUMN = "routing_column";
-    }
-
-    @Override
-    public Iterable<String> cols() {
-        return fieldMapper.keySet();
-    }
-
-    @Override
-    public ImmutableMap<String, InformationSchemaColumn> fieldMapper() {
-        return ImmutableMap.copyOf(fieldMapper);
     }
 
     @Override

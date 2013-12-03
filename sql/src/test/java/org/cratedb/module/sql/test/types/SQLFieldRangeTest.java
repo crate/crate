@@ -130,20 +130,20 @@ public class SQLFieldRangeTest {
     @Test
     public void testRange() {
         try {
-            this.mapper.convertToXContentValue(fieldName, testNumbers[0]);
+            this.mapper.mappedValue(fieldName, testNumbers[0]);
             fail("did not validate lower bound");
         } catch(ValidationException e) {}
 
-        assertThat(this.mapper.convertToXContentValue(fieldName, testNumbers[1]),
+        assertThat(this.mapper.mappedValue(fieldName, testNumbers[1]),
                 instanceOf(this.klass));
         assertThat(
-                this.mapper.convertToXContentValue(fieldName, testNumbers[2]),
+                this.mapper.mappedValue(fieldName, testNumbers[2]),
                 instanceOf(this.klass));
-        assertThat(this.mapper.convertToXContentValue(fieldName,
+        assertThat(this.mapper.mappedValue(fieldName,
                 testNumbers[3]),
                 instanceOf(this.klass));
         try {
-            this.mapper.convertToXContentValue(fieldName, testNumbers[4]);
+            this.mapper.mappedValue(fieldName, testNumbers[4]);
             fail("did not validate upper bound");
         } catch(ValidationException e) {}
     }

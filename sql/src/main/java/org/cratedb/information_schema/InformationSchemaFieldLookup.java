@@ -3,7 +3,8 @@ package org.cratedb.information_schema;
 import org.apache.lucene.index.AtomicReader;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.IndexableField;
-import org.cratedb.action.GroupByFieldLookup;
+import org.cratedb.action.FieldLookup;
+import org.cratedb.lucene.fields.LuceneField;
 import org.cratedb.sql.GroupByOnArrayUnsupportedException;
 
 import java.io.IOException;
@@ -11,13 +12,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class InformationSchemaFieldLookup implements GroupByFieldLookup {
+public class InformationSchemaFieldLookup implements FieldLookup {
 
-    private final Map<String, InformationSchemaColumn> fieldMapper;
+    private final Map<String, LuceneField> fieldMapper;
     int docId;
     private AtomicReader reader;
 
-    public InformationSchemaFieldLookup(Map<String, InformationSchemaColumn> fieldMapper) {
+    public InformationSchemaFieldLookup(Map<String, LuceneField> fieldMapper) {
         this.fieldMapper = fieldMapper;
     }
 
@@ -33,7 +34,7 @@ public class InformationSchemaFieldLookup implements GroupByFieldLookup {
 
     @Override
     public Object lookupField(final String columnName)
-        throws IOException, GroupByOnArrayUnsupportedException
+            throws IOException, GroupByOnArrayUnsupportedException
     {
         Set<String> fieldsToLoad = new HashSet<>();
         fieldsToLoad.add(columnName);
@@ -46,3 +47,4 @@ public class InformationSchemaFieldLookup implements GroupByFieldLookup {
         return fieldMapper.get(columnName).getValue(fields[0]);
     }
 }
+

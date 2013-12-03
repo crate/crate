@@ -1,7 +1,6 @@
 package org.cratedb.module.sql.test;
 
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
@@ -12,8 +11,8 @@ import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.information_schema.AbstractInformationSchemaTable;
-import org.cratedb.information_schema.InformationSchemaColumn;
-import org.cratedb.information_schema.InformationSchemaStringColumn;
+import org.cratedb.lucene.LuceneFieldMapper;
+import org.cratedb.lucene.fields.StringLuceneField;
 import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterState;
@@ -65,13 +64,13 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
         }
 
         @Override
-        public ImmutableMap<String, InformationSchemaColumn> fieldMapper() {
-            return ImmutableMap.of(
-                    "id", (InformationSchemaColumn) new InformationSchemaStringColumn("id"),
-                    "name", new InformationSchemaStringColumn("name"),
-                    "address", new InformationSchemaStringColumn("address"),
-                    "many", new InformationSchemaStringColumn("many", true)
-            );
+        public LuceneFieldMapper fieldMapper() {
+            return new LuceneFieldMapper(){{
+                put("id", new StringLuceneField("id"));
+                put("name", new StringLuceneField("name"));
+                put("address", new StringLuceneField("address"));
+                put("many", new StringLuceneField("many", true));
+            }};
         }
     }
 

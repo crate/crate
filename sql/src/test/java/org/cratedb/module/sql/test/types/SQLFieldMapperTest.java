@@ -109,38 +109,38 @@ public class SQLFieldMapperTest extends SQLCrateNodesTest {
 
     @Test
     public void testBuiltinTypes() {
-        assertEquals(100, this.mapper.convertToXContentValue("byte_field", 100L));
-        assertEquals(new Integer(100).shortValue(), this.mapper.convertToXContentValue("short_field", 100L));
-        assertEquals(100, this.mapper.convertToXContentValue("integer_field", 100L));
-        assertEquals(new Long(100L), this.mapper.convertToXContentValue("long_field", 100));
-        assertEquals(new Float(100.0), this.mapper.convertToXContentValue("float_field", 100.0));
-        assertEquals(new Double(10000.0), this.mapper.convertToXContentValue("double_field",
+        assertEquals(100, this.mapper.mappedValue("byte_field", 100L));
+        assertEquals(new Integer(100).shortValue(), this.mapper.mappedValue("short_field", 100L));
+        assertEquals(100, this.mapper.mappedValue("integer_field", 100L));
+        assertEquals(new Long(100L), this.mapper.mappedValue("long_field", 100));
+        assertEquals(new Float(100.0), this.mapper.mappedValue("float_field", 100.0));
+        assertEquals(new Double(10000.0), this.mapper.mappedValue("double_field",
                 10000.0));
-        assertEquals("value", this.mapper.convertToXContentValue("string_field", "value"));
-        assertEquals(true, this.mapper.convertToXContentValue("boolean_field", true));
-        assertEquals("127.0.0.1", this.mapper.convertToXContentValue("ip_field", "127.0.0.1"));
+        assertEquals("value", this.mapper.mappedValue("string_field", "value"));
+        assertEquals(true, this.mapper.mappedValue("boolean_field", true));
+        assertEquals("127.0.0.1", this.mapper.mappedValue("ip_field", "127.0.0.1"));
     }
 
     @Test
     public void testDateType() {
         String[] fields = new String[]{"date_field", "craty_field.created"};
         for (int i=0; i<2; i++) {
-            assertEquals(0L, this.mapper.convertToXContentValue(fields[i],
+            assertEquals(0L, this.mapper.mappedValue(fields[i],
                     "1970-01-01T00:00:00"));
-            assertEquals(0L,  this.mapper.convertToXContentValue(fields[i], "1970-01-01"));
-            assertEquals(0L,  this.mapper.convertToXContentValue(fields[i], "1970-01-01"));
-            assertEquals(1384793745289L, this.mapper.convertToXContentValue(fields[i],
+            assertEquals(0L,  this.mapper.mappedValue(fields[i], "1970-01-01"));
+            assertEquals(0L,  this.mapper.mappedValue(fields[i], "1970-01-01"));
+            assertEquals(1384793745289L, this.mapper.mappedValue(fields[i],
                     "2013-11-18T16:55:45.289715"));
-            assertEquals(1384790145289L, this.mapper.convertToXContentValue(fields[i],
+            assertEquals(1384790145289L, this.mapper.mappedValue(fields[i],
                     1384790145.289));
-            assertEquals(0L, this.mapper.convertToXContentValue(fields[i], 0L));    
+            assertEquals(0L, this.mapper.mappedValue(fields[i], 0L));
         }
     }
 
     @Test
     public void testMapCratyColumn() {
-        Object mapped = this.mapper.convertToXContentValue("craty_field", new HashMap<String,
-                Object>(){{
+        Object mapped = this.mapper.mappedValue("craty_field", new HashMap<String,
+                Object>() {{
             put("title", "The Total Perspective Vortex");
             put("size", 1024);
             put("created", "2013-11-18");
@@ -152,7 +152,7 @@ public class SQLFieldMapperTest extends SQLCrateNodesTest {
         assertEquals(new Integer(1024).shortValue(), mappedMap.get("size"));
         assertEquals(1384732800000L, mappedMap.get("created"));
 
-        assertEquals(1384732800000L, this.mapper.convertToXContentValue("craty_field.created",
+        assertEquals(1384732800000L, this.mapper.mappedValue("craty_field.created",
                 "2013-11-18"));
     }
 
@@ -160,20 +160,20 @@ public class SQLFieldMapperTest extends SQLCrateNodesTest {
     public void testInvalidBoolean1() {
         expectedException.expect(ValidationException.class);
         expectedException.expectMessage("Validation failed for boolean_field: Invalid boolean");
-        this.mapper.convertToXContentValue("boolean_field", 1);
+        this.mapper.mappedValue("boolean_field", 1);
     }
 
     @Test
     public void testInvalidBoolean2() {
         expectedException.expect(ValidationException.class);
         expectedException.expectMessage("Validation failed for boolean_field: Invalid boolean");
-        this.mapper.convertToXContentValue("boolean_field", "A String");
+        this.mapper.mappedValue("boolean_field", "A String");
     }
 
     @Test
     public void testInvalidBoolean3() {
         expectedException.expect(ValidationException.class);
         expectedException.expectMessage("Validation failed for boolean_field: Invalid boolean");
-        this.mapper.convertToXContentValue("boolean_field", new HashMap<String, Object>());
+        this.mapper.mappedValue("boolean_field", new HashMap<String, Object>());
     }
 }

@@ -12,7 +12,7 @@ public class CratySQLType extends SQLType {
     }
 
     @Override
-    protected Object doConvert(Object value) throws ConvertException {
+    protected Object doMapValue(Object value) throws ConvertException {
         try {
             return (Map)value;
         } catch(ClassCastException e) {

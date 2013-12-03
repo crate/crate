@@ -10,12 +10,12 @@ import org.elasticsearch.search.lookup.SearchLookup;
 import java.util.List;
 
 /**
- * Wrapper around {@link SearchLookup} that implements {@link GroupByFieldLookup}
+ * Wrapper around {@link SearchLookup} that implements {@link FieldLookup}
  *
  * This is used in the {@link org.cratedb.action.groupby.SQLGroupingCollector} and done so
  * that the GroupingCollector can be tested without depending on SearchLookup.
  */
-public class ESDocLookup implements GroupByFieldLookup {
+public class ESDocLookup implements FieldLookup {
 
     DocLookup docLookup;
 

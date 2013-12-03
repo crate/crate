@@ -14,12 +14,12 @@ import org.cratedb.action.sql.OrderByColumnIdx;
 import org.cratedb.action.sql.OrderByColumnName;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.index.ColumnDefinition;
-import org.cratedb.information_schema.InformationSchemaColumn;
-import org.cratedb.information_schema.InformationSchemaTableExecutionContext;
+import org.cratedb.lucene.fields.LuceneField;
 import org.cratedb.sql.GroupByOnArrayUnsupportedException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
+import org.cratedb.stats.ShardStatsTable;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.NotFilter;
@@ -87,6 +87,8 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
         if (stmt.isInformationSchemaQuery()) {
             stmt.type(ParsedStatement.ActionType.INFORMATION_SCHEMA);
+        } else if (stmt.isStatsQuery()) {
+            stmt.type(ParsedStatement.ActionType.STATS);
         } else {
             // only non-information schema queries can be optimized
             queryPlanner.finalizeWhereClause(stmt);
@@ -145,6 +147,8 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
         if (node.getGroupByList() != null) {
             addGroupByColumns(node.getGroupByList());
+        } else if (stmt.type() != null && stmt.type() == ParsedStatement.ActionType.STATS) {
+            stmt.partialReducerCount = 0;
         }
         visit(node.getResultColumns());
 
@@ -190,7 +194,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     }
 
     private void visit(OrderByList node) throws IOException, StandardException {
-        if (stmt.hasGroupBy() || stmt.isGlobalAggregate()) {
+        if (stmt.hasGroupBy() || stmt.isGlobalAggregate() || stmt.isStatsQuery()) {
             stmt.orderByIndices = new ArrayList<>();
             int idx = -1;
 
@@ -447,7 +451,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             .field("null_value", true)
             .endObject().endObject().endObject();
 
-        if (stmt.isInformationSchemaQuery()) {
+        if (stmt.isInformationSchemaQuery() || stmt.isStatsQuery()) {
             addToLuceneQueryStack(
                 parentNode,
                 IsNullFilteredQuery(node.getOperand().getColumnName())
@@ -456,8 +460,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     }
 
     private Query IsNullFilteredQuery(String columnName) {
-        InformationSchemaColumn column =
-            ((InformationSchemaTableExecutionContext) tableContext).fieldMapper().get(columnName);
+        LuceneField column = tableContext.luceneFieldMapper().get(columnName);
         // no filter if non-existing column
         if (column == null) {
             return new MatchAllDocsQuery();
@@ -498,7 +501,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         like = like.replaceAll("\\\\_", "_");
         jsonBuilder.startObject("wildcard").field(left.getColumnName(), like).endObject();
 
-        if (stmt.isInformationSchemaQuery()) {
+        if (stmt.isInformationSchemaQuery() || stmt.isStatsQuery()) {
             addToLuceneQueryStack(
                 parentNode,
                 new WildcardQuery(new Term(columnName, like))
@@ -543,7 +546,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             throw new SQLParseException("Invalid IN clause");
         }
 
-        if (stmt.isInformationSchemaQuery()) {
+        if (stmt.isInformationSchemaQuery() || stmt.isStatsQuery()) {
             BooleanQuery query = new BooleanQuery();
             query.setMinimumNumberShouldMatch(1);
 
@@ -600,7 +603,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         jsonBuilder.startObject("bool").startObject("must_not");
 
         ValueNode parent = parentNode;
-        if (stmt.isInformationSchemaQuery()) {
+        if (stmt.isInformationSchemaQuery() || stmt.isStatsQuery()) {
             BooleanQuery query = new BooleanQuery();
             BooleanQuery nestedQuery = new BooleanQuery();
 
@@ -620,7 +623,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
         visit(parent, node.getOperand());
 
-        if (stmt.isInformationSchemaQuery()) {
+        if (stmt.isInformationSchemaQuery() || stmt.isStatsQuery()) {
             queryStack.pop();
         }
 
@@ -646,14 +649,23 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             value = mappedValueFromNode(columnName, node.getLeftOperand());
         }
 
+        boolean plannerResult = queryPlanner.checkColumn(tableContext, stmt, parentNode,
+                operator, columnName, value);
+
         // currently the lucene queries are only used for information schema queries.
         // therefore for non-information-schema-queries just the xcontent query is built.
 
         if (stmt.isInformationSchemaQuery()) {
             return buildLuceneQuery(operator, columnName, value);
         }
+        if (stmt.isStatsQuery()) {
+            if (columnName.equalsIgnoreCase(ShardStatsTable.Columns.TABLE_NAME)) {
+                stmt.addIndex((String)value);
+            }
+            return buildLuceneQuery(operator, columnName, value);
+        }
 
-        if  (queryPlanner.checkColumn(tableContext, stmt, parentNode, operator, columnName, value)) {
+        if  (plannerResult) {
             // _version column that shouldn't be included in the query
             // this is kind of like:
             //      where pk_col = 1 and 1 = 1
@@ -703,8 +715,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         boolean includeLower = false;
         boolean includeUpper = false;
 
-        InformationSchemaColumn column =
-            ((InformationSchemaTableExecutionContext)tableContext).fieldMapper().get(columnName);
+        LuceneField column = tableContext.luceneFieldMapper().get(columnName);
 
         // if column does not exist - no docs match query
         if (column == null) {
@@ -776,7 +787,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     @Override
     public void visit(ValueNode parentNode, MatchFunctionNode node) throws Exception {
         ColumnReference columnReference = node.getColumnReference();
-        if (stmt.isInformationSchemaQuery()) {
+        if (stmt.isInformationSchemaQuery() || stmt.isStatsQuery()) {
             addToLuceneQueryStack(
                     parentNode,
                     buildLuceneQuery(BinaryRelationalOperatorNode.EQUALS_RELOP,
@@ -791,6 +802,8 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         jsonBuilder.startObject("match")
                 .field(columnReference.getColumnName(), query)
                 .endObject();
+
+        stmt.columnsWithFilter.add(columnReference.getColumnName());
     }
 
 }

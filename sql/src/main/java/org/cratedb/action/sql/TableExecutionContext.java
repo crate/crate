@@ -2,6 +2,7 @@ package org.cratedb.action.sql;
 
 import org.cratedb.index.ColumnDefinition;
 import org.cratedb.index.IndexMetaDataExtractor;
+import org.cratedb.lucene.LuceneFieldMapper;
 import org.cratedb.sql.ValidationException;
 import org.cratedb.sql.types.SQLFieldMapper;
 import org.elasticsearch.common.logging.ESLogger;
@@ -40,6 +41,12 @@ public class TableExecutionContext implements ITableExecutionContext {
         return sqlFieldMapper;
     }
 
+    @Override
+    public LuceneFieldMapper luceneFieldMapper() {
+        throw new UnsupportedOperationException("Generic table currently has no " +
+                "LuceneFieldMapper");
+    }
+
     public boolean isMultiValued(String columnName) {
         return columnDefinitions.get(columnName) != null
             && columnDefinitions.get(columnName).isMultiValued();
@@ -59,7 +66,7 @@ public class TableExecutionContext implements ITableExecutionContext {
         if (sqlFieldMapper == null) {
             return value;
         }
-        return sqlFieldMapper.convertToXContentValue(name, value);
+        return sqlFieldMapper.mappedValue(name, value);
     }
 
     /**

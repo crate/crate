@@ -1,6 +1,5 @@
 package org.cratedb.information_schema;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
@@ -8,20 +7,19 @@ import org.apache.lucene.document.StringField;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.index.ColumnDefinition;
 import org.cratedb.index.IndexMetaDataExtractor;
+import org.cratedb.lucene.fields.IntegerLuceneField;
+import org.cratedb.lucene.fields.StringLuceneField;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Inject;
 
 import java.io.IOException;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
  * virtual information_schema table listing table columns definition
  */
 public class ColumnsTable extends AbstractInformationSchemaTable {
-
-    private Map<String, InformationSchemaColumn> fieldMapper = new LinkedHashMap<>();
 
     public static final String NAME = "columns";
 
@@ -42,30 +40,20 @@ public class ColumnsTable extends AbstractInformationSchemaTable {
         super(aggFunctionMap);
         fieldMapper.put(
                 Columns.TABLE_NAME,
-                new InformationSchemaStringColumn(Columns.TABLE_NAME)
+                new StringLuceneField(Columns.TABLE_NAME)
         );
         fieldMapper.put(
                 Columns.COLUMN_NAME,
-                new InformationSchemaStringColumn(Columns.COLUMN_NAME)
+                new StringLuceneField(Columns.COLUMN_NAME)
         );
         fieldMapper.put(
                 Columns.ORDINAL_POSITION,
-                new InformationSchemaIntegerColumn(Columns.ORDINAL_POSITION)
+                new IntegerLuceneField(Columns.ORDINAL_POSITION)
         );
         fieldMapper.put(
                 Columns.DATA_TYPE,
-                new InformationSchemaStringColumn(Columns.DATA_TYPE)
+                new StringLuceneField(Columns.DATA_TYPE)
         );
-    }
-
-    @Override
-    public Iterable<String> cols() {
-        return fieldMapper.keySet();
-    }
-
-    @Override
-    public ImmutableMap<String, InformationSchemaColumn> fieldMapper() {
-        return ImmutableMap.copyOf(fieldMapper);
     }
 
     @Override

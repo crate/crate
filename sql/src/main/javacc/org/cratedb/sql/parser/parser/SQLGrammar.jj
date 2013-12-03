@@ -2326,7 +2326,6 @@ TOKEN [IGNORE_CASE] :
 | <CRATE: "crate">
 | <CLUSTERED: "clustered">
 | <REPLICAS: "replicas">
-| <SHARDS: "shards">
 }
 
 /* This list should contain only and all SQL92 keywords that are
@@ -2480,6 +2479,7 @@ TOKEN [IGNORE_CASE] :
 | <TOKEN_FILTERS: "token_filters">
 | <CHAR_FILTERS: "char_filters">
 | <EXTENDS: "extends">
+| <SHARDS: "shards">
 }
 
 /* This list should contain non-SQL92 keywords that are not reserved.
@@ -15472,7 +15472,6 @@ reservedKeyword() :
 | tok = <CRATE>
 | tok = <CLUSTERED>
 | tok = <REPLICAS>
-| tok = <SHARDS>
 
 )
     {
@@ -15743,6 +15742,7 @@ nonReservedKeyword() :
 | tok = <TOKEN_FILTERS>
 | tok = <CHAR_FILTERS>
 | tok = <EXTENDS>
+| tok = <SHARDS>
 )
     {
         // Remember last identifier token and whether it was delimited.
