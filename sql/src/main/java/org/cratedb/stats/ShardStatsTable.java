@@ -1,8 +1,8 @@
 package org.cratedb.stats;
 
 import org.apache.lucene.index.memory.MemoryIndex;
+import org.apache.lucene.index.memory.ReusableMemoryIndex;
 import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.Query;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.SQLGroupingCollector;
@@ -14,7 +14,10 @@ import org.cratedb.lucene.fields.BooleanLuceneField;
 import org.cratedb.lucene.fields.IntegerLuceneField;
 import org.cratedb.lucene.fields.LongLuceneField;
 import org.cratedb.lucene.fields.StringLuceneField;
+import org.cratedb.lucene.index.memory.MemoryIndexPool;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.shard.service.InternalIndexShard;
@@ -51,34 +54,74 @@ public class ShardStatsTable implements StatsTable {
     }};
 
     private final Map<String, AggFunction> aggFunctionMap;
-    private final InternalIndexShard shard;
-    private final String indexName;
-    private final String nodeId;
-
-    private final MemoryIndex index;
-
-    private Map<String, Object> fields;
-
+    private final MemoryIndexPool memoryIndexPool;
     private final ESLogger logger = Loggers.getLogger(getClass());
 
-    public ShardStatsTable(Map<String, AggFunction> aggFunctionMap,
-                           String indexName,
-                           InternalIndexShard shard,
-                           String nodeId) throws Exception {
-        this.aggFunctionMap = aggFunctionMap;
-        this.indexName = indexName;
-        this.shard = shard;
-        this.nodeId = nodeId;
-        this.index = new MemoryIndex();
-        this.fields = new HashMap<>();
+    static public class ShardInfo implements StatsInfo {
+        private final InternalIndexShard shard;
+        private final String indexName;
+        private final String nodeId;
+        private final int shardId;
+        private final boolean unassigned;
+        private final Map<String, Object> fields;
+
+        public ShardInfo (String indexName,
+                          String nodeId,
+                          int shardId,
+                          InternalIndexShard shard) {
+            this.indexName = indexName;
+            this.nodeId = nodeId;
+            this.shardId = shardId;
+            this.shard = shard;
+            this.unassigned = shard == null ? true : false;
+            this.fields = new HashMap();
+        }
+
+        public Map<String, Object> fields() {
+            return fields;
+        }
+
+        public Object getStat(String columnName) {
+            switch (columnName.toLowerCase()) {
+                case Columns.TABLE_NAME:
+                    return indexName;
+                case Columns.NODE_ID:
+                    return !unassigned ? nodeId : null;
+                case Columns.NODE_NAME:
+                    return !unassigned ? shard.nodeName() : null;
+                case Columns.NUM_DOCS:
+                    return !unassigned ? shard.docStats().getCount() : 0;
+                case Columns.SHARD_ID:
+                    return shardId;
+                case Columns.SIZE:
+                    return !unassigned ? shard.storeStats().getSizeInBytes() : 0L;
+                case Columns.STATE:
+                    return !unassigned ? shard.state().toString() : ShardRoutingState.UNASSIGNED;
+                case Columns.PRIMARY:
+                    return !unassigned ? new Boolean(shard.routingEntry().primary()) : false;
+                case Columns.RELOCATING_NODE:
+                    return !unassigned ? shard.routingEntry().relocatingNodeId() : null;
+                default:
+                    return null;
+            }
+        }
     }
 
-    private void index(ParsedStatement stmt) throws IOException {
+
+    @Inject
+    public ShardStatsTable(Map<String, AggFunction> aggFunctionMap) throws Exception {
+        this.aggFunctionMap = aggFunctionMap;
+        memoryIndexPool = new MemoryIndexPool();
+    }
+
+    private void index(ParsedStatement stmt,
+                       MemoryIndex memoryIndex,
+                       StatsInfo shardInfo) throws IOException {
 
         // build map of result columns
         for (Tuple<String, String> columnNames : stmt.outputFields()) {
             if (fieldMapper().containsKey(columnNames.v2())) {
-                fields.put(columnNames.v2(), getStat(columnNames.v2()));
+                shardInfo.fields().put(columnNames.v2(), shardInfo.getStat(columnNames.v2()));
             }
         }
 
@@ -86,50 +129,51 @@ public class ShardStatsTable implements StatsTable {
         for (String columnName : stmt.columnsWithFilter) {
             if (logger.isTraceEnabled()) {
                 logger.trace("Indexing field {} with value: {}",
-                        columnName, getStat(columnName));
+                        columnName, shardInfo.getStat(columnName));
             }
-            index.addField(columnName,
-                    fieldMapper.get(columnName).tokenStream(getStat(columnName)));
+            memoryIndex.addField(columnName,
+                    fieldMapper.get(columnName).tokenStream(shardInfo.getStat(columnName)));
         }
 
     }
 
     public Map<String, Map<GroupByKey, GroupByRow>> queryGroupBy(String[] reducers,
-                                                          ParsedStatement stmt)
+                                                          ParsedStatement stmt,
+                                                          StatsInfo shardInfo)
             throws Exception
     {
-
         SQLGroupingCollector collector = new SQLGroupingCollector(
                 stmt,
-                new StatsTableFieldLookup(fields),
+                new StatsTableFieldLookup(shardInfo.fields()),
                 aggFunctionMap,
                 reducers
         );
-        synchronized (index) {
-            index(stmt);
-            doQuery(stmt.query, collector);
-        }
+        doQuery(stmt, shardInfo, collector);
 
         return collector.partitionedResult;
     }
 
-    public List<List<Object>> query(ParsedStatement stmt) throws Exception
+    public List<List<Object>> query(ParsedStatement stmt, StatsInfo shardInfo) throws Exception
     {
         SQLFetchCollector collector = new SQLFetchCollector(
                 stmt,
-                new StatsTableFieldLookup(fields)
+                new StatsTableFieldLookup(shardInfo.fields())
         );
-        synchronized (index) {
-            index(stmt);
-            doQuery(stmt.query, collector);
-        }
+        doQuery(stmt, shardInfo, collector);
 
         return collector.results;
     }
 
-    public void doQuery(Query query, Collector collector) throws Exception
+    private void doQuery(ParsedStatement stmt,
+                         StatsInfo shardInfo,
+                         Collector collector) throws Exception
     {
-        index.createSearcher().search(query, collector);
+        final ReusableMemoryIndex memoryIndex = memoryIndexPool.acquire();
+
+        index(stmt, memoryIndex, shardInfo);
+        memoryIndex.createSearcher().search(stmt.query, collector);
+
+        memoryIndexPool.release(memoryIndex);
     }
 
 
@@ -141,28 +185,4 @@ public class ShardStatsTable implements StatsTable {
         return fieldMapper;
     }
 
-    private Object getStat(String columnName) {
-        switch (columnName.toLowerCase()) {
-            case Columns.TABLE_NAME:
-                return indexName;
-            case Columns.NODE_ID:
-                return nodeId;
-            case Columns.NODE_NAME:
-                return shard.nodeName();
-            case Columns.NUM_DOCS:
-                return shard.docStats().getCount();
-            case Columns.SHARD_ID:
-                return shard.shardId().id();
-            case Columns.SIZE:
-                return shard.storeStats().getSizeInBytes();
-            case Columns.STATE:
-                return shard.state().toString();
-            case Columns.PRIMARY:
-                return new Boolean(shard.routingEntry().primary());
-            case Columns.RELOCATING_NODE:
-                return shard.routingEntry().relocatingNodeId();
-            default:
-                return null;
-        }
-    }
 }

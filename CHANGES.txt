@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Shard stats table is using a pool for it's MemoryIndex now.
+
  - Implemented ``stats`` schema with virtual table ``shards``, usable for gathering real-time
    statistics of shards.
 

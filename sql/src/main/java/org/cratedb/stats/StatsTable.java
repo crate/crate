@@ -10,8 +10,9 @@ import java.util.Map;
 public interface StatsTable {
 
     public Map<String, Map<GroupByKey, GroupByRow>> queryGroupBy(String[] reducers,
-                                                                 ParsedStatement stmt) throws Exception;
+                                                                 ParsedStatement stmt,
+                                                                 StatsInfo statsInfo) throws Exception;
 
-    public List<List<Object>> query(ParsedStatement stmt) throws Exception;
+    public List<List<Object>> query(ParsedStatement stmt, StatsInfo statsInfo) throws Exception;
 
 }
