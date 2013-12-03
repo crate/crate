@@ -676,7 +676,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 final ShardRouting shard = shardIt.firstOrNull();
                 if (shard == null) {
                     try {
-                        if (parsedStatement.hasGroupBy()) {
+                        if (parsedStatement.hasGroupBy() || parsedStatement.isGlobalAggregate()) {
                             Map<String, Map<GroupByKey, GroupByRow>> shardGroupByCollectResults =
                                     statsService.queryGroupBy(
                                             parsedStatement.virtualTableName(),
