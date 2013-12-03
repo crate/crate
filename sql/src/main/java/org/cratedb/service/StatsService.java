@@ -5,7 +5,7 @@ import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.stats.ShardStatsTable;
-import org.cratedb.stats.StatsTable;
+import org.cratedb.stats.StatsInfo;
 import org.cratedb.stats.StatsTableUnknownException;
 import org.elasticsearch.ElasticSearchException;
 import org.elasticsearch.cluster.ClusterService;
@@ -24,16 +24,19 @@ public class StatsService extends AbstractLifecycleComponent<StatsService> {
 
     private final ClusterService clusterService;
     private final IndicesService indicesService;
+    private final ShardStatsTable shardStatsTable;
     private final Map<String, AggFunction> aggFunctionMap;
     protected final ESLogger logger;
 
     @Inject
     public StatsService(Settings settings, ClusterService clusterService,
                         IndicesService indicesService,
+                        ShardStatsTable shardStatsTable,
                         Map<String, AggFunction> aggFunctionMap) {
         super(settings);
         this.clusterService = clusterService;
         this.indicesService = indicesService;
+        this.shardStatsTable = shardStatsTable;
         this.aggFunctionMap = aggFunctionMap;
         logger = Loggers.getLogger(getClass(), settings);
     }
@@ -62,9 +65,14 @@ public class StatsService extends AbstractLifecycleComponent<StatsService> {
                                                                  int shardId)
             throws Exception
     {
-        StatsTable statsTable = newStatsTable(virtualTableName, concreteIndex, shardId);
+        switch (virtualTableName.toLowerCase()) {
+            case "shards":
+                StatsInfo shardInfo = newShardInfo(concreteIndex, shardId);
+                return shardStatsTable.queryGroupBy(reducers, stmt, shardInfo);
+            default:
+                throw new StatsTableUnknownException(virtualTableName);
+        }
 
-        return statsTable.queryGroupBy(reducers, stmt);
     }
 
     public List<List<Object>> query(String virtualTableName,
@@ -72,26 +80,23 @@ public class StatsService extends AbstractLifecycleComponent<StatsService> {
                                     ParsedStatement stmt,
                                     int shardId) throws Exception
     {
-        StatsTable statsTable = newStatsTable(virtualTableName, concreteIndex, shardId);
-
-        return statsTable.query(stmt);
-    }
-
-    private StatsTable newStatsTable(String virtualTableName, String concreteIndex,
-                                     int shardId) throws Exception {
-        if (virtualTableName.equalsIgnoreCase("shards")) {
-            return newShardsStatsTable(concreteIndex, shardId);
+        switch (virtualTableName.toLowerCase()) {
+            case "shards":
+                StatsInfo shardInfo = newShardInfo(concreteIndex, shardId);
+                return shardStatsTable.query(stmt, shardInfo);
+            default:
+                throw new StatsTableUnknownException(virtualTableName);
         }
-        throw new StatsTableUnknownException(virtualTableName);
+
     }
 
-    private ShardStatsTable newShardsStatsTable(String concreteIndex, int shardId) throws Exception {
+    private StatsInfo newShardInfo(String index, int shardId) {
         final InternalIndexShard shard =
-                (InternalIndexShard) indicesService.indexServiceSafe(concreteIndex).shardSafe(shardId);
+                (InternalIndexShard) indicesService.indexServiceSafe(index).shardSafe(shardId);
+        final String nodeId = (shard == null) ? null : clusterService.localNode().id();
 
-        return new ShardStatsTable(aggFunctionMap, concreteIndex, shard,
-                clusterService.localNode().id());
-
+        return new ShardStatsTable.ShardInfo(index, nodeId, shardId, shard);
     }
+
 
 }
