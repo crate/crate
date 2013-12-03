@@ -25,10 +25,10 @@ This table can be queried for gathering real-time shard statistics of one, multi
     +------------------------+-----------+----------+---------+-----------------+----------+------+---------+------------+
     | node_id                | node_name | num_docs | primary | relocating_node | shard_id | size | state   | table_name |
     +------------------------+-----------+----------+---------+-----------------+----------+------+---------+------------+
-    | ...                    | crate     | 6        | True    | NULL            | 1        | 7153 | STARTED | locations  |
-    | ...                    | crate     | 7        | True    | NULL            | 0        | 8391 | STARTED | locations  |
-    | ...                    | crate     | 1        | True    | NULL            | 1        | 2430 | STARTED | quotes     |
-    | ...                    | crate     | 2        | True    | NULL            | 0        | 2578 | STARTED | quotes     |
+    | ...                    | crate     | 6        | True    | NULL            | 1        | ...  | STARTED | locations  |
+    | ...                    | crate     | 7        | True    | NULL            | 0        | ...  | STARTED | locations  |
+    | ...                    | crate     | 1        | True    | NULL            | 1        | ...  | STARTED | quotes     |
+    | ...                    | crate     | 2        | True    | NULL            | 0        | ...  | STARTED | quotes     |
     +------------------------+-----------+----------+---------+-----------------+----------+------+---------+------------+
     SELECT 4 rows in set (... sec)
 
