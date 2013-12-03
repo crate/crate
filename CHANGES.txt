@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Also list unassigned shards when querying shard stats table.
+
  - fix: fixed stalled cluster on using more than one COUNT(DISTINCT col) in a statement
 
  - performance-tuning: faster ANY processing in ``group by`` requests

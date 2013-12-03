@@ -157,14 +157,15 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             // clause is used for routing to the relevant shards.
             if (!stmt.hasGroupBy() && stmt.isStatsQuery() && !stmt.isGlobalAggregate()) {
                 collectResult = statsService.query(stmt.virtualTableName(),
-                    request.concreteIndex, stmt, request.shardId);
+                    request.concreteIndex, stmt, request.shardId, clusterService.localNode().id());
             } else {
                 if (stmt.isStatsQuery()) {
                     distributedCollectResult =
                             statsService.queryGroupBy(
                                     stmt.virtualTableName(),
                                     request.reducers, request.concreteIndex,
-                                    stmt, request.shardId);
+                                    stmt, request.shardId,
+                                    clusterService.localNode().id());
                 } else {
                     distributedCollectResult =
                         sqlQueryService.query(request.reducers, request.concreteIndex, stmt, request.shardId);
@@ -296,6 +297,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         private final List<List> mapperResults;
         private final ITableExecutionContext tableExecutionContext;
         private final UUID contextId;
+        private final String[] concreteIndices;
 
         AsyncBroadcastAction(DistributedSQLRequest request, ActionListener<SQLResponse> listener) {
             this.parsedStatement = request.parsedStatement;
@@ -309,7 +311,6 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             // TODO: TransportBroadcastOperationAction does checkGlobalBlock, required?
 
             String[] indices = parsedStatement.indices();
-            String[] concreteIndices;
             String tableName;
             if (indices == null || indices.length == 0) {
                 // resolve all available indices
@@ -326,7 +327,6 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
             nodes = clusterState.nodes();
             shardsIts = shards(clusterState, indices, concreteIndices, parsedStatement.isStatsQuery());
-            expectedShardResponses = shardsIts.size();
 
             if (parsedStatement.partialReducerCount < 0) {
                 /**
@@ -337,6 +337,13 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 reducers = extractNodes(shardsIts, this.parsedStatement.hasDistinctAggregate ? 1 : -1);
             } else {
                 reducers = new String[0];
+            }
+
+            if (parsedStatement.isStatsQuery() && parsedStatement.hasGroupBy()) {
+                // main handler is collecting unassigned/empty shards
+                expectedShardResponses = shardsIts.size() + 1;
+            } else {
+                expectedShardResponses = shardsIts.size();
             }
 
             lastException = new AtomicReference<>(null);
@@ -366,6 +373,14 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
             sendReduceRequests();
             sendShardRequests();
+
+            if (parsedStatement.isStatsQuery()) {
+                try {
+                    collectUnassignedShardStats(clusterState, concreteIndices);
+                } catch (Throwable e) {
+                    listener.onFailure(e);
+                }
+            }
         }
 
         public void sendSqlResponse() {
@@ -558,9 +573,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         private void onMapperOperation(SQLShardResponse response) {
             shardResponseCounter.decrementAndGet();
             if (response != null && response.results != null) {
-                synchronized (mapperResults) {
-                    mapperResults.addAll(response.results);
-                }
+                onMapperResults(response.results);
             }
             tryFinishResponse();
         }
@@ -600,7 +613,6 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 groupByResult.addAll(response.result);
             }
 
-
             if (logger.isTraceEnabled()) {
                 assert stopWatch != null;
                 stopWatch.stop();
@@ -618,6 +630,124 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             reducerErrors.set(true);
             lastException.set(e);
             reduceResponseCounter.decrementAndGet();
+            tryFinishResponse();
+        }
+
+        private void onMapperResults(List<List<Object>> results) {
+            if (results != null && results.size() > 0) {
+                synchronized (mapperResults) {
+                    mapperResults.addAll(results);
+                }
+            }
+        }
+
+        private void collectUnassignedShardStats(ClusterState clusterState,
+                                                               String[] concreteIndices)
+                                                                        throws Exception {
+            // until we find an easy ways to get only unassigned shards,
+            // fetch all including unassigned(empty)
+            final GroupShardsIterator shardsItsAll =
+                    clusterState.routingTable().allAssignedShardsGrouped(concreteIndices, true);
+
+            CrateException exception = null;
+            Map<String, SQLReduceJobStatus> reduceJobStatusMap = null;
+            List<List<Object>> collectResults = null;
+            if (parsedStatement.hasGroupBy()) {
+                // create a reduce job for each reducer
+                reduceJobStatusMap = new HashMap<>(reducers.length);
+                for (String reducer : reducers) {
+                    reduceJobStatusMap.put(reducer, new SQLReduceJobStatus(parsedStatement));
+                }
+            } else {
+                collectResults = new ArrayList<>(shardsItsAll.size() - shardsIts.size());
+            }
+
+            // empty/unassigned shards don't have an index attribute, but they are listed always
+            // after assigned ones.
+            String lastIndex = null;
+            for (final ShardIterator shardIt : shardsItsAll) {
+                final ShardRouting shard = shardIt.firstOrNull();
+                if (shard == null) {
+                    try {
+                        if (parsedStatement.hasGroupBy()) {
+                            Map<String, Map<GroupByKey, GroupByRow>> shardGroupByCollectResults =
+                                    statsService.queryGroupBy(
+                                            parsedStatement.virtualTableName(),
+                                            reducers, lastIndex,
+                                            parsedStatement, shardIt.shardId().id(),
+                                            null);
+                            // merge results to the reduce job for every reducer
+                            for (String reducer: reducers) {
+                                reduceJobStatusMap.get(reducer).merge(
+                                        new SQLGroupByResult(shardGroupByCollectResults.get(reducer)
+                                                .values())
+                                );
+                            }
+                        } else {
+                            List<List<Object>> shardCollectResults = statsService.query(
+                                    parsedStatement.virtualTableName(),
+                                    lastIndex, parsedStatement, shardIt.shardId().id(),
+                                    null);
+                            // add results
+                            if (shardCollectResults != null) {
+                                collectResults.addAll(shardCollectResults);
+                            }
+                        }
+                    } catch (CrateException e) {
+                        exception = e;
+                    } catch (Exception e) {
+                        exception = new CrateException(e);
+                    }
+
+                    if (exception != null) {
+                        throw exception;
+                    }
+                } else {
+                    lastIndex = shard.index();
+                }
+            }
+
+            if (!parsedStatement.hasGroupBy()) {
+                // add all results
+                onMapperResults(collectResults);
+            } else {
+                // send all partly reduced results to every reducer
+                StopWatch stopWatch = null;
+                for (String reducer : reducers) {
+                    if (logger.isTraceEnabled()) {
+                        stopWatch = new StopWatch().start();
+                    }
+
+                    SQLMapperResultRequest mapperResultRequest = new SQLMapperResultRequest();
+                    mapperResultRequest.contextId = contextId;
+                    mapperResultRequest.groupByResult =
+                            new SQLGroupByResult(reduceJobStatusMap.get(reducer).reducedResult.values());
+
+                    // TODO: could be optimized if reducerNode == handlerNode to avoid transportService
+                    DiscoveryNode node = clusterService.state().getNodes().get(reducer);
+                    transportService.submitRequest(
+                            node,
+                            TransportSQLReduceHandler.Actions.RECEIVE_PARTIAL_RESULT,
+                            mapperResultRequest,
+                            TransportRequestOptions.options(),
+                            EmptyTransportResponseHandler.INSTANCE_SAME
+                    );
+
+                    if (logger.isTraceEnabled()) {
+                        assert stopWatch != null;
+                        stopWatch.stop();
+                        logger.trace("[{}] context: {} main handler sending unassigned " +
+                                "shards to reducer {} (write to buffer) took {} ms",
+                                clusterService.localNode().getId(),
+                                contextId,
+                                reducer,
+                                stopWatch.totalTime().getMillis()
+                        );
+                    }
+                }
+
+                shardResponseCounter.decrementAndGet();
+            }
             tryFinishResponse();
         }
 

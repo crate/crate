@@ -40,9 +40,9 @@ Aggregate functions are currently only supported in conjunction with grouping::
     +----------+------------+
     | COUNT(*) | table_name |
     +----------+------------+
-    | 5        | documents  |
+    | 10       | documents  |
     | 2        | locations  |
-    | 3        | myblobs    |
+    | 6        | myblobs    |
     | 2        | quotes     |
     +----------+------------+
     SELECT 4 rows in set (... sec)
