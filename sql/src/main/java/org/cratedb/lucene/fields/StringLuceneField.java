@@ -1,5 +1,8 @@
-package org.cratedb.information_schema;
+package org.cratedb.lucene.fields;
 
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.MultiTermQueryWrapperFilter;
 import org.apache.lucene.search.SortField;
@@ -9,13 +12,15 @@ import org.cratedb.DataType;
 import org.cratedb.index.ColumnDefinition;
 import org.elasticsearch.common.lucene.BytesRefs;
 
-public class InformationSchemaStringColumn extends InformationSchemaColumn {
+import java.io.IOException;
 
-    public InformationSchemaStringColumn(String name) {
+public class StringLuceneField extends LuceneField<String> {
+
+    public StringLuceneField(String name) {
         this(name, false);
     }
 
-    public InformationSchemaStringColumn(String name, boolean allowMultipleValues) {
+    public StringLuceneField(String name, boolean allowMultipleValues) {
         super(name, allowMultipleValues);
         type = SortField.Type.STRING;
     }
@@ -43,4 +48,19 @@ public class InformationSchemaStringColumn extends InformationSchemaColumn {
     public ColumnDefinition getColumnDefinition(String tableName, int ordinalPosition) {
         return new ColumnDefinition(tableName, name, DataType.STRING, null, ordinalPosition, false, true);
     }
+
+    @Override
+    public Object mappedValue(Object value) {
+        return (String)value;
+    }
+
+    public StringField field(String value) {
+        value = value == null ? "NULL" : value;
+        return new StringField(name, value, Field.Store.YES);
+    }
+
+    public TokenStream tokenStream(String value) throws IOException {
+        return field(value).tokenStream(analyzer);
+    }
+
 }

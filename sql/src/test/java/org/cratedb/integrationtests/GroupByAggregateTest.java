@@ -113,6 +113,50 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
     }
 
     @Test
+    public void testCountDistinctManySame() throws Exception {
+        this.setup.groupBySetup("integer");
+        execute("select race, count(distinct gender), count(*), count(distinct gender) " +
+                "from characters group by race order by count(distinct gender) desc");
+        assertEquals(3L, response.rowCount());
+
+        assertEquals("Human", response.rows()[0][0]);
+        assertEquals(2L, response.rows()[0][1]);
+        assertEquals(4L, response.rows()[0][2]);
+        assertEquals(2L, response.rows()[0][3]);
+
+        assertEquals("Vogon", response.rows()[1][0]);
+        assertEquals(1L, response.rows()[1][1]);
+        assertEquals(2L, response.rows()[1][2]);
+        assertEquals(1L, response.rows()[1][3]);
+
+        assertEquals("Android", response.rows()[2][0]);
+        assertEquals(1L, response.rows()[2][1]);
+        assertEquals(1L, response.rows()[2][2]);
+        assertEquals(1L, response.rows()[2][3]);
+    }
+
+    @Test
+    public void testCountDistinctManyDifferent() throws Exception {
+        this.setup.groupBySetup("integer");
+        execute("select race, count(distinct gender), count(distinct age) " +
+                "from characters group by race order by count(distinct gender) desc");
+        assertEquals(3L, response.rowCount());
+
+        assertEquals("Human", response.rows()[0][0]);
+        assertEquals(2L, response.rows()[0][1]);
+        assertEquals(4L, response.rows()[0][2]);
+
+
+        assertEquals("Vogon", response.rows()[1][0]);
+        assertEquals(1L, response.rows()[1][1]);
+        assertEquals(0L, response.rows()[1][2]);
+
+        assertEquals("Android", response.rows()[2][0]);
+        assertEquals(1L, response.rows()[2][1]);
+        assertEquals(0L, response.rows()[2][2]);
+    }
+
+    @Test
     public void selectGroupByAggregateMinOrderByMin() throws Exception {
         this.setup.groupBySetup("double");
 

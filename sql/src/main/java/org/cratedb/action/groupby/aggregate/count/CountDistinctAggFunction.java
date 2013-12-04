@@ -15,13 +15,14 @@ public class CountDistinctAggFunction extends AggFunction<CountAggState> {
     }
 
     @Override
-    public void iterate(CountAggState state, Object columnValue) {
+    public boolean iterate(CountAggState state, Object columnValue) {
         if (columnValue != null) {
             // to improve readability in the groupingCollector the seenValues.add is done here
             // if the seenValues is shared across multiple states this means that the add operation
             // is executed multiple times. TODO: move to collector if performance is too bad.
             state.seenValues.add(columnValue);
         }
+        return true;
     }
 
     @Override

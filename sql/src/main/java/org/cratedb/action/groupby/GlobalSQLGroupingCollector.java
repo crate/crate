@@ -1,6 +1,6 @@
 package org.cratedb.action.groupby;
 
-import org.cratedb.action.GroupByFieldLookup;
+import org.cratedb.action.FieldLookup;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.core.collections.CyclicIterator;
@@ -16,10 +16,10 @@ public class GlobalSQLGroupingCollector extends SQLGroupingCollector {
     private final CyclicIterator<String> reducerIter;
 
     public GlobalSQLGroupingCollector(ParsedStatement parsedStatement,
-                                      GroupByFieldLookup groupByFieldLookup,
+                                      FieldLookup fieldLookup,
                                       Map<String, AggFunction> aggFunctionMap,
                                       String[] reducers) {
-        super(parsedStatement, groupByFieldLookup, aggFunctionMap, reducers);
+        super(parsedStatement, fieldLookup, aggFunctionMap, reducers);
 
         assert parsedStatement.isGlobalAggregate();
 

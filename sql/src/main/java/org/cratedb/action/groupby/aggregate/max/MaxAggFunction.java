@@ -3,7 +3,6 @@ package org.cratedb.action.groupby.aggregate.max;
 
 import com.google.common.collect.ImmutableSet;
 import org.cratedb.DataType;
-import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 
 import java.util.Set;
@@ -23,10 +22,11 @@ public class MaxAggFunction<T extends Comparable<T>> extends AggFunction<MaxAggS
     }
 
     @Override
-    public void iterate(MaxAggState<T> state, Object columnValue) {
+    public boolean iterate(MaxAggState<T> state, Object columnValue) {
         if (state.compareValue((T)columnValue) < 0) {
             state.setValue((T)columnValue);
         }
+        return true;
     }
 
 

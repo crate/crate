@@ -8,6 +8,7 @@ import org.cratedb.DataType;
 import org.cratedb.index.BuiltInColumnDefinition;
 import org.cratedb.index.ColumnDefinition;
 import org.cratedb.index.IndexMetaDataExtractor;
+import org.cratedb.mapper.FieldMapper;
 import org.cratedb.sql.ColumnUnknownException;
 import org.cratedb.sql.TypeUnknownException;
 import org.cratedb.sql.ValidationException;
@@ -21,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-public class SQLFieldMapper {
+public class SQLFieldMapper implements FieldMapper {
     private final IndexMetaDataExtractor metaDataExtractor;
     private final Map<String, Tuple<ColumnDefinition, SQLType>> columnSqlTypes = new HashMap<>();
     private static final Pattern numberPattern = Pattern.compile("\\d+");
@@ -61,28 +62,28 @@ public class SQLFieldMapper {
         if (value instanceof String) {
             if (!numberPattern.matcher((String)value).matches()) {
                 try {
-                    return new TimeStampSQLType().toXContent(value);
+                    return new TimeStampSQLType().mappedValue(value);
                 } catch(SQLType.ConvertException|IllegalArgumentException e) {
                     // no date, fall through to String
                 }
             }
-            return new StringSQLType().toXContent(value);
+            return new StringSQLType().mappedValue(value);
         }
         else if (value instanceof Boolean) {
-            return new BooleanSQLType().toXContent(value);
+            return new BooleanSQLType().mappedValue(value);
         }
         else if (value instanceof Number) {
             if ((value instanceof Double) || (value instanceof Float) || (value instanceof BigDecimal)) {
-                return new DoubleSQLType().toXContent(value);
+                return new DoubleSQLType().mappedValue(value);
             } else if (((Number)value).longValue() < Integer.MIN_VALUE || Integer.MAX_VALUE < ((Number)value).longValue() ){
-                return new LongSQLType().toXContent(value);
+                return new LongSQLType().mappedValue(value);
             } else {
-                return new IntegerSQLType().toXContent(value);
+                return new IntegerSQLType().mappedValue(value);
             }
 
         } else if (value instanceof Map) {
             @SuppressWarnings("unchecked")
-            Map<String, Object> mappedCraty = ((Map<String, Object>)new CratySQLType().toXContent(value));
+            Map<String, Object> mappedCraty = ((Map<String, Object>)new CratySQLType().mappedValue(value));
             for (Map.Entry<String, Object> entry : mappedCraty.entrySet()) {
                 mappedCraty.put(entry.getKey(), guessAndMapType(entry.getValue()));
             }
@@ -93,7 +94,8 @@ public class SQLFieldMapper {
 
 
     @SuppressWarnings("unchecked")
-    public Object convertToXContentValue(String columnName, Object value)
+    @Override
+    public Object mappedValue(String columnName, Object value)
             throws ColumnUnknownException, TypeUnknownException, ValidationException {
         Object converted;
         Tuple<ColumnDefinition, SQLType> columnAndType = columnSqlTypes.get(columnName);
@@ -117,7 +119,7 @@ public class SQLFieldMapper {
 
         } else {
             try {
-                converted = columnAndType.v2().toXContent(value);
+                converted = columnAndType.v2().mappedValue(value);
             } catch (SQLType.ConvertException e) {
                 throw new ValidationException(columnName, e.getMessage());
             }
@@ -128,7 +130,7 @@ public class SQLFieldMapper {
                     String joinedPath = Joiner.on('.').join(new String[]{columnName, entry.getKey()});
                     ((Map<String, Object>)converted).put(
                             entry.getKey(),
-                            convertToXContentValue(joinedPath, entry.getValue())
+                            mappedValue(joinedPath, entry.getValue())
                     );
                 }
             }

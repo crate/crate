@@ -1,18 +1,17 @@
 package org.cratedb.information_schema;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.Term;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.index.IndexMetaDataExtractor;
+import org.cratedb.lucene.fields.StringLuceneField;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Inject;
 
 import java.io.IOException;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,8 +19,6 @@ import java.util.Map;
  * virtual information_schema table listing table index definitions
  */
 public class IndicesTable extends AbstractInformationSchemaTable {
-
-    private Map<String, InformationSchemaColumn> fieldMapper = new LinkedHashMap<>();
 
     public static final String NAME = "indices";
 
@@ -48,34 +45,24 @@ public class IndicesTable extends AbstractInformationSchemaTable {
         super(aggFunctionMap);
         fieldMapper.put(
                 Columns.TABLE_NAME,
-                new InformationSchemaStringColumn(Columns.TABLE_NAME)
+                new StringLuceneField(Columns.TABLE_NAME)
         );
         fieldMapper.put(
                 Columns.INDEX_NAME,
-                new InformationSchemaStringColumn(Columns.INDEX_NAME)
+                new StringLuceneField(Columns.INDEX_NAME)
         );
         fieldMapper.put(
                 Columns.METHOD,
-                new InformationSchemaStringColumn(Columns.METHOD)
+                new StringLuceneField(Columns.METHOD)
         );
         fieldMapper.put(
                 Columns.COLUMNS,
-                new InformationSchemaStringColumn(Columns.COLUMNS, true)
+                new StringLuceneField(Columns.COLUMNS, true)
         );
         fieldMapper.put(
                 Columns.PROPERTIES,
-                new InformationSchemaStringColumn(Columns.PROPERTIES)
+                new StringLuceneField(Columns.PROPERTIES)
         );
-    }
-
-    @Override
-    public Iterable<String> cols() {
-        return fieldMapper.keySet();
-    }
-
-    @Override
-    public ImmutableMap<String, InformationSchemaColumn> fieldMapper() {
-        return ImmutableMap.copyOf(fieldMapper);
     }
 
     @Override

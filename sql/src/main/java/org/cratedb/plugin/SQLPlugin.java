@@ -4,6 +4,7 @@ import org.cratedb.module.SQLModule;
 import org.cratedb.rest.action.RestSQLAction;
 import org.cratedb.service.InformationSchemaService;
 import org.cratedb.service.SQLService;
+import org.cratedb.service.StatsService;
 import org.cratedb.sql.facet.SQLFacetParser;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
@@ -52,6 +53,7 @@ public class SQLPlugin extends AbstractPlugin {
             Collection<Class<? extends LifecycleComponent>> services = newArrayList();
             services.add(SQLService.class);
             services.add(InformationSchemaService.class);
+            services.add(StatsService.class);
             return services;
         }
 

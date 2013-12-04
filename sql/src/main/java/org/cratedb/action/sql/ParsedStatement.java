@@ -23,6 +23,7 @@ public class ParsedStatement {
     public final ArrayList<Tuple<String, String>> outputFields = new ArrayList<>();
 
     private String schemaName;
+    private String virtualTableName;
     private String[] indices = null;
 
     private ActionType type;
@@ -93,6 +94,10 @@ public class ParsedStatement {
                 !hasGroupBy();
     }
 
+    public boolean isStatsQuery() {
+        return schemaName() != null && schemaName().equalsIgnoreCase("stats");
+    }
+
     public static enum ActionType {
         SEARCH_ACTION,
         INSERT_ACTION,
@@ -105,7 +110,8 @@ public class ParsedStatement {
         MULTI_GET_ACTION,
         INFORMATION_SCHEMA,
         CREATE_ANALYZER_ACTION,
-        COPY_IMPORT_ACTION
+        COPY_IMPORT_ACTION,
+        STATS
     }
 
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;
@@ -123,7 +129,11 @@ public class ParsedStatement {
             return aggregateExpressions;
         }
     }
+    public boolean hasStoppableAggregate = false; // true if any aggregate is able to terminate collection earlier
     public boolean hasDistinctAggregate = false;
+
+    // If -1, reducer count is evaluated dynamically
+    public Integer partialReducerCount = -1;
 
     private Integer limit = null;
     private Integer offset = null;
@@ -171,6 +181,24 @@ public class ParsedStatement {
         return schemaName;
     }
 
+    /**
+     * TableName of hardcoded virtual tables e.g. `shards` table of the `stats` schema
+     *
+     * @param virtualTableName
+     */
+    public void virtualTableName(String virtualTableName) {
+        this.virtualTableName = virtualTableName;
+    }
+
+    /**
+     * TableName of hardcoded virtual tables e.g. `shards` table of the `stats` schema
+     *
+     * @return
+     */
+    public String virtualTableName() {
+        return virtualTableName;
+    }
+
     public void tableName(String tableName) {
         if (indices == null) {
             indices = new String[] { tableName };
@@ -185,6 +213,16 @@ public class ParsedStatement {
 
     public String[] indices() {
         return indices;
+    }
+
+    public void addIndex(String index) {
+        if (indices == null) {
+            indices = new String[] { index };
+        } else {
+            List<String> list = Arrays.asList(indices);
+            list.add(index);
+            indices = list.toArray(new String[list.size()]);
+        }
     }
 
     public void type(ActionType type) {

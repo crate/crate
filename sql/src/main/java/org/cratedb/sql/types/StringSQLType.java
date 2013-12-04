@@ -10,7 +10,7 @@ public class StringSQLType extends SQLType {
     }
 
     @Override
-    public Object doConvert(Object value) throws ConvertException {
+    public Object doMapValue(Object value) throws ConvertException {
         if ((value instanceof CharSequence)||(value instanceof Character)) {
             return value.toString();
         }

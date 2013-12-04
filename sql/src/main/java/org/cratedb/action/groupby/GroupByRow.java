@@ -26,7 +26,9 @@ public class GroupByRow implements Streamable {
 
     public List<Set<Object>> seenValuesList;
     public GroupByKey key;
+
     public List<AggState> aggStates;
+    public boolean[] continueCollectingFlags;  // not serialized, only for collecting
 
     public List<AggExpr> aggExprs;
     private List<Integer> seenIdxMapping;
@@ -34,25 +36,28 @@ public class GroupByRow implements Streamable {
     GroupByRow(List<AggExpr> aggExprs, List<Integer> seenIdxMapping) {
         this.aggExprs = aggExprs;
         this.seenIdxMapping = seenIdxMapping;
+
+        this.continueCollectingFlags = new boolean[aggExprs != null ? aggExprs.size(): 0];
+        Arrays.fill(this.continueCollectingFlags, true);
     }
 
     public GroupByRow(GroupByKey key, List<AggState> aggStates,
                       List<AggExpr> aggExprs, List<Set<Object>> seenValuesList)
     {
-        this.aggStates = aggStates;
         this.key = key;
+        this.aggStates = aggStates;
         this.aggExprs = aggExprs;
         this.seenValuesList = seenValuesList;
+
+        this.continueCollectingFlags = new boolean[aggStates != null ? aggStates.size() : 0];
+        Arrays.fill(this.continueCollectingFlags, true);
     }
 
     /**
      * use this ctor only for testing as serialization won't work because the aggExpr and seenValues are missing!
      */
     public GroupByRow(GroupByKey key, List<AggState> aggStates) {
-        this.key = key;
-        this.aggStates = aggStates;
-        this.aggExprs = new ArrayList<>(0);
-        this.seenValuesList = new ArrayList<>(0);
+        this(key, aggStates, new ArrayList<AggExpr>(0), new ArrayList<Set<Object>>(0));
     }
 
     public static GroupByRow createEmptyRow(GroupByKey key, List<AggExpr> aggExprs,

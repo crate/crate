@@ -5,6 +5,15 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fix: fixed stalled cluster on using more than one COUNT(DISTINCT col) in a statement
+
+ - performance-tuning: faster ANY processing in ``group by`` requests
+
+ - Shard stats table is using a pool for it's MemoryIndex now.
+
+ - Implemented ``stats`` schema with virtual table ``shards``, usable for gathering real-time
+   statistics of shards.
+
  - performance-tuning: concrete serialization of aggstates
 
  - ``COUNT`` aggregate function can now be used on column names, counting all rows with values that

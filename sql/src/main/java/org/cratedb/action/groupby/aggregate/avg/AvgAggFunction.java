@@ -20,10 +20,11 @@ public class AvgAggFunction extends AggFunction<AvgAggState> {
     }
 
     @Override
-    public void iterate(AvgAggState state, Object columnValue) {
+    public boolean iterate(AvgAggState state, Object columnValue) {
         if (columnValue != null && columnValue instanceof Number) {
             state.add(columnValue);
         }
+        return true;
     }
 
     @Override

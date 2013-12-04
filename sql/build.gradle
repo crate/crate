@@ -72,7 +72,7 @@ task bench(type: Test) {
     // Properties for JUnit Benchmarks
     systemProperty 'jub.consumers', 'CONSOLE,H2,XML'
     systemProperty 'jub.db.file', benchmark_dir + 'results'
-    systemProperty'jub.xml.file', benchmark_dir + 'results.xml'
+    systemProperty 'jub.xml.file', benchmark_dir + 'results.xml'
     systemProperty 'jub.charts.dir', benchmark_dir
 
     include('org/cratedb/module/sql/benchmark/**')

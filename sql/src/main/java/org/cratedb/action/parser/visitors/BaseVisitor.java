@@ -4,6 +4,7 @@ import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.ITableExecutionContext;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.stats.ShardStatsTableExecutionContext;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.TableUnknownException;
 import org.cratedb.sql.parser.parser.*;
@@ -32,8 +33,15 @@ public class BaseVisitor extends DispatchingVisitor {
      * @param tableName
      */
     protected void tableName(TableName tableName) {
-        stmt.schemaName(tableName.getSchemaName());
-        stmt.tableName(tableName.getTableName());
+        if (tableName.getSchemaName() != null &&
+                tableName.getSchemaName().equalsIgnoreCase(ShardStatsTableExecutionContext.SCHEMA_NAME)) {
+            stmt.schemaName(tableName.getSchemaName());
+            stmt.virtualTableName(tableName.getTableName());
+            stmt.type(ParsedStatement.ActionType.STATS);
+        } else {
+            stmt.schemaName(tableName.getSchemaName());
+            stmt.tableName(tableName.getTableName());
+        }
         tableContext = context.tableContext(tableName.getSchemaName(), tableName.getTableName());
         if (tableContext == null) {
             throw new TableUnknownException(tableName.getTableName());

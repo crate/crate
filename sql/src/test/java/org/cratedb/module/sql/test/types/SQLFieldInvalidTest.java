@@ -174,7 +174,7 @@ public class SQLFieldInvalidTest {
     public void testInvalidValues() {
         for (Object invalidValue : invalidValues) {
             try {
-                this.mapper.convertToXContentValue(fieldName, invalidValue);
+                this.mapper.mappedValue(fieldName, invalidValue);
                 fail(String.format("Validation of %s for '%s' did not work", fieldName,
                         invalidValue.toString()));
             } catch(ValidationException e) {

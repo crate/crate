@@ -5,7 +5,7 @@ public abstract class NumericSQLType extends SQLType {
     protected abstract boolean checkRange(Number value);
 
     @Override
-    protected Object doConvert(Object value) throws ConvertException {
+    protected Object doMapValue(Object value) throws ConvertException {
         Number number;
         try {
             number = (Number) value;
@@ -15,9 +15,9 @@ public abstract class NumericSQLType extends SQLType {
         if (!checkRange(number)) {
             throw new ConvertException(typeName(), "out of bounds");
         }
-        return convertNumber(number);
+        return mapNumber(number);
     }
 
-    protected abstract Object convertNumber(Number value) throws ConvertException;
+    protected abstract Object mapNumber(Number value) throws ConvertException;
 
 }

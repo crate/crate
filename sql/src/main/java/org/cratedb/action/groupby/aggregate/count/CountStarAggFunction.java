@@ -15,8 +15,9 @@ public class CountStarAggFunction extends AggFunction<CountAggState> {
     }
 
     @Override
-    public void iterate(CountAggState state, Object columnValue) {
+    public boolean iterate(CountAggState state, Object columnValue) {
         state.value++;
+        return true;
     }
 
     @Override

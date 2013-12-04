@@ -15,6 +15,8 @@ import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.OrderByColumnName;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.lucene.LuceneFieldMapper;
+import org.cratedb.lucene.fields.LuceneField;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterState;
@@ -34,6 +36,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public abstract class AbstractInformationSchemaTable implements InformationSchemaTable {
 
+    protected LuceneFieldMapper fieldMapper = new LuceneFieldMapper();
+
     protected final IndexWriterConfig indexWriterConfig;
     private final Map<String, AggFunction> aggFunctionMap;
     protected IndexWriter indexWriter = null;
@@ -50,6 +54,16 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
         this.indexWriterConfig = new IndexWriterConfig(Version.LUCENE_44, null);
         this.indexWriterConfig.setCodec(new Lucene42Codec());
         this.aggFunctionMap = aggFunctionMap;
+    }
+
+    @Override
+    public Iterable<String> cols() {
+        return fieldMapper.keySet();
+    }
+
+    @Override
+    public LuceneFieldMapper fieldMapper() {
+        return fieldMapper;
     }
 
     @Override
@@ -245,7 +259,7 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
         for (int i = 0; i < stmt.orderByColumns.size(); i++) {
             OrderByColumnName column = stmt.orderByColumns.get(i);
             boolean reverse = !column.isAsc();
-            InformationSchemaColumn tableColumn = this.fieldMapper().get(column.name);
+            LuceneField tableColumn = this.fieldMapper().get(column.name);
             if (tableColumn != null) {
                 sortFields.add(new SortField(column.name, tableColumn.type, reverse));
             }
@@ -277,7 +291,7 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
             Document doc = searcher.doc(scoreDoc.doc, fieldsToLoad);
             for (int c = 0; c < cols.length; c++) {
                 IndexableField[] fields = doc.getFields(cols[c]);
-                InformationSchemaColumn tableColumn = fieldMapper().get(cols[c]);
+                LuceneField tableColumn = fieldMapper().get(cols[c]);
                 Object rowValue = null;
                 if (fields.length > 0) {
                     if (tableColumn.allowMultipleValues) {

@@ -15,7 +15,7 @@ public class TimeStampSQLType extends SQLType {
     }
 
     @Override
-    protected Object doConvert(Object value) throws ConvertException {
+    protected Object doMapValue(Object value) throws ConvertException {
 
         if (value instanceof String) {
             // ISODate String
@@ -41,7 +41,7 @@ public class TimeStampSQLType extends SQLType {
     public Object toDisplayValue(@Nullable Object value) {
         Object result = value;
         try {
-            result = toXContent(value);
+            result = mappedValue(value);
         } catch (ConvertException e) {
             // :/
         }
