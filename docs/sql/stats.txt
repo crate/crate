@@ -5,15 +5,6 @@ Stats Schema
 The stats schema is a special schema that contains virtual tables which
 are read-only and can be queried to get statistical real-time information about the cluster.
 
-.. note::
-
-    The stats schema tables currently only support a limited subset of
-    the otherwise supported DML statements.
-
-    Currently unsupported are:
-
-        - using aggregate functions without group by.
-
 Shards
 ======
 
@@ -33,7 +24,7 @@ This table can be queried for gathering real-time shard statistics of one, multi
     SELECT 4 rows in set (... sec)
 
 
-Aggregate functions are currently only supported in conjunction with grouping::
+Aggregate functions are supported with grouping::
 
     cr> select count(*), table_name from stats.shards where table_name not like 'my_table%'
     ... group by table_name order by table_name
@@ -46,3 +37,13 @@ Aggregate functions are currently only supported in conjunction with grouping::
     | 2        | quotes     |
     +----------+------------+
     SELECT 4 rows in set (... sec)
+
+..and without::
+
+    cr> select max(num_docs) from stats.shards where table_name = 'locations' and state = 'STARTED'
+    +---------------+
+    | MAX(num_docs) |
+    +---------------+
+    | 7             |
+    +---------------+
+    SELECT 1 row in set (... sec)

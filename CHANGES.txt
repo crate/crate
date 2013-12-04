@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Queries on the shard stats table using aggregates without group by are supported now.
+
  - Also list unassigned shards when querying shard stats table.
 
  - fix: fixed stalled cluster on using more than one COUNT(DISTINCT col) in a statement

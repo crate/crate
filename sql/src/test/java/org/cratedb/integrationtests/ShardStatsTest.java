@@ -156,4 +156,14 @@ public class ShardStatsTest extends SQLCrateClusterTest {
         assertEquals("UNASSIGNED", response.rows()[0][1]);
     }
 
+    @Test
+    public void testSelectGlobalAggregates() throws Exception {
+        execute("select sum(size), min(size), max(size), avg(size) from stats.shards");
+        assertEquals(1L, response.rowCount());
+        assertEquals(4, response.rows()[0].length);
+        assertNotNull(response.rows()[0][0]);
+        assertNotNull(response.rows()[0][1]);
+        assertNotNull(response.rows()[0][2]);
+        assertNotNull(response.rows()[0][3]);
+    }
 }
