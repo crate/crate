@@ -24,23 +24,6 @@ public class GroupByHelper {
             AnyAggFunction.NAME
     );
 
-    public static List<Integer> getSeenIdxMap(Collection<AggExpr> aggregateExpressions) {
-        List<Integer> idxMap = new ArrayList<>();
-        Set<String> distinctColumns = new HashSet<>();
-        int seenIdx = -1;
-        for (AggExpr expr : aggregateExpressions) {
-            if (expr.isDistinct) {
-                if (!distinctColumns.contains(expr.parameterInfo.columnName)) {
-                    distinctColumns.add(expr.parameterInfo.columnName);
-                    seenIdx++;
-                }
-                idxMap.add(seenIdx);
-            }
-        }
-
-        return idxMap;
-    }
-
     public static Collection<GroupByRow> trimRows(List<GroupByRow> rows,
                                                   Comparator<GroupByRow> comparator,
                                                   int totalLimit) {

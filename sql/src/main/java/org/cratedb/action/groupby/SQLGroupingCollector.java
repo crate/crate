@@ -25,9 +25,8 @@ public class SQLGroupingCollector extends Collector {
     private final FieldLookup fieldLookup;
     private final ParsedStatement parsedStatement;
     private final AggFunction[] aggFunctions;
-    private final ArrayList<Integer> aggExprToSeenMap;
-    private final int numDistinctColumns;
     private SQLGroupingAggregateHandler aggregateHandler;
+    private RowSerializationContext rowSerializationContext;
 
     /**
      * Partitioned and grouped results.
@@ -63,28 +62,18 @@ public class SQLGroupingCollector extends Collector {
         }
 
         aggFunctions = new AggFunction[parsedStatement.aggregateExpressions.size()];
-        aggExprToSeenMap = new ArrayList<>();
-        int seenIdx = -1;
-        HashSet<String> distinctColumns = new HashSet<>();
-
-        for (int i = 0; i < parsedStatement.aggregateExpressions.size(); i++) {
-            AggExpr aggExpr = parsedStatement.aggregateExpressions.get(i);
-            aggFunctions[i] = aggFunctionMap.get(aggExpr.functionName);
-
-            if (aggExpr.isDistinct) {
-                if (!distinctColumns.contains(aggExpr.parameterInfo.columnName)) {
-                    distinctColumns.add(aggExpr.parameterInfo.columnName);
-                    seenIdx++;
-                }
-                aggExprToSeenMap.add(seenIdx);
-            }
+        for (int i = 0; i < aggFunctions.length; i++) {
+            aggFunctions[i] = aggFunctionMap.get(
+                parsedStatement.aggregateExpressions.get(i).functionName);
         }
-        numDistinctColumns = distinctColumns.size();
+
         if (parsedStatement.hasStoppableAggregate) {
             aggregateHandler = new CheckingSQLGroupingAggregateHandler();
         } else {
             aggregateHandler = new SimpleSQLGroupingAggregateHandler();
         }
+
+        rowSerializationContext = new RowSerializationContext(parsedStatement.aggregateExpressions);
     }
 
     @Override
@@ -110,8 +99,7 @@ public class SQLGroupingCollector extends Collector {
         GroupByRow row = resultMap.get(key);
 
         if (row == null) {
-            row = GroupByRow.createEmptyRow(
-                    key, parsedStatement.aggregateExpressions, aggExprToSeenMap, numDistinctColumns);
+            row = GroupByRow.createEmptyRow(key, rowSerializationContext);
             resultMap.put(key, row);
         }
         aggregateHandler.handleAggregates(row, fieldLookup,

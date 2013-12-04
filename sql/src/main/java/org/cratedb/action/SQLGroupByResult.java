@@ -1,11 +1,14 @@
 package org.cratedb.action;
 
 import org.cratedb.action.groupby.GroupByRow;
+import org.cratedb.action.groupby.RowSerializationContext;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import java.io.IOException;
 import java.util.*;
@@ -19,8 +22,7 @@ import java.util.*;
  */
 public class SQLGroupByResult implements Streamable {
 
-    private List<Integer> seenIdxMapper;
-    public List<AggExpr> aggExprs;
+    private RowSerializationContext rowSerializationContext;
 
     /**
      * optimization: the preSerializationResult is set on the mapper
@@ -31,6 +33,7 @@ public class SQLGroupByResult implements Streamable {
      */
     private List<GroupByRow> result;
     private Collection<GroupByRow> preSerializationResult;
+
 
     public SQLGroupByResult(Collection<GroupByRow> result) {
         this.preSerializationResult = result;
@@ -44,9 +47,8 @@ public class SQLGroupByResult implements Streamable {
         }
     }
 
-    SQLGroupByResult(List<AggExpr> aggExprs, List<Integer> seenIdxMapper) {
-        this.aggExprs = aggExprs;
-        this.seenIdxMapper = seenIdxMapper;
+    SQLGroupByResult(RowSerializationContext rowSerializationContext) {
+        this.rowSerializationContext = rowSerializationContext;
     }
 
     public int size() {
@@ -62,7 +64,7 @@ public class SQLGroupByResult implements Streamable {
         result = new ArrayList<>(resultSize);
 
         for (int i = 0; i < resultSize; i++) {
-            result.add(GroupByRow.readGroupByRow(aggExprs, seenIdxMapper, in));
+            result.add(GroupByRow.readGroupByRow(rowSerializationContext, in));
         }
     }
 
@@ -74,11 +76,11 @@ public class SQLGroupByResult implements Streamable {
         }
     }
 
-    public static SQLGroupByResult readSQLGroupByResult(List<AggExpr> aggExprs,
-                                                        List<Integer> seenIdxMapper, StreamInput in)
+    public static SQLGroupByResult readSQLGroupByResult(RowSerializationContext rowSerializationContext,
+                                                        StreamInput in)
         throws IOException
     {
-        SQLGroupByResult result = new SQLGroupByResult(aggExprs, seenIdxMapper);
+        SQLGroupByResult result = new SQLGroupByResult(rowSerializationContext);
         result.readFrom(in);
         return result;
     }

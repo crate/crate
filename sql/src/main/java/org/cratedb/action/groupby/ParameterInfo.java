@@ -20,21 +20,25 @@ public class ParameterInfo {
         this.dataType = dataType;
     }
 
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof ParameterInfo)) return false;
+        if (o == null || getClass() != o.getClass()) return false;
 
         ParameterInfo that = (ParameterInfo) o;
 
-        if (columnName != null && !columnName.equals(that.columnName)) return false;
-        if (that.columnName != null && !that.columnName.equals(columnName)) return false;
-        if (that.dataType != this.dataType) return false;
+        if (columnName != null ? !columnName.equals(that.columnName) : that.columnName != null)
+            return false;
+        if (dataType != that.dataType) return false;
 
         return true;
     }
 
+    @Override
     public int hashCode() {
-        return columnName.hashCode();
+        int result = columnName != null ? columnName.hashCode() : 0;
+        result = 31 * result + (dataType != null ? dataType.hashCode() : 0);
+        return result;
     }
 
     @Override

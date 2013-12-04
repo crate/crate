@@ -1,9 +1,6 @@
 package org.cratedb.action;
 
-import org.cratedb.action.groupby.GroupByHelper;
-import org.cratedb.action.groupby.GroupByKey;
-import org.cratedb.action.groupby.GroupByRow;
-import org.cratedb.action.groupby.GroupByRowComparator;
+import org.cratedb.action.groupby.*;
 import org.cratedb.action.sql.*;
 import org.cratedb.core.collections.LimitingCollectionIterator;
 import org.cratedb.service.SQLParseService;
@@ -196,6 +193,8 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         }
 
         for (String reducer : request.reducers) {
+            assert distributedCollectResult != null;
+
             if (logger.isTraceEnabled()) {
                 stopWatch = new StopWatch().start();
             }
@@ -576,6 +575,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
         private void onMapperFailure(Throwable e) {
             shardErrors.set(true);
+            logger.error("mapper failure", e);
             lastException.set(e);
             onMapperOperation(null);
         }

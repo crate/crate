@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - improved serialization performance for `count(distinct ...)`
+
  - renamed crate admin plugin to `admin-ui`
 
  - updated elasticsearch to 0.90.7

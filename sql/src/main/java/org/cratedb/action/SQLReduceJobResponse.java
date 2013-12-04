@@ -1,8 +1,7 @@
 package org.cratedb.action;
 
-import org.cratedb.action.groupby.GroupByHelper;
 import org.cratedb.action.groupby.GroupByRow;
-import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.groupby.RowSerializationContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -13,15 +12,13 @@ import java.util.*;
 
 public class SQLReduceJobResponse extends ActionResponse {
 
-    private List<Integer> seenIdxMap;
-    private ParsedStatement parsedStatement;
+    private RowSerializationContext rowSerializationContext;
 
     public Collection<GroupByRow> result;
 
 
     public SQLReduceJobResponse(ParsedStatement parsedStatement) {
-        this.parsedStatement = parsedStatement;
-        this.seenIdxMap = GroupByHelper.getSeenIdxMap(parsedStatement.aggregateExpressions);
+        this.rowSerializationContext = new RowSerializationContext(parsedStatement.aggregateExpressions);
     }
 
     public SQLReduceJobResponse(SQLReduceJobStatus jobStatus) {
@@ -34,7 +31,7 @@ public class SQLReduceJobResponse extends ActionResponse {
         int resultLength = in.readVInt();
         result = new ArrayList<>(resultLength);
         for (int i = 0; i < resultLength; i++) {
-            result.add(GroupByRow.readGroupByRow(parsedStatement.aggregateExpressions, seenIdxMap, in));
+            result.add(GroupByRow.readGroupByRow(rowSerializationContext, in));
         }
     }
 

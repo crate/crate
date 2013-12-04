@@ -35,8 +35,7 @@ public class SQLMapperResultRequest extends TransportRequest {
             status = reduceJobs.get(contextId, 30, TimeUnit.SECONDS);
 
             groupByResult = SQLGroupByResult.readSQLGroupByResult(
-                status.parsedStatement.aggregateExpressions,
-                status.seenIdxMapper,
+                status.rowSerializationContext,
                 in
             );
         } catch (Exception e ) {
