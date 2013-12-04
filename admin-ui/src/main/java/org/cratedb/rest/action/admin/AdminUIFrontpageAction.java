@@ -10,10 +10,10 @@ import static org.elasticsearch.rest.RestRequest.Method.GET;
 /**
  * RestHandlerAction to return a html page containing informations about crate
  */
-public class CrateFrontpageAction extends BaseRestHandler {
+public class AdminUIFrontpageAction extends BaseRestHandler {
 
     @Inject
-    public CrateFrontpageAction(Settings settings, Client client, RestController controller) {
+    public AdminUIFrontpageAction(Settings settings, Client client, RestController controller) {
         super(settings, client);
         controller.registerHandler(GET, "/admin", this);
     }

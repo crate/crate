@@ -52,7 +52,7 @@ dependencies {
     compile project(':core')
     compile project(':es')
     compile project(':sql')
-    compile project(':elasticsearch-crate-plugin')
+    compile project(':admin-ui')
     compile project(':inout')
     compile project(':blob')
     testCompile 'com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.0.10'
@@ -89,7 +89,7 @@ distributions {
                 from "${docsDir}/out/html"
             }
             into('plugins/crate-admin/_site'){
-                from new File(project(":elasticsearch-crate-plugin").projectDir, 'crate-admin/dist')
+                from new File(project(":admin-ui").projectDir, 'crate-admin/dist')
             }
             into('plugins') {
                 from 'plugins'
