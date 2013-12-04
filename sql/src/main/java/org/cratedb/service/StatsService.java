@@ -99,7 +99,7 @@ public class StatsService extends AbstractLifecycleComponent<StatsService> {
             try {
                 shard = (InternalIndexShard) indicesService.indexServiceSafe(index).shardSafe(shardId);
             } catch (IndexShardMissingException e) {
-                // shard is not yet unassigned, do nothing, ShardStatsTable handles this
+                // shard is not yet assigned, do nothing, ShardStatsTable handles this
             }
         }
 

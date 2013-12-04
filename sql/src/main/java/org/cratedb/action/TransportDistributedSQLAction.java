@@ -327,6 +327,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
             nodes = clusterState.nodes();
             shardsIts = shards(clusterState, indices, concreteIndices, parsedStatement.isStatsQuery());
+            expectedShardResponses = shardsIts.size();
 
             if (parsedStatement.partialReducerCount < 0) {
                 /**
@@ -337,13 +338,6 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 reducers = extractNodes(shardsIts, this.parsedStatement.hasDistinctAggregate ? 1 : -1);
             } else {
                 reducers = new String[0];
-            }
-
-            if (parsedStatement.isStatsQuery() && parsedStatement.hasGroupBy()) {
-                // main handler is collecting unassigned/empty shards
-                expectedShardResponses = shardsIts.size() + 1;
-            } else {
-                expectedShardResponses = shardsIts.size();
             }
 
             lastException = new AtomicReference<>(null);
@@ -373,7 +367,12 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
             sendReduceRequests();
             sendShardRequests();
+        }
 
+        public void sendSqlResponse() {
+            StopWatch stopWatch = null;
+
+            // we got all reducer results, lets merge them with unassigned/empty shard results
             if (parsedStatement.isStatsQuery()) {
                 try {
                     collectUnassignedShardStats(clusterState, concreteIndices);
@@ -381,10 +380,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                     listener.onFailure(e);
                 }
             }
-        }
 
-        public void sendSqlResponse() {
-            StopWatch stopWatch = null;
 
             if (logger.isTraceEnabled()) {
                 stopWatch = new StopWatch().start();
@@ -641,6 +637,16 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             }
         }
 
+        /**
+         * Collect stats from unassigned/empty shards.
+         * On groupBy all existing results are merged together with the unassigned shards results,
+         * so it is very important, that this method is called AFTER all partial reducers
+         * finished.
+         *
+         * @param clusterState
+         * @param concreteIndices
+         * @throws Exception
+         */
         private void collectUnassignedShardStats(ClusterState clusterState,
                                                                String[] concreteIndices)
                                                                         throws Exception {
@@ -649,15 +655,16 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             final GroupShardsIterator shardsItsAll =
                     clusterState.routingTable().allAssignedShardsGrouped(concreteIndices, true);
 
+            // use a dummy reducer for the groupByRow partitioning logic
+            String dummyReducer = "dummyReducer";
+
             CrateException exception = null;
-            Map<String, SQLReduceJobStatus> reduceJobStatusMap = null;
+            SQLReduceJobStatus reduceJobStatus = null;
             List<List<Object>> collectResults = null;
             if (parsedStatement.hasGroupBy()) {
-                // create a reduce job for each reducer
-                reduceJobStatusMap = new HashMap<>(reducers.length);
-                for (String reducer : reducers) {
-                    reduceJobStatusMap.put(reducer, new SQLReduceJobStatus(parsedStatement));
-                }
+                // create a reduce job without a shard CountDownLatch as we collect all shards
+                // at once here
+                reduceJobStatus = new SQLReduceJobStatus(parsedStatement);
             } else {
                 collectResults = new ArrayList<>(shardsItsAll.size() - shardsIts.size());
             }
@@ -673,16 +680,12 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                             Map<String, Map<GroupByKey, GroupByRow>> shardGroupByCollectResults =
                                     statsService.queryGroupBy(
                                             parsedStatement.virtualTableName(),
-                                            reducers, lastIndex,
+                                            new String[]{dummyReducer}, lastIndex,
                                             parsedStatement, shardIt.shardId().id(),
                                             null);
-                            // merge results to the reduce job for every reducer
-                            for (String reducer: reducers) {
-                                reduceJobStatusMap.get(reducer).merge(
-                                        new SQLGroupByResult(shardGroupByCollectResults.get(reducer)
-                                                .values())
-                                );
-                            }
+                            // merge results to the reduce job
+                            reduceJobStatus.merge(new SQLGroupByResult
+                                    (shardGroupByCollectResults.get(dummyReducer).values()));
                         } else {
                             List<List<Object>> shardCollectResults = statsService.query(
                                     parsedStatement.virtualTableName(),
@@ -711,44 +714,16 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 // add all results
                 onMapperResults(collectResults);
             } else {
-                // send all partly reduced results to every reducer
-                StopWatch stopWatch = null;
-                for (String reducer : reducers) {
-                    if (logger.isTraceEnabled()) {
-                        stopWatch = new StopWatch().start();
-                    }
-
-                    SQLMapperResultRequest mapperResultRequest = new SQLMapperResultRequest();
-                    mapperResultRequest.contextId = contextId;
-                    mapperResultRequest.groupByResult =
-                            new SQLGroupByResult(reduceJobStatusMap.get(reducer).reducedResult.values());
-
-                    // TODO: could be optimized if reducerNode == handlerNode to avoid transportService
-                    DiscoveryNode node = clusterService.state().getNodes().get(reducer);
-                    transportService.submitRequest(
-                            node,
-                            TransportSQLReduceHandler.Actions.RECEIVE_PARTIAL_RESULT,
-                            mapperResultRequest,
-                            TransportRequestOptions.options(),
-                            EmptyTransportResponseHandler.INSTANCE_SAME
+                // reduce existing results with results from unassigned/empty shards
+                synchronized (groupByResult) {
+                    reduceJobStatus.merge(new SQLGroupByResult(groupByResult));
+                    groupByResult.clear();
+                    groupByResult.addAll(
+                            reduceJobStatus.trimRows(reduceJobStatus.reducedResult.values())
                     );
-
-                    if (logger.isTraceEnabled()) {
-                        assert stopWatch != null;
-                        stopWatch.stop();
-                        logger.trace("[{}] context: {} main handler sending unassigned " +
-                                "shards to reducer {} (write to buffer) took {} ms",
-                                clusterService.localNode().getId(),
-                                contextId,
-                                reducer,
-                                stopWatch.totalTime().getMillis()
-                        );
-                    }
                 }
 
-                shardResponseCounter.decrementAndGet();
             }
-            tryFinishResponse();
         }
 
         class ReduceTransportResponseHandler extends BaseTransportResponseHandler<SQLReduceJobResponse> {
