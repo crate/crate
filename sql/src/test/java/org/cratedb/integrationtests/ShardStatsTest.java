@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 
 public class ShardStatsTest extends SQLCrateClusterTest {
 
@@ -128,6 +129,31 @@ public class ShardStatsTest extends SQLCrateClusterTest {
     public void testSelectWhereBoolean() throws Exception {
         execute("select * from stats.shards where \"primary\" = false");
         assertEquals(10L, response.rowCount());
+    }
+
+    @Test
+    public void testSelectIncludingUnassignedShards() throws Exception {
+        execute("create table locations (id integer primary key, name string) replicas 2");
+        refresh();
+        ensureYellow();
+
+        execute("select * from stats.shards order by state");
+        assertEquals(35L, response.rowCount());
+        assertEquals(9, response.cols().length);
+    }
+
+    @Test
+    public void testSelectGroupByIncludingUnassignedShards() throws Exception {
+        execute("create table locations (id integer primary key, name string) replicas 2");
+        refresh();
+        ensureYellow();
+
+        execute("select count(*), state from stats.shards " +
+                "group by state order by state desc");
+        assertThat(response.rowCount(), greaterThanOrEqualTo(2L));
+        assertEquals(2, response.cols().length);
+        assertThat((Long)response.rows()[0][0], greaterThanOrEqualTo(5L));
+        assertEquals("UNASSIGNED", response.rows()[0][1]);
     }
 
 }

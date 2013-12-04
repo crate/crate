@@ -96,7 +96,7 @@ public class ShardStatsTable implements StatsTable {
                 case Columns.SIZE:
                     return !unassigned ? shard.storeStats().getSizeInBytes() : 0L;
                 case Columns.STATE:
-                    return !unassigned ? shard.state().toString() : ShardRoutingState.UNASSIGNED;
+                    return !unassigned ? shard.state().toString() : ShardRoutingState.UNASSIGNED.toString();
                 case Columns.PRIMARY:
                     return !unassigned ? new Boolean(shard.routingEntry().primary()) : false;
                 case Columns.RELOCATING_NODE:

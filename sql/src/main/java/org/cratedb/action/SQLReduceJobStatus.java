@@ -26,10 +26,15 @@ public class SQLReduceJobStatus {
     public SQLReduceJobStatus(ParsedStatement parsedStatement,
                               int shardsToProcess)
     {
+        this(parsedStatement);
+        this.shardsToProcess = new CountDownLatch(shardsToProcess);
+    }
+
+    public SQLReduceJobStatus(ParsedStatement parsedStatement)
+    {
         this.parsedStatement = parsedStatement;
         this.seenIdxMapper = GroupByHelper.getSeenIdxMap(parsedStatement.aggregateExpressions);
         this.reducedResult = ConcurrentCollections.newConcurrentMap();
-        this.shardsToProcess = new CountDownLatch(shardsToProcess);
         this.comparator = new GroupByRowComparator(
             GroupByHelper.buildFieldExtractor(parsedStatement, null),
             parsedStatement.orderByIndices()
