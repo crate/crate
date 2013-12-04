@@ -1,6 +1,5 @@
 package org.cratedb.module.import_.test;
 
-import com.github.tlrx.elasticsearch.test.EsSetup;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import org.cratedb.action.export.ExportAction;
@@ -12,9 +11,11 @@ import org.cratedb.action.import_.ImportResponse;
 import org.cratedb.action.import_.NodeImportResponse;
 import org.cratedb.import_.Importer;
 import org.cratedb.module.AbstractRestActionTest;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.get.GetRequestBuilder;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
@@ -28,7 +29,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-import static com.github.tlrx.elasticsearch.test.EsSetup.*;
+import static org.cratedb.test.integration.PathAccessor.stringFromPath;
 
 public class RestImportActionTest extends AbstractRestActionTest {
 
@@ -95,7 +96,7 @@ public class RestImportActionTest extends AbstractRestActionTest {
         request.index("another_index");
         request.type("e");
         request.source("{\"directory\": \"" + path + "\"}");
-        ImportResponse response = esSetup.client().execute(ImportAction.INSTANCE, request).actionGet();
+        ImportResponse response = client().execute(ImportAction.INSTANCE, request).actionGet();
 
         List<Map<String, Object>> imports = getImports(response);
         Map<String, Object> nodeInfo = imports.get(0);
@@ -128,9 +129,14 @@ public class RestImportActionTest extends AbstractRestActionTest {
      */
     @Test
     public void testFields() {
-        esSetup.execute(deleteAll(), createIndex("test").withSettings(
-                fromClassPath("essetup/settings/test_b.json")).withMapping("d",
-                        "{\"d\": {\"_timestamp\": {\"enabled\": true, \"store\": \"yes\"}}}"));
+        prepareCreate("test").setSettings(
+            ImmutableSettings.builder().loadFromClasspath("/essetup/settings/test_b.json")
+                .put("number_of_shards", 1)
+                .put("number_of_replicas", 0).build())
+            .addMapping("d", "{\"d\": {\"_timestamp\": {\"enabled\": true, \"store\": \"yes\"}}}")
+            .execute()
+            .actionGet();
+        waitForRelocation(ClusterHealthStatus.GREEN);
 
         long now = new Date().getTime();
         long ttl = 1867329687097L - now;
@@ -144,7 +150,7 @@ public class RestImportActionTest extends AbstractRestActionTest {
         assertTrue(nodeInfo.get("imported_files").toString().matches(
                 "\\[\\{file_name=(.*)/importdata/import_4/import_4.json, successes=2, failures=0, invalidated=1}]"));
 
-        GetRequestBuilder rb = new GetRequestBuilder(esSetup.client(), "test");
+        GetRequestBuilder rb = new GetRequestBuilder(client(), "test");
         GetResponse res = rb.setType("d").setId("402").setFields("_ttl", "_timestamp", "_routing").execute().actionGet();
         assertEquals("the_routing", res.getField("_routing").getValue());
         assertTrue(ttl - Long.valueOf(res.getField("_ttl").getValue().toString()) < 10000);
@@ -225,32 +231,38 @@ public class RestImportActionTest extends AbstractRestActionTest {
      * directory in the data path. This test also covers the export - import combination.
      */
     @Test
-    public void testImportRelativeFilename() {
-        setUpSecondNode();
+    public void testImportRelativeFilename() throws Exception {
+        String node2 = setUpSecondNode();
         // create sample data
-        esSetup.execute(deleteAll(), createIndex("users").withSettings(
-                fromClassPath("essetup/settings/test_b.json")).withMapping("d",
-                        fromClassPath("essetup/mappings/test_b.json")));
-        esSetup.execute(index("users", "d", "1").withSource("{\"name\": \"item1\"}"));
-        esSetup.execute(index("users", "d", "2").withSource("{\"name\": \"item2\"}"));
-        esSetup2.client().admin().cluster().prepareHealth().setWaitForGreenStatus().
-            setWaitForNodes("2").setWaitForRelocatingShards(0).execute().actionGet();
+        deleteAll();
+        prepareCreate("users").setSettings(
+            ImmutableSettings.builder().loadFromClasspath("/essetup/settings/test_b.json").build()
+        ).addMapping("d", stringFromPath("/essetup/mappings/test_b.json", getClass())).execute().actionGet();
+
+        client().index(new IndexRequest("users", "d", "1").source("{\"name\": \"item1\"}")).actionGet();
+        client().index(new IndexRequest("users", "d", "2").source("{\"name\": \"item2\"}")).actionGet();
+        refresh();
 
         makeNodeDataLocationDirectories("myExport");
 
         // export data and recreate empty index
         ExportRequest exportRequest = new ExportRequest();
         exportRequest.source("{\"output_file\": \"myExport/export.${shard}.${index}.json\", \"fields\": [\"_source\", \"_id\", \"_index\", \"_type\"], \"force_overwrite\": true}");
-        esSetup.client().execute(ExportAction.INSTANCE, exportRequest).actionGet();
-        esSetup.execute(deleteAll(), createIndex("users").withSettings(
-                fromClassPath("essetup/settings/test_b.json")).withMapping("d",
-                        fromClassPath("essetup/mappings/test_b.json")));
+        ExportResponse exportResponse = client().execute(ExportAction.INSTANCE, exportRequest).actionGet();
+        assertEquals(0, exportResponse.getFailedShards());
+
+        deleteAll();
+        prepareCreate("users").setSettings(
+            ImmutableSettings.builder().loadFromClasspath("/essetup/settings/test_b.json").build()
+        ).addMapping("d", stringFromPath("/essetup/mappings/test_b.json", getClass())).execute().actionGet();
+        waitForRelocation(ClusterHealthStatus.GREEN);
 
         // run import with relative directory
         ImportResponse response = executeImportRequest("{\"directory\": \"myExport\"}");
         List<Map<String, Object>> imports = getImports(response);
         assertEquals(2, imports.size());
-        String regex = "\\[\\{file_name=(.*)/nodes/(\\d)/myExport/export.(\\d).users.json, successes=1, failures=0\\}\\]";
+        String regex = "\\[\\{file_name=(.*)/nodes/(\\d)/myExport/export.(\\d).users.json, successes=(\\d), failures=0\\}\\]";
+
         assertTrue(imports.get(0).get("imported_files").toString().matches(regex));
         assertTrue(imports.get(1).get("imported_files").toString().matches(regex));
 
@@ -297,7 +309,7 @@ public class RestImportActionTest extends AbstractRestActionTest {
         executeImportRequest("{\"directory\": \"" + path + "\", \"settings\": true}");
 
         ClusterStateRequest clusterStateRequest = Requests.clusterStateRequest().filteredIndices("index1");
-        IndexMetaData stats = esSetup.client().admin().cluster().state(clusterStateRequest).actionGet().getState().metaData().index("index1");
+        IndexMetaData stats = client().admin().cluster().state(clusterStateRequest).actionGet().getState().metaData().index("index1");
         assertEquals(2, stats.numberOfShards());
         assertEquals(1, stats.numberOfReplicas());
     }
@@ -322,20 +334,20 @@ public class RestImportActionTest extends AbstractRestActionTest {
 
     @Test
     public void testMappings() {
-        esSetup.execute(createIndex("index1"));
+        createIndex("index1");
         String path = getClass().getResource("/importdata/import_9").getPath();
         executeImportRequest("{\"directory\": \"" + path + "\", \"mappings\": true}");
 
         ClusterStateRequest clusterStateRequest = Requests.clusterStateRequest().filteredIndices("index1");
         ImmutableMap<String, MappingMetaData> mappings = ImmutableMap.copyOf(
-            esSetup.client().admin().cluster().state(clusterStateRequest).actionGet().getState().metaData().index("index1").getMappings());
+            client().admin().cluster().state(clusterStateRequest).actionGet().getState().metaData().index("index1").getMappings());
         assertEquals("{\"1\":{\"_timestamp\":{\"enabled\":true,\"store\":true},\"_ttl\":{\"enabled\":true,\"default\":86400000},\"properties\":{\"name\":{\"type\":\"string\",\"store\":true}}}}",
                 mappings.get("1").source().toString());
     }
 
     @Test
     public void testMappingNotFound() {
-        esSetup.execute(createIndex("index1"));
+        createIndex("index1");
         String path = getClass().getResource("/importdata/import_1").getPath();
         ImportResponse response = executeImportRequest("{\"directory\": \"" + path + "\", \"mappings\": true}");
         List<Map<String, Object>> failures = getImportFailures(response);
@@ -350,7 +362,7 @@ public class RestImportActionTest extends AbstractRestActionTest {
     private void makeNodeDataLocationDirectories(String directory) {
         ExportRequest exportRequest = new ExportRequest();
         exportRequest.source("{\"output_file\": \"" + directory + "\", \"fields\": [\"_source\", \"_id\", \"_index\", \"_type\"], \"force_overwrite\": true, \"explain\": true}");
-        ExportResponse explain = esSetup.client().execute(ExportAction.INSTANCE, exportRequest).actionGet();
+        ExportResponse explain = client().execute(ExportAction.INSTANCE, exportRequest).actionGet();
 
         try {
             Map<String, Object> res = toMap(explain);
@@ -367,7 +379,7 @@ public class RestImportActionTest extends AbstractRestActionTest {
     }
 
     private boolean existsWithField(String id, String field, String value, String index, String type) {
-        GetRequestBuilder rb = new GetRequestBuilder(esSetup.client(), index);
+        GetRequestBuilder rb = new GetRequestBuilder(client(), index);
         GetResponse res = rb.setType(type).setId(id).execute().actionGet();
         return res.isExists() && res.getSourceAsMap().get(field).equals(value);
     }
@@ -394,7 +406,7 @@ public class RestImportActionTest extends AbstractRestActionTest {
     private ImportResponse executeImportRequest(String source) {
         ImportRequest request = new ImportRequest();
         request.source(source);
-        return esSetup.client().execute(ImportAction.INSTANCE, request).actionGet();
+        return client().execute(ImportAction.INSTANCE, request).actionGet();
     }
 
 
@@ -425,18 +437,17 @@ public class RestImportActionTest extends AbstractRestActionTest {
     public void testPathWithVars() {
         ImmutableSettings.Builder settingsBuilder = ImmutableSettings.settingsBuilder();
         settingsBuilder.put("node.name", "import-test-with-path-vars");
-        EsSetup esSetup3 = new EsSetup(settingsBuilder.build());
-        esSetup3.execute(deleteAll());
-        esSetup3.client().admin().cluster().prepareHealth().setWaitForGreenStatus().execute()
-                .actionGet();
+
+        String node3 = cluster().startNode(settingsBuilder);
+        client(node3).admin().indices().prepareDelete().execute().actionGet();
+        client(node3).admin().cluster().prepareHealth().setWaitForGreenStatus().execute().actionGet();
 
         String path = getClass().getResource("/importdata/import_10").getPath();
         path = Joiner.on(File.separator).join(path, "import_node-${node}.json");
 
         ImportRequest request = new ImportRequest();
         request.source("{\"path\": \"" + path + "\"}");
-        ImportResponse response =  esSetup3.client().execute(ImportAction.INSTANCE,
-                request).actionGet();
+        ImportResponse response =  client(node3).execute(ImportAction.INSTANCE, request).actionGet();
 
         int successfullyImported = 0;
         List<String> importedFiles = new ArrayList<>();
@@ -453,7 +464,6 @@ public class RestImportActionTest extends AbstractRestActionTest {
                 "(.*)/importdata/import_10/import_node-import-test-with-path-vars.json"));
         assertTrue(existsWithField("1001", "name", "1001", "test", "d"));
 
-        esSetup3.terminate();
+        cluster().stopNode(node3);
     }
-
 }

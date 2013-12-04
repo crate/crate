@@ -14,24 +14,17 @@ public class SQLParseServiceTest extends SQLCrateNodesTest {
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
-    private static InternalNode node = null;
     private static SQLParseService sqlParseService = null;
 
+
     @Before
-    public void startNode() {
-        if (node == null) {
-            node = (InternalNode) startNode("node1", ImmutableSettings.EMPTY);
-            sqlParseService = node.injector().getInstance(SQLParseService.class);
-        }
+    public void startSQLParseService() {
+        sqlParseService = cluster().getInstance(SQLParseService.class);
     }
 
     @AfterClass
-    public static void stopNode() {
-        if (node != null) {
-            node.close();
-            node = null;
-            sqlParseService = null;
-        }
+    public static void cleanUpSQLParseService() {
+        sqlParseService = null;
     }
 
     @Test(expected = TableUnknownException.class)

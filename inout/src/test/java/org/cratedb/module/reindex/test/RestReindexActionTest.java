@@ -1,12 +1,12 @@
 package org.cratedb.module.reindex.test;
 
-import static com.github.tlrx.elasticsearch.test.EsSetup.createIndex;
-import static com.github.tlrx.elasticsearch.test.EsSetup.index;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import org.cratedb.action.reindex.ReindexAction;
@@ -16,25 +16,19 @@ import org.cratedb.module.AbstractRestActionTest;
 
 public class RestReindexActionTest extends AbstractRestActionTest {
 
-    @Test
-    public void testSearchIntoWithoutSource() {
-        esSetup.execute(createIndex("test").withMapping("a",
-                "{\"a\":{\"_source\": {\"enabled\": false}}}"));
-        esSetup.execute(index("test", "a", "1").withSource("{\"name\": \"John\"}"));
-        SearchIntoRequest request = new SearchIntoRequest("test");
-        SearchIntoResponse res = esSetup.client().execute(ReindexAction.INSTANCE, request).actionGet();
-        assertEquals(1, res.getFailedShards());
-        assertTrue(res.getShardFailures()[0].reason().contains("Parse Failure [The _source field of index test and type a is not stored.]"));
+    @Override
+    public Settings indexSettings() {
+        return ImmutableSettings.builder().put("number_of_shards", 1).build();
     }
 
-    private static List<Map<String, Object>> get(SearchIntoResponse resp, String key) {
-        Map<String, Object> res = null;
-        try {
-            res = toMap(resp);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-        return (List<Map<String, Object>>) res.get(key);
+    @Test
+    public void testSearchIntoWithoutSource() {
+        prepareCreate("test").addMapping("a",
+            "{\"a\":{\"_source\": {\"enabled\": false}}}").execute().actionGet();
+        client().index(new IndexRequest("test", "a", "1").source("{\"name\": \"John\"}")).actionGet();
+        SearchIntoRequest request = new SearchIntoRequest("test");
+        SearchIntoResponse res = client().execute(ReindexAction.INSTANCE, request).actionGet();
+        assertEquals(1, res.getFailedShards());
+        assertTrue(res.getShardFailures()[0].reason().contains("Parse Failure [The _source field of index test and type a is not stored.]"));
     }
 }

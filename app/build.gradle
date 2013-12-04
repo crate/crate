@@ -55,7 +55,7 @@ dependencies {
     compile project(':elasticsearch-crate-plugin')
     compile project(':inout')
     compile project(':blob')
-    testCompile 'com.github.tlrx:elasticsearch-test:0.0.8'
+    testCompile 'com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.0.10'
 }
 
 installDist.dependsOn(jar, ":docs:sphinx")

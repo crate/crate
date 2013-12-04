@@ -1,58 +1,34 @@
 package org.cratedb.integrationtests;
 
-import org.cratedb.action.sql.SQLAction;
-import org.cratedb.action.sql.SQLRequest;
+import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
-import org.cratedb.test.integration.AbstractCrateNodesTests;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.query.MatchQueryBuilder;
-import org.junit.Before;
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
+import java.util.HashMap;
 
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
 
-public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
-    public static final int NUM_NODES = 2;
-    public static boolean nodesRunning = false;
+public class CrateClusterSettingsActionTest extends SQLTransportIntegrationTest  {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
-    @Before
-    public void startNodes() {
-        if (!nodesRunning) {
-            for (int i = 0; i< NUM_NODES; i++) {
-                startNode(this.getTestName() + i);
-            }
-            nodesRunning = true;
-        }
-    }
-
-    private SQLResponse execute(String stmt) {
-        return execute(stmt, new Object[0]);
-    }
-
-    private SQLResponse execute(String stmt, Object[] args) {
-        return client().execute(SQLAction.INSTANCE, new SQLRequest(stmt, args)).actionGet();
-    }
 
     public Settings getPersistentClusterSettings() {
         ClusterStateResponse response = client().admin().cluster().prepareState().execute().actionGet();
@@ -79,6 +55,8 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
                     hasEntry("index.analysis.analyzer.a1.tokenizer", "standard")
             )
         );
+
+
     }
 
     @Test
@@ -359,6 +337,5 @@ public class CrateClusterSettingsActionTest extends AbstractCrateNodesTests {
         SearchResponse response = client.prepareSearch("test").setQuery(new MatchQueryBuilder("content", "brown jump").type(MatchQueryBuilder.Type.BOOLEAN)).execute().actionGet();
         assertEquals(1L, response.getHits().getTotalHits());
         assertEquals("1", response.getHits().getHits()[0].getId());
-
     }
 }

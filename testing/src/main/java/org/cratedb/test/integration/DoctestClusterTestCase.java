@@ -6,9 +6,10 @@ import org.junit.Before;
 /**
  * Doctest Testcase that starts a crate cluster in the background
  */
-public abstract class DoctestClusterTestCase extends AbstractSharedCrateClusterTest {
+public abstract class DoctestClusterTestCase extends CrateIntegrationTest {
 
     private DoctestRunner doctestRunner = new DoctestRunner();
+
 
     @Before
     public void setupDoctests() throws Exception {

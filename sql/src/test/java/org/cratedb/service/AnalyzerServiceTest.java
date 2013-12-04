@@ -1,10 +1,10 @@
 package org.cratedb.service;
 
+import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.sql.parser.StandardException;
-import org.cratedb.test.integration.AbstractCrateNodesTests;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.internal.InternalNode;
 import org.junit.AfterClass;
@@ -15,39 +15,28 @@ import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.Matchers.*;
 
-public class AnalyzerServiceTest extends AbstractCrateNodesTests {
+public class AnalyzerServiceTest extends SQLTransportIntegrationTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-    private static InternalNode node;
     private static AnalyzerService analyzerService;
 
     @Before
-    public void setupClass() {
-        if (node == null) {
-            node = (InternalNode)startNode("node1");
-            analyzerService = node.injector().getInstance(AnalyzerService.class);
-        }
+    public void AnalyzerServiceSetup() {
+        analyzerService = cluster().getInstance(AnalyzerService.class);
     }
 
     @AfterClass
     public static void tearDownClass() {
         synchronized (AnalyzerServiceTest.class) {
             analyzerService = null;
-            node.close();
-            node = null;
         }
     }
 
     @Test
     public void resolveSimpleAnalyzerSettings() throws StandardException {
-        node.client().execute(SQLAction.INSTANCE, new SQLRequest("CREATE ANALYZER a1 WITH" +
-                "(tokenizer lowercase)"))
-                .actionGet();
+        execute("CREATE ANALYZER a1 WITH (tokenizer lowercase)");
         Settings fullAnalyzerSettings = analyzerService.resolveFullCustomAnalyzerSettings("a1");
         assertThat(fullAnalyzerSettings.getAsMap().size(), is(2));
         assertThat(
@@ -62,15 +51,14 @@ public class AnalyzerServiceTest extends AbstractCrateNodesTests {
 
     @Test
     public void resolveAnalyzerWithCustomTokenizer() throws StandardException {
-        node.client().execute(SQLAction.INSTANCE, new SQLRequest("CREATE ANALYZER a2 WITH" +
+        execute("CREATE ANALYZER a2 WITH" +
                 "(" +
                 "   tokenizer tok2 with (" +
                 "       type='ngram'," +
                 "       \"min_ngram\"=2," +
                 "       \"token_chars\"=['letter', 'digits']" +
                 "   )" +
-                ")"))
-                .actionGet();
+                ")");
         Settings fullAnalyzerSettings = analyzerService.resolveFullCustomAnalyzerSettings("a2");
         assertThat(
                 fullAnalyzerSettings.getAsMap(),
@@ -93,7 +81,7 @@ public class AnalyzerServiceTest extends AbstractCrateNodesTests {
 
     @Test
     public void resolveAnalyzerWithCharFilters() throws StandardException {
-        node.client().execute(SQLAction.INSTANCE, new SQLRequest("CREATE ANALYZER a3 WITH" +
+        execute("CREATE ANALYZER a3 WITH" +
                 "(" +
                 "   tokenizer lowercase," +
                 "   char_filters WITH (" +
@@ -103,8 +91,7 @@ public class AnalyzerServiceTest extends AbstractCrateNodesTests {
                 "           mappings=['ph=>f', 'ß=>ss', 'ö=>oe']" +
                 "       )" +
                 "   )" +
-                ")"))
-                .actionGet();
+                ")");
         Settings fullAnalyzerSettings = analyzerService.resolveFullCustomAnalyzerSettings("a3");
         assertThat(
                 fullAnalyzerSettings.getAsMap(),
@@ -127,17 +114,16 @@ public class AnalyzerServiceTest extends AbstractCrateNodesTests {
                         ".mappings"),
                 arrayContainingInAnyOrder("ph=>f", "ß=>ss", "ö=>oe")
         );
-        node.client().execute(SQLAction.INSTANCE, new SQLRequest("CREATE TABLE t1(content " +
-                "string index using fulltext with (analyzer='a3'))")).actionGet();
+        execute("CREATE TABLE t1(content " +
+                "string index using fulltext with (analyzer='a3'))");
     }
 
     @Test
     public void resolveAnalyzerExtendingBuiltin() throws StandardException {
-        node.client().execute(SQLAction.INSTANCE, new SQLRequest("CREATE ANALYZER a4 EXTENDS " +
+        execute("CREATE ANALYZER a4 EXTENDS " +
                 "german WITH (" +
                 "   \"stop_words\"=['der', 'die', 'das']" +
-                ")"))
-                .actionGet();
+                ")");
         Settings fullAnalyzerSettings = analyzerService.resolveFullCustomAnalyzerSettings("a4");
         assertThat(
                 fullAnalyzerSettings.getAsMap(),
@@ -149,11 +135,10 @@ public class AnalyzerServiceTest extends AbstractCrateNodesTests {
         );
 
         // extend analyzer who extends builtin analyzer (chain can be longer than 1)
-        node.client().execute(SQLAction.INSTANCE, new SQLRequest("CREATE ANALYZER a4e EXTENDS " +
+        execute("CREATE ANALYZER a4e EXTENDS " +
                 "a4 WITH (" +
                 "   \"stop_words\"=['der', 'die', 'das', 'wer', 'wie', 'was']" +
-                ")"))
-                .actionGet();
+                ")");
         fullAnalyzerSettings = analyzerService.resolveFullCustomAnalyzerSettings("a4e");
         assertThat(
                 fullAnalyzerSettings.getAsMap(),
@@ -167,7 +152,7 @@ public class AnalyzerServiceTest extends AbstractCrateNodesTests {
 
     @Test
     public void resolveAnalyzerExtendingCustom() throws StandardException {
-        node.client().execute(SQLAction.INSTANCE, new SQLRequest("CREATE ANALYZER a5 WITH (" +
+        execute("CREATE ANALYZER a5 WITH (" +
                 "   tokenizer whitespace," +
                 "   token_filters (" +
                 "       lowercase," +
@@ -176,8 +161,7 @@ public class AnalyzerServiceTest extends AbstractCrateNodesTests {
                 "           language='german'" +
                 "       )" +
                 "   )" +
-                ")"))
-                .actionGet();
+                ")");
         Settings fullAnalyzerSettings = analyzerService.resolveFullCustomAnalyzerSettings("a5");
         assertThat(
                 fullAnalyzerSettings.getAsMap(),
@@ -199,7 +183,7 @@ public class AnalyzerServiceTest extends AbstractCrateNodesTests {
                 )
         );
 
-        node.client().execute(SQLAction.INSTANCE, new SQLRequest("CREATE ANALYZER a5e EXTENDS a5" +
+         execute("CREATE ANALYZER a5e EXTENDS a5" +
                 " WITH (" +
                 "   tokenizer letter," +
                 "   char_filters WITH (" +
@@ -209,8 +193,7 @@ public class AnalyzerServiceTest extends AbstractCrateNodesTests {
                 "           mappings=['ph=>f', 'ß=>ss', 'ö=>oe']" +
                 "       )" +
                 "   )" +
-                ")"))
-                .actionGet();
+                ")");
 
         fullAnalyzerSettings = analyzerService.resolveFullCustomAnalyzerSettings("a5e");
         assertThat(

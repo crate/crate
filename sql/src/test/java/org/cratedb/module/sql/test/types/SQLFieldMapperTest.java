@@ -100,7 +100,7 @@ public class SQLFieldMapperTest extends SQLCrateNodesTest {
     }
 
     @Before
-    public void before() throws IOException {
+    public void beforeFieldMapperTest() throws IOException {
         IndexMetaData metaData = getMetaData();
         this.mapper = new SQLFieldMapper(
                 SQL_TYPES,

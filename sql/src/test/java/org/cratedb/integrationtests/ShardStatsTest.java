@@ -1,7 +1,10 @@
 package org.cratedb.integrationtests;
 
-import org.cratedb.SQLCrateClusterTest;
+import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.test.integration.CrateIntegrationTest;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -10,19 +13,21 @@ import org.junit.rules.ExpectedException;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 
-public class ShardStatsTest extends SQLCrateClusterTest {
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 2, transportClientRatio = 0)
+public class ShardStatsTest extends SQLTransportIntegrationTest {
 
     private SQLResponse response;
     private Setup setup = new Setup(this);
 
+    @Override
+    public Settings indexSettings() {
+        return ImmutableSettings.builder()
+            .put("number_of_replicas", 1)
+            .put("number_of_shards", 5).build();
+    }
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-
-
-    @Override
-    protected int numberOfNodes() {
-        return 2;
-    }
 
     /**
      * override execute to store response in property for easier access

@@ -5,12 +5,12 @@ import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.types.*;
-import org.cratedb.test.integration.AbstractCrateNodesTests;
+import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
-public class SQLCrateNodesTest extends AbstractCrateNodesTests {
+public class SQLCrateNodesTest extends CrateIntegrationTest {
 
     public static final ImmutableMap<DataType, SQLType> SQL_TYPES = new ImmutableMap.Builder<DataType, SQLType>()
         .put(DataType.BOOLEAN, new BooleanSQLType())
@@ -40,13 +40,5 @@ public class SQLCrateNodesTest extends AbstractCrateNodesTests {
 
     public SQLResponse execute(String stmt) {
         return execute(stmt, new Object[0]);
-    }
-
-    public void createIndex(String indexName, Settings indexSettings, XContentBuilder mappingBuilder) {
-        super.createIndex(client(), indexName, indexSettings, Constants.DEFAULT_MAPPING_TYPE, mappingBuilder);
-    }
-
-    public void createIndex(Client client, String indexName, Settings indexSettings, XContentBuilder mappingBuilder) {
-        super.createIndex(client, indexName, indexSettings, Constants.DEFAULT_MAPPING_TYPE, mappingBuilder);
     }
 }

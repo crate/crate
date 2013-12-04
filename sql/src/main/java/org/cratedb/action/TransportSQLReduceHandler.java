@@ -103,6 +103,11 @@ public class TransportSQLReduceHandler {
         public String executor() {
             return ThreadPool.Names.SEARCH;
         }
+
+        @Override
+        public boolean isForceExecution() {
+            return true;
+        }
     }
 
     private class RecievePartialResultHandler implements TransportRequestHandler<SQLMapperResultRequest> {
@@ -151,6 +156,11 @@ public class TransportSQLReduceHandler {
         @Override
         public String executor() {
             return ThreadPool.Names.SEARCH;
+        }
+
+        @Override
+        public boolean isForceExecution() {
+            return true;
         }
     }
 }

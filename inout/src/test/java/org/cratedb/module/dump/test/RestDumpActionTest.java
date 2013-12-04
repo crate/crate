@@ -1,16 +1,14 @@
 package org.cratedb.module.dump.test;
 
-import static com.github.tlrx.elasticsearch.test.EsSetup.index;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.action.index.IndexRequest;
 import org.junit.Test;
 
-import com.github.tlrx.elasticsearch.test.EsSetup;
 
 import org.cratedb.action.dump.DumpAction;
 import org.cratedb.action.export.ExportAction;
@@ -99,7 +97,7 @@ public class RestDumpActionTest extends AbstractRestActionTest {
      */
     @Test
     public void testDirectory() {
-        String clusterName = esSetup.client().admin().cluster().prepareHealth().
+        String clusterName = client().admin().cluster().prepareHealth().
                 setWaitForGreenStatus().execute().actionGet().getClusterName();
         String filename_0 = "/tmp/" + clusterName + "_users_0.json.gz";
         String filename_1 = "/tmp/" + clusterName + "_users_1.json.gz";
@@ -201,17 +199,16 @@ public class RestDumpActionTest extends AbstractRestActionTest {
         dumpDir.mkdir();
 
         // Prepare a second node and wait for relocation
-        esSetup2 = new EsSetup();
-        esSetup2.execute(index("users", "d").withSource("{\"name\": \"motorbike\"}"));
-        esSetup2.client().admin().cluster().prepareHealth().setWaitForGreenStatus().
+        String node2 = cluster().startNode();
+        client(node2).index(new IndexRequest("users", "d").source("{\"name\": \"motorbike\"}")).actionGet();
+        client(node2).admin().cluster().prepareHealth().setWaitForGreenStatus().
             setWaitForNodes("2").setWaitForRelocatingShards(0).execute().actionGet();
 
         // Do dump request
         String source = "{\"force_overwrite\": true, \"directory\":\"/tmp/multipleNodes\"}";
         ExportRequest exportRequest = new ExportRequest();
         exportRequest.source(source);
-        ExportResponse response = esSetup.client().execute(
-                DumpAction.INSTANCE, exportRequest).actionGet();
+        ExportResponse response = client().execute(DumpAction.INSTANCE, exportRequest).actionGet();
 
         // The two shard results are from different nodes and have no failures
         assertEquals(0, response.getFailedShards());
@@ -235,7 +232,7 @@ public class RestDumpActionTest extends AbstractRestActionTest {
         }
         dumpDir.mkdir();
 
-        String clusterName = esSetup.client().admin().cluster().prepareHealth().
+        String clusterName = client().admin().cluster().prepareHealth().
                 setWaitForGreenStatus().execute().actionGet().getClusterName();
         String filename_0 = "/tmp/query/" + clusterName + "_users_0.json.gz";
         String filename_1 = "/tmp/query/" + clusterName + "_users_1.json.gz";
@@ -259,7 +256,7 @@ public class RestDumpActionTest extends AbstractRestActionTest {
     private void deleteDefaultDir() {
         ExportRequest exportRequest = new ExportRequest();
         exportRequest.source("{\"output_file\": \"dump\", \"fields\": [\"_source\", \"_id\", \"_index\", \"_type\"], \"force_overwrite\": true, \"explain\": true}");
-        ExportResponse explain = esSetup.client().execute(ExportAction.INSTANCE, exportRequest).actionGet();
+        ExportResponse explain = client().execute(ExportAction.INSTANCE, exportRequest).actionGet();
 
         try {
             Map<String, Object> res = toMap(explain);
@@ -297,7 +294,7 @@ public class RestDumpActionTest extends AbstractRestActionTest {
     private ExportResponse executeDumpRequest(String source) {
         ExportRequest exportRequest = new ExportRequest();
         exportRequest.source(source);
-        return esSetup.client().execute(DumpAction.INSTANCE, exportRequest).actionGet();
+        return client().execute(DumpAction.INSTANCE, exportRequest).actionGet();
     }
 
     /**
@@ -306,6 +303,6 @@ public class RestDumpActionTest extends AbstractRestActionTest {
      */
     private ExportResponse executeDumpRequest() {
         ExportRequest exportRequest = new ExportRequest();
-        return esSetup.client().execute(DumpAction.INSTANCE, exportRequest).actionGet();
+        return client().execute(DumpAction.INSTANCE, exportRequest).actionGet();
     }
 }

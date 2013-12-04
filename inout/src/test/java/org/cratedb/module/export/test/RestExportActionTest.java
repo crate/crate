@@ -1,10 +1,5 @@
 package org.cratedb.module.export.test;
 
-import static com.github.tlrx.elasticsearch.test.EsSetup.createIndex;
-import static com.github.tlrx.elasticsearch.test.EsSetup.deleteAll;
-import static com.github.tlrx.elasticsearch.test.EsSetup.fromClassPath;
-import static com.github.tlrx.elasticsearch.test.EsSetup.index;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -16,13 +11,15 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.lucene.util.AbstractRandomizedTest;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
+import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.indices.IndexMissingException;
 import org.junit.Test;
 
-import com.github.tlrx.elasticsearch.test.EsSetup;
 
 import org.cratedb.action.export.ExportAction;
 import org.cratedb.action.export.ExportRequest;
@@ -141,8 +138,8 @@ public class RestExportActionTest extends AbstractRestActionTest {
      */
     @Test
     public void testOutputFile() {
-        String clusterName = esSetup.client().admin().cluster().prepareHealth().
-                setWaitForGreenStatus().execute().actionGet().getClusterName();
+        String clusterName = client().admin().cluster().prepareHealth()
+            .execute().actionGet().getClusterName();
         String filename_0 = "/tmp/" + clusterName + ".0.users.export";
         String filename_1 = "/tmp/" + clusterName + ".1.users.export";
         new File(filename_0).delete();
@@ -175,7 +172,7 @@ public class RestExportActionTest extends AbstractRestActionTest {
     }
 
     public void testGZIPOutputFile() {
-        String clusterName = esSetup.client().admin().cluster().prepareHealth().
+        String clusterName = client().admin().cluster().prepareHealth().
                 setWaitForGreenStatus().execute().actionGet().getClusterName();
         String filename_0 = "/tmp/" + clusterName + ".0.users.zipexport.gz";
         String filename_1 = "/tmp/" + clusterName + ".1.users.zipexport.gz";
@@ -284,17 +281,17 @@ public class RestExportActionTest extends AbstractRestActionTest {
     @Test
     public void testWithMultipleNodes() {
         // Prepare a second node and wait for relocation
-        esSetup2 = new EsSetup();
-        esSetup2.execute(index("users", "d").withSource("{\"name\": \"motorbike\"}"));
-        esSetup2.client().admin().cluster().prepareHealth().setWaitForGreenStatus().
+        node2 = cluster().startNode();
+        cluster().client(node2).index(new IndexRequest("users", "d").source("{\"name\": \"motorbike\"}")).actionGet();
+        cluster().client(node2).admin().cluster().prepareHealth().setWaitForGreenStatus().
             setWaitForNodes("2").setWaitForRelocatingShards(0).execute().actionGet();
 
         // Do export request
         String source = "{\"output_cmd\": \"cat\", \"fields\": [\"name\"]}";
         ExportRequest exportRequest = new ExportRequest();
         exportRequest.source(source);
-        ExportResponse response = esSetup2.client().execute(
-                ExportAction.INSTANCE, exportRequest).actionGet();
+        ExportResponse response = cluster().client(node2).execute(
+            ExportAction.INSTANCE, exportRequest).actionGet();
 
         // The two shard results are from different nodes and have no failures
         assertEquals(0, response.getFailedShards());
@@ -327,8 +324,8 @@ public class RestExportActionTest extends AbstractRestActionTest {
      */
     @Test
     public void testUnsopportedCompressionFormat() {
-        String clusterName = esSetup.client().admin().cluster().prepareHealth().
-                setWaitForGreenStatus().execute().actionGet().getClusterName();
+        String clusterName = client().admin().cluster()
+            .prepareHealth().execute().actionGet().getClusterName();
         String filename_0 = "/tmp/" + clusterName + ".0.users.nocompressexport.gz";
         String filename_1 = "/tmp/" + clusterName + ".1.users.nocompressexport.gz";
         new File(filename_0).delete();
@@ -352,7 +349,8 @@ public class RestExportActionTest extends AbstractRestActionTest {
      */
     @Test
     public void testVersion() {
-        esSetup.execute(index("users", "d", "2").withSource("{\"name\": \"electric bike\"}"));
+        client().index(new IndexRequest("users", "d", "2").source("{\"name\": \"electric bike\"}")).actionGet();
+        refresh();
         ExportResponse response = executeExportRequest(
                 "{\"output_cmd\": \"cat\", \"fields\": [\"_id\", \"_version\", \"_source\"]}");
 
@@ -369,14 +367,15 @@ public class RestExportActionTest extends AbstractRestActionTest {
      */
     @Test
     public void testExternalVersion() {
-        Client client = esSetup.client();
-        deleteIndex("test");
-        client.admin().indices().prepareCreate("test").execute().actionGet();
-        client.admin().cluster().prepareHealth("test").setWaitForGreenStatus().execute().actionGet();
+        prepareCreate("test").execute().actionGet();
+        waitForRelocation(ClusterHealthStatus.GREEN);
 
-        client.prepareIndex("test", "type", "1").setSource("field1", "value1_1").setVersion(
-                0).setVersionType(VersionType.EXTERNAL).execute().actionGet();
-        client.admin().indices().prepareRefresh().execute().actionGet();
+        client().prepareIndex("test", "type", "1")
+            .setSource("field1", "value1_1")
+            .setVersion(0)
+            .setVersionType(VersionType.EXTERNAL)
+            .execute().actionGet();
+        refresh();
 
         ExportResponse response = executeExportRequest(
                 "{\"output_cmd\": \"cat\", \"fields\": [\"_id\", \"_version\", \"_source\"]}");
@@ -386,7 +385,6 @@ public class RestExportActionTest extends AbstractRestActionTest {
         assertEquals(
                 "{\"_id\":\"1\",\"_version\":0,\"_source\":{\"field1\":\"value1_1\"}}\n",
                 infos.get(0).get("stdout"));
-        deleteIndex("test");
     }
 
     /**
@@ -406,13 +404,15 @@ public class RestExportActionTest extends AbstractRestActionTest {
      */
     @Test
     public void testTimestampStored(){
-        esSetup.execute(deleteAll(), createIndex("tsstored").withSettings(
-                fromClassPath("essetup/settings/test_b.json")).withMapping("d",
-                        "{\"d\": {\"_timestamp\": {\"enabled\": true, \"store\": \"yes\"}}}"));
-        Client client = esSetup.client();
-        client.prepareIndex("tsstored", "d", "1").setSource(
+        client().admin().indices().prepareDelete().execute().actionGet();
+        prepareCreate("tsstored").setSettings(
+            ImmutableSettings.builder().loadFromClasspath("essetup/settings/test_b.json").build())
+            .addMapping("d", "{\"d\": {\"_timestamp\": {\"enabled\": true, \"store\": \"yes\"}}}")
+            .execute().actionGet();
+
+        client().prepareIndex("tsstored", "d", "1").setSource(
                 "field1", "value1").setTimestamp("123").execute().actionGet();
-        client.admin().indices().prepareRefresh().execute().actionGet();
+        client().admin().indices().prepareRefresh().execute().actionGet();
 
         ExportResponse response = executeExportRequest(
                 "{\"output_cmd\": \"cat\", \"fields\": [\"_id\", \"_timestamp\"]}");
@@ -437,10 +437,12 @@ public class RestExportActionTest extends AbstractRestActionTest {
      */
     @Test
     public void testTTLEnabled() {
-        esSetup.execute(deleteAll(), createIndex("ttlenabled").withSettings(
-                fromClassPath("essetup/settings/test_b.json")).withMapping("d",
-                        "{\"d\": {\"_ttl\": {\"enabled\": true, \"default\": \"1d\"}}}"));
-        Client client = esSetup.client();
+        deleteAll();
+        prepareCreate("ttlenabled").setSettings(
+            ImmutableSettings.builder().loadFromClasspath("essetup/settings/test_b.json").build())
+            .addMapping("d", "{\"d\": {\"_ttl\": {\"enabled\": true, \"default\": \"1d\"}}}").execute().actionGet();
+
+        Client client = client();
         client.prepareIndex("ttlenabled", "d", "1").setSource("field1", "value1").execute().actionGet();
         client.admin().indices().prepareRefresh().execute().actionGet();
 
@@ -475,9 +477,8 @@ public class RestExportActionTest extends AbstractRestActionTest {
      */
     @Test
     public void testRouting() {
-        Client client = esSetup.client();
-        client.prepareIndex("users", "d", "1").setSource("field1", "value1").setRouting("2").execute().actionGet();
-        client.admin().indices().prepareRefresh().execute().actionGet();
+        client().prepareIndex("users", "d", "1").setSource("field1", "value1").setRouting("2").execute().actionGet();
+        client().admin().indices().prepareRefresh().execute().actionGet();
 
         ExportResponse response = executeExportRequest(
                 "{\"output_cmd\": \"cat\", \"fields\": [\"_id\", \"_source\", \"_routing\"]}");
@@ -494,9 +495,10 @@ public class RestExportActionTest extends AbstractRestActionTest {
      */
     @Test
     public void testExportRelativeFilename() {
-        esSetup2 = new EsSetup();
-        esSetup2.execute(index("users", "d").withSource("{\"name\": \"motorbike\"}"));
-        esSetup2.client().admin().cluster().prepareHealth().setWaitForGreenStatus().
+        node2 = cluster().startNode();
+        client(node2).index(new IndexRequest("users", "d").source("{\"name\": \"motorbike\"}"));
+        client(node2).admin().indices().refresh(new RefreshRequest("users")).actionGet();
+        client(node2).admin().cluster().prepareHealth().setWaitForGreenStatus().
             setWaitForNodes("2").setWaitForRelocatingShards(0).execute().actionGet();
 
         ExportResponse response = executeExportRequest(
@@ -539,7 +541,7 @@ public class RestExportActionTest extends AbstractRestActionTest {
 
     @Test
     public void testSettings() throws IOException {
-        String clusterName = esSetup.client().admin().cluster().prepareHealth().
+        String clusterName = client().admin().cluster().prepareHealth().
                 setWaitForGreenStatus().execute().actionGet().getClusterName();
         String filename_0 = "/tmp/" + clusterName + ".0.users.export";
         String filename_1 = "/tmp/" + clusterName + ".1.users.export";
@@ -554,9 +556,9 @@ public class RestExportActionTest extends AbstractRestActionTest {
         List<Map<String, Object>> infos = getExports(response);
         assertEquals(2, infos.size());
         String settings_0 = new BufferedReader(new FileReader(new File(filename_0))).readLine();
-        assertTrue(settings_0.matches("\\{\"users\":\\{\"settings\":\\{\"index.number_of_replicas\":\"0\",\"index.number_of_shards\":\"2\",\"index.version.created\":\"(.*)\"\\}\\}\\}"));
+        assertTrue(settings_0.matches("\\{\"users\":\\{\"settings\":\\{.*\"index.number_of_replicas\":\"0\",.*\"index.number_of_shards\":\"2\",.*\"index.version.created\":\"(.*)\"\\}\\}\\}"));
         String settings_1 = new BufferedReader(new FileReader(new File(filename_1))).readLine();
-        assertTrue(settings_1.matches("\\{\"users\":\\{\"settings\":\\{\"index.number_of_replicas\":\"0\",\"index.number_of_shards\":\"2\",\"index.version.created\":\"(.*)\"\\}\\}\\}"));
+        assertTrue(settings_1.matches("\\{\"users\":\\{\"settings\":\\{.*\"index.number_of_replicas\":\"0\",.*\"index.number_of_shards\":\"2\",.*\"index.version.created\":\"(.*)\"\\}\\}\\}"));
     }
 
     @Test
@@ -581,7 +583,7 @@ public class RestExportActionTest extends AbstractRestActionTest {
     }
 
     public void testMappings() throws IOException {
-        String clusterName = esSetup.client().admin().cluster().prepareHealth().
+        String clusterName = client().admin().cluster().prepareHealth().
                 setWaitForGreenStatus().execute().actionGet().getClusterName();
         String filename_0 = "/tmp/" + clusterName + ".0.users.export";
         String filename_1 = "/tmp/" + clusterName + ".1.users.export";
@@ -622,16 +624,6 @@ public class RestExportActionTest extends AbstractRestActionTest {
         assertTrue(response.getShardFailures()[0].reason().contains("Parse Failure [Parameter 'mappings' requires usage of 'output_file']]"));
     }
 
-
-    private boolean deleteIndex(String name) {
-        try {
-            esSetup.client().admin().indices().prepareDelete(name).execute().actionGet();
-        } catch (IndexMissingException e) {
-            return false;
-        }
-        return true;
-    }
-
     private static List<Map<String, Object>> getExports(ExportResponse resp) {
         Map<String, Object> res = null;
         try {
@@ -652,7 +644,7 @@ public class RestExportActionTest extends AbstractRestActionTest {
     private ExportResponse executeExportRequest(String source) {
         ExportRequest exportRequest = new ExportRequest();
         exportRequest.source(source);
-        return esSetup.client().execute(ExportAction.INSTANCE, exportRequest).actionGet();
+        return client().execute(ExportAction.INSTANCE, exportRequest).actionGet();
     }
 
     /**

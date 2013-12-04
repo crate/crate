@@ -106,7 +106,7 @@ public class SQLQueryService {
         request.types(new String[]{Constants.DEFAULT_MAPPING_TYPE});
 
         return new SearchContext(0,
-            request, shardTarget, indexShard.acquireSearcher(), indexService,
+            request, shardTarget, indexShard.acquireSearcher("search"), indexService,
             indexShard, scriptService, cacheRecycler
         );
     }
