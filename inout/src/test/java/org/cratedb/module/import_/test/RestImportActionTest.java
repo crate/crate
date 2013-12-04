@@ -263,8 +263,16 @@ public class RestImportActionTest extends AbstractRestActionTest {
         assertEquals(2, imports.size());
         String regex = "\\[\\{file_name=(.*)/nodes/(\\d)/myExport/export.(\\d).users.json, successes=(\\d), failures=0\\}\\]";
 
-        assertTrue(imports.get(0).get("imported_files").toString().matches(regex));
-        assertTrue(imports.get(1).get("imported_files").toString().matches(regex));
+        String importedFilesString = imports.get(0).get("imported_files").toString();
+        assertTrue(
+                String.format("'%s' does not match regex '%s'", importedFilesString, regex),
+                importedFilesString.matches(regex)
+        );
+        importedFilesString = imports.get(1).get("imported_files").toString();
+        assertTrue(
+                String.format("'%s' does not match regex '%s'", importedFilesString, regex),
+                importedFilesString.matches(regex)
+        );
 
         assertTrue(existsWithField("1", "name", "item1", "users", "d"));
         assertTrue(existsWithField("2", "name", "item2", "users", "d"));

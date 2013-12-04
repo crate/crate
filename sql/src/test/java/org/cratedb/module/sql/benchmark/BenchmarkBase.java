@@ -2,21 +2,14 @@ package org.cratedb.module.sql.benchmark;
 
 import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.test.integration.CrateIntegrationTest;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.node.Node;
-import org.junit.AfterClass;
 import org.junit.Before;
 
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.cratedb.test.integration.PathAccessor.bytesFromPath;
 import static org.cratedb.test.integration.PathAccessor.stringFromPath;
