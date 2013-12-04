@@ -29,17 +29,19 @@ public class SQLMapperResultRequest extends TransportRequest {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        contextId = new UUID(in.readLong(), in.readLong());
         try {
+            contextId = new UUID(in.readLong(), in.readLong());
+
             status = reduceJobs.get(contextId, 30, TimeUnit.SECONDS);
+
+            groupByResult = SQLGroupByResult.readSQLGroupByResult(
+                status.parsedStatement.aggregateExpressions,
+                status.seenIdxMapper,
+                in
+            );
         } catch (Exception e ) {
             throw new IOException(e);
         }
-        groupByResult = SQLGroupByResult.readSQLGroupByResult(
-            status.parsedStatement.aggregateExpressions,
-            status.seenIdxMapper,
-            in
-        );
     }
 
     @Override
