@@ -54,6 +54,8 @@ public class Version {
                 return V_0_19_7;
             case V_0_19_8_ID:
                 return V_0_19_8;
+            case V_0_19_9_ID:
+                return V_0_19_9;
             default:
                 return new Version(id, null, org.elasticsearch.Version.CURRENT);
         }

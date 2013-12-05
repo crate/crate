@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/12/05 0.19.9
+=================
+
  - benchmark test setup improvements
 
  - removed randomness from test setup
