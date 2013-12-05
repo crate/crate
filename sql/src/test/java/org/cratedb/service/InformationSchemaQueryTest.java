@@ -10,7 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 2, transportClientRatio = 0)
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 2)
 public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
 
     private static SQLParseService parseService;

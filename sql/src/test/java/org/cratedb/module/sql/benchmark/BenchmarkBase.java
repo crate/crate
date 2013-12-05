@@ -15,7 +15,7 @@ import static org.cratedb.test.integration.PathAccessor.bytesFromPath;
 import static org.cratedb.test.integration.PathAccessor.stringFromPath;
 
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 0, transportClientRatio = 0)
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 0)
 public class BenchmarkBase extends CrateIntegrationTest {
 
     public String NODE1 = null;

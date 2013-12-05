@@ -12,7 +12,7 @@ import org.junit.Test;
 import static org.cratedb.test.integration.PathAccessor.stringFromPath;
 
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 0, transportClientRatio = 0)
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 0)
 public class DocTest extends DoctestTestCase {
 
     static {

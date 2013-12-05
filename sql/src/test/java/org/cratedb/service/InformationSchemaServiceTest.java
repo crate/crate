@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.contains;
 
-@CrateIntegrationTest.ClusterScope(numNodes = 2, scope = CrateIntegrationTest.Scope.SUITE, transportClientRatio = 0)
+@CrateIntegrationTest.ClusterScope(numNodes = 2, scope = CrateIntegrationTest.Scope.SUITE)
 public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
 
     @Rule

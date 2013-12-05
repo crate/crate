@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - removed randomness from test setup
+
  - renamed crate admin plugin to `admin-ui`
 
  - updated elasticsearch to 0.90.7
