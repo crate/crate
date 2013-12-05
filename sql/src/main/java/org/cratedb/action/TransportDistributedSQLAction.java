@@ -750,7 +750,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
             @Override
             public String executor() {
-                return ThreadPool.Names.SAME;
+                return ThreadPool.Names.MERGE;
             }
         }
     }

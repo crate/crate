@@ -4,6 +4,8 @@ Changes for Crate
 
 Unreleased
 ==========
+ 
+ - changed threadpool settings to avoid handler blocking each other on group by queries
 
 2013/12/05 0.19.9
 =================
