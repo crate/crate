@@ -5,7 +5,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.Map;
 
-abstract class NodeSettingsSource {
+public abstract class NodeSettingsSource {
 
     public static final NodeSettingsSource EMPTY = new NodeSettingsSource() {
         @Override

@@ -143,7 +143,7 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
     }
 
     @After
-    public final void after() throws IOException {
+    public void after() throws IOException {
         try {
             logger.info("[{}#{}]: cleaning up after test", getTestClass().getSimpleName(), getTestName());
             Scope currentClusterScope = getCurrentClusterScope();
