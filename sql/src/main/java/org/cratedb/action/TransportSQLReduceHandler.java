@@ -44,7 +44,7 @@ public class TransportSQLReduceHandler {
     public void registerHandler() {
         transportService.registerHandler(Actions.START_REDUCE_JOB, new StartReduceJobHandler());
         transportService.registerHandler(
-            Actions.RECEIVE_PARTIAL_RESULT, new RecievePartialResultHandler());
+            Actions.RECEIVE_PARTIAL_RESULT, new ReceivePartialResultHandler());
     }
 
     public SQLReduceJobResponse reduceOperationStart(SQLReduceJobRequest request) {
@@ -101,7 +101,7 @@ public class TransportSQLReduceHandler {
 
         @Override
         public String executor() {
-            return ThreadPool.Names.SEARCH;
+            return ThreadPool.Names.GENERIC;
         }
 
         @Override
@@ -110,7 +110,7 @@ public class TransportSQLReduceHandler {
         }
     }
 
-    private class RecievePartialResultHandler implements TransportRequestHandler<SQLMapperResultRequest> {
+    private class ReceivePartialResultHandler implements TransportRequestHandler<SQLMapperResultRequest> {
         @Override
         public SQLMapperResultRequest newInstance() {
             return new SQLMapperResultRequest(activeReduceJobs);
@@ -155,7 +155,7 @@ public class TransportSQLReduceHandler {
 
         @Override
         public String executor() {
-            return ThreadPool.Names.SEARCH;
+            return ThreadPool.Names.MERGE;
         }
 
         @Override
