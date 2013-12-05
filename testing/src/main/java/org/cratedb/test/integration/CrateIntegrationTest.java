@@ -32,12 +32,10 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.merge.policy.*;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.elasticsearch.test.ElasticsearchTestCase;
-import org.elasticsearch.test.TestCluster;
 import org.junit.After;
 import org.junit.Before;
 
@@ -81,25 +79,14 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
      */
     public static final long SHARED_CLUSTER_SEED = clusterSeed();
 
-    private static final CrateTestCluster GLOBAL_CLUSTER = new CrateTestCluster(
+    public static final CrateTestCluster GLOBAL_CLUSTER = new CrateTestCluster(
         SHARED_CLUSTER_SEED, CrateTestCluster.clusterName("shared", ElasticsearchTestCase.CHILD_VM_ID, SHARED_CLUSTER_SEED));
-
-    /**
-     * Key used to set the transport client ratio via the commandline -D{@value #TESTS_CLIENT_RATIO}
-     */
-    public static final String TESTS_CLIENT_RATIO = "tests.client.ratio";
 
     /**
      * Key used to set the shared cluster random seed via the commandline -D{@value #TESTS_CLUSTER_SEED}
      */
     public static final String TESTS_CLUSTER_SEED = "tests.cluster_seed";
 
-    /**
-     * Key used to retrieve the index random seed from the index settings on a running node.
-     * The value of this seed can be used to initialize a random context for a specific index.
-     * It's set once per test via a generic index template.
-     */
-    public static final String INDEX_SEED_SETTING = "index.tests.seed";
 
     /**
      * The current cluster depending on the configured {@link Scope}.
@@ -107,8 +94,6 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
      * on across test suites.
      */
     private static CrateTestCluster currentCluster;
-
-    private static final double TRANSPORT_CLIENT_RATIO = transportClientRatio();
 
     private static final Map<Class<?>, CrateTestCluster> clusters = new IdentityHashMap<Class<?>, CrateTestCluster>();
 
@@ -129,10 +114,9 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
             default:
                 assert false : "Unknonw Scope: [" + currentClusterScope + "]";
         }
-        currentCluster.beforeTest(getRandom(), getPerTestTransportClientRatio());
+        currentCluster.beforeTest(getRandom());
         wipeIndices();
         wipeTemplates();
-        randomIndexTemplate();
         logger.info("[{}#{}]: before test", getTestClass().getSimpleName(), getTestName());
     }
 
@@ -196,44 +180,6 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
 
     public static Client client() {
         return cluster().client();
-    }
-
-    /**
-     * Creates a randomized index template. This template is used to pass in randomized settings on a
-     * per index basis.
-     */
-    private static void randomIndexTemplate() {
-        // TODO move settings for random directory etc here into the index based randomized settings.
-        if (cluster().size() > 0) {
-            client().admin().indices().preparePutTemplate("random_index_template")
-                .setTemplate("*")
-                .setOrder(0)
-                .setSettings(setRandomMergePolicy(getRandom(), ImmutableSettings.builder()
-                    .put(INDEX_SEED_SETTING, getRandom().nextLong())))
-                .execute().actionGet();
-        }
-    }
-
-
-    private static ImmutableSettings.Builder setRandomMergePolicy(Random random, ImmutableSettings.Builder builder) {
-        if (random.nextBoolean()) {
-            builder.put(AbstractMergePolicyProvider.INDEX_COMPOUND_FORMAT,
-                random.nextBoolean() ? random.nextDouble() : random.nextBoolean());
-        }
-        Class<? extends MergePolicyProvider<?>> clazz = TieredMergePolicyProvider.class;
-        switch(random.nextInt(5)) {
-            case 4:
-                clazz = LogByteSizeMergePolicyProvider.class;
-                break;
-            case 3:
-                clazz = LogDocMergePolicyProvider.class;
-                break;
-            case 0:
-                return builder; // don't set the setting at all
-        }
-        assert clazz != null;
-        builder.put(MergePolicyModule.MERGE_POLICY_TYPE_KEY, clazz.getName());
-        return builder;
     }
 
     public static Iterable<Client> clients() {
@@ -496,11 +442,9 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
         return refresh(client());
     }
 
-    public final RefreshResponse refresh(Client client) {
+    public RefreshResponse refresh(Client client) {
         waitForRelocation();
-        RefreshResponse actionGet = client.admin().indices().prepareRefresh().execute().actionGet();
-        // assertNoFailures(actionGet);
-        return actionGet;
+        return client.admin().indices().prepareRefresh().execute().actionGet();
     }
 
     /**
@@ -794,12 +738,6 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
          * a random number of nodes but at least <code>2</code></tt> is used./
          */
         int numNodes() default -1;
-
-        /**
-         * Returns the transport client ratio. By default this returns <code>-1</code> which means a random
-         * ratio in the interval <code>[0..1]</code> is used.
-         */
-        double transportClientRatio() default -1;
     }
 
     private static long clusterSeed() {
@@ -809,34 +747,4 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
         }
         return SeedUtils.parseSeed(property);
     }
-
-    /**
-     *  Returns the client ratio configured via
-     */
-    private static double transportClientRatio() {
-        String property = System.getProperty(TESTS_CLIENT_RATIO);
-        if (property == null || property.isEmpty()) {
-            return Double.NaN;
-        }
-        return Double.parseDouble(property);
-    }
-
-    /**
-     * Returns the transport client ratio from the class level annotation or via
-     * {@link System#getProperty(String)} if available. If both are not available this will
-     * return a random ratio in the interval <tt>[0..1]</tt>
-     */
-    private double getPerTestTransportClientRatio() {
-        final ClusterScope annotation = getAnnotation(this.getClass());
-        double perTestRatio = -1;
-        if (annotation != null) {
-            perTestRatio = annotation.transportClientRatio();
-        }
-        if (perTestRatio == -1) {
-            return Double.isNaN(TRANSPORT_CLIENT_RATIO) ? randomDouble() : TRANSPORT_CLIENT_RATIO;
-        }
-        assert perTestRatio >= 0.0 && perTestRatio <= 1.0;
-        return perTestRatio;
-    }
-
 }

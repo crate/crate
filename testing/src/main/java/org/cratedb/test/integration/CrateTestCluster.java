@@ -84,8 +84,6 @@ public class CrateTestCluster implements Iterable<Client> {
      * fully shared cluster to be more reproducible */
     private final long[] sharedNodesSeeds;
 
-    private double transportClientRatio = 0.0;
-
     private final NodeSettingsSource nodeSettingsSource;
 
     public CrateTestCluster(long clusterSeed, String clusterName) {
@@ -95,15 +93,8 @@ public class CrateTestCluster implements Iterable<Client> {
     public CrateTestCluster(long clusterSeed, int numNodes, String clusterName, NodeSettingsSource nodeSettingsSource) {
         this.clusterName = clusterName;
         Random random = new Random(clusterSeed);
-        numSharedNodes = numNodes == -1 ? 2 + random.nextInt(4) : numNodes; // at least 2 nodes if randomized
-        assert numSharedNodes >= 0;
-        /*
-         *  TODO
-         *  - we might want start some master only nodes?
-         *  - we could add a flag that returns a client to the master all the time?
-         *  - we could add a flag that never returns a client to the master
-         *  - along those lines use a dedicated node that is master eligible and let all other nodes be only data nodes
-         */
+        numSharedNodes = numNodes < 0 ? 2 : numNodes;
+
         sharedNodesSeeds = new long[numSharedNodes];
         for (int i = 0; i < sharedNodesSeeds.length; i++) {
             sharedNodesSeeds[i] = random.nextLong();
@@ -117,13 +108,11 @@ public class CrateTestCluster implements Iterable<Client> {
         }
 
         ImmutableSettings.Builder builder = settingsBuilder()
-        /* use RAM directories in 10% of the runs */
-//        .put("index.store.type", random.nextInt(10) == 0 ? MockRamIndexStoreModule.class.getName() : MockFSIndexStoreModule.class.getName())
             .put("index.store.type", MockFSIndexStoreModule.class.getName()) // no RAM dir for now!
             .put(IndexEngineModule.EngineSettings.ENGINE_TYPE, MockEngineModule.class.getName())
             .put("cluster.name", clusterName)
                 // decrease the routing schedule so new nodes will be added quickly - some random value between 30 and 80 ms
-            .put("cluster.routing.schedule", (30 + random.nextInt(50)) + "ms");
+            .put("cluster.routing.schedule", "30ms");
 
         if (tmpDataDir != null) {
             builder.put("path.data", tmpDataDir.toAbsolutePath());
@@ -266,10 +255,9 @@ public class CrateTestCluster implements Iterable<Client> {
         Settings finalSettings = settingsBuilder()
             .put(settings)
             .put("name", name)
-            .put("discovery.id.seed", seed)
             .build();
         Node node = nodeBuilder().settings(finalSettings).build();
-        return new NodeAndClient(name, node, new RandomClientFactory());
+        return new NodeAndClient(name, node, new ClientFactory());
     }
 
     private String buildNodeName(int id) {
@@ -403,7 +391,7 @@ public class CrateTestCluster implements Iterable<Client> {
             if (client != null) {
                 return client;
             }
-            return client = clientFactory.client(node, clusterName, random);
+            return client = clientFactory.client(node, clusterName);
         }
 
         Client nodeClient() {
@@ -467,62 +455,20 @@ public class CrateTestCluster implements Iterable<Client> {
 
     static class ClientFactory {
 
-        public Client client(Node node, String clusterName, Random random) {
+        public Client client(Node node, String clusterName) {
             return node.client();
-        }
-    }
-
-    static class TransportClientFactory extends ClientFactory {
-
-        private boolean sniff;
-        public static TransportClientFactory NO_SNIFF_CLIENT_FACTORY = new TransportClientFactory(false);
-        public static TransportClientFactory SNIFF_CLIENT_FACTORY = new TransportClientFactory(true);
-
-        public TransportClientFactory(boolean sniff) {
-            this.sniff = sniff;
-        }
-
-        @Override
-        public Client client(Node node, String clusterName, Random random) {
-            TransportAddress addr = ((InternalNode) node).injector().getInstance(TransportService.class).boundAddress().publishAddress();
-            TransportClient client = new TransportClient(settingsBuilder().put("client.transport.nodes_sampler_interval", "1s")
-                .put("name", "transport_client_" + node.settings().get("name"))
-                .put("cluster.name", clusterName).put("client.transport.sniff", sniff).build());
-            client.addTransportAddress(addr);
-            return client;
-        }
-    }
-
-    class RandomClientFactory extends ClientFactory {
-
-        @Override
-        public Client client(Node node, String clusterName, Random random) {
-            double nextDouble = random.nextDouble();
-            if (nextDouble < transportClientRatio) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Using transport client for node [{}] sniff: [{}]", node.settings().get("name"), false);
-                }
-                /* no sniff client for now - doesn't work will all tests since it might throw NoNodeAvailableException if nodes are shut down.
-                 * we first need support of transportClientRatio as annotations or so
-                 */
-                return TransportClientFactory.NO_SNIFF_CLIENT_FACTORY.client(node, clusterName, random);
-            } else {
-                return node.client();
-            }
         }
     }
 
     /**
      * This method should be exectued before each test to reset the cluster to it's initial state.
      */
-    synchronized void beforeTest(Random random, double transportClientRatio) {
-        reset(random, true, transportClientRatio);
+    synchronized void beforeTest(Random random) {
+        reset(random, true);
     }
 
-    private synchronized void reset(Random random, boolean wipeData, double transportClientRatio) {
-        assert transportClientRatio >= 0.0 && transportClientRatio <= 1.0;
-        logger.debug("Reset test cluster with transport client ratio: [{}]", transportClientRatio);
-        this.transportClientRatio = transportClientRatio;
+    private synchronized void reset(Random random, boolean wipeData) {
+        logger.debug("Reset test cluster");
         this.random = new Random(random.nextLong());
         resetClients(); /* reset all clients - each test gets it's own client based on the Random instance created above. */
         if (wipeData) {
@@ -904,7 +850,7 @@ public class CrateTestCluster implements Iterable<Client> {
     }
 
     public void closeNonSharedNodes(boolean wipeData) {
-        reset(random, wipeData, transportClientRatio);
+        reset(random, wipeData);
     }
 
 

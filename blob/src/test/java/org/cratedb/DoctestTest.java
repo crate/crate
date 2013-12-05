@@ -6,7 +6,7 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Test;
 
 
-@CrateIntegrationTest.ClusterScope(numNodes = 2, scope = CrateIntegrationTest.Scope.GLOBAL, transportClientRatio = 0)
+@CrateIntegrationTest.ClusterScope(numNodes = 2, scope = CrateIntegrationTest.Scope.GLOBAL)
 public class DoctestTest extends DoctestClusterTestCase {
 
     @Test

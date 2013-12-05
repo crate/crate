@@ -576,6 +576,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
         private void onMapperFailure(Throwable e) {
             shardErrors.set(true);
+            logger.error("mapper failure", e);
             lastException.set(e);
             onMapperOperation(null);
         }

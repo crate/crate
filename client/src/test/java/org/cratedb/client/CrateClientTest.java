@@ -9,7 +9,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 0, transportClientRatio = 0)
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 0)
 public class CrateClientTest extends CrateIntegrationTest {
 
     static {

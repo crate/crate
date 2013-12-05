@@ -30,11 +30,10 @@ import static org.cratedb.test.integration.PathAccessor.stringFromPath;
  * Abstract base class for the plugin's rest action tests. Sets up the client
  * and delivers some base functionality needed for all tests.
  */
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 1, transportClientRatio = 0)
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 1)
 public abstract class AbstractRestActionTest extends CrateIntegrationTest {
 
     protected String node2;
-
 
     @Override
     public Settings indexSettings() {
@@ -53,6 +52,13 @@ public abstract class AbstractRestActionTest extends CrateIntegrationTest {
 
         loadBulk("/essetup/data/test_b.json", getClass());
         refresh();
+    }
+
+    @After
+    public void cleanUpSecondNode() throws Exception {
+        if (node2 != null) {
+            cluster().stopNode(node2);
+        }
     }
 
     /**

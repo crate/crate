@@ -30,7 +30,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.hamcrest.Matchers.*;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 2, transportClientRatio = 0)
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 2)
 public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     private SQLResponse response;

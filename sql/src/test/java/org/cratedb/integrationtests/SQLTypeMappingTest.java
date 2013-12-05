@@ -28,7 +28,6 @@ import java.util.Map;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
-@CrateIntegrationTest.ClusterScope(transportClientRatio = 0)
 public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Rule

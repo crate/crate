@@ -24,7 +24,6 @@ import org.junit.Before;
 import java.io.IOException;
 import java.util.Map;
 
-@CrateIntegrationTest.ClusterScope(transportClientRatio = 0)
 public class SQLTransportIntegrationTest extends CrateIntegrationTest {
 
     static {

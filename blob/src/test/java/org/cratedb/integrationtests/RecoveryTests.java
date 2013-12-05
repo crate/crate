@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.hamcrest.core.IsEqual.equalTo;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 0, transportClientRatio = 0)
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 0)
 public class RecoveryTests extends CrateIntegrationTest {
 
     private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(25, TimeUnit.MINUTES);
