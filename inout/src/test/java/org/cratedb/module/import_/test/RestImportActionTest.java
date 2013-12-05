@@ -238,6 +238,7 @@ public class RestImportActionTest extends AbstractRestActionTest {
         prepareCreate("users").setSettings(
             ImmutableSettings.builder().loadFromClasspath("/essetup/settings/test_b.json").build()
         ).addMapping("d", stringFromPath("/essetup/mappings/test_b.json", getClass())).execute().actionGet();
+        ensureGreen();
 
         client().index(new IndexRequest("users", "d", "1").source("{\"name\": \"item1\"}")).actionGet();
         client().index(new IndexRequest("users", "d", "2").source("{\"name\": \"item2\"}")).actionGet();

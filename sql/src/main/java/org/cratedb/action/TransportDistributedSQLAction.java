@@ -625,6 +625,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
         private void onReduceJobFailure(Throwable e) {
             reducerErrors.set(true);
+            logger.error(e.getMessage(), e);
             lastException.set(e);
             reduceResponseCounter.decrementAndGet();
             tryFinishResponse();

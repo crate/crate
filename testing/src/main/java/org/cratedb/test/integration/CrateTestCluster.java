@@ -92,7 +92,7 @@ public class CrateTestCluster implements Iterable<Client> {
 
     public CrateTestCluster(long clusterSeed, int numNodes, String clusterName, NodeSettingsSource nodeSettingsSource) {
         this.clusterName = clusterName;
-        Random random = new Random(clusterSeed);
+        random = new Random(clusterSeed);
         numSharedNodes = numNodes < 0 ? 2 : numNodes;
 
         sharedNodesSeeds = new long[numSharedNodes];
@@ -143,7 +143,7 @@ public class CrateTestCluster implements Iterable<Client> {
         return builder.build();
     }
 
-    static String clusterName(String prefix, String childVMId, long clusterSeed) {
+    public static String clusterName(String prefix, String childVMId, long clusterSeed) {
         StringBuilder builder = new StringBuilder(prefix);
         builder.append('-').append(NetworkUtils.getLocalAddress().getHostName());
         builder.append("-CHILD_VM=[").append(childVMId).append(']');
@@ -264,7 +264,7 @@ public class CrateTestCluster implements Iterable<Client> {
         return "node_" + id;
     }
 
-    synchronized Client client() {
+    public synchronized Client client() {
         ensureOpen();
         /* Randomly return a client to one of the nodes in the cluster */
         return getOrBuildRandomNode().client(random);
@@ -526,7 +526,7 @@ public class CrateTestCluster implements Iterable<Client> {
     /**
      * This method should be executed during tearDown
      */
-    synchronized void afterTest() {
+    public synchronized void afterTest() {
         wipeDataDirectories();
         resetClients(); /* reset all clients - each test gets it's own client based on the Random instance created above. */
 
