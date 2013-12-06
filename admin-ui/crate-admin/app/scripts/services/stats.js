@@ -7,14 +7,15 @@ angular.module('stats', [])
                       yellow: 'label-warning',
                       red: 'label-important'};
       var data = {
-        cluster_name: ''
+        name: '',
+        status: '',
+        color: '',
+        load: [0.0, 0.0, 0.0]
       };
 
-      var refresh = function() {
+      var refreshHealth = function() {
         $http({method: 'GET', url: prefix + '/_cluster/health'}).
           success(function(res_data) {
-            $log.info("Received stats from cluster: " + res_data);
-            $log.info("Received stats from cluster, name: " + res_data.cluster_name);
             data.name = res_data.cluster_name;
             data.status = res_data.status;
             data.color = colorMap[res_data.status];
@@ -23,9 +24,39 @@ angular.module('stats', [])
           }).
           error(function() {
           });
-        $timeout(refresh, 5000);
+        $timeout(refreshHealth, 5000);
       };
 
-      refresh();
-      return data;
-  }]);
+      function clusterLoad(nodes) {
+        var nodes_count = 0;
+        var load = [0.0, 0.0, 0.0];
+        for (var node in nodes) {
+          nodes_count++;
+          for (var i=0; i<3; i++) {
+            load[i] = load[i]+nodes[node].os.load_average[i];
+          }
+        }
+        for (var i; i<3; i++) {
+          load[i] = load[i]/nodes_count;
+        }
+        return load;
+      }
+
+      var refreshState = function() {
+        $http({method: 'GET', url: prefix + '/_nodes/stats?all=true'}).
+          success(function(res_data) {
+            data.load = clusterLoad(res_data.nodes);
+          }).
+          error(function() {
+          });
+        $timeout(refreshState, 5000);
+      };
+
+      refreshHealth();
+      refreshState();
+
+      return {
+        data: data
+      };
+  }])
+  ;
