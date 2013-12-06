@@ -1,70 +1,59 @@
 <div ng-controller="OverviewController">
 
-    <div id="wrapper">
-
-        <div id="page-wrapper">
-
-            <div class="row">
-                <div class="col-lg-12">
-                    <h1 class="page-header">Cluster overview</h1>
-                </div>
-            </div><!-- /.row -->
-
-            <div class="row">
-                <div class="col-lg-12">
-                    <h1 class="page-header">
-                        <table class="table">
-                            <thead>
-                            <tr>
-                                <th><span class="label {{cluster_color}}">{{cluster_state}}</span></th>
-                                <th>{{replicated_data}}</th>
-                                <th>{{available_data}}</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr>
-                                <td>Health</td>
-                                <td>Full Replicated Data</td>
-                                <td>Available Data</td>
-                            </tr>
-                            </tbody>
-                        </table>
-
-                        <table class="table">
-                            <thead>
-                            <tr>
-                                <th>{{records_total}}</th>
-                                <th>{{records_underreplicated}}</th>
-                                <th>{{records_unavailable}}</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <tr>
-                                <td>Records Total</td>
-                                <td>Underreplicated Records</td>
-                                <td>Unavailable Records</td>
-                            </tr>
-                            </tbody>
-                        </table>
-
-                    </h1>
-                </div>
-            </div><!-- /.row -->
-
-
-            <div class="row">
-                <div class="col-lg-12">
-                    <h1 class="page-header"> <img src="images/overview_parameter.png" alt="Overview graphs"></h1>
-                </div>
-            </div><!-- /.row -->
-
-            <div class="row">
-                <div class="col-lg-12">
-                    <h6 class="page-header">© 2013 Crate Technology GmbH</h6>
-                </div>
-            </div><!-- /.row -->
-
+    <div class="row">
+        <div class="col-lg-12">
+            <h1 class="page-header">Cluster overview</h1>
         </div>
-    </div>
+    </div><!-- /.row -->
 
+    <div class="row">
+        <div class="col-lg-12">
+            <h1 class="page-header">
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th><span class="label {{cluster_color}}">{{cluster_state}}</span></th>
+                        <th>{{replicated_data}}</th>
+                        <th>{{available_data}}</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Health</td>
+                        <td>Full Replicated Data</td>
+                        <td>Available Data</td>
+                    </tr>
+                    </tbody>
+                </table>
+
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>{{records_total}}</th>
+                        <th>{{records_underreplicated}}</th>
+                        <th>{{records_unavailable}}</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Records Total</td>
+                        <td>Underreplicated Records</td>
+                        <td>Unavailable Records</td>
+                    </tr>
+                    </tbody>
+                </table>
+
+            </h1>
+        </div>
+    </div><!-- /.row -->
+
+
+    <div class="row">
+        <div class="col-lg-12">
+            <h1 class="page-header"> <img src="images/overview_parameter.png" alt="Overview graphs"></h1>
+        </div>
+    </div><!-- /.row -->
+
+
+  <div id="push"></div>
 </div>

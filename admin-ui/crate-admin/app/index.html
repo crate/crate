@@ -61,7 +61,26 @@
 
     <div ng-include="'views/statusbar.html'"></div>
 
-    <div ng-view></div>
+    <div id="wrapper">
+
+      <div id="page-wrapper">
+
+        <div ng-view></div>
+
+      </div>
+    </div>
+
+
+    <footer>
+      <div class="container">
+
+        <ul class="list-unstyled">
+          <li class="pull-right"><a href="#">Back to top</a></li>
+        </ul>
+        <p>© Copyright 2013, Crate Technology GmbH.<br></p>
+
+      </div>
+    </footer>
 
 </body>
 </html>

@@ -12,7 +12,7 @@ crateAdminApp.config(['$routeProvider',
   function ($routeProvider) {
     $routeProvider
       .when('/', {
-        templateUrl: 'views/overview.html',
+        templateUrl: 'views/empty_overview.html',
         controller: 'OverviewController'
       })
       .when('/console', {

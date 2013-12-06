@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - implemented basic version of new admin-ui
+
  - fixed a thread deadlock that could occur if many group by queries run in
    parallel
  

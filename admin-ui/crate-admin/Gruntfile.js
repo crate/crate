@@ -241,7 +241,7 @@ module.exports = function (grunt) {
             '.htaccess',
             'bower_components/**/*',
             'images/{,*/}*.{gif,webp,svg}',
-            'styles/fonts/*'
+            'fonts/**',
           ]
         }, {
           expand: true,
@@ -262,6 +262,11 @@ module.exports = function (grunt) {
             cwd: 'tmp/crate-theme-'+CRATE_THEME_VERSION+'/assets/img/',
             src: '**',
             dest: '<%= yeoman.app %>/images/',
+            expand: true
+        }, {
+            cwd: 'tmp/crate-theme-'+CRATE_THEME_VERSION+'/assets/fonts/',
+            src: '**',
+            dest: '<%= yeoman.app %>/fonts/',
             expand: true
         }]
       }
@@ -318,6 +323,9 @@ module.exports = function (grunt) {
           }, {
             pattern: '../bower_components',
             replacement: 'bower_components'
+          }, {
+            pattern: '../fonts/',
+            replacement: 'fonts/'
           }]
         }
       }
@@ -336,7 +344,6 @@ module.exports = function (grunt) {
         request = require('request');
 
     request('http://download.cratedb.org/eggs/crate-theme-'+CRATE_THEME_VERSION+'.tar.gz')
-      .on("")
       .pipe(zlib.createGunzip())
       .pipe(tar.Extract({ path: "tmp" }))
       .on("error", function (er) {

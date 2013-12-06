@@ -13,11 +13,11 @@
 
     <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
 
-        <link rel="stylesheet" href="styles/38293b24.main.css">
+        <link rel="stylesheet" href="styles/0dda8f3a.main.css">
 
     <script src="scripts/3385483e.angular.js"></script>
 
-    <script src="scripts/ab0b7d60.scripts.js"></script>
+    <script src="scripts/b21ce060.scripts.js"></script>
 
     <script src="scripts/dc1faddf.plugins.js"></script>
 
@@ -36,7 +36,26 @@
 
     <div ng-include="'views/statusbar.html'"></div>
 
-    <div ng-view=""></div>
+    <div id="wrapper">
+
+      <div id="page-wrapper">
+
+        <div ng-view=""></div>
+
+      </div>
+    </div>
+
+
+    <footer>
+      <div class="container">
+
+        <ul class="list-unstyled">
+          <li class="pull-right"><a href="#">Back to top</a></li>
+        </ul>
+        <p>© Copyright 2013, Crate Technology GmbH.<br></p>
+
+      </div>
+    </footer>
 
 </body>
 </html>

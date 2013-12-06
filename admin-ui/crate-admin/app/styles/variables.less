@@ -3,6 +3,52 @@
 // --------------------------------------------------
 
 
+// Typography
+// -------------------------
+
+
+@font-face {
+  font-family: BlenderProThin;
+  src: url('@{blender-font-path}BlenderPro-ThinWeb.eot');
+  src: url('@{blender-font-path}BlenderPro-ThinWeb.eot?#iefix') format('embedded-opentype'),
+    url('@{blender-font-path}BlenderPro-ThinWeb.woff') format('woff'),
+    url('@{blender-font-path}BlenderPro-Thin.ttf') format('truetype');
+}
+
+@font-face {
+
+  font-family: BlenderProBold;
+  src: url('@{blender-font-path}BlenderPro-BoldWeb.eot');
+  src: url('@{blender-font-path}BlenderPro-ThinWeb.eot?#iefix') format('embedded-opentype'),
+    url('@{blender-font-path}BlenderPro-BoldWeb.woff') format('woff'),
+    url('@{blender-font-path}BlenderPro-Bold.ttf') format('truetype');
+}
+
+@font-family-base:  'BlenderProThin';
+@font-family-bold:  'BlenderProBold';
+
+
+@font-size-base:          1.6em;
+@font-size-large:    	  ceil(@font-size-base * 1.25); // ~18px
+@font-size-small:         1.3em;
+
+
+@font-size-h1:            floor(@font-size-base * 2.6); // ~36px
+@font-size-h2:            floor(@font-size-base * 2.15); // ~30px
+@font-size-h3:            ceil(@font-size-base * 1.7); // ~24px
+@font-size-h4:            ceil(@font-size-base * 1.25); // ~18px
+@font-size-h5:            @font-size-base;
+@font-size-h6:            ceil(@font-size-base * 0.2); // ~12px
+
+@line-height-base:        1.428571429; // 20/14
+@line-height-computed:    floor(@font-size-base * @line-height-base); // ~20px
+
+@headings-font-family:    @font-family-base;
+@headings-font-weight:    500;
+@headings-line-height:    1.1;
+@headings-color:          inherit;
+
+
 // Global values
 // --------------------------------------------------
 
@@ -38,30 +84,7 @@
 @link-color:            @gray;
 @link-hover-color:      darken(@link-color, 15%);
 
-// Typography
-// -------------------------
 
-@font-family-sans-serif:  'Blender Pro', Helvetica, Arial, sans-serif;
-@font-family-base:        @font-family-sans-serif;
-
-@font-size-base:          1.5em;
-@font-size-large:    	  ceil(@font-size-base * 1.25); // ~18px
-@font-size-small:         1.5em;
-
-@font-size-h1:            floor(@font-size-base * 2.6); // ~36px
-@font-size-h2:            floor(@font-size-base * 2.15); // ~30px
-@font-size-h3:            ceil(@font-size-base * 1.7); // ~24px
-@font-size-h4:            ceil(@font-size-base * 1.25); // ~18px
-@font-size-h5:            @font-size-base;
-@font-size-h6:            ceil(@font-size-base * 0.2); // ~12px
-
-@line-height-base:        1.428571429; // 20/14
-@line-height-computed:    floor(@font-size-base * @line-height-base); // ~20px
-
-@headings-font-family:    @font-family-base;
-@headings-font-weight:    500;
-@headings-line-height:    1.1;
-@headings-color:          inherit;
 
 
 // Iconography

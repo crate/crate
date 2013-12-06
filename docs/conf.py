@@ -1,8 +1,7 @@
 import os
 import sys
 
-sys.path.append(os.path.abspath('.'))
-sys.path.append(os.path.abspath('_themes'))
+import crate_theme.sphinx
 
 
 project = u'Crate DB'
@@ -13,9 +12,6 @@ source_suffix = '.txt'
 # The master toctree document.
 master_doc = 'index'
 
-html_theme = 'crate'
-html_theme_path = ['_themes']
-html_static_path = ['_static']
 nitpicky = True
 
 html_show_sourcelink = False
@@ -24,3 +20,10 @@ html_show_sourcelink = False
 exclude_trees = ['pyenv', 'tmp', 'out', 'crate-python/tmp']
 
 extensions = ['sphinx.ext.autodoc']
+
+html_theme = 'bootstrap'
+html_theme_path = crate_theme.sphinx.get_html_theme_path()
+
+html_theme_options = {
+    'bootswatch_theme': "crate",
+}

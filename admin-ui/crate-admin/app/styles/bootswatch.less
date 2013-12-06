@@ -2,11 +2,14 @@
 // Bootswatch
 // -----------------------------------------------------
 
+
+
 body {
     color: @text-color;
     font-family: @font-family-base;
     font-size: @font-size-base;
-    }
+    height: 100%;
+}
 
 ul, ol {
     list-style: none;
@@ -17,7 +20,7 @@ ul, ol {
 // Navs =======================================================================
 
 .list-inline li {
-    padding-right:14ppx;
+    padding-right:14px;
 }
 
 .row ul li:before {
@@ -146,7 +149,7 @@ p.intro {
 }
 
 p {
-    margin-bottom: 30px;
+    margin-bottom: 50px;
 }
 
 .cra-content {
@@ -170,7 +173,7 @@ p {
 
 .cra-health-content {
     text-transform: uppercase;
-    padding-top: 4px;
+    padding-top: 3px;
     text-align: right;
 }
 
@@ -187,17 +190,21 @@ p {
 
 // Wrapper ====================================================================
 
-  #wrapper {
+#wrapper {
     padding-left: 20px;
-  }
+    padding-top: 96px;
+    min-height: 100%;
+}
 
-  #page-wrapper {
-    width:85%;
-  }
+#page-wrapper {
+  width:85%;
+  overflow:auto;
+  padding-bottom:60px; /* this needs to be bigger than footer height*/
+}
 
 .page-header {
   padding-bottom: 0;
-  margin: 66px 0 0;
+  margin: 20px 0 0;
   border-bottom: 1px solid #eeeeee;
 }
 
@@ -251,10 +258,11 @@ p {
     height:40px;
     font-size:1.2em;
     font-style: 100;
+    margin-bottom:15px;
+
 }
 
 .form-group {
-    max-width:300px;
     }
 
 .btn {
@@ -278,9 +286,11 @@ p {
 
 h2, h3, h4, h5 {
   font-weight: bold;
-  font-size: @font-size-base;
+  font-size: @font-size-small;
+  font-family: @font-family-bold;
   padding:0;
   margin:0;
+  padding-bottom:30px;
 }
 
 h1 {
@@ -293,10 +303,11 @@ h1 {
 
 h3{
   font-weight: 100;
+  font-family: @font-family-base;
 }
 
 h6 {
-    color:@gray-lighter;
+    color:@gray-light;
 }
 
 // Page header
@@ -325,23 +336,36 @@ h6 {
 
 .table > tbody > tr > td {
     font-size:15px;
+    padding-bottom: 30px;
+    padding-top:0;
 }
 
 .table > thead > tr > th {
-
+    padding-bottom: 0px;
 }
 
-tbody > tr > td {
-    padding-top:-20px;
+tbody {
+    line-height:0;
+    padding-top:2em;  
+    vertical-align:top;
 }
 
 
 // Indicators =================================================================
 
 .label-success {
-    padding: 4px 4px 2px 4px;
-    color:#fff;
+    background-color:#00c561;
+    padding: 2px 4px 2px 4px;
+    color:#e2e2e2;
     }
+
+.label-warning {
+    background-color:#ffc600;
+}
+
+.label-danger {
+    background-color:#FF5151;
+}
 
 // Progress bars ==============================================================
 
@@ -399,6 +423,32 @@ div.admonition {
        margin:10px 0 0;
     }
 }
+
+
+// Footer
+footer {
+    margin: 5em 0;
+    position: relative;
+    margin-top: -60px; /* negative value of footer height */
+    height: 60px;
+    clear:both;
+    padding-top:20px;
+    padding-left: 20px;
+
+    li {
+        float: left;
+        margin-right: 1.5em;
+        margin-bottom: 1.5em;
+    }
+
+    p {
+        padding-top:2px;
+        clear: left;
+        margin-bottom: 0;
+        border-top: 1px solid #eeeeee;
+    }
+}
+
 
 /* Highlighted elements end */
 
@@ -474,6 +524,7 @@ html, body { height: 100%; }
 
     #wrapper {
     padding-left: 75px;
+    padding-top: 46px;
   }
 }
 
@@ -503,12 +554,12 @@ html, body { height: 100%; }
 
           li a {
                 line-height: 4em; 
-                font-family: @font-family-base;
+                font-family: @font-family-bold;
                 font-variant: small-caps;
                 font-weight:bold;
                 color: @gray-lighter;
                 font-size: @font-size-small;
-                height: 3.8em;
+                height: 4.5em;
                 width: 100%;
                 }        
     }
@@ -552,16 +603,9 @@ html, body { height: 100%; }
 
   #wrapper {
     padding-left: 190px;
+    padding-top: 46px;
   }
 
-}
-
-// Iframe for Docs
-iframe {
-        position: absolute;
-        top: 68px;
-        bottom: 0px;
-        height: 400px;
 }
 
 /* Large devices (large desktops, 1200px and up) */
