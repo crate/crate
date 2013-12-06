@@ -1,0 +1,12 @@
+<div ng-controller="NavigationController">
+  <div class="cra-nav">
+    <ul>
+      <li ng-class="{ 'cbp-vicurrent': isActive('/')}"><a href="#" class="icon-overview"></a></li>
+      <li ng-class="{ 'cbp-vicurrent': isActive('/tables')}"><a href="#" class="icon-tables"></a></li>
+      <li ng-class="{ 'cbp-vicurrent': isActive('/cluster')}"><a href="#" class="icon-cluster"></a></li>
+      <li ng-class="{ 'cbp-vicurrent': isActive('/console')}"><a href="#/console" class="icon-console"></a></li>
+      <li ng-class="{ 'cbp-vicurrent': isActive('/docs')}"><a href="#/docs" class="icon-documentation"></a></li>
+      <li><a href="#" class="icon-logo"></a></li>
+    </ul>
+  </div>
+</div>

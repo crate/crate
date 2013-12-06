@@ -1,0 +1,15 @@
+<div ng-controller="StatusBarController">
+<div class="cra-health-container">
+  <div class="container cra-health">
+    <div class="row">
+      <div class="col-sm-12 cra-health-content">
+        <ul class="list-inline">
+          <li>Cluster: {{cluster_name}}</li>
+          <li>Health: <span class="label {{cluster_color}}">{{cluster_state}}</span></li>
+          <li>Load:<span class="min10">1.34</span>/<span class="min5">1.42</span>/<span class="min15">0.70</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
