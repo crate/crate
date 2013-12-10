@@ -1,7 +1,10 @@
 package org.cratedb.integrationtests;
 
 import org.cratedb.SQLTransportIntegrationTest;
+import org.cratedb.action.TransportDistributedSQLAction;
+import org.cratedb.action.TransportSQLReduceHandler;
 import org.cratedb.action.sql.SQLResponse;
+import org.elasticsearch.common.logging.Loggers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -150,6 +153,36 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         assertEquals("Android", response.rows()[2][0]);
         assertEquals(1L, response.rows()[2][1]);
         assertEquals(0L, response.rows()[2][2]);
+    }
+
+    @Test
+    public void testCountDistinctOnAllTypes() throws Exception {
+        /**
+         * this test verifies that the "distinct/seenValues" serialization works for all types.
+         */
+
+        execute("create table all_types (\n" +
+            "    col_boolean boolean,\n" +
+            "    col_string string,\n" +
+            "    col_integer integer,\n" +
+            "    col_long long,\n" +
+            "    col_short short,\n" +
+            "    col_double double,\n" +
+            "    col_float float,\n" +
+            "    col_byte byte,\n" +
+            "    col_timestamp timestamp\n" +
+            ")\n");
+
+        execute("insert into all_types " +
+            " (col_boolean, col_string, col_integer, col_long, col_short, col_double, col_float, col_byte) " +
+            " values (true, 'string', 10, 100, 1, 1.0, 2.0, 1)");
+        refresh();
+
+
+        execute("select count(distinct col_boolean), count(distinct col_string), " +
+            "count(distinct col_integer), count(distinct col_long), count(distinct col_short), " +
+            "count(distinct col_double), count(distinct col_float), count(distinct col_byte), " +
+            "count(distinct col_timestamp) from all_types");
     }
 
     @Test

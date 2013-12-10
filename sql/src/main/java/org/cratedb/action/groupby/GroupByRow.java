@@ -30,23 +30,26 @@ public class GroupByRow implements Streamable {
     public List<AggState> aggStates;
     public boolean[] continueCollectingFlags;  // not serialized, only for collecting
 
-    public List<AggExpr> aggExprs;
+    private RowSerializationContext context;
     private List<Integer> seenIdxMapping;
 
-    GroupByRow(List<AggExpr> aggExprs, List<Integer> seenIdxMapping) {
-        this.aggExprs = aggExprs;
-        this.seenIdxMapping = seenIdxMapping;
-
-        this.continueCollectingFlags = new boolean[aggExprs != null ? aggExprs.size(): 0];
+    GroupByRow(RowSerializationContext context) {
+        this.context = context;
+        this.seenIdxMapping = context.seenIdxMapping;
+        this.continueCollectingFlags =
+            new boolean[context.aggregateExpressions != null ? context.aggregateExpressions.size(): 0];
         Arrays.fill(this.continueCollectingFlags, true);
     }
 
-    public GroupByRow(GroupByKey key, List<AggState> aggStates,
-                      List<AggExpr> aggExprs, List<Set<Object>> seenValuesList)
+    public GroupByRow(GroupByKey key, List<AggState> aggStates, RowSerializationContext context,
+                      List<Set<Object>> seenValuesList)
     {
         this.key = key;
         this.aggStates = aggStates;
-        this.aggExprs = aggExprs;
+        this.context = context;
+        if (context != null) {
+            this.seenIdxMapping = context.seenIdxMapping;
+        }
         this.seenValuesList = seenValuesList;
 
         this.continueCollectingFlags = new boolean[aggStates != null ? aggStates.size() : 0];
@@ -57,37 +60,36 @@ public class GroupByRow implements Streamable {
      * use this ctor only for testing as serialization won't work because the aggExpr and seenValues are missing!
      */
     public GroupByRow(GroupByKey key, List<AggState> aggStates) {
-        this(key, aggStates, new ArrayList<AggExpr>(0), new ArrayList<Set<Object>>(0));
+        this(key, aggStates, null, new ArrayList<Set<Object>>(0));
     }
 
-    public static GroupByRow createEmptyRow(GroupByKey key, List<AggExpr> aggExprs,
-                                            List<Integer> seenValuesIdxMapping,
-                                            int seenValuesSize) {
-        List<Set<Object>> seenValuesList = new ArrayList<>(seenValuesSize);
-        for (int i = 0; i < seenValuesSize; i++) {
+    public static GroupByRow createEmptyRow(GroupByKey key,
+                                            RowSerializationContext context) {
+        List<Set<Object>> seenValuesList = new ArrayList<>();
+        for (ParameterInfo _ : context.distinctColumns) {
             seenValuesList.add(new HashSet<>());
         }
 
-        List<AggState> aggStates = new ArrayList<>(aggExprs.size());
+        List<AggState> aggStates = new ArrayList<>(context.aggregateExpressions.size());
         AggState aggState;
 
-        if (seenValuesSize > 0) {
+        if (context.distinctColumns.size() > 0) {
             int idx = 0;
-            for (AggExpr aggExpr : aggExprs) {
+            for (AggExpr aggExpr : context.aggregateExpressions) {
                 aggState = aggExpr.createAggState();
                 if (aggExpr.isDistinct) {
-                    aggState.setSeenValuesRef(seenValuesList.get(seenValuesIdxMapping.get(idx)));
+                    aggState.setSeenValuesRef(seenValuesList.get(context.seenIdxMapping.get(idx)));
                     idx++;
                 }
                 aggStates.add(aggState);
             }
         } else {
-            for (AggExpr aggExpr : aggExprs) {
+            for (AggExpr aggExpr : context.aggregateExpressions) {
                 aggStates.add(aggExpr.createAggState());
             }
         }
 
-        return new GroupByRow(key, aggStates, aggExprs, seenValuesList);
+        return new GroupByRow(key, aggStates, context, seenValuesList);
     }
 
     @Override
@@ -117,11 +119,10 @@ public class GroupByRow implements Streamable {
         }
     }
 
-    public static GroupByRow readGroupByRow(List<AggExpr> aggExprs,
-                                            List<Integer> seenIdxMapping,
+    public static GroupByRow readGroupByRow(RowSerializationContext context,
                                             StreamInput in) throws IOException
     {
-        GroupByRow row = new GroupByRow(aggExprs, seenIdxMapping);
+        GroupByRow row = new GroupByRow(context);
         row.readFrom(in);
         return row;
     }
@@ -138,17 +139,16 @@ public class GroupByRow implements Streamable {
             valuesSize = in.readVInt();
             values = new HashSet<>(valuesSize);
             for (int j = 0; j < valuesSize; j++) {
-                values.add(in.readGenericValue());
+                values.add(context.typedSeenSerializers[i].readFrom(in));
             }
             seenValuesList.add(values);
         }
 
-
-        aggStates = new ArrayList<>(aggExprs.size());
+        aggStates = new ArrayList<>(context.aggregateExpressions.size());
         AggExpr aggExpr;
         int seenIdxIndex = 0;
-        for (int i = 0; i < aggExprs.size(); i++) {
-            aggExpr = aggExprs.get(i);
+        for (int i = 0; i < context.aggregateExpressions.size(); i++) {
+            aggExpr = context.aggregateExpressions.get(i);
             aggStates.add(i, aggExpr.createAggState());
             aggStates.get(i).readFrom(in);
 
@@ -159,14 +159,17 @@ public class GroupByRow implements Streamable {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void writeTo(StreamOutput out) throws IOException {
         key.writeTo(out);
 
         out.writeVInt(seenValuesList.size());
+        int idx = -1;
         for (Set<Object> seenValue : seenValuesList) {
+            idx++;
             out.writeVInt(seenValue.size());
             for (Object o : seenValue) {
-                out.writeGenericValue(o);
+                context.typedSeenSerializers[idx].writeTo(out, o);
             }
         }
 

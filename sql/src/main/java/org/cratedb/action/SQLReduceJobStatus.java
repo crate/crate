@@ -1,9 +1,6 @@
 package org.cratedb.action;
 
-import org.cratedb.action.groupby.GroupByHelper;
-import org.cratedb.action.groupby.GroupByKey;
-import org.cratedb.action.groupby.GroupByRow;
-import org.cratedb.action.groupby.GroupByRowComparator;
+import org.cratedb.action.groupby.*;
 import org.cratedb.action.sql.ParsedStatement;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 
@@ -18,8 +15,8 @@ public class SQLReduceJobStatus {
     public final GroupByRowComparator comparator;
     public final Object lock = new Object();
     public final ParsedStatement parsedStatement;
+    public final RowSerializationContext rowSerializationContext;
     public final ConcurrentMap<GroupByKey, GroupByRow> reducedResult;
-    public final List<Integer> seenIdxMapper;
 
     CountDownLatch shardsToProcess;
 
@@ -33,7 +30,7 @@ public class SQLReduceJobStatus {
     public SQLReduceJobStatus(ParsedStatement parsedStatement)
     {
         this.parsedStatement = parsedStatement;
-        this.seenIdxMapper = GroupByHelper.getSeenIdxMap(parsedStatement.aggregateExpressions);
+        this.rowSerializationContext = new RowSerializationContext(parsedStatement.aggregateExpressions);
         this.reducedResult = ConcurrentCollections.newConcurrentMap();
         this.comparator = new GroupByRowComparator(
             GroupByHelper.buildFieldExtractor(parsedStatement, null),
