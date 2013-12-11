@@ -82,7 +82,6 @@ public class TransportSQLReduceHandler {
             if (reduceJobStatus.hasFailures()){
                 throw new SQLReduceJobFailedException(request.contextId, reduceJobStatus);
             }
-            reduceJobStatus.terminate();
             return new SQLReduceJobResponse(reduceJobStatus.terminate(), parsedStatement);
 
 
