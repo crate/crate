@@ -1,7 +1,7 @@
 package org.cratedb.integrationtests;
 
 import org.codehaus.jackson.map.ObjectMapper;
-import org.cratedb.SQLCrateClusterTest;
+import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.parser.SQLXContentSourceContext;
 import org.cratedb.action.sql.parser.SQLXContentSourceParser;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -9,13 +9,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 
-public class RestSqlActionTest extends SQLCrateClusterTest {
-
-
-    @Override
-    protected int numberOfNodes() {
-        return 1;
-    }
+public class RestSqlActionTest extends SQLTransportIntegrationTest {
 
     @Before
     public void setUpIndex() throws Exception {

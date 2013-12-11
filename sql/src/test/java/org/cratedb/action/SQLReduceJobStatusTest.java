@@ -9,6 +9,8 @@ import org.cratedb.action.groupby.key.Rows;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.stubs.HitchhikerMocks;
+import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -29,9 +31,15 @@ public class SQLReduceJobStatusTest {
             "select count(*) from characters group by race order by count(*) desc limit 2");
 
         // result ist from 1 shard, limit is 2; order by first column
-        SQLReduceJobStatus status = new SQLReduceJobStatus(stmt, 1);
 
         GlobalRows gRows = new GlobalRows(1, stmt);
+        SQLReduceJobStatus status = new SQLReduceJobStatus(
+            stmt, new ThreadPool(),
+            ConcurrentCollections.<GroupByKey, GroupByRow>newConcurrentMap(),
+            1,
+            null,
+            null
+        );
         List<GroupByRow> rows = new ArrayList<>();
         gRows.buckets()[0] = rows;
         SQLGroupByResult result = new SQLGroupByResult(0, gRows);

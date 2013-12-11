@@ -1,7 +1,8 @@
 package org.cratedb.integrationtests;
 
-import org.cratedb.SQLCrateClusterTest;
+import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
@@ -12,20 +13,23 @@ import org.junit.rules.ExpectedException;
 import java.io.IOException;
 
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 
-public class ShardStatsTest extends SQLCrateClusterTest {
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 2)
+public class ShardStatsTest extends SQLTransportIntegrationTest {
 
     private SQLResponse response;
     private Setup setup = new Setup(this);
 
+    @Override
+    public Settings indexSettings() {
+        return ImmutableSettings.builder()
+            .put("number_of_replicas", 1)
+            .put("number_of_shards", 5).build();
+    }
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-
-
-    @Override
-    protected int numberOfNodes() {
-        return 2;
-    }
 
     /**
      * override execute to store response in property for easier access
@@ -134,4 +138,39 @@ public class ShardStatsTest extends SQLCrateClusterTest {
         assertEquals(10L, response.rowCount());
     }
 
+    @Test
+    public void testSelectIncludingUnassignedShards() throws Exception {
+        execute("create table locations (id integer primary key, name string) replicas 2");
+        refresh();
+        ensureYellow();
+
+        execute("select * from stats.shards order by state");
+        assertEquals(35L, response.rowCount());
+        assertEquals(9, response.cols().length);
+    }
+
+    @Test
+    public void testSelectGroupByIncludingUnassignedShards() throws Exception {
+        execute("create table locations (id integer primary key, name string) replicas 2");
+        refresh();
+        ensureYellow();
+
+        execute("select count(*), state from stats.shards " +
+                "group by state order by state desc");
+        assertThat(response.rowCount(), greaterThanOrEqualTo(2L));
+        assertEquals(2, response.cols().length);
+        assertThat((Long)response.rows()[0][0], greaterThanOrEqualTo(5L));
+        assertEquals("UNASSIGNED", response.rows()[0][1]);
+    }
+
+    @Test
+    public void testSelectGlobalAggregates() throws Exception {
+        execute("select sum(size), min(size), max(size), avg(size) from stats.shards");
+        assertEquals(1L, response.rowCount());
+        assertEquals(4, response.rows()[0].length);
+        assertNotNull(response.rows()[0][0]);
+        assertNotNull(response.rows()[0][1]);
+        assertNotNull(response.rows()[0][2]);
+        assertNotNull(response.rows()[0][3]);
+    }
 }

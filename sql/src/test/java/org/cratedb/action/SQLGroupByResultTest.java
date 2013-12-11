@@ -7,6 +7,9 @@ import org.cratedb.action.groupby.aggregate.count.CountAggState;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.stubs.HitchhikerMocks;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -23,7 +26,14 @@ public class SQLGroupByResultTest {
 /*
         SQLParseService parseService = new SQLParseService(HitchhikerMocks.nodeExecutionContext());
         ParsedStatement stmt = parseService.parse("select count(*) from characters group by gender");
-        SQLReduceJobStatus jobStatus = new SQLReduceJobStatus(stmt, 1);
+        SQLReduceJobStatus jobStatus = new SQLReduceJobStatus(
+            stmt,
+            new ThreadPool(ImmutableSettings.EMPTY, null),
+            ConcurrentCollections.<GroupByKey, GroupByRow>newConcurrentMap(),
+            1,
+            null,
+            null
+        );
 
         GroupByKey k1 = new GroupByKey(new Object[] { "k1" });
         GroupByKey k2 = new GroupByKey(new Object[] { "k2" });

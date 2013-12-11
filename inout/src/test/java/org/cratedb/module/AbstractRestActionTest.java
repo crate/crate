@@ -1,9 +1,5 @@
 package org.cratedb.module;
 
-import static com.github.tlrx.elasticsearch.test.EsSetup.createIndex;
-import static com.github.tlrx.elasticsearch.test.EsSetup.deleteAll;
-import static com.github.tlrx.elasticsearch.test.EsSetup.fromClassPath;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -15,8 +11,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
-import junit.framework.TestCase;
 
+import org.cratedb.test.integration.CrateIntegrationTest;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -24,32 +23,41 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.After;
 import org.junit.Before;
 
-import com.github.tlrx.elasticsearch.test.EsSetup;
+
+import static org.cratedb.test.integration.PathAccessor.stringFromPath;
 
 /**
  * Abstract base class for the plugin's rest action tests. Sets up the client
  * and delivers some base functionality needed for all tests.
  */
-public abstract class AbstractRestActionTest extends TestCase {
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 1)
+public abstract class AbstractRestActionTest extends CrateIntegrationTest {
 
-    protected EsSetup esSetup, esSetup2;
+    protected String node2;
+
+    @Override
+    public Settings indexSettings() {
+        return ImmutableSettings.builder()
+            .put("number_of_shards", 1)
+            .put("number_of_replicas", 0)
+            .build();
+    }
 
     @Before
-    public void setUp() {
-        esSetup = new EsSetup();
-        esSetup.execute(deleteAll(), createIndex("users").withSettings(
-                fromClassPath("essetup/settings/test_b.json")).withMapping("d",
-                        fromClassPath("essetup/mappings/test_b.json")).withData(
-                                fromClassPath("essetup/data/test_b.json")));
-        esSetup.client().admin().indices().prepareRefresh("users").execute().actionGet();
-        esSetup.client().admin().cluster().prepareHealth("users").setWaitForGreenStatus().execute().actionGet();
+    public void setUpInout() throws Exception {
+        prepareCreate("users")
+            .setSettings(ImmutableSettings.builder().loadFromClasspath("essetup/settings/test_b.json").build())
+            .addMapping("d", stringFromPath("/essetup/mappings/test_b.json", getClass()))
+            .execute().actionGet();
+
+        loadBulk("/essetup/data/test_b.json", getClass());
+        refresh();
     }
 
     @After
-    public void tearDown() {
-        esSetup.terminate();
-        if (esSetup2 != null) {
-            esSetup2.terminate();
+    public void cleanUpSecondNode() throws Exception {
+        if (node2 != null) {
+            cluster().stopNode(node2);
         }
     }
 
@@ -69,10 +77,11 @@ public abstract class AbstractRestActionTest extends TestCase {
     /**
      * Set up a second node and wait for green status
      */
-    protected void setUpSecondNode() {
-        esSetup2 = new EsSetup();
-        esSetup2.execute(deleteAll());
-        esSetup2.client().admin().cluster().prepareHealth().setWaitForGreenStatus().execute().actionGet();
+    protected String setUpSecondNode() {
+        node2 = cluster().startNode();
+        cluster().client(node2).admin().indices().prepareDelete().execute().actionGet();
+        waitForRelocation(ClusterHealthStatus.GREEN);
+        return node2;
     }
 
     /**
@@ -110,6 +119,4 @@ public abstract class AbstractRestActionTest extends TestCase {
         }
         return lines;
     }
-
-
 }

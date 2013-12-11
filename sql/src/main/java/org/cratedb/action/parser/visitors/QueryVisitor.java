@@ -89,6 +89,10 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         if (stmt.isInformationSchemaQuery()) {
             stmt.type(ParsedStatement.ActionType.INFORMATION_SCHEMA);
         } else if (stmt.isStatsQuery()) {
+            if (stmt.isGlobalAggregate()) {
+                // enable reducers
+                stmt.partialReducerCount = -1;
+            }
             stmt.type(ParsedStatement.ActionType.STATS);
         } else {
             // only non-information schema queries can be optimized

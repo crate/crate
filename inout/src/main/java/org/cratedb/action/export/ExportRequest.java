@@ -3,7 +3,6 @@ package org.cratedb.action.export;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.broadcast.BroadcastOperationRequest;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.Required;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -60,13 +59,11 @@ public class ExportRequest extends BroadcastOperationRequest<ExportRequest> {
         return source;
     }
 
-    @Required
     public ExportRequest source(String source) {
         return this.source(new BytesArray(source), false);
     }
 
 
-    @Required
     public ExportRequest source(BytesReference source, boolean unsafe) {
         this.source = source;
         this.querySourceUnsafe = unsafe;

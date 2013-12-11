@@ -1,34 +1,35 @@
 package org.cratedb.action;
 
-import org.cratedb.core.concurrent.FutureConcurrentMap;
 import org.elasticsearch.cache.recycler.CacheRecycler;
+import org.elasticsearch.common.io.Streams;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.transport.TransportRequest;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 public class SQLMapperResultRequest extends TransportRequest {
 
-    private CacheRecycler cacheRecycler;
-    public UUID contextId;
-    public SQLGroupByResult groupByResult;
     public boolean failed = false;
 
     // fields below are only set/available on the receiver side.
+    final ESLogger logger = Loggers.getLogger(getClass());
+    private CacheRecycler cacheRecycler;
+    private ReduceJobStatusContext jobStatusContext;
+
+    public UUID contextId;
+    public SQLGroupByResult groupByResult;
+    public BytesStreamOutput memoryOutputStream = new BytesStreamOutput();
     public SQLReduceJobStatus status;
-    private FutureConcurrentMap<UUID, SQLReduceJobStatus> reduceJobs;
 
-    public SQLMapperResultRequest() {
-
-    }
-
-    public SQLMapperResultRequest(
-            FutureConcurrentMap<UUID, SQLReduceJobStatus> reduceJobs,
-            CacheRecycler cacheRecycler) {
-        this.reduceJobs = reduceJobs;
+    public SQLMapperResultRequest() {}
+    public SQLMapperResultRequest(ReduceJobStatusContext jobStatusContext,
+                                  CacheRecycler cacheRecycler) {
+        this.jobStatusContext = jobStatusContext;
         this.cacheRecycler = cacheRecycler;
     }
 
@@ -36,16 +37,21 @@ public class SQLMapperResultRequest extends TransportRequest {
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
 
-        contextId = new UUID(in.readLong(), in.readLong());
         try {
-            status = reduceJobs.get(contextId, 30, TimeUnit.SECONDS);
+            contextId = new UUID(in.readLong(), in.readLong());
+            status = jobStatusContext.get(contextId);
+            failed = in.readBoolean();
+            if (!failed){
+                if (status == null) {
+                    Streams.copy(in, memoryOutputStream);
+                } else {
+                    groupByResult = SQLGroupByResult.readSQLGroupByResult(
+                        status.parsedStatement, cacheRecycler, in);
+                }
+            }
         } catch (Exception e ) {
+            logger.error(e.getMessage(), e);
             throw new IOException(e);
-        }
-        failed = in.readBoolean();
-        if (!failed){
-            groupByResult = SQLGroupByResult.readSQLGroupByResult(status.parsedStatement,
-                    cacheRecycler, in);
         }
     }
 

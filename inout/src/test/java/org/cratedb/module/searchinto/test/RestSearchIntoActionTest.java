@@ -1,14 +1,8 @@
 package org.cratedb.module.searchinto.test;
 
-import static com.github.tlrx.elasticsearch.test.EsSetup.createIndex;
-import static com.github.tlrx.elasticsearch.test.EsSetup.index;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
 import org.elasticsearch.action.get.GetRequestBuilder;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.index.IndexRequest;
 import org.junit.Test;
 
 import org.cratedb.action.searchinto.SearchIntoAction;
@@ -20,13 +14,14 @@ public class RestSearchIntoActionTest extends AbstractRestActionTest {
 
     @Test
     public void testSearchIntoWithoutSource() {
-        esSetup.execute(createIndex("test").withMapping("a",
-                "{\"a\":{\"_source\": {\"enabled\": false}}}"));
-        esSetup.execute(index("test", "a", "1").withSource("{\"name\": \"John\"}"));
+
+        prepareCreate("test").addMapping("a", "{\"a\":{\"_source\": {\"enabled\": false}}}").execute().actionGet();
+        client().index(new IndexRequest("test", "a", "1").source("{\"name\": \"John\"}")).actionGet();
         SearchIntoRequest request = new SearchIntoRequest("test");
         request.source("{\"fields\": [\"_id\", \"_source\", [\"_index\", \"'newindex'\"]]}");
-        SearchIntoResponse res = esSetup.client().execute(SearchIntoAction.INSTANCE, request).actionGet();
+        SearchIntoResponse res = client().execute(SearchIntoAction.INSTANCE, request).actionGet();
         assertEquals(1, res.getFailedShards());
+
         assertTrue(res.getShardFailures()[0].reason().contains("Parse Failure [The _source field of index test and type a is not stored.]"));
     }
 
@@ -35,9 +30,9 @@ public class RestSearchIntoActionTest extends AbstractRestActionTest {
         prepareNested();
         SearchIntoRequest request = new SearchIntoRequest("test");
         request.source("{\"fields\": [\"_id\", [\"x.city\", \"_source.city\"], [\"x.surname\", \"_source.name.surname\"], [\"x.name\", \"_source.name.name\"], [\"_index\", \"'newindex'\"]]}");
-        SearchIntoResponse res = esSetup.client().execute(SearchIntoAction.INSTANCE, request).actionGet();
+        SearchIntoResponse res = client().execute(SearchIntoAction.INSTANCE, request).actionGet();
 
-        GetRequestBuilder rb = new GetRequestBuilder(esSetup.client(), "newindex");
+        GetRequestBuilder rb = new GetRequestBuilder(client(), "newindex");
         GetResponse getRes = rb.setType("a").setId("1").execute().actionGet();
         assertTrue(getRes.isExists());
         assertEquals("{\"x\":{\"name\":\"Doe\",\"surname\":\"John\",\"city\":\"Dornbirn\"}}", getRes.getSourceAsString());
@@ -48,7 +43,7 @@ public class RestSearchIntoActionTest extends AbstractRestActionTest {
         prepareNested();
         SearchIntoRequest request = new SearchIntoRequest("test");
         request.source("{\"fields\": [\"_id\", [\"x\", \"_source.city\"], [\"x.surname\", \"_source.name.surname\"], [\"x.name\", \"_source.name.name\"], [\"_index\", \"'newindex'\"]]}");
-        SearchIntoResponse res = esSetup.client().execute(SearchIntoAction.INSTANCE, request).actionGet();
+        SearchIntoResponse res = client().execute(SearchIntoAction.INSTANCE, request).actionGet();
         assertTrue(res.getShardFailures()[0].reason().contains("Error on rewriting objects: Mixed objects and values]"));
     }
 
@@ -57,7 +52,7 @@ public class RestSearchIntoActionTest extends AbstractRestActionTest {
         prepareNested();
         SearchIntoRequest request = new SearchIntoRequest("test");
         request.source("{\"fields\": [\"_id\", [\"x.surname.bad\", \"_source.city\"], [\"x.surname\", \"_source.name.surname\"], [\"x.name\", \"_source.name.name\"], [\"_index\", \"'newindex'\"]]}");
-        SearchIntoResponse res = esSetup.client().execute(SearchIntoAction.INSTANCE, request).actionGet();
+        SearchIntoResponse res = client().execute(SearchIntoAction.INSTANCE, request).actionGet();
         assertTrue(res.getShardFailures()[0].reason().contains("Error on rewriting objects: Mixed objects and values]"));
     }
 
@@ -66,27 +61,18 @@ public class RestSearchIntoActionTest extends AbstractRestActionTest {
         prepareNested();
         SearchIntoRequest request = new SearchIntoRequest("test");
         request.source("{\"fields\": [\"_id\", [\"x.surname\", \"_source.city\"], [\"x.surname.bad\", \"_source.name.surname\"], [\"x.name\", \"_source.name.name\"], [\"_index\", \"'newindex'\"]]}");
-        SearchIntoResponse res = esSetup.client().execute(SearchIntoAction.INSTANCE, request).actionGet();
+        SearchIntoResponse res = client().execute(SearchIntoAction.INSTANCE, request).actionGet();
         assertTrue(res.getShardFailures()[0].reason().contains("Error on rewriting objects: Mixed objects and values]"));
     }
 
 
     private void prepareNested() {
-        esSetup.execute(createIndex("test").withMapping("a",
-                "{\"a\": {\"properties\": {\"name\": {\"properties\": {\"surname\":{\"type\":\"string\"}, \"name\": {\"type\":\"string\"}}}, \"city\": {\"type\": \"string\"}}}}"));
-        esSetup.execute(index("test", "a", "1").withSource(
-                "{\"city\": \"Dornbirn\", \"name\": {\"surname\": \"John\", \"name\": \"Doe\"}}"));
-    }
+        prepareCreate("test").addMapping("a",
+            "{\"a\": {\"properties\": {\"name\": {\"properties\": {\"surname\":{\"type\":\"string\"}, \"name\": {\"type\":\"string\"}}}, \"city\": {\"type\": \"string\"}}}}")
+            .execute().actionGet();
 
-    private static List<Map<String, Object>> get(SearchIntoResponse resp, String key) {
-        Map<String, Object> res = null;
-        try {
-            res = toMap(resp);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-        return (List<Map<String, Object>>) res.get(key);
+        client().index(new IndexRequest("test", "a", "1").source(
+            "{\"city\": \"Dornbirn\", \"name\": {\"surname\": \"John\", \"name\": \"Doe\"}}")).actionGet();
+        refresh();
     }
-
 }

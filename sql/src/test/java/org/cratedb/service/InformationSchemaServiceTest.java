@@ -1,14 +1,13 @@
 package org.cratedb.service;
 
 import com.google.common.base.Joiner;
-import org.cratedb.SQLCrateNodesTest;
+import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.SQLParseException;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.node.internal.InternalNode;
+import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
@@ -22,52 +21,40 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.contains;
 
-public class InformationSchemaServiceTest extends SQLCrateNodesTest {
+@CrateIntegrationTest.ClusterScope(numNodes = 2, scope = CrateIntegrationTest.Scope.SUITE)
+public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
-    private InternalNode startNode() {
-        return (InternalNode) startNode("node1", ImmutableSettings.EMPTY);
-    }
-
-    private static InternalNode node = null;
     private static InformationSchemaService informationSchemaService;
     private static SQLParseService parseService;
     private SQLResponse response;
 
     private void serviceSetup() {
-        node.client().execute(SQLAction.INSTANCE,
-            new SQLRequest("create table t1 (col1 integer primary key, " +
+        execute("create table t1 (col1 integer primary key, " +
                     "col2 string) clustered into 7 " +
-                    "shards")).actionGet();
-        node.client().execute(SQLAction.INSTANCE,
-            new SQLRequest("create table t2 (col1 integer primary key, " +
-                    "col2 string) clustered into " +
-                    "10 shards")).actionGet();
-        node.client().execute(SQLAction.INSTANCE,
-            new SQLRequest("create table t3 (col1 integer, col2 string) replicas 8")).actionGet();
-        refresh(node.client());
+                    "shards");
+        execute(
+            "create table t2 (col1 integer primary key, " +
+                "col2 string) clustered into " +
+                "10 shards");
+        execute(
+            "create table t3 (col1 integer, col2 string) replicas 8");
+        refresh();
     }
 
     @Before
-    public void before() throws Exception {
-        if (node == null) {
-            node = startNode();
-            parseService = node.injector().getInstance(SQLParseService.class);
-            informationSchemaService = node.injector().getInstance(InformationSchemaService.class);
-        }
+    public void informationSchemaServiceSetup() throws Exception {
+        parseService = cluster().getInstance(SQLParseService.class);
+        informationSchemaService = cluster().getInstance(InformationSchemaService.class);
     }
 
     @After
     public void cleanUp() throws Exception {
-        Set<String> indices = node.client().admin().cluster().prepareState().execute().actionGet()
+        Set<String> indices = client().admin().cluster().prepareState().execute().actionGet()
                 .getState().metaData().getIndices().keySet();
-        node.client().admin().indices()
+        client().admin().indices()
                 .prepareDelete(indices.toArray(new String[indices.size()]))
                 .execute()
                 .actionGet();
@@ -77,7 +64,6 @@ public class InformationSchemaServiceTest extends SQLCrateNodesTest {
     public static void shutdownNode() throws Exception {
         parseService = null;
         informationSchemaService = null;
-        node = null;
     }
 
     @Test
@@ -87,7 +73,7 @@ public class InformationSchemaServiceTest extends SQLCrateNodesTest {
         exec("select * from information_schema.tables");
         assertEquals(3L, response.rowCount());
 
-        node.client().execute(SQLAction.INSTANCE,
+        client().execute(SQLAction.INSTANCE,
             new SQLRequest("create table t4 (col1 integer, col2 string)")).actionGet();
 
         // create table causes a cluster event that will then cause to rebuild the information schema
@@ -141,7 +127,7 @@ public class InformationSchemaServiceTest extends SQLCrateNodesTest {
         for (int i = 0; i < numThreads; i++) {
 
             if (i > 4 && i % 3 == 0) {
-                node.client().execute(SQLAction.INSTANCE,
+                client().execute(SQLAction.INSTANCE,
                     new SQLRequest("create table t" + i + " (col1 integer, col2 string) replicas 8")).actionGet();
             }
 

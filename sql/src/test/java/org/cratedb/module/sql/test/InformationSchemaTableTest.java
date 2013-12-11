@@ -13,7 +13,8 @@ import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.information_schema.AbstractInformationSchemaTable;
 import org.cratedb.lucene.LuceneFieldMapper;
 import org.cratedb.lucene.fields.StringLuceneField;
-import org.cratedb.test.integration.AbstractCrateNodesTests;
+import org.cratedb.stubs.HitchhikerMocks;
+import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -27,16 +28,10 @@ import java.util.*;
 
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 
-public class InformationSchemaTableTest extends AbstractCrateNodesTests {
+public class InformationSchemaTableTest extends CrateIntegrationTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-
-    Map<String, AggFunction> aggFunctionMap = new HashMap<>();
-
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
 
     public static class TestInformationSchemaTable extends AbstractInformationSchemaTable {
         public static final String NAME = "nodes";
@@ -74,37 +69,7 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
         }
     }
 
-    private SQLResponse response = null;
     private TestInformationSchemaTable testTable = null;
-    private static final List<Node> nodes = new ArrayList<>(3);
-    /**
-     * execUsingClient the statement using the transportClient
-     * @param statement
-     * @param args
-     * @throws Exception
-     */
-    private void execUsingClient(String statement, Object[] args) throws Exception {
-        response = client().execute(SQLAction.INSTANCE, new SQLRequest(statement, args)).actionGet();
-    }
-
-    @Before
-    public void startNodes() {
-        if (nodes.isEmpty()) {
-            nodes.add(startNode("node1"));
-            nodes.add(startNode("node2"));
-            nodes.add(startNode("node3"));
-        }
-
-    }
-
-    @AfterClass
-    public static void shutDownNodes() {
-        for (Node node: nodes) {
-            node.stop();
-            node.close();
-        }
-        nodes.clear();
-    }
 
     @After
     public void cleanTestTable() {
@@ -116,7 +81,7 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
 
     @Test
     public void initTestTable() {
-        testTable = new TestInformationSchemaTable(aggFunctionMap);
+        testTable = new TestInformationSchemaTable(HitchhikerMocks.aggFunctionMap);
         assertFalse(testTable.initialized());
         testTable.init();
         assertTrue(testTable.initialized());
@@ -124,7 +89,7 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
 
     @Test
     public void lazyInitializeOnIndex() {
-        testTable = new TestInformationSchemaTable(aggFunctionMap);
+        testTable = new TestInformationSchemaTable(HitchhikerMocks.aggFunctionMap);
         ClusterState state = client().admin().cluster().prepareState().execute().actionGet()
                 .getState();
         assertFalse(testTable.initialized());
@@ -134,9 +99,8 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
 
     @Test
     public void indexThenQuery() {
-        testTable = new TestInformationSchemaTable(aggFunctionMap);
-        ClusterState state = client().admin().cluster().prepareState().execute().actionGet()
-                .getState();
+        testTable = new TestInformationSchemaTable(HitchhikerMocks.aggFunctionMap);
+        ClusterState state = client().admin().cluster().prepareState().execute().actionGet().getState();
         testTable.index(state);
         ParsedStatement stmt = new ParsedStatement("select id, name, address, many from nodes");
         stmt.limit(1000);
@@ -151,11 +115,10 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
         testTable.query(stmt, new ActionListener<SQLResponse>() {
             @Override
             public void onResponse(SQLResponse sqlResponse) {
-                assertEquals(3L, sqlResponse.rowCount());
+                assertEquals(2L, sqlResponse.rowCount());
                 assertThat(new String[]{
-                        (String)sqlResponse.rows()[0][1], (String)sqlResponse.rows()[1][1],
-                        (String)sqlResponse.rows()[2][1]},
-                        arrayContainingInAnyOrder("node1", "node2", "node3"));
+                        (String)sqlResponse.rows()[0][1], (String)sqlResponse.rows()[1][1]},
+                        arrayContainingInAnyOrder("node_0", "node_1"));
                 assertTrue(sqlResponse.rows()[0][3] instanceof List);
             }
 
@@ -168,7 +131,7 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
 
     @Test
     public void emptyQuery() {
-        testTable = new TestInformationSchemaTable(aggFunctionMap);
+        testTable = new TestInformationSchemaTable(HitchhikerMocks.aggFunctionMap);
         testTable.init();
         assertEquals(0L, testTable.count());
 

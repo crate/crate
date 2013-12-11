@@ -2,6 +2,7 @@ package org.cratedb.information_schema;
 
 import com.google.common.io.Files;
 import org.apache.lucene.codecs.lucene42.Lucene42Codec;
+import org.apache.lucene.codecs.lucene45.Lucene45Codec;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -56,8 +57,8 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
     public AbstractInformationSchemaTable(Map<String, AggFunction> aggFunctionMap,
             CacheRecycler cacheRecycler) {
         this.searcherFactory = new SearcherFactory();
-        this.indexWriterConfig = new IndexWriterConfig(Version.LUCENE_44, null);
-        this.indexWriterConfig.setCodec(new Lucene42Codec());
+        this.indexWriterConfig = new IndexWriterConfig(Version.LUCENE_45, null);
+        this.indexWriterConfig.setCodec(new Lucene45Codec());
         this.aggFunctionMap = aggFunctionMap;
         this.cacheRecycler = cacheRecycler;
     }

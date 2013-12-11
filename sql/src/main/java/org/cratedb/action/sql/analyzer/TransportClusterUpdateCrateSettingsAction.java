@@ -114,7 +114,7 @@ public class TransportClusterUpdateCrateSettingsAction extends TransportClusterU
                     return currentState;
                 }
 
-                MetaData.Builder metaData = MetaData.builder().metaData(currentState.metaData())
+                MetaData.Builder metaData = MetaData.builder(currentState.metaData())
                         .persistentSettings(persistentSettings.build())
                         .transientSettings(transientSettings.build());
 
@@ -127,12 +127,12 @@ public class TransportClusterUpdateCrateSettingsAction extends TransportClusterU
                     blocks.removeGlobalBlock(MetaData.CLUSTER_READ_ONLY_BLOCK);
                 }
 
-                return ClusterState.builder().state(currentState).metaData(metaData).blocks(blocks).build();
+                return ClusterState.builder(currentState).metaData(metaData).blocks(blocks).build();
             }
 
             @Override
             public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                listener.onResponse(new ClusterUpdateSettingsResponse(transientUpdates.build(), persistentUpdates.build()));
+                listener.onResponse(new ClusterUpdateSettingsResponse());
             }
         });
     }

@@ -4,7 +4,7 @@ import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLRequestBuilder;
 import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.test.integration.AbstractSharedCrateClusterTest;
+import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.client.Requests;
@@ -12,18 +12,31 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.test.ElasticsearchIntegrationTest;
+import org.junit.Before;
 
 import java.io.IOException;
 import java.util.Map;
 
-public class SQLCrateClusterTest extends AbstractSharedCrateClusterTest {
+public class SQLTransportIntegrationTest extends CrateIntegrationTest {
+
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
 
     protected long responseDuration;
+
+    @Override
+    public Settings indexSettings() {
+        // set number of replicas to 0 for getting a green cluster when using only one node
+        return ImmutableSettings.builder().put("number_of_replicas", 0).build();
+    }
 
     /**
      * Execute an SQL Statement on a random node of the cluster

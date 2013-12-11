@@ -15,6 +15,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexShardMissingException;
 import org.elasticsearch.index.shard.service.InternalIndexShard;
 import org.elasticsearch.indices.IndicesService;
 
@@ -62,12 +63,12 @@ public class StatsService extends AbstractLifecycleComponent<StatsService> {
             int numReducers,
             String concreteIndex,
             ParsedStatement stmt,
-            int shardId)
-            throws Exception
+            int shardId,
+            String nodeId) throws Exception
     {
         switch (virtualTableName.toLowerCase()) {
             case "shards":
-                StatsInfo shardInfo = newShardInfo(concreteIndex, shardId);
+                StatsInfo shardInfo = newShardInfo(concreteIndex, shardId, nodeId);
                 return shardStatsTable.queryGroupBy(numReducers, stmt, shardInfo);
             default:
                 throw new StatsTableUnknownException(virtualTableName);
@@ -78,11 +79,12 @@ public class StatsService extends AbstractLifecycleComponent<StatsService> {
     public List<List<Object>> query(String virtualTableName,
                                     String concreteIndex,
                                     ParsedStatement stmt,
-                                    int shardId) throws Exception
+                                    int shardId,
+                                    String nodeId) throws Exception
     {
         switch (virtualTableName.toLowerCase()) {
             case "shards":
-                StatsInfo shardInfo = newShardInfo(concreteIndex, shardId);
+                StatsInfo shardInfo = newShardInfo(concreteIndex, shardId, nodeId);
                 return shardStatsTable.query(stmt, shardInfo);
             default:
                 throw new StatsTableUnknownException(virtualTableName);
@@ -90,10 +92,15 @@ public class StatsService extends AbstractLifecycleComponent<StatsService> {
 
     }
 
-    private StatsInfo newShardInfo(String index, int shardId) {
-        final InternalIndexShard shard =
-                (InternalIndexShard) indicesService.indexServiceSafe(index).shardSafe(shardId);
-        final String nodeId = (shard == null) ? null : clusterService.localNode().id();
+    private StatsInfo newShardInfo(String index, int shardId, String nodeId) {
+        InternalIndexShard shard = null;
+        if (nodeId != null) {
+            try {
+                shard = (InternalIndexShard) indicesService.indexServiceSafe(index).shardSafe(shardId);
+            } catch (IndexShardMissingException e) {
+                // shard is not yet assigned, do nothing, ShardStatsTable handles this
+            }
+        }
 
         return new ShardStatsTable.ShardInfo(index, nodeId, shardId, shard);
     }

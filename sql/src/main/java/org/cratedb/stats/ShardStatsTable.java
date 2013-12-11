@@ -5,9 +5,11 @@ import org.apache.lucene.index.memory.ReusableMemoryIndex;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.action.collect.CollectorContext;
+import org.cratedb.action.groupby.GlobalSQLGroupingCollector;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.SQLGroupingCollector;
+import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.key.Rows;
 import org.cratedb.action.sql.ParsedStatement;
@@ -132,6 +134,15 @@ public class ShardStatsTable implements StatsTable {
         for (Tuple<String, String> columnNames : stmt.outputFields()) {
             if (fieldMapper().containsKey(columnNames.v2())) {
                 shardInfo.fields().put(columnNames.v2(), shardInfo.getStat(columnNames.v2()));
+            }
+        }
+        // add all columns used for aggregates
+        for (AggExpr aggExpr : stmt.aggregateExpressions()) {
+            if (aggExpr.parameterInfo != null) {
+                String columnName = aggExpr.parameterInfo.columnName;
+                if (fieldMapper().containsKey(columnName)) {
+                    shardInfo.fields().put(columnName, shardInfo.getStat(columnName));
+                }
             }
         }
 

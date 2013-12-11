@@ -1,17 +1,16 @@
 package org.cratedb.client;
 
 import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.test.integration.AbstractCrateNodesTests;
+import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.node.internal.InternalNode;
 import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.Test;
 
 import java.util.Arrays;
 
-public class CrateClientTest extends AbstractCrateNodesTests {
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 0)
+public class CrateClientTest extends CrateIntegrationTest {
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
@@ -20,16 +19,17 @@ public class CrateClientTest extends AbstractCrateNodesTests {
     @Test
     public void testCreateClient() throws Exception {
 
-        Node server = startNode("serverside");
-        int port = ((InetSocketTransportAddress) ((InternalNode) server).injector()
-                .getInstance(TransportService.class)
-                .boundAddress().boundAddress()).address().getPort();
+        String nodeName = cluster().startNode();
 
-        server.client().prepareIndex("test", "default", "1")
-                .setRefresh(true)
-                .setSource("{}")
-                .execute()
-                .actionGet();
+        int port = ((InetSocketTransportAddress) cluster()
+            .getInstance(TransportService.class)
+            .boundAddress().boundAddress()).address().getPort();
+
+        client(nodeName).prepareIndex("test", "default", "1")
+            .setRefresh(true)
+            .setSource("{}")
+            .execute()
+            .actionGet();
 
         CrateClient client = new CrateClient("localhost:" +  port);
         SQLResponse r = client.sql("select \"_id\" from test").actionGet();
@@ -44,11 +44,4 @@ public class CrateClientTest extends AbstractCrateNodesTests {
         }
 
     }
-
-    @After
-    public void shutdownNodes() throws Exception {
-        super.tearDown();
-        closeAllNodes();
-    }
-
 }

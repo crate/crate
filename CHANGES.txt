@@ -5,6 +5,26 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fixed a thread deadlock that could occur if many group by queries run in
+   parallel
+ 
+ - changed threadpool settings to avoid handler blocking each other on group by queries
+
+2013/12/05 0.19.9
+=================
+
+ - benchmark test setup improvements
+
+ - removed randomness from test setup
+
+ - renamed crate admin plugin to `admin-ui`
+
+ - updated elasticsearch to 0.90.7
+
+ - Queries on the shard stats table using aggregates without group by are supported now.
+
+ - Also list unassigned shards when querying shard stats table.
+
  - fix: fixed stalled cluster on using more than one COUNT(DISTINCT col) in a statement
 
  - performance-tuning: faster ANY processing in ``group by`` requests

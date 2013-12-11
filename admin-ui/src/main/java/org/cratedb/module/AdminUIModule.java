@@ -1,8 +1,8 @@
-package org.cratedb.module.crate;
+package org.cratedb.module;
 
 import org.elasticsearch.common.inject.AbstractModule;
 
-public class CrateModule extends AbstractModule {
+public class AdminUIModule extends AbstractModule {
     @Override
     protected void configure() {
     }

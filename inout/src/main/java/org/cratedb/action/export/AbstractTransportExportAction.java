@@ -150,7 +150,7 @@ public abstract class AbstractTransportExportAction extends TransportBroadcastOp
         SearchShardTarget shardTarget = new SearchShardTarget(clusterService.localNode().id(), request.index(), request.shardId());
         ExportContext context = new ExportContext(0,
             new ShardSearchRequest().types(request.types()).filteringAliases(request.filteringAliases()),
-            shardTarget, indexShard.acquireSearcher(), indexService, indexShard, scriptService, cacheRecycler, nodePath);
+            shardTarget, indexShard.acquireSearcher("crate/inout"), indexService, indexShard, scriptService, cacheRecycler, nodePath);
         ExportContext.setCurrent(context);
 
         try {

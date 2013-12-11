@@ -168,7 +168,7 @@ public abstract class AbstractTransportSearchIntoAction extends
                 request.shardId());
         SearchIntoContext context = new SearchIntoContext(0,
             new ShardSearchRequest().types(request.types()).filteringAliases(request.filteringAliases()),
-            shardTarget, indexShard.acquireSearcher(), indexService, indexShard, scriptService, cacheRecycler
+            shardTarget, indexShard.acquireSearcher("crate/inout"), indexService, indexShard, scriptService, cacheRecycler
         );
         SearchIntoContext.setCurrent(context);
 

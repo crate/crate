@@ -2,12 +2,17 @@ package org.cratedb.integrationtests;
 
 import org.cratedb.Constants;
 import org.cratedb.SQLCrateNodesTest;
+import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.action.sql.SQLAction;
+import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.ColumnUnknownException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.ValidationException;
+import org.cratedb.test.integration.CrateIntegrationTest;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -17,49 +22,34 @@ import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
-public class SQLTypeMappingTest extends SQLCrateNodesTest {
+public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    static {
-        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
-    private static InternalNode node1 = null;
-    private static InternalNode node2 = null;
-    private static SQLParseService parseService = null;
+    private static SQLParseService parseService;
 
     @Before
-    public void before() throws Exception {
-        if (node1 == null) {
-            node1 = (InternalNode)startNode("node1");
-            parseService = node1.injector().getInstance(SQLParseService.class);
-        }
-        if (node2 == null) {
-            node2 = (InternalNode)startNode("node2");
-        }
-    }
-
-    @After
-    public void cleanUp() throws Exception {
-        wipeIndices(node1.client());
-        refresh(node1.client());
+    protected void beforeSQLTypeMappingTest() {
+        parseService = cluster().getInstance(SQLParseService.class);
     }
 
     @AfterClass
-    public static void shutdownNodes() throws Exception {
+    protected static void afterSQLTypeMappingTest() {
         parseService = null;
-        node1 = null;
-        node2 = null;
     }
 
     private void setUpSimple() throws IOException {
+        setUpSimple(2);
+    }
+
+    private void setUpSimple(int numShards) throws IOException {
         XContentBuilder builder = XContentFactory.jsonBuilder()
                 .startObject()
                 .startObject(Constants.DEFAULT_MAPPING_TYPE)
@@ -122,23 +112,33 @@ public class SQLTypeMappingTest extends SQLCrateNodesTest {
                     .endObject()
                 .endObject()
                 .endObject();
-        createIndex(node1.client(), "t1", ImmutableSettings.builder()
-                .put("number_of_replicas", 0)
-                .put("number_of_shards", 2)
-                .put("index.mapper.map_source", false).build(), Constants.DEFAULT_MAPPING_TYPE, builder);
+
+        client().admin().indices().prepareCreate("t1")
+                .setSettings(ImmutableSettings.builder()
+                        .put("number_of_replicas", 0)
+                        .put("number_of_shards", numShards)
+                        .put("index.mapper.map_source", false))
+                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
+                .execute().actionGet();
     }
 
     @Test
     public void testInsertAtNodeWithoutShard() throws Exception {
-       setUpSimple();
+        setUpSimple(1);
 
-        execute(node1.client(), "insert into t1 (id, string_field, " +
+        Iterator<Client> iterator = clients().iterator();
+        Client client1 = iterator.next();
+        Client client2 = iterator.next();
+
+        client1.execute(SQLAction.INSTANCE, new SQLRequest(
+            "insert into t1 (id, string_field, " +
                 "timestamp_field, byte_field) values (?, ?, ?, ?)", new Object[]{1, "With",
-                "1970-01-01T00:00:00", 127});
-        execute(node2.client(), "insert into t1 (id, string_field, " +
-                "timestamp_field, byte_field) values (?, ?, ?, ?)", new Object[]{2, "Without",
-                "1970-01-01T01:00:00", Byte.MIN_VALUE});
-        refresh(node1.client());
+            "1970-01-01T00:00:00", 127})).actionGet();
+
+        client2.execute(SQLAction.INSTANCE, new SQLRequest(
+            "insert into t1 (id, string_field, timestamp_field, byte_field) values (?, ?, ?, ?)",
+            new Object[]{2, "Without", "1970-01-01T01:00:00", Byte.MIN_VALUE})).actionGet();
+        refresh();
         SQLResponse response = execute("select id, string_field, timestamp_field, byte_field from t1 order by id");
 
         assertEquals(1, response.rows()[0][0]);
@@ -203,13 +203,13 @@ public class SQLTypeMappingTest extends SQLCrateNodesTest {
                 .endObject()
                 .endObject()
                 .endObject();
-        node1.client().admin().indices().prepareCreate("test12")
+        client().admin().indices().prepareCreate("test12")
                 .setSettings(ImmutableSettings.builder()
                         .put("number_of_replicas", 0)
                         .put("number_of_shards", 2))
                 .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
                 .execute().actionGet();
-        refresh(node1.client());
+        refresh();
     }
 
     @Test
@@ -235,7 +235,8 @@ public class SQLTypeMappingTest extends SQLCrateNodesTest {
                         );
                     }}
         });
-        refresh(node1.client());
+        refresh();
+
         SQLResponse response = execute("select craty_field, strict_field, " +
                 "no_dynamic_field from test12");
         assertEquals(1, response.rowCount());
@@ -357,7 +358,7 @@ public class SQLTypeMappingTest extends SQLCrateNodesTest {
                     1.0, Math.PI, true, "a string", "2013-11-20",
                     new HashMap<String, Object>() {{put("inner", "2013-11-20");}}, "127.0.0.1"
         });
-        refresh(node1.client());
+        refresh();
 
         SQLResponse response = execute("select id, byte_field, short_field, integer_field, long_field," +
                 "float_field, double_field, boolean_field, string_field, timestamp_field," +
@@ -388,7 +389,7 @@ public class SQLTypeMappingTest extends SQLCrateNodesTest {
                 120000000000L, 1.4, 3.456789, new HashMap<String, Object>(){{put("inner", "1970-01-01");}},
                 "1970-01-01", "127.0.0.1"
         });
-        refresh(node1.client());
+        refresh();
         SQLResponse getResponse = execute("select * from t1 where id=0");
         SQLResponse searchResponse = execute("select * from t1 limit 1");
         for (int i=0; i < getResponse.rows()[0].length; i++) {
@@ -400,7 +401,7 @@ public class SQLTypeMappingTest extends SQLCrateNodesTest {
     public void testInsertNewColumn() throws Exception {
         setUpSimple();
         execute("insert into t1 (id, new_col) values (?,?)", new Object[]{0, "1970-01-01"});
-        refresh(node1.client());
+        refresh();
         SQLResponse response = execute("select id, new_col from t1 where id=0");
         assertEquals(0, response.rows()[0][1]);
     }
@@ -417,7 +418,7 @@ public class SQLTypeMappingTest extends SQLCrateNodesTest {
                     put("a_boolean", true);
                 }}
         });
-        refresh(node1.client());
+        refresh();
 
         SQLResponse response = execute("select id, new_col from t1 where id=0");
         @SuppressWarnings("unchecked")
@@ -437,7 +438,7 @@ public class SQLTypeMappingTest extends SQLCrateNodesTest {
         }};
         execute("insert into test12 (craty_field) values (?)",
                 new Object[]{cratyContent});
-        refresh(node1.client());
+        refresh();
         SQLResponse response = execute("select craty_field from test12");
         assertEquals(1, response.rowCount());
         @SuppressWarnings("unchecked")
@@ -472,7 +473,7 @@ public class SQLTypeMappingTest extends SQLCrateNodesTest {
         }};
         execute("insert into test12 (no_dynamic_field) values (?)",
                 new Object[]{notDynamicContent});
-        refresh(node1.client());
+        refresh();
         SQLResponse response = execute("select no_dynamic_field from test12");
         assertEquals(1, response.rowCount());
         @SuppressWarnings("unchecked")

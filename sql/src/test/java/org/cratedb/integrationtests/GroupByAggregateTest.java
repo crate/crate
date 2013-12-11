@@ -1,6 +1,6 @@
 package org.cratedb.integrationtests;
 
-import org.cratedb.SQLCrateClusterTest;
+import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLResponse;
 import org.junit.Before;
 import org.junit.Rule;
@@ -9,7 +9,7 @@ import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.Matchers.isIn;
 
-public class GroupByAggregateTest extends SQLCrateClusterTest {
+public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
     private SQLResponse response;
     private Setup setup = new Setup(this);
@@ -17,11 +17,6 @@ public class GroupByAggregateTest extends SQLCrateClusterTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-
-    @Override
-    protected int numberOfNodes() {
-        return 2;
-    }
 
 
     @Before
