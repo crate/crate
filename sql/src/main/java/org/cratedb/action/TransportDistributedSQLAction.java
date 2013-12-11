@@ -29,6 +29,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
@@ -677,7 +678,11 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             if (parsedStatement.hasGroupBy()) {
                 // create a reduce job without a shard CountDownLatch as we collect all shards
                 // at once here
-                reduceJobStatus = new SQLReduceJobStatus(parsedStatement, threadPool);
+                reduceJobStatus = new SQLReduceJobStatus(
+                    parsedStatement,
+                    threadPool,
+                    ConcurrentCollections.<GroupByKey, GroupByRow>newConcurrentMap()
+                );
             } else {
                 collectResults = new ArrayList<>(shardsItsAll.size() - shardsIts.size());
             }

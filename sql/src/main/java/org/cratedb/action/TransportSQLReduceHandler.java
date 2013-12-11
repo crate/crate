@@ -2,6 +2,8 @@ package org.cratedb.action;
 
 import org.cratedb.Constants;
 import org.cratedb.action.groupby.GroupByHelper;
+import org.cratedb.action.groupby.GroupByKey;
+import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.service.SQLParseService;
 import org.elasticsearch.action.ActionListener;
@@ -10,11 +12,15 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.recycler.Recycler;
+import org.elasticsearch.common.recycler.SoftThreadLocalRecycler;
+import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +34,7 @@ public class TransportSQLReduceHandler {
     private final SQLParseService sqlParseService;
     private final ThreadPool threadPool;
     private final ScheduledExecutorService scheduledExecutorService;
+    private final SoftThreadLocalRecycler<ConcurrentMap<GroupByKey, GroupByRow>> resultRecycler;
 
     public static class Actions {
         public static final String START_REDUCE_JOB = "crate/sql/shard/reduce/start_job";
@@ -45,6 +52,17 @@ public class TransportSQLReduceHandler {
         this.threadPool = threadPool;
         this.reduceJobStatusContext = new ReduceJobStatusContext();
         this.scheduledExecutorService = new ScheduledThreadPoolExecutor(2);
+        this.resultRecycler = new SoftThreadLocalRecycler<>(new Recycler.C<ConcurrentMap<GroupByKey, GroupByRow>>() {
+            @Override
+            public ConcurrentMap<GroupByKey, GroupByRow> newInstance(int sizing) {
+                return ConcurrentCollections.newConcurrentMap();
+            }
+
+            @Override
+            public void clear(ConcurrentMap<GroupByKey, GroupByRow> value) {
+                value.clear();
+            }
+        }, 10);
     }
 
     public void registerHandler() {
@@ -58,7 +76,12 @@ public class TransportSQLReduceHandler {
             sqlParseService.parse(request.request.stmt(), request.request.args());
 
         SQLReduceJobStatus reduceJobStatus = new SQLReduceJobStatus(
-            parsedStatement, threadPool, request.expectedShardResults, request.contextId, reduceJobStatusContext
+            parsedStatement,
+            threadPool,
+            resultRecycler.obtain(-1).v(),
+            request.expectedShardResults,
+            request.contextId,
+            reduceJobStatusContext
         );
         final WeakReference<SQLReduceJobStatus> weakStatus = new WeakReference<>(reduceJobStatus);
 

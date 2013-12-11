@@ -34,22 +34,25 @@ public class SQLReduceJobStatus extends PlainListenableActionFuture<SQLReduceJob
 
     public SQLReduceJobStatus(ParsedStatement parsedStatement,
                               ThreadPool threadPool,
+                              ConcurrentMap<GroupByKey, GroupByRow> reducedResult,
                               int shardsToProcess,
                               UUID contextId,
                               ReduceJobStatusContext reduceJobStatusContext)
     {
-        this(parsedStatement, threadPool);
+        this(parsedStatement, threadPool, reducedResult);
         this.shardsToProcess = new AtomicInteger(shardsToProcess);
         this.reduceJobStatusContext = reduceJobStatusContext;
         this.contextId = contextId;
     }
 
-    public SQLReduceJobStatus(ParsedStatement parsedStatement, ThreadPool threadPool)
+    public SQLReduceJobStatus(ParsedStatement parsedStatement,
+                              ThreadPool threadPool,
+                              ConcurrentMap<GroupByKey, GroupByRow> reducedResult)
     {
         super(true, threadPool);
         this.parsedStatement = parsedStatement;
         this.seenIdxMapper = GroupByHelper.getSeenIdxMap(parsedStatement.aggregateExpressions);
-        this.reducedResult = ConcurrentCollections.newConcurrentMap();
+        this.reducedResult = reducedResult;
         this.comparator = new GroupByRowComparator(
             GroupByHelper.buildFieldExtractor(parsedStatement, null),
             parsedStatement.orderByIndices()
