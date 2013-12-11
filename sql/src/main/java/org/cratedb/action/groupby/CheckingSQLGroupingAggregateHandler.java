@@ -1,6 +1,7 @@
 package org.cratedb.action.groupby;
 
 import org.cratedb.action.FieldLookup;
+import org.cratedb.action.collect.CollectorContext;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 
@@ -17,16 +18,16 @@ public class CheckingSQLGroupingAggregateHandler implements SQLGroupingAggregate
     @Override
     public void handleAggregates(
             GroupByRow row,
-            FieldLookup fieldLookup,
             List<AggExpr> aggregateExpressions, AggFunction[] aggFunctions) throws IOException {
         for (int i = 0; i < aggFunctions.length; i++) {
             if (row.continueCollectingFlags[i]) {
                 AggExpr aggExpr = aggregateExpressions.get(i);
                 AggFunction function = aggFunctions[i];
-                Object value = null;
-
-                if (aggExpr.parameterInfo != null) {
-                    value = fieldLookup.lookupField(aggExpr.parameterInfo.columnName);
+                Object value;
+                if (aggExpr.expression != null){
+                    value = aggExpr.expression.evaluate();
+                } else {
+                    value = null;
                 }
                 row.continueCollectingFlags[i] = function.iterate(row.aggStates.get(i), value);
             }

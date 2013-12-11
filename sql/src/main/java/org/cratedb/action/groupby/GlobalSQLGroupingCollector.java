@@ -1,7 +1,10 @@
 package org.cratedb.action.groupby;
 
 import org.cratedb.action.FieldLookup;
+import org.cratedb.action.collect.CollectorContext;
 import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.groupby.key.GlobalRows;
+import org.cratedb.action.groupby.key.Rows;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.core.collections.CyclicIterator;
 
@@ -12,35 +15,17 @@ import java.util.Map;
  * GroupingCollector that is used for global aggregation without group by
  */
 public class GlobalSQLGroupingCollector extends SQLGroupingCollector {
-    private static final GroupByKey GLOBAL_AGGREGATE_GROUP_KEY = new GroupByKey(new Object[]{ 1 });
-    private final CyclicIterator<String> reducerIter;
 
     public GlobalSQLGroupingCollector(ParsedStatement parsedStatement,
-                                      FieldLookup fieldLookup,
+                                      CollectorContext context,
                                       Map<String, AggFunction> aggFunctionMap,
-                                      String[] reducers) {
-        super(parsedStatement, fieldLookup, aggFunctionMap, reducers);
-
+                                      int numReducers) {
+        super(parsedStatement, context, aggFunctionMap, numReducers);
         assert parsedStatement.isGlobalAggregate();
-
-        reducerIter = new CyclicIterator<>(Arrays.asList(this.reducers));
     }
 
-    /**
-     * it's always the same
-     * @return
-     */
     @Override
-    protected GroupByKey getGroupByKey() {
-        return GLOBAL_AGGREGATE_GROUP_KEY;
-    }
-
-    /**
-     * simply return the next reducer
-     * @return
-     */
-    @Override
-    protected String partitionByKey(String[] reducers, GroupByKey key) {
-        return reducerIter.next();
+    protected Rows newRows() {
+        return new GlobalRows(numReducers, parsedStatement);
     }
 }

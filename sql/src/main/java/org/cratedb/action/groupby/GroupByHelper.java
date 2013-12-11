@@ -1,6 +1,8 @@
 package org.cratedb.action.groupby;
 
 import com.google.common.collect.ImmutableSet;
+import org.cratedb.action.collect.ColumnReferenceExpression;
+import org.cratedb.action.collect.Expression;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.any.AnyAggFunction;
 import org.cratedb.action.groupby.aggregate.max.MaxAggFunction;
@@ -23,23 +25,6 @@ public class GroupByHelper {
             MaxAggFunction.NAME,
             AnyAggFunction.NAME
     );
-
-    public static List<Integer> getSeenIdxMap(Collection<AggExpr> aggregateExpressions) {
-        List<Integer> idxMap = new ArrayList<>();
-        Set<String> distinctColumns = new HashSet<>();
-        int seenIdx = -1;
-        for (AggExpr expr : aggregateExpressions) {
-            if (expr.isDistinct) {
-                if (!distinctColumns.contains(expr.parameterInfo.columnName)) {
-                    distinctColumns.add(expr.parameterInfo.columnName);
-                    seenIdx++;
-                }
-                idxMap.add(seenIdx);
-            }
-        }
-
-        return idxMap;
-    }
 
     public static Collection<GroupByRow> trimRows(List<GroupByRow> rows,
                                                   Comparator<GroupByRow> comparator,
@@ -73,48 +58,42 @@ public class GroupByHelper {
      * see also {@link GroupByFieldExtractor}
      */
     public static GroupByFieldExtractor[] buildFieldExtractor(ParsedStatement parsedStatement,
-                                                              final FieldMapper fieldMapper) {
-        GroupByFieldExtractor[] extractors = new GroupByFieldExtractor[parsedStatement.resultColumnList.size()];
+            final FieldMapper fieldMapper) {
+        GroupByFieldExtractor[] extractors = new GroupByFieldExtractor[parsedStatement
+                .resultColumnList().size()];
 
         int colIdx = 0;
         int aggStateIdx = 0;
         int keyValIdx;
 
-        for (final ColumnDescription columnDescription : parsedStatement.resultColumnList) {
+        for (final ColumnDescription columnDescription : parsedStatement.resultColumnList()) {
             if (columnDescription instanceof AggExpr) {
                 // fieldMapper is null in case of group by on information schema
-                if (fieldMapper != null && MAPPED_AGG_FUNCTIONS.contains(((AggExpr) columnDescription).functionName)) {
-                    // need to use fieldMapper to convert long to int/short, etc..
-                    // groupingCollector/fieldcache doesn't return the correct types.
-                    extractors[colIdx] = new GroupByFieldExtractor(aggStateIdx) {
-                        @Override
-                        public Object getValue(GroupByRow row) {
-                            return fieldMapper.mappedValue(
-                                    ((AggExpr) columnDescription).parameterInfo.columnName,
-                                    row.aggStates.get(idx).value()
-                            );
-                        }
-                    };
-                } else {
-
-                    extractors[colIdx] = new GroupByFieldExtractor(aggStateIdx) {
-                        @Override
-                        public Object getValue(GroupByRow row) {
-                            return row.aggStates.get(idx).value();
-                        }
-                    };
-                }
+                extractors[colIdx] = new GroupByFieldExtractor(aggStateIdx) {
+                    @Override
+                    public Object getValue(GroupByRow row) {
+                        return row.aggStates.get(idx).value();
+                    }
+                };
                 aggStateIdx++;
             } else {
                  // currently only AggExpr and ColumnReferenceDescription exists, so this must be true.
                 assert columnDescription instanceof ColumnReferenceDescription;
-                keyValIdx = parsedStatement.groupByColumnNames.indexOf(((ColumnReferenceDescription) columnDescription).name);
-                extractors[colIdx] = new GroupByFieldExtractor(keyValIdx) {
-                    @Override
-                    public Object getValue(GroupByRow row) {
-                        return row.key.get(idx);
+                String colName =  ((ColumnReferenceDescription) columnDescription).name;
+                keyValIdx = 0;
+                for (Expression e: parsedStatement.groupByExpressions()){
+                    if (e instanceof ColumnReferenceExpression && colName.equals(
+                            ((ColumnReferenceExpression)e).columnName())){
+                        extractors[colIdx] = new GroupByFieldExtractor(keyValIdx) {
+                            @Override
+                            public Object getValue(GroupByRow row) {
+                                return row.key.get(idx);
+                            }
+                        };
+                        break;
                     }
-                };
+                    keyValIdx++;
+                }
             }
             colIdx++;
         }

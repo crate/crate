@@ -42,7 +42,7 @@ public class InformationSchemaTableTest extends AbstractCrateNodesTests {
         public static final String NAME = "nodes";
 
         public TestInformationSchemaTable(Map<String, AggFunction> aggFunctionMap) {
-            super(aggFunctionMap);
+            super(aggFunctionMap, null);
         }
 
         @Override

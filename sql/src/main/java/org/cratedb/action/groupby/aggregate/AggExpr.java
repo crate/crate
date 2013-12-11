@@ -1,6 +1,8 @@
 package org.cratedb.action.groupby.aggregate;
 
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
+import org.cratedb.action.collect.Expression;
 import org.cratedb.action.groupby.ParameterInfo;
 import org.cratedb.action.groupby.aggregate.any.AnyAggState;
 import org.cratedb.action.groupby.aggregate.avg.AvgAggState;
@@ -16,22 +18,21 @@ import java.io.IOException;
 
 public class AggExpr extends ColumnDescription {
 
+    public Expression expression;
     private AggStateCreator aggStateCreator;
     public boolean isDistinct;
     public String functionName;
-    public ParameterInfo parameterInfo;
 
     public AggExpr() {
         super(Types.AGGREGATE_COLUMN);
     }
 
-    public AggExpr(String functionName, final ParameterInfo parameterInfo, boolean isDistinct) {
+    public AggExpr(String functionName, boolean isDistinct, Expression expression) {
         super(Types.AGGREGATE_COLUMN);
         this.functionName = functionName;
-        this.parameterInfo = parameterInfo;
         this.isDistinct = isDistinct;
-
-        createAggStateCreator(functionName, parameterInfo);
+        this.expression = expression;
+        createAggStateCreator();
     }
 
     /**
@@ -40,7 +41,7 @@ public class AggExpr extends ColumnDescription {
      *
      * this built aggStateCreator depends on the functionName and parameterInfo
      */
-    private void createAggStateCreator(String functionName, ParameterInfo parameterInfo) {
+    private void createAggStateCreator() {
         switch (functionName) {
             case "AVG":
                 createAvgAggState();
@@ -51,16 +52,16 @@ public class AggExpr extends ColumnDescription {
                 createCountAggState();
                 break;
             case "MAX":
-                createMaxAggState(parameterInfo);
+                createMaxAggState();
                 break;
             case "MIN":
-                createMinAggState(parameterInfo);
+                createMinAggState();
                 break;
             case "SUM":
                 createSumAggState();
                 break;
             case "ANY":
-                createAnyAggState(parameterInfo);
+                createAnyAggState();
                 break;
             default:
                 throw new IllegalArgumentException("Unknown function " + functionName);
@@ -68,26 +69,26 @@ public class AggExpr extends ColumnDescription {
         }
     }
 
-    private void createMinAggState(ParameterInfo parameterInfo) {
-        if (parameterInfo.dataType == DataType.STRING) {
+    private void createMinAggState() {
+        if (expression.returnType() == DataType.STRING) {
             aggStateCreator = new AggStateCreator() {
                 @Override
                 AggState create() {
-                    return new MinAggState<String>() {
+                    return new MinAggState<BytesRef>() {
 
                         @Override
                         public void readFrom(StreamInput in) throws IOException {
-                            this.setValue(in.readOptionalString());
+                            this.setValue(in.readBytesRef());
                         }
 
                         @Override
                         public void writeTo(StreamOutput out) throws IOException {
-                            out.writeOptionalString((String)this.value());
+                            out.writeBytesRef((BytesRef) value());
                         }
                     };
                 }
             };
-        } else if (DataType.DECIMAL_TYPES.contains(parameterInfo.dataType)) {
+        } else if (DataType.DECIMAL_TYPES.contains(expression.returnType())) {
             aggStateCreator = new AggStateCreator() {
                 @Override
                 AggState create() {
@@ -111,8 +112,8 @@ public class AggExpr extends ColumnDescription {
                     };
                 }
             };
-        } else if (DataType.INTEGER_TYPES.contains(parameterInfo.dataType)
-            || DataType.TIMESTAMP == parameterInfo.dataType)
+        } else if (DataType.INTEGER_TYPES.contains(expression.returnType())
+            || DataType.TIMESTAMP == expression.returnType())
         {
             aggStateCreator = new AggStateCreator() {
                 @Override
@@ -142,28 +143,28 @@ public class AggExpr extends ColumnDescription {
         }
     }
 
-    private void createMaxAggState(ParameterInfo parameterInfo) {
-        if (parameterInfo.dataType == DataType.STRING) {
+    private void createMaxAggState() {
+        if (expression.returnType() == DataType.STRING) {
             aggStateCreator = new AggStateCreator() {
                 @Override
                 AggState create() {
-                    return new MaxAggState<String>() {
+                    return new MaxAggState<BytesRef>() {
 
                         @Override
                         @SuppressWarnings("unchecked")
                         public void readFrom(StreamInput in) throws IOException {
-                            setValue(in.readOptionalString());
+                            setValue(in.readBytesRef());
 
                         }
 
                         @Override
                         public void writeTo(StreamOutput out) throws IOException {
-                            out.writeOptionalString((String)value());
+                            out.writeBytesRef((BytesRef) value());
                         }
                     };
                 }
             };
-        } else if (DataType.DECIMAL_TYPES.contains(parameterInfo.dataType)) {
+        } else if (DataType.DECIMAL_TYPES.contains(expression.returnType())) {
             aggStateCreator = new AggStateCreator() {
                 @Override
                 AggState create() {
@@ -187,8 +188,8 @@ public class AggExpr extends ColumnDescription {
                     };
                 }
             };
-        } else if (DataType.INTEGER_TYPES.contains(parameterInfo.dataType)
-            || DataType.TIMESTAMP == parameterInfo.dataType)
+        } else if (DataType.INTEGER_TYPES.contains(expression.returnType())
+            || DataType.TIMESTAMP == expression.returnType())
         {
             aggStateCreator = new AggStateCreator() {
                 @Override
@@ -248,34 +249,33 @@ public class AggExpr extends ColumnDescription {
      * create AnyAggStates with concrete serialization methods
      *
      * These are defined here for performance reasons (no if checks and such)
-     * @param parameterInfo
      */
-    private void createAnyAggState(ParameterInfo parameterInfo) {
-        if (parameterInfo.dataType == DataType.STRING || parameterInfo.dataType == DataType.IP) {
+    private void createAnyAggState() {
+        if (expression.returnType() == DataType.STRING || expression.returnType() == DataType.IP) {
             aggStateCreator = new AggStateCreator() {
                 @Override
                 AggState create() {
-                    return new AnyAggState<String>() {
+                    return new AnyAggState<BytesRef>() {
 
                         @Override
                         public void add(Object otherValue) {
-                            this.value = (String)otherValue;
+                            this.value = (BytesRef)otherValue;
                         }
 
                         @Override
                         public void readFrom(StreamInput in) throws IOException {
-                            this.value = in.readOptionalString();
+                            this.value = in.readBytesRef();
                         }
 
                         @Override
                         public void writeTo(StreamOutput out) throws IOException {
-                            out.writeOptionalString(this.value);
+                            out.writeBytesRef(this.value);
                         }
                     };
                 }
             };
-        } else if (DataType.INTEGER_TYPES.contains(parameterInfo.dataType) ||
-                DataType.TIMESTAMP == parameterInfo.dataType) {
+        } else if (DataType.INTEGER_TYPES.contains(expression.returnType()) ||
+                DataType.TIMESTAMP == expression.returnType()) {
             aggStateCreator = new AggStateCreator() {
                 @Override
                 AggState create() {
@@ -303,7 +303,7 @@ public class AggExpr extends ColumnDescription {
                     };
                 }
             };
-        } else if (DataType.DECIMAL_TYPES.contains(parameterInfo.dataType)) {
+        } else if (DataType.DECIMAL_TYPES.contains(expression.returnType())) {
             aggStateCreator = new AggStateCreator() {
                 @Override
                 AggState create() {
@@ -332,7 +332,7 @@ public class AggExpr extends ColumnDescription {
                     };
                 }
             };
-        } else if (parameterInfo.dataType == DataType.BOOLEAN) {
+        } else if (expression.returnType() == DataType.BOOLEAN) {
             aggStateCreator = new AggStateCreator() {
                 @Override
                 AggState create() {
@@ -388,7 +388,7 @@ public class AggExpr extends ColumnDescription {
         AggExpr aggExpr = (AggExpr) o;
 
         if (!functionName.equals(aggExpr.functionName)) return false;
-        if (!parameterInfo.equals(aggExpr.parameterInfo)) return false;
+        if (!expression.equals(aggExpr.expression)) return false;
 
         return true;
     }
@@ -396,19 +396,16 @@ public class AggExpr extends ColumnDescription {
     @Override
     public int hashCode() {
         int result = functionName.hashCode();
-        result = 31 * result + parameterInfo.hashCode();
+        result = 31 * result + expression.hashCode();
         return result;
     }
 
     @Override
     public String toString() {
-        if (parameterInfo != null) {
-            return String.format("%s(%s%s)",
-                    functionName.split("_")[0],
-                    (isDistinct ? "DISTINCT " : ""),
-                    parameterInfo.toString());
-        } else {
-            return functionName;
-        }
+        return String.format("%s(%s%s)",
+                functionName.split("_")[0],
+                (isDistinct ? "DISTINCT " : ""),
+                (expression!=null ? expression.toString():""));
     }
+
 }

@@ -4,7 +4,9 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.core.concurrent.FutureConcurrentMap;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.CrateException;
+import org.cratedb.sql.SQLReduceJobFailedException;
 import org.cratedb.sql.SQLReduceJobTimeoutException;
+import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
@@ -26,6 +28,7 @@ public class TransportSQLReduceHandler {
     private final FutureConcurrentMap<UUID, SQLReduceJobStatus> activeReduceJobs = FutureConcurrentMap.newMap();
     private final ClusterService clusterService;
     private final SQLParseService sqlParseService;
+    private final CacheRecycler cacheRecycler;
 
     public static class Actions {
         public static final String START_REDUCE_JOB = "crate/sql/shard/reduce/start_job";
@@ -34,11 +37,14 @@ public class TransportSQLReduceHandler {
 
     @Inject
     public TransportSQLReduceHandler(TransportService transportService,
-                                     ClusterService clusterService,
-                                     SQLParseService sqlParseService) {
+            ClusterService clusterService,
+            SQLParseService sqlParseService,
+            CacheRecycler cacheRecycler
+            ) {
         this.sqlParseService = sqlParseService;
         this.clusterService = clusterService;
         this.transportService = transportService;
+        this.cacheRecycler = cacheRecycler;
     }
 
     public void registerHandler() {
@@ -73,7 +79,12 @@ public class TransportSQLReduceHandler {
             logger.trace("[{}]: context: {} completed SQLReduceJob. Took {} ms",
                 clusterService.localNode().id(), request.contextId, (new Date().getTime() - now));
 
-            return new SQLReduceJobResponse(reduceJobStatus);
+            if (reduceJobStatus.hasFailures()){
+                throw new SQLReduceJobFailedException(request.contextId, reduceJobStatus);
+            }
+            reduceJobStatus.terminate();
+            return new SQLReduceJobResponse(reduceJobStatus.terminate(), parsedStatement);
+
 
         } catch (InterruptedException e) {
             throw new SQLReduceJobTimeoutException();
@@ -108,7 +119,7 @@ public class TransportSQLReduceHandler {
     private class RecievePartialResultHandler implements TransportRequestHandler<SQLMapperResultRequest> {
         @Override
         public SQLMapperResultRequest newInstance() {
-            return new SQLMapperResultRequest(activeReduceJobs);
+            return new SQLMapperResultRequest(activeReduceJobs, cacheRecycler);
         }
 
         @Override
@@ -116,24 +127,32 @@ public class TransportSQLReduceHandler {
             SQLReduceJobStatus status = request.status;
 
             long now = 0;
-            if (logger.isTraceEnabled()) {
-                logger.trace("[{}]: context {} received result from mapper",
-                    clusterService.localNode().getId(),
-                    request.contextId
-                );
-                now = new Date().getTime();
+
+            if (request.failed){
+                logger.error("[{}]: context {} received failed result from mapper",
+                        clusterService.localNode().getId(),
+                        request.contextId);
+                status.failure();
+
+            } else {
+                if (logger.isTraceEnabled()) {
+                    logger.trace("[{}]: context {} received result from mapper",
+                            clusterService.localNode().getId(),
+                            request.contextId
+                                );
+                    now = new Date().getTime();
+                }
+                status.merge(request.groupByResult);
+
+                if (logger.isTraceEnabled()) {
+                    logger.trace("[{}]: context {} merging mapper result took {} ms",
+                            clusterService.localNode().getId(),
+                            request.contextId,
+                            (new Date().getTime() - now)
+                                );
+                }
             }
 
-            status.merge(request.groupByResult);
-
-            if (logger.isTraceEnabled()) {
-                logger.trace("[{}]: context {} merging mapper result took {} ms. Now we got {} results",
-                    clusterService.localNode().getId(),
-                    request.contextId,
-                    (new Date().getTime() - now),
-                    status.reducedResult.size()
-                );
-            }
 
             status.shardsToProcess.countDown();
 

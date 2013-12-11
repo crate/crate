@@ -3,6 +3,7 @@ package org.cratedb.service;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.groupby.key.Rows;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.stats.ShardStatsTable;
 import org.cratedb.stats.StatsInfo;
@@ -57,18 +58,17 @@ public class StatsService extends AbstractLifecycleComponent<StatsService> {
     protected void doClose() throws ElasticSearchException {
     }
 
-    public Map<String, Map<GroupByKey, GroupByRow>> queryGroupBy(String virtualTableName,
-                                                                 String[]
-                                                                 reducers,
-                                                                 String concreteIndex,
-                                                                 ParsedStatement stmt,
-                                                                 int shardId)
+    public Rows queryGroupBy(String virtualTableName,
+            int numReducers,
+            String concreteIndex,
+            ParsedStatement stmt,
+            int shardId)
             throws Exception
     {
         switch (virtualTableName.toLowerCase()) {
             case "shards":
                 StatsInfo shardInfo = newShardInfo(concreteIndex, shardId);
-                return shardStatsTable.queryGroupBy(reducers, stmt, shardInfo);
+                return shardStatsTable.queryGroupBy(numReducers, stmt, shardInfo);
             default:
                 throw new StatsTableUnknownException(virtualTableName);
         }

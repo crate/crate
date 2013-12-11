@@ -2,10 +2,14 @@ package org.cratedb.integrationtests;
 
 import org.cratedb.SQLCrateClusterTest;
 import org.cratedb.action.sql.SQLResponse;
+import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import java.io.IOException;
 
 import static org.hamcrest.Matchers.greaterThan;
 

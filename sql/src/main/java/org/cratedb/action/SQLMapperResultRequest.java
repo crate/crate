@@ -1,6 +1,7 @@
 package org.cratedb.action;
 
 import org.cratedb.core.concurrent.FutureConcurrentMap;
+import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
@@ -11,8 +12,10 @@ import java.util.concurrent.TimeUnit;
 
 public class SQLMapperResultRequest extends TransportRequest {
 
+    private CacheRecycler cacheRecycler;
     public UUID contextId;
     public SQLGroupByResult groupByResult;
+    public boolean failed = false;
 
     // fields below are only set/available on the receiver side.
     public SQLReduceJobStatus status;
@@ -22,24 +25,28 @@ public class SQLMapperResultRequest extends TransportRequest {
 
     }
 
-    public SQLMapperResultRequest(FutureConcurrentMap<UUID, SQLReduceJobStatus> reduceJobs) {
+    public SQLMapperResultRequest(
+            FutureConcurrentMap<UUID, SQLReduceJobStatus> reduceJobs,
+            CacheRecycler cacheRecycler) {
         this.reduceJobs = reduceJobs;
+        this.cacheRecycler = cacheRecycler;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
+
         contextId = new UUID(in.readLong(), in.readLong());
         try {
             status = reduceJobs.get(contextId, 30, TimeUnit.SECONDS);
         } catch (Exception e ) {
             throw new IOException(e);
         }
-        groupByResult = SQLGroupByResult.readSQLGroupByResult(
-            status.parsedStatement.aggregateExpressions,
-            status.seenIdxMapper,
-            in
-        );
+        failed = in.readBoolean();
+        if (!failed){
+            groupByResult = SQLGroupByResult.readSQLGroupByResult(status.parsedStatement,
+                    cacheRecycler, in);
+        }
     }
 
     @Override
@@ -47,6 +54,9 @@ public class SQLMapperResultRequest extends TransportRequest {
         super.writeTo(out);
         out.writeLong(contextId.getMostSignificantBits());
         out.writeLong(contextId.getLeastSignificantBits());
-        groupByResult.writeTo(out);
+        out.writeBoolean(failed);
+        if (!failed){
+            groupByResult.writeTo(out);
+        }
     }
 }

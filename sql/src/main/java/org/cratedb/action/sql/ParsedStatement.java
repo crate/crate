@@ -2,6 +2,8 @@ package org.cratedb.action.sql;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.search.Query;
+import org.cratedb.action.collect.Expression;
+import org.cratedb.action.groupby.GroupByHelper;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.service.SQLParseService;
@@ -118,9 +120,19 @@ public class ParsedStatement {
 
     public BytesReference xcontent;
 
-    public List<String> groupByColumnNames;
-    public List<ColumnDescription> resultColumnList;
-    public List<AggExpr> aggregateExpressions;
+    private List<Expression> groupByExpressions;
+    private List<ColumnDescription> resultColumnList;
+
+    public List<ColumnDescription> resultColumnList() {
+        return resultColumnList;
+    }
+
+    public ParsedStatement resultColumnList(List<ColumnDescription> resultColumnList) {
+        this.resultColumnList = resultColumnList;
+        return this;
+    }
+
+    private List<AggExpr> aggregateExpressions;
     @SuppressWarnings("unchecked")
     public List<AggExpr> aggregateExpressions() {
         if (aggregateExpressions == null) {
@@ -129,6 +141,14 @@ public class ParsedStatement {
             return aggregateExpressions;
         }
     }
+
+    public ParsedStatement aggregateExpressions(List<AggExpr> aggregateExpressions) {
+        this.aggregateExpressions = aggregateExpressions;
+        return this;
+    }
+
+    List<Integer> seenIdxMap;
+
     public boolean hasStoppableAggregate = false; // true if any aggregate is able to terminate collection earlier
     public boolean hasDistinctAggregate = false;
 
@@ -310,10 +330,39 @@ public class ParsedStatement {
     }
 
     public boolean hasGroupBy() {
-        return (groupByColumnNames != null && groupByColumnNames.size() > 0);
+        return (groupByExpressions != null && groupByExpressions.size() > 0);
     }
 
     public boolean hasOrderBy() {
         return (orderByIndices != null && !orderByIndices.isEmpty()) || !orderByColumns.isEmpty();
     }
+
+    public List<Expression> groupByExpressions() {
+        return groupByExpressions;
+    }
+
+    public void groupByExpressions(List<Expression> groupByExpressions) {
+        this.groupByExpressions = groupByExpressions;
+    }
+
+    public List<Integer> seenIdxMap(){
+        if (seenIdxMap == null) {
+            seenIdxMap = new ArrayList<>();
+            List<Expression> distinctColumns = new ArrayList<>();
+            int seenIdx = -1;
+            for (AggExpr expr : aggregateExpressions) {
+                if (expr.isDistinct) {
+                    if (!distinctColumns.contains(expr.expression)) {
+                        distinctColumns.add(expr.expression);
+
+                    }
+                    seenIdx = distinctColumns.indexOf(expr.expression);
+                    seenIdxMap.add(seenIdx);
+                }
+            }
+        }
+        return seenIdxMap;
+    }
+
+
 }
