@@ -1,5 +1,6 @@
 package org.cratedb.action.groupby.key;
 
+import org.cratedb.DataType;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.sql.ParsedStatement;
@@ -45,12 +46,29 @@ public class GlobalRows extends Rows<GlobalRows> {
     @Override
     public void writeBucket(StreamOutput out, int idx) throws IOException {
         // TODO: special serializer
-        out.writeGenericValue(buckets[idx]);
+        List<GroupByRow> bucket = buckets[idx];
+        if (bucket == null || bucket.size() == 0) {
+            out.writeVInt(0);
+            return;
+        }
+        out.writeVInt(bucket.size());
+        for (GroupByRow row: bucket){
+            row.writeStates(out);
+        }
     }
 
     @Override
     public void readBucket(StreamInput in, int idx) throws IOException {
-        buckets[idx] = (List<GroupByRow>) in.readGenericValue();
+        int size = in.readVInt();
+        if (size==0){
+            return;
+        }
+        List<GroupByRow> bucket = new ArrayList<GroupByRow>();
+        for (int i = 0; i < size; i++) {
+            GroupByRow row = new GroupByRow();
+            row.readFrom(in, null, stmt);
+            bucket.add(row);
+        }
     }
 
     public List<GroupByRow>[] buckets() {

@@ -25,15 +25,6 @@ public class SQLReduceJobResponse extends ActionResponse {
         this.rows = rows;
     }
 
-    private DataType.Streamer[] getKeyStreamers() {
-        DataType.Streamer[] keyStreamers = new DataType.Streamer[
-                parsedStatement.groupByExpressions().size()];
-        for (int i = 0; i < keyStreamers.length; i++) {
-            keyStreamers[i] = parsedStatement.groupByExpressions().get(i).returnType().streamer();
-        }
-        return keyStreamers;
-    }
-
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
@@ -41,7 +32,7 @@ public class SQLReduceJobResponse extends ActionResponse {
         if (resultLength == 0) {
             return;
         }
-        DataType.Streamer[] streamers = getKeyStreamers();
+        DataType.Streamer[] streamers = parsedStatement.getGroupKeyStreamers();
         rows = new ArrayList<>(resultLength);
         for (int i = 0; i < resultLength; i++) {
             rows.add(GroupByRow.readGroupByRow(parsedStatement, streamers, in));
@@ -55,7 +46,7 @@ public class SQLReduceJobResponse extends ActionResponse {
             out.writeVInt(0);
             return;
         }
-        DataType.Streamer[] streamers = getKeyStreamers();
+        DataType.Streamer[] streamers = parsedStatement.getGroupKeyStreamers();
         out.writeVInt(rows.size());
         for (GroupByRow row : rows) {
             row.writeTo(streamers, out);

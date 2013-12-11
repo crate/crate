@@ -2,6 +2,7 @@ package org.cratedb.action.sql;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.search.Query;
+import org.cratedb.DataType;
 import org.cratedb.action.collect.Expression;
 import org.cratedb.action.groupby.GroupByHelper;
 import org.cratedb.action.groupby.aggregate.AggExpr;
@@ -363,6 +364,16 @@ public class ParsedStatement {
         }
         return seenIdxMap;
     }
+
+    public DataType.Streamer[] getGroupKeyStreamers() {
+        DataType.Streamer[] keyStreamers = new DataType.Streamer[
+                groupByExpressions().size()];
+        for (int i = 0; i < keyStreamers.length; i++) {
+            keyStreamers[i] = groupByExpressions().get(i).returnType().streamer();
+        }
+        return keyStreamers;
+    }
+
 
 
 }
