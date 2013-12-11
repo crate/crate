@@ -14,6 +14,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -56,15 +57,18 @@ public class TransportSQLReduceHandler {
         ParsedStatement parsedStatement =
             sqlParseService.parse(request.request.stmt(), request.request.args());
 
-
-        final SQLReduceJobStatus reduceJobStatus = new SQLReduceJobStatus(
+        SQLReduceJobStatus reduceJobStatus = new SQLReduceJobStatus(
             parsedStatement, threadPool, request.expectedShardResults, request.contextId, reduceJobStatusContext
         );
+        final WeakReference<SQLReduceJobStatus> weakStatus = new WeakReference<>(reduceJobStatus);
 
         scheduledExecutorService.schedule(new Runnable() {
             @Override
             public void run() {
-                reduceJobStatus.timeout();
+                SQLReduceJobStatus status = weakStatus.get();
+                if (status != null) {
+                    status.timeout();
+                }
             }
         }, Constants.GROUP_BY_TIMEOUT, TimeUnit.SECONDS);
 

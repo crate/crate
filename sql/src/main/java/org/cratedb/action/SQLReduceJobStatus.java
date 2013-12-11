@@ -7,7 +7,9 @@ import org.cratedb.action.groupby.GroupByRowComparator;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.core.concurrent.FutureConcurrentMap;
 import org.cratedb.sql.CrateException;
+import org.cratedb.sql.SQLReduceJobTimeoutException;
 import org.elasticsearch.action.support.PlainListenableActionFuture;
+import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -23,14 +25,15 @@ public class SQLReduceJobStatus extends PlainListenableActionFuture<SQLReduceJob
     public final GroupByRowComparator comparator;
     public final Object lock = new Object();
     public final ParsedStatement parsedStatement;
-    public final ConcurrentMap<GroupByKey, GroupByRow> reducedResult;
     public final List<Integer> seenIdxMapper;
+    public ConcurrentMap<GroupByKey, GroupByRow> reducedResult;
     private ReduceJobStatusContext reduceJobStatusContext;
     private UUID contextId;
 
     AtomicInteger shardsToProcess;
 
-    public SQLReduceJobStatus(ParsedStatement parsedStatement, ThreadPool threadPool,
+    public SQLReduceJobStatus(ParsedStatement parsedStatement,
+                              ThreadPool threadPool,
                               int shardsToProcess,
                               UUID contextId,
                               ReduceJobStatusContext reduceJobStatusContext)
@@ -82,7 +85,7 @@ public class SQLReduceJobStatus extends PlainListenableActionFuture<SQLReduceJob
         if (reduceJobStatusContext != null) {
             if (shardsToProcess.decrementAndGet() == 0) {
                 reduceJobStatusContext.remove(contextId);
-                set(new SQLReduceJobResponse(this));
+                set(new SQLReduceJobResponse(trimRows(reducedResult.values())));
             }
         }
     }
@@ -92,6 +95,8 @@ public class SQLReduceJobStatus extends PlainListenableActionFuture<SQLReduceJob
     }
 
     public void timeout() {
-        setException(new CrateException("reduce job timed out"));
+        if (!isDone()) {
+            setException(new SQLReduceJobTimeoutException());
+        }
     }
 }
