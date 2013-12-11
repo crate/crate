@@ -19,7 +19,7 @@ public class BooleanColumnReference extends ScriptValuesColumnReference<Boolean>
     public Boolean evaluate() {
         Object v = scriptEvaluate();
         if (v!=null){
-            return (Boolean) v;
+            return v.equals("T");
         }
         return null;
     }

@@ -1,6 +1,8 @@
 package org.cratedb.action.groupby;
 
 import com.google.common.collect.ImmutableSet;
+import org.apache.lucene.util.BytesRef;
+import org.cratedb.DataType;
 import org.cratedb.action.collect.ColumnReferenceExpression;
 import org.cratedb.action.collect.Expression;
 import org.cratedb.action.groupby.aggregate.AggExpr;
@@ -58,7 +60,7 @@ public class GroupByHelper {
      * see also {@link GroupByFieldExtractor}
      */
     public static GroupByFieldExtractor[] buildFieldExtractor(ParsedStatement parsedStatement,
-            final FieldMapper fieldMapper) {
+                                                              final FieldMapper fieldMapper) {
         GroupByFieldExtractor[] extractors = new GroupByFieldExtractor[parsedStatement
                 .resultColumnList().size()];
 
@@ -69,12 +71,24 @@ public class GroupByHelper {
         for (final ColumnDescription columnDescription : parsedStatement.resultColumnList()) {
             if (columnDescription instanceof AggExpr) {
                 // fieldMapper is null in case of group by on information schema
-                extractors[colIdx] = new GroupByFieldExtractor(aggStateIdx) {
-                    @Override
-                    public Object getValue(GroupByRow row) {
-                        return row.aggStates.get(idx).value();
-                    }
-                };
+
+                if (fieldMapper != null
+                    && ((AggExpr) columnDescription).expression.returnType() == DataType.STRING)
+                {
+                    extractors[colIdx] = new GroupByFieldExtractor(aggStateIdx) {
+                        @Override
+                        public Object getValue(GroupByRow row) {
+                            return ((BytesRef)row.aggStates.get(idx).value()).utf8ToString();
+                        }
+                    };
+                } else {
+                    extractors[colIdx] = new GroupByFieldExtractor(aggStateIdx) {
+                        @Override
+                        public Object getValue(GroupByRow row) {
+                            return row.aggStates.get(idx).value();
+                        }
+                    };
+                }
                 aggStateIdx++;
             } else {
                  // currently only AggExpr and ColumnReferenceDescription exists, so this must be true.
@@ -82,14 +96,25 @@ public class GroupByHelper {
                 String colName =  ((ColumnReferenceDescription) columnDescription).name;
                 keyValIdx = 0;
                 for (Expression e: parsedStatement.groupByExpressions()){
+
                     if (e instanceof ColumnReferenceExpression && colName.equals(
                             ((ColumnReferenceExpression)e).columnName())){
-                        extractors[colIdx] = new GroupByFieldExtractor(keyValIdx) {
-                            @Override
-                            public Object getValue(GroupByRow row) {
-                                return row.key.get(idx);
-                            }
-                        };
+
+                        if (fieldMapper != null && e.returnType() == DataType.STRING) {
+                            extractors[colIdx] = new GroupByFieldExtractor(keyValIdx) {
+                                @Override
+                                public Object getValue(GroupByRow row) {
+                                    return ((BytesRef)row.key.get(idx)).utf8ToString();
+                                }
+                            };
+                        } else {
+                            extractors[colIdx] = new GroupByFieldExtractor(keyValIdx) {
+                                @Override
+                                public Object getValue(GroupByRow row) {
+                                    return row.key.get(idx);
+                                }
+                            };
+                        }
                         break;
                     }
                     keyValIdx++;

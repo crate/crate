@@ -160,8 +160,7 @@ public class TableExecutionContext implements ITableExecutionContext {
 
         ColumnDefinition columnDefinition = getColumnDefinition(node.getColumnName());
         if (columnDefinition == null) {
-            throw new SQLParseException(String.format("Unknown column '%s'",
-                    node.getColumnName()));
+            throw new SQLParseException(String.format("Unknown column '%s'", node.getColumnName()));
         }
         switch (columnDefinition.dataType) {
             case STRING:
@@ -172,19 +171,21 @@ public class TableExecutionContext implements ITableExecutionContext {
                 return new BooleanColumnReference(columnDefinition.columnName);
             case CRATY:
                 return new CratyColumnReference(columnDefinition.columnName);
+            case FLOAT:
+                return new FloatColumnReference(columnDefinition.columnName);
+            case SHORT:
+                return new ShortColumnReference(columnDefinition.columnName);
             case LONG:
             case TIMESTAMP:
-            case INTEGER:
-                // TOOD: probably use IntegerColumnReference currently AggegateExpressions are
-                // not compatible
                 return new LongColumnReference(columnDefinition.columnName);
+            case INTEGER:
+                return new IntegerColumnReference(columnDefinition.columnName);
             default:
                 throw new SQLParseException(
                         String.format("Invalid column reference type '%s'",
                                 columnDefinition.dataType));
         }
     }
-
 }
 
 

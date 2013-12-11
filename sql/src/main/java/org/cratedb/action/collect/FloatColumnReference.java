@@ -1,24 +1,22 @@
 package org.cratedb.action.collect;
 
 import org.apache.lucene.index.AtomicReaderContext;
-import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
-import org.elasticsearch.index.fielddata.BytesValues;
 import org.elasticsearch.index.fielddata.DoubleValues;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 
-public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFieldData, Double> {
+public class FloatColumnReference extends FieldCacheExpression<IndexNumericFieldData, Float> {
 
-    private DoubleValues values;
+    DoubleValues values;
 
-    public DoubleColumnReference(String columnName) {
+    public FloatColumnReference(String columnName) {
         super(columnName);
     }
 
     @Override
-    public Double evaluate() {
-        Double value = values.getValue(docId);
-        if (value == 0.0 && !values.hasValue(docId)) {
+    public Float evaluate() {
+        Float value = ((Double)values.getValue(docId)).floatValue();
+        if (value == 0 && !values.hasValue(docId)) {
             return null;
         }
         return value;
@@ -27,12 +25,12 @@ public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFiel
     @Override
     public void setNextReader(AtomicReaderContext context) {
         super.setNextReader(context);
-        values = ((IndexNumericFieldData) indexFieldData).load(context).getDoubleValues();
+        values = indexFieldData.load(context).getDoubleValues();
     }
 
     @Override
     public DataType returnType(){
-        return DataType.DOUBLE;
+        return DataType.FLOAT;
     }
 
     @Override
@@ -41,9 +39,9 @@ public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFiel
             return false;
         if (obj == this)
             return true;
-        if (!(obj instanceof DoubleColumnReference))
+        if (!(obj instanceof FloatColumnReference))
             return false;
-        return columnName.equals(((DoubleColumnReference) obj).columnName);
+        return columnName.equals(((FloatColumnReference) obj).columnName);
     }
 
     @Override
@@ -51,4 +49,3 @@ public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFiel
         return columnName.hashCode();
     }
 }
-

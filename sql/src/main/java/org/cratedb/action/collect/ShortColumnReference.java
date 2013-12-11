@@ -2,25 +2,29 @@ package org.cratedb.action.collect;
 
 import org.apache.lucene.index.AtomicReaderContext;
 import org.cratedb.DataType;
-import org.elasticsearch.index.fielddata.DoubleValues;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 import org.elasticsearch.index.fielddata.LongValues;
 
-public class LongColumnReference extends FieldCacheExpression<IndexNumericFieldData, Long> {
+public class ShortColumnReference extends FieldCacheExpression<IndexNumericFieldData, Short> {
 
-    private LongValues values;
+    LongValues values;
 
-    public LongColumnReference(String columnName) {
+    public ShortColumnReference(String columnName) {
         super(columnName);
     }
 
     @Override
-    public Long evaluate() {
-        Long value = values.getValue(docId);
+    public Short evaluate() {
+        Short value = ((Long)values.getValue(docId)).shortValue();
         if (value == 0 && !values.hasValue(docId)) {
             return null;
         }
         return value;
+    }
+
+    @Override
+    public DataType returnType() {
+        return DataType.SHORT;
     }
 
     @Override
@@ -30,19 +34,14 @@ public class LongColumnReference extends FieldCacheExpression<IndexNumericFieldD
     }
 
     @Override
-    public DataType returnType(){
-        return DataType.LONG;
-    }
-
-    @Override
     public boolean equals(Object obj) {
         if (obj == null)
             return false;
         if (obj == this)
             return true;
-        if (!(obj instanceof LongColumnReference))
+        if (!(obj instanceof ShortColumnReference))
             return false;
-        return columnName.equals(((LongColumnReference) obj).columnName);
+        return columnName.equals(((ShortColumnReference) obj).columnName);
     }
 
     @Override
@@ -50,4 +49,3 @@ public class LongColumnReference extends FieldCacheExpression<IndexNumericFieldD
         return columnName.hashCode();
     }
 }
-

@@ -37,11 +37,15 @@ public class RowsSerializationTest {
 
     static Expression fakeExpression = new Expression<BytesRef>(){
 
-        AtomicInteger called = new AtomicInteger(0);
+        int called = 0;
+        int i = 0;
 
         @Override
         public BytesRef evaluate() {
-            return new BytesRef(String.format("Fake call %03d", called.incrementAndGet()));
+            if (++i % 2 == 0) {
+                called++;
+            }
+            return new BytesRef(String.format("Fake call %03d", called));
         }
 
         @Override
@@ -73,27 +77,47 @@ public class RowsSerializationTest {
                 "select count(*), race from characters group by race");
 
         SQLMapperResultRequest requestSender = new SQLMapperResultRequest();
-        GroupTree t1 = new GroupTree(1, stmt, cacheRecycler);
+        GroupTree t1 = new GroupTree(2, stmt, cacheRecycler);
         requestSender.contextId = UUID.randomUUID();
         requestSender.groupByResult = new SQLGroupByResult(0, t1);
 
         t1.getRow();
         t1.getRow();
+        t1.getRow();
+        t1.getRow();
 
-        BytesStreamOutput out = new BytesStreamOutput();
-        requestSender.writeTo(out);
+        BytesStreamOutput out1 = new BytesStreamOutput();
+        requestSender.writeTo(out1);
 
+        SQLMapperResultRequest requestSender2 = new SQLMapperResultRequest();
+        requestSender2.contextId = UUID.randomUUID();
+        requestSender2.groupByResult = new SQLGroupByResult(1, t1);
+
+        BytesStreamOutput out2 = new BytesStreamOutput();
+        requestSender2.writeTo(out2);
 
         FutureConcurrentMap<UUID, SQLReduceJobStatus> reduceJobs = FutureConcurrentMap.newMap();
         reduceJobs.put(requestSender.contextId, new SQLReduceJobStatus(stmt, 1));
+        reduceJobs.put(requestSender2.contextId, new SQLReduceJobStatus(stmt, 1));
+
         SQLMapperResultRequest requestReceiver = new SQLMapperResultRequest(
             reduceJobs, cacheRecycler
         );
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        BytesStreamInput in = new BytesStreamInput(out1.bytes());
         requestReceiver.readFrom(in);
 
         GroupTree t2 = (GroupTree)requestReceiver.groupByResult.rows();
+
+
+        SQLMapperResultRequest requestReceiver2 = new SQLMapperResultRequest(
+            reduceJobs, cacheRecycler
+        );
+        BytesStreamInput in2 = new BytesStreamInput(out2.bytes());
+        requestReceiver2.readFrom(in2);
+
+        GroupTree t3 = (GroupTree)requestReceiver2.groupByResult.rows();
+
 
         assertEquals(t2.maps().length, t2.maps().length);
         assertMapEquals(t1.maps()[0], t2.maps()[0]);

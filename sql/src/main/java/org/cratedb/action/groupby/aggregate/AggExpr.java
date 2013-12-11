@@ -38,7 +38,7 @@ public class AggExpr extends ColumnDescription {
     /**
      * this method is used to generate the aggStateCreator, this creator is then used in {@link #createAggState()}
      * to instantiate a concrete {@link AggState}
-     *
+     * <p/>
      * this built aggStateCreator depends on the functionName and parameterInfo
      */
     private void createAggStateCreator() {
@@ -70,151 +70,304 @@ public class AggExpr extends ColumnDescription {
     }
 
     private void createMinAggState() {
-        if (expression.returnType() == DataType.STRING) {
-            aggStateCreator = new AggStateCreator() {
-                @Override
-                AggState create() {
-                    return new MinAggState<BytesRef>() {
+        switch (expression.returnType()) {
+            case STRING:
+                aggStateCreator = new AggStateCreator() {
+                    @Override
+                    AggState create() {
+                        return new MinAggState<BytesRef>() {
 
-                        @Override
-                        public void readFrom(StreamInput in) throws IOException {
-                            this.setValue(in.readBytesRef());
-                        }
+                            @Override
+                            @SuppressWarnings("unchecked")
+                            public void readFrom(StreamInput in) throws IOException {
+                                setValue(in.readBytesRef());
 
-                        @Override
-                        public void writeTo(StreamOutput out) throws IOException {
-                            out.writeBytesRef((BytesRef) value());
-                        }
-                    };
-                }
-            };
-        } else if (DataType.DECIMAL_TYPES.contains(expression.returnType())) {
-            aggStateCreator = new AggStateCreator() {
-                @Override
-                AggState create() {
-                    return new MinAggState<Double>() {
-
-                        @Override
-                        public void readFrom(StreamInput in) throws IOException {
-                            if (!in.readBoolean()) {
-                                setValue(in.readDouble());
                             }
-                        }
 
-                        @Override
-                        public void writeTo(StreamOutput out) throws IOException {
-                            Double value = (Double)value();
-                            out.writeBoolean(value == null);
-                            if (value != null) {
-                                out.writeDouble(value);
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                out.writeBytesRef((BytesRef) value());
                             }
-                        }
-                    };
-                }
-            };
-        } else if (DataType.INTEGER_TYPES.contains(expression.returnType())
-            || DataType.TIMESTAMP == expression.returnType())
-        {
-            aggStateCreator = new AggStateCreator() {
-                @Override
-                AggState create() {
-                    return new MinAggState<Long>() {
+                        };
+                    }
+                };
+                break;
+            case DOUBLE:
+                aggStateCreator = new AggStateCreator() {
+                    @Override
+                    AggState create() {
+                        return new MinAggState<Double>() {
 
-                        @Override
-                        public void readFrom(StreamInput in) throws IOException {
-                            if (!in.readBoolean()) {
-                                setValue(in.readLong());
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    setValue(in.readDouble());
+                                }
                             }
-                        }
 
-                        @Override
-                        public void writeTo(StreamOutput out) throws IOException {
-                            Long value = (Long)value();
-                            out.writeBoolean(value == null);
-                            if (value != null) {
-                                out.writeLong(value);
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                Double value = (Double) value();
+                                out.writeBoolean(value == null);
+                                if (value != null) {
+                                    out.writeDouble(value);
+                                }
                             }
-                        }
-                    };
-                }
-            };
-        } else {
-            throw new IllegalArgumentException("Illegal ParameterInfo for MIN");
+                        };
+                    }
+                };
+                break;
+            case FLOAT:
+                aggStateCreator = new AggStateCreator() {
+                    @Override
+                    AggState create() {
+                        return new MinAggState<Float>() {
+
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    setValue(in.readFloat());
+                                }
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                Float value = (Float) value();
+                                out.writeBoolean(value == null);
+                                if (value != null) {
+                                    out.writeFloat(value);
+                                }
+                            }
+                        };
+                    }
+                };
+                break;
+            case LONG:
+            case TIMESTAMP:
+                aggStateCreator = new AggStateCreator() {
+                    @Override
+                    AggState create() {
+                        return new MinAggState<Long>() {
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    setValue(in.readLong());
+                                }
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                Long value = (Long) value();
+                                out.writeBoolean(value == null);
+                                if (value != null) {
+                                    out.writeLong(value);
+                                }
+                            }
+                        };
+                    }
+                };
+                break;
+            case SHORT:
+                aggStateCreator = new AggStateCreator() {
+                    @Override
+                    AggState create() {
+                        return new MinAggState<Short>() {
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    setValue(in.readShort());
+                                }
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                Short value = (Short) value();
+                                out.writeBoolean(value == null);
+                                if (value != null) {
+                                    out.writeShort(value);
+                                }
+                            }
+                        };
+                    }
+                };
+                break;
+            case INTEGER:
+                aggStateCreator = new AggStateCreator() {
+                    @Override
+                    AggState create() {
+                        return new MinAggState<Integer>() {
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    setValue(in.readInt());
+                                }
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                Integer value = (Integer) value();
+                                out.writeBoolean(value == null);
+                                if (value != null) {
+                                    out.writeInt(value);
+                                }
+                            }
+                        };
+                    }
+                };
+                break;
+            default:
+                throw new IllegalArgumentException("Illegal ParameterInfo for MAX");
         }
     }
 
     private void createMaxAggState() {
-        if (expression.returnType() == DataType.STRING) {
-            aggStateCreator = new AggStateCreator() {
-                @Override
-                AggState create() {
-                    return new MaxAggState<BytesRef>() {
+        switch (expression.returnType()) {
+            case STRING:
+                aggStateCreator = new AggStateCreator() {
+                    @Override
+                    AggState create() {
+                        return new MaxAggState<BytesRef>() {
 
-                        @Override
-                        @SuppressWarnings("unchecked")
-                        public void readFrom(StreamInput in) throws IOException {
-                            setValue(in.readBytesRef());
+                            @Override
+                            @SuppressWarnings("unchecked")
+                            public void readFrom(StreamInput in) throws IOException {
+                                setValue(in.readBytesRef());
 
-                        }
-
-                        @Override
-                        public void writeTo(StreamOutput out) throws IOException {
-                            out.writeBytesRef((BytesRef) value());
-                        }
-                    };
-                }
-            };
-        } else if (DataType.DECIMAL_TYPES.contains(expression.returnType())) {
-            aggStateCreator = new AggStateCreator() {
-                @Override
-                AggState create() {
-                    return new MaxAggState<Double>() {
-
-                        @Override
-                        public void readFrom(StreamInput in) throws IOException {
-                            if (!in.readBoolean()) {
-                                setValue(in.readDouble());
                             }
-                        }
 
-                        @Override
-                        public void writeTo(StreamOutput out) throws IOException {
-                            Double value = (Double)value();
-                            out.writeBoolean(value == null);
-                            if (value != null) {
-                                out.writeDouble(value);
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                out.writeBytesRef((BytesRef) value());
                             }
-                        }
-                    };
-                }
-            };
-        } else if (DataType.INTEGER_TYPES.contains(expression.returnType())
-            || DataType.TIMESTAMP == expression.returnType())
-        {
-            aggStateCreator = new AggStateCreator() {
-                @Override
-                AggState create() {
-                    return new MaxAggState<Long>() {
-                        @Override
-                        public void readFrom(StreamInput in) throws IOException {
-                            if (!in.readBoolean()) {
-                                setValue(in.readLong());
-                            }
-                        }
+                        };
+                    }
+                };
+                break;
+            case DOUBLE:
+                aggStateCreator = new AggStateCreator() {
+                    @Override
+                    AggState create() {
+                        return new MaxAggState<Double>() {
 
-                        @Override
-                        public void writeTo(StreamOutput out) throws IOException {
-                            Long value = (Long)value();
-                            out.writeBoolean(value == null);
-                            if (value != null) {
-                                out.writeLong(value);
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    setValue(in.readDouble());
+                                }
                             }
-                        }
-                    };
-                }
-            };
-        } else {
-            throw new IllegalArgumentException("Illegal ParameterInfo for MAX");
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                Double value = (Double) value();
+                                out.writeBoolean(value == null);
+                                if (value != null) {
+                                    out.writeDouble(value);
+                                }
+                            }
+                        };
+                    }
+                };
+                break;
+            case FLOAT:
+                aggStateCreator = new AggStateCreator() {
+                    @Override
+                    AggState create() {
+                        return new MaxAggState<Float>() {
+
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    setValue(in.readFloat());
+                                }
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                Float value = (Float) value();
+                                out.writeBoolean(value == null);
+                                if (value != null) {
+                                    out.writeFloat(value);
+                                }
+                            }
+                        };
+                    }
+                };
+                break;
+            case LONG:
+            case TIMESTAMP:
+                aggStateCreator = new AggStateCreator() {
+                    @Override
+                    AggState create() {
+                        return new MaxAggState<Long>() {
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    setValue(in.readLong());
+                                }
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                Long value = (Long) value();
+                                out.writeBoolean(value == null);
+                                if (value != null) {
+                                    out.writeLong(value);
+                                }
+                            }
+                        };
+                    }
+                };
+                break;
+            case SHORT:
+                aggStateCreator = new AggStateCreator() {
+                    @Override
+                    AggState create() {
+                        return new MaxAggState<Short>() {
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    setValue(in.readShort());
+                                }
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                Short value = (Short) value();
+                                out.writeBoolean(value == null);
+                                if (value != null) {
+                                    out.writeShort(value);
+                                }
+                            }
+                        };
+                    }
+                };
+                break;
+            case INTEGER:
+                aggStateCreator = new AggStateCreator() {
+                    @Override
+                    AggState create() {
+                        return new MaxAggState<Integer>() {
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    setValue(in.readInt());
+                                }
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                Integer value = (Integer) value();
+                                out.writeBoolean(value == null);
+                                if (value != null) {
+                                    out.writeInt(value);
+                                }
+                            }
+                        };
+                    }
+                };
+                break;
+            default:
+                throw new IllegalArgumentException("Illegal ParameterInfo for MAX");
         }
     }
 
@@ -247,123 +400,217 @@ public class AggExpr extends ColumnDescription {
 
     /**
      * create AnyAggStates with concrete serialization methods
-     *
+     * <p/>
      * These are defined here for performance reasons (no if checks and such)
      */
     private void createAnyAggState() {
-        if (expression.returnType() == DataType.STRING || expression.returnType() == DataType.IP) {
-            aggStateCreator = new AggStateCreator() {
-                @Override
-                AggState create() {
-                    return new AnyAggState<BytesRef>() {
+        switch (expression.returnType()) {
+            case STRING:
+            case IP:
+                aggStateCreator = new AggStateCreator() {
+                    @Override
+                    AggState create() {
+                        return new AnyAggState<BytesRef>() {
 
-                        @Override
-                        public void add(Object otherValue) {
-                            this.value = (BytesRef)otherValue;
-                        }
-
-                        @Override
-                        public void readFrom(StreamInput in) throws IOException {
-                            this.value = in.readBytesRef();
-                        }
-
-                        @Override
-                        public void writeTo(StreamOutput out) throws IOException {
-                            out.writeBytesRef(this.value);
-                        }
-                    };
-                }
-            };
-        } else if (DataType.INTEGER_TYPES.contains(expression.returnType()) ||
-                DataType.TIMESTAMP == expression.returnType()) {
-            aggStateCreator = new AggStateCreator() {
-                @Override
-                AggState create() {
-                    return new AnyAggState<Long>() {
-
-                        @Override
-                        public void add(Object otherValue) {
-                            this.value = (Long)otherValue;
-                        }
-
-                        @Override
-                        public void readFrom(StreamInput in) throws IOException {
-                            if (!in.readBoolean()) {
-                                this.value = in.readLong();
-                            }
-                        }
-
-                        @Override
-                        public void writeTo(StreamOutput out) throws IOException {
-                            out.writeBoolean(this.value == null);
-                            if (this.value != null) {
-                                out.writeLong(this.value);
-                            }
-                        }
-                    };
-                }
-            };
-        } else if (DataType.DECIMAL_TYPES.contains(expression.returnType())) {
-            aggStateCreator = new AggStateCreator() {
-                @Override
-                AggState create() {
-                    return new AnyAggState<Double>() {
-
-                        @Override
-                        public void add(Object otherValue) {
-                            this.value = (Double)otherValue;
-                        }
-
-                        @Override
-                        public void readFrom(StreamInput in) throws IOException {
-                            if (!in.readBoolean()) {
-                                this.value = in.readDouble();
+                            @Override
+                            public void add(Object otherValue) {
+                                this.value = (BytesRef) otherValue;
                             }
 
-                        }
-
-                        @Override
-                        public void writeTo(StreamOutput out) throws IOException {
-                            out.writeBoolean(this.value == null);
-                            if (this.value != null) {
-                                out.writeDouble(this.value);
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                this.value = in.readBytesRef();
                             }
-                        }
-                    };
-                }
-            };
-        } else if (expression.returnType() == DataType.BOOLEAN) {
-            aggStateCreator = new AggStateCreator() {
-                @Override
-                AggState create() {
-                    return new AnyAggState<Boolean>() {
 
-                        @Override
-                        public void add(Object otherValue) {
-                            if (otherValue instanceof String) {
-                                // this is how lucene stores the truth
-                                this.value = ((String) otherValue).charAt(0) == 'T';
-                            } else {
-                                this.value = (Boolean)otherValue;
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                out.writeBytesRef(this.value);
                             }
-                        }
+                        };
+                    }
+                };
+                break;
+            case LONG:
+            case TIMESTAMP:
+                aggStateCreator = new AggStateCreator() {
+                    @Override
+                    AggState create() {
+                        return new AnyAggState<Long>() {
 
-                        @Override
-                        public void readFrom(StreamInput in) throws IOException {
-                            this.value = in.readOptionalBoolean();
-                        }
+                            @Override
+                            public void add(Object otherValue) {
+                                this.value = (Long) otherValue;
+                            }
 
-                        @Override
-                        public void writeTo(StreamOutput out) throws IOException {
-                            out.writeOptionalBoolean(this.value);
-                        }
-                    };
-                }
-            };
-        } else {
-            throw new IllegalArgumentException("Illegal ParameterInfo for ANY");
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    this.value = in.readLong();
+                                }
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                out.writeBoolean(this.value == null);
+                                if (this.value != null) {
+                                    out.writeLong(this.value);
+                                }
+                            }
+                        };
+                    }
+                };
+                break;
+            case INTEGER:
+                aggStateCreator = new AggStateCreator() {
+                    @Override
+                    AggState create() {
+                        return new AnyAggState<Integer>() {
+
+                            @Override
+                            public void add(Object otherValue) {
+                                this.value = (Integer) otherValue;
+                            }
+
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    this.value = in.readInt();
+                                }
+
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                out.writeBoolean(this.value == null);
+                                if (this.value != null) {
+                                    out.writeInt(this.value);
+                                }
+                            }
+                        };
+                    }
+                };
+                break;
+            case SHORT:
+                aggStateCreator = new AggStateCreator() {
+                    @Override
+                    AggState create() {
+                        return new AnyAggState<Short>() {
+
+                            @Override
+                            public void add(Object otherValue) {
+                                this.value = (Short) otherValue;
+                            }
+
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    this.value = in.readShort();
+                                }
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                out.writeBoolean(this.value == null);
+                                if (this.value != null) {
+                                    out.writeShort(this.value);
+                                }
+                            }
+                        };
+                    }
+                };
+                break;
+            case FLOAT:
+                aggStateCreator = new AggStateCreator() {
+                    @Override
+                    AggState create() {
+                        return new AnyAggState<Float>() {
+
+                            @Override
+                            public void add(Object otherValue) {
+                                this.value = (Float) otherValue;
+                            }
+
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    this.value = in.readFloat();
+                                }
+
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                out.writeBoolean(this.value == null);
+                                if (this.value != null) {
+                                    out.writeFloat(this.value);
+                                }
+                            }
+                        };
+                    }
+                };
+                break;
+            case DOUBLE:
+                aggStateCreator = new AggStateCreator() {
+                    @Override
+                    AggState create() {
+                        return new AnyAggState<Double>() {
+
+                            @Override
+                            public void add(Object otherValue) {
+                                this.value = (Double) otherValue;
+                            }
+
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    this.value = in.readDouble();
+                                }
+
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                out.writeBoolean(this.value == null);
+                                if (this.value != null) {
+                                    out.writeDouble(this.value);
+                                }
+                            }
+                        };
+                    }
+                };
+                break;
+            case BOOLEAN:
+                aggStateCreator = new AggStateCreator() {
+                    @Override
+                    AggState create() {
+                        return new AnyAggState<Boolean>() {
+
+                            @Override
+                            public void add(Object otherValue) {
+                                if (otherValue instanceof String) {
+                                    // this is how lucene stores the truth
+                                    this.value = ((String) otherValue).charAt(0) == 'T';
+                                } else {
+                                    this.value = (Boolean) otherValue;
+                                }
+                            }
+
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                this.value = in.readOptionalBoolean();
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                out.writeOptionalBoolean(this.value);
+                            }
+                        };
+                    }
+                };
+                break;
+            default:
+                throw new IllegalArgumentException("Illegal ParameterInfo for ANY");
         }
-
     }
 
     /**
@@ -403,9 +650,9 @@ public class AggExpr extends ColumnDescription {
     @Override
     public String toString() {
         return String.format("%s(%s%s)",
-                functionName.split("_")[0],
-                (isDistinct ? "DISTINCT " : ""),
-                (expression!=null ? expression.toString():""));
+            functionName.split("_")[0],
+            (isDistinct ? "DISTINCT " : ""),
+            (expression != null ? expression.toString() : ""));
     }
 
 }

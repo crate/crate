@@ -37,5 +37,4 @@ public abstract class Rows<Other extends Rows> {
     }
 
     public abstract void walk(RowVisitor visitor);
-
 }
