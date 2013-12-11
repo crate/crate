@@ -3,11 +3,15 @@ package org.cratedb.action.groupby.key;
 
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
+import org.cratedb.action.SQLGroupByResult;
+import org.cratedb.action.SQLMapperResultRequest;
+import org.cratedb.action.SQLReduceJobStatus;
 import org.cratedb.action.collect.Expression;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
+import org.cratedb.core.concurrent.FutureConcurrentMap;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.parser.parser.ValueNode;
 import org.cratedb.stubs.HitchhikerMocks;
@@ -19,6 +23,7 @@ import org.json.JSONObject;
 import org.junit.Test;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static junit.framework.Assert.assertEquals;
@@ -55,6 +60,7 @@ public class RowsSerializationTest {
     @Test
     public void testGroupTree() throws Exception {
 
+        CacheRecycler cacheRecycler = new CacheRecycler(ImmutableSettings.EMPTY);
         NodeExecutionContext nec = HitchhikerMocks.nodeExecutionContext();
         TableExecutionContext tec = mock(TableExecutionContext.class);
 
@@ -64,19 +70,30 @@ public class RowsSerializationTest {
 
         SQLParseService parseService = new SQLParseService(nec);
         ParsedStatement stmt = parseService.parse(
-                "select name from characters group by name");
-        CacheRecycler cacheRecycler = new CacheRecycler(ImmutableSettings.EMPTY);
-        GroupTree t1 = new GroupTree(1, stmt, cacheRecycler);
-        GroupTree t2 = new GroupTree(1, stmt, cacheRecycler);
+                "select count(*), race from characters group by race");
 
-        GroupByRow row = t1.getRow();
-        row = t1.getRow();
+        SQLMapperResultRequest requestSender = new SQLMapperResultRequest();
+        GroupTree t1 = new GroupTree(1, stmt, cacheRecycler);
+        requestSender.contextId = UUID.randomUUID();
+        requestSender.groupByResult = new SQLGroupByResult(0, t1);
+
+        t1.getRow();
+        t1.getRow();
 
         BytesStreamOutput out = new BytesStreamOutput();
-        t1.writeBucket(out, 0);
+        requestSender.writeTo(out);
+
+
+        FutureConcurrentMap<UUID, SQLReduceJobStatus> reduceJobs = FutureConcurrentMap.newMap();
+        reduceJobs.put(requestSender.contextId, new SQLReduceJobStatus(stmt, 1));
+        SQLMapperResultRequest requestReceiver = new SQLMapperResultRequest(
+            reduceJobs, cacheRecycler
+        );
 
         BytesStreamInput in = new BytesStreamInput(out.bytes());
-        t2.readBucket(in, 0);
+        requestReceiver.readFrom(in);
+
+        GroupTree t2 = (GroupTree)requestReceiver.groupByResult.rows();
 
         assertEquals(t2.maps().length, t2.maps().length);
         assertMapEquals(t1.maps()[0], t2.maps()[0]);

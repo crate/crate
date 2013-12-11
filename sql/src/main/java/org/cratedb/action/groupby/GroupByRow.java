@@ -140,7 +140,7 @@ public class GroupByRow {
         aggStates = new ArrayList<>(stmt.aggregateExpressions().size());
         AggExpr aggExpr;
         int seenIdxIndex = 0;
-        for (int i = 0; i < aggStates.size(); i++) {
+        for (int i = 0; i < stmt.aggregateExpressions().size(); i++) {
             aggExpr = stmt.aggregateExpressions().get(i);
             aggStates.add(i, aggExpr.createAggState());
             aggStates.get(i).readFrom(in);
@@ -168,6 +168,8 @@ public class GroupByRow {
                 out.writeGenericValue(o);
             }
         }
+
+
         for (AggState aggState : aggStates) {
             aggState.writeTo(out);
         }
