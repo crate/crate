@@ -3,6 +3,7 @@ package org.cratedb.action.parser.visitors;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.cratedb.action.collect.Expression;
+import org.cratedb.action.collect.LiteralValueExpression;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.any.AnyAggFunction;
@@ -369,7 +370,13 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
     private Expression getCollectorExpression(ValueNode node){
         assert node != null;
-        Expression expr = tableContext.getCollectorExpression(node);
+        Expression expr;
+        if (node.getNodeType() == NodeTypes.PARAMETER_NODE) {
+            expr = new LiteralValueExpression(args[((ParameterNode)node).getParameterNumber()]);
+        } else {
+            expr = tableContext.getCollectorExpression(node);
+        }
+
         if (expr == null){
             throw new SQLParseException(String.format("No expression for node type '%s' %s found",
                     node.getNodeType(), node.getClass()));

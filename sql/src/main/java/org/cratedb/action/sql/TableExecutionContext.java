@@ -152,7 +152,6 @@ public class TableExecutionContext implements ITableExecutionContext {
 
     @Override
     public Expression getCollectorExpression(ValueNode node) {
-
         if (node.getNodeType()!=NodeTypes.COLUMN_REFERENCE &&
                 node.getNodeType() != NodeTypes.NESTED_COLUMN_REFERENCE){
             return null;

@@ -1,6 +1,5 @@
 package org.cratedb.action.groupby;
 
-import org.cratedb.action.FieldLookup;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 
@@ -29,11 +28,9 @@ public class SimpleSQLGroupingAggregateHandler implements SQLGroupingAggregateHa
         for (int i = 0; i < aggFunctions.length; i++) {
             AggExpr aggExpr = aggregateExpressions.get(i);
             AggFunction function = aggFunctions[i];
-            Object value;
+            Object value = null;
             if (aggExpr.expression != null){
                 value = aggExpr.expression.evaluate();
-            } else {
-                value = null;
             }
             function.iterate(row.aggStates.get(i), value);
         }
