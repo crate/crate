@@ -1,12 +1,25 @@
 <div ng-controller="NavigationController">
-  <div class="cra-nav">
-    <ul>
-      <li ng-class="{ 'cbp-vicurrent': isActive('/')}"><a href="#" class="icon-overview"></a></li>
-      <li ng-class="{ 'cbp-vicurrent': isActive('/tables')}"><a href="#" class="icon-tables"></a></li>
-      <li ng-class="{ 'cbp-vicurrent': isActive('/cluster')}"><a href="#" class="icon-cluster"></a></li>
-      <li ng-class="{ 'cbp-vicurrent': isActive('/console')}"><a href="#/console" class="icon-console"></a></li>
-      <li ng-class="{ 'cbp-vicurrent': isActive('/docs')}"><a href="#/docs" class="icon-documentation"></a></li>
-      <li><a href="#" class="icon-logo"></a></li>
-    </ul>
-  </div>
+  <nav class="navbar navbar-inverse navbar-fixed-top {{cluster_color_label_bar}}" role="navigation">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="#">CRATE</a>
+    </div>
+
+    <div class="collapse navbar-collapse navbar-ex1-collapse">
+      <ul class="nav navbar-nav side-nav">
+        <li ng-class="{ 'active': isActive('/')}"><a href="#"><i class="fa fa-desktop"></i> Overview</a></li>
+        <li ng-class="{ 'active': isActive('/tables')}"><a href="#"><i class="fa fa-table"></i> Tables</a></li>
+        <li ng-class="{ 'active': isActive('/cluster')}"><a href="#"><i class="fa fa-sitemap"></i> Cluster</a></li>
+        <li ng-class="{ 'active': isActive('/console')}"><a href="#/console"><i class="fa fa-code"></i> Console</a></li>
+      </ul>
+
+      <div ng-include="'views/statusbar.html'"></div>
+
+    </div>
+  </nav>
 </div>

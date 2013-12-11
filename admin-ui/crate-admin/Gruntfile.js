@@ -109,7 +109,8 @@ module.exports = function (grunt) {
           ]
         }]
       },
-      server: '.tmp'
+      server: '.tmp',
+      crate_theme: 'tmp/*'
     },
     jshint: {
       options: {
@@ -254,8 +255,13 @@ module.exports = function (grunt) {
       },
       crate_theme: {
         files: [{
-            cwd: 'tmp/crate-theme-'+CRATE_THEME_VERSION+'/src/crate_theme/bootswatch/crate/',
-            src: '{bootswatch,variables}.less',
+            cwd: 'tmp/crate-theme-'+CRATE_THEME_VERSION+'/src/crate_theme/bootstrap/',
+            src: 'fonts.less',
+            dest: '<%= yeoman.app %>/styles/',
+            expand: true
+        }, {
+            cwd: 'tmp/crate-theme-'+CRATE_THEME_VERSION+'/src/crate_theme/bootstrap/crate-admin/',
+            src: '{theme,variables,sb-admin}.less',
             dest: '<%= yeoman.app %>/styles/',
             expand: true
         }, {
@@ -343,7 +349,7 @@ module.exports = function (grunt) {
         fs = require("fs"),
         request = require('request');
 
-    request('http://download.cratedb.org/eggs/crate-theme-'+CRATE_THEME_VERSION+'.tar.gz')
+    request('http://download.crate.io/eggs/crate-theme-'+CRATE_THEME_VERSION+'.tar.gz')
       .pipe(zlib.createGunzip())
       .pipe(tar.Extract({ path: "tmp" }))
       .on("error", function (er) {
@@ -400,6 +406,7 @@ module.exports = function (grunt) {
   ]);
 
   grunt.registerTask('setup', [
+    'clean:crate_theme',
     'downloadCrateTheme',
     'copy:crate_theme'
   ])

@@ -25,5 +25,19 @@ html_theme = 'bootstrap'
 html_theme_path = crate_theme.sphinx.get_html_theme_path()
 
 html_theme_options = {
-    'bootswatch_theme': "crate",
+    # HTML navbar class (Default: "navbar") to attach to <div> element.
+    # For black navbar, do "navbar navbar-inverse"
+    'navbar_class': "navbar navbar-inverse",
+
+    # Fix navigation bar to top of page?
+    # Values: "true" (default) or "false"
+    'navbar_fixed_top': "true",
+
+    # Bootstrap theme.
+    #
+    # Themes:
+    # * crate-docs
+    # * crate-admin
+    # * crate-web
+    'bootstrap_theme': "crate-docs",
 }

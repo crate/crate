@@ -13,21 +13,13 @@
 
     <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
 
-        <!-- build:css({.tmp,app}) styles/main.css -->
-        <link rel="stylesheet" href="styles/main.css">
-        <!-- endbuild -->
+    <!-- build:css({.tmp,app}) styles/main.css -->
+    <link rel="stylesheet" href="styles/main.css">
+    <!-- endbuild -->
 
     <!-- build:js scripts/angular.js -->
     <script src="bower_components/angular/angular.js"></script>
-    <!-- endbuild -->
-
-    <!-- build:js({.tmp,app}) scripts/scripts.js -->
-    <script src="scripts/app.js"></script>
-    <script src="scripts/services/stats.js"></script>
-    <script src="scripts/controllers/common.js"></script>
-    <script src="scripts/controllers/overview.js"></script>
-    <script src="scripts/controllers/console.js"></script>
-    <script src="scripts/controllers/docs.js"></script>
+    <script src="bower_components/angular-route/angular-route.js"></script>
     <!-- endbuild -->
 
     <!-- build:js scripts/plugins.js -->
@@ -46,10 +38,21 @@
     <script src="bower_components/bootstrap/js/tab.js"></script>
     <!-- endbuild -->
 
+
     <!--[if lt IE 9]>
     <script src="bower_components/es5-shim/es5-shim.js"></script>
     <script src="bower_components/json3/lib/json3.min.js"></script>
     <![endif]-->
+
+    <!-- build:js({.tmp,app}) scripts/scripts.js -->
+    <script src="scripts/app.js"></script>
+    <script src="scripts/services/stats.js"></script>
+    <script src="scripts/controllers/common.js"></script>
+    <script src="scripts/controllers/overview.js"></script>
+    <script src="scripts/controllers/console.js"></script>
+    <script src="scripts/controllers/docs.js"></script>
+    <script src="scripts/directives/tablesorter.js"></script>
+    <!-- endbuild -->
 
 </head>
 <body ng-app="crateAdminApp">
@@ -57,11 +60,10 @@
       <p class="chromeframe">You are using an outdated browser. <a href="http://browsehappy.com/">Upgrade your browser today</a> or <a href="http://www.google.com/chromeframe/?redirect=true">install Google Chrome Frame</a> to better experience this site.</p>
     <![endif]-->
 
-    <div ng-include="'views/nav.html'"></div>
-
-    <div ng-include="'views/statusbar.html'"></div>
 
     <div id="wrapper">
+
+      <div ng-include="'views/nav.html'"></div>
 
       <div id="page-wrapper">
 
@@ -69,18 +71,6 @@
 
       </div>
     </div>
-
-
-    <footer>
-      <div class="container">
-
-        <ul class="list-unstyled">
-          <li class="pull-right"><a href="#">Back to top</a></li>
-        </ul>
-        <p>© Copyright 2013, Crate Technology GmbH.<br></p>
-
-      </div>
-    </footer>
 
 </body>
 </html>

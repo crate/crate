@@ -1,0 +1,30 @@
+{
+  "name": "Font-Awesome",
+  "repo": "FortAwesome/Font-Awesome",
+  "description": "Font Awesome",
+  "version": "4.0.3",
+  "keywords": [],
+  "dependencies": {},
+  "development": {},
+  "license": "SIL, MIT, CC BY 3.0",
+  "styles": [
+    "css/font-awesome.css"
+  ],
+  "fonts": [
+    "fonts/fontawesome-webfont.eot",
+    "fonts/fontawesome-webfont.svg",
+    "fonts/fontawesome-webfont.ttf",
+    "fonts/fontawesome-webfont.woff",
+    "fonts/FontAwesome.otf"
+  ],
+  "homepage": "https://github.com/FortAwesome/Font-Awesome",
+  "_release": "4.0.3",
+  "_resolution": {
+    "type": "version",
+    "tag": "v4.0.3",
+    "commit": "dc23a94e16a8daa3cbb3c7fa34d63e2812637b8f"
+  },
+  "_source": "git://github.com/FortAwesome/Font-Awesome.git",
+  "_target": "~4.0.3",
+  "_originalSource": "font-awesome"
+}
