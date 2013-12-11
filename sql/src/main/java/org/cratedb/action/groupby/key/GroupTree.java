@@ -61,22 +61,27 @@ public class GroupTree extends Rows<GroupTree> {
         }
     }
 
+    private int getRouting(Object o){
+        if (o==null){
+            return 0;
+        }
+        return Math.abs(o.hashCode()) % maps.length;
+    }
 
     public GroupByRow getRow() {
         Map m = null;
-        GroupByRow row = null;
         Object[] key = new Object[depth];
         for (int i = 0; i < depth; i++) {
             boolean last = (i == depth - 1);
             key[i] = expressions.get(i).evaluate();
             if (i == 0) {
-                m = maps[Math.abs(key[i].hashCode()) % maps.length];
+                m = maps[getRouting(key[0])];
             }
             Object value = m.get(key[i]);
             if (value == null) {
                 if (last) {
-                    row = GroupByRow.createEmptyRow(
-                            new GroupByKey(key), stmt);
+                    GroupByRow row = GroupByRow.createEmptyRow(
+                            new GroupByKey(Arrays.copyOf(key, key.length)), stmt);
                     m.put(key[i], row);
                     return row;
                 } else {
@@ -93,6 +98,38 @@ public class GroupTree extends Rows<GroupTree> {
             }
         }
         return null;
+    }
+
+    private synchronized void printlns(List<String> lines){
+        String res = "";
+        for (String l: lines){
+            res += "\n" + stmt + ": " + l;
+        }
+        System.out.println(res);
+    }
+
+    public void dump(int i){
+
+        List<String> lines = new ArrayList<>();
+        lines.add("dump: " + i);
+        //for (int i = 0; i < maps.length; i++) {
+            Map<Object, Object> m = maps[i];
+            if (m.size()==0){
+                return;
+            }
+            lines.add("------------- start map:" + i +  "-------");
+
+            for (Map.Entry e: m.entrySet()){
+                String k = ((GroupByRow) e.getValue()).key.toString();
+                int h = getRouting(e.getKey());
+                if (i!=h){
+                    lines.add("FFFffffffffffFAIL-------------------------FFFFFFFFFFFFFFFF");
+                }
+                lines.add("key: " +  e.getKey() + " modulo: " + h + " groupkey: " +  k);
+            }
+            lines.add("------------- end map:" + i +  "-------");
+        //}
+        printlns(lines);
     }
 
     private void writeMap(Map<Object, Object> m, StreamOutput out, int level,
