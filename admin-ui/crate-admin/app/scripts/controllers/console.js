@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('console', [])
+angular.module('console', ['common'])
   .controller('ConsoleController', function ($scope, $http, $location) {
 
     $scope.statement = "";
@@ -11,6 +11,7 @@ angular.module('console', [])
     $('iframe').hide();
 
     $scope.resultHeaders = [];
+    $scope.renderTable = false;
     $scope.error = {};
     $scope.error.hide = true;
 
@@ -21,6 +22,7 @@ angular.module('console', [])
             "stmt": $scope.statement
         }).success(function(data) {
             $scope.error.hide = true;
+            $scope.renderTable = true;
 
             $scope.resultHeaders = [];
             for (var col in data.cols) {

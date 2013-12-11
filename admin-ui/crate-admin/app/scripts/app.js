@@ -1,6 +1,7 @@
 'use strict';
 
 var crateAdminApp = angular.module('crateAdminApp', [
+  'ngRoute',
   'stats',
   'common',
   'overview',

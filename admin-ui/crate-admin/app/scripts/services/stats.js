@@ -5,11 +5,11 @@ angular.module('stats', [])
       var prefix = $location.search().prefix || '';
       var colorMap = {green: 'label-success',
                       yellow: 'label-warning',
-                      red: 'label-important'};
+                      red: 'label-danger'};
       var data = {
         name: '',
         status: '',
-        color: '',
+        color_label: 'label-success',
         load: [0.0, 0.0, 0.0]
       };
 
@@ -18,7 +18,7 @@ angular.module('stats', [])
           success(function(res_data) {
             data.name = res_data.cluster_name;
             data.status = res_data.status;
-            data.color = colorMap[res_data.status];
+            data.color_label = colorMap[res_data.status];
             //$scope.nodes = data.number_of_nodes;
             //$scope.shards = data.active_primary_shards;
           }).
