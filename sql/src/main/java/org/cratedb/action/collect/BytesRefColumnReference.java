@@ -16,7 +16,11 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexFieldData
 
     @Override
     public BytesRef evaluate() {
-        return values.getValue(docId);
+        BytesRef v = values.getValue(docId);
+        if (v != null) {
+            return values.makeSafe(v);
+        }
+        return null;
     }
 
     @Override
@@ -26,7 +30,7 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexFieldData
     }
 
     @Override
-    public DataType returnType(){
+    public DataType returnType() {
         return DataType.STRING;
     }
 
