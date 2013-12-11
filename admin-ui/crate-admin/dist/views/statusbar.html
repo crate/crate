@@ -1,0 +1,23 @@
+<div ng-controller="StatusBarController">
+  <ul class="nav navbar-nav navbar-right navbar-user">
+    <li>
+      <a href="#">Cluster:
+        <span class="label label-cluster">{{cluster_name}}</span>
+      </a>
+    </li>
+    <li>
+      <a href="#">Health: <span class="label {{cluster_color_label}}">{{cluster_state}}</span></a>
+    </li>
+    <li>
+      <a href="#">Load:
+        <span class="label label-load1">{{load1}}</span>
+        <span class="label label-load5">{{load5}}</span>
+        <span class="label label-load15">{{load15}}</span>
+      </a>
+    </li>
+    <li class="divider"></li>
+    <li>
+      <a href="{{docs_url}}" target="_blank"><i class="fa fa-question-circle"></i></a>
+    </li>
+  </ul>
+</div>

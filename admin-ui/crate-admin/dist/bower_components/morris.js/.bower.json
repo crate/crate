@@ -1,0 +1,22 @@
+{
+  "name": "morris.js",
+  "version": "0.4.3",
+  "main": [
+    "./morris.js",
+    "./morris.css"
+  ],
+  "dependencies": {
+    "jquery": ">= 1.7.2",
+    "raphael": ">= 2.0"
+  },
+  "homepage": "https://github.com/oesmith/morris.js",
+  "_release": "0.4.3",
+  "_resolution": {
+    "type": "version",
+    "tag": "0.4.3",
+    "commit": "b98ae8ab1de39be185fe092c4f7f0821088abafb"
+  },
+  "_source": "git://github.com/oesmith/morris.js.git",
+  "_target": "~0.4.3",
+  "_originalSource": "morris.js"
+}

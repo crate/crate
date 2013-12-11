@@ -31,8 +31,11 @@ public class Version {
     public static final int V_0_19_9_ID = /*00*/190999;
     public static final Version V_0_19_9 = new Version(V_0_19_9_ID, false,
         org.elasticsearch.Version.V_0_90_7);
+    public static final int V_0_19_10_ID = /*00*/191099;
+    public static final Version V_0_19_10 = new Version(V_0_19_10_ID, false,
+        org.elasticsearch.Version.V_0_90_7);
 
-    public static final Version CURRENT = V_0_19_9;
+    public static final Version CURRENT = V_0_19_10;
 
     static {
         assert CURRENT.esVersion == org.elasticsearch.Version.CURRENT : "Version must be " +

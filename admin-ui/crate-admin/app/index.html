@@ -3,91 +3,74 @@
 <!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
 <!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
 <!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
-  <head>
+<head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <title></title>
+    <title>Crate Admin</title>
     <meta name="description" content="">
-    <meta name="viewport" content="width=device-width">
+    <meta name="viewport" content=width=device-width,initial-scale=1.0">
     <link rel="shortcut icon" href="images/favicon.png">
 
     <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
 
-        <!-- build:css({.tmp,app}) styles/main.css -->
-        <link rel="stylesheet" href="styles/main.css">
-        <!-- endbuild -->
+    <!-- build:css({.tmp,app}) styles/main.css -->
+    <link rel="stylesheet" href="styles/main.css">
+    <!-- endbuild -->
+
+    <!-- build:js scripts/angular.js -->
+    <script src="bower_components/angular/angular.js"></script>
+    <script src="bower_components/angular-route/angular-route.js"></script>
+    <!-- endbuild -->
+
+    <!-- build:js scripts/plugins.js -->
+    <script src="bower_components/jquery/jquery.js"></script>
+    <script src="bower_components/bootstrap/js/affix.js"></script>
+    <script src="bower_components/bootstrap/js/alert.js"></script>
+    <script src="bower_components/bootstrap/js/dropdown.js"></script>
+    <script src="bower_components/bootstrap/js/tooltip.js"></script>
+    <script src="bower_components/bootstrap/js/modal.js"></script>
+    <script src="bower_components/bootstrap/js/transition.js"></script>
+    <script src="bower_components/bootstrap/js/button.js"></script>
+    <script src="bower_components/bootstrap/js/popover.js"></script>
+    <script src="bower_components/bootstrap/js/carousel.js"></script>
+    <script src="bower_components/bootstrap/js/scrollspy.js"></script>
+    <script src="bower_components/bootstrap/js/collapse.js"></script>
+    <script src="bower_components/bootstrap/js/tab.js"></script>
+    <!-- endbuild -->
+
+
+    <!--[if lt IE 9]>
+    <script src="bower_components/es5-shim/es5-shim.js"></script>
+    <script src="bower_components/json3/lib/json3.min.js"></script>
+    <![endif]-->
+
+    <!-- build:js({.tmp,app}) scripts/scripts.js -->
+    <script src="scripts/app.js"></script>
+    <script src="scripts/services/stats.js"></script>
+    <script src="scripts/controllers/common.js"></script>
+    <script src="scripts/controllers/overview.js"></script>
+    <script src="scripts/controllers/console.js"></script>
+    <script src="scripts/controllers/docs.js"></script>
+    <script src="scripts/directives/tablesorter.js"></script>
+    <!-- endbuild -->
+
 </head>
-  <body ng-app="crateAdminApp" style="margin:0px;padding:0px;">
+<body ng-app="crateAdminApp">
     <!--[if lt IE 7]>
       <p class="chromeframe">You are using an outdated browser. <a href="http://browsehappy.com/">Upgrade your browser today</a> or <a href="http://www.google.com/chromeframe/?redirect=true">install Google Chrome Frame</a> to better experience this site.</p>
     <![endif]-->
 
-    <!--[if lt IE 9]>
-      <script src="bower_components/es5-shim/es5-shim.js"></script>
-      <script src="bower_components/json3/lib/json3.min.js"></script>
-    <![endif]-->
 
-    <div class="navbar navbar-static-top">
-         <div class="navbar-inner">
-             <div class="container">
-               <a href="/admin" class="brand"><img src="images/logo.png"></a>
-               <ul class="nav">
-                 <plugins></plugins>
-                 <li><a onclick="$('iframe').hide();$('div.content').show();" href="#/sqlconsole">SQL</a></li>
-               </ul>
-               <div class="pull-right">
-                 <versions></versions>
-                 <health></health>
-               </div>
-             </div>
-         </div>
+    <div id="wrapper">
+
+      <div ng-include="'views/nav.html'"></div>
+
+      <div id="page-wrapper">
+
+        <div ng-view></div>
+
+      </div>
     </div>
 
-  <div class="container content">
-    <div class="row-fluid">
-      <div class="span12" ng-view=""></div>
-    </div>
-  </div>
-  <iframe name="plugin_frame" frameborder="0" height="100%" width="100%"></iframe>
-
-    <!-- Add your site or application content here -->
-
-    <!-- build:js scripts/angular.js -->
-    <script src="bower_components/angular/angular.js"></script>
-    <!-- endbuild -->
-
-    <!-- build:js({.tmp,app}) scripts/scripts.js -->
-    <script src="scripts/app.js"></script>
-    <!-- endbuild -->
-
-        <!-- build:js scripts/plugins.js -->
-        <script src="bower_components/jquery/jquery.js"></script>
-        <script src="bower_components/bootstrap-sass/js/bootstrap-affix.js"></script>
-        <script src="bower_components/bootstrap-sass/js/bootstrap-alert.js"></script>
-        <script src="bower_components/bootstrap-sass/js/bootstrap-dropdown.js"></script>
-        <script src="bower_components/bootstrap-sass/js/bootstrap-tooltip.js"></script>
-        <script src="bower_components/bootstrap-sass/js/bootstrap-modal.js"></script>
-        <script src="bower_components/bootstrap-sass/js/bootstrap-transition.js"></script>
-        <script src="bower_components/bootstrap-sass/js/bootstrap-button.js"></script>
-        <script src="bower_components/bootstrap-sass/js/bootstrap-popover.js"></script>
-        <script src="bower_components/bootstrap-sass/js/bootstrap-typeahead.js"></script>
-        <script src="bower_components/bootstrap-sass/js/bootstrap-carousel.js"></script>
-        <script src="bower_components/bootstrap-sass/js/bootstrap-scrollspy.js"></script>
-        <script src="bower_components/bootstrap-sass/js/bootstrap-collapse.js"></script>
-        <script src="bower_components/bootstrap-sass/js/bootstrap-tab.js"></script>
-        <script src="scripts/directives/health.js"></script>
-        <script src="scripts/directives/versions.js"></script>
-        <script src="scripts/directives/plugins.js"></script>
-        <script src="scripts/controllers/sqlconsole.js"></script>
-        <!-- endbuild -->
-
-    <script type="text/javascript">
-      $(function() {
-          $('iframe').css('height', $(window).height() - 68);
-          $(window).resize(function() {
-            $('iframe').css('height', $(window).height() - 68);
-          });
-      });
-    </script>
 </body>
 </html>

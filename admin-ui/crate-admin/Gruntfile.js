@@ -6,6 +6,8 @@ var mountFolder = function (connect, dir) {
   return connect.static(require('path').resolve(dir));
 };
 
+var CRATE_THEME_VERSION = '0.0.1';
+
 // # Globbing
 // for performance reasons we're only matching one level down:
 // 'test/spec/{,*/}*.js'
@@ -37,9 +39,9 @@ module.exports = function (grunt) {
         files: ['test/spec/{,*/}*.coffee'],
         tasks: ['coffee:test']
       },
-      compass: {
-        files: ['<%= yeoman.app %>/styles/{,*/}*.{scss,sass}'],
-        tasks: ['compass:server']
+      recess: {
+        files: ['<%= yeoman.app %>/styles/{,*/}*.less'],
+        tasks: ['recess:dist']
       },
       livereload: {
         options: {
@@ -107,7 +109,8 @@ module.exports = function (grunt) {
           ]
         }]
       },
-      server: '.tmp'
+      server: '.tmp',
+      crate_theme: 'tmp/*'
     },
     jshint: {
       options: {
@@ -138,25 +141,18 @@ module.exports = function (grunt) {
         }]
       }
     },
-    compass: {
-      options: {
-        sassDir: '<%= yeoman.app %>/styles',
-        cssDir: '.tmp/styles',
-        generatedImagesDir: '.tmp/images/generated',
-        imagesDir: '<%= yeoman.app %>/images',
-        javascriptsDir: '<%= yeoman.app %>/scripts',
-        fontsDir: '<%= yeoman.app %>/styles/fonts',
-        importPath: '<%= yeoman.app %>/bower_components',
-        httpImagesPath: '/images',
-        httpGeneratedImagesPath: '/images/generated',
-        httpFontsPath: '/styles/fonts',
-        relativeAssets: false
-      },
-      dist: {},
-      server: {
+    recess: {
+      dist: {
         options: {
-          debugInfo: true
-        }
+          compile: true
+        },
+        files: [{
+            expand: true,
+            cwd: '<%= yeoman.app %>/styles',
+            src: 'main.less',
+            dest: '.tmp/styles/',
+            ext: '.css'
+        }]
       }
     },
     // not used since Uglify task does concat,
@@ -246,7 +242,7 @@ module.exports = function (grunt) {
             '.htaccess',
             'bower_components/**/*',
             'images/{,*/}*.{gif,webp,svg}',
-            'styles/fonts/*'
+            'fonts/**',
           ]
         }, {
           expand: true,
@@ -256,20 +252,42 @@ module.exports = function (grunt) {
             'generated/*'
           ]
         }]
+      },
+      crate_theme: {
+        files: [{
+            cwd: 'tmp/crate-theme-'+CRATE_THEME_VERSION+'/src/crate_theme/bootstrap/',
+            src: 'fonts.less',
+            dest: '<%= yeoman.app %>/styles/',
+            expand: true
+        }, {
+            cwd: 'tmp/crate-theme-'+CRATE_THEME_VERSION+'/src/crate_theme/bootstrap/crate-admin/',
+            src: '{theme,variables,sb-admin}.less',
+            dest: '<%= yeoman.app %>/styles/',
+            expand: true
+        }, {
+            cwd: 'tmp/crate-theme-'+CRATE_THEME_VERSION+'/assets/img/',
+            src: '**',
+            dest: '<%= yeoman.app %>/images/',
+            expand: true
+        }, {
+            cwd: 'tmp/crate-theme-'+CRATE_THEME_VERSION+'/assets/fonts/',
+            src: '**',
+            dest: '<%= yeoman.app %>/fonts/',
+            expand: true
+        }]
       }
     },
     concurrent: {
       server: [
-        'coffee:dist',
-        'compass:server'
+        'recess',
+        'coffee:dist'
       ],
       test: [
         'coffee',
-        'compass'
       ],
       dist: [
         'coffee',
-        'compass:dist',
+        'recess',
         'imagemin',
         'htmlmin'
       ]
@@ -298,8 +316,52 @@ module.exports = function (grunt) {
           ]
         }
       }
+    },
+    'string-replace': {
+      dist: {
+        files: {
+          '<%= yeoman.dist %>/styles/': '*.css',
+        },
+        options: {
+          replacements: [{
+            pattern: '../images',
+            replacement: 'images'
+          }, {
+            pattern: '../bower_components',
+            replacement: 'bower_components'
+          }, {
+            pattern: '../fonts/',
+            replacement: 'fonts/'
+          }]
+        }
+      }
     }
   });
+
+  grunt.registerTask('downloadCrateTheme', 'download the crate theme and extract less', function () {
+    grunt.log.writeln('starting download...');
+
+    // Tell grunt the task is async
+    var done = this.async();
+
+    var tar = require("tar"),
+        zlib = require('zlib'),
+        fs = require("fs"),
+        request = require('request');
+
+    request('http://download.crate.io/eggs/crate-theme-'+CRATE_THEME_VERSION+'.tar.gz')
+      .pipe(zlib.createGunzip())
+      .pipe(tar.Extract({ path: "tmp" }))
+      .on("error", function (er) {
+        grunt.log.writeln("... error happened: "+er);
+        done(false);
+      })
+      .on("end", function () {
+        grunt.log.writeln('... download and extract done.');
+        done();
+      });
+  });
+
 
   grunt.registerTask('server', function (target) {
     if (target === 'dist') {
@@ -327,18 +389,26 @@ module.exports = function (grunt) {
     'useminPrepare',
     'concurrent:dist',
     'concat',
-    'copy',
+    'copy:dist',
     'ngmin',
     'cssmin',
     'uglify',
     'rev',
-    'usemin'
+    'usemin',
+    'string-replace:dist'
   ]);
 
   grunt.registerTask('default', [
+    'setup',
     'jshint',
     'test',
     'build'
   ]);
+
+  grunt.registerTask('setup', [
+    'clean:crate_theme',
+    'downloadCrateTheme',
+    'copy:crate_theme'
+  ])
 };
 

@@ -3,66 +3,47 @@
 <!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
 <!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
 <!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
-  <head>
+<head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-    <title></title>
+    <title>Crate Admin</title>
     <meta name="description" content="">
-    <meta name="viewport" content="width=device-width">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0\"">
     <link rel="shortcut icon" href="images/64918591.favicon.png">
 
     <!-- Place favicon.ico and apple-touch-icon.png in the root directory -->
 
-        <link rel="stylesheet" href="styles/c79bdf69.main.css">
+    <link rel="stylesheet" href="styles/7cbc7bbc.main.css">
+
+    <script src="scripts/e0a633be.angular.js"></script>
+
+    <script src="scripts/dc1faddf.plugins.js"></script>
+
+
+    <!--[if lt IE 9]>
+    <script src="bower_components/es5-shim/es5-shim.js"></script>
+    <script src="bower_components/json3/lib/json3.min.js"></script>
+    <![endif]-->
+
+    <script src="scripts/38ba9b48.scripts.js"></script>
+
 </head>
-  <body ng-app="crateAdminApp" style="margin:0px;padding:0px">
+<body ng-app="crateAdminApp">
     <!--[if lt IE 7]>
       <p class="chromeframe">You are using an outdated browser. <a href="http://browsehappy.com/">Upgrade your browser today</a> or <a href="http://www.google.com/chromeframe/?redirect=true">install Google Chrome Frame</a> to better experience this site.</p>
     <![endif]-->
 
-    <!--[if lt IE 9]>
-      <script src="bower_components/es5-shim/es5-shim.js"></script>
-      <script src="bower_components/json3/lib/json3.min.js"></script>
-    <![endif]-->
 
-    <div class="navbar navbar-static-top">
-         <div class="navbar-inner">
-             <div class="container">
-               <a href="/admin" class="brand"><img src="images/78a1d424.logo.png"></a>
-               <ul class="nav">
-                 <plugins></plugins>
-                 <li><a onclick="$('iframe').hide();$('div.content').show()" href="#/sqlconsole">SQL</a></li>
-               </ul>
-               <div class="pull-right">
-                 <versions></versions>
-                 <health></health>
-               </div>
-             </div>
-         </div>
+    <div id="wrapper">
+
+      <div ng-include="'views/nav.html'"></div>
+
+      <div id="page-wrapper">
+
+        <div ng-view=""></div>
+
+      </div>
     </div>
 
-  <div class="container content">
-    <div class="row-fluid">
-      <div class="span12" ng-view=""></div>
-    </div>
-  </div>
-  <iframe name="plugin_frame" frameborder="0" height="100%" width="100%"></iframe>
-
-    <!-- Add your site or application content here -->
-
-    <script src="scripts/23aa4e91.angular.js"></script>
-
-    <script src="scripts/58517b41.scripts.js"></script>
-
-        <script src="scripts/becc21b5.plugins.js"></script>
-
-    <script type="text/javascript">
-      $(function() {
-          $('iframe').css('height', $(window).height() - 68);
-          $(window).resize(function() {
-            $('iframe').css('height', $(window).height() - 68);
-          });
-      });
-    </script>
 </body>
 </html>

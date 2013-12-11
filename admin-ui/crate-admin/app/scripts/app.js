@@ -1,17 +1,32 @@
 'use strict';
 
-angular.module('crateAdminApp', [])
-  .config(function ($routeProvider) {
+var crateAdminApp = angular.module('crateAdminApp', [
+  'ngRoute',
+  'stats',
+  'common',
+  'overview',
+  'console',
+  'docs'
+]);
+
+crateAdminApp.config(['$routeProvider',
+  function ($routeProvider) {
     $routeProvider
       .when('/', {
-        templateUrl: 'views/main.html',
-        controller: 'MainCtrl'
+        templateUrl: 'views/empty_overview.html',
+        controller: 'OverviewController'
       })
-      .when('/sqlconsole', {
-        templateUrl: 'views/sqlconsole.html',
-        controller: 'SqlconsoleCtrl'
+      .when('/console', {
+        templateUrl: 'views/console.html',
+        controller: 'ConsoleController'
+      })
+      .when('/docs', {
+        templateUrl: 'views/docs.html',
+        controller: 'DocsController'
       })
       .otherwise({
         redirectTo: '/'
       });
-  });
+  }]);
+
+crateAdminApp.run(function(ClusterState) {});
