@@ -5,6 +5,7 @@ import org.apache.lucene.index.memory.ReusableMemoryIndex;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.action.collect.CollectorContext;
+import org.cratedb.action.collect.ColumnReferenceExpression;
 import org.cratedb.action.groupby.GlobalSQLGroupingCollector;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
@@ -138,8 +139,8 @@ public class ShardStatsTable implements StatsTable {
         }
         // add all columns used for aggregates
         for (AggExpr aggExpr : stmt.aggregateExpressions()) {
-            if (aggExpr.parameterInfo != null) {
-                String columnName = aggExpr.parameterInfo.columnName;
+            if (aggExpr.expression != null && aggExpr.expression instanceof ColumnReferenceExpression) {
+                String columnName = ((ColumnReferenceExpression) aggExpr.expression).columnName();
                 if (fieldMapper().containsKey(columnName)) {
                     shardInfo.fields().put(columnName, shardInfo.getStat(columnName));
                 }

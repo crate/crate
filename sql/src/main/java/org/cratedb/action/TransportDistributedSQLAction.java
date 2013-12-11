@@ -168,9 +168,13 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             } else {
                 if (stmt.isStatsQuery()) {
                     rows = statsService.queryGroupBy(
-                            stmt.virtualTableName(),
-                            request.reducers.length, request.concreteIndex,
-                            stmt, request.shardId);
+                        stmt.virtualTableName(),
+                        request.reducers.length,
+                        request.concreteIndex,
+                        stmt,
+                        request.shardId,
+                        clusterService.localNode().id()
+                    );
                 } else {
                     rows = sqlQueryService.query(
                             request.reducers.length, request.concreteIndex, stmt,
@@ -673,8 +677,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 // at once here
                 reduceJobStatus = new SQLReduceJobStatus(
                     parsedStatement,
-                    threadPool,
-                    ConcurrentCollections.<GroupByKey, GroupByRow>newConcurrentMap()
+                    threadPool
                 );
             } else {
                 collectResults = new ArrayList<>(shardsItsAll.size() - shardsIts.size());
@@ -688,15 +691,12 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 if (shard == null) {
                     try {
                         if (parsedStatement.hasGroupBy() || parsedStatement.isGlobalAggregate()) {
-                            Map<String, Map<GroupByKey, GroupByRow>> shardGroupByCollectResults =
-                                    statsService.queryGroupBy(
-                                            parsedStatement.virtualTableName(),
-                                            new String[]{dummyReducer}, lastIndex,
-                                            parsedStatement, shardIt.shardId().id(),
-                                            null);
+                            Rows shardGroupByCollectResults = statsService.queryGroupBy(
+                                parsedStatement.virtualTableName(), 1, lastIndex, parsedStatement,
+                                shardIt.shardId().id(), null
+                            );
                             // merge results to the reduce job
-                            reduceJobStatus.merge(new SQLGroupByResult
-                                    (shardGroupByCollectResults.get(dummyReducer).values()));
+                            reduceJobStatus.merge(new SQLGroupByResult(0, shardGroupByCollectResults));
                         } else {
                             List<List<Object>> shardCollectResults = statsService.query(
                                     parsedStatement.virtualTableName(),
@@ -725,15 +725,17 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 // add all results
                 onMapperResults(collectResults);
             } else {
-                // reduce existing results with results from unassigned/empty shards
-                synchronized (groupByResult) {
-                    reduceJobStatus.merge(new SQLGroupByResult(groupByResult));
-                    groupByResult.clear();
-                    groupByResult.addAll(
-                            reduceJobStatus.trimRows(reduceJobStatus.reducedResult.values())
-                    );
-                }
+                // TODO:
 
+                // reduce existing results with results from unassigned/empty shards
+                //synchronized (groupByResult) {
+                //    reduceJobStatus.
+                //    reduceJobStatus.merge(new SQLGroupByResult(0, groupByResult));
+                //    groupByResult.clear();
+                //    groupByResult.addAll(
+                //            reduceJobStatus.trimRows(reduceJobStatus.reducedResult.values())
+                //    );
+                //}
             }
         }
 

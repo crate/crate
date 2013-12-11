@@ -39,7 +39,6 @@ public class TransportSQLReduceHandler {
     private final CacheRecycler cacheRecycler;
     private final ThreadPool threadPool;
     private final ScheduledExecutorService scheduledExecutorService;
-    private final SoftThreadLocalRecycler<ConcurrentMap<GroupByKey, GroupByRow>> resultRecycler;
 
     public static class Actions {
         public static final String START_REDUCE_JOB = "crate/sql/shard/reduce/start_job";
@@ -57,19 +56,8 @@ public class TransportSQLReduceHandler {
         this.clusterService = clusterService;
         this.transportService = transportService;
         this.threadPool = threadPool;
-        this.reduceJobStatusContext = new ReduceJobStatusContext();
+        this.reduceJobStatusContext = new ReduceJobStatusContext(cacheRecycler);
         this.scheduledExecutorService = new ScheduledThreadPoolExecutor(2);
-        this.resultRecycler = new SoftThreadLocalRecycler<>(new Recycler.C<ConcurrentMap<GroupByKey, GroupByRow>>() {
-            @Override
-            public ConcurrentMap<GroupByKey, GroupByRow> newInstance(int sizing) {
-                return ConcurrentCollections.newConcurrentMap();
-            }
-
-            @Override
-            public void clear(ConcurrentMap<GroupByKey, GroupByRow> value) {
-                value.clear();
-            }
-        }, 10);
     }
 
     public void registerHandler() {
@@ -85,7 +73,6 @@ public class TransportSQLReduceHandler {
         SQLReduceJobStatus reduceJobStatus = new SQLReduceJobStatus(
             parsedStatement,
             threadPool,
-            resultRecycler.obtain(-1).v(),
             request.expectedShardResults,
             request.contextId,
             reduceJobStatusContext
@@ -150,7 +137,7 @@ public class TransportSQLReduceHandler {
     private class ReceivePartialResultHandler extends BaseTransportRequestHandler<SQLMapperResultRequest> {
         @Override
         public SQLMapperResultRequest newInstance() {
-            return new SQLMapperResultRequest(reduceJobStatusContext, cacheRecycler);
+            return new SQLMapperResultRequest(reduceJobStatusContext);
         }
 
         @Override

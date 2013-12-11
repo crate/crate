@@ -15,11 +15,11 @@ public class ShortColumnReference extends FieldCacheExpression<IndexNumericField
 
     @Override
     public Short evaluate() {
-        Short value = ((Long)values.getValue(docId)).shortValue();
-        if (value == 0 && !values.hasValue(docId)) {
+        if (values.setDocument(docId) == 0) {
             return null;
         }
-        return value;
+
+        return ((Long)values.nextValue()).shortValue();
     }
 
     @Override

@@ -1,31 +1,19 @@
 package org.cratedb.action;
 
 import org.cratedb.action.groupby.GroupByHelper;
-import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.GroupByRowComparator;
 import org.cratedb.action.groupby.key.Rows;
 import org.cratedb.action.sql.ParsedStatement;
-import org.cratedb.core.collections.LimitingCollectionIterator;
-import org.cratedb.core.concurrent.FutureConcurrentMap;
-import org.cratedb.sql.CrateException;
 import org.cratedb.sql.SQLReduceJobTimeoutException;
 import org.elasticsearch.action.support.PlainListenableActionFuture;
-import org.elasticsearch.cache.recycler.CacheRecycler;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.UUID;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class SQLReduceJobStatus extends PlainListenableActionFuture<SQLReduceJobResponse> {
 
@@ -73,8 +61,7 @@ public class SQLReduceJobStatus extends PlainListenableActionFuture<SQLReduceJob
                 rowList.add(row);
             }
         });
-        return GroupByHelper.trimRows(
-                rowList, comparator, parsedStatement.totalLimit());
+        return GroupByHelper.trimRows(rowList, comparator, parsedStatement.totalLimit());
     }
 
     public synchronized void merge(SQLGroupByResult groupByResult) {
@@ -91,7 +78,7 @@ public class SQLReduceJobStatus extends PlainListenableActionFuture<SQLReduceJob
         if (reduceJobStatusContext != null) {
             if (shardsToProcess.decrementAndGet() == 0) {
                 reduceJobStatusContext.remove(contextId);
-                set(new SQLReduceJobResponse(trimRows(reducedResult.values())));
+                set(new SQLReduceJobResponse(terminate(), parsedStatement));
             }
         }
     }

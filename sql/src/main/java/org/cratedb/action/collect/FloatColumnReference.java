@@ -15,11 +15,11 @@ public class FloatColumnReference extends FieldCacheExpression<IndexNumericField
 
     @Override
     public Float evaluate() {
-        Float value = ((Double)values.getValue(docId)).floatValue();
-        if (value == 0 && !values.hasValue(docId)) {
+        if (values.setDocument(docId) == 0) {
             return null;
         }
-        return value;
+
+        return ((Double)values.nextValue()).floatValue();
     }
 
     @Override

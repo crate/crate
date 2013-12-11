@@ -17,17 +17,16 @@ public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFiel
 
     @Override
     public Double evaluate() {
-        Double value = values.getValue(docId);
-        if (value == 0.0 && !values.hasValue(docId)) {
+        if (values.setDocument(docId) == 0) {
             return null;
         }
-        return value;
+        return values.nextValue();
     }
 
     @Override
     public void setNextReader(AtomicReaderContext context) {
         super.setNextReader(context);
-        values = ((IndexNumericFieldData) indexFieldData).load(context).getDoubleValues();
+        values = (indexFieldData).load(context).getDoubleValues();
     }
 
     @Override

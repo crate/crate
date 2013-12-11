@@ -36,7 +36,6 @@ public class SimpleSQLGroupingAggregateHandler implements SQLGroupingAggregateHa
                 value = null;
             }
             function.iterate(row.aggStates.get(i), value);
-
         }
     }
 }

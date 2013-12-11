@@ -15,11 +15,10 @@ public class IntegerColumnReference extends FieldCacheExpression<IndexNumericFie
 
     @Override
     public Integer evaluate() {
-        Integer value = ((Long)values.getValue(docId)).intValue();
-        if (value == 0 && !values.hasValue(docId)) {
+        if (values.setDocument(docId) == 0) {
             return null;
         }
-        return value;
+        return ((Long)values.nextValue()).intValue();
     }
 
     @Override

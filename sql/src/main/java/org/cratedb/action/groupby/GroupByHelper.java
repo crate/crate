@@ -73,6 +73,7 @@ public class GroupByHelper {
                 // fieldMapper is null in case of group by on information schema
 
                 if (fieldMapper != null
+                    && ((AggExpr) columnDescription).expression != null
                     && ((AggExpr) columnDescription).expression.returnType() == DataType.STRING)
                 {
                     extractors[colIdx] = new GroupByFieldExtractor(aggStateIdx) {

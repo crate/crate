@@ -16,11 +16,11 @@ public class LongColumnReference extends FieldCacheExpression<IndexNumericFieldD
 
     @Override
     public Long evaluate() {
-        Long value = values.getValue(docId);
-        if (value == 0 && !values.hasValue(docId)) {
+        if (values.setDocument(docId) == 0) {
             return null;
         }
-        return value;
+
+        return values.nextValue();
     }
 
     @Override

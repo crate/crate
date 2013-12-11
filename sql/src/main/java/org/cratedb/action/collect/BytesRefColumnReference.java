@@ -16,17 +16,18 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexFieldData
 
     @Override
     public BytesRef evaluate() {
-        BytesRef v = values.getValue(docId);
-        if (v != null) {
-            return values.makeSafe(v);
+        if (values.setDocument(docId) == 0) {
+            return null;
         }
-        return null;
+
+        values.nextValue();
+        return values.copyShared();
     }
 
     @Override
     public void setNextReader(AtomicReaderContext context) {
         super.setNextReader(context);
-        values = indexFieldData.load(context).getBytesValues();
+        values = indexFieldData.load(context).getBytesValues(true);
     }
 
     @Override

@@ -35,7 +35,6 @@ public class SQLReduceJobStatusTest {
         GlobalRows gRows = new GlobalRows(1, stmt);
         SQLReduceJobStatus status = new SQLReduceJobStatus(
             stmt, new ThreadPool(),
-            ConcurrentCollections.<GroupByKey, GroupByRow>newConcurrentMap(),
             1,
             null,
             null

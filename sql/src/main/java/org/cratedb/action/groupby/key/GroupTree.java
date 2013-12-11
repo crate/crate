@@ -1,5 +1,9 @@
 package org.cratedb.action.groupby.key;
 
+import com.carrotsearch.hppc.ObjectObjectMap;
+import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
+import com.carrotsearch.hppc.procedures.ObjectObjectProcedure;
+import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.action.collect.Expression;
@@ -11,10 +15,9 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class GroupTree extends Rows<GroupTree> {
 
@@ -22,7 +25,7 @@ public class GroupTree extends Rows<GroupTree> {
     private final int depth;
     private final MapFactory[] mapFactories;
     private final ParsedStatement stmt;
-    private final Map[] maps;
+    private final ObjectObjectMap[] maps;
     private final CacheRecycler cacheRecycler;
 
     private MapFactory getMapFactory(Expression expr) {
@@ -30,14 +33,14 @@ public class GroupTree extends Rows<GroupTree> {
             case STRING:
                 return new MapFactory<BytesRef, Object>() {
                     @Override
-                    public Map<BytesRef, Object> create() {
+                    public ObjectObjectMap<BytesRef, Object> create() {
                         return cacheRecycler.<BytesRef, Object>hashMap(-1).v();
                     }
                 };
             case LONG:
                 return new MapFactory<Long, Object>() {
                     @Override
-                    public Map<Long, Object> create() {
+                    public ObjectObjectMap<Long, Object> create() {
                         return cacheRecycler.<Long, Object>hashMap(-1).v();
                     }
                 };
@@ -55,7 +58,7 @@ public class GroupTree extends Rows<GroupTree> {
         for (int i = 0; i < depth; i++) {
             mapFactories[i] = getMapFactory(expressions.get(i));
         }
-        maps = new Map[numBuckets];
+        maps = new ObjectObjectOpenHashMap[numBuckets];
         for (int i = 0; i < maps.length; i++) {
             maps[i] = mapFactories[0].create();
         }
@@ -68,8 +71,9 @@ public class GroupTree extends Rows<GroupTree> {
         return Math.abs(o.hashCode()) % maps.length;
     }
 
+    @SuppressWarnings("unchecked")
     public GroupByRow getRow() {
-        Map m = null;
+        ObjectObjectMap m = null;
         Object[] key = new Object[depth];
         for (int i = 0; i < depth; i++) {
             boolean last = (i == depth - 1);
@@ -85,7 +89,7 @@ public class GroupTree extends Rows<GroupTree> {
                     m.put(key[i], row);
                     return row;
                 } else {
-                    Map subMap = mapFactories[i].create();
+                    ObjectObjectMap subMap = mapFactories[i].create();
                     m.put(key[i], subMap);
                     m = subMap;
                 }
@@ -93,7 +97,7 @@ public class GroupTree extends Rows<GroupTree> {
                 if (last) {
                     return (GroupByRow) value;
                 } else {
-                    m = (Map) value;
+                    m = (ObjectObjectMap) value;
                 }
             }
         }
@@ -108,49 +112,51 @@ public class GroupTree extends Rows<GroupTree> {
         System.out.println(res);
     }
 
-    public void dump(int i){
 
-        List<String> lines = new ArrayList<>();
-        lines.add("dump: " + i);
-        //for (int i = 0; i < maps.length; i++) {
-            Map<Object, Object> m = maps[i];
-            if (m.size()==0){
-                return;
-            }
-            lines.add("------------- start map:" + i +  "-------");
+    private void writeMap(ObjectObjectMap m,
+                          final StreamOutput out,
+                          final int level,
+                          final DataType.Streamer[] keyStreamers) throws IOException {
 
-            for (Map.Entry e: m.entrySet()){
-                String k = ((GroupByRow) e.getValue()).key.toString();
-                int h = getRouting(e.getKey());
-                if (i!=h){
-                    lines.add("FFFffffffffffFAIL-------------------------FFFFFFFFFFFFFFFF");
-                }
-                lines.add("key: " +  e.getKey() + " modulo: " + h + " groupkey: " +  k);
-            }
-            lines.add("------------- end map:" + i +  "-------");
-        //}
-        printlns(lines);
-    }
+        final DataType.Streamer keyStreamer = keyStreamers[level];
+        final AtomicReference<IOException> lastException = new AtomicReference<>();
 
-    private void writeMap(Map<Object, Object> m, StreamOutput out, int level,
-            DataType.Streamer[] keyStreamers) throws IOException {
-        DataType.Streamer keyStreamer = keyStreamers[level];
         out.writeVInt(m.size());
         if (level==depth-1){
             // last
-            for (Map.Entry entry: m.entrySet()){
-                keyStreamer.writeTo(out, entry.getKey());
-                ((GroupByRow) entry.getValue()).writeStates(out);
-            }
+
+            m.forEach(new ObjectObjectProcedure() {
+                @Override
+                public void apply(Object key, Object value) {
+                    try {
+                        keyStreamer.writeTo(out, key);
+                        ((GroupByRow)value).writeStates(out);
+                    } catch (IOException ex) {
+                        lastException.set(ex);
+                    }
+                }
+            });
         } else {
-            for (Map.Entry entry: m.entrySet()){
-                keyStreamer.writeTo(out, entry.getKey());
-                writeMap((Map) entry.getValue(), out, level + 1, keyStreamers);
-            }
+            m.forEach(new ObjectObjectProcedure() {
+                @Override
+                public void apply(Object key, Object value) {
+                    try {
+                        keyStreamer.writeTo(out, key);
+                        writeMap((ObjectObjectMap)value, out, level + 1, keyStreamers);
+                    } catch (IOException ex) {
+                        lastException.set(ex);
+                    }
+                }
+            });
+        }
+
+        if (lastException.get() != null) {
+            throw lastException.get();
         }
     }
 
-    private void readMap(Map<Object, Object> m, StreamInput in, int level,
+    @SuppressWarnings("unchecked")
+    private void readMap(ObjectObjectMap m, StreamInput in, int level,
             DataType.Streamer[] keyStreamers, Object[] key) throws IOException {
         DataType.Streamer keyStreamer = keyStreamers[level];
         int size = in.readVInt();
@@ -164,7 +170,7 @@ public class GroupTree extends Rows<GroupTree> {
             }
         } else {
             for (int i = 0; i < size ; i++) {
-                Map subMap = mapFactories[level+1].create();
+                ObjectObjectMap subMap = mapFactories[level+1].create();
                 key[level] = keyStreamer.readFrom(in);
                 m.put(key[level], subMap);
                 readMap(subMap, in, level+1, keyStreamers, key);
@@ -191,22 +197,27 @@ public class GroupTree extends Rows<GroupTree> {
         readMap(maps[idx], in, 0, getStreamers(), new Object[depth]);
     }
 
-    private void mergeMaps(Map<Object, Object> m1, Map<Object, Object> m2, int level) {
-        boolean last = level == depth - 1;
-        for (Map.Entry entry : m2.entrySet()) {
-            if (m1.containsKey(entry.getKey())) {
-                if (last) {
-                    ((GroupByRow) m1.get(entry.getKey())).merge((GroupByRow) entry.getValue());
+    @SuppressWarnings("unchecked")
+    private void mergeMaps(final ObjectObjectMap m1, final ObjectObjectMap m2, final int level) {
+        final boolean last = level == depth - 1;
+
+        m2.forEach(new ObjectObjectProcedure() {
+            @Override
+            public void apply(Object key, Object value) {
+                if (m1.containsKey(key)) {
+                    if (last) {
+                        ((GroupByRow)m1.get(key)).merge((GroupByRow)value);
+                    } else {
+                        mergeMaps((ObjectObjectMap)m1.get(key), (ObjectObjectMap)value, level + 1);
+                    }
                 } else {
-                    mergeMaps((Map) m1.get(entry.getKey()), (Map) entry.getValue(), level + 1);
+                    m1.put(key, value);
                 }
-            } else {
-                m1.put(entry.getKey(), entry.getValue());
             }
-        }
+        });
     }
 
-    public Map[] maps() {
+    public ObjectObjectMap[] maps() {
         return maps;
     }
 
@@ -218,24 +229,29 @@ public class GroupTree extends Rows<GroupTree> {
 
     @Override
     public void walk(RowVisitor visitor) {
-        for (Map m : maps) {
+        for (ObjectObjectMap m : maps) {
             walk(visitor, m, 0);
         }
     }
 
-    private void walk(RowVisitor visitor, Map<Object, Object> m, int level) {
+    private void walk(final RowVisitor visitor, final ObjectObjectMap m, final int level) {
         if (level == depth - 1) {
             // last
-            for (Object row : m.values()) {
-                visitor.visit((GroupByRow) row);
-            }
+            m.values().forEach(new ObjectProcedure() {
+                @Override
+                public void apply(Object value) {
+                    visitor.visit((GroupByRow) value);
+                }
+            });
         } else {
-            for (Object row : m.values()) {
-                walk(visitor, (Map) row, level + 1);
-            }
+            m.values().forEach(new ObjectProcedure() {
+                @Override
+                public void apply(Object value) {
+                    walk(visitor, (ObjectObjectMap) value, level + 1);
+                }
+            });
         }
     }
-
 }
 
 

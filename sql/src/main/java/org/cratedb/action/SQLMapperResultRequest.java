@@ -27,10 +27,9 @@ public class SQLMapperResultRequest extends TransportRequest {
     public SQLReduceJobStatus status;
 
     public SQLMapperResultRequest() {}
-    public SQLMapperResultRequest(ReduceJobStatusContext jobStatusContext,
-                                  CacheRecycler cacheRecycler) {
+    public SQLMapperResultRequest(ReduceJobStatusContext jobStatusContext) {
         this.jobStatusContext = jobStatusContext;
-        this.cacheRecycler = cacheRecycler;
+        cacheRecycler = jobStatusContext.cacheRecycler();
     }
 
     @Override
