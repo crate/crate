@@ -589,7 +589,9 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             }
 
             synchronized (groupByResult) {
-                groupByResult.addAll(response.rows());
+                if (response.rows()!=null){
+                    groupByResult.addAll(response.rows());
+                }
             }
 
 
