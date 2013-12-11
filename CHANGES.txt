@@ -4,6 +4,9 @@ Changes for Crate
 
 Unreleased
 ==========
+
+ - fixed a thread deadlock that could occur if many group by queries run in
+   parallel
  
  - changed threadpool settings to avoid handler blocking each other on group by queries
 

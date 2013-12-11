@@ -1,31 +1,40 @@
 package org.cratedb.action;
 
+import org.cratedb.Constants;
+import org.cratedb.action.groupby.GroupByHelper;
+import org.cratedb.action.groupby.GroupByKey;
+import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.sql.ParsedStatement;
-import org.cratedb.core.concurrent.FutureConcurrentMap;
 import org.cratedb.service.SQLParseService;
-import org.cratedb.sql.CrateException;
-import org.cratedb.sql.SQLReduceJobTimeoutException;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ListenableActionFuture;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.recycler.Recycler;
+import org.elasticsearch.common.recycler.SoftThreadLocalRecycler;
+import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportChannel;
-import org.elasticsearch.transport.TransportRequestHandler;
-import org.elasticsearch.transport.TransportResponse;
-import org.elasticsearch.transport.TransportService;
+import org.elasticsearch.transport.*;
 
-import java.util.Date;
-import java.util.UUID;
+import java.io.IOException;
+import java.lang.ref.WeakReference;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class TransportSQLReduceHandler {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
     private final TransportService transportService;
-    private final FutureConcurrentMap<UUID, SQLReduceJobStatus> activeReduceJobs = FutureConcurrentMap.newMap();
+    private final ReduceJobStatusContext reduceJobStatusContext;
     private final ClusterService clusterService;
     private final SQLParseService sqlParseService;
+    private final ThreadPool threadPool;
+    private final ScheduledExecutorService scheduledExecutorService;
+    private final SoftThreadLocalRecycler<ConcurrentMap<GroupByKey, GroupByRow>> resultRecycler;
 
     public static class Actions {
         public static final String START_REDUCE_JOB = "crate/sql/shard/reduce/start_job";
@@ -35,10 +44,25 @@ public class TransportSQLReduceHandler {
     @Inject
     public TransportSQLReduceHandler(TransportService transportService,
                                      ClusterService clusterService,
-                                     SQLParseService sqlParseService) {
+                                     SQLParseService sqlParseService,
+                                     ThreadPool threadPool) {
         this.sqlParseService = sqlParseService;
         this.clusterService = clusterService;
         this.transportService = transportService;
+        this.threadPool = threadPool;
+        this.reduceJobStatusContext = new ReduceJobStatusContext();
+        this.scheduledExecutorService = new ScheduledThreadPoolExecutor(2);
+        this.resultRecycler = new SoftThreadLocalRecycler<>(new Recycler.C<ConcurrentMap<GroupByKey, GroupByRow>>() {
+            @Override
+            public ConcurrentMap<GroupByKey, GroupByRow> newInstance(int sizing) {
+                return ConcurrentCollections.newConcurrentMap();
+            }
+
+            @Override
+            public void clear(ConcurrentMap<GroupByKey, GroupByRow> value) {
+                value.clear();
+            }
+        }, 10);
     }
 
     public void registerHandler() {
@@ -47,42 +71,39 @@ public class TransportSQLReduceHandler {
             Actions.RECEIVE_PARTIAL_RESULT, new ReceivePartialResultHandler());
     }
 
-    public SQLReduceJobResponse reduceOperationStart(SQLReduceJobRequest request) {
+    public ListenableActionFuture<SQLReduceJobResponse> reduceOperationStart(SQLReduceJobRequest request) {
         ParsedStatement parsedStatement =
             sqlParseService.parse(request.request.stmt(), request.request.args());
 
         SQLReduceJobStatus reduceJobStatus = new SQLReduceJobStatus(
-            parsedStatement, request.expectedShardResults
+            parsedStatement,
+            threadPool,
+            resultRecycler.obtain(-1).v(),
+            request.expectedShardResults,
+            request.contextId,
+            reduceJobStatusContext
         );
+        final WeakReference<SQLReduceJobStatus> weakStatus = new WeakReference<>(reduceJobStatus);
 
-        activeReduceJobs.put(request.contextId, reduceJobStatus);
-
-        long now = 0;
-        if (logger.isTraceEnabled()) {
-            logger.trace("[{}]: context {} Received SQLReduce Job and created context",
-                clusterService.localNode().getId(), request.contextId
-            );
-            now = new Date().getTime();
-        }
+        scheduledExecutorService.schedule(new Runnable() {
+            @Override
+            public void run() {
+                SQLReduceJobStatus status = weakStatus.get();
+                if (status != null) {
+                    status.timeout();
+                }
+            }
+        }, Constants.GROUP_BY_TIMEOUT, TimeUnit.SECONDS);
 
         try {
-            if (!reduceJobStatus.shardsToProcess.await(2, TimeUnit.MINUTES)) {
-                throw new SQLReduceJobTimeoutException();
-            }
-
-            logger.trace("[{}]: context: {} completed SQLReduceJob. Took {} ms",
-                clusterService.localNode().id(), request.contextId, (new Date().getTime() - now));
-
-            return new SQLReduceJobResponse(reduceJobStatus);
-
-        } catch (InterruptedException e) {
-            throw new SQLReduceJobTimeoutException();
-        } finally {
-            activeReduceJobs.remove(request.contextId);
+            reduceJobStatusContext.put(request.contextId, reduceJobStatus);
+        } catch (IOException e) {
+            logger.error(e.getMessage(), e);
         }
+        return reduceJobStatus;
     }
 
-    private class StartReduceJobHandler implements TransportRequestHandler<SQLReduceJobRequest> {
+    private class StartReduceJobHandler extends BaseTransportRequestHandler<SQLReduceJobRequest> {
 
         @Override
         public SQLReduceJobRequest newInstance() {
@@ -90,77 +111,54 @@ public class TransportSQLReduceHandler {
         }
 
         @Override
-        public void messageReceived(SQLReduceJobRequest request, TransportChannel channel) throws Exception {
-            try {
-                SQLReduceJobResponse response = reduceOperationStart(request);
-                channel.sendResponse(response);
-            } catch (CrateException ex) {
-                channel.sendResponse(ex);
-            }
+        public void messageReceived(final SQLReduceJobRequest request,
+                                    final TransportChannel channel) throws Exception {
+            reduceOperationStart(request).addListener(new ActionListener<SQLReduceJobResponse>() {
+                @Override
+                public void onResponse(SQLReduceJobResponse response) {
+                    try {
+                        channel.sendResponse(response);
+                    } catch (IOException e) {
+                        onFailure(e);
+                    }
+                }
+
+                @Override
+                public void onFailure(Throwable e) {
+                    try {
+                        channel.sendResponse(e);
+                    } catch (IOException e1) {
+                        logger.error(e1.getMessage(), e1);
+                    }
+                }
+            });
         }
 
         @Override
         public String executor() {
-            return ThreadPool.Names.GENERIC;
-        }
-
-        @Override
-        public boolean isForceExecution() {
-            return true;
+            return ThreadPool.Names.SEARCH;
         }
     }
 
-    private class ReceivePartialResultHandler implements TransportRequestHandler<SQLMapperResultRequest> {
+    private class ReceivePartialResultHandler extends BaseTransportRequestHandler<SQLMapperResultRequest> {
         @Override
         public SQLMapperResultRequest newInstance() {
-            return new SQLMapperResultRequest(activeReduceJobs);
+            return new SQLMapperResultRequest(reduceJobStatusContext);
         }
 
         @Override
-        public void messageReceived(SQLMapperResultRequest request, TransportChannel channel) throws Exception {
-            SQLReduceJobStatus status = request.status;
-
-            long now = 0;
-            if (logger.isTraceEnabled()) {
-                logger.trace("[{}]: context {} received result from mapper",
-                    clusterService.localNode().getId(),
-                    request.contextId
-                );
-                now = new Date().getTime();
+        public void messageReceived(final SQLMapperResultRequest request, TransportChannel channel) throws Exception {
+            try {
+                reduceJobStatusContext.push(request);
+                channel.sendResponse(TransportResponse.Empty.INSTANCE);
+            } catch (Exception e) {
+                logger.error(e.getMessage(), e);
             }
-
-            status.merge(request.groupByResult);
-
-            if (logger.isTraceEnabled()) {
-                logger.trace("[{}]: context {} merging mapper result took {} ms. Now we got {} results",
-                    clusterService.localNode().getId(),
-                    request.contextId,
-                    (new Date().getTime() - now),
-                    status.reducedResult.size()
-                );
-            }
-
-            status.shardsToProcess.countDown();
-
-            if (logger.isTraceEnabled()) {
-                logger.trace("[{}]: context {} shards left: {}",
-                    clusterService.localNode().getId(),
-                    request.contextId,
-                    status.shardsToProcess.getCount()
-                );
-            }
-
-            channel.sendResponse(TransportResponse.Empty.INSTANCE);
         }
 
         @Override
         public String executor() {
             return ThreadPool.Names.MERGE;
-        }
-
-        @Override
-        public boolean isForceExecution() {
-            return true;
         }
     }
 }

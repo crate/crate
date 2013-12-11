@@ -24,8 +24,8 @@ public class SQLReduceJobResponse extends ActionResponse {
         this.seenIdxMap = GroupByHelper.getSeenIdxMap(parsedStatement.aggregateExpressions);
     }
 
-    public SQLReduceJobResponse(SQLReduceJobStatus jobStatus) {
-        this.result = jobStatus.trimRows(jobStatus.reducedResult.values());
+    public SQLReduceJobResponse(Collection<GroupByRow> trimmedRows) {
+        this.result = trimmedRows;
     }
 
     @Override

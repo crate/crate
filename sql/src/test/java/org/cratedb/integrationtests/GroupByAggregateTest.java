@@ -19,7 +19,6 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public ExpectedException expectedException = ExpectedException.none();
 
 
-
     @Before
     public void initTestData() {
         if (!setUpDone) {

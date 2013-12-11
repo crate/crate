@@ -1,5 +1,6 @@
 package org.cratedb.action;
 
+import org.cratedb.Constants;
 import org.cratedb.action.groupby.GroupByHelper;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
@@ -11,6 +12,7 @@ import org.cratedb.service.StatsService;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.ElasticSearchException;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ListenableActionFuture;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.action.support.IgnoreIndices;
 import org.elasticsearch.action.support.TransportAction;
@@ -26,10 +28,14 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
 import java.util.*;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -472,22 +478,24 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             );
 
             if (reducer.equals(nodes.getLocalNodeId())) {
-                threadPool.executor(executor).execute(new Runnable() {
+                transportSQLReduceHandler.reduceOperationStart(request).addListener(new ActionListener<SQLReduceJobResponse>() {
                     @Override
-                    public void run() {
-                        try {
-                            onReduceJobResponse(
-                                transportSQLReduceHandler.reduceOperationStart(request));
-                        } catch (Exception e) {
-                            onReduceJobFailure(e);
-                        }
+                    public void onResponse(SQLReduceJobResponse response) {
+                        onReduceJobResponse(response);
+                    }
+
+                    @Override
+                    public void onFailure(Throwable e) {
+                        onReduceJobFailure(e);
                     }
                 });
             } else {
                 transportService.sendRequest(node,
                     TransportSQLReduceHandler.Actions.START_REDUCE_JOB,
                     request,
-                    TransportRequestOptions.options(),
+                    TransportRequestOptions.options().withTimeout(
+                        new TimeValue(Constants.GROUP_BY_TIMEOUT, TimeUnit.SECONDS)
+                    ),
                     new ReduceTransportResponseHandler()
                 );
             }
@@ -527,28 +535,32 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             }
 
             transportService.sendRequest(node, transportShardAction, shardRequest,
+                TransportRequestOptions.options().withTimeout(
+                    new TimeValue(Constants.GROUP_BY_TIMEOUT, TimeUnit.SECONDS)
+                ),
                 new BaseTransportResponseHandler<SQLShardResponse>() {
-                    @Override
-                    public SQLShardResponse newInstance() {
-                        return newShardResponse();
-                    }
+                        @Override
+                        public SQLShardResponse newInstance() {
+                            return newShardResponse();
+                        }
 
-                    @Override
-                    public void handleResponse(SQLShardResponse response) {
-                        onMapperOperation(response);
+                        @Override
+                        public void handleResponse(SQLShardResponse response) {
+                            onMapperOperation(response);
 
-                    }
+                        }
 
-                    @Override
-                    public void handleException(TransportException exp) {
-                        onMapperFailure(exp);
-                    }
+                        @Override
+                        public void handleException(TransportException exp) {
+                            onMapperFailure(exp);
+                        }
 
-                    @Override
-                    public String executor() {
-                        return ThreadPool.Names.SAME;
+                        @Override
+                        public String executor() {
+                            return ThreadPool.Names.SAME;
+                        }
                     }
-                });
+            );
         }
 
 
@@ -666,7 +678,11 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             if (parsedStatement.hasGroupBy()) {
                 // create a reduce job without a shard CountDownLatch as we collect all shards
                 // at once here
-                reduceJobStatus = new SQLReduceJobStatus(parsedStatement);
+                reduceJobStatus = new SQLReduceJobStatus(
+                    parsedStatement,
+                    threadPool,
+                    ConcurrentCollections.<GroupByKey, GroupByRow>newConcurrentMap()
+                );
             } else {
                 collectResults = new ArrayList<>(shardsItsAll.size() - shardsIts.size());
             }

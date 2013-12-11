@@ -7,6 +7,8 @@ import org.cratedb.action.groupby.aggregate.count.CountAggState;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.stubs.HitchhikerMocks;
+import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -27,7 +29,13 @@ public class SQLReduceJobStatusTest {
             "select count(*) from characters group by race order by count(*) desc limit 2");
 
         // result ist from 1 shard, limit is 2; order by first column
-        SQLReduceJobStatus status = new SQLReduceJobStatus(stmt, 1);
+        SQLReduceJobStatus status = new SQLReduceJobStatus(
+            stmt, new ThreadPool(),
+            ConcurrentCollections.<GroupByKey, GroupByRow>newConcurrentMap(),
+            1,
+            null,
+            null
+        );
         List<GroupByRow> rows = new ArrayList<>();
         rows.add(new GroupByRow(new GroupByKey(new Object[]{ 1}),
                 new ArrayList<AggState>(1) {{

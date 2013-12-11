@@ -28,6 +28,7 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.assistedinject.FactoryProvider;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
+
 public class SQLModule extends AbstractModule {
 
     @Override
