@@ -23,11 +23,11 @@ public class GlobalRows extends Rows<GlobalRows> {
         for (int i = 0; i < buckets.length; i++) {
             buckets[i] = new ArrayList<>();
         }
-        this.currentBucket=0;
+        this.currentBucket = 0;
     }
 
-    private void nextBucket(){
-        if (currentBucket<buckets.length-1){
+    private void nextBucket() {
+        if (currentBucket < buckets.length - 1) {
             currentBucket++;
         } else {
             currentBucket = 0;
@@ -36,7 +36,7 @@ public class GlobalRows extends Rows<GlobalRows> {
 
     @Override
     public GroupByRow getRow() {
-        GroupByRow row =  GroupByRow.createEmptyRow(GLOBAL_KEY, stmt);
+        GroupByRow row = GroupByRow.createEmptyRow(GLOBAL_KEY, stmt);
         buckets[currentBucket].add(row);
         nextBucket();
         return row;
@@ -60,7 +60,7 @@ public class GlobalRows extends Rows<GlobalRows> {
     @Override
     public void merge(GlobalRows other) {
         // put all buckets of other in this buckets regardless how many buckets are in other
-        for(List<GroupByRow> l: other.buckets()){
+        for (List<GroupByRow> l : other.buckets()) {
             buckets[currentBucket].addAll(l);
             nextBucket();
         }
@@ -68,8 +68,8 @@ public class GlobalRows extends Rows<GlobalRows> {
 
     @Override
     public void walk(RowVisitor visitor) {
-        for (List<GroupByRow> l: buckets){
-            for (GroupByRow row: l){
+        for (List<GroupByRow> l : buckets) {
+            for (GroupByRow row : l) {
                 visitor.visit(row);
             }
         }
