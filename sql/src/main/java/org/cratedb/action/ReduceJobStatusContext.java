@@ -55,6 +55,10 @@ public class ReduceJobStatusContext {
 
         synchronized (lock) {
             SQLReduceJobStatus status = reduceJobs.get(request.contextId);
+            if (request.failed) {
+                status.countDown();
+                return;
+            }
             if (status == null) {
                 List<BytesReference> bytesStreamOutputs = unreadStreams.get(request.contextId);
                 if (bytesStreamOutputs == null) {

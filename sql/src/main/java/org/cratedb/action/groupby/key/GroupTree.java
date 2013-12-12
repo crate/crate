@@ -10,6 +10,7 @@ import org.cratedb.action.collect.Expression;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.sql.CrateException;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -72,7 +73,7 @@ public class GroupTree extends Rows<GroupTree> {
     }
 
     @SuppressWarnings("unchecked")
-    public GroupByRow getRow() {
+    public GroupByRow getRow() throws CrateException {
         ObjectObjectMap m = null;
         Object[] key = new Object[depth];
         for (int i = 0; i < depth; i++) {

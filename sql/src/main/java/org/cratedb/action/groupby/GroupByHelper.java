@@ -79,7 +79,11 @@ public class GroupByHelper {
                     extractors[colIdx] = new GroupByFieldExtractor(aggStateIdx) {
                         @Override
                         public Object getValue(GroupByRow row) {
-                            return ((BytesRef)row.aggStates.get(idx).value()).utf8ToString();
+                            BytesRef bytesRef = (BytesRef)row.aggStates.get(idx).value();
+                            if (bytesRef.length == 0) {
+                                return null;
+                            }
+                            return bytesRef.utf8ToString();
                         }
                     };
                 } else {
@@ -105,7 +109,11 @@ public class GroupByHelper {
                             extractors[colIdx] = new GroupByFieldExtractor(keyValIdx) {
                                 @Override
                                 public Object getValue(GroupByRow row) {
-                                    return ((BytesRef)row.key.get(idx)).utf8ToString();
+                                    BytesRef bytesRef = (BytesRef)row.key.get(idx);
+                                    if (bytesRef.length == 0) {
+                                        return null;
+                                    }
+                                    return bytesRef.utf8ToString();
                                 }
                             };
                         } else {

@@ -3,6 +3,8 @@ package org.cratedb.action.collect;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
+import org.cratedb.sql.CrateException;
+import org.cratedb.sql.GroupByOnArrayUnsupportedException;
 import org.elasticsearch.index.fielddata.BytesValues;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 
@@ -15,13 +17,16 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexFieldData
     }
 
     @Override
-    public BytesRef evaluate() {
-        if (values.setDocument(docId) == 0) {
-            return null;
+    public BytesRef evaluate() throws CrateException {
+        switch (values.setDocument(docId)) {
+            case 0:
+                return null;
+            case 1:
+                values.nextValue();
+                return values.copyShared();
+            default:
+                throw new GroupByOnArrayUnsupportedException(columnName());
         }
-
-        values.nextValue();
-        return values.copyShared();
     }
 
     @Override

@@ -1,6 +1,7 @@
 package org.cratedb.action.collect;
 
 import org.apache.lucene.index.AtomicReaderContext;
+import org.cratedb.sql.CrateException;
 
 /**
  * An expression which gets evaluated in the collect phase
@@ -17,6 +18,5 @@ public abstract class CollectorExpression<ReturnType> implements Expression<Retu
     public void setNextReader(AtomicReaderContext context){
     }
 
-    public abstract ReturnType evaluate();
-
+    public abstract ReturnType evaluate() throws CrateException;
 }

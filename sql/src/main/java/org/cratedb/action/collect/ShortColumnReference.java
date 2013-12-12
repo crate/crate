@@ -2,6 +2,7 @@ package org.cratedb.action.collect;
 
 import org.apache.lucene.index.AtomicReaderContext;
 import org.cratedb.DataType;
+import org.cratedb.sql.GroupByOnArrayUnsupportedException;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 import org.elasticsearch.index.fielddata.LongValues;
 
@@ -15,11 +16,14 @@ public class ShortColumnReference extends FieldCacheExpression<IndexNumericField
 
     @Override
     public Short evaluate() {
-        if (values.setDocument(docId) == 0) {
-            return null;
+        switch (values.setDocument(docId)) {
+            case 0:
+                return null;
+            case 1:
+                return ((Long)values.nextValue()).shortValue();
+            default:
+                throw new GroupByOnArrayUnsupportedException(columnName());
         }
-
-        return ((Long)values.nextValue()).shortValue();
     }
 
     @Override

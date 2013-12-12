@@ -1,6 +1,5 @@
 package org.cratedb.action.collect;
 
-import org.cratedb.DataType;
 
 public abstract class ColumnReferenceCollectorExpression<ReturnType> extends
         CollectorExpression<ReturnType> implements ColumnReferenceExpression {

@@ -2,6 +2,7 @@ package org.cratedb.action.collect;
 
 import org.apache.lucene.index.AtomicReaderContext;
 import org.cratedb.DataType;
+import org.cratedb.sql.GroupByOnArrayUnsupportedException;
 import org.elasticsearch.index.fielddata.DoubleValues;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 
@@ -15,11 +16,14 @@ public class FloatColumnReference extends FieldCacheExpression<IndexNumericField
 
     @Override
     public Float evaluate() {
-        if (values.setDocument(docId) == 0) {
-            return null;
+        switch (values.setDocument(docId)) {
+            case 0:
+                return null;
+            case 1:
+                return ((Double)values.nextValue()).floatValue();
+            default:
+                throw new GroupByOnArrayUnsupportedException(columnName());
         }
-
-        return ((Double)values.nextValue()).floatValue();
     }
 
     @Override
