@@ -111,7 +111,9 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public void testCountDistinctManySame() throws Exception {
         this.setup.groupBySetup("integer");
         execute("select race, count(distinct gender), count(*), count(distinct gender) " +
-                "from characters group by race order by count(distinct gender) desc");
+                "from characters group by race order by count(distinct gender) desc, " +
+                "count(*) desc");
+
         assertEquals(3L, response.rowCount());
 
         assertEquals("Human", response.rows()[0][0]);
@@ -134,7 +136,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public void testCountDistinctManyDifferent() throws Exception {
         this.setup.groupBySetup("integer");
         execute("select race, count(distinct gender), count(distinct age) " +
-                "from characters group by race order by count(distinct gender) desc");
+                "from characters group by race order by count(distinct gender) desc, race desc");
         assertEquals(3L, response.rowCount());
 
         assertEquals("Human", response.rows()[0][0]);
@@ -493,5 +495,14 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         assertEquals(4L, response.rows()[0][1]);
         assertEquals(2L, response.rows()[0][2]);
     }
+
+    @Test
+    public void testGlobalCountDistinct() throws Exception {
+
+        execute("select count(distinct good) from employees");
+        assertEquals(1, response.rowCount());
+        assertEquals(2L, response.rows()[0][0]);
+    }
+
 
 }
