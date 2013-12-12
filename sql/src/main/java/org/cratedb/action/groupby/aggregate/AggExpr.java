@@ -18,8 +18,10 @@ import java.io.IOException;
 
 public class AggExpr extends ColumnDescription {
 
-    public Expression expression;
     private AggStateCreator aggStateCreator;
+    private DataType returnType;
+
+    public Expression expression;
     public boolean isDistinct;
     public String functionName;
 
@@ -33,6 +35,10 @@ public class AggExpr extends ColumnDescription {
         this.isDistinct = isDistinct;
         this.expression = expression;
         createAggStateCreator();
+    }
+
+    public DataType returnType() {
+        return this.returnType;
     }
 
     /**
@@ -70,6 +76,7 @@ public class AggExpr extends ColumnDescription {
     }
 
     private void createMinAggState() {
+        returnType = expression.returnType();
         switch (expression.returnType()) {
             case STRING:
                 aggStateCreator = new AggStateCreator() {
@@ -221,6 +228,7 @@ public class AggExpr extends ColumnDescription {
     }
 
     private void createMaxAggState() {
+        returnType = expression.returnType();
         switch (expression.returnType()) {
             case STRING:
                 aggStateCreator = new AggStateCreator() {
@@ -372,6 +380,7 @@ public class AggExpr extends ColumnDescription {
     }
 
     private void createSumAggState() {
+        returnType = DataType.DOUBLE;
         aggStateCreator = new AggStateCreator() {
             @Override
             AggState create() {
@@ -381,6 +390,7 @@ public class AggExpr extends ColumnDescription {
     }
 
     private void createCountAggState() {
+        returnType = DataType.LONG;
         aggStateCreator = new AggStateCreator() {
             @Override
             AggState create() {
@@ -390,6 +400,7 @@ public class AggExpr extends ColumnDescription {
     }
 
     private void createAvgAggState() {
+        returnType = DataType.DOUBLE;
         aggStateCreator = new AggStateCreator() {
             @Override
             AggState create() {
@@ -404,6 +415,7 @@ public class AggExpr extends ColumnDescription {
      * These are defined here for performance reasons (no if checks and such)
      */
     private void createAnyAggState() {
+        returnType = expression.returnType();
         switch (expression.returnType()) {
             case STRING:
             case IP:
