@@ -11,9 +11,6 @@ public class CountAggState extends AggState<CountAggState> {
 
     public long value = 0;
 
-    // not serialized;
-    public Set<Object> seenValues;
-
     @Override
     public void readFrom(StreamInput in) throws IOException {
         value = in.readVLong();
@@ -26,14 +23,6 @@ public class CountAggState extends AggState<CountAggState> {
 
     @Override
     public void terminatePartial() {
-        if (seenValues != null) {
-            value = seenValues.size();
-        }
-    }
-
-    @Override
-    public void setSeenValuesRef(Set<Object> seenValues) {
-        this.seenValues = seenValues;
     }
 
     @Override

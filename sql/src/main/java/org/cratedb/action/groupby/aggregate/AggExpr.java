@@ -7,6 +7,7 @@ import org.cratedb.action.groupby.ParameterInfo;
 import org.cratedb.action.groupby.aggregate.any.AnyAggState;
 import org.cratedb.action.groupby.aggregate.avg.AvgAggState;
 import org.cratedb.action.groupby.aggregate.count.CountAggState;
+import org.cratedb.action.groupby.aggregate.count.CountDistinctAggState;
 import org.cratedb.action.groupby.aggregate.max.MaxAggState;
 import org.cratedb.action.groupby.aggregate.min.MinAggState;
 import org.cratedb.action.groupby.aggregate.sum.SumAggState;
@@ -54,8 +55,10 @@ public class AggExpr extends ColumnDescription {
                 break;
             case "COUNT":
             case "COUNT(*)":
-            case "COUNT_DISTINCT":
                 createCountAggState();
+                break;
+            case "COUNT_DISTINCT":
+                createCountDistinctAggState();
                 break;
             case "MAX":
                 createMaxAggState();
@@ -395,6 +398,16 @@ public class AggExpr extends ColumnDescription {
             @Override
             AggState create() {
                 return new CountAggState();
+            }
+        };
+    }
+
+    private void createCountDistinctAggState() {
+        returnType = DataType.LONG;
+        aggStateCreator = new AggStateCreator() {
+            @Override
+            AggState create() {
+                return new CountDistinctAggState();
             }
         };
     }
