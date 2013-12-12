@@ -32,10 +32,18 @@ public class SQLReduceJobResponse extends ActionResponse {
         if (resultLength == 0) {
             return;
         }
-        DataType.Streamer[] streamers = parsedStatement.getGroupKeyStreamers();
         rows = new ArrayList<>(resultLength);
-        for (int i = 0; i < resultLength; i++) {
-            rows.add(GroupByRow.readGroupByRow(parsedStatement, streamers, in));
+        if (parsedStatement.hasGroupBy()){
+            DataType.Streamer[] streamers = parsedStatement.getGroupKeyStreamers();
+            for (int i = 0; i < resultLength; i++) {
+                rows.add(GroupByRow.readGroupByRow(parsedStatement, streamers, in));
+            }
+        } else {
+            for (int i = 0; i < resultLength; i++) {
+                GroupByRow row = new GroupByRow();
+                row.readStates(in, parsedStatement);
+                rows.add(row);
+            }
         }
     }
 
@@ -46,10 +54,17 @@ public class SQLReduceJobResponse extends ActionResponse {
             out.writeVInt(0);
             return;
         }
-        DataType.Streamer[] streamers = parsedStatement.getGroupKeyStreamers();
         out.writeVInt(rows.size());
-        for (GroupByRow row : rows) {
-            row.writeTo(streamers, out);
+
+        if (parsedStatement.hasGroupBy()){
+            DataType.Streamer[] streamers = parsedStatement.getGroupKeyStreamers();
+            for (GroupByRow row : rows) {
+                row.writeTo(streamers, parsedStatement, out);
+            }
+        } else {
+            for (GroupByRow row : rows) {
+                row.writeStates(out, parsedStatement);
+            }
         }
     }
 

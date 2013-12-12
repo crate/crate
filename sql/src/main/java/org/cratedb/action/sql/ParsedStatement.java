@@ -350,20 +350,32 @@ public class ParsedStatement {
         if (seenIdxMap == null) {
             seenIdxMap = new ArrayList<>();
             List<Expression> distinctColumns = new ArrayList<>();
-            int seenIdx = -1;
             for (AggExpr expr : aggregateExpressions) {
                 if (expr.isDistinct) {
                     if (!distinctColumns.contains(expr.expression)) {
                         distinctColumns.add(expr.expression);
-
                     }
-                    seenIdx = distinctColumns.indexOf(expr.expression);
-                    seenIdxMap.add(seenIdx);
+                    seenIdxMap.add(distinctColumns.indexOf(expr.expression));
                 }
             }
         }
         return seenIdxMap;
     }
+
+    public DataType.Streamer[] getSeenValueStreamers() {
+        Set<Expression> seen= new HashSet<>();
+        ArrayList<DataType.Streamer> streamers = new ArrayList<>();
+        for (AggExpr expr : aggregateExpressions) {
+            if (expr.isDistinct) {
+                if (!seen.contains(expr.expression)){
+                    streamers.add(expr.expression.returnType().streamer());
+                    seen.add(expr.expression);
+                }
+            }
+        }
+        return streamers.toArray(new DataType.Streamer[streamers.size()]);
+    }
+
 
     public DataType.Streamer[] getGroupKeyStreamers() {
         DataType.Streamer[] keyStreamers = new DataType.Streamer[

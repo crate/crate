@@ -130,7 +130,7 @@ public class GroupTree extends Rows<GroupTree> {
                 public void apply(Object key, Object value) {
                     try {
                         keyStreamer.writeTo(out, key);
-                        ((GroupByRow)value).writeStates(out);
+                        ((GroupByRow)value).writeStates(out, stmt);
                     } catch (IOException ex) {
                         lastException.set(ex);
                     }

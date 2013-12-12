@@ -53,7 +53,7 @@ public class GroupByRow {
 
     public static GroupByRow createEmptyRow(GroupByKey key, ParsedStatement stmt) {
         List<Set<Object>> seenValuesList = new ArrayList<>(stmt.seenIdxMap().size());
-        for (int i = 0; i < seenValuesList.size(); i++) {
+        for (int i = 0; i < stmt.seenIdxMap().size(); i++) {
             // TODO: we should use specific sets here for performance
             seenValuesList.add(new HashSet<>());
         }
@@ -96,12 +96,12 @@ public class GroupByRow {
     public synchronized void merge(GroupByRow otherRow) {
         // merge is done before-hand so that the aggStates don't have to in their reduce method.
         // this avoids doing the merge twice if aggStates share the seenValues.
-        int idx = 0;
-        for (Set<Object> seenValue : seenValuesList) {
-            seenValue.addAll(otherRow.seenValuesList.get(idx));
-            idx++;
+        if (seenValuesList != null && seenValuesList.size()>0){
+            int idx = 0;
+            for (Set<Object> seenValue : seenValuesList) {
+                seenValue.addAll(otherRow.seenValuesList.get(idx++));
+            }
         }
-
         for (int i = 0; i < aggStates.size(); i++) {
             aggStates.get(i).reduce(otherRow.aggStates.get(i));
         }
@@ -124,17 +124,22 @@ public class GroupByRow {
     public void readFrom(StreamInput in, GroupByKey key, ParsedStatement stmt) throws
             IOException {
         this.key = key;
-        Set<Object> values;
-        int valuesSize;
-        int seenValuesSize = in.readVInt();
-        seenValuesList = new ArrayList<>(seenValuesSize);
-        for (int i = 0; i < seenValuesSize; i++) {
-            valuesSize = in.readVInt();
-            values = new HashSet<>(valuesSize);
-            for (int j = 0; j < valuesSize; j++) {
-                values.add(in.readGenericValue());
+        readStates(in, stmt);
+    }
+
+    public void readStates(StreamInput in, ParsedStatement stmt) throws IOException {
+
+        DataType.Streamer[] streamers = stmt.getSeenValueStreamers();
+        if (streamers != null && streamers.length>0){
+            seenValuesList = new ArrayList<>(streamers.length);
+            for (DataType.Streamer streamer: streamers){
+                int length = in.readVInt();
+                Set<Object> seenValue = new HashSet<>(length);
+                for (int i = 0; i < length; i++) {
+                    seenValue.add(streamer.readFrom(in));
+                }
+                seenValuesList.add(seenValue);
             }
-            seenValuesList.add(values);
         }
 
         aggStates = new ArrayList<>(stmt.aggregateExpressions().size());
@@ -145,30 +150,37 @@ public class GroupByRow {
             aggStates.add(i, aggExpr.createAggState());
             aggStates.get(i).readFrom(in);
             if (aggExpr.isDistinct) {
-                aggStates.get(i).setSeenValuesRef(seenValuesList.get(stmt.seenIdxMap().get
-                        (seenIdxIndex++)));
+                aggStates.get(i).setSeenValuesRef(seenValuesList.get(stmt.seenIdxMap().get(seenIdxIndex++)));
             }
         }
     }
 
 
-    public void writeTo(DataType.Streamer[] keyStreamers, StreamOutput out) throws IOException {
+    public void writeTo(DataType.Streamer[] keyStreamers, ParsedStatement stmt, StreamOutput out)
+            throws IOException {
         for (int i = 0; i < keyStreamers.length; i++) {
             keyStreamers[i].writeTo(out, key.get(i));
         }
-        writeStates(out);
+        writeStates(out, stmt);
     }
 
-    public void writeStates(StreamOutput out) throws IOException {
+    public void writeStates(StreamOutput out, ParsedStatement stmt) throws IOException {
 
-        out.writeVInt(seenValuesList.size());
-        for (Set<Object> seenValue : seenValuesList) {
-            out.writeVInt(seenValue.size());
-            for (Object o : seenValue) {
-                out.writeGenericValue(o);
+        DataType.Streamer[] streamers = stmt.getSeenValueStreamers();
+        if (streamers != null && streamers.length>0){
+            int idx = 0;
+            for (DataType.Streamer streamer: stmt.getSeenValueStreamers()){
+                Set<Object> seenValue = seenValuesList.get(idx++);
+                if (seenValue==null ||seenValue.size()==0){
+                    out.writeVInt(0);
+                    continue;
+                }
+                out.writeVInt(seenValue.size());
+                for (Object v: seenValue){
+                    streamer.writeTo(out, v);
+                }
             }
         }
-
 
         for (AggState aggState : aggStates) {
             aggState.writeTo(out);

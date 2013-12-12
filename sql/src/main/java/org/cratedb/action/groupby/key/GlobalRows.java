@@ -53,7 +53,7 @@ public class GlobalRows extends Rows<GlobalRows> {
         }
         out.writeVInt(bucket.size());
         for (GroupByRow row: bucket){
-            row.writeStates(out);
+            row.writeStates(out, stmt);
         }
     }
 
@@ -69,6 +69,7 @@ public class GlobalRows extends Rows<GlobalRows> {
             row.readFrom(in, null, stmt);
             bucket.add(row);
         }
+        buckets[idx] = bucket;
     }
 
     public List<GroupByRow>[] buckets() {
