@@ -32,12 +32,18 @@ after the put and may close the connection if appropriate::
     >>> put(blob_url(big_digest), data=big_data)
     HTTP Response 201
 
-    >>> big_data = ''
 
-Uploading the same file again::
+Uploading the same files again:
+
+Big file to test chunked upload with conflict::
+
+    >>> put(blob_url(big_digest), data=big_data)
+    HTTP Error 409: Conflict
 
     >>> put(blob_url(small_digest), data=small_data)
     HTTP Error 409: Conflict
+
+    >>> big_data = ''
 
 Uploading a file to an index with disabled blob support::
 

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fixed an error that occured if a blob is uploaded using a client that chunks
+   the request but doesn't support 100-Continue.
+
 2013/12/11 0.19.10
 ==================
 
