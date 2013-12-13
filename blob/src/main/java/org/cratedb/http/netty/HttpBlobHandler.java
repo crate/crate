@@ -190,7 +190,11 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
         if (ex instanceof ClosedChannelException) {
             logger.warn("channel closed: {}", ex.toString());
             return;
+        } else if (ex instanceof IOException) {
+            logger.warn(ex.getMessage());
+            return;
         }
+
         HttpResponseStatus status;
         String body = ex.toString();
         if (ex instanceof DigestMismatchException) {
