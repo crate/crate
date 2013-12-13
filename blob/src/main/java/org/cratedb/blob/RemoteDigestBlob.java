@@ -7,6 +7,7 @@ import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.jboss.netty.buffer.ChannelBuffer;
+import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 
 import java.util.UUID;
 
@@ -90,7 +91,7 @@ public class RemoteDigestBlob {
     }
 
     private void start(ChannelBuffer buffer, boolean last) {
-        logger.info("start");
+        logger.trace("start blob upload");
         assert (transferId == null);
         StartBlobRequest request = new StartBlobRequest(
                 index,
@@ -99,8 +100,6 @@ public class RemoteDigestBlob {
                 last
         );
         size += buffer.readableBytes();
-        // TODO: set a timeout
-        // Note: we do a sync call here since we have to check the digest anyways
         startResponse = client.execute(StartBlobAction.INSTANCE, request).actionGet();
         transferId = request.transferId();
         status = startResponse.status();
@@ -121,16 +120,20 @@ public class RemoteDigestBlob {
         status = response.status();
     }
 
-    public void addContent(ChannelBuffer buffer, boolean last) {
-        //logger.info("addContent {} {}", buffer.readableBytes(), isLast);
+    public Status addContent(ChannelBuffer buffer, boolean last) {
         if (startResponse == null) {
             // this is the first call to addContent
             start(buffer, last);
+        } else if (status == Status.EXISTS) {
+            // client probably doesn't support 100-continue and is sending chunked requests
+            // need to ignore the content.
         } else if (status != Status.PARTIAL){
             throw new IllegalStateException("Expected Status.PARTIAL for chunk but got: " + status);
         } else {
             chunk(buffer, last);
         }
+
+        return status;
     }
 
     public long size() {

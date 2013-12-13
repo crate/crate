@@ -131,7 +131,6 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
             } else {
                 simpleResponse(HttpResponseStatus.METHOD_NOT_ALLOWED, null);
                 reset();
-                return;
             }
         } else if (msg instanceof HttpChunk) {
             HttpChunk chunk = (HttpChunk) msg;
@@ -140,6 +139,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
                 ctx.sendUpstream(e);
                 return;
             }
+
             // write chunk to file
             writeToFile(chunk.getContent(), chunk.isLast(), false);
 
@@ -153,7 +153,6 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
     }
 
     private void reset() {
-        digestBlob = null;
         currentMessage = null;
     }
 
@@ -181,7 +180,6 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
             HttpHeaders.setContentLength(response, 0);
         }
         reset();
-        ChannelFuture cf = ctx.getChannel().write(response);
         ctx.getChannel().write(response).addListener(ChannelFutureListener.CLOSE);
     }
 
@@ -369,46 +367,36 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
             throw new IllegalStateException("digestBlob is null in writeToFile");
         }
 
-        // we skip adding empty content to prevent an emtpy remote if we cannot abort the request
-        if (input.readableBytes() > 0 || last || continueExpected) {
-            digestBlob.addContent(input, last);
-        } else {
-            logger.info("Skipping empty content addition status:{} size:{}", digestBlob.size(), digestBlob.status());
-        }
-
         HttpResponseStatus exitStatus = null;
-        if (digestBlob.status() != null) {
-            switch (digestBlob.status()) {
-                case FAILED:
-                    exitStatus = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-                    break;
-                case FULL:
-                    exitStatus = HttpResponseStatus.CREATED;
-                    break;
-                case MISMATCH:
-                    exitStatus = HttpResponseStatus.BAD_REQUEST;
-                    break;
-                case EXISTS:
-                    exitStatus = HttpResponseStatus.CONFLICT;
-                    break;
-            }
+        RemoteDigestBlob.Status status = digestBlob.addContent(input, last);
+        switch (status) {
+            case FULL:
+                exitStatus = HttpResponseStatus.CREATED;
+                break;
+            case PARTIAL:
+                // tell the client to continue
+                if (continueExpected) {
+                    write(ctx, succeededFuture(ctx.getChannel()), CONTINUE.duplicate());
+                }
+                return;
+            case MISMATCH:
+                exitStatus = HttpResponseStatus.BAD_REQUEST;
+                break;
+            case EXISTS:
+                exitStatus = HttpResponseStatus.CONFLICT;
+                break;
+            case FAILED:
+                exitStatus = HttpResponseStatus.INTERNAL_SERVER_ERROR;
+                break;
         }
 
-        if (exitStatus == null) {
-            // tell the client to continue
-            if (continueExpected) {
-                write(ctx, succeededFuture(ctx.getChannel()),
-                        CONTINUE.duplicate());
-            }
-        } else {
-            logger.info("writeToFile exit status http:{} blob: {}", exitStatus, digestBlob.status());
-            digestBlob = null;
-            HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, exitStatus);
-            HttpHeaders.setContentLength(response, 0);
-            ChannelFuture cf = ctx.getChannel().write(response);
-            if (currentMessage == null || !HttpHeaders.isKeepAlive(currentMessage)) {
-                cf.addListener(ChannelFutureListener.CLOSE);
-            }
+        assert exitStatus != null;
+        logger.trace("writeToFile exit status http:{} blob: {}", exitStatus, status);
+        HttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, exitStatus);
+        HttpHeaders.setContentLength(response, 0);
+        ChannelFuture cf = ctx.getChannel().write(response);
+        if (currentMessage == null || !HttpHeaders.isKeepAlive(currentMessage)) {
+            cf.addListener(ChannelFutureListener.CLOSE);
         }
     }
 
