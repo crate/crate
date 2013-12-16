@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/12/16 0.19.12
+==================
+
  - the `order by` clause now works on both alias and non-alias as long as the
    columns/alias are unique within the statement.
 
