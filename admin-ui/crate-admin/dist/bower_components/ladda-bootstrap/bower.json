@@ -1,0 +1,19 @@
+{
+    "name": "ladda-bootstrap",
+    "description": "Buttons with built-in loading indicators, effectively bridging the gap between action and feedback",
+    "version": "0.8.0",
+    "license": "MIT",
+    "main": [
+        "dist/ladda-themeless.css",
+        "dist/ladda.js"
+    ],
+    "dependencies": {
+        "bootstrap": ">=3.0.0",
+        "spin.js": "~1.3.2"
+    },
+    "readme": "README.md",
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/msurguy/ladda-bootstrap.git"
+    }
+}

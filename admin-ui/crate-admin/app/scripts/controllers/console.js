@@ -15,9 +15,13 @@ angular.module('console', ['sql'])
     $scope.error = {};
     $scope.error.hide = true;
 
+    var loadingIndicator = Ladda.create(document.querySelector('button[type=submit]'));
+
     $scope.execute = function() {
+      loadingIndicator.start();
       SQLQuery.execute($scope.statement).
         success(function(sqlQuery) {
+          loadingIndicator.stop();
           $scope.error.hide = true;
           $scope.renderTable = true;
 
@@ -29,6 +33,7 @@ angular.module('console', ['sql'])
           $scope.rows = sqlQuery.rows;
         }).
         error(function(sqlQuery) {
+          loadingIndicator.stop();
           $scope.error.hide = false;
           if (sqlQuery) {
             $scope.error.message = sqlQuery.error.message;
@@ -37,4 +42,5 @@ angular.module('console', ['sql'])
           }
         });
     };
+
   });
