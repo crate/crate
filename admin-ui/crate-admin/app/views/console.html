@@ -36,7 +36,7 @@
           </thead>
           <tbody>
             <tr ng-repeat="row in rows">
-              <td ng-repeat="column in row">{{ column }}</td>
+              <td ng-repeat="column in row track by $index">{{ column }}</td>
             </tr>
           </tbody>
         </table>
