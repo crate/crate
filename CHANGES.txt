@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fix COUNT(*) requests on "virtual" tables like ``information_schema`` and ``stats.shards``
+
 2013/12/13 0.19.11
 ==================
 

@@ -561,6 +561,16 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testGlobalCount() throws Exception {
+        execUsingClient("create table t1 (id integer, col1 string) clustered into 10 shards replicas 14");
+        execUsingClient("create table t2 (id integer, col1 string) clustered into 5 shards replicas 7");
+        execUsingClient("create table t3 (id integer, col1 string) clustered into 3 shards replicas 2");
+        execUsingClient("select count(*) from information_schema.tables");
+        assertEquals(1, response.rowCount());
+        assertEquals(3L, response.rows()[0][0]);
+    }
+
+    @Test
     public void testGlobalCountDistinct() throws Exception {
         execUsingClient("select count(distinct routine_type) from information_schema.routines order by count(distinct routine_type)");
         assertEquals(1, response.rowCount());
