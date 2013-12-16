@@ -1,7 +1,9 @@
 package org.cratedb.action.parser.visitors;
 
+import com.google.common.base.Optional;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
+import org.cratedb.DataType;
 import org.cratedb.action.collect.Expression;
 import org.cratedb.action.collect.LiteralValueExpression;
 import org.cratedb.action.groupby.aggregate.AggExpr;
@@ -16,6 +18,7 @@ import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.OrderByColumnIdx;
 import org.cratedb.action.sql.OrderByColumnName;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.index.ColumnDefinition;
 import org.cratedb.lucene.fields.LuceneField;
 import org.cratedb.sql.GroupByOnArrayUnsupportedException;
 import org.cratedb.sql.OrderByAmbiguousException;
@@ -300,6 +303,9 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 for (String name : cols) {
                     stmt.addOutputField(name, name);
                     fields.add(name);
+                    stmt.resultColumnList().add(
+                        new ColumnReferenceDescription(tableContext.getColumnDefinition(name).get())
+                    );
                 }
                 continue;
             }
@@ -331,7 +337,13 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 fields.add(columnName);
             }
 
-            stmt.resultColumnList().add(new ColumnReferenceDescription(columnName));
+            Optional<ColumnDefinition> columnDefinition = tableContext.getColumnDefinition(columnName);
+            if (columnDefinition.isPresent()) {
+                stmt.resultColumnList().add(new ColumnReferenceDescription(columnDefinition.get()));
+            } else {
+                stmt.resultColumnList().add(new ColumnReferenceDescription(columnName, DataType.CRATY));
+            }
+
             stmt.addOutputField(columnAlias, columnName);
         }
 
@@ -352,8 +364,6 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 throw new SQLParseException("Only aggregate expressions allowed here");
             }
         }
-
-
     }
 
     /**

@@ -1,5 +1,6 @@
 package org.cratedb.information_schema;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import org.cratedb.DataType;
 import org.cratedb.action.collect.*;
@@ -81,8 +82,8 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
     }
 
     @Override
-    public ColumnDefinition getColumnDefinition(String name) {
-        return columnDefinitions.get(name);
+    public Optional<ColumnDefinition> getColumnDefinition(String name) {
+        return Optional.fromNullable(columnDefinitions.get(name));
     }
 
     @Override
@@ -107,12 +108,11 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
             return null;
         }
 
-        ColumnDefinition columnDefinition = getColumnDefinition(node.getColumnName());
-        if (columnDefinition == null) {
-            throw new SQLParseException(String.format("Unknown column '%s'",
-                    node.getColumnName()));
+        Optional<ColumnDefinition> columnDefinition = getColumnDefinition(node.getColumnName());
+        if (!columnDefinition.isPresent()) {
+            throw new SQLParseException(String.format("Unknown column '%s'", node.getColumnName()));
         }
-        return FieldLookupExpression.create(columnDefinition);
+        return FieldLookupExpression.create(columnDefinition.get());
    }
 
 }

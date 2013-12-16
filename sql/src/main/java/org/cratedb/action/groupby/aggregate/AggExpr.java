@@ -38,6 +38,7 @@ public class AggExpr extends ColumnDescription {
         createAggStateCreator();
     }
 
+    @Override
     public DataType returnType() {
         return this.returnType;
     }

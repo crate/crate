@@ -1,5 +1,6 @@
 package org.cratedb.module.sql.test;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import org.cratedb.DataType;
 import org.cratedb.action.parser.ESRequestBuilder;
@@ -59,8 +60,7 @@ public class QueryPlannerTest {
         Settings settings = ImmutableSettings.builder().put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, true).build();
         QueryPlanner queryPlanner = new QueryPlanner(settings);
         when(tec.getColumnDefinition("phrase")).thenReturn(
-                new ColumnDefinition("phrases", "phrase", DataType.STRING, "plain", 0, false,
-                        false));
+            Optional.of(new ColumnDefinition("phrases", "phrase", DataType.STRING, "plain", 0, false, false)));
         when(nec.queryPlanner()).thenReturn(queryPlanner);
         when(nec.tableContext(null, "phrases")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("pk_col", "phrase"));

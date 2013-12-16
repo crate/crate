@@ -1,5 +1,6 @@
 package org.cratedb.action.sql;
 
+import com.google.common.base.Optional;
 import org.cratedb.action.collect.*;
 import org.cratedb.index.ColumnDefinition;
 import org.cratedb.index.IndexMetaDataExtractor;
@@ -56,8 +57,8 @@ public class TableExecutionContext implements ITableExecutionContext {
             && columnDefinitions.get(columnName).isMultiValued();
     }
 
-    public ColumnDefinition getColumnDefinition(String columnName) {
-        return columnDefinitions.get(columnName);
+    public Optional<ColumnDefinition> getColumnDefinition(String columnName) {
+        return Optional.fromNullable(columnDefinitions.get(columnName));
     }
 
     /**
@@ -124,7 +125,7 @@ public class TableExecutionContext implements ITableExecutionContext {
     @Override
     @SuppressWarnings("unchecked")
     public boolean hasCol(String colName) {
-        return columnDefinitions.get(colName) != null;
+        return getColumnDefinition(colName).isPresent();
     }
 
     /**
@@ -157,10 +158,11 @@ public class TableExecutionContext implements ITableExecutionContext {
             return null;
         }
 
-        ColumnDefinition columnDefinition = getColumnDefinition(node.getColumnName());
-        if (columnDefinition == null) {
+        Optional<ColumnDefinition> optColumnDefinition = getColumnDefinition(node.getColumnName());
+        if (!optColumnDefinition.isPresent()) {
             throw new SQLParseException(String.format("Unknown column '%s'", node.getColumnName()));
         }
+        ColumnDefinition columnDefinition = optColumnDefinition.get();
         switch (columnDefinition.dataType) {
             case STRING:
                 return new BytesRefColumnReference(columnDefinition.columnName);

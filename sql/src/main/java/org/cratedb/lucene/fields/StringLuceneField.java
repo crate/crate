@@ -1,20 +1,20 @@
 package org.cratedb.lucene.fields;
 
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.*;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.search.MultiTermQueryWrapperFilter;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TermRangeFilter;
 import org.apache.lucene.search.TermRangeQuery;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.index.ColumnDefinition;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.io.IOException;
 
-public class StringLuceneField extends LuceneField<String> {
+public class StringLuceneField extends LuceneField<BytesRef> {
 
     public StringLuceneField(String name) {
         this(name, false);
@@ -51,16 +51,16 @@ public class StringLuceneField extends LuceneField<String> {
 
     @Override
     public Object mappedValue(Object value) {
-        return (String)value;
+        return (BytesRef)value;
     }
 
-    public StringField field(String value) {
-        value = value == null ? "NULL" : value;
-        return new StringField(name, value, Field.Store.YES);
+    @Override
+    public StringField field(BytesRef value) {
+        return new StringField(name, value.utf8ToString(), Field.Store.YES);
     }
 
-    public TokenStream tokenStream(String value) throws IOException {
+    @Override
+    public TokenStream tokenStream(BytesRef value) throws IOException {
         return field(value).tokenStream(analyzer);
     }
-
 }

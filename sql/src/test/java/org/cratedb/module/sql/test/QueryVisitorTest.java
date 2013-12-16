@@ -1,5 +1,6 @@
 package org.cratedb.module.sql.test;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import org.cratedb.DataType;
 import org.cratedb.action.collect.BytesRefColumnReference;
@@ -67,23 +68,23 @@ public class QueryVisitorTest {
         when(nec.availableAggFunctions()).thenReturn(HitchhikerMocks.aggFunctionMap);
         when(nec.tableContext(null, "locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("a", "b"));
-        when(tec.getColumnDefinition(anyString())).thenReturn(colDef);
+        when(tec.getColumnDefinition(anyString())).thenReturn(Optional.of(colDef));
         when(tec.getColumnDefinition("kind.x")).thenReturn(
-                new ColumnDefinition("locations", "kind.x", DataType.STRING, "plain", 0, false,
-                        false));
+                Optional.of(new ColumnDefinition("locations", "kind.x", DataType.STRING, "plain", 0, false,
+                        false)));
         when(tec.getColumnDefinition("nothing")).thenReturn(null);
         when(tec.getColumnDefinition("bool")).thenReturn(
-                new ColumnDefinition("locations", "bool", DataType.BOOLEAN, "plain", 1, false, false)
-        );
+                Optional.of(new ColumnDefinition("locations", "bool", DataType.BOOLEAN, "plain", 1, false, false)
+        ));
         when(tec.getColumnDefinition("numeric_field")).thenReturn(
-                new ColumnDefinition("locations", "numeric_field", DataType.DOUBLE, "plain", 2, false, false)
-        );
+                Optional.of(new ColumnDefinition("locations", "numeric_field", DataType.DOUBLE, "plain", 2, false, false)
+        ));
         when(tec.getColumnDefinition("craty_field")).thenReturn(
-                new ColumnDefinition("locations", "craty_field", DataType.CRATY, "plain", 3, false, false)
-        );
+                Optional.of(new ColumnDefinition("locations", "craty_field", DataType.CRATY, "plain", 3, false, false)
+        ));
         when(tec.getColumnDefinition("age")).thenReturn(
-                new ColumnDefinition("locations", "age", DataType.INTEGER, null, 1, false, false)
-        );
+                Optional.of(new ColumnDefinition("locations", "age", DataType.INTEGER, null, 1, false, false)
+        ));
 
         when(tec.hasCol(anyString())).thenReturn(true);
 
@@ -905,7 +906,7 @@ public class QueryVisitorTest {
         assertEquals("kind.x",
                 ((BytesRefColumnReference)stmt.groupByExpressions().get(0)).columnName());
 
-        assertTrue(stmt.resultColumnList().contains(new ColumnReferenceDescription("kind.x")));
+        assertTrue(stmt.resultColumnList().contains(new ColumnReferenceDescription("kind.x", DataType.STRING)));
     }
 
     @Test

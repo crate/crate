@@ -110,8 +110,11 @@ public class ShardStatsTable implements StatsTable {
                 case Columns.PRIMARY:
                     return !unassigned ? new Boolean(shard.routingEntry().primary()) : false;
                 case Columns.RELOCATING_NODE:
-                    return !unassigned ? new BytesRef(shard.routingEntry().relocatingNodeId()) :
-                            null;
+                    String s = shard.routingEntry().relocatingNodeId();
+                    if (!unassigned && s != null) {
+                        return new BytesRef(s);
+                    }
+                    return null;
                 default:
                     return null;
             }

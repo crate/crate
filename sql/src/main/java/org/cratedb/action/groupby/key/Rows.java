@@ -21,7 +21,7 @@ public abstract class Rows<Other extends Rows> {
             CacheRecycler cacheRecycler, StreamInput in) throws IOException {
         // note that this reads only into a single bucket
         Rows rows;
-        if (stmt.isGlobalAggregate()){
+        if (stmt.isGlobalAggregate() && !stmt.isStatsQuery()){
             rows = new GlobalRows(1, stmt);
         } else {
             rows = new GroupTree(1, stmt, cacheRecycler);

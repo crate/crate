@@ -138,8 +138,8 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         return shardRequest;
     }
 
-    protected SQLShardResponse newShardResponse() {
-        return new SQLShardResponse();
+    protected SQLShardResponse newShardResponse(ParsedStatement parsedStatement) {
+        return new SQLShardResponse(parsedStatement);
     }
 
     protected SQLShardResponse shardOperation(SQLShardRequest request) throws ElasticSearchException {
@@ -253,7 +253,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 );
             }
 
-            SQLShardResponse sqlShardResponse = newShardResponse();
+            SQLShardResponse sqlShardResponse = new SQLShardResponse(stmt);
             sqlShardResponse.results = collectResult;
             return sqlShardResponse;
         }
@@ -536,7 +536,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 new BaseTransportResponseHandler<SQLShardResponse>() {
                         @Override
                         public SQLShardResponse newInstance() {
-                            return newShardResponse();
+                            return newShardResponse(parsedStatement);
                         }
 
                         @Override

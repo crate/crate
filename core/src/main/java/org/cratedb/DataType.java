@@ -99,15 +99,15 @@ public enum DataType {
             out.writeLong((Long) v);
         }
     }),
-    CRATY("craty", new Streamer<Map<String, Object>>() {
+    CRATY("craty", new Streamer<Object>() {
         @Override
-        public Map<String, Object> readFrom(StreamInput in) throws IOException {
-            return in.readMap();
+        public Object readFrom(StreamInput in) throws IOException {
+            return in.readGenericValue();
         }
 
         @Override
         public void writeTo(StreamOutput out, Object v) throws IOException {
-            out.writeMap((Map<String, Object>) v);
+            out.writeGenericValue(v);
         }
     }),
     IP("ip", Streamer.BYTES_REF);
@@ -151,7 +151,6 @@ public enum DataType {
                 out.writeBytesRef((BytesRef) v);
             }
         };
-
     }
 
 

@@ -54,13 +54,15 @@ public class SQLReduceJobStatus extends PlainListenableActionFuture<SQLReduceJob
 
     public Collection<GroupByRow> terminate(){
         final List<GroupByRow> rowList = new ArrayList<>();
-        reducedRows.walk(new Rows.RowVisitor() {
-            @Override
-            public void visit(GroupByRow row) {
-                row.terminatePartial();
-                rowList.add(row);
-            }
-        });
+        if (reducedRows != null) {
+            reducedRows.walk(new Rows.RowVisitor() {
+                @Override
+                public void visit(GroupByRow row) {
+                    row.terminatePartial();
+                    rowList.add(row);
+                }
+            });
+        }
         return GroupByHelper.trimRows(rowList, comparator, parsedStatement.totalLimit());
     }
 

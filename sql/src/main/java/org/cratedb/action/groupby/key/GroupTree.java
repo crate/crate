@@ -7,6 +7,7 @@ import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.action.collect.Expression;
+import org.cratedb.action.collect.LiteralValueExpression;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.sql.ParsedStatement;
@@ -16,6 +17,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -45,14 +47,25 @@ public class GroupTree extends Rows<GroupTree> {
                         return cacheRecycler.<Long, Object>hashMap(-1).v();
                     }
                 };
+            default:
+                return new MapFactory<Object, Object>() {
+
+                    @Override
+                    public ObjectObjectMap<Object, Object> create() {
+                        return cacheRecycler.hashMap(-1).v();
+                    }
+                };
         }
-        return null;
     }
 
     public GroupTree(int numBuckets, ParsedStatement stmt, CacheRecycler cacheRecycler) {
         this.stmt = stmt;
         this.cacheRecycler = cacheRecycler;
-        expressions = stmt.groupByExpressions();
+        if (stmt.groupByExpressions() == null) {
+            expressions = new ArrayList<Expression>() {{ add(new LiteralValueExpression(1)); }};
+        } else {
+            expressions = stmt.groupByExpressions();
+        }
         depth = expressions.size();
         assert (depth > 0);
         mapFactories = new MapFactory[depth];
