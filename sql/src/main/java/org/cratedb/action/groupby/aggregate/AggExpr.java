@@ -406,7 +406,7 @@ public class AggExpr extends ColumnDescription {
             return String.format("%s(%s%s)",
                     functionName.split("_")[0],
                     (isDistinct ? "DISTINCT " : ""),
-                    parameterInfo.toString());
+                    parameterInfo.toOutputString());
         } else {
             return functionName;
         }
