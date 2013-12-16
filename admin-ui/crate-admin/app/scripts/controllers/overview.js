@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('overview', ['stats'])
-  .controller('OverviewController', [ '$scope', '$log', 'ClusterState', function ($scope, $log, ClusterState) {
+  .controller('OverviewController', function ($scope, $log, ClusterState) {
     $scope.$watch( function () { return ClusterState.data; }, function (data) {
       $scope.cluster_state = data.status;
       $scope.cluster_color_label = data.color_label;
@@ -13,4 +13,4 @@ angular.module('overview', ['stats'])
       $scope.records_unavailable = 0;
     }, true);
 
-  }]);
+  });

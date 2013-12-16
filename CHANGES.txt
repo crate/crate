@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - admin-ui: resolve cluster health state using SQL now
+   also display empty values at status-bar if cluster is not reachable/disconnected
+
  - allow nested columns in aggregate functions
 
 2013/12/16 0.19.12
