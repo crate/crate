@@ -30,7 +30,6 @@ public class ParsedStatement {
     private int nodeType;
 
     private Map<String, Object> updateDoc;
-    private boolean countRequest;
 
     public boolean versionSysColumnSelected = false;
 
@@ -98,6 +97,15 @@ public class ParsedStatement {
         return schemaName() != null && schemaName().equalsIgnoreCase("stats");
     }
 
+    /**
+     * returns true if this statement is executed on a virtual table
+     * that is not backed by an elasticsearch index like
+     * stats and information_schema tables
+     */
+    public boolean hasVirtualTable() {
+        return isStatsQuery() || isInformationSchemaQuery();
+    }
+
     public static enum ActionType {
         SEARCH_ACTION,
         INSERT_ACTION,
@@ -129,6 +137,8 @@ public class ParsedStatement {
             return aggregateExpressions;
         }
     }
+
+    public boolean hasCountStarAggregate = false;
     public boolean hasStoppableAggregate = false; // true if any aggregate is able to terminate collection earlier
     public boolean hasDistinctAggregate = false;
 
@@ -301,12 +311,19 @@ public class ParsedStatement {
         this.updateDoc = updateDoc;
     }
 
-    public void countRequest(boolean countRequest) {
-        this.countRequest = countRequest;
+    public void hasCountStarAggregate(boolean hasCountStarAggregate) {
+        this.hasCountStarAggregate = hasCountStarAggregate;
     }
 
+    /**
+     * returns true if this Statement can be executed by an ES CountRequest,
+     * if it hast only one count star aggregate and is no group by query
+     *
+     * only works on "normal" tables.
+     *
+     */
     public boolean countRequest() {
-        return !hasGroupBy() && countRequest && aggregateExpressions().size() == 1;
+        return !hasVirtualTable() && !hasGroupBy() && hasCountStarAggregate && aggregateExpressions().size() == 1;
     }
 
     public boolean hasGroupBy() {

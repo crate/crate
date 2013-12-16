@@ -400,7 +400,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
         if (aggExpr != null) {
             if (aggExpr.functionName.startsWith(CountStarAggFunction.NAME)) {
-                stmt.countRequest(true);
+                stmt.hasCountStarAggregate(true);
             }
             stmt.resultColumnList.add(aggExpr);
             stmt.aggregateExpressions.add(aggExpr);
@@ -525,8 +525,8 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
         BooleanQuery parentQuery = queryStack.peek();
         parentQuery.add(
-            query,
-            isOrNode(parentNode) ? BooleanClause.Occur.SHOULD : BooleanClause.Occur.MUST
+                query,
+                isOrNode(parentNode) ? BooleanClause.Occur.SHOULD : BooleanClause.Occur.MUST
         );
     }
 
