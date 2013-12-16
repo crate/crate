@@ -1,19 +1,16 @@
 <div ng-controller="StatusBarController">
   <ul class="nav navbar-nav navbar-right navbar-user">
     <li>
-      <a href="#">Cluster:
-        <span class="label label-cluster">{{cluster_name}}</span>
-      </a>
+      Cluster: <span class="label label-cluster">{{cluster_name}}</span>
     </li>
     <li>
-      <a href="#">Health: <span class="label {{cluster_color_label}}">{{cluster_state}}</span></a>
+      Health: <span class="label {{cluster_color_label}}">{{cluster_state}}</span>
     </li>
     <li>
-      <a href="#">Load:
-        <span class="label label-load1">{{load1}}</span>
-        <span class="label label-load5">{{load5}}</span>
-        <span class="label label-load15">{{load15}}</span>
-      </a>
+      Load:
+      <span class="label label-load1">{{load1}}</span>/
+      <span class="label label-load5">{{load5}}</span>/
+      <span class="label label-load15">{{load15}}</span>
     </li>
     <li class="divider"></li>
     <li>

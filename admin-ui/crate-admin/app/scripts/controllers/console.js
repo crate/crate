@@ -1,11 +1,11 @@
 'use strict';
 
-angular.module('console', ['common'])
-  .controller('ConsoleController', function ($scope, $http, $location) {
+angular.module('console', ['sql'])
+  .controller('ConsoleController', function ($scope, $http, $location, SQLQuery, $log) {
 
     $scope.statement = "";
     $scope.result = {
-        "rows": []
+      "rows": []
     }
 
     $('iframe').hide();
@@ -16,23 +16,25 @@ angular.module('console', ['common'])
     $scope.error.hide = true;
 
     $scope.execute = function() {
-        var prefix = $location.search().prefix || '';
+      SQLQuery.execute($scope.statement).
+        success(function(sqlQuery) {
+          $scope.error.hide = true;
+          $scope.renderTable = true;
 
-        $http.post(prefix + "/_sql", {
-            "stmt": $scope.statement
-        }).success(function(data) {
-            $scope.error.hide = true;
-            $scope.renderTable = true;
+          $scope.resultHeaders = [];
+          for (var col in sqlQuery.cols) {
+              $scope.resultHeaders.push(sqlQuery.cols[col]);
+          }
 
-            $scope.resultHeaders = [];
-            for (var col in data.cols) {
-                $scope.resultHeaders.push(data.cols[col]);
-            }
-
-            $scope.result = data;
-        }).error(function(data) {
-            $scope.error.hide = false;
-            $scope.error.message = data.error;
+          $scope.rows = sqlQuery.rows;
+        }).
+        error(function(sqlQuery) {
+          $scope.error.hide = false;
+          if (sqlQuery) {
+            $scope.error.message = sqlQuery.error.message;
+          } else {
+            $scope.error.message = 'No Connection';
+          }
         });
     };
   });
