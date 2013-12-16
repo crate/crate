@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - the `order by` clause now works on both alias and non-alias as long as the
+   columns/alias are unique within the statement.
+
  - fix COUNT(*) requests on "virtual" tables like ``information_schema`` and ``stats.shards``
 
 2013/12/13 0.19.11

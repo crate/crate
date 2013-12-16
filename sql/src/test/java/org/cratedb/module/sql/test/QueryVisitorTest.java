@@ -11,6 +11,7 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
 import org.cratedb.index.ColumnDefinition;
 import org.cratedb.service.SQLParseService;
+import org.cratedb.sql.OrderByAmbiguousException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.stubs.HitchhikerMocks;
@@ -149,6 +150,44 @@ public class QueryVisitorTest {
                         .field("size", limit)
                         .endObject()
                         .string();
+        assertEquals(expected, getSource());
+    }
+
+    @Test
+    public void testSelectGroupByOrderByAmbiguousColumn() throws Exception {
+        expectedException.expect(OrderByAmbiguousException.class);
+        execStatement("select name, kind as name from locations group by name order by name");
+    }
+
+    @Test
+    public void testSelectOrderByAmbiguousColumn() throws Exception {
+        expectedException.expect(OrderByAmbiguousException.class);
+        execStatement("select name, kind as name from locations order by name");
+    }
+
+    @Test
+    public void testOrderByAlias() throws Exception {
+        execStatement("select name as n from locations order by n");
+        String expected =
+            XContentFactory.jsonBuilder()
+                .startObject()
+                .field("fields", Arrays.asList("name"))
+                .startObject("query")
+                .field("match_all", new HashMap())
+                .endObject()
+                .startArray("sort")
+                .startObject()
+                .startObject("name")
+                .field("order", "asc")
+                .field("ignore_unmapped", true)
+                .endObject()
+                .endObject()
+                .endArray()
+                .field("size", SQLParseService.DEFAULT_SELECT_LIMIT)
+                .endObject()
+                .string();
+        stmt.outputFields();
+
         assertEquals(expected, getSource());
     }
 
