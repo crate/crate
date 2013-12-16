@@ -18,6 +18,7 @@ import org.cratedb.action.sql.OrderByColumnName;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.lucene.fields.LuceneField;
 import org.cratedb.sql.GroupByOnArrayUnsupportedException;
+import org.cratedb.sql.OrderByAmbiguousException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
@@ -199,41 +200,41 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     }
 
     private void visit(OrderByList node) throws IOException, StandardException {
+        List<String> columnNames = new ArrayList<>();
+        List<String> aliases = new ArrayList<>();
+
+        for (Tuple<String, String> column : stmt.outputFields()) {
+            columnNames.add(column.v2());
+            if (!column.v2().equals(column.v1())) {
+                aliases.add(column.v1());
+            } else {
+                aliases.add(null);
+            }
+        }
+
         if (stmt.hasGroupBy() || stmt.isGlobalAggregate() || stmt.isStatsQuery()) {
-            stmt.orderByIndices = new ArrayList<>();
-            int idx = -1;
-
-            List<String> outputFieldNames = new ArrayList<>();
-            for (Tuple<String, String> outputField : stmt.outputFields()) {
-                outputFieldNames.add(outputField.v1());
-            }
-
-            for (OrderByColumn column : node) {
-                String columnName;
-                if (column.getExpression().getNodeType() == NodeTypes.AGGREGATE_NODE) {
-                    AggExpr aggExpr = getAggregateExpression((AggregateNode)column.getExpression());
-                    columnName = aggExpr.toString();
-                } else if (column.getExpression().getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE ){
-                    columnName = ((NestedColumnReference)column.getExpression()).sqlPathString();
-                } else {
-                    columnName = column.getExpression().getColumnName();
-                }
-                idx = outputFieldNames.indexOf(columnName);
-
-                if (idx < 0) {
-                    throw new SQLParseException(
-                        "column in order by is also required in the result column list"
-                    );
-                }
-                stmt.orderByIndices.add(new OrderByColumnIdx(idx, column.isAscending()));
-            }
+            genOrderByIndices(node, columnNames, aliases);
             return;
         }
 
+        genXContentOrderBy(node, columnNames, aliases);
+    }
+
+    private void genXContentOrderBy(OrderByList node, List<String> columnNames, List<String> aliases) throws IOException {
+        int idxNames;
+        int idxAliases;
         jsonBuilder.startArray("sort");
         int count = 0;
         for (OrderByColumn column : node) {
             String columnName = column.getExpression().getColumnName();
+            idxNames = columnNames.indexOf(columnName);
+            idxAliases = aliases.indexOf(columnName);
+            if (idxNames > -1 && idxAliases > -1) {
+                throw new OrderByAmbiguousException(columnName);
+            } else if (idxAliases > -1 && idxNames < 0) {
+                columnName = stmt.outputFields().get(idxAliases).v2();
+            }
+
             count++;
             // orderByColumns are used to query the InformationSchema
             stmt.orderByColumns.add(
@@ -247,6 +248,37 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 .endObject();
         }
         jsonBuilder.endArray();
+    }
+
+    private void genOrderByIndices(OrderByList node, List<String> columnNames, List<String> aliases) throws StandardException {
+        int idxNames;
+        int idxAliases;
+        stmt.orderByIndices = new ArrayList<>();
+
+        for (OrderByColumn column : node) {
+            String columnName;
+            if (column.getExpression().getNodeType() == NodeTypes.AGGREGATE_NODE) {
+                AggExpr aggExpr = getAggregateExpression((AggregateNode)column.getExpression());
+                columnName = aggExpr.toString();
+            } else if (column.getExpression().getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE ){
+                columnName = ((NestedColumnReference)column.getExpression()).sqlPathString();
+            } else {
+                columnName = column.getExpression().getColumnName();
+            }
+            idxNames = columnNames.indexOf(columnName);
+            idxAliases = aliases.indexOf(columnName);
+
+            if (idxNames > -1 && idxAliases > -1) {
+                throw new OrderByAmbiguousException(columnName);
+            } else if (idxNames < 0 && idxAliases < 0) {
+                throw new SQLParseException(
+                    "column in order by is also required in the result column list"
+                );
+            }
+
+            stmt.orderByIndices.add(
+                new OrderByColumnIdx(Math.max(idxNames, idxAliases), column.isAscending()));
+        }
     }
 
     private void visit(ResultColumnList columnList) throws Exception {
@@ -391,7 +423,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
         if (aggExpr != null) {
             if (aggExpr.functionName.startsWith(CountStarAggFunction.NAME)) {
-                stmt.countRequest(true);
+                stmt.hasCountStarAggregate(true);
             }
             stmt.resultColumnList().add(aggExpr);
             stmt.aggregateExpressions().add(aggExpr);
@@ -517,8 +549,8 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
         BooleanQuery parentQuery = queryStack.peek();
         parentQuery.add(
-            query,
-            isOrNode(parentNode) ? BooleanClause.Occur.SHOULD : BooleanClause.Occur.MUST
+                query,
+                isOrNode(parentNode) ? BooleanClause.Occur.SHOULD : BooleanClause.Occur.MUST
         );
     }
 

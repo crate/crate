@@ -173,4 +173,19 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
         assertNotNull(response.rows()[0][2]);
         assertNotNull(response.rows()[0][3]);
     }
+
+    @Test
+    public void testSelectGlobalCount() throws Exception {
+        execute("select count(*) from stats.shards");
+        assertEquals(1L, response.rowCount());
+        assertEquals(20L, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testSelectGlobalCountAndOthers() throws Exception {
+        execute("select count(*), max(table_name) from stats.shards");
+        assertEquals(1L, response.rowCount());
+        assertEquals(20L, response.rows()[0][0]);
+        assertEquals("quotes", response.rows()[0][1]);
+    }
 }

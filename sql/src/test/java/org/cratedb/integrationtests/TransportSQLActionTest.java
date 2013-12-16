@@ -1478,6 +1478,16 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 
+    @Test
+    public void testGroupByAndOrderByAlias() throws Exception {
+        this.setup.groupBySetup();
+
+        execute("select characters.race as test_race from characters group by characters.race order by characters.race");
+        assertEquals(3, response.rowCount());
+
+        execute("select characters.race as test_race from characters group by characters.race order by test_race");
+        assertEquals(3, response.rowCount());
+    }
 
     @Test
     public void testCountWithGroupBy() throws Exception {

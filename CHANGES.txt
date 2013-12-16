@@ -5,6 +5,20 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/12/16 0.19.12
+==================
+
+ - the `order by` clause now works on both alias and non-alias as long as the
+   columns/alias are unique within the statement.
+
+ - fix COUNT(*) requests on "virtual" tables like ``information_schema`` and ``stats.shards``
+
+2013/12/13 0.19.11
+==================
+
+ - fixed an error that occured if a blob is uploaded using a client that chunks
+   the request but doesn't support 100-Continue.
+
 2013/12/11 0.19.10
 ==================
 
