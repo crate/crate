@@ -233,7 +233,7 @@ public class LuceneQueryVisitorTest {
         NodeExecutionContext context = mock(NodeExecutionContext.class);
         ITableExecutionContext tableContext = new InformationSchemaTableExecutionContext
                 (new HashMap<String, InformationSchemaTable>(){{
-                    put("tables", new TablesTable(aggFunctionMap));
+                    put("tables", new TablesTable(aggFunctionMap, null));
                 }}, "tables");
         when(context.queryPlanner()).thenReturn(queryPlanner);
         when(context.tableContext(anyString(), anyString())).thenReturn(tableContext);

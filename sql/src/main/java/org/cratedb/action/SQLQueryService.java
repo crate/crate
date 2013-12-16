@@ -2,11 +2,13 @@ package org.cratedb.action;
 
 import org.apache.lucene.search.Query;
 import org.cratedb.Constants;
+import org.cratedb.action.collect.CollectorContext;
 import org.cratedb.action.groupby.GlobalSQLGroupingCollector;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.SQLGroupingCollector;
 import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.groupby.key.Rows;
 import org.cratedb.action.sql.ParsedStatement;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
@@ -55,44 +57,45 @@ public class SQLQueryService {
         this.aggFunctionMap = aggFunctionMap;
     }
 
-    public Map<String, Map<GroupByKey, GroupByRow>> query(String[] reducers, String concreteIndex,
-                                                       ParsedStatement stmt, int shardId)
+    public Rows query(int numReducers, String concreteIndex, ParsedStatement stmt, int shardId)
         throws Exception
     {
-        SearchContext context = buildSearchContext(concreteIndex, shardId);
-        SearchContext.setCurrent(context);
+        SearchContext searchContext = buildSearchContext(concreteIndex, shardId);
+        SearchContext.setCurrent(searchContext);
+
         if (logger.isTraceEnabled()) {
             logger.trace("Parsing xcontentQuery:\n " + stmt.xcontent.toUtf8());
         }
-        parser.parse(context, stmt.xcontent);
-        context.preProcess();
+        parser.parse(searchContext, stmt.xcontent);
+        searchContext.preProcess();
 
-        Query query = context.query();
+        Query query = searchContext.query();
         SQLGroupingCollector collector;
+        CollectorContext collectorContext = new CollectorContext().searchContext(searchContext);
         if (stmt.isGlobalAggregate()) {
             collector = new GlobalSQLGroupingCollector(
                     stmt,
-                    new ESDocLookup(context.lookup().doc()),
+                    collectorContext,
                     aggFunctionMap,
-                    reducers
+                    numReducers
             );
         } else {
             collector = new SQLGroupingCollector(
                     stmt,
-                    new ESDocLookup(context.lookup().doc()),
+                    collectorContext,
                     aggFunctionMap,
-                    reducers
+                    numReducers
             );
         }
 
         try {
-            context.searcher().search(query, collector);
+            searchContext.searcher().search(query, collector);
         } finally {
-            context.release();
+            searchContext.release();
             SearchContext.removeCurrent();
         }
 
-        return collector.partitionedResult;
+        return collector.rows();
     }
 
     private SearchContext buildSearchContext(String concreteIndex, int shardId) {

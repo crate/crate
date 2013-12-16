@@ -1,9 +1,13 @@
 package org.cratedb.action.sql;
 
+import org.cratedb.action.collect.*;
 import org.cratedb.index.ColumnDefinition;
 import org.cratedb.index.IndexMetaDataExtractor;
 import org.cratedb.lucene.LuceneFieldMapper;
+import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.ValidationException;
+import org.cratedb.sql.parser.parser.NodeTypes;
+import org.cratedb.sql.parser.parser.ValueNode;
 import org.cratedb.sql.types.SQLFieldMapper;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -145,4 +149,43 @@ public class TableExecutionContext implements ITableExecutionContext {
     public boolean tableIsAlias() {
         return tableIsAlias;
     }
+
+    @Override
+    public Expression getCollectorExpression(ValueNode node) {
+        if (node.getNodeType()!=NodeTypes.COLUMN_REFERENCE &&
+                node.getNodeType() != NodeTypes.NESTED_COLUMN_REFERENCE){
+            return null;
+        }
+
+        ColumnDefinition columnDefinition = getColumnDefinition(node.getColumnName());
+        if (columnDefinition == null) {
+            throw new SQLParseException(String.format("Unknown column '%s'", node.getColumnName()));
+        }
+        switch (columnDefinition.dataType) {
+            case STRING:
+                return new BytesRefColumnReference(columnDefinition.columnName);
+            case DOUBLE:
+                return new DoubleColumnReference(columnDefinition.columnName);
+            case BOOLEAN:
+                return new BooleanColumnReference(columnDefinition.columnName);
+            case CRATY:
+                return new CratyColumnReference(columnDefinition.columnName);
+            case FLOAT:
+                return new FloatColumnReference(columnDefinition.columnName);
+            case SHORT:
+                return new ShortColumnReference(columnDefinition.columnName);
+            case LONG:
+            case TIMESTAMP:
+                return new LongColumnReference(columnDefinition.columnName);
+            case INTEGER:
+                return new IntegerColumnReference(columnDefinition.columnName);
+            default:
+                throw new SQLParseException(
+                        String.format("Invalid column reference type '%s'",
+                                columnDefinition.dataType));
+        }
+    }
 }
+
+
+

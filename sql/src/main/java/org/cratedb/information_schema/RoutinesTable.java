@@ -7,6 +7,7 @@ import org.apache.lucene.document.StringField;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.lucene.fields.StringLuceneField;
+import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -45,8 +46,9 @@ public class RoutinesTable extends AbstractInformationSchemaTable {
             Field.Store.YES);
 
     @Inject
-    public RoutinesTable(Map<String, AggFunction> aggFunctionMap, AnalyzerService analyzerService) {
-        super(aggFunctionMap);
+    public RoutinesTable(Map<String, AggFunction> aggFunctionMap,
+            AnalyzerService analyzerService, CacheRecycler cacheRecycler) {
+        super(aggFunctionMap, cacheRecycler);
         this.analyzerService = analyzerService;
         fieldMapper.put(Columns.ROUTINE_NAME,
                 new StringLuceneField(Columns.ROUTINE_NAME));

@@ -3,12 +3,16 @@ package org.cratedb.stats;
 import org.apache.lucene.index.memory.MemoryIndex;
 import org.apache.lucene.index.memory.ReusableMemoryIndex;
 import org.apache.lucene.search.Collector;
+import org.apache.lucene.util.BytesRef;
+import org.cratedb.action.collect.CollectorContext;
+import org.cratedb.action.collect.ColumnReferenceExpression;
 import org.cratedb.action.groupby.GlobalSQLGroupingCollector;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.SQLGroupingCollector;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.groupby.key.Rows;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLFetchCollector;
 import org.cratedb.lucene.LuceneFieldMapper;
@@ -17,6 +21,7 @@ import org.cratedb.lucene.fields.IntegerLuceneField;
 import org.cratedb.lucene.fields.LongLuceneField;
 import org.cratedb.lucene.fields.StringLuceneField;
 import org.cratedb.lucene.index.memory.MemoryIndexPool;
+import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
@@ -30,6 +35,8 @@ import java.util.List;
 import java.util.Map;
 
 public class ShardStatsTable implements StatsTable {
+
+    private final CacheRecycler cacheRecycler;
 
     public class Columns {
         public static final String NODE_ID = "node_id";
@@ -86,11 +93,11 @@ public class ShardStatsTable implements StatsTable {
         public Object getStat(String columnName) {
             switch (columnName.toLowerCase()) {
                 case Columns.TABLE_NAME:
-                    return indexName;
+                    return new BytesRef(indexName);
                 case Columns.NODE_ID:
-                    return !unassigned ? nodeId : null;
+                    return !unassigned ? new BytesRef(nodeId) : null;
                 case Columns.NODE_NAME:
-                    return !unassigned ? shard.nodeName() : null;
+                    return !unassigned ? new BytesRef(shard.nodeName()) : null;
                 case Columns.NUM_DOCS:
                     return !unassigned ? shard.docStats().getCount() : 0;
                 case Columns.SHARD_ID:
@@ -98,11 +105,13 @@ public class ShardStatsTable implements StatsTable {
                 case Columns.SIZE:
                     return !unassigned ? shard.storeStats().getSizeInBytes() : 0L;
                 case Columns.STATE:
-                    return !unassigned ? shard.state().toString() : ShardRoutingState.UNASSIGNED.toString();
+                    return !unassigned ? new BytesRef(shard.state().toString()) :
+                            ShardRoutingState.UNASSIGNED;
                 case Columns.PRIMARY:
                     return !unassigned ? new Boolean(shard.routingEntry().primary()) : false;
                 case Columns.RELOCATING_NODE:
-                    return !unassigned ? shard.routingEntry().relocatingNodeId() : null;
+                    return !unassigned ? new BytesRef(shard.routingEntry().relocatingNodeId()) :
+                            null;
                 default:
                     return null;
             }
@@ -111,9 +120,11 @@ public class ShardStatsTable implements StatsTable {
 
 
     @Inject
-    public ShardStatsTable(Map<String, AggFunction> aggFunctionMap) throws Exception {
+    public ShardStatsTable(Map<String, AggFunction> aggFunctionMap,
+            CacheRecycler cacheRecycler) throws Exception {
         this.aggFunctionMap = aggFunctionMap;
         memoryIndexPool = new MemoryIndexPool();
+        this.cacheRecycler = cacheRecycler;
     }
 
     private void index(ParsedStatement stmt,
@@ -128,8 +139,8 @@ public class ShardStatsTable implements StatsTable {
         }
         // add all columns used for aggregates
         for (AggExpr aggExpr : stmt.aggregateExpressions()) {
-            if (aggExpr.parameterInfo != null) {
-                String columnName = aggExpr.parameterInfo.columnName;
+            if (aggExpr.expression != null && aggExpr.expression instanceof ColumnReferenceExpression) {
+                String columnName = ((ColumnReferenceExpression) aggExpr.expression).columnName();
                 if (fieldMapper().containsKey(columnName)) {
                     shardInfo.fields().put(columnName, shardInfo.getStat(columnName));
                 }
@@ -148,31 +159,23 @@ public class ShardStatsTable implements StatsTable {
 
     }
 
-    public Map<String, Map<GroupByKey, GroupByRow>> queryGroupBy(String[] reducers,
-                                                          ParsedStatement stmt,
-                                                          StatsInfo shardInfo)
+    public Rows queryGroupBy(int numReducers,
+            ParsedStatement stmt,
+            StatsInfo shardInfo)
             throws Exception
     {
-        SQLGroupingCollector collector;
-        if (stmt.isGlobalAggregate()) {
-            collector = new GlobalSQLGroupingCollector(
-                    stmt,
-                    new StatsTableFieldLookup(shardInfo.fields()),
-                    aggFunctionMap,
-                    reducers
-            );
-        } else {
-            collector = new SQLGroupingCollector(
-                    stmt,
-                    new StatsTableFieldLookup(shardInfo.fields()),
-                    aggFunctionMap,
-                    reducers
-            );
-        }
-
+        CollectorContext cc = new CollectorContext().fieldLookup(
+                new StatsTableFieldLookup(shardInfo.fields()));
+        cc.cacheRecycler(cacheRecycler);
+        SQLGroupingCollector collector = new SQLGroupingCollector(
+                stmt,
+                cc,
+                aggFunctionMap,
+                numReducers
+        );
         doQuery(stmt, shardInfo, collector);
 
-        return collector.partitionedResult;
+        return collector.rows();
     }
 
     public List<List<Object>> query(ParsedStatement stmt, StatsInfo shardInfo) throws Exception

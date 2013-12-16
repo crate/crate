@@ -46,4 +46,5 @@ public class SQLShardRequest extends TransportRequest implements Streamable {
         out.writeStringArray(reducers);
         sqlRequest.writeTo(out);
     }
+
 }

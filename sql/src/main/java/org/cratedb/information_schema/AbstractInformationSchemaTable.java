@@ -11,8 +11,10 @@ import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.Version;
+import org.cratedb.action.collect.CollectorContext;
 import org.cratedb.action.groupby.*;
 import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.groupby.key.Rows;
 import org.cratedb.action.sql.OrderByColumnName;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLResponse;
@@ -20,6 +22,7 @@ import org.cratedb.lucene.LuceneFieldMapper;
 import org.cratedb.lucene.fields.LuceneField;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.lucene.Lucene;
 
@@ -37,6 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public abstract class AbstractInformationSchemaTable implements InformationSchemaTable {
 
+    private final CacheRecycler cacheRecycler;
     protected LuceneFieldMapper fieldMapper = new LuceneFieldMapper();
 
     protected final IndexWriterConfig indexWriterConfig;
@@ -50,11 +54,13 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
     protected AtomicInteger activeSearches = new AtomicInteger(0);
     protected Directory indexDirectory;
 
-    public AbstractInformationSchemaTable(Map<String, AggFunction> aggFunctionMap) {
+    public AbstractInformationSchemaTable(Map<String, AggFunction> aggFunctionMap,
+            CacheRecycler cacheRecycler) {
         this.searcherFactory = new SearcherFactory();
         this.indexWriterConfig = new IndexWriterConfig(Version.LUCENE_45, null);
         this.indexWriterConfig.setCodec(new Lucene45Codec());
         this.aggFunctionMap = aggFunctionMap;
+        this.cacheRecycler = cacheRecycler;
     }
 
     @Override
@@ -135,29 +141,38 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
         // the regular group-by workflow involves reducers.
         // the GroupingCollector will partition the results by reducer to then do a distributed reduce.
         // here DUMMY is used as a pseudo reducer because information-schema group by doesn't involve reducers..
+        CollectorContext collectorContext = new CollectorContext();
+        collectorContext.fieldLookup(new InformationSchemaFieldLookup(fieldMapper()));
+        collectorContext.cacheRecycler(cacheRecycler);
         SQLGroupingCollector collector;
         if (stmt.isGlobalAggregate()) {
             collector = new GlobalSQLGroupingCollector(
                     stmt,
-                    new InformationSchemaFieldLookup(fieldMapper()),
+                    collectorContext,
                     aggFunctionMap,
-                    new String[] { "DUMMY" }
+                    1
             );
         } else {
             collector = new SQLGroupingCollector(
                     stmt,
-                    new InformationSchemaFieldLookup(fieldMapper()),
+                    collectorContext,
                     aggFunctionMap,
-                    new String[] { "DUMMY" }
+                    1
             );
         }
 
         indexSearcher.search(stmt.query, collector);
-        List<GroupByRow> rows = new ArrayList<>(collector.partitionedResult.get("DUMMY").values());
-        for (GroupByRow row : rows) {
-            row.terminatePartial();
-        }
-        return groupByRowsToSQLResponse(stmt, rows, requestStartedTime);
+
+        final List<GroupByRow> rowList = new ArrayList<>();
+        Rows rows = collector.rows();
+        rows.walk(new Rows.RowVisitor() {
+            @Override
+            public void visit(GroupByRow row) {
+                row.terminatePartial();
+                rowList.add(row);
+            }
+        });
+        return groupByRowsToSQLResponse(stmt, rowList, requestStartedTime);
     }
 
     private SQLResponse groupByRowsToSQLResponse(ParsedStatement stmt,

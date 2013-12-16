@@ -5,6 +5,7 @@ import org.cratedb.action.groupby.GroupByHelper;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.GroupByRowComparator;
+import org.cratedb.action.groupby.key.Rows;
 import org.cratedb.action.sql.*;
 import org.cratedb.core.collections.LimitingCollectionIterator;
 import org.cratedb.service.SQLParseService;
@@ -145,7 +146,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         ParsedStatement stmt = sqlParseService.parse(request.sqlRequest.stmt(), request.sqlRequest.args());
         StopWatch stopWatch = null;
         CrateException exception = null;
-        Map<String, Map<GroupByKey, GroupByRow>> distributedCollectResult = null;
+        Rows rows = null;
         List<List<Object>> collectResult = null;
 
         if (logger.isTraceEnabled()) {
@@ -166,23 +167,26 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                     request.concreteIndex, stmt, request.shardId, clusterService.localNode().id());
             } else {
                 if (stmt.isStatsQuery()) {
-                    distributedCollectResult =
-                            statsService.queryGroupBy(
-                                    stmt.virtualTableName(),
-                                    request.reducers, request.concreteIndex,
-                                    stmt, request.shardId,
-                                    clusterService.localNode().id());
+                    rows = statsService.queryGroupBy(
+                        stmt.virtualTableName(),
+                        request.reducers.length,
+                        request.concreteIndex,
+                        stmt,
+                        request.shardId,
+                        clusterService.localNode().id()
+                    );
                 } else {
-                    distributedCollectResult =
-                        sqlQueryService.query(request.reducers, request.concreteIndex, stmt, request.shardId);
+                    rows = sqlQueryService.query(
+                            request.reducers.length, request.concreteIndex, stmt,
+                            request.shardId);
                 }
             }
         } catch (CrateException e) {
             exception = e;
         } catch (Exception e) {
+            logger.error("Unhandled query failure", e);
             exception = new CrateException(e);
         }
-
 
         if (logger.isTraceEnabled()) {
             assert stopWatch != null;
@@ -196,20 +200,18 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             );
         }
 
-        if (exception != null) {
-            // create an empty fake result to send to the reducers.
-            distributedCollectResult = createEmptyCollectResult(request);
-        }
-
-        for (String reducer : request.reducers) {
+        for (int i = 0; i < request.reducers.length; i++) {
             if (logger.isTraceEnabled()) {
                 stopWatch = new StopWatch().start();
             }
-
+            String reducer = request.reducers[i];
             SQLMapperResultRequest mapperResultRequest = new SQLMapperResultRequest();
             mapperResultRequest.contextId = request.contextId;
-            mapperResultRequest.groupByResult =
-                new SQLGroupByResult(distributedCollectResult.get(reducer).values());
+            if (exception == null){
+                mapperResultRequest.groupByResult = new SQLGroupByResult(i, rows);
+            } else {
+                mapperResultRequest.failed = true;
+            }
 
             // TODO: could be optimized if reducerNode == mapperNode to avoid transportService
             DiscoveryNode node = clusterService.state().getNodes().get(reducer);
@@ -218,7 +220,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 TransportSQLReduceHandler.Actions.RECEIVE_PARTIAL_RESULT,
                 mapperResultRequest,
                 TransportRequestOptions.options(),
-                EmptyTransportResponseHandler.INSTANCE_SAME
+                LoggingTransportResponseHandler.INSTANCE_SAME
             );
 
             if (logger.isTraceEnabled()) {
@@ -257,14 +259,6 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         }
 
         return new SQLShardResponse();
-    }
-
-    private Map<String, Map<GroupByKey, GroupByRow>> createEmptyCollectResult(SQLShardRequest request) {
-        Map<String, Map<GroupByKey, GroupByRow>> distributedCollectResult = new HashMap<>(request.reducers.length);
-        for (String reducer : request.reducers) {
-            distributedCollectResult.put(reducer, new HashMap<GroupByKey, GroupByRow>(0));
-        }
-        return distributedCollectResult;
     }
 
     protected GroupShardsIterator shards(ClusterState clusterState,
@@ -406,6 +400,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                         GroupByHelper.buildFieldExtractor(parsedStatement, null),
                         parsedStatement.orderByIndices()
                 );
+
                 Collections.sort(groupByResult, comparator);
                 rows = GroupByHelper.sortedRowsToObjectArray(
                         new LimitingCollectionIterator<>(groupByResult, parsedStatement.totalLimit()),
@@ -619,7 +614,9 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             }
 
             synchronized (groupByResult) {
-                groupByResult.addAll(response.result);
+                if (response.rows()!=null){
+                    groupByResult.addAll(response.rows());
+                }
             }
 
             if (logger.isTraceEnabled()) {
@@ -680,8 +677,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 // at once here
                 reduceJobStatus = new SQLReduceJobStatus(
                     parsedStatement,
-                    threadPool,
-                    ConcurrentCollections.<GroupByKey, GroupByRow>newConcurrentMap()
+                    threadPool
                 );
             } else {
                 collectResults = new ArrayList<>(shardsItsAll.size() - shardsIts.size());
@@ -695,15 +691,12 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 if (shard == null) {
                     try {
                         if (parsedStatement.hasGroupBy() || parsedStatement.isGlobalAggregate()) {
-                            Map<String, Map<GroupByKey, GroupByRow>> shardGroupByCollectResults =
-                                    statsService.queryGroupBy(
-                                            parsedStatement.virtualTableName(),
-                                            new String[]{dummyReducer}, lastIndex,
-                                            parsedStatement, shardIt.shardId().id(),
-                                            null);
+                            Rows shardGroupByCollectResults = statsService.queryGroupBy(
+                                parsedStatement.virtualTableName(), 1, lastIndex, parsedStatement,
+                                shardIt.shardId().id(), null
+                            );
                             // merge results to the reduce job
-                            reduceJobStatus.merge(new SQLGroupByResult
-                                    (shardGroupByCollectResults.get(dummyReducer).values()));
+                            reduceJobStatus.merge(new SQLGroupByResult(0, shardGroupByCollectResults));
                         } else {
                             List<List<Object>> shardCollectResults = statsService.query(
                                     parsedStatement.virtualTableName(),
@@ -732,15 +725,17 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 // add all results
                 onMapperResults(collectResults);
             } else {
-                // reduce existing results with results from unassigned/empty shards
-                synchronized (groupByResult) {
-                    reduceJobStatus.merge(new SQLGroupByResult(groupByResult));
-                    groupByResult.clear();
-                    groupByResult.addAll(
-                            reduceJobStatus.trimRows(reduceJobStatus.reducedResult.values())
-                    );
-                }
+                // TODO:
 
+                // reduce existing results with results from unassigned/empty shards
+                //synchronized (groupByResult) {
+                //    reduceJobStatus.
+                //    reduceJobStatus.merge(new SQLGroupByResult(0, groupByResult));
+                //    groupByResult.clear();
+                //    groupByResult.addAll(
+                //            reduceJobStatus.trimRows(reduceJobStatus.reducedResult.values())
+                //    );
+                //}
             }
         }
 
