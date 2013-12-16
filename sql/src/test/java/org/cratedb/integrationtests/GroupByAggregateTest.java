@@ -494,4 +494,52 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         assertEquals(2L, response.rows()[0][2]);
     }
 
+    @Test
+    public void testGlobalAggregateOnNestedColumn() throws Exception {
+        this.setup.groupBySetup();
+        execute("select count(details['job']), min(details['job']), max(details['job']), count(distinct details['job']) from characters");
+        assertEquals(1, response.rowCount());
+        assertArrayEquals(new String[]{"COUNT(details['job'])", "MIN(details['job'])", "MAX(details['job'])", "COUNT(DISTINCT details['job'])"}, response.cols());
+        assertEquals(2L, response.rows()[0][0]);
+        assertEquals("Mathematician", response.rows()[0][1]);
+        assertEquals("Sandwitch Maker", response.rows()[0][2]);
+        assertEquals(2L, response.rows()[0][3]);
+    }
+
+    @Test
+    public void testGroupByAggregateOnNestedColumn() throws Exception {
+        this.setup.groupBySetup();
+        execute("select race, count(details['job']) from characters group by race order by race");
+        assertEquals(3, response.rowCount());
+        assertEquals("Android", response.rows()[0][0]);
+        assertEquals(0L, response.rows()[0][1]);
+
+        assertEquals("Human", response.rows()[1][0]);
+        assertEquals(2L, response.rows()[1][1]);
+
+        assertEquals("Vogon", response.rows()[2][0]);
+        assertEquals(0L, response.rows()[2][1]);
+    }
+
+    @Test
+    public void testGroupByAggregateOnNestedColumnOrderBy() throws Exception {
+        this.setup.groupBySetup();
+        execute("select race, count(details['job']) from characters group by race order by count(details['job']) desc limit 1");
+        assertEquals(1, response.rowCount());
+        assertArrayEquals(new String[]{"race", "COUNT(details['job'])"}, response.cols());
+        assertEquals("Human", response.rows()[0][0]);
+        assertEquals(2L, response.rows()[0][1]);
+    }
+
+    @Test
+    public void testGroupByAggregateOnNestedColumnOrderByAlias() throws Exception {
+        this.setup.groupBySetup();
+        execute("select race, count(details['job']) as job_count from characters group by race order by job_count desc limit 1");
+        assertEquals(1, response.rowCount());
+        assertArrayEquals(new String[]{"race", "job_count"}, response.cols());
+
+        assertEquals("Human", response.rows()[0][0]);
+        assertEquals(2L, response.rows()[0][1]);
+    }
+
 }

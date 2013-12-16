@@ -406,6 +406,9 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             case NodeTypes.COLUMN_REFERENCE:
                 columnName = node.getColumnName();
                 break;
+            case NodeTypes.NESTED_COLUMN_REFERENCE:
+                columnName = node.getColumnName();
+                break;
             default:
                 throw new SQLParseException("Got an unsupported argument to a aggregate function");
         }
