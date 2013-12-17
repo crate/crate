@@ -285,7 +285,7 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
     @Test
     public void testIgnoreClosedTables() throws Exception {
         client().admin().indices().close(new CloseIndexRequest("t3"));
-        ensureGreen();
+        ensureYellow();
         exec("select * from information_schema.tables");
         assertEquals(2L, response.rowCount());
         exec("select * from information_schema.columns where table_name = 't3'");
