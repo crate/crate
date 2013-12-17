@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/12/17 0.19.14
+==================
+
  - fix: ignore closed tables at `information_schema`
 
  - fix: forbid references to other tables
