@@ -11,7 +11,7 @@
 
 //@gray-darker:            lighten(#000, 13.5%); // #222
 //@gray-dark:              lighten(#000, 20%);   // #333
-//@gray:                   lighten(#000, 33.5%); // #555
+@gray:                     #676767; // #555
 //@gray-light:             lighten(#000, 60%);   // #999
 //@gray-lighter:           lighten(#000, 93.5%); // #eee
 
@@ -19,9 +19,9 @@
 // -------------------------
 
 //@brand-primary:         #428bca;
-//@brand-success:         #5cb85c;
-//@brand-warning:         #f0ad4e;
-//@brand-danger:          #d9534f;
+@brand-success:           #00c561;
+@brand-warning:           #ffc600;
+@brand-danger:            #ff5151;
 //@brand-info:            #5bc0de;
 
 // Scaffolding
@@ -46,11 +46,15 @@
 //@font-family-base:        @font-family-sans-serif;
 @font-family-base-bold:     @font-family-sans-serif-bold;
 
+@font-size-xlarge:        48px;
+@font-size-large:         28px;
+@font-size-medium:        24px;
+
 @font-size-base:          	18px;
 @font-size-small:          	16px;
 
 //@font-size-h1:            floor(@font-size-base * 2.6); // ~36px
-//@font-size-h2:            floor(@font-size-base * 2.15); // ~30px
+@font-size-h2:              floor(@font-size-base * 1.3); // ~28px
 //@font-size-h3:            ceil(@font-size-base * 1.7); // ~24px
 //@font-size-h4:            ceil(@font-size-base * 1.25); // ~18px
 //@font-size-h5:            @font-size-base;
@@ -121,8 +125,8 @@
 //@btn-font-weight:                normal;
 
 //@btn-default-color:              #333;
-//@btn-default-bg:                 #fff;
-//@btn-default-border:             #ccc;
+@btn-default-bg:                   #cfcfcf;
+@btn-default-border:               #fff;
 
 //@btn-primary-color:              #fff;
 //@btn-primary-bg:                 @brand-primary;
@@ -299,7 +303,7 @@
 //@navbar-inverse-border:                     darken(@navbar-inverse-bg, 10%);
 
 // Inverted navbar links
-//@navbar-inverse-link-color:                 @gray-light;
+@navbar-inverse-link-color:                   @gray;
 //@navbar-inverse-link-hover-color:           #fff;
 //@navbar-inverse-link-hover-bg:              transparent;
 //@navbar-inverse-link-active-color:          @navbar-inverse-link-hover-color;
@@ -393,8 +397,8 @@
 //@state-warning-bg:               #fcf8e3;
 //@state-warning-border:           darken(spin(@state-warning-bg, -10), 5%);
 
-//@state-danger-text:              #a94442;
-//@state-danger-bg:                #f2dede;
+@state-danger-text:                #fff;
+@state-danger-bg:                  @brand-danger;
 //@state-danger-border:            darken(spin(@state-danger-bg, -10), 5%);
 
 
@@ -458,7 +462,7 @@
 // Alerts
 // -------------------------
 //@alert-padding:               15px;
-//@alert-border-radius:         @border-radius-base;
+@alert-border-radius:         	0;
 //@alert-link-font-weight:      bold;
 
 //@alert-success-bg:            @state-success-bg;

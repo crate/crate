@@ -5,6 +5,14 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/12/17 0.19.13
+==================
+
+ - admin-ui: resolve cluster health state using SQL now
+   also display empty values at status-bar if cluster is not reachable/disconnected
+
+ - allow nested columns in aggregate functions
+
 2013/12/16 0.19.12
 ==================
 
@@ -26,7 +34,7 @@ Unreleased
 
  - fixed a thread deadlock that could occur if many group by queries run in
    parallel
- 
+
  - changed threadpool settings to avoid handler blocking each other on group by queries
 
 2013/12/05 0.19.9

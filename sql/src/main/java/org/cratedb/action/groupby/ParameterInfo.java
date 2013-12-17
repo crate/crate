@@ -1,6 +1,7 @@
 package org.cratedb.action.groupby;
 
 import org.cratedb.DataType;
+import org.cratedb.core.StringUtils;
 
 /**
  * used to specify the parameters of the aggregateExpressions.
@@ -40,5 +41,9 @@ public class ParameterInfo {
     @Override
     public String toString() {
         return columnName;
+    }
+
+    public String toOutputString() {
+        return columnName.contains(".") ? StringUtils.dottedToSqlPath(columnName) : columnName;
     }
 }
