@@ -1,9 +1,7 @@
 package org.cratedb.action.groupby.key;
 
-import org.cratedb.DataType;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
-import org.cratedb.action.groupby.aggregate.AggState;
 import org.cratedb.action.sql.ParsedStatement;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -18,8 +16,11 @@ public class GlobalRows extends Rows<GlobalRows> {
     private final ParsedStatement stmt;
     private final List<GroupByRow>[] buckets;
     private int currentBucket;
+    private GroupByRow mergedRow = null;
 
     public GlobalRows(int numBuckets, ParsedStatement stmt) {
+        assert numBuckets > 0: "requires at least one bucket";
+
         this.stmt = stmt;
         this.buckets = new ArrayList[numBuckets];
         for (int i = 0; i < buckets.length; i++) {
@@ -38,8 +39,16 @@ public class GlobalRows extends Rows<GlobalRows> {
 
     @Override
     public GroupByRow getRow() {
-        GroupByRow row = GroupByRow.createEmptyRow(GLOBAL_KEY, stmt);
-        buckets[currentBucket].add(row);
+        GroupByRow row;
+
+        // put everything into one row per bucket
+        if (buckets[currentBucket].size() > 0) {
+            row = buckets[currentBucket].get(0);
+        } else {
+            row = GroupByRow.createEmptyRow(GLOBAL_KEY, stmt);
+            buckets[currentBucket].add(row);
+        }
+
         nextBucket();
         return row;
     }
@@ -78,30 +87,28 @@ public class GlobalRows extends Rows<GlobalRows> {
     }
 
     @Override
-    public void merge(GlobalRows other) {
+    public synchronized void merge(GlobalRows other) {
         // put all buckets of other in this buckets regardless how many buckets are in other
         assert other.buckets().length == 1;
 
-        GroupByRow thisRow = null;
-        if (buckets[currentBucket].size() > 0) {
-            thisRow = buckets[currentBucket].get(0);
-        }
-
         for (List<GroupByRow> otherRows : other.buckets()) {
             for (GroupByRow groupByRow : otherRows) {
-                if (thisRow == null) {
-                    thisRow = groupByRow;
-                    buckets[currentBucket].add(thisRow);
+                if (mergedRow == null) {
+                    mergedRow = groupByRow;
                 } else {
-                    thisRow.merge(groupByRow);
+                    mergedRow.merge(groupByRow);
                 }
             }
-            nextBucket();
         }
     }
 
     @Override
     public void walk(RowVisitor visitor) {
+        if (mergedRow != null) {
+            visitor.visit(mergedRow);
+            return;
+        }
+
         for (List<GroupByRow> l : buckets) {
             for (GroupByRow row : l) {
                 visitor.visit(row);

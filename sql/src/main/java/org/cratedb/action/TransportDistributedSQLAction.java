@@ -618,6 +618,8 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             }
 
             synchronized (groupByResult) {
+                // TODO: in order for global aggregates to work correctly with more than 1 reducer
+                // another merge/reduce is required here
                 if (response.rows()!=null){
                     groupByResult.addAll(response.rows());
                 }

@@ -100,7 +100,8 @@ public class GroupByRow {
         if (seenValuesList != null && seenValuesList.size()>0){
             int idx = 0;
             for (Set<Object> seenValue : seenValuesList) {
-                seenValue.addAll(otherRow.seenValuesList.get(idx++));
+                seenValue.addAll(otherRow.seenValuesList.get(idx));
+                idx++;
             }
         }
         for (int i = 0; i < aggStates.size(); i++) {
@@ -151,7 +152,8 @@ public class GroupByRow {
             aggStates.add(i, aggExpr.createAggState());
             aggStates.get(i).readFrom(in);
             if (aggExpr.isDistinct) {
-                aggStates.get(i).setSeenValuesRef(seenValuesList.get(stmt.seenIdxMap().get(seenIdxIndex++)));
+                aggStates.get(i).setSeenValuesRef(seenValuesList.get(stmt.seenIdxMap().get(seenIdxIndex)));
+                seenIdxIndex++;
             }
         }
     }

@@ -362,7 +362,7 @@ public class ParsedStatement {
         this.groupByExpressions = groupByExpressions;
     }
 
-    public List<Integer> seenIdxMap(){
+    public synchronized List<Integer> seenIdxMap(){
         if (seenIdxMap == null) {
             seenIdxMap = new ArrayList<>();
             List<Expression> distinctColumns = new ArrayList<>();
