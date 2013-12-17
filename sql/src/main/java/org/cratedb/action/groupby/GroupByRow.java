@@ -4,6 +4,7 @@ import com.google.common.base.Joiner;
 import org.cratedb.DataType;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggState;
+import org.cratedb.action.groupby.aggregate.min.MinAggState;
 import org.cratedb.action.sql.ParsedStatement;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;

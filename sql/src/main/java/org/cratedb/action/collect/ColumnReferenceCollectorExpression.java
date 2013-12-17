@@ -1,6 +1,8 @@
 package org.cratedb.action.collect;
 
 
+import org.cratedb.core.StringUtils;
+
 public abstract class ColumnReferenceCollectorExpression<ReturnType> extends
         CollectorExpression<ReturnType> implements ColumnReferenceExpression {
 
@@ -16,6 +18,6 @@ public abstract class ColumnReferenceCollectorExpression<ReturnType> extends
 
     @Override
     public String toString() {
-        return columnName();
+        return columnName().contains(".") ? StringUtils.dottedToSqlPath(columnName()) : columnName();
     }
 }

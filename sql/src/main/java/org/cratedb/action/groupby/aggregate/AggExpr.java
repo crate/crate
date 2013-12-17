@@ -3,7 +3,6 @@ package org.cratedb.action.groupby.aggregate;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.action.collect.Expression;
-import org.cratedb.action.groupby.ParameterInfo;
 import org.cratedb.action.groupby.aggregate.any.AnyAggState;
 import org.cratedb.action.groupby.aggregate.avg.AvgAggState;
 import org.cratedb.action.groupby.aggregate.count.CountAggState;
