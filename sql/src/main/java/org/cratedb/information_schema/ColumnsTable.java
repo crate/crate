@@ -62,6 +62,10 @@ public class ColumnsTable extends AbstractInformationSchemaTable {
 
         for (IndexMetaData indexMetaData : clusterState.metaData().indices().values()) {
             IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(indexMetaData);
+            // ignore closed indices
+            if (extractor.isIndexClosed()) {
+                continue;
+            }
 
             for (ColumnDefinition columnDefinition : extractor.getColumnDefinitions()) {
                 addColumnDocument(columnDefinition);

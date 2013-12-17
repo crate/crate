@@ -71,6 +71,10 @@ public class IndicesTable extends AbstractInformationSchemaTable {
 
         for (IndexMetaData indexMetaData : clusterState.metaData().indices().values()) {
             IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(indexMetaData);
+            // ignore closed indices
+            if (extractor.isIndexClosed()) {
+                continue;
+            }
 
             for (IndexMetaDataExtractor.Index index: extractor
                     .getIndices()) {
