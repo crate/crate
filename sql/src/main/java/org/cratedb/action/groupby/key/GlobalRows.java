@@ -5,16 +5,18 @@ import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.sql.ParsedStatement;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.lucene.docset.AllDocIdSet;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class GlobalRows extends Rows<GlobalRows> {
 
     private static final GroupByKey GLOBAL_KEY = new GroupByKey(new Boolean[]{true});
     private final ParsedStatement stmt;
-    private final List<GroupByRow>[] buckets;
+    private final GroupByRow[] buckets;
     private int currentBucket;
     private GroupByRow mergedRow = null;
 
@@ -22,10 +24,7 @@ public class GlobalRows extends Rows<GlobalRows> {
         assert numBuckets > 0: "requires at least one bucket";
 
         this.stmt = stmt;
-        this.buckets = new ArrayList[numBuckets];
-        for (int i = 0; i < buckets.length; i++) {
-            buckets[i] = new ArrayList<>();
-        }
+        this.buckets = new GroupByRow[numBuckets];
         this.currentBucket = 0;
     }
 
@@ -39,65 +38,55 @@ public class GlobalRows extends Rows<GlobalRows> {
 
     @Override
     public GroupByRow getRow() {
-        GroupByRow row;
-
-        // put everything into one row per bucket
-        if (buckets[currentBucket].size() > 0) {
-            row = buckets[currentBucket].get(0);
-        } else {
-            row = GroupByRow.createEmptyRow(GLOBAL_KEY, stmt);
-            buckets[currentBucket].add(row);
+        if (buckets[currentBucket] == null) {
+            buckets[currentBucket] = GroupByRow.createEmptyRow(GLOBAL_KEY, stmt);
         }
-
+        GroupByRow row = buckets[currentBucket];
         nextBucket();
         return row;
     }
 
     @Override
     public void writeBucket(StreamOutput out, int idx) throws IOException {
-        // TODO: special serializer
-        List<GroupByRow> bucket = buckets[idx];
-        if (bucket == null || bucket.size() == 0) {
-            out.writeVInt(0);
+        GroupByRow row = buckets[idx];
+        if (row == null) {
+            out.writeBoolean(false);
             return;
         }
-        out.writeVInt(bucket.size());
-        for (GroupByRow row: bucket){
-            row.writeStates(out, stmt);
-        }
+        out.writeBoolean(true);
+        row.writeStates(out, stmt);
     }
 
     @Override
     public void readBucket(StreamInput in, int idx) throws IOException {
-        int size = in.readVInt();
-        if (size==0){
+        if (!in.readBoolean()) {
             return;
         }
-        List<GroupByRow> bucket = new ArrayList<GroupByRow>();
-        for (int i = 0; i < size; i++) {
-            GroupByRow row = new GroupByRow();
-            row.readFrom(in, null, stmt);
-            bucket.add(row);
-        }
-        buckets[idx] = bucket;
+        buckets[idx] = new GroupByRow();
+        buckets[idx].readFrom(in, GLOBAL_KEY, stmt);
     }
 
-    public List<GroupByRow>[] buckets() {
-        return buckets;
+    public List<GroupByRow> buckets() {
+        List<GroupByRow> result = new ArrayList<>(buckets.length);
+        for (GroupByRow bucket : buckets) {
+            if (bucket != null) {
+                result.add(bucket);
+            }
+        }
+
+        return result;
     }
 
     @Override
     public synchronized void merge(GlobalRows other) {
         // put all buckets of other in this buckets regardless how many buckets are in other
-        assert other.buckets().length == 1;
+        assert other.buckets().size() <= 1;
 
-        for (List<GroupByRow> otherRows : other.buckets()) {
-            for (GroupByRow groupByRow : otherRows) {
-                if (mergedRow == null) {
-                    mergedRow = groupByRow;
-                } else {
-                    mergedRow.merge(groupByRow);
-                }
+        for (GroupByRow otherRow : other.buckets()) {
+            if (mergedRow == null) {
+                mergedRow = otherRow;
+            } else {
+                mergedRow.merge(otherRow);
             }
         }
     }
@@ -109,10 +98,8 @@ public class GlobalRows extends Rows<GlobalRows> {
             return;
         }
 
-        for (List<GroupByRow> l : buckets) {
-            for (GroupByRow row : l) {
-                visitor.visit(row);
-            }
+        for (GroupByRow row : buckets()) {
+            visitor.visit(row);
         }
     }
 }

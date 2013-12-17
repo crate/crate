@@ -7,8 +7,12 @@ import org.cratedb.action.ReduceJobStatusContext;
 import org.cratedb.action.SQLGroupByResult;
 import org.cratedb.action.SQLMapperResultRequest;
 import org.cratedb.action.SQLReduceJobStatus;
+import org.cratedb.action.collect.CollectorContext;
 import org.cratedb.action.collect.Expression;
 import org.cratedb.action.groupby.GroupByRow;
+import org.cratedb.action.groupby.SQLGroupingCollector;
+import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.groupby.aggregate.count.CountDistinctAggFunction;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
@@ -21,6 +25,7 @@ import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.json.JSONObject;
 import org.junit.Test;
@@ -63,6 +68,61 @@ public class RowsSerializationTest {
         assertEquals(expected, actual);
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testGlobalRow() throws Exception {
+        ThreadPool threadPool = new ThreadPool(ImmutableSettings.EMPTY, null);
+        CacheRecycler cacheRecycler = new CacheRecycler(ImmutableSettings.EMPTY);
+
+        NodeExecutionContext nec = HitchhikerMocks.nodeExecutionContext();
+        TableExecutionContext tec = mock(TableExecutionContext.class);
+        when(nec.tableContext(anyString(), anyString())).thenReturn(tec);
+        when(tec.getCollectorExpression(any(ValueNode.class))).thenReturn(fakeExpression);
+
+        SQLParseService parseService = new SQLParseService(nec);
+        ParsedStatement stmt = parseService.parse(
+            "select count(distinct race) from characters");
+
+        SQLMapperResultRequest requestSender = new SQLMapperResultRequest();
+        GlobalRows rows1 = new GlobalRows(1, stmt);
+        requestSender.contextId = UUID.randomUUID();
+        requestSender.groupByResult = new SQLGroupByResult(0, rows1);
+
+        BytesRef[] values = new BytesRef[] {
+            new BytesRef("a"),
+            new BytesRef("b"),
+            new BytesRef("c"),
+            new BytesRef("c"),
+            new BytesRef("d")
+        };
+
+        AggFunction aggFunction = HitchhikerMocks.aggFunctionMap.get(CountDistinctAggFunction.NAME);
+        for (int i = 0; i < 5; i++) {
+            GroupByRow row = rows1.getRow();
+            aggFunction.iterate(row.aggStates.get(0), values[i]);
+        }
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        requestSender.writeTo(out);
+
+        ReduceJobStatusContext jobStatusContext = new ReduceJobStatusContext(cacheRecycler);
+        SQLMapperResultRequest requestReceiver = new SQLMapperResultRequest(jobStatusContext);
+
+        jobStatusContext.put(requestSender.contextId, new SQLReduceJobStatus(stmt, threadPool));
+        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        requestReceiver.readFrom(in);
+
+        final AtomicInteger visited = new AtomicInteger(0);
+        requestReceiver.groupByResult.rows().walk(new Rows.RowVisitor() {
+            @Override
+            public void visit(GroupByRow row) {
+                visited.incrementAndGet();
+            }
+        });
+
+        assertEquals(1, visited.get());
+    }
+
 
     @Test
     public void testGroupTree() throws Exception {
@@ -71,9 +131,7 @@ public class RowsSerializationTest {
         CacheRecycler cacheRecycler = new CacheRecycler(ImmutableSettings.EMPTY);
         NodeExecutionContext nec = HitchhikerMocks.nodeExecutionContext();
         TableExecutionContext tec = mock(TableExecutionContext.class);
-
         when(nec.tableContext(anyString(), anyString())).thenReturn(tec);
-
         when(tec.getCollectorExpression(any(ValueNode.class))).thenReturn(fakeExpression);
 
         SQLParseService parseService = new SQLParseService(nec);
