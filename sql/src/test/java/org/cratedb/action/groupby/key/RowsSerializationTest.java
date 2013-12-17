@@ -118,9 +118,9 @@ public class RowsSerializationTest {
 
         GroupTree t3 = (GroupTree)requestReceiver2.groupByResult.rows();
 
-
-        // TODO:
-        assertEquals(t2.maps().length, t2.maps().length);
-        //assertMapEquals(t1.maps()[0], t2.maps()[0]);
+        assertEquals(1, t2.maps().length);
+        assertEquals(1, t2.maps()[0].size());
+        assertEquals(1, t3.maps().length);
+        assertEquals(2, t3.maps()[0].size());
     }
 }

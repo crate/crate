@@ -1,14 +1,10 @@
 package org.cratedb.action.groupby;
 
-import com.google.common.collect.ImmutableSet;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.action.collect.ColumnReferenceExpression;
 import org.cratedb.action.collect.Expression;
 import org.cratedb.action.groupby.aggregate.AggExpr;
-import org.cratedb.action.groupby.aggregate.any.AnyAggFunction;
-import org.cratedb.action.groupby.aggregate.max.MaxAggFunction;
-import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
 import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.sql.ParsedStatement;
@@ -18,15 +14,6 @@ import org.cratedb.mapper.FieldMapper;
 import java.util.*;
 
 public class GroupByHelper {
-
-    /**
-     * Aggregation functions whose values need to be mapped before returning the GroupByResult
-     */
-    public static final ImmutableSet<String> MAPPED_AGG_FUNCTIONS = ImmutableSet.of(
-            MinAggFunction.NAME,
-            MaxAggFunction.NAME,
-            AnyAggFunction.NAME
-    );
 
     public static Collection<GroupByRow> trimRows(List<GroupByRow> rows,
                                                   Comparator<GroupByRow> comparator,
