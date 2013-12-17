@@ -1203,4 +1203,108 @@ public class QueryVisitorTest {
         execStatement("select count(distinct nothing) from locations");
     }
 
+    @Test
+    public void selectWithTablePrefix() throws Exception {
+        execStatement("select locations.col from locations where locations.col is not null order by locations.col");
+        assertEquals("col", stmt.outputFields().get(0).v1());
+        assertEquals("col", stmt.outputFields().get(0).v2());
+        assertEquals("{\"fields\":[\"col\"]," +
+                "\"query\":{\"bool\":{\"must_not\":{\"filtered\":{\"filter\":" +
+                "{\"missing\":{\"field\":\"col\",\"existence\":true,\"null_value\":true}}}}}}," +
+                "\"sort\":[{\"col\":{\"order\":\"asc\",\"ignore_unmapped\":true}}]," +
+                "\"size\":10000}", getSource());
+        assertEquals("col", stmt.orderByColumns.get(0).name);
+    }
+
+    @Test
+    public void selectGroupByWithTablePrefix() throws Exception {
+        execStatement("select locations.col from locations group by locations.col");
+        assertEquals("col", stmt.groupByColumnNames.get(0));
+    }
+
+    @Test
+    public void errorOnDifferentSchemaInResultColumn() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Cannot reference column from different schema.");
+        execStatement("select scheme.locations.col from locations");
+    }
+
+    @Test
+    public void errorOnDifferentSchemaInWhereClause() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Cannot reference column from different schema.");
+        execStatement("select col from locations where scheme.location.col is not null");
+    }
+
+    @Test
+    public void errorOnDifferentSchemaInWhereClauseWhereIn() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Cannot reference column from different schema.");
+        execStatement("select col from locations where scheme.location.col in (1,2,3)");
+    }
+
+    @Test
+    public void errorOnDifferentSchemaInOrderby() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Cannot reference column from different schema.");
+        execStatement("select col from locations order by scheme.locations.wrong asc");
+    }
+
+    @Test
+    public void selectGroupByWithDifferentSchemaPrefix() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Cannot reference column from different schema.");
+        execStatement("select locations.col from locations group by scheme.locations.col");
+
+    }
+
+    @Test
+    public void errorOnDifferentTableInResultColumn() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Cannot reference column from different table.");
+        execStatement("select something.wrong, col from locations");
+    }
+
+    @Test
+    public void errorOnDifferentTableInResultColumn2() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Cannot reference column from different table.");
+        execStatement("select craty_field.wrong, col from locations");
+    }
+
+    @Test
+    public void errorOnDifferentTableInWhereClause() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Cannot reference column from different table.");
+        execStatement("select col from locations where something.wrong = 1");
+    }
+
+    @Test
+    public void errorOnDifferentTableInWhereClauseWhereIn() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Cannot reference column from different table.");
+        execStatement("select col from locations where something.wrong in (1,2,3)");
+    }
+
+    @Test
+    public void errorOnDifferentTableInOrderby() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Cannot reference column from different table.");
+        execStatement("select col from locations order by something.wrong asc");
+    }
+
+    @Test
+    public void errorOnUpdateOnDifferentTable() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Cannot reference column from different table.");
+        execStatement("update locations set something.wrong='haha'");
+    }
+
+    @Test
+    public void errorOnDeleteFromDifferentTable() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Cannot reference column from different table.");
+        execStatement("delete from locations where something.wrong='haha'");
+    }
+
 }

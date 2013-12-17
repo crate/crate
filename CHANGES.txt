@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fix: forbid references to other tables
+
  - fix: more stability for InformationSchemaServiceTest
 
 2013/12/17 0.19.13

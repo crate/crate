@@ -68,9 +68,14 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         Map<String, Object> updateDoc = new HashMap<>();
         for (ResultColumn rc: (node.getResultSetNode()).getResultColumns()){
             String columnName = rc.getName();
-            if (rc.getReference() != null && rc.getReference() instanceof NestedColumnReference) {
-                NestedColumnReference nestedColumn = (NestedColumnReference)rc.getReference();
-                columnName = nestedColumn.xcontentPathString();
+            ColumnReference columnReference = rc.getReference();
+
+            if (columnReference != null) {
+                validateColumnReference(columnReference);
+                if (rc.getReference() instanceof NestedColumnReference) {
+                    NestedColumnReference nestedColumn = (NestedColumnReference)rc.getReference();
+                    columnName = nestedColumn.xcontentPathString();
+                }
             }
             updateDoc.put(columnName, mappedValueFromNode(columnName, rc.getExpression()));
         }
@@ -190,6 +195,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
         String columnName;
         for (GroupByColumn column : groupByList) {
+            validateColumnReference((ColumnReference) column.getColumnExpression());
             columnName = column.getColumnExpression().getColumnName();
             if (tableContext.isMultiValued(columnName))
             {
@@ -226,6 +232,8 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         jsonBuilder.startArray("sort");
         int count = 0;
         for (OrderByColumn column : node) {
+
+            validateColumnReference((ColumnReference) column.getExpression());
             String columnName = column.getExpression().getColumnName();
             idxNames = columnNames.indexOf(columnName);
             idxAliases = aliases.indexOf(columnName);
@@ -327,7 +335,8 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 }
 
                 fields.add(columnName);
-            } else {
+            } else if (column.getExpression().getNodeType() == NodeTypes.COLUMN_REFERENCE) {
+                validateColumnReference((ColumnReference) column.getExpression());
                 fields.add(columnName);
             }
 
@@ -404,9 +413,8 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 // value of the parameterNode is a literal, Currently a literal is considered a "isAllColumn"
                 return null;
             case NodeTypes.COLUMN_REFERENCE:
-                columnName = node.getColumnName();
-                break;
             case NodeTypes.NESTED_COLUMN_REFERENCE:
+                validateColumnReference((ColumnReference) node);
                 columnName = node.getColumnName();
                 break;
             default:
@@ -487,6 +495,9 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
     @Override
     public void visit(ValueNode parentNode, IsNullNode node) throws IOException {
+
+        validateColumnReference((ColumnReference) node.getOperand());
+
         jsonBuilder
             .startObject("filtered").startObject("filter").startObject("missing")
             .field("field", node.getOperand().getColumnName())
@@ -526,7 +537,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             left = right;
             right = tmp;
         }
-
+        validateColumnReference((ColumnReference) left);
         String columnName = left.getColumnName();
         String like = mappedValueFromNode(columnName, right).toString();
 
@@ -576,6 +587,8 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             throw new SQLParseException("Invalid IN clause");
         }
         if (column instanceof ColumnReference) {
+            validateColumnReference((ColumnReference) column);
+
             jsonBuilder.startObject("terms").startArray(column.getColumnName());
             for (ValueNode listNode : rightNodes.getNodeList()) {
                 String columnName = column.getColumnName();
@@ -684,13 +697,16 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         Object value;
 
         if (node.getLeftOperand() instanceof ColumnReference) {
+            validateColumnReference((ColumnReference)node.getLeftOperand());
             columnName = node.getLeftOperand().getColumnName();
             value = mappedValueFromNode(columnName, node.getRightOperand());
         } else {
             operator = swapOperator(operator);
+            validateColumnReference((ColumnReference)node.getRightOperand());
             columnName = node.getRightOperand().getColumnName();
             value = mappedValueFromNode(columnName, node.getLeftOperand());
         }
+
 
         boolean plannerResult = queryPlanner.checkColumn(tableContext, stmt, parentNode,
                 operator, columnName, value);
@@ -847,6 +863,17 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 .endObject();
 
         stmt.columnsWithFilter.add(columnReference.getColumnName());
+    }
+
+    private void validateColumnReference(ColumnReference columnReference) {
+        String schemaName = columnReference.getSchemaName();
+        String tableName = columnReference.getTableName();
+        if (schemaName != null && !schemaName.equals(stmt.schemaName())) {
+            throw new SQLParseException("Cannot reference column from different schema.");
+        }
+        if (tableName != null && !tableName.equals(stmt.tableName())) {
+            throw new SQLParseException("Cannot reference column from different table.");
+        }
     }
 
 }
