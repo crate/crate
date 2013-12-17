@@ -90,13 +90,21 @@ public class AggExpr extends ColumnDescription {
                             @Override
                             @SuppressWarnings("unchecked")
                             public void readFrom(StreamInput in) throws IOException {
-                                setValue(in.readBytesRef());
-
+                                if (!in.readBoolean()) {
+                                    setValue(in.readBytesRef());
+                                } else {
+                                    setValue(null);
+                                }
                             }
 
                             @Override
                             public void writeTo(StreamOutput out) throws IOException {
-                                out.writeBytesRef((BytesRef) value());
+                                if (value() == null) {
+                                    out.writeBoolean(true);
+                                } else {
+                                    out.writeBoolean(false);
+                                    out.writeBytesRef((BytesRef) value());
+                                }
                             }
                         };
                     }
@@ -238,17 +246,24 @@ public class AggExpr extends ColumnDescription {
                     @Override
                     AggState create() {
                         return new MaxAggState<BytesRef>() {
-
                             @Override
                             @SuppressWarnings("unchecked")
                             public void readFrom(StreamInput in) throws IOException {
-                                setValue(in.readBytesRef());
-
+                                if (!in.readBoolean()) {
+                                    setValue(in.readBytesRef());
+                                } else {
+                                    setValue(null);
+                                }
                             }
 
                             @Override
                             public void writeTo(StreamOutput out) throws IOException {
-                                out.writeBytesRef((BytesRef) value());
+                                if (value() == null) {
+                                    out.writeBoolean(true);
+                                } else {
+                                    out.writeBoolean(false);
+                                    out.writeBytesRef((BytesRef) value());
+                                }
                             }
                         };
                     }
@@ -443,13 +458,23 @@ public class AggExpr extends ColumnDescription {
                             }
 
                             @Override
+                            @SuppressWarnings("unchecked")
                             public void readFrom(StreamInput in) throws IOException {
-                                this.value = in.readBytesRef();
+                                if (!in.readBoolean()) {
+                                    this.value = in.readBytesRef();
+                                } else {
+                                    this.value = null;
+                                }
                             }
 
                             @Override
                             public void writeTo(StreamOutput out) throws IOException {
-                                out.writeBytesRef(this.value);
+                                if (value() == null) {
+                                    out.writeBoolean(true);
+                                } else {
+                                    out.writeBoolean(false);
+                                    out.writeBytesRef((BytesRef) value());
+                                }
                             }
                         };
                     }

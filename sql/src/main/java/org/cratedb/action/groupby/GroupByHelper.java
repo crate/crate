@@ -66,10 +66,10 @@ public class GroupByHelper {
                         @Override
                         public Object getValue(GroupByRow row) {
                             BytesRef bytesRef = (BytesRef)row.aggStates.get(idx).value();
-                            if (bytesRef.length == 0) {
-                                return null;
+                            if (bytesRef != null) {
+                                return bytesRef.utf8ToString();
                             }
-                            return bytesRef.utf8ToString();
+                            return null;
                         }
                     };
                 } else {
@@ -96,10 +96,10 @@ public class GroupByHelper {
                                 @Override
                                 public Object getValue(GroupByRow row) {
                                     BytesRef bytesRef = (BytesRef)row.key.get(idx);
-                                    if (bytesRef.length == 0) {
-                                        return null;
+                                    if (bytesRef != null) {
+                                        return bytesRef.utf8ToString();
                                     }
-                                    return bytesRef.utf8ToString();
+                                    return null;
                                 }
                             };
                         } else {

@@ -1,7 +1,9 @@
 package org.cratedb.action.groupby.key;
 
+import org.cratedb.DataType;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
+import org.cratedb.action.groupby.aggregate.AggState;
 import org.cratedb.action.sql.ParsedStatement;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -78,8 +80,22 @@ public class GlobalRows extends Rows<GlobalRows> {
     @Override
     public void merge(GlobalRows other) {
         // put all buckets of other in this buckets regardless how many buckets are in other
-        for (List<GroupByRow> l : other.buckets()) {
-            buckets[currentBucket].addAll(l);
+        assert other.buckets().length == 1;
+
+        GroupByRow thisRow = null;
+        if (buckets[currentBucket].size() > 0) {
+            thisRow = buckets[currentBucket].get(0);
+        }
+
+        for (List<GroupByRow> otherRows : other.buckets()) {
+            for (GroupByRow groupByRow : otherRows) {
+                if (thisRow == null) {
+                    thisRow = groupByRow;
+                    buckets[currentBucket].add(thisRow);
+                } else {
+                    thisRow.merge(groupByRow);
+                }
+            }
             nextBucket();
         }
     }

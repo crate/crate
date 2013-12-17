@@ -1,5 +1,6 @@
 package org.cratedb.action.groupby.aggregate.min;
 
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.action.groupby.aggregate.AggState;
 
 /**
@@ -17,9 +18,9 @@ public abstract class MinAggState<T extends Comparable<T>> extends AggState<MinA
 
     @Override
     public void reduce(MinAggState<T> other) {
-        if (other.value == null) {
+        if (other.value() == null) {
             return;
-        } else if (value == null) {
+        } else if (value() == null) {
             value = other.value;
             return;
         }

@@ -143,12 +143,24 @@ public enum DataType {
         public static final Streamer<BytesRef> BYTES_REF = new Streamer<BytesRef>() {
             @Override
             public BytesRef readFrom(StreamInput in) throws IOException {
-                return in.readBytesRef();
+                int length = in.readVInt();
+                if (length == 0) {
+                    return null;
+                }
+                byte[] bytes = new byte[length - 1];
+                in.readBytes(bytes, 0, bytes.length);
+                return new BytesRef(bytes);
             }
 
             @Override
             public void writeTo(StreamOutput out, Object v) throws IOException {
-                out.writeBytesRef((BytesRef) v);
+                if (v == null) {
+                    out.writeVInt(0);
+                } else {
+                    BytesRef bytesRef = (BytesRef)v;
+                    out.writeVInt(bytesRef.length + 1);
+                    out.writeBytes(bytesRef.bytes, bytesRef.offset, bytesRef.length);
+                }
             }
         };
     }
