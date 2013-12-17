@@ -11,8 +11,8 @@
 
     <div class="collapse navbar-collapse navbar-ex1-collapse {{cluster_color_label_bar}}">
       <ul class="nav navbar-nav side-nav">
-        <li ng-class="{ 'active': isActive('/')}"><a href="#"><i class="fa fa-desktop"></i> Overview</a></li>
-        <li ng-class="{ 'active': isActive('/console')}"><a href="#/console"><i class="fa fa-code"></i> Console</a></li>
+        <li ng-class="{ 'active': isActive('/')}"><a href="#{{params}}"><i class="fa fa-th-large"></i> Overview</a></li>
+        <li ng-class="{ 'active': isActive('/console')}"><a href="#/console{{params}}"><i class="fa fa-code"></i> Console</a></li>
         <!-- Logo -->
         <li><a class="navbar-brand" href="index.html"></a></li>
       </ul>

@@ -237,22 +237,37 @@ h2 {
   font-weight: normal;
 }
 
-.panel > .panel-heading {
-  color: #000;
-  background-color: #ffffff;
-  border: 0;
-}
-
 .panel {
   border: 0;
-  -webkit-box-shadow: 0;
-          box-shadow: 0;
+  box-shadow: 0 0 0;
+  -webkit-box-shadow: 0 0 0;
+    .panel-heading {
+      color: #000;
+      background-color: #ffffff;
+      border: 0;
+      padding: 0;
+      margin-right: 10px;
+    }
+}
+
+.panel-warning > .panel-heading .announcement-heading {
+  background-color: @brand-warning;
+  display: inline;
+}
+
+.panel-success > .panel-heading .announcement-heading {
+  background-color: @brand-success;
+  display: inline;
+}
+
+.panel-danger > .panel-heading .announcement-heading {
+  background-color: @brand-danger;
+  display: inline;
 }
 
 // Form
-
 form {
-  margin-top:30px;
+  margin-top: 30px;
 }
 
 .btn-default {
