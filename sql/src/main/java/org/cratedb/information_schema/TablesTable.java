@@ -8,6 +8,7 @@ import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.index.IndexMetaDataExtractor;
 import org.cratedb.lucene.fields.IntegerLuceneField;
 import org.cratedb.lucene.fields.StringLuceneField;
+import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Inject;
@@ -20,8 +21,8 @@ public class TablesTable extends AbstractInformationSchemaTable {
     public static final String NAME = "tables";
 
     @Inject
-    public TablesTable(Map<String, AggFunction> aggFunctionMap) {
-        super(aggFunctionMap);
+    public TablesTable(Map<String, AggFunction> aggFunctionMap, CacheRecycler cacheRecycler) {
+        super(aggFunctionMap, cacheRecycler);
         fieldMapper.put(Columns.TABLE_NAME,
                 new StringLuceneField(Columns.TABLE_NAME));
         fieldMapper.put(Columns.NUMBER_OF_SHARDS,

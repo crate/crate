@@ -1,5 +1,8 @@
 package org.cratedb.action.sql;
 
+
+import org.apache.lucene.util.BytesRef;
+
 import java.util.Collection;
 import java.util.List;
 
@@ -20,11 +23,18 @@ public class SQLShardResultHelper {
             }
             currentRow++;
             for (int i = 0; i < result[currentRow].length; i++) {
-                result[currentRow][i] = row.get(i);
+                Object value = row.get(i);
+                if (value instanceof BytesRef) {
+                    result[currentRow][i] = ((BytesRef)value).utf8ToString();
+                } else {
+                    result[currentRow][i] = value;
+                }
             }
         }
 
         return result;
     }
+
+
 
 }

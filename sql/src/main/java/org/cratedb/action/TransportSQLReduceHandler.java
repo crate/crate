@@ -6,6 +6,10 @@ import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.service.SQLParseService;
+import org.cratedb.sql.CrateException;
+import org.cratedb.sql.SQLReduceJobFailedException;
+import org.cratedb.sql.SQLReduceJobTimeoutException;
+import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ListenableActionFuture;
 import org.elasticsearch.cluster.ClusterService;
@@ -32,9 +36,9 @@ public class TransportSQLReduceHandler {
     private final ReduceJobStatusContext reduceJobStatusContext;
     private final ClusterService clusterService;
     private final SQLParseService sqlParseService;
+    private final CacheRecycler cacheRecycler;
     private final ThreadPool threadPool;
     private final ScheduledExecutorService scheduledExecutorService;
-    private final SoftThreadLocalRecycler<ConcurrentMap<GroupByKey, GroupByRow>> resultRecycler;
 
     public static class Actions {
         public static final String START_REDUCE_JOB = "crate/sql/shard/reduce/start_job";
@@ -43,26 +47,17 @@ public class TransportSQLReduceHandler {
 
     @Inject
     public TransportSQLReduceHandler(TransportService transportService,
-                                     ClusterService clusterService,
-                                     SQLParseService sqlParseService,
-                                     ThreadPool threadPool) {
+            ClusterService clusterService,
+            SQLParseService sqlParseService,
+            CacheRecycler cacheRecycler,
+            ThreadPool threadPool) {
+        this.cacheRecycler = cacheRecycler;
         this.sqlParseService = sqlParseService;
         this.clusterService = clusterService;
         this.transportService = transportService;
         this.threadPool = threadPool;
-        this.reduceJobStatusContext = new ReduceJobStatusContext();
+        this.reduceJobStatusContext = new ReduceJobStatusContext(cacheRecycler);
         this.scheduledExecutorService = new ScheduledThreadPoolExecutor(2);
-        this.resultRecycler = new SoftThreadLocalRecycler<>(new Recycler.C<ConcurrentMap<GroupByKey, GroupByRow>>() {
-            @Override
-            public ConcurrentMap<GroupByKey, GroupByRow> newInstance(int sizing) {
-                return ConcurrentCollections.newConcurrentMap();
-            }
-
-            @Override
-            public void clear(ConcurrentMap<GroupByKey, GroupByRow> value) {
-                value.clear();
-            }
-        }, 10);
     }
 
     public void registerHandler() {
@@ -78,7 +73,6 @@ public class TransportSQLReduceHandler {
         SQLReduceJobStatus reduceJobStatus = new SQLReduceJobStatus(
             parsedStatement,
             threadPool,
-            resultRecycler.obtain(-1).v(),
             request.expectedShardResults,
             request.contextId,
             reduceJobStatusContext

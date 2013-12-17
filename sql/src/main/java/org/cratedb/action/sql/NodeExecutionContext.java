@@ -7,12 +7,12 @@ import org.cratedb.index.ColumnDefinition;
 import org.cratedb.index.IndexMetaDataExtractor;
 import org.cratedb.information_schema.InformationSchemaTableExecutionContext;
 import org.cratedb.information_schema.InformationSchemaTableExecutionContextFactory;
-import org.cratedb.stats.ShardStatsTableExecutionContext;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.TableAliasSchemaException;
 import org.cratedb.sql.TableUnknownException;
 import org.cratedb.sql.types.SQLFieldMapper;
 import org.cratedb.sql.types.SQLFieldMapperFactory;
+import org.cratedb.stats.ShardStatsTableExecutionContext;
 import org.elasticsearch.action.support.IgnoreIndices;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -47,6 +47,7 @@ public class NodeExecutionContext {
                                 SQLFieldMapperFactory sqlFieldMapperFactory,
                                 ShardStatsTableExecutionContext shardStatsTableExecutionContext,
                                 Map<String, AggFunction> availableAggFunctions) {
+
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.analyzerService = analyzerService;
@@ -171,4 +172,5 @@ public class NodeExecutionContext {
     public Map<String, AggFunction> availableAggFunctions() {
         return this.availableAggFunctions;
     }
+
 }

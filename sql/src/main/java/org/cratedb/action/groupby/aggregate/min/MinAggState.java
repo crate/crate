@@ -45,4 +45,9 @@ public abstract class MinAggState<T extends Comparable<T>> extends AggState<MinA
         if (otherValue == null) return -1;
         return value.compareTo(otherValue);
     }
+
+    @Override
+    public String toString() {
+        return "<MinAggState \"" + value + "\"";
+    }
 }

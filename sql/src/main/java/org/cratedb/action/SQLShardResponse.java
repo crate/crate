@@ -1,5 +1,8 @@
 package org.cratedb.action;
 
+import org.apache.lucene.util.BytesRef;
+import org.cratedb.DataType;
+import org.cratedb.action.sql.ParsedStatement;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -10,7 +13,14 @@ import java.util.List;
 
 public class SQLShardResponse extends ActionResponse {
 
+    private ParsedStatement stmt;
     public List<List<Object>> results;
+
+    public SQLShardResponse() {}
+
+    public SQLShardResponse(ParsedStatement stmt) {
+        this.stmt = stmt;
+    }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
@@ -20,9 +30,9 @@ public class SQLShardResponse extends ActionResponse {
         if (resultLength > 0) {
             int rowLength = in.readVInt();
             for (int i = 0; i < resultLength; i++) {
-                List row = new ArrayList();
+                List<Object> row = new ArrayList<>();
                 for (int j = 0; j < rowLength; j++) {
-                    row.add(in.readGenericValue());
+                    row.add(stmt.resultColumnList().get(j).returnType().streamer().readFrom(in));
                 }
                 results.add(row);
             }
@@ -36,8 +46,11 @@ public class SQLShardResponse extends ActionResponse {
         if (results != null && results.size() > 0) {
             out.writeVInt(results.get(0).size());
             for(List<Object> row : results) {
+
+                int idx = -1;
                 for (Object value : row) {
-                    out.writeGenericValue(value);
+                    idx++;
+                    stmt.resultColumnList().get(idx).returnType().streamer().writeTo(out, value);
                 }
             }
         }

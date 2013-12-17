@@ -1,14 +1,18 @@
 package org.cratedb.action.parser.visitors;
 
+import com.google.common.base.Optional;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
-import org.cratedb.action.groupby.ParameterInfo;
+import org.cratedb.DataType;
+import org.cratedb.action.collect.Expression;
+import org.cratedb.action.collect.LiteralValueExpression;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.any.AnyAggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountColumnAggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountDistinctAggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountStarAggFunction;
+import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.OrderByColumnIdx;
@@ -186,17 +190,16 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     }
 
     private void addGroupByColumns(GroupByList groupByList) {
-        stmt.groupByColumnNames = new ArrayList<>(groupByList.size());
-
-        String columnName;
+        List<Expression> gbe = new ArrayList<>(groupByList.size());
         for (GroupByColumn column : groupByList) {
-            columnName = column.getColumnExpression().getColumnName();
-            if (tableContext.isMultiValued(columnName))
+            // TODO: move this check to the expression logic once we have more of them
+            if (tableContext.isMultiValued(column.getColumnExpression().getColumnName()))
             {
-                throw new GroupByOnArrayUnsupportedException(columnName);
+                throw new GroupByOnArrayUnsupportedException(column.getColumnExpression().getColumnName());
             }
-            stmt.groupByColumnNames.add(column.getColumnExpression().getColumnName());
+            gbe.add(getCollectorExpression(column.getColumnExpression()));
         }
+        stmt.groupByExpressions(gbe);
     }
 
     private void visit(OrderByList node) throws IOException, StandardException {
@@ -287,8 +290,8 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         }
 
         Set<String> fields = new LinkedHashSet<>();
-        stmt.resultColumnList = new ArrayList<>(columnList.size());
-        stmt.aggregateExpressions = new ArrayList<>();
+        stmt.resultColumnList(new ArrayList<ColumnDescription>(columnList.size()));
+        stmt.aggregateExpressions(new ArrayList<AggExpr>());
 
         for (ResultColumn column : columnList) {
             if (column instanceof AllResultColumn) {
@@ -300,6 +303,9 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 for (String name : cols) {
                     stmt.addOutputField(name, name);
                     fields.add(name);
+                    stmt.resultColumnList().add(
+                        new ColumnReferenceDescription(tableContext.getColumnDefinition(name))
+                    );
                 }
                 continue;
             }
@@ -331,7 +337,13 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 fields.add(columnName);
             }
 
-            stmt.resultColumnList.add(new ColumnReferenceDescription(columnName));
+            ColumnDefinition columnDefinition = tableContext.getColumnDefinition(columnName);
+            if (columnDefinition != null) {
+                stmt.resultColumnList().add(new ColumnReferenceDescription(columnDefinition));
+            } else {
+                stmt.resultColumnList().add(new ColumnReferenceDescription(columnName, DataType.CRATY));
+            }
+
             stmt.addOutputField(columnAlias, columnName);
         }
 
@@ -352,8 +364,6 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 throw new SQLParseException("Only aggregate expressions allowed here");
             }
         }
-
-
     }
 
     /**
@@ -366,10 +376,17 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         String aggregateName = node.getAggregateName();
 
         AggFunction<?> aggFunction;
+
+        ValueNode operand = node.getOperand();
+        Expression expression = null;
+        if (operand != null){
+            expression = getCollectorExpression(operand);
+        }
+
         if (aggregateName.equals(CountColumnAggFunction.NAME)) {
             if (node.isDistinct()) {
                 aggregateName = CountDistinctAggFunction.NAME;
-            } else if (node.getOperand().getNodeType() == NodeTypes.PARAMETER_NODE) {
+            } else if (operand.getNodeType() == NodeTypes.PARAMETER_NODE) {
                 // COUNT(*) with parameter
                 aggregateName = CountStarAggFunction.NAME;
             }
@@ -385,47 +402,28 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             throw new SQLParseException(
                 String.format("The distinct keyword can't be used with the %s function", aggregateName));
         }
-
-        ValueNode operand = node.getOperand();
-        ParameterInfo parameterInfo = null;
-        if (operand != null) {
-            parameterInfo = resolveParameterInfo(operand, aggFunction);
+        if (expression!=null && !aggFunction.supportedColumnTypes().contains(expression.returnType())) {
+            throw new SQLParseException(
+                    String.format("Invalid column type '%s' for aggregate function %s",
+                            expression.returnType(), aggFunction.name()));
         }
-
-        return new AggExpr(aggregateName, parameterInfo, node.isDistinct());
+        return new AggExpr(aggregateName, node.isDistinct(), expression);
     }
 
-    private ParameterInfo resolveParameterInfo(ValueNode node, AggFunction aggFunction) {
+    private Expression getCollectorExpression(ValueNode node){
         assert node != null;
-        String columnName;
-
-        switch (node.getNodeType()) {
-            case NodeTypes.PARAMETER_NODE:
-                // value of the parameterNode is a literal, Currently a literal is considered a "isAllColumn"
-                return null;
-            case NodeTypes.COLUMN_REFERENCE:
-                columnName = node.getColumnName();
-                break;
-            case NodeTypes.NESTED_COLUMN_REFERENCE:
-                columnName = node.getColumnName();
-                break;
-            default:
-                throw new SQLParseException("Got an unsupported argument to a aggregate function");
+        Expression expr;
+        if (node.getNodeType() == NodeTypes.PARAMETER_NODE) {
+            expr = new LiteralValueExpression(args[((ParameterNode)node).getParameterNumber()]);
+        } else {
+            expr = tableContext.getCollectorExpression(node);
         }
 
-        // check columns
-        ColumnDefinition columnDefinition = tableContext.getColumnDefinition(columnName);
-        if (columnDefinition == null) {
-            throw new SQLParseException(String.format("Unknown column '%s'", columnName));
+        if (expr == null){
+            throw new SQLParseException(String.format("No expression for node type '%s' %s found",
+                    node.getNodeType(), node.getClass()));
         }
-        if (!aggFunction.supportedColumnTypes().contains(columnDefinition.dataType)) {
-            throw new SQLParseException(
-                String.format("Invalid column type '%s' for aggregate function %s",
-                    columnDefinition.dataType, aggFunction.name())
-            );
-        }
-
-        return new ParameterInfo(columnName, columnDefinition.dataType);
+        return expr;
     }
 
     private void handleAggregateNode(ParsedStatement stmt, ResultColumn column) {
@@ -437,8 +435,8 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             if (aggExpr.functionName.startsWith(CountStarAggFunction.NAME)) {
                 stmt.hasCountStarAggregate(true);
             }
-            stmt.resultColumnList.add(aggExpr);
-            stmt.aggregateExpressions.add(aggExpr);
+            stmt.resultColumnList().add(aggExpr);
+            stmt.aggregateExpressions().add(aggExpr);
             if (aggExpr.isDistinct) {
                 stmt.hasDistinctAggregate = true;
             }
@@ -447,7 +445,8 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             }
             String columnName = aggExpr.toString();
 
-            stmt.addOutputField(column.getName() != null ? column.getName() : columnName, columnName);
+            stmt.addOutputField(column.getName() != null ? column.getName() : columnName,
+                    columnName);
         }
     }
 

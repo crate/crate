@@ -1,11 +1,17 @@
 package org.cratedb.stats;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import org.cratedb.action.collect.Expression;
+import org.cratedb.action.collect.FieldLookupExpression;
 import org.cratedb.action.sql.ITableExecutionContext;
 import org.cratedb.index.ColumnDefinition;
 import org.cratedb.lucene.LuceneFieldMapper;
 import org.cratedb.lucene.fields.LuceneField;
 import org.cratedb.mapper.FieldMapper;
+import org.cratedb.sql.SQLParseException;
+import org.cratedb.sql.parser.parser.NodeTypes;
+import org.cratedb.sql.parser.parser.ValueNode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,8 +26,9 @@ public class ShardStatsTableExecutionContext implements ITableExecutionContext {
     public ShardStatsTableExecutionContext() {
         ImmutableMap.Builder<String, ColumnDefinition> builder = new ImmutableMap.Builder<>();
         int position = 0;
-        for (Map.Entry<String, LuceneField> entry: luceneFieldMapper().entrySet()) {
-            builder.put(entry.getKey(), entry.getValue().getColumnDefinition(SCHEMA_NAME, position++));
+        for (Map.Entry<String, LuceneField> entry : luceneFieldMapper().entrySet()) {
+            builder.put(entry.getKey(), entry.getValue().getColumnDefinition(SCHEMA_NAME,
+                    position++));
         }
         this.columnDefinitions = builder.build();
     }
@@ -78,5 +85,19 @@ public class ShardStatsTableExecutionContext implements ITableExecutionContext {
     @Override
     public boolean isMultiValued(String columnName) {
         return luceneFieldMapper().get(columnName).allowMultipleValues;
+    }
+
+    @Override
+    public Expression getCollectorExpression(ValueNode node) {
+        if (node.getNodeType() != NodeTypes.COLUMN_REFERENCE &&
+                node.getNodeType() != NodeTypes.NESTED_COLUMN_REFERENCE) {
+            return null;
+        }
+
+        ColumnDefinition columnDefinition = getColumnDefinition(node.getColumnName());
+        if (columnDefinition != null) {
+            return FieldLookupExpression.create(columnDefinition);
+        }
+        throw new SQLParseException(String.format("Unknown column '%s'", node.getColumnName()));
     }
 }

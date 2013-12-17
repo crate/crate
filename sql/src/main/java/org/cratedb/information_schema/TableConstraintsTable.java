@@ -6,6 +6,7 @@ import org.apache.lucene.document.StringField;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.index.IndexMetaDataExtractor;
 import org.cratedb.lucene.fields.StringLuceneField;
+import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Inject;
@@ -33,8 +34,9 @@ public class TableConstraintsTable extends AbstractInformationSchemaTable {
     }
 
     @Inject
-    public TableConstraintsTable(Map<String, AggFunction> aggFunctionMap) {
-        super(aggFunctionMap);
+    public TableConstraintsTable(Map<String, AggFunction> aggFunctionMap,
+            CacheRecycler cacheRecycler) {
+        super(aggFunctionMap, cacheRecycler);
 
         fieldMapper.put(
                 Columns.TABLE_NAME,
