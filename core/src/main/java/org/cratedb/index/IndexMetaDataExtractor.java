@@ -9,7 +9,10 @@ import org.elasticsearch.common.Booleans;
 import org.elasticsearch.common.collect.Tuple;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Helper class to extract frequently needed attributes from IndexMetaData
@@ -123,6 +126,10 @@ public class IndexMetaDataExtractor {
 
     public String getIndexName() {
         return this.metaData.getIndex();
+    }
+
+    public boolean isIndexClosed() {
+        return this.metaData.getState() == IndexMetaData.State.CLOSE;
     }
 
     public int getNumberOfShards() {

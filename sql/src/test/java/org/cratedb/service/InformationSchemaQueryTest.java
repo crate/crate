@@ -5,6 +5,7 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.TableUnknownException;
 import org.cratedb.test.integration.CrateIntegrationTest;
+import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
@@ -279,6 +280,20 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
     @Test( expected = TableUnknownException.class )
     public void testSelectUnkownTableFromInformationSchema() throws Exception {
         exec("select * from information_schema.non_existent");
+    }
+
+    @Test
+    public void testIgnoreClosedTables() throws Exception {
+        client().admin().indices().close(new CloseIndexRequest("t3"));
+        ensureYellow();
+        exec("select * from information_schema.tables");
+        assertEquals(2L, response.rowCount());
+        exec("select * from information_schema.columns where table_name = 't3'");
+        assertEquals(0, response.rowCount());
+        exec("select * from information_schema.table_constraints where table_name = 't3'");
+        assertEquals(0, response.rowCount());
+        exec("select * from information_schema.indices where table_name = 't3'");
+        assertEquals(0, response.rowCount());
     }
 
 }
