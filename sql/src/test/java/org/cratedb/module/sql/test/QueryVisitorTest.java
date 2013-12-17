@@ -68,23 +68,23 @@ public class QueryVisitorTest {
         when(nec.availableAggFunctions()).thenReturn(HitchhikerMocks.aggFunctionMap);
         when(nec.tableContext(null, "locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("a", "b"));
-        when(tec.getColumnDefinition(anyString())).thenReturn(Optional.of(colDef));
+        when(tec.getColumnDefinition(anyString())).thenReturn(colDef);
         when(tec.getColumnDefinition("kind.x")).thenReturn(
-                Optional.of(new ColumnDefinition("locations", "kind.x", DataType.STRING, "plain", 0, false,
-                        false)));
+                new ColumnDefinition("locations", "kind.x", DataType.STRING, "plain", 0, false,
+                        false));
         when(tec.getColumnDefinition("nothing")).thenReturn(null);
         when(tec.getColumnDefinition("bool")).thenReturn(
-                Optional.of(new ColumnDefinition("locations", "bool", DataType.BOOLEAN, "plain", 1, false, false)
-        ));
+                new ColumnDefinition("locations", "bool", DataType.BOOLEAN, "plain", 1, false, false)
+        );
         when(tec.getColumnDefinition("numeric_field")).thenReturn(
-                Optional.of(new ColumnDefinition("locations", "numeric_field", DataType.DOUBLE, "plain", 2, false, false)
-        ));
+                new ColumnDefinition("locations", "numeric_field", DataType.DOUBLE, "plain", 2, false, false)
+        );
         when(tec.getColumnDefinition("craty_field")).thenReturn(
-                Optional.of(new ColumnDefinition("locations", "craty_field", DataType.CRATY, "plain", 3, false, false)
-        ));
+                new ColumnDefinition("locations", "craty_field", DataType.CRATY, "plain", 3, false, false)
+        );
         when(tec.getColumnDefinition("age")).thenReturn(
-                Optional.of(new ColumnDefinition("locations", "age", DataType.INTEGER, null, 1, false, false)
-        ));
+                new ColumnDefinition("locations", "age", DataType.INTEGER, null, 1, false, false)
+        );
 
         when(tec.hasCol(anyString())).thenReturn(true);
 

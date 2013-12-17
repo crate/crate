@@ -60,7 +60,9 @@ public class QueryPlannerTest {
         Settings settings = ImmutableSettings.builder().put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, true).build();
         QueryPlanner queryPlanner = new QueryPlanner(settings);
         when(tec.getColumnDefinition("phrase")).thenReturn(
-            Optional.of(new ColumnDefinition("phrases", "phrase", DataType.STRING, "plain", 0, false, false)));
+            new ColumnDefinition("phrases", "phrase", DataType.STRING, "plain", 0, false, false));
+        when(tec.getColumnDefinition("pk_col")).thenReturn(
+            new ColumnDefinition("phrases", "pk_col", DataType.STRING, "plain", 0, false, false));
         when(nec.queryPlanner()).thenReturn(queryPlanner);
         when(nec.tableContext(null, "phrases")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("pk_col", "phrase"));

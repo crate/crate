@@ -304,7 +304,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                     stmt.addOutputField(name, name);
                     fields.add(name);
                     stmt.resultColumnList().add(
-                        new ColumnReferenceDescription(tableContext.getColumnDefinition(name).get())
+                        new ColumnReferenceDescription(tableContext.getColumnDefinition(name))
                     );
                 }
                 continue;
@@ -337,9 +337,9 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 fields.add(columnName);
             }
 
-            Optional<ColumnDefinition> columnDefinition = tableContext.getColumnDefinition(columnName);
-            if (columnDefinition.isPresent()) {
-                stmt.resultColumnList().add(new ColumnReferenceDescription(columnDefinition.get()));
+            ColumnDefinition columnDefinition = tableContext.getColumnDefinition(columnName);
+            if (columnDefinition != null) {
+                stmt.resultColumnList().add(new ColumnReferenceDescription(columnDefinition));
             } else {
                 stmt.resultColumnList().add(new ColumnReferenceDescription(columnName, DataType.CRATY));
             }

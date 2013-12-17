@@ -57,8 +57,8 @@ public class TableExecutionContext implements ITableExecutionContext {
             && columnDefinitions.get(columnName).isMultiValued();
     }
 
-    public Optional<ColumnDefinition> getColumnDefinition(String columnName) {
-        return Optional.fromNullable(columnDefinitions.get(columnName));
+    public ColumnDefinition getColumnDefinition(String columnName) {
+        return columnDefinitions.get(columnName);
     }
 
     /**
@@ -125,7 +125,7 @@ public class TableExecutionContext implements ITableExecutionContext {
     @Override
     @SuppressWarnings("unchecked")
     public boolean hasCol(String colName) {
-        return getColumnDefinition(colName).isPresent();
+        return getColumnDefinition(colName) != null;
     }
 
     /**
@@ -158,11 +158,10 @@ public class TableExecutionContext implements ITableExecutionContext {
             return null;
         }
 
-        Optional<ColumnDefinition> optColumnDefinition = getColumnDefinition(node.getColumnName());
-        if (!optColumnDefinition.isPresent()) {
+        ColumnDefinition columnDefinition = getColumnDefinition(node.getColumnName());
+        if (columnDefinition == null) {
             throw new SQLParseException(String.format("Unknown column '%s'", node.getColumnName()));
         }
-        ColumnDefinition columnDefinition = optColumnDefinition.get();
         switch (columnDefinition.dataType) {
             case STRING:
                 return new BytesRefColumnReference(columnDefinition.columnName);

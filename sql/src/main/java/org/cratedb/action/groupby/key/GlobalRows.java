@@ -93,5 +93,4 @@ public class GlobalRows extends Rows<GlobalRows> {
             }
         }
     }
-
 }

@@ -69,8 +69,8 @@ public class ShardStatsTableExecutionContext implements ITableExecutionContext {
     }
 
     @Override
-    public Optional<ColumnDefinition> getColumnDefinition(String name) {
-        return Optional.fromNullable(columnDefinitions.get(name));
+    public ColumnDefinition getColumnDefinition(String name) {
+        return columnDefinitions.get(name);
     }
 
     @Override
@@ -94,9 +94,9 @@ public class ShardStatsTableExecutionContext implements ITableExecutionContext {
             return null;
         }
 
-        Optional<ColumnDefinition> columnDefinition = getColumnDefinition(node.getColumnName());
-        if (columnDefinition.isPresent()) {
-            return FieldLookupExpression.create(columnDefinition.get());
+        ColumnDefinition columnDefinition = getColumnDefinition(node.getColumnName());
+        if (columnDefinition != null) {
+            return FieldLookupExpression.create(columnDefinition);
         }
         throw new SQLParseException(String.format("Unknown column '%s'", node.getColumnName()));
     }

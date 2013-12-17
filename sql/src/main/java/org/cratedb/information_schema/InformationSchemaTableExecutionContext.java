@@ -82,8 +82,8 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
     }
 
     @Override
-    public Optional<ColumnDefinition> getColumnDefinition(String name) {
-        return Optional.fromNullable(columnDefinitions.get(name));
+    public ColumnDefinition getColumnDefinition(String name) {
+        return columnDefinitions.get(name);
     }
 
     @Override
@@ -108,11 +108,10 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
             return null;
         }
 
-        Optional<ColumnDefinition> columnDefinition = getColumnDefinition(node.getColumnName());
-        if (!columnDefinition.isPresent()) {
+        ColumnDefinition columnDefinition = getColumnDefinition(node.getColumnName());
+        if (columnDefinition == null) {
             throw new SQLParseException(String.format("Unknown column '%s'", node.getColumnName()));
         }
-        return FieldLookupExpression.create(columnDefinition.get());
+        return FieldLookupExpression.create(columnDefinition);
    }
-
 }
