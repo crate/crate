@@ -58,6 +58,11 @@ public class TableConstraintsTable extends AbstractInformationSchemaTable {
 
         for (IndexMetaData indexMetaData : clusterState.metaData().indices().values()) {
             IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(indexMetaData);
+            // ignore closed indices
+            if (extractor.isIndexClosed()) {
+                continue;
+            }
+
             List<String> primaryKeyColumns = extractor.getPrimaryKeys();
             if (primaryKeyColumns.size() > 0) {
                 Document doc = new Document();
