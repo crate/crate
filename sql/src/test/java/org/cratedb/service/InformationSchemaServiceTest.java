@@ -156,7 +156,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
         execUsingClient("create table test (col1 integer primary key, col2 string)");
         execUsingClient("create table foo (col1 integer primary key, " +
                 "col2 string) clustered by(col1) into 3 shards");
-
+        ensureGreen();
         execUsingClient("select * from INFORMATION_SCHEMA.Tables order by table_name asc");
         assertEquals(2L, response.rowCount());
         assertEquals("foo", response.rows()[0][0]);
@@ -174,7 +174,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
     public void testSelectStarFromInformationSchemaTableWithOrderByAndLimit() throws Exception {
         execUsingClient("create table test (col1 integer primary key, col2 string)");
         execUsingClient("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
-
+        ensureGreen();
         execUsingClient("select * from INFORMATION_SCHEMA.Tables order by table_name asc limit 1");
         assertEquals(1L, response.rowCount());
         assertEquals("foo", response.rows()[0][0]);
@@ -203,7 +203,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
         execUsingClient("create table test (col1 integer primary key, col2 string) clustered into 1 shards");
         execUsingClient("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
         execUsingClient("create table bar (col1 integer primary key, col2 string) clustered into 3 shards");
-
+        ensureGreen();
         execUsingClient("select table_name, number_of_shards from INFORMATION_SCHEMA.Tables order by number_of_shards desc, table_name asc limit 2");
         assertEquals(2L, response.rowCount());
 
@@ -217,7 +217,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
     public void testSelectStarFromInformationSchemaTableWithOrderByAndLimitOffset() throws Exception {
         execUsingClient("create table test (col1 integer primary key, col2 string)");
         execUsingClient("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
-
+        ensureGreen();
         execUsingClient("select * from INFORMATION_SCHEMA.Tables order by table_name asc limit 1 offset 1");
         assertEquals(1L, response.rowCount());
         assertEquals("test", response.rows()[0][0]);
@@ -232,7 +232,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
         assertEquals(0L, response.rowCount());
 
         execUsingClient("create table test (col1 integer primary key, col2 string)");
-        Thread.sleep(10); // wait for clusterStateChanged event and index update
+        ensureGreen();
 
         execUsingClient("select table_name, number_of_shards, number_of_replicas, " +
                 "routing_column from INFORMATION_SCHEMA.Tables");
@@ -246,6 +246,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectStarFromInformationSchemaTable() throws Exception {
         execUsingClient("create table test (col1 integer, col2 string)");
+        ensureGreen();
         execUsingClient("select * from INFORMATION_SCHEMA.Tables");
         assertEquals(1L, response.rowCount());
         assertEquals("test", response.rows()[0][0]);
@@ -263,6 +264,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
                 "constraint_type"));
 
         execUsingClient("create table test (col1 integer primary key, col2 string)");
+        ensureGreen();
         execUsingClient("select constraint_type, constraint_name, " +
                 "table_name from information_schema.table_constraints");
         assertEquals(1L, response.rowCount());
@@ -274,6 +276,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
     @Test
     public void testRefreshTableConstraints() throws Exception {
         execUsingClient("create table test (col1 integer primary key, col2 string)");
+        ensureGreen();
         execUsingClient("select table_name, constraint_name from INFORMATION_SCHEMA" +
                 ".table_constraints");
         assertEquals(1L, response.rowCount());
@@ -281,6 +284,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
         assertEquals("col1", response.rows()[0][1]);
 
         execUsingClient("create table test2 (col1a string primary key, col2a timestamp)");
+        ensureGreen();
         execUsingClient("select * from INFORMATION_SCHEMA.table_constraints");
 
         assertEquals(2L, response.rowCount());
@@ -304,7 +308,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
         execUsingClient("CREATE ANALYZER myOtherAnalyzer extends german (" +
                 "  stopwords=[?, ?, ?]" +
                 ")", new Object[]{"der", "die", "das"});
-
+        ensureGreen();
         execUsingClient("SELECT * from INFORMATION_SCHEMA.routines where routine_definition != " +
                 "'BUILTIN' order by routine_name asc");
         assertEquals(2L, response.rowCount());
@@ -407,6 +411,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
         execUsingClient("create table test2 (col21 double primary key, col22 string)");
         execUsingClient("create table \"äbc\" (col31 integer primary key, col32 string)");
 
+        ensureGreen();
         execUsingClient("select table_name from INFORMATION_SCHEMA.table_constraints ORDER BY " +
                 "table_name");
         assertEquals(3L, response.rowCount());
@@ -418,6 +423,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectFromTableColumns() throws Exception {
         execUsingClient("create table test (col1 integer, col2 string index off, age integer)");
+        ensureGreen();
         execUsingClient("select * from INFORMATION_SCHEMA.Columns");
         assertEquals(3L, response.rowCount());
         assertEquals("test", response.rows()[0][0]);
@@ -433,12 +439,14 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectFromTableColumnsRefresh() throws Exception {
         execUsingClient("create table test (col1 integer, col2 string, age integer)");
+        ensureGreen();
         execUsingClient("select table_name, column_name, " +
                 "ordinal_position, data_type from INFORMATION_SCHEMA.Columns");
         assertEquals(3L, response.rowCount());
         assertEquals("test", response.rows()[0][0]);
 
         execUsingClient("create table test2 (col1 integer, col2 string, age integer)");
+        ensureGreen();
         execUsingClient("select table_name, column_name, " +
                 "ordinal_position, data_type from INFORMATION_SCHEMA.Columns " +
                 "order by table_name");
@@ -452,6 +460,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
     public void testSelectFromTableColumnsMultiField() throws Exception {
         execUsingClient("create table test (col1 string, col2 string," +
                 "index col1_col2_ft using fulltext(col1, col2))");
+        ensureGreen();
         execUsingClient("select table_name, column_name," +
                 "ordinal_position, data_type from INFORMATION_SCHEMA.Columns");
         assertEquals(2L, response.rowCount());
@@ -474,6 +483,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
                 "col3 string index using fulltext, " +
                 "col4 string index off, " +
                 "index col1_col2_ft using fulltext(col1, col2) with(analyzer='english'))");
+        ensureGreen();
         execUsingClient("select table_name, index_name, method, columns, properties " +
                 "from INFORMATION_SCHEMA.Indices");
         assertEquals(4L, response.rowCount());
@@ -512,6 +522,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
         assertNull(response.rows()[0][0]);
 
         execUsingClient("create table t1 (id integer, col1 string)");
+        ensureGreen();
         execUsingClient("select max(ordinal_position) from information_schema.columns");
         assertEquals(1, response.rowCount());
 
@@ -524,6 +535,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
         execUsingClient("create table t1 (id integer, col1 string) clustered into 10 shards replicas 14");
         execUsingClient("create table t2 (id integer, col1 string) clustered into 5 shards replicas 7");
         execUsingClient("create table t3 (id integer, col1 string) clustered into 3 shards replicas 2");
+        ensureYellow();
         execUsingClient("select min(number_of_replicas), max(number_of_replicas), avg(number_of_replicas)," +
                 "sum(number_of_shards) from information_schema.tables");
         assertEquals(1, response.rowCount());
@@ -539,6 +551,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
         execUsingClient("create table t1 (id integer, col1 string) clustered into 10 shards replicas 14");
         execUsingClient("create table t2 (id integer, col1 string) clustered into 5 shards replicas 7");
         execUsingClient("create table t3 (id integer, col1 string) clustered into 3 shards replicas 2");
+        ensureYellow();
         execUsingClient("select min(number_of_replicas), max(number_of_replicas), avg(number_of_replicas)," +
                 "sum(number_of_shards) from information_schema.tables where table_name != 't1'");
         assertEquals(1, response.rowCount());
@@ -554,6 +567,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
         execUsingClient("create table t1 (id integer, col1 string) clustered into 10 shards replicas 14");
         execUsingClient("create table t2 (id integer, col1 string) clustered into 5 shards replicas 7");
         execUsingClient("create table t3 (id integer, col1 string) clustered into 3 shards replicas 2");
+        ensureYellow();
         execUsingClient("select min(number_of_replicas) as min_replicas from information_schema.tables where table_name = 't1'");
         assertEquals(1, response.rowCount());
 
@@ -565,6 +579,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
         execUsingClient("create table t1 (id integer, col1 string) clustered into 10 shards replicas 14");
         execUsingClient("create table t2 (id integer, col1 string) clustered into 5 shards replicas 7");
         execUsingClient("create table t3 (id integer, col1 string) clustered into 3 shards replicas 2");
+        ensureYellow();
         execUsingClient("select count(*) from information_schema.tables");
         assertEquals(1, response.rowCount());
         assertEquals(3L, response.rows()[0][0]);
