@@ -2617,6 +2617,17 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(55.25d, response.rows()[0][3]);
     }
 
+    @Test
+    public void testSelectExpressionFromAnotherTable() throws Exception {
+        this.setup.groupBySetup();
+        execute("select name, \"_crate.cluster.name\" from characters");
+        assertEquals(7, response.rowCount());
+        for (int i=0; i<response.rowCount();i++) {
+            assertEquals("crate", response.rows()[i][1]);
+            assertNotNull(response.rows()[i][0]);
+        }
+    }
+
 
 
 }

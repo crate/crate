@@ -2,6 +2,8 @@ package org.cratedb.stubs;
 
 import org.cratedb.Constants;
 import org.cratedb.DataType;
+import org.cratedb.action.collect.scope.ClusterLevelExpression;
+import org.cratedb.action.collect.scope.ClusterNameExpression;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.any.AnyAggFunction;
 import org.cratedb.action.groupby.aggregate.avg.AvgAggFunction;
@@ -17,6 +19,7 @@ import org.cratedb.action.sql.TableExecutionContext;
 import org.cratedb.index.IndexMetaDataExtractor;
 import org.cratedb.sql.types.*;
 import org.cratedb.test.integration.PathAccessor;
+import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -61,6 +64,10 @@ public class HitchhikerMocks {
         put(DataType.TIMESTAMP, new TimeStampSQLType());
         put(DataType.CRATY, new CratySQLType());
         put(DataType.IP, new IpSQLType());
+    }};
+
+    public static Map<String, ClusterLevelExpression> clusterExpressions = new HashMap<String, ClusterLevelExpression>() {{
+        put(ClusterNameExpression.NAME, new ClusterNameExpression(new ClusterName("crate")));
     }};
 
 
