@@ -3,7 +3,6 @@ package org.cratedb.index;
 import org.cratedb.DataType;
 
 public class ColumnDefinition {
-
     public final String tableName;
     public final String columnName;
     public final DataType dataType;

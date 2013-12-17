@@ -46,8 +46,7 @@ public class NodeExecutionContext {
                                 Settings settings,
                                 SQLFieldMapperFactory sqlFieldMapperFactory,
                                 ShardStatsTableExecutionContext shardStatsTableExecutionContext,
-            Map<String, AggFunction> availableAggFunctions
-                               ) {
+                                Map<String, AggFunction> availableAggFunctions) {
 
         this.indicesService = indicesService;
         this.clusterService = clusterService;

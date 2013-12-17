@@ -72,26 +72,4 @@ public class GroupByKey implements Comparable<GroupByKey> {
     public String toString() {
         return "GroupByKey{" + Arrays.toString(keyValue) + "}";
     }
-
-////    @Override
-////    public void readFrom(StreamInput in) throws IOException {
-////        keyValue = new Object[in.readVInt()];
-////        for (int i = 0; i < keyValue.length; i++) {
-////            keyValue[i] = in.readGenericValue() ;
-////        }
-////    }
-////
-////    @Override
-////    public void writeTo(StreamOutput out) throws IOException {
-////        out.writeVInt(keyValue.length);
-////        for (Object o : keyValue) {
-////            out.writeGenericValue(o);
-////        }
-////    }
-//
-//    public static GroupByKey readFromStreamInput(StreamInput in) throws IOException {
-//        GroupByKey key = new GroupByKey();
-//        key.readFrom(in);
-//        return key;
-//    }
 }

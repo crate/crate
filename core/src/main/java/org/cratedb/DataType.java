@@ -161,7 +161,7 @@ public enum DataType {
             LONG,
             FLOAT,
             DOUBLE
-                                                                              );
+    );
 
     public static final ImmutableSet<DataType> ALL_TYPES = ImmutableSet.of(
             BYTE,
@@ -175,7 +175,7 @@ public enum DataType {
             TIMESTAMP,
             CRATY,
             IP
-                                                                          );
+    );
 
     public static final ImmutableSet<DataType> PRIMITIVE_TYPES = ImmutableSet.of(
             BYTE,
@@ -188,17 +188,17 @@ public enum DataType {
             STRING,
             TIMESTAMP,
             IP
-                                                                                );
+    );
 
     public static final ImmutableSet<DataType> INTEGER_TYPES = ImmutableSet.of(
             BYTE,
             SHORT,
             INTEGER,
             LONG
-                                                                              );
+    );
 
     public static final ImmutableSet<DataType> DECIMAL_TYPES = ImmutableSet.of(
             FLOAT,
             DOUBLE
-                                                                              );
+    );
 }

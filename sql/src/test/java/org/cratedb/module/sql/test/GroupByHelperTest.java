@@ -12,7 +12,7 @@ import java.util.List;
 import static junit.framework.Assert.assertEquals;
 
 public class GroupByHelperTest {
-// TODO enable
+
 //    @Test
 //    public void testCreateIdxMappingCountDistinctManySame() {
 //        List<AggExpr> aggExprList = new ArrayList<>();

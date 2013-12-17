@@ -1,25 +1,19 @@
 package org.cratedb.module.sql.benchmark;
 
 import com.carrotsearch.junitbenchmarks.AbstractBenchmark;
-import com.carrotsearch.junitbenchmarks.BenchmarkOptions;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.action.FieldLookup;
-import org.cratedb.action.groupby.SQLGroupingCollector;
-import org.cratedb.action.groupby.grouping.GroupNode;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.GroupByOnArrayUnsupportedException;
 import org.cratedb.stubs.HitchhikerMocks;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Test;
 
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.SecureRandom;
-import java.util.HashMap;
-import java.util.Map;
 
 public class SQLGroupingCollectorBenchmark extends AbstractBenchmark {
 
@@ -57,21 +51,6 @@ public class SQLGroupingCollectorBenchmark extends AbstractBenchmark {
 
     }
 
-
-
-    @Test
-    public void testHierarchicalGroupKey() throws Exception {
-
-        Map<BytesRef, GroupNode<BytesRef, Object, Object>> nodes = new HashMap<>();
-
-        for (String term: terms){
-            for (BytesRef bterm: bterms){
-
-            }
-        }
-
-
-    }
 
 //    @BenchmarkOptions(benchmarkRounds = 10)
 //    @Test

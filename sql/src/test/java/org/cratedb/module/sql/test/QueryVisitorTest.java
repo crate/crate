@@ -69,6 +69,9 @@ public class QueryVisitorTest {
         when(nec.tableContext(null, "locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("a", "b"));
         when(tec.getColumnDefinition(anyString())).thenReturn(colDef);
+        when(tec.getColumnDefinition("col")).thenReturn(
+            new ColumnDefinition("locations", "col", DataType.STRING, "plain", 1, false, false)
+        );
         when(tec.getColumnDefinition("kind.x")).thenReturn(
                 new ColumnDefinition("locations", "kind.x", DataType.STRING, "plain", 0, false,
                         false));
@@ -1177,7 +1180,7 @@ public class QueryVisitorTest {
         execStatement("select count(*) from locations");
         assertEquals(1, stmt.aggregateExpressions().size());
         assertEquals("COUNT(*)", stmt.aggregateExpressions().get(0).functionName);
-        // TODO: assertNull(stmt.aggregateExpressions().get(0).parameterInfo);
+        assertNull(stmt.aggregateExpressions().get(0).expression);
         assertFalse(stmt.aggregateExpressions().get(0).isDistinct);
         assertTrue(stmt.countRequest());
     }
@@ -1187,7 +1190,7 @@ public class QueryVisitorTest {
         execStatement("select count(col) from locations order by count(col)");
         assertEquals(1, stmt.aggregateExpressions().size());
         assertEquals("COUNT", stmt.aggregateExpressions().get(0).functionName);
-        // TODO: assertEquals("col", stmt.aggregateExpressions().get(0).parameterInfo.columnName);
+        assertEquals("col", stmt.aggregateExpressions().get(0).expression.toString());
         assertFalse(stmt.aggregateExpressions().get(0).isDistinct);
         assertFalse(stmt.countRequest());
     }
@@ -1197,7 +1200,7 @@ public class QueryVisitorTest {
         execStatement("select count(distinct col) from locations order by count(distinct col)");
         assertEquals(1, stmt.aggregateExpressions().size());
         assertEquals("COUNT_DISTINCT", stmt.aggregateExpressions().get(0).functionName);
-        // TODO: assertEquals("col", stmt.aggregateExpressions().get(0).parameterInfo.columnName);
+        assertEquals("col", stmt.aggregateExpressions().get(0).expression.toString());
         assertTrue(stmt.aggregateExpressions().get(0).isDistinct);
         assertFalse(stmt.countRequest());
     }
@@ -1215,5 +1218,4 @@ public class QueryVisitorTest {
         expectedException.expectMessage("Unknown column 'nothing'");
         execStatement("select count(distinct nothing) from locations");
     }
-
 }

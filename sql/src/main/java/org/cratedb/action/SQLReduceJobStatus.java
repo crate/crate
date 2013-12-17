@@ -99,16 +99,7 @@ public class SQLReduceJobStatus extends PlainListenableActionFuture<SQLReduceJob
         }
     }
 
-    public void failure() {
-        failures.incrementAndGet();
-    }
-
-    public int failures(){
+    public int failures() {
         return failures.get();
     }
-
-    public boolean hasFailures(){
-        return failures.get()>0;
-    }
-
 }

@@ -1,6 +1,5 @@
 package org.cratedb.action.groupby.key;
 
-import org.cratedb.DataType;
 import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.sql.ParsedStatement;

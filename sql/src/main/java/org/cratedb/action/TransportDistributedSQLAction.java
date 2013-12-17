@@ -189,7 +189,6 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         } catch (CrateException e) {
             exception = e;
         } catch (Exception e) {
-            logger.error("Unhandled query failure", e);
             exception = new CrateException(e);
         }
 
@@ -258,7 +257,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 );
             }
 
-            SQLShardResponse sqlShardResponse = new SQLShardResponse(stmt);
+            SQLShardResponse sqlShardResponse = newShardResponse(stmt);
             sqlShardResponse.results = collectResult;
             return sqlShardResponse;
         }
@@ -725,6 +724,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 onMapperResults(collectResults);
             } else {
                 assert reduceJobStatus != null;
+
                 groupByResult.addAll(reduceJobStatus.terminate());
             }
         }

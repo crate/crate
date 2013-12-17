@@ -56,6 +56,7 @@ public class StringLuceneField extends LuceneField<BytesRef> {
 
     @Override
     public StringField field(BytesRef value) {
+        // TODO: avoid convertion to utf8 string
         return new StringField(name, value.utf8ToString(), Field.Store.YES);
     }
 
