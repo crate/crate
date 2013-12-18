@@ -7,6 +7,7 @@ import org.cratedb.index.ColumnDefinition;
 import org.cratedb.index.IndexMetaDataExtractor;
 import org.cratedb.information_schema.InformationSchemaTableExecutionContext;
 import org.cratedb.information_schema.InformationSchemaTableExecutionContextFactory;
+import org.cratedb.service.GlobalExpressionService;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.TableAliasSchemaException;
 import org.cratedb.sql.TableUnknownException;
@@ -36,6 +37,7 @@ public class NodeExecutionContext {
     private final SQLFieldMapperFactory sqlFieldMapperFactory;
     private final Map<String, AggFunction> availableAggFunctions;
     private final ShardStatsTableExecutionContext shardStatsTableExecutionContext;
+    private final GlobalExpressionService globalExpressionService;
 
     @Inject
     public NodeExecutionContext(IndicesService indicesService,
@@ -46,7 +48,10 @@ public class NodeExecutionContext {
                                 Settings settings,
                                 SQLFieldMapperFactory sqlFieldMapperFactory,
                                 ShardStatsTableExecutionContext shardStatsTableExecutionContext,
-                                Map<String, AggFunction> availableAggFunctions) {
+                                Map<String, AggFunction> availableAggFunctions,
+                                GlobalExpressionService globalExpressionService
+                               ) {
+
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.analyzerService = analyzerService;
@@ -56,6 +61,7 @@ public class NodeExecutionContext {
         this.sqlFieldMapperFactory = sqlFieldMapperFactory;
         this.availableAggFunctions = availableAggFunctions;
         this.shardStatsTableExecutionContext = shardStatsTableExecutionContext;
+        this.globalExpressionService = globalExpressionService;
     }
 
     /**
@@ -170,5 +176,9 @@ public class NodeExecutionContext {
 
     public Map<String, AggFunction> availableAggFunctions() {
         return this.availableAggFunctions;
+    }
+
+    public GlobalExpressionService globalExpressionService() {
+        return globalExpressionService;
     }
 }

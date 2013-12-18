@@ -7,25 +7,21 @@ import org.cratedb.action.ReduceJobStatusContext;
 import org.cratedb.action.SQLGroupByResult;
 import org.cratedb.action.SQLMapperResultRequest;
 import org.cratedb.action.SQLReduceJobStatus;
-import org.cratedb.action.collect.CollectorContext;
+import org.cratedb.action.collect.ColumnReferenceCollectorExpression;
 import org.cratedb.action.collect.Expression;
 import org.cratedb.action.groupby.GroupByRow;
-import org.cratedb.action.groupby.SQLGroupingCollector;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountDistinctAggFunction;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
-import org.cratedb.core.concurrent.FutureConcurrentMap;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.parser.parser.ValueNode;
 import org.cratedb.stubs.HitchhikerMocks;
-import org.cratedb.test.integration.NodeSettingsSource;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.json.JSONObject;
 import org.junit.Test;
@@ -35,7 +31,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static junit.framework.Assert.assertEquals;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -43,7 +38,7 @@ import static org.mockito.Mockito.when;
 
 public class RowsSerializationTest {
 
-    static Expression fakeExpression = new Expression<BytesRef>(){
+    static Expression fakeExpression = new ColumnReferenceCollectorExpression<BytesRef>("race"){
 
         int called = 0;
         int i = 0;

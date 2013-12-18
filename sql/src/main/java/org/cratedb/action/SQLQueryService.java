@@ -3,13 +3,13 @@ package org.cratedb.action;
 import org.apache.lucene.search.Query;
 import org.cratedb.Constants;
 import org.cratedb.action.collect.CollectorContext;
+import org.cratedb.action.collect.scope.ScopedExpression;
 import org.cratedb.action.groupby.GlobalSQLGroupingCollector;
-import org.cratedb.action.groupby.GroupByKey;
-import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.SQLGroupingCollector;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.key.Rows;
 import org.cratedb.action.sql.ParsedStatement;
+import org.cratedb.service.GlobalExpressionService;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -40,6 +40,7 @@ public class SQLQueryService {
     private final SQLXContentQueryParser parser;
     private final IndicesService indicesService;
     private final Map<String, AggFunction> aggFunctionMap;
+    private final GlobalExpressionService globalExpressionService;
 
     @Inject
     public SQLQueryService(ClusterService clusterService,
@@ -47,7 +48,8 @@ public class SQLQueryService {
                            IndicesService indicesService,
                            Map<String, AggFunction> aggFunctionMap,
                            SQLXContentQueryParser sqlxContentQueryParser,
-                           CacheRecycler cacheRecycler)
+                           CacheRecycler cacheRecycler,
+                           GlobalExpressionService globalExpressionService)
     {
         this.clusterService = clusterService;
         this.scriptService = scriptService;
@@ -55,6 +57,7 @@ public class SQLQueryService {
         this.indicesService = indicesService;
         this.parser = sqlxContentQueryParser;
         this.aggFunctionMap = aggFunctionMap;
+        this.globalExpressionService = globalExpressionService;
     }
 
     public Rows query(int numReducers, String concreteIndex, ParsedStatement stmt, int shardId)
@@ -69,7 +72,11 @@ public class SQLQueryService {
         parser.parse(searchContext, stmt.xcontent);
         searchContext.preProcess();
 
+        putGlobalExpressionsInScope(stmt, concreteIndex, shardId);
+
+        // TODO: prematch and change query
         Query query = searchContext.query();
+
         SQLGroupingCollector collector;
         CollectorContext collectorContext = new CollectorContext().searchContext(searchContext);
         if (stmt.isGlobalAggregate()) {
@@ -112,5 +119,14 @@ public class SQLQueryService {
             request, shardTarget, indexShard.acquireSearcher("search"), indexService,
             indexShard, scriptService, cacheRecycler
         );
+    }
+
+    private void putGlobalExpressionsInScope(ParsedStatement stmt, String concreteIndex, int shardId) {
+        String nodeId = clusterService.localNode().id();
+        if (stmt.globalExpressionCount() > 0) {
+            for (ScopedExpression<?> expression: stmt.globalExpressions()) {
+                expression.putInScope(nodeId, concreteIndex, shardId);
+            }
+        }
     }
 }

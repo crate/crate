@@ -4,29 +4,32 @@ package org.cratedb.module.sql.test;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
-import org.apache.lucene.search.MatchAllDocsQuery;
 import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
-import org.cratedb.action.sql.SQLAction;
-import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.information_schema.AbstractInformationSchemaTable;
+import org.cratedb.information_schema.InformationSchemaTable;
+import org.cratedb.information_schema.InformationSchemaTableExecutionContext;
 import org.cratedb.lucene.LuceneFieldMapper;
 import org.cratedb.lucene.fields.StringLuceneField;
+import org.cratedb.service.SQLParseService;
 import org.cratedb.stubs.HitchhikerMocks;
 import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.node.Node;
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.*;
 
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.mockito.Mockito.when;
 
 public class InformationSchemaTableTest extends CrateIntegrationTest {
 
@@ -69,7 +72,21 @@ public class InformationSchemaTableTest extends CrateIntegrationTest {
         }
     }
 
+    private SQLParseService parseService;
     private TestInformationSchemaTable testTable = null;
+
+
+    @Before
+    public void initParseService() throws Exception {
+        NodeExecutionContext nec = HitchhikerMocks.nodeExecutionContext();
+        when(nec.tableContext(null, "nodes")).thenReturn(new InformationSchemaTableExecutionContext(
+                new HashMap<String, InformationSchemaTable>(1) {{
+                    put("nodes", new TestInformationSchemaTable(HitchhikerMocks.aggFunctionMap));
+                }},
+                "nodes"
+        ));
+        parseService = new SQLParseService(nec);
+    }
 
     @After
     public void cleanTestTable() {
@@ -102,15 +119,7 @@ public class InformationSchemaTableTest extends CrateIntegrationTest {
         testTable = new TestInformationSchemaTable(HitchhikerMocks.aggFunctionMap);
         ClusterState state = client().admin().cluster().prepareState().execute().actionGet().getState();
         testTable.index(state);
-        ParsedStatement stmt = new ParsedStatement("select id, name, address, many from nodes");
-        stmt.limit(1000);
-        stmt.offset(0);
-        stmt.orderByColumns = new ArrayList<>();
-        stmt.query = new MatchAllDocsQuery();
-        stmt.outputFields.add(new Tuple<>("id", "id"));
-        stmt.outputFields.add(new Tuple<>("name", "name"));
-        stmt.outputFields.add(new Tuple<>("address", "address"));
-        stmt.outputFields.add(new Tuple<>("many", "many"));
+        ParsedStatement stmt = parseService.parse("select id, name, address, many from nodes");
 
         testTable.query(stmt, new ActionListener<SQLResponse>() {
             @Override
@@ -130,19 +139,12 @@ public class InformationSchemaTableTest extends CrateIntegrationTest {
     }
 
     @Test
-    public void emptyQuery() {
+    public void emptyQuery() throws Exception {
         testTable = new TestInformationSchemaTable(HitchhikerMocks.aggFunctionMap);
         testTable.init();
         assertEquals(0L, testTable.count());
 
-        ParsedStatement stmt = new ParsedStatement("select id, name, address, many from nodes");
-        stmt.limit(1000);
-        stmt.orderByColumns = new ArrayList<>();
-        stmt.query = new MatchAllDocsQuery();
-        stmt.outputFields.add(new Tuple<>("id", "id"));
-        stmt.outputFields.add(new Tuple<>("name", "name"));
-        stmt.outputFields.add(new Tuple<>("address", "address"));
-        stmt.outputFields.add(new Tuple<>("many", "many"));
+        ParsedStatement stmt = parseService.parse("select id, name, address, many from nodes");
 
         testTable.query(stmt, new ActionListener<SQLResponse>() {
             @Override

@@ -1,14 +1,11 @@
 package org.cratedb.action.groupby;
 
-import org.cratedb.action.FieldLookup;
 import org.cratedb.action.collect.CollectorContext;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.key.GlobalRows;
 import org.cratedb.action.groupby.key.Rows;
 import org.cratedb.action.sql.ParsedStatement;
-import org.cratedb.core.collections.CyclicIterator;
 
-import java.util.Arrays;
 import java.util.Map;
 
 /**

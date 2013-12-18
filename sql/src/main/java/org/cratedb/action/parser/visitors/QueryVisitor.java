@@ -5,6 +5,7 @@ import org.apache.lucene.search.*;
 import org.cratedb.DataType;
 import org.cratedb.action.collect.Expression;
 import org.cratedb.action.collect.LiteralValueExpression;
+import org.cratedb.action.collect.scope.ScopedExpression;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.any.AnyAggFunction;
@@ -193,16 +194,25 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         visit(null, node);
     }
 
-    private void addGroupByColumns(GroupByList groupByList) {
+    private void addGroupByColumns(GroupByList groupByList) throws StandardException {
         List<Expression> gbe = new ArrayList<>(groupByList.size());
         for (GroupByColumn column : groupByList) {
-            validateColumnReference((ColumnReference) column.getColumnExpression());
+
             String columnName = column.getColumnExpression().getColumnName();
             if (tableContext.isMultiValued(columnName))
             {
                 throw new GroupByOnArrayUnsupportedException(column.getColumnExpression().getColumnName());
             }
-            gbe.add(getCollectorExpression(column.getColumnExpression()));
+            String fqdn = getFQDN(stmt, column.getColumnExpression());
+
+            if (context.globalExpressionService().expressionExists(fqdn)) {
+                ScopedExpression<?> expr = context.globalExpressionService().getExpression(fqdn);
+                stmt.addGlobalExpressionSafe(expr);
+                gbe.add(expr);
+            } else {
+                validateColumnReference((ColumnReference) column.getColumnExpression());
+                gbe.add(getCollectorExpression(column.getColumnExpression()));
+            }
         }
         stmt.groupByExpressions(gbe);
     }
@@ -267,9 +277,12 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
         for (OrderByColumn column : node) {
             String columnName;
+            String fqdn = getFQDN(stmt, column.getExpression());
             if (column.getExpression().getNodeType() == NodeTypes.AGGREGATE_NODE) {
                 AggExpr aggExpr = getAggregateExpression((AggregateNode)column.getExpression());
                 columnName = aggExpr.toString();
+            } else if (context.globalExpressionService().expressionExists(fqdn)) {
+                columnName = fqdn;
             } else if (column.getExpression().getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE ){
                 columnName = ((NestedColumnReference)column.getExpression()).sqlPathString();
             } else {
@@ -311,12 +324,12 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                     stmt.addOutputField(name, name);
                     fields.add(name);
                     stmt.resultColumnList().add(
-                        new ColumnReferenceDescription(tableContext.getColumnDefinition(name))
+                            new ColumnReferenceDescription(tableContext.getColumnDefinition(name))
                     );
                 }
                 continue;
             }
-
+            final String fqdn = getFQDN(stmt, column.getExpression());
             String columnName = column.getExpression().getColumnName();
             String columnAlias = column.getName();
 
@@ -331,9 +344,25 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 if (columnName.equalsIgnoreCase("_version")) {
                     stmt.versionSysColumnSelected = true;
                 }
+            } else if (context.globalExpressionService().expressionExists(fqdn)) {
+                if (stmt.schemaName() == null || !fqdn.startsWith(stmt.schemaName())) {
+                    // always use fully qualified name for foreign expressions
+                    // or else it will appear as if it was a "normal" field of the table
+                    // e.g. ``sys.cluster.name`` would appear as ``name`` and this is blöd
+                    if (columnAlias.equals(columnName)) {
+                        columnAlias = fqdn;
+                    }
+                    columnName = fqdn;
+                }
+                if (!stmt.hasGroupBy()) {
+                    ScopedExpression<?> expr = context.globalExpressionService().getExpression(fqdn);
+                    stmt.addGlobalExpressionSafe(expr);
+                }
+                fields.add(columnName);
             } else if (column.getExpression().getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE) {
                 NestedColumnReference nestedColumnReference =
                     (NestedColumnReference) column.getExpression();
+                validateColumnReference(nestedColumnReference);
 
                 if (columnAlias.equals(columnName)) {
                     columnAlias = nestedColumnReference.sqlPathString();
@@ -345,18 +374,21 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 fields.add(columnName);
             }
 
-            ColumnDefinition columnDefinition = tableContext.getColumnDefinition(columnName);
-            if (columnDefinition != null) {
-                stmt.resultColumnList().add(new ColumnReferenceDescription(columnDefinition));
+            if (context.globalExpressionService().expressionExists(fqdn)) {
+                stmt.resultColumnList().add(context.globalExpressionService().getDescription(fqdn));
             } else {
-                stmt.resultColumnList().add(new ColumnReferenceDescription(columnName, DataType.CRATY));
+                ColumnDefinition columnDefinition = tableContext.getColumnDefinition(columnName);
+                if (columnDefinition != null) {
+                    stmt.resultColumnList().add(new ColumnReferenceDescription(columnDefinition));
+                } else {
+                    stmt.resultColumnList().add(new ColumnReferenceDescription(columnName, DataType.CRATY));
+                }
             }
-
             stmt.addOutputField(columnAlias, columnName);
         }
 
 
-        if (!stmt.hasGroupBy()) {
+        if (!stmt.hasGroupBy() && !stmt.isGlobalAggregate()) {
             /**
              * In case of GroupBy the {@link org.cratedb.action.groupby.SQLGroupingCollector}
              * handles the field lookup
@@ -367,8 +399,18 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             if (fields.size() > 0) {
                 jsonBuilder.field("fields", fields);
             }
+            if (stmt.globalExpressionCount() > 0) {
+                throw new SQLParseException("Global expressions not allowed here.");
+            }
+        }
+
+        if (stmt.hasGroupBy() && !stmt.groupByColumnNames().containsAll(fields)) {
+            throw new SQLParseException("Can only query columns that are listed in group by.");
+        }
+
+        if (stmt.isGlobalAggregate()) {
             int aggExpressionsSize = stmt.aggregateExpressions().size();
-            if (aggExpressionsSize > 0 && aggExpressionsSize < stmt.outputFields.size()) {
+            if (aggExpressionsSize > 0 && aggExpressionsSize < stmt.outputFields.size() - stmt.globalExpressionCount()) {
                 throw new SQLParseException("Only aggregate expressions allowed here");
             }
         }
@@ -380,7 +422,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
      * @return an instance of AggExpr, will never be null
      * @throws SQLParseException if no AggExpr could be extracted, e.g. because no valid parameter was given
      */
-    private AggExpr getAggregateExpression(AggregateNode node) throws SQLParseException {
+    private AggExpr getAggregateExpression(AggregateNode node) throws StandardException, SQLParseException {
         String aggregateName = node.getAggregateName();
 
         AggFunction<?> aggFunction;
@@ -418,13 +460,19 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         return new AggExpr(aggregateName, node.isDistinct(), expression);
     }
 
-    private Expression getCollectorExpression(ValueNode node){
+    private Expression getCollectorExpression(ValueNode node) throws StandardException {
         assert node != null;
         Expression expr;
         if (node.getNodeType() == NodeTypes.PARAMETER_NODE) {
             expr = new LiteralValueExpression(args[((ParameterNode)node).getParameterNumber()]);
         } else {
-            expr = tableContext.getCollectorExpression(node);
+            String fqdn = getFQDN(stmt, node);
+            Expression globalExpression = context.globalExpressionService().getExpression(fqdn);
+            if (globalExpression != null) {
+                expr = globalExpression;
+            } else {
+                expr = tableContext.getCollectorExpression(node);
+            }
         }
 
         if (expr == null){
@@ -434,7 +482,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         return expr;
     }
 
-    private void handleAggregateNode(ParsedStatement stmt, ResultColumn column) {
+    private void handleAggregateNode(ParsedStatement stmt, ResultColumn column) throws StandardException {
 
         AggregateNode node = (AggregateNode)column.getExpression();
         AggExpr aggExpr = getAggregateExpression(node);
@@ -867,6 +915,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     private void validateColumnReference(ColumnReference columnReference) {
         String schemaName = columnReference.getSchemaName();
         String tableName = columnReference.getTableName();
+
         if (schemaName != null && !schemaName.equals(stmt.schemaName())) {
             throw new SQLParseException("Cannot reference column from different schema.");
         }

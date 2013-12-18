@@ -95,7 +95,8 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
 
     @Override
     public boolean isMultiValued(String columnName) {
-        return luceneFieldMapper().get(columnName).allowMultipleValues;
+        LuceneField field = luceneFieldMapper().get(columnName);
+        return field != null && field.allowMultipleValues;
     }
 
     @Override

@@ -7,7 +7,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
 public abstract class Rows<Other extends Rows> {
 
@@ -21,7 +20,7 @@ public abstract class Rows<Other extends Rows> {
             CacheRecycler cacheRecycler, StreamInput in) throws IOException {
         // note that this reads only into a single bucket
         Rows rows;
-        if (stmt.isGlobalAggregate() && !stmt.isStatsQuery()){
+        if (stmt.isGlobalAggregate()){
             rows = new GlobalRows(1, stmt);
         } else {
             rows = new GroupTree(1, stmt, cacheRecycler);

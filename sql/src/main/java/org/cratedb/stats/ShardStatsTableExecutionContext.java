@@ -1,6 +1,5 @@
 package org.cratedb.stats;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import org.cratedb.action.collect.Expression;
 import org.cratedb.action.collect.FieldLookupExpression;
@@ -84,7 +83,8 @@ public class ShardStatsTableExecutionContext implements ITableExecutionContext {
 
     @Override
     public boolean isMultiValued(String columnName) {
-        return luceneFieldMapper().get(columnName).allowMultipleValues;
+        LuceneField field =  luceneFieldMapper().get(columnName);
+        return field != null && field.allowMultipleValues;
     }
 
     @Override

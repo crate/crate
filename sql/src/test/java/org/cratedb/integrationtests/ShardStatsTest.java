@@ -64,6 +64,17 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testSelectGroupByWhereNotLike() throws Exception {
+        execute("select count(*), table_name from stats.shards " +
+                "where table_name not like 'my_table%' group by table_name order by table_name");
+        assertEquals(2, response.rowCount());
+        assertEquals(10L, response.rows()[0][0]);
+        assertEquals("characters", response.rows()[0][1]);
+        assertEquals(10L, response.rows()[1][0]);
+        assertEquals("quotes", response.rows()[1][1]);
+    }
+
+    @Test
     public void testSelectWhereTable() throws Exception {
         execute("select node_id, shard_id, size from stats.shards where table_name = " +
                 "'characters'");
@@ -185,5 +196,27 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
         assertEquals(20L, response.rows()[0][0]);
         assertEquals("quotes", response.rows()[0][1]);
+    }
+
+    @Test
+    public void testSelectGlobalExpressionGlobalAggregate() throws Exception {
+        execute("select count(distinct table_name), sys.cluster.name from stats.shards");
+        assertEquals(1, response.rowCount());
+        assertEquals(2L, response.rows()[0][0]);
+        assertEquals(cluster().clusterName(), response.rows()[0][1]);
+    }
+
+    @Test
+    public void testSelectGlobalExpressionGroupBy() throws Exception {
+        execute("select count(*), table_name, sys.cluster.name from stats.shards " +
+                "group by sys.cluster.name, table_name order by table_name");
+        assertEquals(2, response.rowCount());
+        assertEquals(10L, response.rows()[0][0]);
+        assertEquals("characters", response.rows()[0][1]);
+        assertEquals(cluster().clusterName(), response.rows()[0][2]);
+
+        assertEquals(10L, response.rows()[1][0]);
+        assertEquals("quotes", response.rows()[1][1]);
+        assertEquals(cluster().clusterName(), response.rows()[1][2]);
     }
 }

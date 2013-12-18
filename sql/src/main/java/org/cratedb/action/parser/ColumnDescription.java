@@ -16,4 +16,5 @@ public abstract class ColumnDescription {
     }
 
     public abstract DataType returnType();
+    public abstract String name();
 }

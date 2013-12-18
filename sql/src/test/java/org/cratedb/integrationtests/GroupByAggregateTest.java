@@ -450,15 +450,17 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testAggregateAnyOnBoolean() throws Exception {
-
+        System.out.println(".");
         execute("select any(good) from employees");
         assertEquals(1, response.rowCount());
         assertThat(response.rows()[0][0], isIn(new Object[]{true, false, null}));
 
+        System.out.println(".");
         execute("select any(good) from employees where name='dilbert'");
         assertEquals(1, response.rowCount());
         assertEquals(true, response.rows()[0][0]);
 
+        System.out.println(".");
         execute("select any(good), department from employees group by department order by department asc");
         assertEquals(4, response.rowCount());
         assertEquals("HR", response.rows()[0][1]);

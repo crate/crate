@@ -4,6 +4,7 @@ import org.cratedb.Constants;
 import org.cratedb.DataType;
 import org.cratedb.action.collect.scope.ClusterLevelExpression;
 import org.cratedb.action.collect.scope.ClusterNameExpression;
+import org.cratedb.action.collect.scope.ScopedExpression;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.any.AnyAggFunction;
 import org.cratedb.action.groupby.aggregate.avg.AvgAggFunction;
@@ -17,6 +18,7 @@ import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.TableExecutionContext;
 import org.cratedb.index.IndexMetaDataExtractor;
+import org.cratedb.service.GlobalExpressionService;
 import org.cratedb.sql.types.*;
 import org.cratedb.test.integration.PathAccessor;
 import org.elasticsearch.cluster.ClusterName;
@@ -66,7 +68,7 @@ public class HitchhikerMocks {
         put(DataType.IP, new IpSQLType());
     }};
 
-    public static Map<String, ClusterLevelExpression> clusterExpressions = new HashMap<String, ClusterLevelExpression>() {{
+    public static Map<String, ScopedExpression> globalExpressions = new HashMap<String, ScopedExpression>() {{
         put(ClusterNameExpression.NAME, new ClusterNameExpression(new ClusterName("crate")));
     }};
 
@@ -78,10 +80,11 @@ public class HitchhikerMocks {
             .build();
         QueryPlanner queryPlanner = new QueryPlanner(settings);
 
+        GlobalExpressionService globalExpressionService = new GlobalExpressionService(globalExpressions);
         NodeExecutionContext context = mock(NodeExecutionContext.class);
         when(context.queryPlanner()).thenReturn(queryPlanner);
         when(context.availableAggFunctions()).thenReturn(aggFunctionMap);
-
+        when(context.globalExpressionService()).thenReturn(globalExpressionService);
         for (TableContextPair tableContextPair : tableContexts()) {
             when(context.tableContext(tableContextPair.schema, tableContextPair.tableName))
                 .thenReturn(tableContextPair.context);

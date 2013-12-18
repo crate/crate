@@ -15,10 +15,11 @@ public enum ExpressionScope {
     NODE("node"),
 
     /**
-     * Index scoped Expressions depend are scoped to a single index and
-     * can only be executed on nodes that have shards of that index or on any shard of that index.
+     * Table scoped Expressions depend are scoped to a single table (index) and
+     * can only be executed on nodes that have shards of that table (index)
+     * or on any shard of that table (index).
      */
-    INDEX("index"),
+    TABLE("table"),
 
     /**
      * Expressions scoped to a single shard must be executed on shard-level.

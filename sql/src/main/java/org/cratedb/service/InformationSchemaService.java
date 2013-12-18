@@ -1,9 +1,12 @@
 package org.cratedb.service;
 
 import com.google.common.collect.ImmutableMap;
+import org.cratedb.action.collect.scope.ExpressionScope;
+import org.cratedb.action.collect.scope.ScopedExpression;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.information_schema.InformationSchemaTable;
+import org.cratedb.sql.CrateException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.TableUnknownException;
 import org.cratedb.sql.parser.parser.NodeTypes;
@@ -37,6 +40,7 @@ import static org.elasticsearch.action.support.PlainActionFuture.newFuture;
 public class InformationSchemaService extends AbstractLifecycleComponent<InformationSchemaService> {
 
     private final ClusterService clusterService;
+    private final GlobalExpressionService globalExpressionService;
     private final Object readLock = new Object();
     private boolean dirty;
     private ClusterStateListener listener;
@@ -46,9 +50,11 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
 
     @Inject
     public InformationSchemaService(Settings settings, ClusterService clusterService,
-                                    Map<String, InformationSchemaTable> informationSchemaTables) {
+                                    Map<String, InformationSchemaTable> informationSchemaTables,
+                                    GlobalExpressionService globalExpressionService) {
         super(settings);
         this.clusterService = clusterService;
+        this.globalExpressionService = globalExpressionService;
         this.tables = ImmutableMap.copyOf(informationSchemaTables);
         this.dirty = false;
         logger = Loggers.getLogger(getClass(), settings);
@@ -115,6 +121,7 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
                     table.index(state);
                 }
             }
+            putGlobalExpressionsInScope(stmt);
             table.query(stmt, listener, requestStartedTime);
         }
 
@@ -125,6 +132,16 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
         PlainActionFuture<SQLResponse> future = newFuture();
         execute(stmt, future, requestStartedTime);
         return future;
+    }
+
+    private void putGlobalExpressionsInScope(ParsedStatement stmt) {
+        for (ScopedExpression<?> expression : stmt.globalExpressions()) {
+            if (expression.getScope() != ExpressionScope.CLUSTER) {
+                throw new CrateException("Only cluster expressions are allowed in information_schema queries");
+            }
+            expression.putInScope(null, null, -1);
+        }
+
     }
 
 }

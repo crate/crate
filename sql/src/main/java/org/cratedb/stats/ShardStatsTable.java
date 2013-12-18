@@ -7,8 +7,6 @@ import org.apache.lucene.util.BytesRef;
 import org.cratedb.action.collect.CollectorContext;
 import org.cratedb.action.collect.ColumnReferenceExpression;
 import org.cratedb.action.groupby.GlobalSQLGroupingCollector;
-import org.cratedb.action.groupby.GroupByKey;
-import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.SQLGroupingCollector;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
@@ -173,12 +171,22 @@ public class ShardStatsTable implements StatsTable {
         CollectorContext cc = new CollectorContext().fieldLookup(
                 new StatsTableFieldLookup(shardInfo.fields()));
         cc.cacheRecycler(cacheRecycler);
-        SQLGroupingCollector collector = new SQLGroupingCollector(
-                stmt,
-                cc,
-                aggFunctionMap,
-                numReducers
-        );
+        SQLGroupingCollector collector;
+        if (stmt.isGlobalAggregate()) {
+            collector = new GlobalSQLGroupingCollector(
+                    stmt,
+                    cc,
+                    aggFunctionMap,
+                    numReducers
+            );
+        } else {
+            collector = new SQLGroupingCollector(
+                    stmt,
+                    cc,
+                    aggFunctionMap,
+                    numReducers
+            );
+        }
         doQuery(stmt, shardInfo, collector);
 
         return collector.rows();

@@ -153,6 +153,10 @@ public class CrateTestCluster implements Iterable<Client> {
         return builder.toString();
     }
 
+    public String clusterName() {
+        return clusterName;
+    }
+
     private void ensureOpen() {
         if (!open.get()) {
             throw new RuntimeException("Cluster is already closed");

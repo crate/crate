@@ -10,9 +10,11 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.information_schema.InformationSchemaTable;
 import org.cratedb.information_schema.InformationSchemaTableExecutionContext;
 import org.cratedb.information_schema.TablesTable;
+import org.cratedb.service.GlobalExpressionService;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.SQLParser;
 import org.cratedb.sql.parser.parser.StatementNode;
+import org.cratedb.stubs.HitchhikerMocks;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -235,6 +237,8 @@ public class LuceneQueryVisitorTest {
                 (new HashMap<String, InformationSchemaTable>(){{
                     put("tables", new TablesTable(aggFunctionMap, null));
                 }}, "tables");
+        GlobalExpressionService globalExpressionService = new GlobalExpressionService(HitchhikerMocks.globalExpressions);
+        when(context.globalExpressionService()).thenReturn(globalExpressionService);
         when(context.queryPlanner()).thenReturn(queryPlanner);
         when(context.tableContext(anyString(), anyString())).thenReturn(tableContext);
         QueryVisitor visitor = new QueryVisitor(context, stmt, new Object[0]);

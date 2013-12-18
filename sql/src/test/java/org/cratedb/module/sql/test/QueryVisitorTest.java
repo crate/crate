@@ -10,6 +10,7 @@ import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
 import org.cratedb.index.ColumnDefinition;
+import org.cratedb.service.GlobalExpressionService;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.OrderByAmbiguousException;
 import org.cratedb.sql.SQLParseException;
@@ -59,33 +60,43 @@ public class QueryVisitorTest {
         NodeExecutionContext nec = mock(NodeExecutionContext.class);
         TableExecutionContext tec = mock(TableExecutionContext.class);
 
-        ColumnDefinition colDef = new ColumnDefinition("locations", "whatever", DataType.STRING, "plain", 0, false, false);
+        int colIdx = 0;
+        ColumnDefinition colDef = new ColumnDefinition("locations", "whatever", DataType.STRING, "plain", colIdx++, false, false);
         // Disable query planner here to save mocking
         Settings settings = ImmutableSettings.builder().put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, false).build();
         QueryPlanner queryPlanner = new QueryPlanner(settings);
         when(nec.queryPlanner()).thenReturn(queryPlanner);
         when(nec.availableAggFunctions()).thenReturn(HitchhikerMocks.aggFunctionMap);
+        GlobalExpressionService globalExpressionService = new GlobalExpressionService(HitchhikerMocks.globalExpressions);
+        when(nec.globalExpressionService()).thenReturn(globalExpressionService);
         when(nec.tableContext(null, "locations")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("a", "b"));
         when(tec.getColumnDefinition(anyString())).thenReturn(colDef);
+
         when(tec.getColumnDefinition("col")).thenReturn(
-            new ColumnDefinition("locations", "col", DataType.STRING, "plain", 1, false, false)
+            new ColumnDefinition("locations", "col", DataType.STRING, "plain", colIdx++, false, false)
+        );
+        when(tec.getColumnDefinition("kind")).thenReturn(
+                new ColumnDefinition("locations", "kind", DataType.CRATY, "plain", colIdx++, false, false)
         );
         when(tec.getColumnDefinition("kind.x")).thenReturn(
-                new ColumnDefinition("locations", "kind.x", DataType.STRING, "plain", 0, false,
+                new ColumnDefinition("locations", "kind.x", DataType.STRING, "plain", colIdx++, false,
                         false));
+        when(tec.getColumnDefinition("name")).thenReturn(
+                new ColumnDefinition("locations", "name", DataType.STRING, "plain", colIdx++, false, false)
+        );
         when(tec.getColumnDefinition("nothing")).thenReturn(null);
         when(tec.getColumnDefinition("bool")).thenReturn(
-                new ColumnDefinition("locations", "bool", DataType.BOOLEAN, "plain", 1, false, false)
+                new ColumnDefinition("locations", "bool", DataType.BOOLEAN, "plain", colIdx++, false, false)
         );
         when(tec.getColumnDefinition("numeric_field")).thenReturn(
-                new ColumnDefinition("locations", "numeric_field", DataType.DOUBLE, "plain", 2, false, false)
+                new ColumnDefinition("locations", "numeric_field", DataType.DOUBLE, "plain", colIdx++, false, false)
         );
         when(tec.getColumnDefinition("craty_field")).thenReturn(
-                new ColumnDefinition("locations", "craty_field", DataType.CRATY, "plain", 3, false, false)
+                new ColumnDefinition("locations", "craty_field", DataType.CRATY, "plain", colIdx++, false, false)
         );
         when(tec.getColumnDefinition("age")).thenReturn(
-                new ColumnDefinition("locations", "age", DataType.INTEGER, null, 1, false, false)
+                new ColumnDefinition("locations", "age", DataType.INTEGER, null, colIdx++, false, false)
         );
 
         when(tec.hasCol(anyString())).thenReturn(true);
@@ -167,7 +178,7 @@ public class QueryVisitorTest {
     @Test
     public void testSelectGroupByOrderByAmbiguousColumn() throws Exception {
         expectedException.expect(OrderByAmbiguousException.class);
-        execStatement("select name, kind as name from locations group by name order by name");
+        execStatement("select name, kind as name from locations group by name, kind order by name");
     }
 
     @Test
@@ -326,6 +337,8 @@ public class QueryVisitorTest {
         TableExecutionContext tec = mock(TableExecutionContext.class);
         QueryPlanner queryPlanner = mock(QueryPlanner.class);
         when(nec.queryPlanner()).thenReturn(queryPlanner);
+        GlobalExpressionService globalExpressionService = new GlobalExpressionService(HitchhikerMocks.globalExpressions);
+        when(nec.globalExpressionService()).thenReturn(globalExpressionService);
         when(nec.tableContext(null, "persons")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("message", "person"));
 

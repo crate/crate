@@ -1,23 +1,25 @@
 package org.cratedb.action.collect.scope;
 
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.inject.Inject;
 
-public class ClusterNameExpression extends ClusterLevelExpression<String> {
+public class ClusterNameExpression extends ClusterLevelExpression<BytesRef> {
 
-    public static final String NAME = "cluster.name";
-    private final ClusterName clusterName;
+    public static final String NAME = "sys.cluster.name";
+
+    private final BytesRef clusterName;
 
     @Inject
     public ClusterNameExpression(ClusterName clusterName) {
-        this.clusterName = clusterName;
+        this.clusterName = new BytesRef(clusterName.value().getBytes());
     }
 
     @Override
-    public String evaluate() throws CrateException {
-        return clusterName.value();
+    public BytesRef evaluate() throws CrateException {
+        return clusterName;
     }
 
     @Override
@@ -26,12 +28,7 @@ public class ClusterNameExpression extends ClusterLevelExpression<String> {
     }
 
     @Override
-    public ExpressionScope getScope() {
-        return ExpressionScope.CLUSTER;
-    }
-
-    @Override
-    public String getFullyQualifiedName() {
+    public String name() {
         return NAME;
     }
 }

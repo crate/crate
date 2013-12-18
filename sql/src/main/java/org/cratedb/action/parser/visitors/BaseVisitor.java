@@ -1,14 +1,18 @@
 package org.cratedb.action.parser.visitors;
 
+import com.google.common.base.Joiner;
 import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.ITableExecutionContext;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
-import org.cratedb.stats.ShardStatsTableExecutionContext;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.TableUnknownException;
+import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
+import org.cratedb.stats.ShardStatsTableExecutionContext;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class BaseVisitor extends DispatchingVisitor {
@@ -130,5 +134,33 @@ public class BaseVisitor extends DispatchingVisitor {
         } else {
             throw new SQLParseException("ValueNode type not supported " + node.getClass().getName());
         }
+    }
+
+    /**
+     * Get The full qualified name of a valueNode
+     * with schema name and table name and column name if available
+     * @param stmt
+     * @param node
+     * @return
+     * @throws StandardException
+     */
+    public String getFQDN(ParsedStatement stmt, ValueNode node) throws StandardException {
+        List<String> parts = new ArrayList<>(3);
+        String schemaName = node.getSchemaName() == null ? stmt.schemaName() : node.getSchemaName();
+        if (schemaName != null) {
+            parts.add(schemaName);
+        }
+        String tableName = node.getTableName() == null ? stmt.tableName() : node.getTableName();
+        if (tableName == null) {
+            tableName = stmt.virtualTableName();
+        }
+        if (tableName != null) {
+            parts.add(tableName);
+        }
+        String columnName = node.getColumnName();
+        if (columnName != null) {
+            parts.add(columnName);
+        }
+        return Joiner.on('.').join(parts);
     }
 }

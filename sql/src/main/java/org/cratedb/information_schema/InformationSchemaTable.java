@@ -27,6 +27,7 @@ public interface InformationSchemaTable {
      * Query this table for results
      * @param stmt the statement containing the parsed query
      * @param listener the listener to be called on success or failure
+     * @param requestStartedTime point in time the request was started at
      */
     public void query(ParsedStatement stmt, ActionListener<SQLResponse> listener, long requestStartedTime);
 

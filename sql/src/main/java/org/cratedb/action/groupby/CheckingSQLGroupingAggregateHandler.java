@@ -1,7 +1,5 @@
 package org.cratedb.action.groupby;
 
-import org.cratedb.action.FieldLookup;
-import org.cratedb.action.collect.CollectorContext;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 

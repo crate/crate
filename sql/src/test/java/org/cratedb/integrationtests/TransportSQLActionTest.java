@@ -2617,17 +2617,83 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(55.25d, response.rows()[0][3]);
     }
 
+
     @Test
-    public void testSelectExpressionFromAnotherTable() throws Exception {
+    public void testSelectGlobalExpressionGroupBy() throws Exception {
         this.setup.groupBySetup();
-        execute("select name, \"_crate.cluster.name\" from characters");
-        assertEquals(7, response.rowCount());
+        execute("select count(distinct race), sys.cluster.name from characters group by sys.cluster.name");
+        assertEquals(1, response.rowCount());
         for (int i=0; i<response.rowCount();i++) {
-            assertEquals("crate", response.rows()[i][1]);
-            assertNotNull(response.rows()[i][0]);
+            assertEquals(3L, response.rows()[i][0]);
+            assertEquals(cluster().clusterName(), response.rows()[i][1]);
         }
     }
 
+    @Test
+    public void testSelectGlobalExpressionGroupByWith2GroupByKeys() throws Exception {
+        this.setup.groupBySetup();
+        execute("select count(name), sys.cluster.name from characters group by race, sys.cluster.name order by count(name) desc");
+        assertEquals(3, response.rowCount());
+        assertEquals(4L, response.rows()[0][0]);
+        assertEquals(cluster().clusterName(), response.rows()[0][1]);
+        assertEquals(response.rows()[0][1], response.rows()[1][1]);
+        assertEquals(response.rows()[0][1], response.rows()[2][1]);
+    }
 
+    @Test
+    public void testSelectGlobalExpressionGlobalAggregate() throws Exception {
+        this.setup.groupBySetup();
+        execute("select count(distinct race), sys.cluster.name from characters");
+        assertEquals(1, response.rowCount());
+        assertArrayEquals(new String[]{"COUNT(DISTINCT race)", "sys.cluster.name"}, response.cols());
+        assertEquals(3L, response.rows()[0][0]);
+        assertEquals(cluster().clusterName(), response.rows()[0][1]);
+    }
+
+    @Test
+    public void testSelectNonExistentGlobalExpression() throws Exception {
+        this.setup.groupBySetup();
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Cannot reference column from different schema.");
+        execute("select count(race), suess.cluster.name from characters");
+    }
+
+    @Test
+    public void testSelectOrderByGlobalExpression() throws Exception {
+        this.setup.groupBySetup();
+        execute("select count(*), sys.cluster.name from characters group by sys.cluster.name order by sys.cluster.name");
+        assertEquals(1, response.rowCount());
+        assertEquals(7L, response.rows()[0][0]);
+
+        assertEquals(cluster().clusterName(), response.rows()[0][1]);
+    }
+
+    @Test
+    public void testSelectAggregateOnGlobalExpression() throws Exception {
+        this.setup.groupBySetup();
+        execute("select count(sys.cluster.name) from characters");
+        assertEquals(1, response.rowCount());
+        assertEquals(7L, response.rows()[0][0]);
+
+        execute("select count(distinct sys.cluster.name) from characters");
+        assertEquals(1, response.rowCount());
+        assertEquals(1L, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testSelectGlobalExpressionWithAlias() throws Exception {
+        this.setup.groupBySetup();
+        execute("select sys.cluster.name as cluster_name, race from characters " +
+                "group by sys.cluster.name, race " +
+                "order by cluster_name, race");
+        assertEquals(3, response.rowCount());
+        assertEquals(cluster().clusterName(), response.rows()[0][0]);
+        assertEquals(cluster().clusterName(), response.rows()[1][0]);
+        assertEquals(cluster().clusterName(), response.rows()[2][0]);
+
+        assertEquals("Android", response.rows()[0][1]);
+        assertEquals("Human", response.rows()[1][1]);
+        assertEquals("Vogon", response.rows()[2][1]);
+    }
 
 }
