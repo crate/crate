@@ -1,6 +1,8 @@
 package org.cratedb.action.parser;
 
-public class ColumnDescription {
+import org.cratedb.DataType;
+
+public abstract class ColumnDescription {
 
     public static class Types {
         public final static byte AGGREGATE_COLUMN = 0;
@@ -12,4 +14,6 @@ public class ColumnDescription {
     public ColumnDescription(byte type) {
         this.type = type;
     }
+
+    public abstract DataType returnType();
 }

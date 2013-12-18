@@ -1,10 +1,10 @@
 package org.cratedb.action.groupby;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.lucene.util.BytesRef;
+import org.cratedb.DataType;
+import org.cratedb.action.collect.ColumnReferenceExpression;
+import org.cratedb.action.collect.Expression;
 import org.cratedb.action.groupby.aggregate.AggExpr;
-import org.cratedb.action.groupby.aggregate.any.AnyAggFunction;
-import org.cratedb.action.groupby.aggregate.max.MaxAggFunction;
-import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
 import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.sql.ParsedStatement;
@@ -14,32 +14,6 @@ import org.cratedb.mapper.FieldMapper;
 import java.util.*;
 
 public class GroupByHelper {
-
-    /**
-     * Aggregation functions whose values need to be mapped before returning the GroupByResult
-     */
-    public static final ImmutableSet<String> MAPPED_AGG_FUNCTIONS = ImmutableSet.of(
-            MinAggFunction.NAME,
-            MaxAggFunction.NAME,
-            AnyAggFunction.NAME
-    );
-
-    public static List<Integer> getSeenIdxMap(Collection<AggExpr> aggregateExpressions) {
-        List<Integer> idxMap = new ArrayList<>();
-        Set<String> distinctColumns = new HashSet<>();
-        int seenIdx = -1;
-        for (AggExpr expr : aggregateExpressions) {
-            if (expr.isDistinct) {
-                if (!distinctColumns.contains(expr.parameterInfo.columnName)) {
-                    distinctColumns.add(expr.parameterInfo.columnName);
-                    seenIdx++;
-                }
-                idxMap.add(seenIdx);
-            }
-        }
-
-        return idxMap;
-    }
 
     public static Collection<GroupByRow> trimRows(List<GroupByRow> rows,
                                                   Comparator<GroupByRow> comparator,
@@ -74,29 +48,30 @@ public class GroupByHelper {
      */
     public static GroupByFieldExtractor[] buildFieldExtractor(ParsedStatement parsedStatement,
                                                               final FieldMapper fieldMapper) {
-        GroupByFieldExtractor[] extractors = new GroupByFieldExtractor[parsedStatement.resultColumnList.size()];
+        GroupByFieldExtractor[] extractors = new GroupByFieldExtractor[parsedStatement
+                .resultColumnList().size()];
 
         int colIdx = 0;
         int aggStateIdx = 0;
         int keyValIdx;
 
-        for (final ColumnDescription columnDescription : parsedStatement.resultColumnList) {
+        for (final ColumnDescription columnDescription : parsedStatement.resultColumnList()) {
             if (columnDescription instanceof AggExpr) {
                 // fieldMapper is null in case of group by on information schema
-                if (fieldMapper != null && MAPPED_AGG_FUNCTIONS.contains(((AggExpr) columnDescription).functionName)) {
-                    // need to use fieldMapper to convert long to int/short, etc..
-                    // groupingCollector/fieldcache doesn't return the correct types.
+
+                if (fieldMapper != null && (columnDescription).returnType() == DataType.STRING)
+                {
                     extractors[colIdx] = new GroupByFieldExtractor(aggStateIdx) {
                         @Override
                         public Object getValue(GroupByRow row) {
-                            return fieldMapper.mappedValue(
-                                    ((AggExpr) columnDescription).parameterInfo.columnName,
-                                    row.aggStates.get(idx).value()
-                            );
+                            BytesRef bytesRef = (BytesRef)row.aggStates.get(idx).value();
+                            if (bytesRef != null) {
+                                return bytesRef.utf8ToString();
+                            }
+                            return null;
                         }
                     };
                 } else {
-
                     extractors[colIdx] = new GroupByFieldExtractor(aggStateIdx) {
                         @Override
                         public Object getValue(GroupByRow row) {
@@ -108,13 +83,36 @@ public class GroupByHelper {
             } else {
                  // currently only AggExpr and ColumnReferenceDescription exists, so this must be true.
                 assert columnDescription instanceof ColumnReferenceDescription;
-                keyValIdx = parsedStatement.groupByColumnNames.indexOf(((ColumnReferenceDescription) columnDescription).name);
-                extractors[colIdx] = new GroupByFieldExtractor(keyValIdx) {
-                    @Override
-                    public Object getValue(GroupByRow row) {
-                        return row.key.get(idx);
+                String colName =  ((ColumnReferenceDescription) columnDescription).name;
+                keyValIdx = 0;
+                for (Expression e: parsedStatement.groupByExpressions()){
+
+                    if (e instanceof ColumnReferenceExpression && colName.equals(
+                            ((ColumnReferenceExpression)e).columnName())){
+
+                        if (fieldMapper != null && e.returnType() == DataType.STRING) {
+                            extractors[colIdx] = new GroupByFieldExtractor(keyValIdx) {
+                                @Override
+                                public Object getValue(GroupByRow row) {
+                                    BytesRef bytesRef = (BytesRef)row.key.get(idx);
+                                    if (bytesRef != null) {
+                                        return bytesRef.utf8ToString();
+                                    }
+                                    return null;
+                                }
+                            };
+                        } else {
+                            extractors[colIdx] = new GroupByFieldExtractor(keyValIdx) {
+                                @Override
+                                public Object getValue(GroupByRow row) {
+                                    return row.key.get(idx);
+                                }
+                            };
+                        }
+                        break;
                     }
-                };
+                    keyValIdx++;
+                }
             }
             colIdx++;
         }

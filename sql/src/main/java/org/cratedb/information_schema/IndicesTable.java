@@ -7,6 +7,7 @@ import org.apache.lucene.index.Term;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.index.IndexMetaDataExtractor;
 import org.cratedb.lucene.fields.StringLuceneField;
+import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Inject;
@@ -41,8 +42,8 @@ public class IndicesTable extends AbstractInformationSchemaTable {
 
 
     @Inject
-    public IndicesTable(Map<String, AggFunction> aggFunctionMap) {
-        super(aggFunctionMap);
+    public IndicesTable(Map<String, AggFunction> aggFunctionMap, CacheRecycler cacheRecycler) {
+        super(aggFunctionMap, cacheRecycler);
         fieldMapper.put(
                 Columns.TABLE_NAME,
                 new StringLuceneField(Columns.TABLE_NAME)

@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - optimized group by performance
+
 2013/12/17 0.19.14
 ==================
 

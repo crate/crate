@@ -1,14 +1,18 @@
 package org.cratedb.module.sql.test;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
+import org.cratedb.DataType;
 import org.cratedb.action.parser.ESRequestBuilder;
 import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
+import org.cratedb.index.ColumnDefinition;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
+import org.cratedb.sql.parser.parser.ValueNode;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -28,6 +32,7 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -54,6 +59,10 @@ public class QueryPlannerTest {
         // Force enabling query planner
         Settings settings = ImmutableSettings.builder().put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, true).build();
         QueryPlanner queryPlanner = new QueryPlanner(settings);
+        when(tec.getColumnDefinition("phrase")).thenReturn(
+            new ColumnDefinition("phrases", "phrase", DataType.STRING, "plain", 0, false, false));
+        when(tec.getColumnDefinition("pk_col")).thenReturn(
+            new ColumnDefinition("phrases", "pk_col", DataType.STRING, "plain", 0, false, false));
         when(nec.queryPlanner()).thenReturn(queryPlanner);
         when(nec.tableContext(null, "phrases")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("pk_col", "phrase"));
@@ -64,7 +73,7 @@ public class QueryPlannerTest {
         when(tec.primaryKeysIncludingDefault()).thenReturn(new ArrayList<String>(1) {{
             add("pk_col");
         }});
-
+        when(tec.getCollectorExpression(any(ValueNode.class))).thenCallRealMethod();
         parseService = new SQLParseService(nec);
         stmt = parseService.parse(sql, args);
         requestBuilder = new ESRequestBuilder(stmt);

@@ -1,6 +1,5 @@
 package org.cratedb.action.groupby;
 
-import org.cratedb.action.FieldLookup;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 
@@ -20,13 +19,11 @@ public interface SQLGroupingAggregateHandler {
      * handle aggregates while grouping
      *
      * @param row the GroupByRow to apply the looked up value to
-     * @param fieldLookup class that lets us make the lookup for a columnValue
      * @param aggregateExpressions the aggregate expressions found in the SQL-statement
      * @param aggFunctions the aggFunctions used in the current SQL-statement in correct order
      * @throws IOException
      */
     public void handleAggregates(
             GroupByRow row,
-            FieldLookup fieldLookup,
             List<AggExpr> aggregateExpressions, AggFunction[] aggFunctions) throws IOException;
 }

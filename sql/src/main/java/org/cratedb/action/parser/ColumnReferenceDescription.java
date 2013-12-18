@@ -1,12 +1,26 @@
 package org.cratedb.action.parser;
 
+import org.cratedb.DataType;
+import org.cratedb.index.ColumnDefinition;
+
 public class ColumnReferenceDescription extends ColumnDescription {
 
+    private DataType dataType;
     public String name;
 
-    public ColumnReferenceDescription(String columnName) {
+
+    public ColumnReferenceDescription(ColumnDefinition columnDefinition) {
+        this(columnDefinition.columnName, columnDefinition.dataType);
+    }
+
+    public ColumnReferenceDescription(String columnName, DataType dataType) {
         super(ColumnDescription.Types.CONSTANT_COLUMN);
         this.name = columnName;
+        this.dataType = dataType;
+    }
+
+    public DataType returnType() {
+        return dataType;
     }
 
     @Override

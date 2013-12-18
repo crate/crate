@@ -1,5 +1,6 @@
 package org.cratedb.action;
 
+import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -13,7 +14,11 @@ import java.util.UUID;
 
 public class SQLMapperResultRequest extends TransportRequest {
 
+    public boolean failed = false;
+
+    // fields below are only set/available on the receiver side.
     final ESLogger logger = Loggers.getLogger(getClass());
+    private CacheRecycler cacheRecycler;
     private ReduceJobStatusContext jobStatusContext;
 
     public UUID contextId;
@@ -24,34 +29,44 @@ public class SQLMapperResultRequest extends TransportRequest {
     public SQLMapperResultRequest() {}
     public SQLMapperResultRequest(ReduceJobStatusContext jobStatusContext) {
         this.jobStatusContext = jobStatusContext;
+        cacheRecycler = jobStatusContext.cacheRecycler();
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
+
         try {
             contextId = new UUID(in.readLong(), in.readLong());
             status = jobStatusContext.get(contextId);
-            if (status == null) {
-                Streams.copy(in, memoryOutputStream);
-            } else {
-                groupByResult = SQLGroupByResult.readSQLGroupByResult(
-                    status.parsedStatement.aggregateExpressions,
-                    status.seenIdxMapper,
-                    in
-                );
+            failed = in.readBoolean();
+            if (!failed){
+                if (status == null) {
+                    Streams.copy(in, memoryOutputStream);
+                } else {
+                    groupByResult = SQLGroupByResult.readSQLGroupByResult(
+                        status.parsedStatement, cacheRecycler, in);
+                }
             }
         } catch (Exception e ) {
             logger.error(e.getMessage(), e);
-            throw new IOException(e);
+            throw e;
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeLong(contextId.getMostSignificantBits());
-        out.writeLong(contextId.getLeastSignificantBits());
-        groupByResult.writeTo(out);
+        try {
+            out.writeLong(contextId.getMostSignificantBits());
+            out.writeLong(contextId.getLeastSignificantBits());
+            out.writeBoolean(failed);
+            if (!failed){
+                groupByResult.writeTo(out);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            throw e;
+        }
     }
 }

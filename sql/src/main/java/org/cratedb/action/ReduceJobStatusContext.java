@@ -1,5 +1,6 @@
 package org.cratedb.action;
 
+import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.HandlesStreamInput;
@@ -12,9 +13,14 @@ public class ReduceJobStatusContext {
     private final Map<UUID, SQLReduceJobStatus> reduceJobs = new HashMap<>();
     private final Map<UUID, List<BytesReference>> unreadStreams = new HashMap<>();
     private final Object lock = new Object();
+    private final CacheRecycler cacheRecycler;
 
+    public CacheRecycler cacheRecycler() {
+        return cacheRecycler;
+    }
 
-    public ReduceJobStatusContext() {
+    public ReduceJobStatusContext(CacheRecycler cacheRecycler) {
+        this.cacheRecycler = cacheRecycler;
     }
 
     public SQLReduceJobStatus get(UUID contextId) {
@@ -49,6 +55,10 @@ public class ReduceJobStatusContext {
 
         synchronized (lock) {
             SQLReduceJobStatus status = reduceJobs.get(request.contextId);
+            if (request.failed) {
+                status.countFailure();
+                return;
+            }
             if (status == null) {
                 List<BytesReference> bytesStreamOutputs = unreadStreams.get(request.contextId);
                 if (bytesStreamOutputs == null) {
@@ -65,9 +75,8 @@ public class ReduceJobStatusContext {
 
     private void mergeFromBytesReference(BytesReference bytesReference, SQLReduceJobStatus status) throws IOException {
         SQLGroupByResult sqlGroupByResult = SQLGroupByResult.readSQLGroupByResult(
-            status.parsedStatement.aggregateExpressions,
-            status.seenIdxMapper,
-
+            status.parsedStatement,
+            cacheRecycler,
             // required to wrap into HandlesStreamInput because it has a different readString()
             // implementation than BytesStreamInput alone.
             // the memoryOutputStream originates from a HandlesStreamOutput

@@ -5,7 +5,7 @@ import org.cratedb.action.groupby.aggregate.AggFunction;
 
 import java.util.Set;
 
-public class CountDistinctAggFunction extends AggFunction<CountAggState> {
+public class CountDistinctAggFunction extends AggFunction<CountDistinctAggState> {
 
     public static final String NAME = "COUNT_DISTINCT";
 
@@ -15,7 +15,7 @@ public class CountDistinctAggFunction extends AggFunction<CountAggState> {
     }
 
     @Override
-    public boolean iterate(CountAggState state, Object columnValue) {
+    public boolean iterate(CountDistinctAggState state, Object columnValue) {
         if (columnValue != null) {
             // to improve readability in the groupingCollector the seenValues.add is done here
             // if the seenValues is shared across multiple states this means that the add operation
