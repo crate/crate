@@ -5,11 +5,9 @@ import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.sql.ParsedStatement;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.lucene.docset.AllDocIdSet;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 public class GlobalRows extends Rows<GlobalRows> {
@@ -82,13 +80,25 @@ public class GlobalRows extends Rows<GlobalRows> {
         // put all buckets of other in this buckets regardless how many buckets are in other
         assert other.buckets().size() <= 1;
 
-        for (GroupByRow otherRow : other.buckets()) {
-            if (mergedRow == null) {
-                mergedRow = otherRow;
-            } else {
-                mergedRow.merge(otherRow);
-            }
+        if (mergedRow == null) {
+            walk(new RowVisitor() {
+                @Override
+                public void visit(GroupByRow row) {
+                    mergedRow = row;
+                }
+            });
         }
+
+        other.walk(new RowVisitor() {
+            @Override
+            public void visit(GroupByRow row) {
+                if (mergedRow == null) {
+                    mergedRow = row;
+                } else {
+                    mergedRow.merge(row);
+                }
+            }
+        });
     }
 
     @Override

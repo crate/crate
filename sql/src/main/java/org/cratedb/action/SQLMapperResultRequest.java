@@ -50,18 +50,23 @@ public class SQLMapperResultRequest extends TransportRequest {
             }
         } catch (Exception e ) {
             logger.error(e.getMessage(), e);
-            throw new IOException(e);
+            throw e;
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeLong(contextId.getMostSignificantBits());
-        out.writeLong(contextId.getLeastSignificantBits());
-        out.writeBoolean(failed);
-        if (!failed){
-            groupByResult.writeTo(out);
+        try {
+            out.writeLong(contextId.getMostSignificantBits());
+            out.writeLong(contextId.getLeastSignificantBits());
+            out.writeBoolean(failed);
+            if (!failed){
+                groupByResult.writeTo(out);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
+            throw e;
         }
     }
 }

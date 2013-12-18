@@ -1,5 +1,7 @@
 package org.cratedb.action;
 
+import org.cratedb.action.groupby.GroupByRow;
+import org.cratedb.action.groupby.key.Rows;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamInput;

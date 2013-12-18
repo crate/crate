@@ -66,11 +66,13 @@ public class SQLReduceJobStatus extends PlainListenableActionFuture<SQLReduceJob
         return GroupByHelper.trimRows(rowList, comparator, parsedStatement.totalLimit());
     }
 
-    public synchronized void merge(SQLGroupByResult groupByResult) {
-        if (reducedRows==null){
-            reducedRows = groupByResult.rows();
-        } else {
-            reducedRows.merge(groupByResult.rows());
+    public void merge(SQLGroupByResult groupByResult) {
+        synchronized (lock) {
+            if (reducedRows==null){
+                reducedRows = groupByResult.rows();
+            } else {
+                reducedRows.merge(groupByResult.rows());
+            }
         }
 
         countDown();
