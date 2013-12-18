@@ -13,6 +13,9 @@ Unreleased
 - new global expression ``sys.cluster.name`` created.
    Can be queried in group by queries and global aggregate queries.
 
+ - crate.yml configuration file is now also read without specifying
+   `-Des.config` in the start script.
+
  - admin-ui: added simple loading indicator on submitting a SQL query via console,
              also display query result status including query duration
 
