@@ -78,6 +78,37 @@ public class GroupTree extends Rows<GroupTree> {
         }
     }
 
+    @SuppressWarnings("unchecked")
+    public void mergeSingleRow(int bucketId, GroupByRow row) {
+        assert depth == row.key.size();
+
+        ObjectObjectMap m = maps[bucketId];
+        boolean last;
+
+        for (int i = 0; i < row.key.size(); i++) {
+            last = i == (depth - 1);
+
+            Object value = m.get(row.key.get(i));
+            if (value == null) {
+                if (last) {
+                    m.put(row.key.get(i), row);
+                    return;
+                } else {
+                    ObjectObjectMap subMap = mapFactories[i].create();
+                    m.put(row.key.get(i), subMap);
+                    m = subMap;
+                }
+            } else {
+                if (last) {
+                    ((GroupByRow)value).merge(row);
+                    return;
+                } else {
+                    m = (ObjectObjectMap)value;
+                }
+            }
+        }
+    }
+
     private int getRouting(Object o){
         if (o==null){
             return 0;

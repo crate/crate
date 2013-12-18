@@ -727,6 +727,14 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             } else {
                 assert reduceJobStatus != null;
 
+                GroupTree tree = new GroupTree(1, parsedStatement, cacheRecycler);
+                for (GroupByRow groupByRow : groupByResult) {
+                    tree.mergeSingleRow(0, groupByRow);
+                }
+
+                reduceJobStatus.merge(new SQLGroupByResult(0, tree));
+
+                groupByResult.clear();
                 groupByResult.addAll(reduceJobStatus.terminate());
             }
         }
