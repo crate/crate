@@ -1,0 +1,157 @@
+html, body {
+  margin: 0;
+}
+html {
+  background: url(bg.png);
+}
+body {
+  color: #333;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 16px;
+}
+ul {
+  padding: 0 0 0 20px;
+}
+#content {
+  width: 75%;
+  max-width: 800px;
+  line-height: 1.4em;
+  margin: 0 50px 50px 100px;
+  text-shadow: 0px 1px 0px #fff;
+}
+#footer {
+  background: #202020;
+  overflow: hidden;
+  color: #888;
+  font-size: 12px;
+  padding: 20px 0 100px 50px;
+  position: relative;
+}
+#footer:before {
+  content: '';
+  display: block;
+  box-shadow: 0 0 10px #000;
+  height: 10px;
+  position: absolute;
+  left: 0;
+  top: -10px;
+  width: 100%;
+}
+#footer a.github {
+   background: url(github.gif) no-repeat;
+   width: 68px;
+   height: 30px;
+   text-indent: -999em;
+   position: absolute;
+   bottom: 30px;
+   right: 30px;
+}
+a {
+  color: #333;
+}
+a:hover {
+  color: #000;
+}
+pre {
+  text-shadow: none;
+  font-size: 14px;
+  line-height: 18px;
+  margin: 0 0 30px 0;
+}
+label {
+  display: inline-block;
+  width: 440px;
+  font-size: 14px;
+  vertical-align: top;
+}
+#opts {
+  display: inline-block;
+}
+#opts label {
+  line-height: 25px;
+  width: 80px;
+}
+span.fd-slider {
+  vertical-align: top;
+  display: inline-block;
+  width: 150px;
+}
+#logo {
+  position: relative;
+  height: 300px;
+  margin-left: 100px;
+}
+h1, h2, h3, #download a {
+  font-family: 'Amaranth', sans-serif;
+}
+h1 {
+  font-size: 200px;
+  position: absolute;
+  text-shadow: 0px 1px 0px #fff;
+  margin: 0;
+  padding: 0;
+}
+h2 {
+  font-size: 28px;
+  margin: 45px 0 28px 0;
+}
+h3 {
+  margin: 35px 0 10px 0;
+}
+
+#ribbon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 149px;
+  height: 149px;
+  background:url(ribbon.png);
+  _background: none;
+  _filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src=ribbon.png);
+}
+#preview {
+  background: #333;
+  color: #fff;
+  float: left;
+  width: 268px;
+  height: 268px;
+  margin: 0 20px 20px 0;
+  -webkit-border-radius: 10px;
+  -moz-border-radius: 10px;
+  border-radius: 10px;
+}
+#demo {
+  clear: both;
+}
+#demo form {
+  width: 250px;
+  float: left;
+}
+.share {
+  clear: left;
+}
+a.button {
+  display: inline-block;
+  background: #56ba4a;
+  border: 3px solid #59a24f;
+  color: #fff;
+  border-radius: 5px;
+  font-family: 'Amaranth', sans-serif;
+  font-size: 24px;
+  padding: 10px 30px;
+  text-decoration: none;
+  text-shadow: 1px 1px 1px #59a24f;
+  box-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+  margin: 10px 20px 0 0;
+  -webkit-transition: all 0.25s ease;
+}
+a.button:hover {
+  background: #2f8325;
+  box-shadow: none;
+}
+#contact img {
+  float: left;
+  border: 3px solid #eee;
+  box-shadow: 0px 2px 3px rgba(0,0,0,0.2);
+  margin: 0 16px 50px 0;
+}

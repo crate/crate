@@ -1,4 +1,4 @@
-// global
+// Global
 // -------------------------
 
 body {
@@ -6,7 +6,7 @@ body {
 }
 
 h2 {
-  font-family: @font-family-sans-serif-bold;
+  font-weight: bold;
 }
 
 // Structure
@@ -14,6 +14,12 @@ h2 {
 
 #page-wrapper {
   padding-top:30px;
+}
+
+.page-header {
+  margin: 30px 0 10px 0;
+  padding: 0px;
+  border-bottom: 1px solid #eeeeee;
 }
 
 @media (min-width: 768px) {
@@ -31,17 +37,10 @@ h2 {
 // -------------------------
 
 .navbar-brand {
-  
-  background-image: url("@{image-url}/logo.png");
-  background-repeat: no-repeat;
-  background-position: center center;
-
-  width: 149px;
-  height: 104px;
+  width: 100%;
+  height: 92px;
+  left: -15px;
   /* Hide the text. */
-  text-indent: 100%;
-  white-space: nowrap;
-  overflow: hidden;
   z-index: 1;
   position: relative;
   margin-top: 150px;
@@ -58,7 +57,7 @@ h2 {
 // Navleft
 
 .side-nav {
-  font-family: @font-family-base-bold;
+  font-weight: bold;
   font-size: @font-size-small;
   text-transform: uppercase;
   width: 149px;
@@ -73,12 +72,12 @@ h2 {
     }
 
     .fa {
-    	font-size: 2em;
+      font-size: 2em;
     }
 }
 
-.navbar-inverse .navbar-nav > .active > a, 
-.navbar-inverse .navbar-nav > .active > a:hover, 
+.navbar-inverse .navbar-nav > .active > a,
+.navbar-inverse .navbar-nav > .active > a:hover,
 .navbar-inverse .navbar-nav > .active > a:focus {
   background-color: transparent;
 }
@@ -116,25 +115,34 @@ h2 {
       padding-bottom: 0px;
       color: #fff;
   }
+
+    li > a:hover {
+      color: @gray-darker;
+  }
 }
 
 .navbar-inverse .alert-success {
   background-color:@brand-success;
   color: #fff;
       span.label.label-success {
-        font-family: @font-family-base-bold;
+        font-weight: bold;
       }
 }
 
-.navbar-inverse .alert-warning, 
+.navbar-inverse .alert-warning,
 .navbar-inverse .alert-warning .label {
   background-color:@brand-warning;
   color: #000;
     .navbar-user li > a {
       color: #000;
     }
+
+.navbar-user li > a:hover {
+      color: #fff;
+    }
+
     span.label.label-warning {
-      font-family: @font-family-base-bold;
+      font-weight: bold;
     }
 }
 
@@ -142,7 +150,39 @@ h2 {
   background-color:@brand-danger;
   color: #fff;
     span.label.label-danger {
-      font-family: @font-family-base-bold;
+      font-weight: bold;
+    }
+}
+
+@media (max-width: 768px) {
+
+  .side-nav {
+    width: 100%;
+      li > a {
+      float: left;
+      margin: 0;
+      padding-left:0;
+      padding: 10px;
+      }
+  }
+
+  .fa-question-circle {
+    float: right;
+    margin-top: 15px;
+    margin-bottom: 15px;
+  }
+
+  .navbar-inverse .navbar-brand {
+    color: #676767;
+    display: none;
+  }
+
+  .navbar-fixed-top {
+    background-color: #252525
+    }
+
+  .navbar-inverse .navbar-brand {
+    display: none;
     }
 }
 
@@ -150,7 +190,7 @@ h2 {
 // -------------------------
 
 .label {
-  padding: .1em .4em .1em;
+  padding: 1px 4px 1px;
   font-size: @font-size-small;
   font-weight: normal;
   text-align: center;
@@ -158,33 +198,65 @@ h2 {
 }
 
 .label-load5 {
-  opacity: 0.7;
+  opacity: 0.5;
 }
 
 .label-load15 {
   opacity: 0.4;
 }
 
-.btn-default {
-  font-family: @font-family-base-bold;
-  text-transform: uppercase;
-}
+.alert {
+  padding: 0;
+  margin-right: 20px;
+  border: 0;
+  background-color: #fff;
 
-.alert-danger {
     .close {
       color: @gray;
     }
-  background-color: @brand-danger;
-} 
 
-.alert,
+    h4 span {
+      background: @brand-danger;
+      padding: 1px;
+      padding-left: 4px;
+      color: #fff;
+      display: inline;
+    }
+
+    p {
+      background: @brand-danger;
+      padding: 2px;
+      color: #fff;
+      display: inline;
+    }
+}
+
 .alert-danger .alert-link {
-  padding: 0;
-  margin-left: -4px;
-  padding-left: 4px;
-  border: 0;
-  color: #fff;
+  background-color: transparent;
+  color: #ffffff;
   font-weight: normal;
 }
 
+.panel > .panel-heading {
+  color: #000;
+  background-color: #ffffff;
+  border: 0;
+}
 
+.panel {
+  border: 0;
+  -webkit-box-shadow: 0;
+          box-shadow: 0;
+}
+
+// Form
+
+form {
+  margin-top:30px;
+}
+
+.btn-default {
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}

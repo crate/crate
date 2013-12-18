@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>spin.js</title>
+  <style type="text/css">
+  body {
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 16px;
+  }
+  label {
+    display: inline-block;
+    width: 70px;
+    line-height: 25px;
+  }
+  #preview {
+    background: #333;
+    color: #fff;
+    width: 220px;
+    height: 220px;
+    margin: 0 20px;
+    float: left;
+    border-radius: 10px;
+  }
+  form {
+    float: left;
+  }
+  </style>
+</head>
+<body>
+
+<div id="preview"></div>
+<form>
+  <label>Lines:</label><input type="range" name="lines" min="5" max="16" step="2" value="12"><br>
+  <label>Length:</label><input type="range" name="length" min="0" max="30" value="7"><br>
+  <label>Width:</label><input type="range" name="width" min="2" max="20" value="4"><br>
+  <label>Radius:</label><input type="range" name="radius" min="0" max="40" value="10"><br>
+  <label>Corners:</label><input type="range" name="corners" min="0" max="1" step="0.1" value="1"><br>
+  <label>Rotate:</label><input type="range" name="rotate" min="0" max="90" value="0"><br>
+  <label>Trail:</label><input type="range" name="trail" min="10" max="100" value="60"><br>
+  <label>Speed:</label><input type="range" name="speed" min="0.5" max="2.2" step="0.1" value="1"><br>
+  <label>Direction:</label>
+  <select name="direction">
+    <option value="1">Clockwise</option>
+    <option value="-1">Counterclockwise</option>
+  </select>
+  <br>
+  <label>Shadow:</label><input type="checkbox" name="shadow"><br>
+  <label>Hwaccel:</label><input type="checkbox" name="hwaccel"><br>
+</form>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="../spin.js"></script>
+<script>
+  $.fn.spin = function(opts) {
+    this.each(function() {
+      var $this = $(this),
+          data = $this.data();
+
+      if (data.spinner) {
+        data.spinner.stop();
+        delete data.spinner;
+      }
+      if (opts !== false) {
+        data.spinner = new Spinner($.extend({color: $this.css('color')}, opts)).spin(this);
+      }
+    });
+    return this;
+  };
+  function update() {
+    var opts = {};
+    $('input[min], select').each(function() {
+      opts[this.name] = parseFloat(this.value);
+    });
+    $('input:checkbox').each(function() {
+      opts[this.name] = this.checked;
+    });
+    $('#preview').spin(opts);
+  }
+  $('input[min], select').change(update);
+  $('input:checkbox').click(update);
+  update();
+</script>
+</body>
+</html>

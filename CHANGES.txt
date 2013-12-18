@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - admin-ui: added simple loading indicator on submitting a SQL query via console,
+             also display query result status including query duration
+
  - optimized group by performance
 
 2013/12/17 0.19.14

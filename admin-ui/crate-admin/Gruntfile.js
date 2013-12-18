@@ -6,7 +6,7 @@ var mountFolder = function (connect, dir) {
   return connect.static(require('path').resolve(dir));
 };
 
-var CRATE_THEME_VERSION = '0.0.2';
+var CRATE_THEME_VERSION = '0.0.3';
 
 // # Globbing
 // for performance reasons we're only matching one level down:
