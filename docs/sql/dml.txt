@@ -362,13 +362,13 @@ Some Examples::
     +------------------------------------+-------------+
     SELECT 3 rows in set (... sec)
 
-    cr> select count(*), min(name), kind from locations group by kind
+    cr> select count(*), min(name), kind from locations group by kind order by kind
     +----------+------------------------------------+-------------+
     | COUNT(*) | MIN(name)                          | kind        |
     +----------+------------------------------------+-------------+
-    | 4        | Aldebaran                          | Star System |
-    | 5        |                                    | Planet      |
     | 4        | Galactic Sector QQ7 Active J Gamma | Galaxy      |
+    | 5        |                                    | Planet      |
+    | 4        | Aldebaran                          | Star System |
     +----------+------------------------------------+-------------+
     SELECT 3 rows in set (... sec)
 

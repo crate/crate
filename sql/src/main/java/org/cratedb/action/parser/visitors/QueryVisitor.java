@@ -1,6 +1,5 @@
 package org.cratedb.action.parser.visitors;
 
-import com.google.common.base.Optional;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.cratedb.DataType;

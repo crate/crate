@@ -699,10 +699,14 @@ public class AggExpr extends ColumnDescription {
 
     @Override
     public String toString() {
+        if (expression == null) {
+            return functionName;
+        }
         return String.format("%s(%s%s)",
-            functionName.split("_")[0],
+            functionName.split("_")[0], // COUNT_DISTINCT -> COUNT
             (isDistinct ? "DISTINCT " : ""),
-            (expression != null ? expression.toString() : ""));
+            expression.toString()
+        );
     }
 
 }
