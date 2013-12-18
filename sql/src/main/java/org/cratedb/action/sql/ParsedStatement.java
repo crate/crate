@@ -1,5 +1,6 @@
 package org.cratedb.action.sql;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.search.Query;
 import org.cratedb.DataType;
@@ -70,6 +71,7 @@ public class ParsedStatement {
     public Set<String> columnsWithFilter = new HashSet<>();
     public int orClauses = 0;
     public List<OrderByColumnName> orderByColumns = new ArrayList<>();
+    private Optional<SeenValueContext> seenValueContext = Optional.absent();
 
     public String[] getRoutingValues() {
         return routingValues.toArray(new String[routingValues.size()]);
@@ -154,8 +156,6 @@ public class ParsedStatement {
         this.aggregateExpressions = aggregateExpressions;
         return this;
     }
-
-    List<Integer> seenIdxMap;
 
     public boolean hasCountStarAggregate = false;
     public boolean hasStoppableAggregate = false; // true if any aggregate is able to terminate collection earlier
@@ -361,36 +361,12 @@ public class ParsedStatement {
         this.groupByExpressions = groupByExpressions;
     }
 
-    public synchronized List<Integer> seenIdxMap(){
-        if (seenIdxMap == null) {
-            seenIdxMap = new ArrayList<>();
-            List<Expression> distinctColumns = new ArrayList<>();
-            for (AggExpr expr : aggregateExpressions) {
-                if (expr.isDistinct) {
-                    if (!distinctColumns.contains(expr.expression)) {
-                        distinctColumns.add(expr.expression);
-                    }
-                    seenIdxMap.add(distinctColumns.indexOf(expr.expression));
-                }
-            }
+    public synchronized SeenValueContext seenValueContext() {
+        if (!seenValueContext.isPresent()) {
+            seenValueContext = Optional.of(new SeenValueContext(aggregateExpressions));
         }
-        return seenIdxMap;
+        return seenValueContext.get();
     }
-
-    public DataType.Streamer[] getSeenValueStreamers() {
-        Set<Expression> seen= new HashSet<>();
-        ArrayList<DataType.Streamer> streamers = new ArrayList<>();
-        for (AggExpr expr : aggregateExpressions) {
-            if (expr.isDistinct) {
-                if (!seen.contains(expr.expression)){
-                    streamers.add(expr.expression.returnType().streamer());
-                    seen.add(expr.expression);
-                }
-            }
-        }
-        return streamers.toArray(new DataType.Streamer[streamers.size()]);
-    }
-
 
     public DataType.Streamer[] getGroupKeyStreamers() {
         DataType.Streamer[] keyStreamers = new DataType.Streamer[
@@ -400,7 +376,4 @@ public class ParsedStatement {
         }
         return keyStreamers;
     }
-
-
-
 }

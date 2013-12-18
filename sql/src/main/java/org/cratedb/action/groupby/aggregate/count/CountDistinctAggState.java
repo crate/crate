@@ -41,5 +41,4 @@ public class CountDistinctAggState extends AggState<CountDistinctAggState> {
     public void setSeenValuesRef(Set<Object> seenValues) {
         this.seenValues = seenValues;
     }
-
 }
