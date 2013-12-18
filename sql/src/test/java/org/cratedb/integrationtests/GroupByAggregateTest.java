@@ -515,6 +515,16 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testGlobalCountDistinctColumnReuse() throws Exception {
+
+        execute("select count(distinct good), count(distinct department), count(distinct good) from employees");
+        assertEquals(1, response.rowCount());
+        assertEquals(2L, response.rows()[0][0]);
+        assertEquals(4L, response.rows()[0][1]);
+        assertEquals(2L, response.rows()[0][2]);
+    }
+
+    @Test
     public void testGlobalAggregateOnNestedColumn() throws Exception {
         this.setup.groupBySetup();
         execute("select count(details['job']), min(details['job']), max(details['job']), count(distinct details['job']) from characters");
