@@ -31,7 +31,7 @@ public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFiel
     @Override
     public void setNextReader(AtomicReaderContext context) {
         super.setNextReader(context);
-        values = (indexFieldData).load(context).getDoubleValues();
+        values = indexFieldData.load(context).getDoubleValues();
     }
 
     @Override

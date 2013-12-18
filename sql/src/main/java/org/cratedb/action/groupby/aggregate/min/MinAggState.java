@@ -1,6 +1,5 @@
 package org.cratedb.action.groupby.aggregate.min;
 
-import org.apache.lucene.util.BytesRef;
 import org.cratedb.action.groupby.aggregate.AggState;
 
 /**

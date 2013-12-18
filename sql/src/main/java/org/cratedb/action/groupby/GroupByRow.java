@@ -172,7 +172,7 @@ public class GroupByRow {
         DataType.Streamer[] streamers = stmt.getSeenValueStreamers();
         if (streamers != null && streamers.length>0){
             int idx = 0;
-            for (DataType.Streamer streamer: stmt.getSeenValueStreamers()){
+            for (DataType.Streamer streamer : streamers){
                 Set<Object> seenValue = seenValuesList.get(idx++);
                 if (seenValue==null ||seenValue.size()==0){
                     out.writeVInt(0);

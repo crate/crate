@@ -4,11 +4,15 @@ import org.apache.lucene.index.AtomicReaderContext;
 import org.cratedb.DataType;
 import org.cratedb.action.FieldLookup;
 import org.cratedb.index.ColumnDefinition;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import java.io.IOException;
 
 public class FieldLookupExpression<ReturnType> extends
         CollectorExpression<ReturnType> implements ColumnReferenceExpression{
+
+    private ESLogger logger = Loggers.getLogger(getClass());
 
     private final ColumnDefinition columnDefinition;
     private FieldLookup fieldLookup;
@@ -35,9 +39,7 @@ public class FieldLookupExpression<ReturnType> extends
         try {
             return (ReturnType) fieldLookup.lookupField(columnDefinition.columnName);
         } catch (IOException e) {
-            // TODO: throw exception
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File
-            // Templates.
+            logger.error(e.getMessage(), e);
             return null;
         }
     }

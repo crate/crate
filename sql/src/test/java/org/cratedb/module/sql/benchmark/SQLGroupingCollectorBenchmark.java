@@ -51,21 +51,6 @@ public class SQLGroupingCollectorBenchmark extends AbstractBenchmark {
 
     }
 
-
-//    @BenchmarkOptions(benchmarkRounds = 10)
-//    @Test
-//    public void testStringGroupingCollector() throws Exception {
-//        SQLGroupingCollector collector = new SQLGroupingCollector(
-//            stmt,
-//            dummyLookup,
-//            HitchhikerMocks.aggFunctionMap,
-//            new String[] {"r1", "r2", "r3", "r4" }
-//        );
-//        for (int i = 0; i < fakeDocs.length; i++) {
-//            collector.collect(i);
-//        }
-//    }
-
     private class DummyLookup implements FieldLookup {
 
         private final int[] docs;

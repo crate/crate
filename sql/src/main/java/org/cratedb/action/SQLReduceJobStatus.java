@@ -78,11 +78,7 @@ public class SQLReduceJobStatus extends PlainListenableActionFuture<SQLReduceJob
         countDown();
     }
 
-    /**
-     * countdown the number of shards to process.
-     * called implicitly from {@link #merge(SQLGroupByResult)}
-     */
-    public void countDown() {
+    private void countDown() {
         if (reduceJobStatusContext != null) {
             if (shardsToProcess.decrementAndGet() == 0) {
                 reduceJobStatusContext.remove(contextId);
@@ -99,6 +95,11 @@ public class SQLReduceJobStatus extends PlainListenableActionFuture<SQLReduceJob
         if (!isDone()) {
             setException(new SQLReduceJobTimeoutException());
         }
+    }
+
+    public void countFailure() {
+        failures.incrementAndGet();
+        countDown();
     }
 
     public int failures() {

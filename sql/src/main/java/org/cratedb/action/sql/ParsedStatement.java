@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableMap;
 import org.apache.lucene.search.Query;
 import org.cratedb.DataType;
 import org.cratedb.action.collect.Expression;
-import org.cratedb.action.groupby.GroupByHelper;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.service.SQLParseService;

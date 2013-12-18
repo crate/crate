@@ -1,8 +1,6 @@
 package org.cratedb.information_schema;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
-import org.cratedb.DataType;
 import org.cratedb.action.collect.*;
 import org.cratedb.action.sql.ITableExecutionContext;
 import org.cratedb.index.ColumnDefinition;

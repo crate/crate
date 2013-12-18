@@ -223,6 +223,16 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void selectGroupByMixedCaseAggregateMaxString() throws Exception {
+        this.setup.groupBySetup();
+
+        execute("select max(NAME), GENDER from characters group by gender order by gender");
+        assertEquals(2L, response.rowCount());
+        assertEquals("Trillian", response.rows()[0][0]);
+        assertEquals("Marving", response.rows()[1][0]);
+    }
+
+    @Test
     public void selectGroupByAggregateMaxLong() throws Exception {
         this.setup.groupBySetup("long");
 

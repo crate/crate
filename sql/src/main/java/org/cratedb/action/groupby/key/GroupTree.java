@@ -118,15 +118,6 @@ public class GroupTree extends Rows<GroupTree> {
         return null;
     }
 
-    private synchronized void printlns(List<String> lines){
-        String res = "";
-        for (String l: lines){
-            res += "\n" + stmt + ": " + l;
-        }
-        System.out.println(res);
-    }
-
-
     private void writeMap(ObjectObjectMap m,
                           final StreamOutput out,
                           final int level,

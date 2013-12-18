@@ -1,6 +1,5 @@
 package org.cratedb.action.sql;
 
-import com.google.common.base.Optional;
 import org.cratedb.action.collect.*;
 import org.cratedb.index.ColumnDefinition;
 import org.cratedb.index.IndexMetaDataExtractor;

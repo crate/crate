@@ -141,6 +141,7 @@ public enum DataType {
         public void writeTo(StreamOutput out, Object v) throws IOException;
 
         public static final Streamer<BytesRef> BYTES_REF = new Streamer<BytesRef>() {
+
             @Override
             public BytesRef readFrom(StreamInput in) throws IOException {
                 int length = in.readVInt();
@@ -154,6 +155,13 @@ public enum DataType {
 
             @Override
             public void writeTo(StreamOutput out, Object v) throws IOException {
+                // .writeBytesRef isn't used here because it will convert null values to empty bytesRefs
+
+                // to distinguish between null and an empty bytesRef
+                // 1 is always added to the length so that
+                // 0 is null
+                // 1 is 0
+                // ...
                 if (v == null) {
                     out.writeVInt(0);
                 } else {

@@ -47,7 +47,6 @@ public class NodeExecutionContext {
                                 SQLFieldMapperFactory sqlFieldMapperFactory,
                                 ShardStatsTableExecutionContext shardStatsTableExecutionContext,
                                 Map<String, AggFunction> availableAggFunctions) {
-
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.analyzerService = analyzerService;
@@ -172,5 +171,4 @@ public class NodeExecutionContext {
     public Map<String, AggFunction> availableAggFunctions() {
         return this.availableAggFunctions;
     }
-
 }
