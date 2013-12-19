@@ -6,7 +6,7 @@ import org.cratedb.index.ColumnDefinition;
 public class ColumnReferenceDescription extends ColumnDescription {
 
     private DataType dataType;
-    public String name;
+    private String name;
 
 
     public ColumnReferenceDescription(ColumnDefinition columnDefinition) {
@@ -19,6 +19,12 @@ public class ColumnReferenceDescription extends ColumnDescription {
         this.dataType = dataType;
     }
 
+    @Override
+    public String name() {
+        return name;
+    }
+
+    @Override
     public DataType returnType() {
         return dataType;
     }

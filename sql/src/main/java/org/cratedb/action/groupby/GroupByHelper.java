@@ -4,6 +4,8 @@ import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.action.collect.ColumnReferenceExpression;
 import org.cratedb.action.collect.Expression;
+import org.cratedb.action.collect.scope.GlobalExpressionDescription;
+import org.cratedb.action.collect.scope.ScopedExpression;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.action.parser.ColumnReferenceDescription;
@@ -80,15 +82,13 @@ public class GroupByHelper {
                     };
                 }
                 aggStateIdx++;
-            } else {
-                 // currently only AggExpr and ColumnReferenceDescription exists, so this must be true.
-                assert columnDescription instanceof ColumnReferenceDescription;
-                String colName =  ((ColumnReferenceDescription) columnDescription).name;
+            } else if (columnDescription instanceof ColumnReferenceDescription) {
+
+                String colName =  columnDescription.name();
                 keyValIdx = 0;
                 for (Expression e: parsedStatement.groupByExpressions()){
-
-                    if (e instanceof ColumnReferenceExpression && colName.equals(
-                            ((ColumnReferenceExpression)e).columnName())){
+                    if (e instanceof ColumnReferenceExpression &&
+                            colName.equals(((ColumnReferenceExpression) e).columnName())){
 
                         if (fieldMapper != null && e.returnType() == DataType.STRING) {
                             extractors[colIdx] = new GroupByFieldExtractor(keyValIdx) {
@@ -113,6 +113,34 @@ public class GroupByHelper {
                     }
                     keyValIdx++;
                 }
+
+            } else if (columnDescription instanceof GlobalExpressionDescription) {
+                String colName = columnDescription.name();
+                int globalExprIdx = 0;
+                for (final ScopedExpression<?> e : parsedStatement.globalExpressions()) {
+                    if (colName.equals(e.name())) {
+                        if (e.returnType() == DataType.STRING) {
+                            extractors[colIdx] = new GroupByFieldExtractor(globalExprIdx) {
+                                @Override
+                                public Object getValue(GroupByRow row) {
+                                    BytesRef bytesRef = (BytesRef)e.evaluate();
+                                    if (bytesRef != null) {
+                                        return bytesRef.utf8ToString();
+                                    }
+                                    return null;
+                                }
+                            };
+                        } else {
+                            extractors[colIdx] = new GroupByFieldExtractor(globalExprIdx) {
+                                @Override
+                                public Object getValue(GroupByRow row) {
+                                    return e.evaluate();
+                                }
+                            };
+                        }
+                    }
+                    globalExprIdx++;
+                }
             }
             colIdx++;
         }
@@ -130,8 +158,21 @@ public class GroupByHelper {
         if (parsedStatement.isGlobalAggregate()) {
             if (rowCount == 0) {
                 // fill with initial (mostly NULL) values
-                for (int i=0;i<result[0].length;i++) {
-                    result[0][i] = parsedStatement.aggregateExpressions().get(i).createAggState().value();
+                int aggExprIdx = 0;
+                int globalExprIdx = 0;
+                int colIdx = 0;
+                for (ColumnDescription columnDescription : parsedStatement.resultColumnList()) {
+                    if (columnDescription instanceof AggExpr) {
+                        result[0][colIdx++] = parsedStatement.aggregateExpressions().get(aggExprIdx++).createAggState().value();
+                    } else if (columnDescription instanceof GlobalExpressionDescription) {
+                        Object rowValue = parsedStatement.globalExpressions().get(globalExprIdx++).evaluate();
+                        if (rowValue != null && rowValue instanceof BytesRef) {
+                            rowValue = ((BytesRef)rowValue).utf8ToString();
+                        }
+                        result[0][colIdx++] = rowValue;
+                    } else {
+                        result[0][colIdx++] = null;
+                    }
                 }
                 return result;
             } else {

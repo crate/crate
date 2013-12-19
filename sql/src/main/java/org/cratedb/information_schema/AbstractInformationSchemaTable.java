@@ -1,7 +1,6 @@
 package org.cratedb.information_schema;
 
 import com.google.common.io.Files;
-import org.apache.lucene.codecs.lucene42.Lucene42Codec;
 import org.apache.lucene.codecs.lucene45.Lucene45Codec;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexWriter;
@@ -12,6 +11,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.Version;
 import org.cratedb.action.collect.CollectorContext;
+import org.cratedb.action.collect.scope.GlobalExpressionDescription;
 import org.cratedb.action.groupby.*;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.key.Rows;
@@ -55,7 +55,7 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
     protected Directory indexDirectory;
 
     public AbstractInformationSchemaTable(Map<String, AggFunction> aggFunctionMap,
-            CacheRecycler cacheRecycler) {
+                                          CacheRecycler cacheRecycler) {
         this.searcherFactory = new SearcherFactory();
         this.indexWriterConfig = new IndexWriterConfig(Version.LUCENE_45, null);
         this.indexWriterConfig.setCodec(new Lucene45Codec());
@@ -130,7 +130,8 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
             docs = indexSearcher.search(stmt.query, null, stmt.totalLimit());
         }
 
-        SQLResponse response = docsToSQLResponse(indexSearcher, stmt, docs, stmt.offset(), requestStartedTime);
+        SQLResponse response = docsToSQLResponse(indexSearcher, stmt, docs, stmt.offset(),
+                requestStartedTime);
         activeSearches.decrementAndGet();
         listener.onResponse(response);
     }
@@ -302,19 +303,25 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
                 continue;
             }
             Document doc = searcher.doc(scoreDoc.doc, fieldsToLoad);
+            int globalExprIdx = 0;
             for (int c = 0; c < cols.length; c++) {
-                IndexableField[] fields = doc.getFields(cols[c]);
-                LuceneField tableColumn = fieldMapper().get(cols[c]);
                 Object rowValue = null;
-                if (fields.length > 0) {
-                    if (tableColumn.allowMultipleValues) {
-                        List<Object> rowValues = new ArrayList<>(fields.length);
-                        for (int i=0; i < fields.length; i++) {
-                            rowValues.add(tableColumn.getValue(fields[i]));
+                if (stmt.resultColumnList().get(c) instanceof GlobalExpressionDescription) {
+                    rowValue = stmt.globalExpressions().get(globalExprIdx++).evaluate();
+                } else {
+                    IndexableField[] fields = doc.getFields(cols[c]);
+                    LuceneField tableColumn = fieldMapper().get(cols[c]);
+
+                    if (fields.length > 0) {
+                        if (tableColumn.allowMultipleValues) {
+                            List<Object> rowValues = new ArrayList<>(fields.length);
+                            for (int i=0; i < fields.length; i++) {
+                                rowValues.add(tableColumn.getValue(fields[i]));
+                            }
+                            rowValue = rowValues;
+                        } else {
+                            rowValue = tableColumn.getValue(fields[0]);
                         }
-                        rowValue = rowValues;
-                    } else {
-                        rowValue = tableColumn.getValue(fields[0]);
                     }
                 }
                 rows[r][c] = rowValue;

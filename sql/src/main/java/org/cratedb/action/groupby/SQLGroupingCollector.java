@@ -18,8 +18,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import static com.google.common.collect.Maps.newHashMap;
-
 /**
  * Collector that can be used to get results from a Lucene query.
  * <p/>
@@ -44,13 +42,12 @@ public class SQLGroupingCollector extends Collector {
         this.parsedStatement = parsedStatement;
         this.numReducers = numReducers;
         this.context = context;
-        this.collectorExpressions = new ArrayList<CollectorExpression>();
 
-        if (parsedStatement.hasGroupBy()) {
-            for (Expression expr : parsedStatement.groupByExpressions()) {
-                addCollectorExpression(expr);
-            }
+        this.collectorExpressions = new ArrayList<>();
+        for (Expression expr : parsedStatement.groupByExpressions()) {
+            addCollectorExpression(expr);
         }
+
 
         aggFunctions = new AggFunction[parsedStatement.aggregateExpressions().size()];
         HashSet<Expression> distinctColumns = new HashSet<>();
@@ -116,7 +113,4 @@ public class SQLGroupingCollector extends Collector {
         return new GroupTree(numReducers, parsedStatement,
                 context.cacheRecycler());
     }
-
-
-
 }

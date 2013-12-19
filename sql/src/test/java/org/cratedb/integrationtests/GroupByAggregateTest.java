@@ -450,7 +450,6 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testAggregateAnyOnBoolean() throws Exception {
-
         execute("select any(good) from employees");
         assertEquals(1, response.rowCount());
         assertThat(response.rows()[0][0], isIn(new Object[]{true, false, null}));

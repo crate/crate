@@ -1,6 +1,5 @@
 package org.cratedb.module.sql.test;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import org.cratedb.DataType;
 import org.cratedb.action.parser.ESRequestBuilder;
@@ -11,8 +10,8 @@ import org.cratedb.action.sql.TableExecutionContext;
 import org.cratedb.index.ColumnDefinition;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.SQLParseException;
-import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.ValueNode;
+import org.cratedb.stubs.HitchhikerMocks;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -20,18 +19,14 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Set;
 
-import static org.hamcrest.CoreMatchers.*;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.hasItems;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -45,17 +40,18 @@ public class QueryPlannerTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    private String getSource() throws StandardException {
+    private String getSource() throws Exception {
         return stmt.xcontent.toUtf8();
     }
 
-    private ParsedStatement execStatement(String stmt) throws StandardException {
+    private ParsedStatement execStatement(String stmt) throws Exception {
         return execStatement(stmt, new Object[]{});
     }
 
-    private ParsedStatement execStatement(String sql, Object[] args) throws StandardException {
-        NodeExecutionContext nec = mock(NodeExecutionContext.class);
+    private ParsedStatement execStatement(String sql, Object[] args) throws Exception {
+        NodeExecutionContext nec = HitchhikerMocks.nodeExecutionContext();
         TableExecutionContext tec = mock(TableExecutionContext.class);
+
         // Force enabling query planner
         Settings settings = ImmutableSettings.builder().put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, true).build();
         QueryPlanner queryPlanner = new QueryPlanner(settings);
@@ -126,7 +122,7 @@ public class QueryPlannerTest {
 
 
     @Test
-    public void testSelectWherePrimaryKeyAnd() throws StandardException, IOException {
+    public void testSelectWherePrimaryKeyAnd() throws Exception {
         execStatement("select pk_col, phrase from phrases where pk_col=? and phrase = ?",
                 new Object[]{1, "don't panic"});
         String expected =
@@ -159,7 +155,7 @@ public class QueryPlannerTest {
     }
 
     @Test
-    public void testSelectWherePrimaryKeyNestedAnd() throws StandardException, IOException {
+    public void testSelectWherePrimaryKeyNestedAnd() throws Exception {
         execStatement("select pk_col, phrase from phrases where author=? and (phrase = ? and " +
                 "pk_col = ?)",
                 new Object[]{"Ford", "don't panic", 1});
@@ -199,7 +195,7 @@ public class QueryPlannerTest {
     }
 
     @Test
-    public void testDeleteWherePrimaryKeyAnd() throws StandardException, IOException {
+    public void testDeleteWherePrimaryKeyAnd() throws Exception {
         execStatement("delete from phrases where pk_col=? and phrase = ?",
                 new Object[]{1, "don't panic"});
 
@@ -229,7 +225,7 @@ public class QueryPlannerTest {
     }
 
     @Test
-    public void testUpdateWherePrimaryKeyAnd() throws StandardException, IOException {
+    public void testUpdateWherePrimaryKeyAnd() throws Exception {
         execStatement("update phrases set phrase = ? where pk_col=? and phrase = ?",
                 new Object[]{"don't panic, don't panic", 1, "don't panic"});
 
@@ -273,7 +269,7 @@ public class QueryPlannerTest {
     }
 
     @Test
-    public void testSelectMultiplePrimaryKeysSimpleOr() throws StandardException {
+    public void testSelectMultiplePrimaryKeysSimpleOr() throws Exception {
         execStatement("SELECT pk_col, phrase FROM phrases WHERE pk_col=? OR pk_col=?", new Object[]{"1", "2"});
 
         Set<String> primaryKeyValues = stmt.primaryKeyValues;
@@ -283,7 +279,7 @@ public class QueryPlannerTest {
     }
 
     @Test
-    public void testSelectMultiplePrimaryKeysDoubleOr() throws StandardException {
+    public void testSelectMultiplePrimaryKeysDoubleOr() throws Exception {
         execStatement("SELECT * FROM phrases WHERE pk_col=? OR pk_col=? OR pk_col=?",
             new Object[]{"foo", "bar", "baz"});
         Set<String> primaryKeyValues = stmt.primaryKeyValues;
@@ -293,7 +289,7 @@ public class QueryPlannerTest {
     }
 
     @Test
-    public void testSelectMultiplePrimaryKeysNestedOr() throws StandardException {
+    public void testSelectMultiplePrimaryKeysNestedOr() throws Exception {
         execStatement("SELECT * FROM phrases WHERE (pk_col=? OR pk_col=?) OR (pk_col=? OR (pk_col=? OR pk_col=?))",
                 new Object[]{"TinkyWinky", "Dipsy", "Lala", "Po", "Hallo"});
         Set<String> primaryKeyValues = stmt.primaryKeyValues;
@@ -303,7 +299,7 @@ public class QueryPlannerTest {
 
 
     @Test
-    public void testSelectMultiplePrimaryKeysOrderBy() throws StandardException {
+    public void testSelectMultiplePrimaryKeysOrderBy() throws Exception {
         execStatement("SELECT * FROM phrases WHERE pk_col=? OR pk_col=? OR pk_col=? order by phrase",
             new Object[]{"foo", "bar", "baz"});
         assertThat(stmt.primaryKeyValues.isEmpty(), is(true));
@@ -317,7 +313,7 @@ public class QueryPlannerTest {
     }
 
     @Test
-    public void testSelectMultiplePrimaryKeysLimit() throws StandardException {
+    public void testSelectMultiplePrimaryKeysLimit() throws Exception {
         execStatement("SELECT * FROM phrases WHERE pk_col=? OR pk_col=? OR pk_col=? limit 1",
             new Object[]{"foo", "bar", "baz"});
 
@@ -330,8 +326,8 @@ public class QueryPlannerTest {
     }
 
     @Test
-    public void testSelectMultiplePrimaryKeysGroupBy() throws StandardException {
-        execStatement("SELECT pk_col, phrase FROM phrases WHERE pk_col=? OR pk_col=? OR pk_col=? group by phrase",
+    public void testSelectMultiplePrimaryKeysGroupBy() throws Exception {
+        execStatement("SELECT pk_col, phrase FROM phrases WHERE pk_col=? OR pk_col=? OR pk_col=? group by pk_col, phrase",
             new Object[]{"foo", "bar", "baz"});
 
         Set<String> routingValues = stmt.routingValues;
@@ -341,9 +337,9 @@ public class QueryPlannerTest {
     }
 
     @Test
-    public void testSelectMultiplePrimaryKeysGroupByOrderby() throws StandardException {
+    public void testSelectMultiplePrimaryKeysGroupByOrderby() throws Exception {
         execStatement(
-            "SELECT pk_col, phrase FROM phrases WHERE pk_col=? OR pk_col=? OR pk_col=? group by phrase order by phrase",
+            "SELECT pk_col, phrase FROM phrases WHERE pk_col=? OR pk_col=? OR pk_col=? group by pk_col, phrase order by phrase",
             new Object[]{"foo", "bar", "baz"}
         );
         Set<String> routingValues = stmt.routingValues;
@@ -353,7 +349,7 @@ public class QueryPlannerTest {
     }
 
     @Test
-    public void testUpdateMultiplePrimaryKeysOr() throws StandardException {
+    public void testUpdateMultiplePrimaryKeysOr() throws Exception {
         execStatement(
             "UPDATE phrases SET phrase='blabla' WHERE pk_col=? OR pk_col=?",
             new Object[]{"TinkyWinky", "Dipsy"});
@@ -365,7 +361,7 @@ public class QueryPlannerTest {
     }
 
     @Test
-    public void testDeleteMultiplePrimaryKeysOr() throws StandardException {
+    public void testDeleteMultiplePrimaryKeysOr() throws Exception {
         execStatement("DELETE FROM phrases WHERE pk_col=? OR pk_col=?",
                 new Object[]{"TinkyWinky", "Dipsy"});
         Set<String> routingValues = stmt.routingValues;
@@ -376,7 +372,7 @@ public class QueryPlannerTest {
     }
 
     @Test
-    public void testSelectMultiplePrimaryKeysInvalid() throws StandardException {
+    public void testSelectMultiplePrimaryKeysInvalid() throws Exception {
         execStatement("UPDATE phrases SET phrase='invalid' WHERE pk_col=? OR phrase=?",
                 new Object[]{"in", "valid"});
         Set<String> routingValues = stmt.routingValues;
@@ -384,7 +380,7 @@ public class QueryPlannerTest {
     }
 
     @Test
-    public void testSelectMultiplePrimaryKeysInvalidWithAnd() throws StandardException {
+    public void testSelectMultiplePrimaryKeysInvalidWithAnd() throws Exception {
         execStatement("SELECT * FROM phrases WHERE pk_col=? OR (pk_col=? AND pk_col=?)",
                 new Object[]{"still", "in", "valid"});
         Set<String> routingValues = stmt.routingValues;
@@ -392,14 +388,14 @@ public class QueryPlannerTest {
     }
 
     @Test
-    public void testSelectMultiplePrimaryKeysInvalidNested() throws StandardException {
+    public void testSelectMultiplePrimaryKeysInvalidNested() throws Exception {
         execStatement("SELECT * FROM phrases WHERE (pk_col=? OR pk_col=?) OR (pk_col=? OR (phrase=? OR pk_col=?))",
                 new Object[]{"in", "va", "lid", "ne", "sted"});
         assertThat("Routing values are empty", stmt.routingValues.isEmpty(), is(true));
     }
 
     @Test
-    public void testSelectMultiplePrimaryKeysWhereIn() throws StandardException {
+    public void testSelectMultiplePrimaryKeysWhereIn() throws Exception {
         execStatement("SELECT * FROM phrases WHERE pk_col IN (?, ?, ?)",
                 new Object[]{"foo", "bar", "baz"});
         Set<String> multiGetPrimaryKeyValues = stmt.primaryKeyValues;
@@ -409,7 +405,7 @@ public class QueryPlannerTest {
     }
 
     @Test
-    public void testSelectMultiplePrimaryKeysWhereInAndOr() throws StandardException {
+    public void testSelectMultiplePrimaryKeysWhereInAndOr() throws Exception {
         execStatement("SELECT * FROM phrases WHERE pk_col IN (?, ?, ?) OR pk_col=?",
                 new Object[]{"foo", "bar", "baz", "dunno"});
         Set<String> multiGetPrimaryKeyValues = stmt.primaryKeyValues;
@@ -426,14 +422,14 @@ public class QueryPlannerTest {
     }
 
     @Test
-    public void testSelectMultiplePrimarykeysWhereInInvalid() throws StandardException {
+    public void testSelectMultiplePrimarykeysWhereInInvalid() throws Exception {
         execStatement("SELECT * FROM phrases WHERE phrase IN (?, ?, ?)", new Object[]{"foo", "bar", "baz"});
         assertThat(stmt.routingValues.isEmpty(), is(true));
         assertThat(stmt.primaryKeyValues.isEmpty(), is(true));
     }
 
     @Test
-    public void selectGetRequestWithColumnAlias() throws StandardException {
+    public void selectGetRequestWithColumnAlias() throws Exception {
         execStatement("SELECT phrase as satz FROM phrases WHERE pk_col=?",
                 new Object[]{"foo"});
         assertThat(requestBuilder.buildGetRequest().fields(), arrayContaining("phrase"));

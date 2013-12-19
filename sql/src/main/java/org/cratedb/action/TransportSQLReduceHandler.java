@@ -1,30 +1,23 @@
 package org.cratedb.action;
 
 import org.cratedb.Constants;
-import org.cratedb.action.groupby.GroupByHelper;
-import org.cratedb.action.groupby.GroupByKey;
-import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.service.SQLParseService;
-import org.cratedb.sql.CrateException;
-import org.cratedb.sql.SQLReduceJobFailedException;
-import org.cratedb.sql.SQLReduceJobTimeoutException;
-import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ListenableActionFuture;
+import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.recycler.Recycler;
-import org.elasticsearch.common.recycler.SoftThreadLocalRecycler;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.*;
+import org.elasticsearch.transport.BaseTransportRequestHandler;
+import org.elasticsearch.transport.TransportChannel;
+import org.elasticsearch.transport.TransportResponse;
+import org.elasticsearch.transport.TransportService;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;

@@ -2,9 +2,12 @@ package org.cratedb.action.sql;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.apache.lucene.search.Query;
 import org.cratedb.DataType;
+import org.cratedb.action.collect.ColumnReferenceExpression;
 import org.cratedb.action.collect.Expression;
+import org.cratedb.action.collect.scope.ScopedExpression;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.service.SQLParseService;
@@ -130,7 +133,8 @@ public class ParsedStatement {
 
     public BytesReference xcontent;
 
-    private List<Expression> groupByExpressions;
+    private List<Expression> groupByExpressions = new ArrayList<>();
+    private ImmutableSet<String> groupByColumnNames = ImmutableSet.of();
     private List<ColumnDescription> resultColumnList;
 
     public List<ColumnDescription> resultColumnList() {
@@ -163,6 +167,22 @@ public class ParsedStatement {
 
     // If -1, reducer count is evaluated dynamically
     public Integer partialReducerCount = -1;
+
+    private List<ScopedExpression<?>> globalExpressions = new ArrayList<>();
+    @SuppressWarnings("unchecked")
+    public List<ScopedExpression<?>> globalExpressions() {
+        return globalExpressions;
+    }
+    public ParsedStatement addGlobalExpressionSafe(ScopedExpression<?> expression) {
+        if (globalExpressions == null) {
+            globalExpressions = new ArrayList<>();
+        }
+        this.globalExpressions.add(expression);
+        return this;
+    }
+    public int globalExpressionCount() {
+        return globalExpressions.size();
+    }
 
     private Integer limit = null;
     private Integer offset = null;
@@ -237,7 +257,7 @@ public class ParsedStatement {
     }
 
     public String tableName() {
-        return indices[0];
+        return indices == null ? null : indices[0];
     }
 
     public String[] indices() {
@@ -352,13 +372,26 @@ public class ParsedStatement {
     public boolean hasOrderBy() {
         return (orderByIndices != null && !orderByIndices.isEmpty()) || !orderByColumns.isEmpty();
     }
-
+    @SuppressWarnings("unchecked")
     public List<Expression> groupByExpressions() {
         return groupByExpressions;
     }
 
     public void groupByExpressions(List<Expression> groupByExpressions) {
         this.groupByExpressions = groupByExpressions;
+        ImmutableSet.Builder<String> builder = ImmutableSet.builder();
+        for (Expression e : groupByExpressions) {
+            if (e instanceof ScopedExpression) {
+                builder.add(((ScopedExpression) e).name());
+            } else if (e instanceof ColumnReferenceExpression) {
+                builder.add(((ColumnReferenceExpression) e).columnName());
+            }
+        }
+        groupByColumnNames = builder.build();
+    }
+
+    public ImmutableSet<String> groupByColumnNames() {
+        return groupByColumnNames;
     }
 
     public synchronized SeenValueContext seenValueContext() {

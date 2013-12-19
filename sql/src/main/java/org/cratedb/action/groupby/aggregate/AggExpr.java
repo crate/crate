@@ -709,4 +709,8 @@ public class AggExpr extends ColumnDescription {
         );
     }
 
+    @Override
+    public String name() {
+        return this.toString();
+    }
 }

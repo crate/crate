@@ -2,6 +2,8 @@ package org.cratedb.module;
 
 import org.cratedb.DataType;
 import org.cratedb.action.TransportSQLReduceHandler;
+import org.cratedb.action.collect.scope.ClusterNameExpression;
+import org.cratedb.action.collect.scope.ScopedExpression;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.any.AnyAggFunction;
 import org.cratedb.action.groupby.aggregate.avg.AvgAggFunction;
@@ -10,7 +12,6 @@ import org.cratedb.action.groupby.aggregate.count.CountDistinctAggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountStarAggFunction;
 import org.cratedb.action.groupby.aggregate.max.MaxAggFunction;
 import org.cratedb.action.groupby.aggregate.min.MinAggFunction;
-
 import org.cratedb.action.groupby.aggregate.sum.SumAggFunction;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.SQLAction;
@@ -94,5 +95,11 @@ public class SQLModule extends AbstractModule {
         // get a factory for SQLFieldMapper
         bind(SQLFieldMapperFactory.class).toProvider(FactoryProvider.newFactory
                 (SQLFieldMapperFactory.class, SQLFieldMapper.class));
+
+        // Cluster Level Expressions
+        MapBinder<String, ScopedExpression> globalExpressions = MapBinder
+                .newMapBinder(binder(), String.class, ScopedExpression.class);
+        globalExpressions.addBinding(ClusterNameExpression.NAME).to(ClusterNameExpression.class).asEagerSingleton();
+
     }
 }
