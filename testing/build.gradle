@@ -13,6 +13,7 @@ dependencies {
     compile 'org.python:jython-standalone:2.7-b1'
     compile "org.mockito:mockito-core:1.9.5"
     compile 'org.codehaus.jackson:jackson-mapper-asl:1.9.0'
+    compile 'com.carrotsearch:junit-benchmarks:0.7.2'
     compile project(':es').sourceSets.test.runtimeClasspath
 }
 
