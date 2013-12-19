@@ -160,6 +160,11 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     public void visit(SelectNode node) throws Exception {
         visit(node.getFromList());
 
+        if (node.isDistinct()) {
+            throw new SQLParseException(
+                "the DISTINCT keyword is currently only supported with COUNT(). Consider rewriting the query using a group by clause.");
+        }
+
         if (node.getGroupByList() != null) {
             addGroupByColumns(node.getGroupByList());
         } else if (stmt.type() != null && stmt.type() == ParsedStatement.ActionType.STATS) {

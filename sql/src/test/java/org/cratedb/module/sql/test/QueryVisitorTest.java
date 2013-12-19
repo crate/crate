@@ -140,6 +140,14 @@ public class QueryVisitorTest {
     }
 
     @Test
+    public void testSelectDistinct() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage(
+            "the DISTINCT keyword is currently only supported with COUNT(). Consider rewriting the query using a group by clause.");
+        execStatement("select distinct name from locations");
+    }
+
+    @Test
     public void testSelectWithLimitAsParameter() throws Exception {
         Integer limit = 5;
         execStatement("SELECT name from locations limit ?", new Object[]{limit});
