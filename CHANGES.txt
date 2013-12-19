@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - now an error is thrown if the DISTINCT keyword is used globally. Currently
+   only `count(DISTINCT colName)` is supported. Other queries have to be
+   re-written to use the `group by` clause.
+
  - removed inline junit-benchmarks sources and added dependency
 
  - crate.yml configuration file is now also read without specifying
