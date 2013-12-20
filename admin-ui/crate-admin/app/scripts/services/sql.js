@@ -19,7 +19,7 @@ angular.module('sql', [])
       } else {
         this.rows = response.rows;
         this.cols = response.cols;
-        this.rowCount = response.rowCount;
+        this.rowCount = response.rowcount;
         this.duration = response.duration;
       }
     }

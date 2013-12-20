@@ -7,52 +7,60 @@
     </div><!-- /.row -->
 
     <div class="row">
-        <div class="col-lg-12">
-            <h1 class="page-header">
-                <table class="table">
-                    <thead>
-                    <tr>
-                        <th><span class="label {{cluster_color_label}}">{{cluster_state}}</span></th>
-                        <th>{{replicated_data}}</th>
-                        <th>{{available_data}}</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td>Health</td>
-                        <td>Full Replicated Data</td>
-                        <td>Available Data</td>
-                    </tr>
-                    </tbody>
-                </table>
-
-                <table class="table">
-                    <thead>
-                    <tr>
-                        <th>{{records_total}}</th>
-                        <th>{{records_underreplicated}}</th>
-                        <th>{{records_unavailable}}</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td>Records Total</td>
-                        <td>Underreplicated Records</td>
-                        <td>Unavailable Records</td>
-                    </tr>
-                    </tbody>
-                </table>
-
-            </h1>
+      <div class="col-lg-4">
+        <div class="panel {{cluster_color_class}}">
+          <div class="panel-heading">
+            <p class="announcement-heading">{{cluster_state | capitalize}}</p>
+            <p class="announcement-text">Health</p>
+          </div>
         </div>
-    </div><!-- /.row -->
+      </div>
 
-
-    <div class="row">
-        <div class="col-lg-12">
-            <h1 class="page-header"> <img src="images/overview_parameter.png" alt="Overview graphs"></h1>
+      <div class="col-lg-4">
+        <div class="panel" ng-class="{'panel-warning': replicated_data<100}">
+          <div class="panel-heading">
+            <p class="announcement-heading">{{replicated_data}}</p>
+            <p class="announcement-text">Full replicated Data</p>
+          </div>
         </div>
-    </div><!-- /.row -->
+      </div>
 
+      <div class="col-lg-4">
+        <div class="panel" ng-class="{'panel-danger': available_data<100}">
+          <div class="panel-heading">
+            <p class="announcement-heading">{{available_data}}</p>
+            <p class="announcement-text">Available Data</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="panel">
+          <div class="panel-heading">
+            <p class="announcement-heading">{{records_total | number:0}}</p>
+            <p class="announcement-text">Records total</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="panel" ng-class="{'panel-warning': records_underreplicated>0}">
+          <div class="panel-heading">
+            <p class="announcement-heading">{{records_underreplicated | number:0}}</p>
+            <p class="announcement-text">Underreplicated Records</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-4">
+        <div class="panel" ng-class="{'panel-danger': records_unavailable>0}">
+          <div class="panel-heading">
+            <p class="announcement-heading">{{records_unavailable | number:0}}</p>
+            <p class="announcement-text">Unavailable Records</p>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /.row -->
 
 </div>

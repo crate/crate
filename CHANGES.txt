@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - admin-ui: implemented general overview page
+
  - optimized serialization performance for `count(distinct colName)`
 
  - fix: fix NPE on ``stats.shards`` with unknown column in where clause

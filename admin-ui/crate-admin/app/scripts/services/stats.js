@@ -3,14 +3,9 @@
 angular.module('stats', ['sql'])
   .factory('ClusterState', function ($http, $timeout, $location, $log, SQLQuery) {
     var prefix = $location.search().prefix || '';
-    var colorMap = {green: 'label-success',
-                    yellow: 'label-warning',
-                    red: 'label-danger',
-                    '--': 'label-default'};
     var data = {
       name: '--',
       status: '--',
-      color_label: 'label-default',
       load: ['-.-', '-.-', '-.-']
     };
 
@@ -37,24 +32,18 @@ angular.module('stats', ['sql'])
 
               if (activePrimaryShards < configuredShards) {
                 data.status = 'red';
-                data.color_label = colorMap['red'];
               } else if (unassignedShards > 0) {
                 data.status = 'yellow';
-                data.color_label = colorMap['yellow'];
               } else {
                 data.status = 'green';
-                data.color_label = colorMap['green'];
               }
             }).
             error(function(sqlQuery) {
               data.status = '--';
-              data.color_label = colorMap['--'];
-
             });
         }).
         error(function(sqlQuery) {
           data.status = '--';
-          data.color_label = colorMap['--'];
         });
       $timeout(refreshHealth, refreshInterval);
     };
