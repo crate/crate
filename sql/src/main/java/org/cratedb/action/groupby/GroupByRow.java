@@ -161,5 +161,9 @@ public class GroupByRow {
         for (AggState aggState : aggStates) {
             aggState.terminatePartial();
         }
+
+        for (Set<Object> seenValues : seenValuesList) {
+            seenValues.clear();
+        }
     }
 }

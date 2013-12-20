@@ -56,7 +56,9 @@ public class ReduceJobContext extends PlainListenableActionFuture<SQLReduceJobRe
             reducedRows.walk(new Rows.RowVisitor() {
                 @Override
                 public void visit(GroupByRow row) {
-                    row.terminatePartial();
+                    if (parsedStatement.reducerHasRowAuthority()) {
+                        row.terminatePartial();
+                    }
                     rowList.add(row);
                 }
             });
@@ -83,10 +85,6 @@ public class ReduceJobContext extends PlainListenableActionFuture<SQLReduceJobRe
             }
             set(new SQLReduceJobResponse(terminate(), parsedStatement));
         }
-    }
-
-    public int getCount() {
-        return shardsToProcess.get();
     }
 
     public void timeout() {

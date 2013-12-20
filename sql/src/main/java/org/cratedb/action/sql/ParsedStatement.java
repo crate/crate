@@ -409,4 +409,21 @@ public class ParsedStatement {
         }
         return keyStreamers;
     }
+
+
+    /**
+     * defines if the reducer has received all rows of a certain key.
+     *
+     * e.g.
+     *
+     *  in case of "group by country" a reducer can be sure to have received all values for "austria"
+     *
+     *  in case of a global aggregate there is no key, but each reducer has at most one row and if
+     *  only one reducer is active he has "row authority" because there are no other rows (since there are no reducers)
+     *
+     * @return true/false
+     */
+    public boolean reducerHasRowAuthority() {
+        return !isGlobalAggregate() || partialReducerCount == 1;
+    }
 }

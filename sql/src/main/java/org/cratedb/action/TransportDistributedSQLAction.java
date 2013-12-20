@@ -616,7 +616,14 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             synchronized (groupByResult) {
                 // TODO: in order for global aggregates to work correctly with more than 1 reducer
                 // another merge/reduce is required here
-                if (response.rows()!=null){
+
+                if (response.rows() != null){
+                    if (!parsedStatement.reducerHasRowAuthority()) {
+                        for (GroupByRow groupByRow : response.rows()) {
+                            groupByRow.terminatePartial();
+                        }
+                    }
+
                     groupByResult.addAll(response.rows());
                 }
             }
@@ -672,8 +679,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
             ReduceJobContext reduceJobStatus = null;
             List<List<Object>> collectResults = null;
             if (parsedStatement.hasGroupBy()) {
-                // create a reduce job without a shard CountDownLatch as we collect all shards
-                // at once here
+                // shards to process isn't accurate here, but that's okay since the future isn't accessed directly
                 reduceJobStatus = new ReduceJobContext(parsedStatement, threadPool, shardsItsAll.size());
             } else {
                 collectResults = new ArrayList<>(shardsItsAll.size() - shardsIts.size());
