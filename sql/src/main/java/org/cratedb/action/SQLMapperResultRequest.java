@@ -19,15 +19,15 @@ public class SQLMapperResultRequest extends TransportRequest {
     // fields below are only set/available on the receiver side.
     final ESLogger logger = Loggers.getLogger(getClass());
     private CacheRecycler cacheRecycler;
-    private ReduceJobStatusContext jobStatusContext;
+    private ReduceJobRequestContext jobStatusContext;
 
     public UUID contextId;
     public SQLGroupByResult groupByResult;
     public BytesStreamOutput memoryOutputStream = new BytesStreamOutput();
-    public SQLReduceJobStatus status;
+    public ReduceJobContext status;
 
     public SQLMapperResultRequest() {}
-    public SQLMapperResultRequest(ReduceJobStatusContext jobStatusContext) {
+    public SQLMapperResultRequest(ReduceJobRequestContext jobStatusContext) {
         this.jobStatusContext = jobStatusContext;
         cacheRecycler = jobStatusContext.cacheRecycler();
     }

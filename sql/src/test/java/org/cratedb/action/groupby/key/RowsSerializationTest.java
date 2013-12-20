@@ -3,10 +3,10 @@ package org.cratedb.action.groupby.key;
 
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
-import org.cratedb.action.ReduceJobStatusContext;
+import org.cratedb.action.ReduceJobContext;
+import org.cratedb.action.ReduceJobRequestContext;
 import org.cratedb.action.SQLGroupByResult;
 import org.cratedb.action.SQLMapperResultRequest;
-import org.cratedb.action.SQLReduceJobStatus;
 import org.cratedb.action.collect.ColumnReferenceCollectorExpression;
 import org.cratedb.action.collect.Expression;
 import org.cratedb.action.groupby.GroupByRow;
@@ -100,10 +100,10 @@ public class RowsSerializationTest {
         BytesStreamOutput out = new BytesStreamOutput();
         requestSender.writeTo(out);
 
-        ReduceJobStatusContext jobStatusContext = new ReduceJobStatusContext(cacheRecycler);
+        ReduceJobRequestContext jobStatusContext = new ReduceJobRequestContext(cacheRecycler);
         SQLMapperResultRequest requestReceiver = new SQLMapperResultRequest(jobStatusContext);
 
-        jobStatusContext.put(requestSender.contextId, new SQLReduceJobStatus(stmt, threadPool));
+        jobStatusContext.put(requestSender.contextId, new ReduceJobContext(stmt, threadPool, 1));
         BytesStreamInput in = new BytesStreamInput(out.bytes());
         requestReceiver.readFrom(in);
 
@@ -153,9 +153,9 @@ public class RowsSerializationTest {
         BytesStreamOutput out2 = new BytesStreamOutput();
         requestSender2.writeTo(out2);
 
-        ReduceJobStatusContext jobStatusContext = new ReduceJobStatusContext(cacheRecycler);
-        jobStatusContext.put(requestSender.contextId, new SQLReduceJobStatus(stmt, threadPool));
-        jobStatusContext.put(requestSender2.contextId, new SQLReduceJobStatus(stmt, threadPool));
+        ReduceJobRequestContext jobStatusContext = new ReduceJobRequestContext(cacheRecycler);
+        jobStatusContext.put(requestSender.contextId, new ReduceJobContext(stmt, threadPool, 1));
+        jobStatusContext.put(requestSender2.contextId, new ReduceJobContext(stmt, threadPool, 1));
 
         SQLMapperResultRequest requestReceiver = new SQLMapperResultRequest(jobStatusContext);
 

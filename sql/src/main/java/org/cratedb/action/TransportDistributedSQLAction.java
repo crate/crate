@@ -2,7 +2,6 @@ package org.cratedb.action;
 
 import org.cratedb.Constants;
 import org.cratedb.action.groupby.GroupByHelper;
-import org.cratedb.action.groupby.GroupByKey;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.GroupByRowComparator;
 import org.cratedb.action.groupby.key.GroupTree;
@@ -14,7 +13,6 @@ import org.cratedb.service.StatsService;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.ElasticSearchException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ListenableActionFuture;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.action.support.IgnoreIndices;
 import org.elasticsearch.action.support.TransportAction;
@@ -32,12 +30,10 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
 import java.util.*;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -673,12 +669,12 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                     clusterState.routingTable().allAssignedShardsGrouped(concreteIndices, true);
 
             CrateException exception = null;
-            SQLReduceJobStatus reduceJobStatus = null;
+            ReduceJobContext reduceJobStatus = null;
             List<List<Object>> collectResults = null;
             if (parsedStatement.hasGroupBy()) {
                 // create a reduce job without a shard CountDownLatch as we collect all shards
                 // at once here
-                reduceJobStatus = new SQLReduceJobStatus(parsedStatement, threadPool);
+                reduceJobStatus = new ReduceJobContext(parsedStatement, threadPool, shardsItsAll.size());
             } else {
                 collectResults = new ArrayList<>(shardsItsAll.size() - shardsIts.size());
             }
