@@ -5,12 +5,14 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fix: fix NPE on ``stats.shards`` with unknown column in where clause
+
  - removed inline junit-benchmarks sources and added dependency
 
  - crate.yml configuration file is now also read without specifying
    `-Des.config` in the start script.
 
-- new global expression ``sys.cluster.name`` created.
+ - new global expression ``sys.cluster.name`` created.
    Can be queried in group by queries and global aggregate queries.
 
  - TODO: filter on global expression still missing

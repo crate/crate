@@ -2,6 +2,7 @@ package org.cratedb.integrationtests;
 
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.sql.SQLParseException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -569,6 +570,45 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
         assertEquals("Human", response.rows()[0][0]);
         assertEquals(2L, response.rows()[0][1]);
+    }
+
+    @Test
+    public void testGroupByUnknownResultColumn() throws Exception {
+        this.setup.groupBySetup();
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Can only query columns that are listed in group by.");
+        execute("select lol from characters group by race");
+    }
+
+    @Test
+    public void testGroupByUnknownGroupByColumn() throws Exception {
+        this.setup.groupBySetup();
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Unknown column 'lol'");
+        execute("select max(birthdate) from characters group by lol");
+    }
+
+    @Test
+    public void testGroupByUnknownWhere() throws Exception {
+        this.setup.groupBySetup();
+        execute("select max(birthdate), race from characters where lol='funky' group by race");
+        assertEquals(0, response.rowCount());
+    }
+
+    @Test
+    public void testGlobalAggregateUnknownWhere() throws Exception {
+        this.setup.groupBySetup();
+        execute("select max(birthdate) from characters where lol='funky'");
+        assertEquals(1, response.rowCount());
+        assertNull(response.rows()[0][0]);
+    }
+
+    @Test
+    public void testAggregateNonExistingColumn() throws Exception {
+        this.setup.groupBySetup();
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Unknown column 'lol'");
+        execute("select max(lol), race from characters group by race");
     }
 
 }

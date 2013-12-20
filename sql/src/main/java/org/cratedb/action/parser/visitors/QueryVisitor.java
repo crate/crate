@@ -912,6 +912,11 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         stmt.columnsWithFilter.add(columnReference.getColumnName());
     }
 
+    /**
+     * check if column does not reference column from different table or schema
+     *
+     * @param columnReference
+     */
     private void validateColumnReference(ColumnReference columnReference) {
         String schemaName = columnReference.getSchemaName();
         String tableName = columnReference.getTableName();
@@ -919,9 +924,14 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         if (schemaName != null && !schemaName.equals(stmt.schemaName())) {
             throw new SQLParseException("Cannot reference column from different schema.");
         }
-        if (tableName != null && !tableName.equals(stmt.tableName())) {
+        String stmtTableName = stmt.tableName();
+        if (stmtTableName == null) {
+            stmtTableName = stmt.virtualTableName();
+        }
+        if (tableName != null && !tableName.equals(stmtTableName)) {
             throw new SQLParseException("Cannot reference column from different table.");
         }
+
     }
 
 }
