@@ -7,6 +7,7 @@ import org.cratedb.action.groupby.key.Rows;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLReduceJobTimeoutException;
 import org.elasticsearch.action.support.PlainListenableActionFuture;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.ArrayList;
@@ -15,7 +16,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.UUID;
 
-public class SQLReduceJobStatus extends PlainListenableActionFuture<SQLReduceJobResponse> {
+public class ReduceJobContext extends PlainListenableActionFuture<SQLReduceJobResponse> {
 
     public final GroupByRowComparator comparator;
     public final Object lock = new Object();
@@ -24,28 +25,25 @@ public class SQLReduceJobStatus extends PlainListenableActionFuture<SQLReduceJob
     private Rows reducedRows;
     private final AtomicInteger failures = new AtomicInteger(0);
 
-    private ReduceJobStatusContext reduceJobStatusContext;
+    private ReduceJobRequestContext reduceJobRequestContext;
     private UUID contextId;
 
     AtomicInteger shardsToProcess;
 
-    public SQLReduceJobStatus(ParsedStatement parsedStatement,
-                              ThreadPool threadPool,
-                              int shardsToProcess,
-                              UUID contextId,
-                              ReduceJobStatusContext reduceJobStatusContext)
-    {
-        this(parsedStatement, threadPool);
-        this.shardsToProcess = new AtomicInteger(shardsToProcess);
-        this.reduceJobStatusContext = reduceJobStatusContext;
-        this.contextId = contextId;
+    public ReduceJobContext(ParsedStatement parsedStatement, ThreadPool threadPool, int shardsToProcess) {
+        this(parsedStatement, threadPool, shardsToProcess, null, null);
     }
 
-    public SQLReduceJobStatus(ParsedStatement parsedStatement,
-                              ThreadPool threadPool)
-    {
-        super(true, threadPool);
+    public ReduceJobContext(ParsedStatement parsedStatement,
+                            ThreadPool threadPool,
+                            int shardsToProcess,
+                            @Nullable UUID contextId,
+                            @Nullable ReduceJobRequestContext reduceJobRequestContext) {
+        super(false, threadPool);
         this.parsedStatement = parsedStatement;
+        this.shardsToProcess = new AtomicInteger(shardsToProcess);
+        this.contextId = contextId;
+        this.reduceJobRequestContext = reduceJobRequestContext;
         this.comparator = new GroupByRowComparator(
             GroupByHelper.buildFieldExtractor(parsedStatement, null),
             parsedStatement.orderByIndices()
@@ -79,11 +77,11 @@ public class SQLReduceJobStatus extends PlainListenableActionFuture<SQLReduceJob
     }
 
     private void countDown() {
-        if (reduceJobStatusContext != null) {
-            if (shardsToProcess.decrementAndGet() == 0) {
-                reduceJobStatusContext.remove(contextId);
-                set(new SQLReduceJobResponse(terminate(), parsedStatement));
+        if (shardsToProcess.decrementAndGet() == 0) {
+            if (reduceJobRequestContext != null) {
+                reduceJobRequestContext.remove(contextId);
             }
+            set(new SQLReduceJobResponse(terminate(), parsedStatement));
         }
     }
 

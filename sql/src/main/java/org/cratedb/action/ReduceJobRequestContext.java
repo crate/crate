@@ -8,9 +8,9 @@ import org.elasticsearch.common.io.stream.HandlesStreamInput;
 import java.io.IOException;
 import java.util.*;
 
-public class ReduceJobStatusContext {
+public class ReduceJobRequestContext {
 
-    private final Map<UUID, SQLReduceJobStatus> reduceJobs = new HashMap<>();
+    private final Map<UUID, ReduceJobContext> reduceJobs = new HashMap<>();
     private final Map<UUID, List<BytesReference>> unreadStreams = new HashMap<>();
     private final Object lock = new Object();
     private final CacheRecycler cacheRecycler;
@@ -19,11 +19,11 @@ public class ReduceJobStatusContext {
         return cacheRecycler;
     }
 
-    public ReduceJobStatusContext(CacheRecycler cacheRecycler) {
+    public ReduceJobRequestContext(CacheRecycler cacheRecycler) {
         this.cacheRecycler = cacheRecycler;
     }
 
-    public SQLReduceJobStatus get(UUID contextId) {
+    public ReduceJobContext get(UUID contextId) {
         synchronized (lock) {
             return reduceJobs.get(contextId);
         }
@@ -33,7 +33,7 @@ public class ReduceJobStatusContext {
         reduceJobs.remove(contextId);
     }
 
-    public void put(UUID contextId, SQLReduceJobStatus status) throws IOException {
+    public void put(UUID contextId, ReduceJobContext status) throws IOException {
         List<BytesReference> bytesReferences;
         synchronized (lock) {
             reduceJobs.put(contextId, status);
@@ -54,7 +54,7 @@ public class ReduceJobStatusContext {
         }
 
         synchronized (lock) {
-            SQLReduceJobStatus status = reduceJobs.get(request.contextId);
+            ReduceJobContext status = reduceJobs.get(request.contextId);
             if (request.failed) {
                 status.countFailure();
                 return;
@@ -73,7 +73,7 @@ public class ReduceJobStatusContext {
         }
     }
 
-    private void mergeFromBytesReference(BytesReference bytesReference, SQLReduceJobStatus status) throws IOException {
+    private void mergeFromBytesReference(BytesReference bytesReference, ReduceJobContext status) throws IOException {
         SQLGroupByResult sqlGroupByResult = SQLGroupByResult.readSQLGroupByResult(
             status.parsedStatement,
             cacheRecycler,

@@ -26,7 +26,7 @@ public class TransportSQLReduceHandler {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
     private final TransportService transportService;
-    private final ReduceJobStatusContext reduceJobStatusContext;
+    private final ReduceJobRequestContext reduceJobRequestContext;
     private final ClusterService clusterService;
     private final SQLParseService sqlParseService;
     private final CacheRecycler cacheRecycler;
@@ -49,7 +49,7 @@ public class TransportSQLReduceHandler {
         this.clusterService = clusterService;
         this.transportService = transportService;
         this.threadPool = threadPool;
-        this.reduceJobStatusContext = new ReduceJobStatusContext(cacheRecycler);
+        this.reduceJobRequestContext = new ReduceJobRequestContext(cacheRecycler);
         this.scheduledExecutorService = new ScheduledThreadPoolExecutor(2);
     }
 
@@ -63,19 +63,19 @@ public class TransportSQLReduceHandler {
         ParsedStatement parsedStatement =
             sqlParseService.parse(request.request.stmt(), request.request.args());
 
-        SQLReduceJobStatus reduceJobStatus = new SQLReduceJobStatus(
+        ReduceJobContext reduceJobStatus = new ReduceJobContext(
             parsedStatement,
             threadPool,
             request.expectedShardResults,
             request.contextId,
-            reduceJobStatusContext
+            reduceJobRequestContext
         );
-        final WeakReference<SQLReduceJobStatus> weakStatus = new WeakReference<>(reduceJobStatus);
+        final WeakReference<ReduceJobContext> weakStatus = new WeakReference<>(reduceJobStatus);
 
         scheduledExecutorService.schedule(new Runnable() {
             @Override
             public void run() {
-                SQLReduceJobStatus status = weakStatus.get();
+                ReduceJobContext status = weakStatus.get();
                 if (status != null) {
                     status.timeout();
                 }
@@ -83,7 +83,7 @@ public class TransportSQLReduceHandler {
         }, Constants.GROUP_BY_TIMEOUT, TimeUnit.SECONDS);
 
         try {
-            reduceJobStatusContext.put(request.contextId, reduceJobStatus);
+            reduceJobRequestContext.put(request.contextId, reduceJobStatus);
         } catch (IOException e) {
             logger.error(e.getMessage(), e);
         }
@@ -130,13 +130,13 @@ public class TransportSQLReduceHandler {
     private class ReceivePartialResultHandler extends BaseTransportRequestHandler<SQLMapperResultRequest> {
         @Override
         public SQLMapperResultRequest newInstance() {
-            return new SQLMapperResultRequest(reduceJobStatusContext);
+            return new SQLMapperResultRequest(reduceJobRequestContext);
         }
 
         @Override
         public void messageReceived(final SQLMapperResultRequest request, TransportChannel channel) throws Exception {
             try {
-                reduceJobStatusContext.push(request);
+                reduceJobRequestContext.push(request);
                 channel.sendResponse(TransportResponse.Empty.INSTANCE);
             } catch (Exception e) {
                 logger.error(e.getMessage(), e);
