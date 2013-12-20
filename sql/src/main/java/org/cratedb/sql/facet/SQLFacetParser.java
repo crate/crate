@@ -67,7 +67,10 @@ public class SQLFacetParser extends AbstractComponent implements FacetParser {
 
         ParsedStatement stmt;
         try {
-            stmt = parseService.parse(context.stmt(), context.args());
+            stmt = parseService.parse(context.stmt(), context.args(),
+                    searchContext.shardTarget().nodeId(),
+                    searchContext.shardTarget().index(),
+                    searchContext.shardTarget().shardId());
         } catch (SQLParseException e) {
             throw new FacetPhaseExecutionException(facetName, "sql parse failure", e);
         }

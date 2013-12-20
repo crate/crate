@@ -1,5 +1,6 @@
 package org.cratedb.action.parser.visitors;
 
+import org.cratedb.action.parser.context.ParseContext;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
@@ -37,8 +38,8 @@ public class AnalyzerVisitor extends BaseVisitor {
     // used for saving the creation statement
     public static final String SQL_STATEMENT_KEY = "_sql_stmt";
 
-    public AnalyzerVisitor(NodeExecutionContext context, ParsedStatement parsedStatement, Object[] args) {
-        super(context, parsedStatement, args);
+    public AnalyzerVisitor(NodeExecutionContext context, ParseContext parseContext, ParsedStatement parsedStatement, Object[] args) {
+        super(context, parseContext, parsedStatement, args);
         analyzerService = context.analyzerService();
     }
 

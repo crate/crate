@@ -26,7 +26,10 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.mockito.Mockito.when;
@@ -79,7 +82,7 @@ public class InformationSchemaTableTest extends CrateIntegrationTest {
     @Before
     public void initParseService() throws Exception {
         NodeExecutionContext nec = HitchhikerMocks.nodeExecutionContext();
-        when(nec.tableContext(null, "nodes")).thenReturn(new InformationSchemaTableExecutionContext(
+        when(nec.tableContext("information_schema", "nodes")).thenReturn(new InformationSchemaTableExecutionContext(
                 new HashMap<String, InformationSchemaTable>(1) {{
                     put("nodes", new TestInformationSchemaTable(HitchhikerMocks.aggFunctionMap));
                 }},
@@ -119,7 +122,7 @@ public class InformationSchemaTableTest extends CrateIntegrationTest {
         testTable = new TestInformationSchemaTable(HitchhikerMocks.aggFunctionMap);
         ClusterState state = client().admin().cluster().prepareState().execute().actionGet().getState();
         testTable.index(state);
-        ParsedStatement stmt = parseService.parse("select id, name, address, many from nodes");
+        ParsedStatement stmt = parseService.parse("select id, name, address, many from information_schema.nodes");
 
         testTable.query(stmt, new ActionListener<SQLResponse>() {
             @Override
@@ -144,7 +147,7 @@ public class InformationSchemaTableTest extends CrateIntegrationTest {
         testTable.init();
         assertEquals(0L, testTable.count());
 
-        ParsedStatement stmt = parseService.parse("select id, name, address, many from nodes");
+        ParsedStatement stmt = parseService.parse("select id, name, address, many from information_schema.nodes");
 
         testTable.query(stmt, new ActionListener<SQLResponse>() {
             @Override

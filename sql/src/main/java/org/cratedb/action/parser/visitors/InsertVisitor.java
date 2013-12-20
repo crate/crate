@@ -1,9 +1,10 @@
 package org.cratedb.action.parser.visitors;
 
 import com.google.common.collect.Lists;
+import org.cratedb.Constants;
+import org.cratedb.action.parser.context.ParseContext;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
-import org.cratedb.Constants;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
@@ -23,9 +24,9 @@ public class InsertVisitor extends BaseVisitor {
     private List<String> columnNameList;
     private List<String> primaryKeys;
 
-    public InsertVisitor(NodeExecutionContext context, ParsedStatement stmt,
+    public InsertVisitor(NodeExecutionContext context, ParseContext parseContext, ParsedStatement stmt,
                          Object[] args) throws StandardException {
-        super(context, stmt, args);
+        super(context, parseContext, stmt, args);
     }
 
     @Override

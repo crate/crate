@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - SQL statement gets parsed differently in different contexts (e.g. on shards, on handler)
+
 2013/12/20 0.20.0
 =================
 

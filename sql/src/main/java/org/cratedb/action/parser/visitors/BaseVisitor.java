@@ -2,6 +2,7 @@ package org.cratedb.action.parser.visitors;
 
 import com.google.common.base.Joiner;
 import org.cratedb.action.parser.QueryPlanner;
+import org.cratedb.action.parser.context.ParseContext;
 import org.cratedb.action.sql.ITableExecutionContext;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
@@ -19,12 +20,15 @@ public class BaseVisitor extends DispatchingVisitor {
 
     protected final Object[] args;
     protected final NodeExecutionContext context;
-    protected QueryPlanner queryPlanner;
     protected ITableExecutionContext tableContext;
+    protected final ParseContext parseContext;
+    protected QueryPlanner queryPlanner;
 
-    public BaseVisitor(NodeExecutionContext context, ParsedStatement parsedStatement, Object[] args) {
+    public BaseVisitor(NodeExecutionContext context, ParseContext parseContext, ParsedStatement parsedStatement, Object[] args) {
         super(parsedStatement);
         this.context = context;
+        this.parseContext = parseContext;
+        this.stmt.setScope(this.parseContext.getScope());
         this.args = args;
         if (context != null) {
             this.queryPlanner = context.queryPlanner();

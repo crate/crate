@@ -1343,4 +1343,13 @@ public class QueryVisitorTest {
         execStatement("delete from locations where something.wrong='haha'");
     }
 
+    @Test
+    public void testNoLuceneQueryCreated() throws Exception {
+        execStatement("select * from locations where age=1");
+        assertNull(stmt.query);
+
+        execStatement("select * from locations");
+        assertNull(stmt.query);
+    }
+
 }

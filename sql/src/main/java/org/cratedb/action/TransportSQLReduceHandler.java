@@ -3,10 +3,9 @@ package org.cratedb.action;
 import org.cratedb.Constants;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.service.SQLParseService;
-import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ListenableActionFuture;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -55,8 +54,11 @@ public class TransportSQLReduceHandler {
     }
 
     public ListenableActionFuture<SQLReduceJobResponse> reduceOperationStart(SQLReduceJobRequest request) {
-        ParsedStatement parsedStatement =
-            sqlParseService.parse(request.request.stmt(), request.request.args());
+        // parse as if we were on the handler
+        ParsedStatement parsedStatement = sqlParseService.parse(
+                    request.request.stmt(),
+                    request.request.args()
+            );
 
         ReduceJobContext reduceJobStatus = new ReduceJobContext(
             parsedStatement,

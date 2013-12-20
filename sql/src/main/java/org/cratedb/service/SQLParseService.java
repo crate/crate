@@ -1,5 +1,7 @@
 package org.cratedb.service;
 
+import org.cratedb.action.parser.context.HandlerContext;
+import org.cratedb.action.parser.context.ParseContext;
 import org.cratedb.action.parser.visitors.*;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
@@ -11,6 +13,7 @@ import org.cratedb.sql.parser.parser.ParameterNode;
 import org.cratedb.sql.parser.parser.SQLParser;
 import org.cratedb.sql.parser.parser.StatementNode;
 import org.cratedb.sql.parser.unparser.NodeToString;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
@@ -22,20 +25,89 @@ public class SQLParseService {
 
     final ESLogger logger = Loggers.getLogger(getClass());
 
+    public static final Object[] EMPTY_OBJECT_ARRAY = new Object[0];
     public static final Integer DEFAULT_SELECT_LIMIT = 10000;
-    public final NodeExecutionContext context;
+    public final NodeExecutionContext nodeExecutionContext;
 
     @Inject
     public SQLParseService(NodeExecutionContext context) {
-        this.context = context;
+        this.nodeExecutionContext = context;
     }
 
+    /**
+     * parse an SQL statement in handler context
+     */
     public ParsedStatement parse(String statement) throws SQLParseException {
-        return parse(statement, new Object[0]);
+        return parse(statement, EMPTY_OBJECT_ARRAY, HandlerContext.INSTANCE);
     }
 
+    /**
+     * parse the statement in handler context
+     */
     public ParsedStatement parse(String statement, Object[] args) throws SQLParseException {
+        return parse(statement, args, HandlerContext.INSTANCE);
+    }
+
+    /**
+     * parse the statement on a node
+     */
+    public ParsedStatement parse(String statement, String nodeId) {
+        return parse(statement, EMPTY_OBJECT_ARRAY, nodeId, null, null);
+    }
+
+    /**
+     * parse the statement in a table context
+     */
+    public ParsedStatement parse(String statement, String nodeId, String tableName) {
+        return parse(statement, EMPTY_OBJECT_ARRAY, nodeId, tableName, null);
+    }
+
+    /**
+     * parse the statement on a node
+     */
+    public ParsedStatement parse(String statement, Object[] args, String nodeId) {
+        return parse(statement, args, nodeId, null, null);
+    }
+
+    /**
+     * parse the statement in a table context
+     */
+    public ParsedStatement parse(String statement, Object[] args, String nodeId, String tableName) {
+        return parse(statement, args, nodeId, tableName, null);
+    }
+
+    /**
+     * parse an SQL Statement without args
+     * @param statement the statement String
+     * @param nodeId the id of the node we parse on, if null, statement is parsed in cluster context
+     * @param tableName the name of the table/index, if null, statement is parsed in node context
+     * @param shardId the name of the table/index, if null, statement is parsed in table context,
+     *                if not null, statement is parsed in shard context
+     * @return the parsed statement
+     * @throws SQLParseException if something went wrong
+     */
+    public ParsedStatement parse(String statement, @Nullable String nodeId, @Nullable String tableName, @Nullable Integer shardId) throws SQLParseException {
+        return parse(statement, EMPTY_OBJECT_ARRAY, nodeId, tableName, shardId);
+    }
+
+    /**
+     * parse an SQL Statement with args
+     * @param statement the statement String
+     * @param args the arguments to fill in {@link org.cratedb.sql.parser.parser.ParameterNode}s in the query
+     * @param nodeId the id of the node we parse on, if null, statement is parsed in cluster context
+     * @param tableName the name of the table/index, if null, statement is parsed in node context
+     * @param shardId the name of the table/index, if null, statement is parsed in table context,
+     *                if not null, statement is parsed in shard context
+     * @return the parsed statement
+     * @throws SQLParseException if something went wrong
+     */
+    public ParsedStatement parse(String statement, Object args[], @Nullable String nodeId, @Nullable String tableName, @Nullable Integer shardId) throws SQLParseException {
+        return parse(statement, args, new ParseContext(nodeId, tableName, shardId));
+    }
+
+    private ParsedStatement parse(String statement, Object[] args, ParseContext parseContext) throws SQLParseException {
         StopWatch stopWatch = null;
+
         ParsedStatement stmt = new ParsedStatement(statement);
 
         if (logger.isTraceEnabled()) {
@@ -47,20 +119,20 @@ public class SQLParseService {
             BaseVisitor visitor;
             switch (statementNode.getNodeType()) {
                 case NodeTypes.INSERT_NODE:
-                    visitor = new InsertVisitor(context, stmt, args);
+                    visitor = new InsertVisitor(nodeExecutionContext, parseContext, stmt, args);
                     break;
                 case NodeTypes.CREATE_TABLE_NODE:
                 case NodeTypes.DROP_TABLE_NODE:
-                    visitor = new TableVisitor(context, stmt, args);
+                    visitor = new TableVisitor(nodeExecutionContext, parseContext, stmt, args);
                     break;
                 case NodeTypes.CREATE_ANALYZER_NODE:
-                    visitor = new AnalyzerVisitor(context, stmt, args);
+                    visitor = new AnalyzerVisitor(nodeExecutionContext, parseContext, stmt, args);
                     break;
                 case NodeTypes.COPY_STATEMENT_NODE:
-                    visitor = new CopyVisitor(context, stmt, args);
+                    visitor = new CopyVisitor(nodeExecutionContext, parseContext, stmt, args);
                     break;
                 default:
-                    visitor = new QueryVisitor(context, stmt, args);
+                    visitor = new QueryVisitor(nodeExecutionContext, parseContext, stmt, args);
                     break;
             }
             statementNode.accept(visitor);

@@ -144,7 +144,11 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
     }
 
     protected SQLShardResponse shardOperation(SQLShardRequest request) throws ElasticSearchException {
-        ParsedStatement stmt = sqlParseService.parse(request.sqlRequest.stmt(), request.sqlRequest.args());
+        ParsedStatement stmt = sqlParseService.parse(
+                request.sqlRequest.stmt(), request.sqlRequest.args(),
+                clusterService.localNode().id(),
+                request.concreteIndex,
+                request.shardId);
         StopWatch stopWatch = null;
         CrateException exception = null;
         Rows rows = null;

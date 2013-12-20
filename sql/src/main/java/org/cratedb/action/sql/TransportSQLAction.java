@@ -122,7 +122,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                                                ActionListener<SQLResponse> listener,
                                                long requestStartedTime) {
             this.listener = listener;
-            this.builder = new SQLResponseBuilder(sqlParseService.context, stmt);
+            this.builder = new SQLResponseBuilder(sqlParseService.nodeExecutionContext, stmt);
             this.requestStartedTime = requestStartedTime;
         }
 

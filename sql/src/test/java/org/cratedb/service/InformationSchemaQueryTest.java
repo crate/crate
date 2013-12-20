@@ -56,6 +56,15 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testLuceneQueryCreated() throws Exception {
+        ParsedStatement stmt = parseService.parse("select table_name, ordinal_position " +
+                "from information_schema.columns " +
+                "where ordinal_position < 1000 and table_name not like '%lol'",
+                new Object[0]);
+        assertNotNull(stmt.query);
+    }
+
+    @Test
     public void testGroupByOnInformationSchema() throws Exception {
         exec("select count(*) from information_schema.columns group by table_name order by count(*) desc");
         assertEquals(3L, response.rowCount());

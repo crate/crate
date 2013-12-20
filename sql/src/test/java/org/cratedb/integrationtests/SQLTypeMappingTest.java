@@ -1,7 +1,6 @@
 package org.cratedb.integrationtests;
 
 import org.cratedb.Constants;
-import org.cratedb.SQLCrateNodesTest;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLAction;
@@ -11,13 +10,14 @@ import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.ColumnUnknownException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.ValidationException;
-import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.node.internal.InternalNode;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
