@@ -19,7 +19,7 @@ public interface ScopedExpression<ReturnType> extends Expression<ReturnType> {
      * @param indexName
      * @param shardId
      */
-    public void putInScope(String nodeId, String indexName, int shardId);
+    public void applyScope(String nodeId, String indexName, int shardId);
 
     public String name();
 }

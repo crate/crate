@@ -121,7 +121,7 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
                     table.index(state);
                 }
             }
-            putGlobalExpressionsInScope(stmt);
+            applyScope(stmt);
             table.query(stmt, listener, requestStartedTime);
         }
 
@@ -134,12 +134,12 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
         return future;
     }
 
-    private void putGlobalExpressionsInScope(ParsedStatement stmt) {
+    private void applyScope(ParsedStatement stmt) {
         for (ScopedExpression<?> expression : stmt.globalExpressions()) {
             if (expression.getScope() != ExpressionScope.CLUSTER) {
                 throw new CrateException("Only cluster expressions are allowed in information_schema queries");
             }
-            expression.putInScope(null, null, -1);
+            expression.applyScope(null, null, -1);
         }
 
     }

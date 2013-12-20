@@ -11,8 +11,9 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeBuilder;
 import org.elasticsearch.node.internal.InternalSettingsPreparer;
 import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -21,6 +22,9 @@ import java.io.IOException;
 
 public class NodeSettingsTest extends TestCase {
 
+    @Rule
+    public TemporaryFolder tmp = new TemporaryFolder();
+
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
@@ -28,16 +32,17 @@ public class NodeSettingsTest extends TestCase {
     protected Node node;
     protected Client client;
 
-    private void doSetup() {
+    private void doSetup() throws IOException {
+        tmp.create();
         ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder()
             .put("node.name", "node-test")
             .put("node.data", true)
             .put("index.store.type", "memory")
             .put("index.store.fs.memory.enabled", "true")
             .put("gateway.type", "none")
-            .put("path.data", "./target/elasticsearch-test/data")
-            .put("path.work", "./target/elasticsearch-test/work")
-            .put("path.logs", "./target/elasticsearch-test/logs")
+            .put("path.data", new File(tmp.getRoot(), "data"))
+            .put("path.work", new File(tmp.getRoot(), "work"))
+            .put("path.logs", new File(tmp.getRoot(), "logs"))
             .put("index.number_of_shards", "1")
             .put("index.number_of_replicas", "0")
             .put("cluster.routing.schedule", "50ms")
@@ -53,7 +58,7 @@ public class NodeSettingsTest extends TestCase {
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws IOException {
         if (client != null) {
             client.admin().indices().prepareDelete("test").execute().actionGet();
             client = null;
@@ -62,13 +67,15 @@ public class NodeSettingsTest extends TestCase {
             node.stop();
             node = null;
         }
+
+
     }
 
     /**
      * Deleting all indexes must be deactivated by default
      */
     @Test(expected = ElasticSearchIllegalArgumentException.class)
-    public void testDeleteAll() {
+    public void testDeleteAll() throws IOException {
         doSetup();
         client.admin().indices().prepareDelete().execute();
     }
@@ -77,7 +84,7 @@ public class NodeSettingsTest extends TestCase {
      * The default cluster name is "crate" if not set differently in crate settings
      */
     @Test
-    public void testClusterName() {
+    public void testClusterName() throws IOException {
         doSetup();
         assertEquals("crate",
             client.admin().cluster().prepareHealth().
@@ -88,7 +95,7 @@ public class NodeSettingsTest extends TestCase {
      * The default cluster name is "crate" if not set differently in crate settings
      */
     @Test
-    public void testClusterNameSystemProp() {
+    public void testClusterNameSystemProp() throws IOException {
         System.setProperty("es.cluster.name", "system");
         doSetup();
         assertEquals("system",
