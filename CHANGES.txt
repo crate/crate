@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2013/12/20 0.20.0
+=================
+
  - admin-ui: implemented general overview page
 
  - optimized serialization performance for `count(distinct colName)`
@@ -22,8 +25,6 @@ Unreleased
 
  - new global expression ``sys.cluster.name`` created.
    Can be queried in group by queries and global aggregate queries.
-
- - TODO: filter on global expression still missing
 
  - removed inline junit-benchmarks sources and added dependency
 
