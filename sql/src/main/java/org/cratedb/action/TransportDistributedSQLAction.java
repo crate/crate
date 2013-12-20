@@ -6,6 +6,7 @@ import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.GroupByRowComparator;
 import org.cratedb.action.groupby.key.GroupTree;
 import org.cratedb.action.groupby.key.Rows;
+import org.cratedb.action.parser.context.ParseContext;
 import org.cratedb.action.sql.*;
 import org.cratedb.core.collections.LimitingCollectionIterator;
 import org.cratedb.service.SQLParseService;
@@ -144,7 +145,13 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
     }
 
     protected SQLShardResponse shardOperation(SQLShardRequest request) throws ElasticSearchException {
-        ParsedStatement stmt = sqlParseService.parse(request.sqlRequest.stmt(), request.sqlRequest.args());
+        ParseContext parseContext = new ParseContext(
+                clusterService.localNode().id(),
+                request.concreteIndex,
+                request.shardId
+        );
+        ParsedStatement stmt = sqlParseService.parse(
+                request.sqlRequest.stmt(), request.sqlRequest.args(), parseContext);
         StopWatch stopWatch = null;
         CrateException exception = null;
         Rows rows = null;

@@ -3,6 +3,7 @@ package org.cratedb.integrationtests;
 import org.cratedb.Constants;
 import org.cratedb.SQLCrateNodesTest;
 import org.cratedb.SQLTransportIntegrationTest;
+import org.cratedb.action.parser.context.HandlerContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
@@ -304,7 +305,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testWhereClause() throws Exception {
         setUpSimple();
         ParsedStatement stmt = parseService.parse("select * from t1 where " +
-                "timestamp_field='1970-01-01T00:00:00'");
+                "timestamp_field='1970-01-01T00:00:00'", HandlerContext.INSTANCE);
         assertEquals(
                 "{\"fields\":[\"boolean_field\",\"byte_field\",\"craty_field\",\"double_field\"," +
                         "\"float_field\",\"id\",\"integer_field\",\"ip_field\",\"long_field\"," +
@@ -320,7 +321,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         expectedException.expectMessage("Validation failed for byte_field: Invalid byte: out of bounds");
 
         setUpSimple();
-        ParsedStatement stmt = parseService.parse("delete from t1 where byte_field=129");
+        ParsedStatement stmt = parseService.parse("delete from t1 where byte_field=129", HandlerContext.INSTANCE);
     }
 
     @Test
@@ -329,7 +330,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         expectedException.expectMessage("Validation failed for byte_field: Invalid byte");
 
         setUpSimple();
-        ParsedStatement stmt = parseService.parse("update t1 set byte_field=0 where byte_field in ('0')");
+        ParsedStatement stmt = parseService.parse("update t1 set byte_field=0 where byte_field in ('0')", HandlerContext.INSTANCE);
     }
 
     @Test

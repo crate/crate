@@ -2,6 +2,7 @@ package org.cratedb.module.sql.test;
 
 import org.cratedb.action.collect.scope.ExpressionScope;
 import org.cratedb.action.collect.scope.GlobalExpressionDescription;
+import org.cratedb.action.parser.context.HandlerContext;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.service.SQLParseService;
@@ -29,7 +30,7 @@ public class ExpressionTest {
     protected ParsedStatement execute(String stmt, Object[] args) throws Exception {
         NodeExecutionContext nec = HitchhikerMocks.nodeExecutionContext();
         SQLParseService service = new SQLParseService(nec);
-        this.stmt = service.parse(stmt, args);
+        this.stmt = service.parse(stmt, args, HandlerContext.INSTANCE);
         return this.stmt;
     }
 

@@ -7,6 +7,7 @@ import org.apache.lucene.search.Query;
 import org.cratedb.DataType;
 import org.cratedb.action.collect.ColumnReferenceExpression;
 import org.cratedb.action.collect.Expression;
+import org.cratedb.action.collect.scope.ExpressionScope;
 import org.cratedb.action.collect.scope.ScopedExpression;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.parser.ColumnDescription;
@@ -75,6 +76,7 @@ public class ParsedStatement {
     public int orClauses = 0;
     public List<OrderByColumnName> orderByColumns = new ArrayList<>();
     private Optional<SeenValueContext> seenValueContext = Optional.absent();
+    private ExpressionScope scope;
 
     public String[] getRoutingValues() {
         return routingValues.toArray(new String[routingValues.size()]);
@@ -111,6 +113,19 @@ public class ParsedStatement {
      */
     public boolean hasVirtualTable() {
         return isStatsQuery() || isInformationSchemaQuery();
+    }
+
+    /**
+     * set the scope of this statement denoting where it has been parsed
+     * and what expression have been evaluated
+     * @param scope the scope in which this statement has been parsed
+     */
+    public void setScope(ExpressionScope scope) {
+        this.scope = scope;
+    }
+
+    public ExpressionScope scope() {
+        return scope;
     }
 
     public static enum ActionType {

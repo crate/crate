@@ -1,6 +1,7 @@
 package org.cratedb.action.parser.visitors;
 
 import com.google.common.collect.ImmutableMap;
+import org.cratedb.action.parser.context.ParseContext;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
@@ -26,9 +27,10 @@ public class TableVisitor extends BaseVisitor {
     private Map<String, Object> indexSettings = newHashMap();
 
     public TableVisitor(NodeExecutionContext nodeExecutionContext,
+                        ParseContext parseContext,
                         ParsedStatement stmt,
                         Object[] args) throws StandardException {
-        super(nodeExecutionContext, stmt, args);
+        super(nodeExecutionContext, parseContext, stmt, args);
     }
 
     @Override

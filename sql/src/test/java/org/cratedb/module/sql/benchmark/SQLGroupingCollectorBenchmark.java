@@ -4,6 +4,7 @@ import com.carrotsearch.junitbenchmarks.AbstractBenchmark;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.action.FieldLookup;
+import org.cratedb.action.parser.context.HandlerContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.GroupByOnArrayUnsupportedException;
@@ -46,7 +47,7 @@ public class SQLGroupingCollectorBenchmark extends AbstractBenchmark {
         SQLParseService parseService = new SQLParseService(HitchhikerMocks.nodeExecutionContext());
         //stmt = parseService.parse("select count(*), min(age) from characters group by race " +
         //        "order by count(*) limit 4");
-        stmt = parseService.parse("select a,b from characters group by a,b limit 4");
+        stmt = parseService.parse("select a,b from characters group by a,b limit 4", HandlerContext.INSTANCE);
         dummyLookup = new DummyLookup(terms, fakeDocs);
 
     }

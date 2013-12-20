@@ -14,6 +14,7 @@ import org.cratedb.action.groupby.aggregate.count.CountDistinctAggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountStarAggFunction;
 import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.action.parser.ColumnReferenceDescription;
+import org.cratedb.action.parser.context.ParseContext;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.OrderByColumnIdx;
 import org.cratedb.action.sql.OrderByColumnName;
@@ -43,11 +44,12 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     private Query rootQuery;
     private Stack<BooleanQuery> queryStack = new Stack<>();
     private Map<Integer, String> rangeQueryOperatorMap = new HashMap<>();
+    private boolean buildLuceneQuery = true;
 
-    public QueryVisitor(NodeExecutionContext context, ParsedStatement stmt, Object[] args)
+    public QueryVisitor(NodeExecutionContext context, ParseContext parseContext, ParsedStatement stmt, Object[] args)
         throws SQLParseException
     {
-        super(context, stmt, args);
+        super(context, parseContext, stmt, args);
 
         rangeQueryOperatorMap.put(BinaryRelationalOperatorNode.GREATER_THAN_RELOP, "gt");
         rangeQueryOperatorMap.put(BinaryRelationalOperatorNode.GREATER_EQUALS_RELOP, "gte");
@@ -63,6 +65,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
     @Override
     public void visit(UpdateNode node) throws Exception {
+        buildLuceneQuery = false; // no lucene query needed on update
         tableName(node.getTargetTableName());
         if (tableContext.tableIsAlias()) {
             throw new SQLParseException("Table alias not allowed in UPDATE statement.");
@@ -172,6 +175,11 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         }
         visit(node.getResultColumns());
 
+        // always build Lucene query on information_schema
+        // build for ``stats.shards`` only on shards
+        // do not build for "normal" queries
+        buildLuceneQuery = stmt.isInformationSchemaQuery() || (!parseContext.onHandler() && stmt.isStatsQuery());
+
         if (stmt.countRequest()) {
             whereClause(node.getWhereClause());
         } else {
@@ -191,7 +199,9 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
     private void whereClause(ValueNode node) throws Exception {
         if (node == null) {
-            rootQuery = new MatchAllDocsQuery();
+            if (buildLuceneQuery) {
+                rootQuery = new MatchAllDocsQuery();
+            }
             jsonBuilder.field("match_all", new HashMap<>());
             return;
         }
@@ -524,6 +534,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     }
 
     public void visit(DeleteNode node) throws Exception {
+        buildLuceneQuery = false; // no lucene query needed
         SelectNode selectNode = (SelectNode) node.getResultSetNode();
         visit(selectNode.getFromList());
         if (stmt.tableNameIsAlias) {
@@ -538,11 +549,13 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
     @Override
     public void visit(ValueNode parentNode, BinaryRelationalOperatorNode node) throws IOException {
-
-        addToLuceneQueryStack(
-            parentNode,
-            queryFromBinaryRelationalOpNode(parentNode, node)
-        );
+        Query query = queryFromBinaryRelationalOpNode(parentNode, node);
+        if (query != null && buildLuceneQuery) {
+            addToLuceneQueryStack(
+                parentNode,
+                query
+            );
+        }
     }
 
     @Override
@@ -557,7 +570,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             .field("null_value", true)
             .endObject().endObject().endObject();
 
-        if (stmt.isInformationSchemaQuery() || stmt.isStatsQuery()) {
+        if (buildLuceneQuery) {
             addToLuceneQueryStack(
                 parentNode,
                 IsNullFilteredQuery(node.getOperand().getColumnName())
@@ -607,7 +620,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         like = like.replaceAll("\\\\_", "_");
         jsonBuilder.startObject("wildcard").field(left.getColumnName(), like).endObject();
 
-        if (stmt.isInformationSchemaQuery() || stmt.isStatsQuery()) {
+        if (buildLuceneQuery) {
             addToLuceneQueryStack(
                 parentNode,
                 new WildcardQuery(new Term(columnName, like))
@@ -654,7 +667,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             throw new SQLParseException("Invalid IN clause");
         }
 
-        if (stmt.isInformationSchemaQuery() || stmt.isStatsQuery()) {
+        if (buildLuceneQuery) {
             BooleanQuery query = new BooleanQuery();
             query.setMinimumNumberShouldMatch(1);
 
@@ -687,12 +700,14 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
     private void binaryLogicalOperatorNode(ValueNode parentNode,
                                            BinaryLogicalOperatorNode node) throws Exception {
-        BooleanQuery query = newBoolNode(parentNode);
-        if (node.getNodeType() == NodeTypes.OR_NODE) {
-            query.setMinimumNumberShouldMatch(1);
-        }
+        if (buildLuceneQuery) {
+            BooleanQuery query = newBoolNode(parentNode);
+            if (node.getNodeType() == NodeTypes.OR_NODE) {
+                query.setMinimumNumberShouldMatch(1);
+            }
 
-        queryStack.add(query);
+            queryStack.add(query);
+        }
 
         jsonBuilder.startObject();
         visit(node, node.getLeftOperand());
@@ -702,7 +717,10 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         visit(node, node.getRightOperand());
         jsonBuilder.endObject();
 
-        queryStack.pop();
+        if (buildLuceneQuery) {
+            queryStack.pop();
+        }
+
         jsonBuilder.endArray().endObject();
     }
 
@@ -711,7 +729,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         jsonBuilder.startObject("bool").startObject("must_not");
 
         ValueNode parent = parentNode;
-        if (stmt.isInformationSchemaQuery() || stmt.isStatsQuery()) {
+        if (buildLuceneQuery) {
             BooleanQuery query = new BooleanQuery();
             BooleanQuery nestedQuery = new BooleanQuery();
 
@@ -731,7 +749,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
         visit(parent, node.getOperand());
 
-        if (stmt.isInformationSchemaQuery() || stmt.isStatsQuery()) {
+        if (buildLuceneQuery) {
             queryStack.pop();
         }
 
@@ -759,20 +777,15 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             value = mappedValueFromNode(columnName, node.getLeftOperand());
         }
 
-
         boolean plannerResult = queryPlanner.checkColumn(tableContext, stmt, parentNode,
                 operator, columnName, value);
 
         // currently the lucene queries are only used for information schema queries.
         // therefore for non-information-schema-queries just the xcontent query is built.
-
-        if (stmt.isInformationSchemaQuery()) {
-            return buildLuceneQuery(operator, columnName, value);
+        if (stmt.isStatsQuery() && columnName.equalsIgnoreCase(ShardStatsTable.Columns.TABLE_NAME)) {
+            stmt.addIndex((String)value);
         }
-        if (stmt.isStatsQuery()) {
-            if (columnName.equalsIgnoreCase(ShardStatsTable.Columns.TABLE_NAME)) {
-                stmt.addIndex((String)value);
-            }
+        if (buildLuceneQuery) {
             return buildLuceneQuery(operator, columnName, value);
         }
 
@@ -898,7 +911,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     @Override
     public void visit(ValueNode parentNode, MatchFunctionNode node) throws Exception {
         ColumnReference columnReference = node.getColumnReference();
-        if (stmt.isInformationSchemaQuery() || stmt.isStatsQuery()) {
+        if (buildLuceneQuery) {
             addToLuceneQueryStack(
                     parentNode,
                     buildLuceneQuery(BinaryRelationalOperatorNode.EQUALS_RELOP,

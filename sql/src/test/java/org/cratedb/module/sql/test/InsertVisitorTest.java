@@ -2,6 +2,7 @@ package org.cratedb.module.sql.test;
 
 import com.google.common.collect.ImmutableSet;
 import org.cratedb.action.parser.ESRequestBuilder;
+import org.cratedb.action.parser.context.HandlerContext;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
@@ -31,7 +32,7 @@ public class InsertVisitorTest {
         when(tec.allCols()).thenReturn(ImmutableSet.of("name", "kind"));
 
         SQLParseService parseService = new SQLParseService(nec);
-        return parseService.parse(sql, params);
+        return parseService.parse(sql, params, HandlerContext.INSTANCE);
     }
 
 

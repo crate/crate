@@ -6,6 +6,7 @@ import org.cratedb.action.collect.BytesRefColumnReference;
 import org.cratedb.action.groupby.aggregate.avg.AvgAggFunction;
 import org.cratedb.action.parser.ColumnReferenceDescription;
 import org.cratedb.action.parser.QueryPlanner;
+import org.cratedb.action.parser.context.HandlerContext;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
@@ -104,7 +105,7 @@ public class QueryVisitorTest {
         when(tec.getCollectorExpression(any(ValueNode.class))).thenCallRealMethod();
 
         SQLParseService parseService = new SQLParseService(nec);
-        stmt = parseService.parse(sql, args);
+        stmt = parseService.parse(sql, args, HandlerContext.INSTANCE);
         return stmt;
     }
 
@@ -354,7 +355,7 @@ public class QueryVisitorTest {
                 "where person['name'] = 'Ford'";
 
         SQLParseService parseService = new SQLParseService(nec);
-        stmt = parseService.parse(sql, new Object[0]);
+        stmt = parseService.parse(sql, new Object[0], HandlerContext.INSTANCE);
 
         String expected =
                 XContentFactory.jsonBuilder()
@@ -388,7 +389,7 @@ public class QueryVisitorTest {
                 "where person['addresses'][0]['city'] = 'Berlin'";
 
         SQLParseService parseService = new SQLParseService(nec);
-        stmt = parseService.parse(sql);
+        stmt = parseService.parse(sql, HandlerContext.INSTANCE);
     }
 
     @Test(expected = SQLParseException.class)
@@ -401,7 +402,7 @@ public class QueryVisitorTest {
         String sql = "select persons.message, person['name'], person['addresses'][0] from persons";
 
         SQLParseService parseService = new SQLParseService(nec);
-        stmt = parseService.parse(sql);
+        stmt = parseService.parse(sql, HandlerContext.INSTANCE);
     }
 
     @Test
@@ -1341,6 +1342,15 @@ public class QueryVisitorTest {
         expectedException.expect(SQLParseException.class);
         expectedException.expectMessage("Cannot reference column from different table.");
         execStatement("delete from locations where something.wrong='haha'");
+    }
+
+    @Test
+    public void testNoLuceneQueryCreated() throws Exception {
+        execStatement("select * from locations where age=1");
+        assertNull(stmt.query);
+
+        execStatement("select * from locations");
+        assertNull(stmt.query);
     }
 
 }

@@ -12,6 +12,7 @@ import org.cratedb.action.collect.Expression;
 import org.cratedb.action.groupby.GroupByRow;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 import org.cratedb.action.groupby.aggregate.count.CountDistinctAggFunction;
+import org.cratedb.action.parser.context.HandlerContext;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
@@ -76,7 +77,7 @@ public class RowsSerializationTest {
 
         SQLParseService parseService = new SQLParseService(nec);
         ParsedStatement stmt = parseService.parse(
-            "select count(distinct race) from characters");
+            "select count(distinct race) from characters", HandlerContext.INSTANCE);
 
         SQLMapperResultRequest requestSender = new SQLMapperResultRequest();
         GlobalRows rows1 = new GlobalRows(1, stmt);
@@ -131,7 +132,8 @@ public class RowsSerializationTest {
 
         SQLParseService parseService = new SQLParseService(nec);
         ParsedStatement stmt = parseService.parse(
-                "select count(*), race from characters group by race");
+                "select count(*), race from characters group by race",
+                HandlerContext.INSTANCE);
 
         SQLMapperResultRequest requestSender = new SQLMapperResultRequest();
         GroupTree t1 = new GroupTree(2, stmt, cacheRecycler);

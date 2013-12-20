@@ -3,6 +3,7 @@ package org.cratedb.action.parser;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.cratedb.action.groupby.aggregate.AggFunction;
+import org.cratedb.action.parser.context.HandlerContext;
 import org.cratedb.action.parser.visitors.QueryVisitor;
 import org.cratedb.action.sql.ITableExecutionContext;
 import org.cratedb.action.sql.NodeExecutionContext;
@@ -241,7 +242,7 @@ public class LuceneQueryVisitorTest {
         when(context.globalExpressionService()).thenReturn(globalExpressionService);
         when(context.queryPlanner()).thenReturn(queryPlanner);
         when(context.tableContext(anyString(), anyString())).thenReturn(tableContext);
-        QueryVisitor visitor = new QueryVisitor(context, stmt, new Object[0]);
+        QueryVisitor visitor = new QueryVisitor(context, HandlerContext.INSTANCE, stmt, new Object[0]);
         SQLParser parser = new SQLParser();
         StatementNode statementNode = parser.parseStatement(statement);
         statementNode.accept(visitor);

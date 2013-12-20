@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableSet;
 import org.cratedb.DataType;
 import org.cratedb.action.parser.ESRequestBuilder;
 import org.cratedb.action.parser.QueryPlanner;
+import org.cratedb.action.parser.context.HandlerContext;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
@@ -71,7 +72,7 @@ public class QueryPlannerTest {
         }});
         when(tec.getCollectorExpression(any(ValueNode.class))).thenCallRealMethod();
         parseService = new SQLParseService(nec);
-        stmt = parseService.parse(sql, args);
+        stmt = parseService.parse(sql, args, HandlerContext.INSTANCE);
         requestBuilder = new ESRequestBuilder(stmt);
         return stmt;
     }

@@ -1,5 +1,6 @@
 package org.cratedb.module.sql.test;
 
+import org.cratedb.action.parser.context.HandlerContext;
 import org.cratedb.action.parser.visitors.AnalyzerVisitor;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
@@ -47,7 +48,7 @@ public class AnalyzerVisitorTest {
 
         Settings settings = null;
         try {
-            ParsedStatement parsedStatement = parseService.parse(stmt, args);
+            ParsedStatement parsedStatement = parseService.parse(stmt, args, HandlerContext.INSTANCE);
             settings = parsedStatement.createAnalyzerSettings;
         } catch (SQLParseException e) {
             System.err.println(stmt);

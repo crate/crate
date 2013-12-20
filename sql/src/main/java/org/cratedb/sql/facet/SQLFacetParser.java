@@ -1,5 +1,6 @@
 package org.cratedb.sql.facet;
 
+import org.cratedb.action.parser.context.ParseContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.parser.SQLXContentSourceContext;
 import org.cratedb.action.sql.parser.SQLXContentSourceParser;
@@ -67,7 +68,12 @@ public class SQLFacetParser extends AbstractComponent implements FacetParser {
 
         ParsedStatement stmt;
         try {
-            stmt = parseService.parse(context.stmt(), context.args());
+            ParseContext parseContext = new ParseContext(
+                    searchContext.shardTarget().nodeId(),
+                    searchContext.shardTarget().index(),
+                    searchContext.shardTarget().shardId()
+            );
+            stmt = parseService.parse(context.stmt(), context.args(), parseContext);
         } catch (SQLParseException e) {
             throw new FacetPhaseExecutionException(facetName, "sql parse failure", e);
         }

@@ -1,5 +1,6 @@
 package org.cratedb.service;
 
+import org.cratedb.action.parser.context.ParseContext;
 import org.cratedb.action.parser.visitors.*;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
@@ -23,18 +24,18 @@ public class SQLParseService {
     final ESLogger logger = Loggers.getLogger(getClass());
 
     public static final Integer DEFAULT_SELECT_LIMIT = 10000;
-    public final NodeExecutionContext context;
+    public final NodeExecutionContext nodeExecutionContext;
 
     @Inject
     public SQLParseService(NodeExecutionContext context) {
-        this.context = context;
+        this.nodeExecutionContext = context;
     }
 
-    public ParsedStatement parse(String statement) throws SQLParseException {
-        return parse(statement, new Object[0]);
+    public ParsedStatement parse(String statement, ParseContext context) throws SQLParseException {
+        return parse(statement, new Object[0], context);
     }
 
-    public ParsedStatement parse(String statement, Object[] args) throws SQLParseException {
+    public ParsedStatement parse(String statement, Object[] args, ParseContext parseContext) throws SQLParseException {
         StopWatch stopWatch = null;
         ParsedStatement stmt = new ParsedStatement(statement);
 
@@ -47,20 +48,20 @@ public class SQLParseService {
             BaseVisitor visitor;
             switch (statementNode.getNodeType()) {
                 case NodeTypes.INSERT_NODE:
-                    visitor = new InsertVisitor(context, stmt, args);
+                    visitor = new InsertVisitor(nodeExecutionContext, parseContext, stmt, args);
                     break;
                 case NodeTypes.CREATE_TABLE_NODE:
                 case NodeTypes.DROP_TABLE_NODE:
-                    visitor = new TableVisitor(context, stmt, args);
+                    visitor = new TableVisitor(nodeExecutionContext, parseContext, stmt, args);
                     break;
                 case NodeTypes.CREATE_ANALYZER_NODE:
-                    visitor = new AnalyzerVisitor(context, stmt, args);
+                    visitor = new AnalyzerVisitor(nodeExecutionContext, parseContext, stmt, args);
                     break;
                 case NodeTypes.COPY_STATEMENT_NODE:
-                    visitor = new CopyVisitor(context, stmt, args);
+                    visitor = new CopyVisitor(nodeExecutionContext, parseContext, stmt, args);
                     break;
                 default:
-                    visitor = new QueryVisitor(context, stmt, args);
+                    visitor = new QueryVisitor(nodeExecutionContext, parseContext, stmt, args);
                     break;
             }
             statementNode.accept(visitor);
