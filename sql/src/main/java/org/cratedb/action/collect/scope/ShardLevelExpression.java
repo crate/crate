@@ -20,7 +20,7 @@ public abstract class ShardLevelExpression<ReturnType> implements ScopedExpressi
     }
 
     @Override
-    public void putInScope(String nodeId, String indexName, int shardId) {
+    public void applyScope(String nodeId, String indexName, int shardId) {
         this.indexService = this.indicesService.indexServiceSafe(indexName);
         this.indexShard = this.indexService.shardSafe(shardId);
     }

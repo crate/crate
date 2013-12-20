@@ -72,7 +72,7 @@ public class SQLQueryService {
         parser.parse(searchContext, stmt.xcontent);
         searchContext.preProcess();
 
-        putGlobalExpressionsInScope(stmt, concreteIndex, shardId);
+        applyScope(stmt, concreteIndex, shardId);
 
         // TODO: prematch and change query
         Query query = searchContext.query();
@@ -121,11 +121,11 @@ public class SQLQueryService {
         );
     }
 
-    private void putGlobalExpressionsInScope(ParsedStatement stmt, String concreteIndex, int shardId) {
+    private void applyScope(ParsedStatement stmt, String concreteIndex, int shardId) {
         String nodeId = clusterService.localNode().id();
         if (stmt.globalExpressionCount() > 0) {
             for (ScopedExpression<?> expression: stmt.globalExpressions()) {
-                expression.putInScope(nodeId, concreteIndex, shardId);
+                expression.applyScope(nodeId, concreteIndex, shardId);
             }
         }
     }

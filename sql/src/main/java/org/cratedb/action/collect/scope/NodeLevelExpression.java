@@ -21,7 +21,7 @@ public abstract class NodeLevelExpression<ReturnType> implements ScopedExpressio
     }
 
     @Override
-    public void putInScope(String nodeId, String indexName, int shardId) {
+    public void applyScope(String nodeId, String indexName, int shardId) {
         this.node = clusterService.state().nodes().get(nodeId);
     }
 }
