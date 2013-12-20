@@ -18,7 +18,7 @@ public abstract class TableLevelExpression<ReturnType> implements ScopedExpressi
     }
 
     @Override
-    public void putInScope(String nodeId, String indexName, int shardId) {
+    public void applyScope(String nodeId, String indexName, int shardId) {
         indexService = indicesService.indexService(indexName);
     }
 }
