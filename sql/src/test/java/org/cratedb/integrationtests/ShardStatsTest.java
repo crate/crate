@@ -2,6 +2,7 @@ package org.cratedb.integrationtests;
 
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.sql.SQLParseException;
 import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -218,5 +219,53 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
         assertEquals(10L, response.rows()[1][0]);
         assertEquals("quotes", response.rows()[1][1]);
         assertEquals(cluster().clusterName(), response.rows()[1][2]);
+    }
+
+    @Test
+    public void testGroupByUnknownResultColumn() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Can only query columns that are listed in group by.");
+        execute("select lol from stats.shards group by table_name");
+    }
+
+    @Test
+    public void testGroupByUnknownGroupByColumn() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Unknown column 'lol'");
+        execute("select max(num_docs) from stats.shards group by lol");
+    }
+
+    @Test
+    public void testGroupByUnknownOrderBy() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("column in order by is also required in the result column list");
+        execute("select sum(num_docs), table_name from stats.shards group by table_name order by lol");
+    }
+
+    @Test
+    public void testGroupByUnknownEveryWhere() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Unknown column 'lol'");
+        execute("select sum(num_docs), lol from stats.shards group by lol order by lol");
+    }
+
+    @Test
+    public void testGroupByUnknownWhere() throws Exception {
+        execute("select sum(num_docs), table_name from stats.shards where lol='funky' group by table_name");
+        assertEquals(0, response.rowCount());
+    }
+
+    @Test
+    public void testGlobalAggregateUnknownWhere() throws Exception {
+        execute("select sum(num_docs) from stats.shards where lol='funky'");
+        assertEquals(1, response.rowCount());
+        assertNull(response.rows()[0][0]);
+    }
+
+    @Test
+    public void testGlobalAggregateUnknownOrderBy() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("column in order by is also required in the result column list");
+        execute("select sum(num_docs) from stats.shards order by lol");
     }
 }

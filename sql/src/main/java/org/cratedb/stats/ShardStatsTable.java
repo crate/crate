@@ -14,10 +14,7 @@ import org.cratedb.action.groupby.key.Rows;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLFetchCollector;
 import org.cratedb.lucene.LuceneFieldMapper;
-import org.cratedb.lucene.fields.BooleanLuceneField;
-import org.cratedb.lucene.fields.IntegerLuceneField;
-import org.cratedb.lucene.fields.LongLuceneField;
-import org.cratedb.lucene.fields.StringLuceneField;
+import org.cratedb.lucene.fields.*;
 import org.cratedb.lucene.index.memory.MemoryIndexPool;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
@@ -157,8 +154,11 @@ public class ShardStatsTable implements StatsTable {
                 logger.trace("Indexing field {} with value: {}",
                         columnName, shardInfo.getStat(columnName));
             }
-            memoryIndex.addField(columnName,
-                    fieldMapper.get(columnName).tokenStream(shardInfo.getStat(columnName)));
+            Object stat = shardInfo.getStat(columnName);
+            LuceneField field = fieldMapper.get(columnName);
+            if (field != null) {
+                memoryIndex.addField(columnName, field.tokenStream(stat));
+            }
         }
 
     }
