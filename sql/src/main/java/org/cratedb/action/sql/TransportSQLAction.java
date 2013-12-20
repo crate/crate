@@ -7,7 +7,6 @@ import org.cratedb.action.import_.ImportResponse;
 import org.cratedb.action.import_.TransportImportAction;
 import org.cratedb.action.parser.ESRequestBuilder;
 import org.cratedb.action.parser.SQLResponseBuilder;
-import org.cratedb.action.parser.context.HandlerContext;
 import org.cratedb.action.sql.analyzer.TransportClusterUpdateCrateSettingsAction;
 import org.cratedb.service.InformationSchemaService;
 import org.cratedb.service.SQLParseService;
@@ -217,7 +216,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     protected void doExecute(SQLRequest request, ActionListener<SQLResponse> listener) {
         logger.trace("doExecute: " + request);
         try {
-            ParsedStatement stmt = sqlParseService.parse(request.stmt(), request.args(), HandlerContext.INSTANCE);
+            ParsedStatement stmt = sqlParseService.parse(request.stmt(), request.args());
             ESRequestBuilder builder = new ESRequestBuilder(stmt);
             switch (stmt.type()) {
                 case INFORMATION_SCHEMA:

@@ -5,7 +5,6 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
 import org.cratedb.action.groupby.aggregate.AggFunction;
-import org.cratedb.action.parser.context.HandlerContext;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLResponse;
@@ -27,7 +26,10 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.mockito.Mockito.when;
@@ -120,7 +122,7 @@ public class InformationSchemaTableTest extends CrateIntegrationTest {
         testTable = new TestInformationSchemaTable(HitchhikerMocks.aggFunctionMap);
         ClusterState state = client().admin().cluster().prepareState().execute().actionGet().getState();
         testTable.index(state);
-        ParsedStatement stmt = parseService.parse("select id, name, address, many from information_schema.nodes", HandlerContext.INSTANCE);
+        ParsedStatement stmt = parseService.parse("select id, name, address, many from information_schema.nodes");
 
         testTable.query(stmt, new ActionListener<SQLResponse>() {
             @Override
@@ -145,7 +147,7 @@ public class InformationSchemaTableTest extends CrateIntegrationTest {
         testTable.init();
         assertEquals(0L, testTable.count());
 
-        ParsedStatement stmt = parseService.parse("select id, name, address, many from information_schema.nodes", HandlerContext.INSTANCE);
+        ParsedStatement stmt = parseService.parse("select id, name, address, many from information_schema.nodes");
 
         testTable.query(stmt, new ActionListener<SQLResponse>() {
             @Override

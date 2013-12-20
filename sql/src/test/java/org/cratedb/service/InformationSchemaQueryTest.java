@@ -1,7 +1,6 @@
 package org.cratedb.service;
 
 import org.cratedb.SQLTransportIntegrationTest;
-import org.cratedb.action.parser.context.HandlerContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.TableUnknownException;
@@ -52,7 +51,7 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
     }
 
     private void exec(String statement, Object[] args) throws Exception {
-        ParsedStatement stmt = parseService.parse(statement, args, HandlerContext.INSTANCE);
+        ParsedStatement stmt = parseService.parse(statement, args);
         response = informationSchemaService.execute(stmt, System.currentTimeMillis()).actionGet();
     }
 
@@ -61,7 +60,7 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
         ParsedStatement stmt = parseService.parse("select table_name, ordinal_position " +
                 "from information_schema.columns " +
                 "where ordinal_position < 1000 and table_name not like '%lol'",
-                new Object[0], HandlerContext.INSTANCE);
+                new Object[0]);
         assertNotNull(stmt.query);
     }
 

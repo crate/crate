@@ -1,9 +1,7 @@
 package org.cratedb.integrationtests;
 
 import org.cratedb.Constants;
-import org.cratedb.SQLCrateNodesTest;
 import org.cratedb.SQLTransportIntegrationTest;
-import org.cratedb.action.parser.context.HandlerContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
@@ -12,13 +10,14 @@ import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.ColumnUnknownException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.ValidationException;
-import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.node.internal.InternalNode;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
@@ -305,7 +304,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testWhereClause() throws Exception {
         setUpSimple();
         ParsedStatement stmt = parseService.parse("select * from t1 where " +
-                "timestamp_field='1970-01-01T00:00:00'", HandlerContext.INSTANCE);
+                "timestamp_field='1970-01-01T00:00:00'");
         assertEquals(
                 "{\"fields\":[\"boolean_field\",\"byte_field\",\"craty_field\",\"double_field\"," +
                         "\"float_field\",\"id\",\"integer_field\",\"ip_field\",\"long_field\"," +
@@ -321,7 +320,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         expectedException.expectMessage("Validation failed for byte_field: Invalid byte: out of bounds");
 
         setUpSimple();
-        ParsedStatement stmt = parseService.parse("delete from t1 where byte_field=129", HandlerContext.INSTANCE);
+        ParsedStatement stmt = parseService.parse("delete from t1 where byte_field=129");
     }
 
     @Test
@@ -330,7 +329,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         expectedException.expectMessage("Validation failed for byte_field: Invalid byte");
 
         setUpSimple();
-        ParsedStatement stmt = parseService.parse("update t1 set byte_field=0 where byte_field in ('0')", HandlerContext.INSTANCE);
+        ParsedStatement stmt = parseService.parse("update t1 set byte_field=0 where byte_field in ('0')");
     }
 
     @Test

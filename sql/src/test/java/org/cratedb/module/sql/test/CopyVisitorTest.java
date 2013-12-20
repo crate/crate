@@ -1,12 +1,11 @@
 package org.cratedb.module.sql.test;
 
+import org.cratedb.Constants;
 import org.cratedb.action.import_.ImportRequest;
 import org.cratedb.action.parser.ESRequestBuilder;
-import org.cratedb.action.parser.context.HandlerContext;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
-import org.cratedb.Constants;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.TableUnknownException;
 import org.cratedb.sql.parser.StandardException;
@@ -39,7 +38,7 @@ public class CopyVisitorTest {
         when(nec.tableContext(null, "quotes")).thenReturn(tec);
 
         SQLParseService parseService = new SQLParseService(nec);
-        stmt = parseService.parse(sql, args, HandlerContext.INSTANCE);
+        stmt = parseService.parse(sql, args);
         requestBuilder = new ESRequestBuilder(stmt);
         return stmt;
     }

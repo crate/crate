@@ -1,7 +1,6 @@
 package org.cratedb.service;
 
 import org.cratedb.SQLCrateNodesTest;
-import org.cratedb.action.parser.context.HandlerContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.TableUnknownException;
 import org.junit.AfterClass;
@@ -28,7 +27,7 @@ public class SQLParseServiceTest extends SQLCrateNodesTest {
 
     @Test(expected = TableUnknownException.class)
     public void testParse() throws Exception {
-        ParsedStatement stmt = sqlParseService.parse("select mycol from mytable where mycol = 1", HandlerContext.INSTANCE);
+        ParsedStatement stmt = sqlParseService.parse("select mycol from mytable where mycol = 1");
 
         // this test just ensures that the ParseService calls a Visitor and begins to parse the statement
         // the actual result isn't really enforced. Feel free to change the expected TableUnknownException

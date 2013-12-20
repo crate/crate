@@ -3,7 +3,6 @@ package org.cratedb.module.sql.test;
 import com.google.common.collect.ImmutableSet;
 import org.cratedb.action.parser.ESRequestBuilder;
 import org.cratedb.action.parser.QueryPlanner;
-import org.cratedb.action.parser.context.HandlerContext;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
@@ -110,7 +109,7 @@ public class TableVisitorTest {
 
 
         SQLParseService parseService = new SQLParseService(nec);
-        stmt = parseService.parse(sql, args, HandlerContext.INSTANCE);
+        stmt = parseService.parse(sql, args);
         requestBuilder = new ESRequestBuilder(stmt);
         return stmt;
     }

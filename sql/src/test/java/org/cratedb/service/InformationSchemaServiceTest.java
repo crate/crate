@@ -2,7 +2,6 @@ package org.cratedb.service;
 
 import com.google.common.base.Joiner;
 import org.cratedb.SQLTransportIntegrationTest;
-import org.cratedb.action.parser.context.HandlerContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
@@ -97,7 +96,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
      * @throws Exception
      */
     private void exec(String statement, Object[] args) throws Exception {
-        ParsedStatement stmt = parseService.parse(statement, args, HandlerContext.INSTANCE);
+        ParsedStatement stmt = parseService.parse(statement, args);
         response = informationSchemaService.execute(stmt, System.currentTimeMillis()).actionGet();
     }
 
@@ -120,7 +119,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
     @Test
     public void testExecuteThreadSafety() throws Exception {
         serviceSetup();
-        final ParsedStatement stmt = parseService.parse("select * from information_schema.tables", HandlerContext.INSTANCE);
+        final ParsedStatement stmt = parseService.parse("select * from information_schema.tables");
 
         int numThreads = 30;
         final CountDownLatch countDownLatch = new CountDownLatch(numThreads);
