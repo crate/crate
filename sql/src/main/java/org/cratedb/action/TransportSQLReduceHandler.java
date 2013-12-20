@@ -3,9 +3,9 @@ package org.cratedb.action;
 import org.cratedb.Constants;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.service.SQLParseService;
+import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ListenableActionFuture;
-import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
@@ -27,9 +27,7 @@ public class TransportSQLReduceHandler {
     private final ESLogger logger = Loggers.getLogger(getClass());
     private final TransportService transportService;
     private final ReduceJobRequestContext reduceJobRequestContext;
-    private final ClusterService clusterService;
     private final SQLParseService sqlParseService;
-    private final CacheRecycler cacheRecycler;
     private final ThreadPool threadPool;
     private final ScheduledExecutorService scheduledExecutorService;
 
@@ -40,13 +38,10 @@ public class TransportSQLReduceHandler {
 
     @Inject
     public TransportSQLReduceHandler(TransportService transportService,
-            ClusterService clusterService,
-            SQLParseService sqlParseService,
-            CacheRecycler cacheRecycler,
-            ThreadPool threadPool) {
-        this.cacheRecycler = cacheRecycler;
+                                     SQLParseService sqlParseService,
+                                     CacheRecycler cacheRecycler,
+                                     ThreadPool threadPool) {
         this.sqlParseService = sqlParseService;
-        this.clusterService = clusterService;
         this.transportService = transportService;
         this.threadPool = threadPool;
         this.reduceJobRequestContext = new ReduceJobRequestContext(cacheRecycler);

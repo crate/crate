@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - optimized serialization performance for `count(distinct colName)`
+
  - fix: fix NPE on ``stats.shards`` with unknown column in where clause
 
  - now an error is thrown if the DISTINCT keyword is used globally. Currently
