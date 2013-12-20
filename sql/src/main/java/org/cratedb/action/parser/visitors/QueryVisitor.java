@@ -176,9 +176,10 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         visit(node.getResultColumns());
 
         // always build Lucene query on information_schema
-        // build for ``stats.shards`` only on shards
+        // and for ``stats.shards`` - only on shards does not work,
+        // because of collectUnassignedShards
         // do not build for "normal" queries
-        buildLuceneQuery = stmt.isInformationSchemaQuery() || (!parseContext.onHandler() && stmt.isStatsQuery());
+        buildLuceneQuery = stmt.isInformationSchemaQuery() || stmt.isStatsQuery();
 
         if (stmt.countRequest()) {
             whereClause(node.getWhereClause());
@@ -201,8 +202,9 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         if (node == null) {
             if (buildLuceneQuery) {
                 rootQuery = new MatchAllDocsQuery();
+            } else {
+                jsonBuilder.field("match_all", new HashMap<>());
             }
-            jsonBuilder.field("match_all", new HashMap<>());
             return;
         }
 

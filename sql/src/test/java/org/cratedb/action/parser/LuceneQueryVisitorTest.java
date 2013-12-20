@@ -40,7 +40,7 @@ public class LuceneQueryVisitorTest {
     @Test
     public void testMatchAllQueryGeneration() throws Exception {
         ParsedStatement stmt = parse(
-            "select table_name from mytable"
+            "select table_name from information_schema.tables"
         );
 
         Query query = stmt.query;
