@@ -17,7 +17,7 @@ public class SQLTypes {
             .putAll(NUMERIC_TYPES)
             .put(StringSQLType.NAME, StringSQLType.class)
             .put(TimeStampSQLType.NAME, TimeStampSQLType.class)
-            .put(CratySQLType.NAME, CratySQLType.class)
+            .put(ObjectSQLType.NAME, ObjectSQLType.class)
             .put(IpSQLType.NAME, IpSQLType.class)
             .build();
 }

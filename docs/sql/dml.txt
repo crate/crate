@@ -287,7 +287,7 @@ always return one row, as they do an aggregation operation on the matching rows 
 |         | typed         | column. Can be NULL.             | if some value of the  |
 |         | column        |                                  | matching rows in that |
 |         | (all but      |                                  | column is NULL        |
-|         | craty)        |                                  |                       |
+|         | object)       |                                  |                       |
 +---------+---------------+----------------------------------+-----------------------+
 
 Some Examples::

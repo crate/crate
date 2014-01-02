@@ -6,7 +6,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.Map;
 
 public enum DataType {
 
@@ -99,7 +98,7 @@ public enum DataType {
             out.writeLong((Long) v);
         }
     }),
-    CRATY("craty", new Streamer<Object>() {
+    OBJECT("object", new Streamer<Object>() {
         @Override
         public Object readFrom(StreamInput in) throws IOException {
             return in.readGenericValue();
@@ -193,7 +192,7 @@ public enum DataType {
             BOOLEAN,
             STRING,
             TIMESTAMP,
-            CRATY,
+            OBJECT,
             IP
     );
 

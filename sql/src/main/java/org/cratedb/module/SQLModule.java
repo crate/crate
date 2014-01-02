@@ -84,7 +84,7 @@ public class SQLModule extends AbstractModule {
         sqlTypeMapBinder.addBinding(DataType.FLOAT).to(FloatSQLType.class).asEagerSingleton();
         sqlTypeMapBinder.addBinding(DataType.DOUBLE).to(DoubleSQLType.class).asEagerSingleton();
         sqlTypeMapBinder.addBinding(DataType.TIMESTAMP).to(TimeStampSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(DataType.CRATY).to(CratySQLType.class).asEagerSingleton();
+        sqlTypeMapBinder.addBinding(DataType.OBJECT).to(ObjectSQLType.class).asEagerSingleton();
         sqlTypeMapBinder.addBinding(DataType.IP).to(IpSQLType.class).asEagerSingleton();
 
         // get a factory for InformationSchemaTableExecutionContext

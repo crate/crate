@@ -83,11 +83,11 @@ public class SQLFieldMapper implements FieldMapper {
 
         } else if (value instanceof Map) {
             @SuppressWarnings("unchecked")
-            Map<String, Object> mappedCraty = ((Map<String, Object>)new CratySQLType().mappedValue(value));
-            for (Map.Entry<String, Object> entry : mappedCraty.entrySet()) {
-                mappedCraty.put(entry.getKey(), guessAndMapType(entry.getValue()));
+            Map<String, Object> mappedObject = ((Map<String, Object>)new ObjectSQLType().mappedValue(value));
+            for (Map.Entry<String, Object> entry : mappedObject.entrySet()) {
+                mappedObject.put(entry.getKey(), guessAndMapType(entry.getValue()));
             }
-            return mappedCraty;
+            return mappedObject;
         }
         throw new TypeUnknownException(value.getClass().getSimpleName());
     }
@@ -124,7 +124,7 @@ public class SQLFieldMapper implements FieldMapper {
                 throw new ValidationException(columnName, e.getMessage());
             }
 
-            if (columnAndType.v2() instanceof CratySQLType) {
+            if (columnAndType.v2() instanceof ObjectSQLType) {
                 for (Map.Entry<String, Object> entry : ((Map<String, Object>)converted).entrySet()) {
 
                     String joinedPath = Joiner.on('.').join(new String[]{columnName, entry.getKey()});
@@ -161,7 +161,7 @@ public class SQLFieldMapper implements FieldMapper {
             return value;
         } else {
             Object converted = columnAndType.v2().toDisplayValue(value);
-            if (converted != null && columnAndType.v2() instanceof CratySQLType) {
+            if (converted != null && columnAndType.v2() instanceof ObjectSQLType) {
                 // recurse
                 for (Map.Entry<String, Object> entry : ((Map<String, Object>)converted).entrySet()) {
                     String joinedPath = Joiner.on('.').join(new String[]{columnName, entry.getKey()});

@@ -133,7 +133,7 @@ public class IndexMetaDataExtractorTest {
         assertTrue(columnDefinitions.get(2).strict);
 
         assertThat(columnDefinitions.get(3).columnName, is("nested"));
-        assertThat(columnDefinitions.get(3).dataType, is(DataType.CRATY));
+        assertThat(columnDefinitions.get(3).dataType, is(DataType.OBJECT));
         assertThat(columnDefinitions.get(3).ordinalPosition, is(4));
         assertThat(columnDefinitions.get(3).tableName, is("test1"));
         assertTrue(columnDefinitions.get(3).dynamic);
@@ -147,7 +147,7 @@ public class IndexMetaDataExtractorTest {
         assertTrue(columnDefinitions.get(4).strict);
 
         assertThat(columnDefinitions.get(5).columnName, is("person"));
-        assertThat(columnDefinitions.get(5).dataType, is(DataType.CRATY));
+        assertThat(columnDefinitions.get(5).dataType, is(DataType.OBJECT));
         assertThat(columnDefinitions.get(5).ordinalPosition, is(6));
         assertThat(columnDefinitions.get(5).tableName, is("test1"));
         assertTrue(columnDefinitions.get(5).dynamic);
@@ -553,7 +553,7 @@ public class IndexMetaDataExtractorTest {
 
         assertThat(columns.get(0).columnName, is("craty_field"));
         assertThat(columns.get(0).dynamic, is(true));
-        assertThat(columns.get(0).dataType, is(DataType.CRATY));
+        assertThat(columns.get(0).dataType, is(DataType.OBJECT));
         assertThat(columns.get(0).ordinalPosition, is(1));
         assertThat(columns.get(0).tableName, is("test12"));
         assertTrue(columns.get(0) instanceof ObjectColumnDefinition);
@@ -576,7 +576,7 @@ public class IndexMetaDataExtractorTest {
 
         assertThat(columns.get(3).columnName, is("no_dynamic_field"));
         assertThat(columns.get(3).dynamic, is(false));
-        assertThat(columns.get(3).dataType, is(DataType.CRATY));
+        assertThat(columns.get(3).dataType, is(DataType.OBJECT));
         assertThat(columns.get(3).ordinalPosition, is(4));
         assertThat(columns.get(3).tableName, is("test12"));
         assertTrue(columns.get(3) instanceof ObjectColumnDefinition);
@@ -585,7 +585,7 @@ public class IndexMetaDataExtractorTest {
 
         assertEquals(columns.get(4), objectColumn.nestedColumns.get(0));
         assertThat(columns.get(4).columnName, is("no_dynamic_field.dynamic_again"));
-        assertThat(columns.get(4).dataType, is(DataType.CRATY));
+        assertThat(columns.get(4).dataType, is(DataType.OBJECT));
         assertThat(columns.get(4).ordinalPosition, is(5));
         assertTrue(columns.get(4).dynamic);
         assertThat(columns.get(4).tableName, is("test12"));

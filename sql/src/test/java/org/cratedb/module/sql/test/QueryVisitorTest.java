@@ -77,7 +77,7 @@ public class QueryVisitorTest {
             new ColumnDefinition("locations", "col", DataType.STRING, "plain", colIdx++, false, false)
         );
         when(tec.getColumnDefinition("kind")).thenReturn(
-                new ColumnDefinition("locations", "kind", DataType.CRATY, "plain", colIdx++, false, false)
+                new ColumnDefinition("locations", "kind", DataType.OBJECT, "plain", colIdx++, false, false)
         );
         when(tec.getColumnDefinition("kind.x")).thenReturn(
                 new ColumnDefinition("locations", "kind.x", DataType.STRING, "plain", colIdx++, false,
@@ -92,8 +92,8 @@ public class QueryVisitorTest {
         when(tec.getColumnDefinition("numeric_field")).thenReturn(
                 new ColumnDefinition("locations", "numeric_field", DataType.DOUBLE, "plain", colIdx++, false, false)
         );
-        when(tec.getColumnDefinition("craty_field")).thenReturn(
-                new ColumnDefinition("locations", "craty_field", DataType.CRATY, "plain", colIdx++, false, false)
+        when(tec.getColumnDefinition("object_field")).thenReturn(
+                new ColumnDefinition("locations", "object_field", DataType.OBJECT, "plain", colIdx++, false, false)
         );
         when(tec.getColumnDefinition("age")).thenReturn(
                 new ColumnDefinition("locations", "age", DataType.INTEGER, null, colIdx++, false, false)
@@ -1165,10 +1165,10 @@ public class QueryVisitorTest {
     }
 
     @Test
-    public void testGroupByAnyOnCraty() throws Exception {
+    public void testGroupByAnyOnObject() throws Exception {
         expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("Invalid column type 'craty' for aggregate function ANY");
-        execStatement("select any(craty_field) from locations");
+        expectedException.expectMessage("Invalid column type 'object' for aggregate function ANY");
+        execStatement("select any(object_field) from locations");
     }
 
     @Test
@@ -1305,7 +1305,7 @@ public class QueryVisitorTest {
     public void errorOnDifferentTableInResultColumn2() throws Exception {
         expectedException.expect(SQLParseException.class);
         expectedException.expectMessage("Cannot reference column from different table.");
-        execStatement("select craty_field.wrong, col from locations");
+        execStatement("select object_field.wrong, col from locations");
     }
 
     @Test

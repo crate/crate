@@ -7,8 +7,6 @@ import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.types.*;
 import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 public class SQLCrateNodesTest extends CrateIntegrationTest {
 
@@ -21,7 +19,7 @@ public class SQLCrateNodesTest extends CrateIntegrationTest {
         .put(DataType.FLOAT, new FloatSQLType())
         .put(DataType.DOUBLE, new DoubleSQLType())
         .put(DataType.STRING, new StringSQLType())
-        .put(DataType.CRATY, new CratySQLType())
+        .put(DataType.OBJECT, new ObjectSQLType())
         .put(DataType.TIMESTAMP, new TimeStampSQLType())
         .put(DataType.IP, new IpSQLType())
         .build();

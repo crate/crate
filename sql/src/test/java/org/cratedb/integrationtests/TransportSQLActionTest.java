@@ -619,7 +619,12 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
             .startObject("default")
                 .startObject("properties")
                     .startObject("boolean").field("type", "boolean").endObject()
-                    .startObject("craty")
+                    .startObject("datetime").field("type", "date").endObject()
+                    .startObject("double").field("type", "double").endObject()
+                    .startObject("float").field("type", "float").endObject()
+                    .startObject("integer").field("type", "integer").endObject()
+                    .startObject("long").field("type", "long").endObject()
+                    .startObject("object_field")
                         .field("type", "object")
                         .startObject("properties")
                             .startObject("s").field("type", "string").endObject()
@@ -627,11 +632,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                             .startObject("d2").field("type", "date").endObject()
                         .endObject()
                     .endObject()
-                    .startObject("datetime").field("type", "date").endObject()
-                    .startObject("double").field("type", "double").endObject()
-                    .startObject("float").field("type", "float").endObject()
-                    .startObject("integer").field("type", "integer").endObject()
-                    .startObject("long").field("type", "long").endObject()
                     .startObject("short").field("type", "short").endObject()
                     .startObject("string").field("type", "string").endObject()
                 .endObject()
@@ -641,19 +641,19 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
             .addMapping("default", mapping)
             .execute().actionGet();
 
-        Map<String, Object> craty = new HashMap<>();
-        craty.put("s", new String[] { "foo", "bar"});
-        craty.put("d1", new String[] { "2013-09-10T21:51:43", null});
-        craty.put("d2", "2013-09-10T21:51:43");
+        Map<String, Object> object = new HashMap<>();
+        object.put("s", new String[] { "foo", "bar"});
+        object.put("d1", new String[] { "2013-09-10T21:51:43", null});
+        object.put("d2", "2013-09-10T21:51:43");
         execute("insert into test values(?, ?, ?, ?, ?, ?, ?, ?, ?)",
             new Object[] {
                 new Boolean[] {true, false},
-                craty,
                 new String[] {"2013-09-10T21:51:43", "2013-11-10T21:51:43"},
                 new Double[] {1.79769313486231570e+308, 1.69769313486231570e+308},
                 new Float[] {3.402f, 3.403f, null },
                 new Integer[] {2147483647, 234583},
                 new Long[] { 9223372036854775807L, 4L },
+                object,
                 new Short[] {32767, 2 },
                 new String[] {"Youri", "Juri"}
             }
@@ -664,38 +664,38 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(true, ((List<Boolean>)response.rows()[0][0]).get(0));
         assertEquals(false, ((List<Boolean>)response.rows()[0][0]).get(1));
 
+        assertThat( ((List<Long>)response.rows()[0][1]).get(0), is(1378849903000L));
+        assertThat( ((List<Long>)response.rows()[0][1]).get(1), is(1384120303000L));
+
+        assertThat( ((List<Double>)response.rows()[0][2]).get(0), is(1.79769313486231570e+308));
+        assertThat( ((List<Double>)response.rows()[0][2]).get(1), is(1.69769313486231570e+308));
+
+        assertThat( ((List<Double>)response.rows()[0][3]).get(0), is(3.402));
+        assertThat( ((List<Double>)response.rows()[0][3]).get(1), is(3.403));
+        assertThat( ((List<Double>)response.rows()[0][3]).get(2), nullValue());
+
+        assertThat( ((List<Integer>)response.rows()[0][4]).get(0), is(2147483647));
+        assertThat( ((List<Integer>)response.rows()[0][4]).get(1), is(234583));
+
+        assertThat( ((List<Long>)response.rows()[0][5]).get(0), is(9223372036854775807L));
+        assertThat( ((List<Integer>)response.rows()[0][5]).get(1), is(4));
+
         assertEquals("foo",
-            ((List<String>)((Map<String, Object>)response.rows()[0][1]).get("s")).get(0));
+                ((List<String>)((Map<String, Object>)response.rows()[0][6]).get("s")).get(0));
         assertEquals("bar",
-            ((List<String>)((Map<String, Object>)response.rows()[0][1]).get("s")).get(1));
+                ((List<String>)((Map<String, Object>)response.rows()[0][6]).get("s")).get(1));
         assertThat(
-            ((List<Long>)((Map<String, Object>)response.rows()[0][1]).get("d1")).get(0),
-            is(1378849903000L)
+                ((List<Long>)((Map<String, Object>)response.rows()[0][6]).get("d1")).get(0),
+                is(1378849903000L)
         );
         assertThat(
-            ((List<Long>)((Map<String, Object>)response.rows()[0][1]).get("d1")).get(1),
-            nullValue()
+                ((List<Long>)((Map<String, Object>)response.rows()[0][6]).get("d1")).get(1),
+                nullValue()
         );
         assertThat(
-            (Long)((Map<String, Object>)response.rows()[0][1]).get("d2"),
-            is(1378849903000L)
+                (Long)((Map<String, Object>)response.rows()[0][6]).get("d2"),
+                is(1378849903000L)
         );
-
-        assertThat( ((List<Long>)response.rows()[0][2]).get(0), is(1378849903000L));
-        assertThat( ((List<Long>)response.rows()[0][2]).get(1), is(1384120303000L));
-
-        assertThat( ((List<Double>)response.rows()[0][3]).get(0), is(1.79769313486231570e+308));
-        assertThat( ((List<Double>)response.rows()[0][3]).get(1), is(1.69769313486231570e+308));
-
-        assertThat( ((List<Double>)response.rows()[0][4]).get(0), is(3.402));
-        assertThat( ((List<Double>)response.rows()[0][4]).get(1), is(3.403));
-        assertThat( ((List<Double>)response.rows()[0][4]).get(2), nullValue());
-
-        assertThat( ((List<Integer>)response.rows()[0][5]).get(0), is(2147483647));
-        assertThat( ((List<Integer>)response.rows()[0][5]).get(1), is(234583));
-
-        assertThat( ((List<Long>)response.rows()[0][6]).get(0), is(9223372036854775807L));
-        assertThat( ((List<Integer>)response.rows()[0][6]).get(1), is(4));
 
         assertThat( ((List<Integer>)response.rows()[0][7]).get(0), is(32767));
         assertThat( ((List<Integer>)response.rows()[0][7]).get(1), is(2));
