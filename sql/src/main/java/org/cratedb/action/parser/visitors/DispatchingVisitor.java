@@ -49,35 +49,35 @@ public abstract class DispatchingVisitor implements Visitor {
     public Visitable visit(Visitable node) throws StandardException {
         try {
             switch (((QueryTreeNode)node).getNodeType()) {
-                case NodeTypes.CURSOR_NODE:
+                case CURSOR_NODE:
                     stopTraversal = true;
                     visit((CursorNode) node);
                     break;
-                case NodeTypes.UPDATE_NODE:
+                case UPDATE_NODE:
                     stopTraversal = true;
                     visit((UpdateNode)node);
                     break;
-                case NodeTypes.DELETE_NODE:
+                case DELETE_NODE:
                     stopTraversal = true;
                     visit((DeleteNode)node);
                     break;
-                case NodeTypes.INSERT_NODE:
+                case INSERT_NODE:
                     stopTraversal = true;
                     visit((InsertNode)node);
                     break;
-                case NodeTypes.CREATE_TABLE_NODE:
+                case CREATE_TABLE_NODE:
                     stopTraversal = true;
                     visit((CreateTableNode)node);
                     break;
-                case NodeTypes.DROP_TABLE_NODE:
+                case DROP_TABLE_NODE:
                     stopTraversal = true;
                     visit((DropTableNode)node);
                     break;
-                case NodeTypes.CREATE_ANALYZER_NODE:
+                case CREATE_ANALYZER_NODE:
                     stopTraversal = true;
                     visit((CreateAnalyzerNode)node);
                     break;
-                case NodeTypes.COPY_STATEMENT_NODE:
+                case COPY_STATEMENT_NODE:
                     stopTraversal = true;
                     visit((CopyStatementNode)node);
                     break;
@@ -99,13 +99,13 @@ public abstract class DispatchingVisitor implements Visitor {
 
     protected void visit(TableElementNode tableElement) throws Exception {
         switch(tableElement.getNodeType()) {
-            case NodeTypes.COLUMN_DEFINITION_NODE:
+            case COLUMN_DEFINITION_NODE:
                 visit((ColumnDefinitionNode) tableElement);
                 break;
-            case NodeTypes.CONSTRAINT_DEFINITION_NODE:
+            case CONSTRAINT_DEFINITION_NODE:
                 visit((ConstraintDefinitionNode)tableElement);
                 break;
-            case NodeTypes.INDEX_CONSTRAINT_NODE:
+            case INDEX_CONSTRAINT_NODE:
                 visit((IndexConstraintDefinitionNode)tableElement);
                 break;
         }
@@ -113,25 +113,25 @@ public abstract class DispatchingVisitor implements Visitor {
 
     protected void visit(ValueNode parentNode, ValueNode node) throws Exception {
         switch (node.getNodeType()) {
-            case NodeTypes.IN_LIST_OPERATOR_NODE:
+            case IN_LIST_OPERATOR_NODE:
                 visit(parentNode, (InListOperatorNode)node);
                 return;
-            case NodeTypes.LIKE_OPERATOR_NODE:
+            case LIKE_OPERATOR_NODE:
                 visit(parentNode, (LikeEscapeOperatorNode)node);
                 return;
-            case NodeTypes.OR_NODE:
+            case OR_NODE:
                 visit(parentNode, (OrNode)node);
                 return;
-            case NodeTypes.NOT_NODE:
+            case NOT_NODE:
                 visit(parentNode, (NotNode)node);
                 return;
-            case NodeTypes.AND_NODE:
+            case AND_NODE:
                 visit(parentNode, (AndNode)node);
                 return;
-            case NodeTypes.IS_NULL_NODE:
+            case IS_NULL_NODE:
                 visit(parentNode, (IsNullNode)node);
                 return;
-            case NodeTypes.MATCH_FUNCTION_NODE:
+            case MATCH_FUNCTION_NODE:
                 visit(parentNode, (MatchFunctionNode)node);
                 return;
         }

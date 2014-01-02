@@ -8,7 +8,7 @@ import org.cratedb.lucene.LuceneFieldMapper;
 import org.cratedb.lucene.fields.LuceneField;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.TableUnknownException;
-import org.cratedb.sql.parser.parser.NodeTypes;
+import org.cratedb.sql.parser.parser.NodeType;
 import org.cratedb.sql.parser.parser.ValueNode;
 import org.cratedb.sql.types.SQLFieldMapper;
 import org.elasticsearch.common.inject.Inject;
@@ -102,8 +102,8 @@ public class InformationSchemaTableExecutionContext implements ITableExecutionCo
     @Override
     public Expression getCollectorExpression(ValueNode node) {
 
-        if (node.getNodeType()!= NodeTypes.COLUMN_REFERENCE &&
-                node.getNodeType() != NodeTypes.NESTED_COLUMN_REFERENCE){
+        if (node.getNodeType()!= NodeType.COLUMN_REFERENCE &&
+                node.getNodeType() != NodeType.NESTED_COLUMN_REFERENCE){
             return null;
         }
 

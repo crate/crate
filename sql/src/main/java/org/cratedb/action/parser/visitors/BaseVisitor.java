@@ -118,7 +118,7 @@ public class BaseVisitor extends DispatchingVisitor {
         if (node == null) {
             return null;
         }
-        if (node.getNodeType() == NodeTypes.PARAMETER_NODE) {
+        if (node.getNodeType() == NodeType.PARAMETER_NODE) {
             if (args.length == 0) {
                 throw new SQLParseException("Missing statement parameters");
             }

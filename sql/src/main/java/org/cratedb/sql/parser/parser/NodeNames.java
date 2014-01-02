@@ -44,7 +44,7 @@ package org.cratedb.sql.parser.parser;
  * that are used in NodeFactoryImpl.
  *
  * This class is not shipped. The names are used in
- * NodeFactoryImpl, mapped from int NodeTypes and used in
+ * NodeFactoryImpl, mapped from int NodeType and used in
  * Class.forName calls.
  *
  * WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD

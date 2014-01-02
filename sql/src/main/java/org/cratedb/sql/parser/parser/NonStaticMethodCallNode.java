@@ -74,7 +74,7 @@ public class NonStaticMethodCallNode extends MethodCallNode
         }
         else {
             this.receiver = (JavaValueNode)
-                getNodeFactory().getNode(NodeTypes.SQL_TO_JAVA_VALUE_NODE,
+                getNodeFactory().getNode(NodeType.SQL_TO_JAVA_VALUE_NODE,
                                          receiver,
                                          getParserContext());
         }

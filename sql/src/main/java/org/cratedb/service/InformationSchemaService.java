@@ -9,7 +9,7 @@ import org.cratedb.information_schema.InformationSchemaTable;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.TableUnknownException;
-import org.cratedb.sql.parser.parser.NodeTypes;
+import org.cratedb.sql.parser.parser.NodeType;
 import org.elasticsearch.ElasticSearchException;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
@@ -99,7 +99,7 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
             return;
         }
 
-        if (stmt.nodeType() != NodeTypes.CURSOR_NODE) {
+        if (stmt.nodeType() != NodeType.CURSOR_NODE) {
             throw new SQLParseException(
                 "INFORMATION_SCHEMA tables are virtual and read-only. Only SELECT statements are supported");
         }

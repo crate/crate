@@ -187,7 +187,7 @@ public class TableElementNode extends QueryTreeNode
             return ElementType.AT_DROP_CONSTRAINT; 
         }
         else if (this instanceof ModifyColumnNode) {
-            if (getNodeType() == NodeTypes.DROP_COLUMN_NODE) { 
+            if (getNodeType() == NodeType.DROP_COLUMN_NODE) {
                 return ElementType.AT_DROP_COLUMN; 
             }
             else { 

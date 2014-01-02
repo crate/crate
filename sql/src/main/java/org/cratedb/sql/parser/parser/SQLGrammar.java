@@ -1096,27 +1096,27 @@ class SQLGrammar implements SQLGrammarConstants {
 
         switch (multiplicativeOperator) {
         case MOD:
-            return (ValueNode)nodeFactory.getNode(NodeTypes.MOD_OPERATOR_NODE,
+            return (ValueNode)nodeFactory.getNode(NodeType.MOD_OPERATOR_NODE,
                                                   leftOperand,
                                                   rightOperand,
                                                   parserContext);
         case TIMES:
-            return (ValueNode)nodeFactory.getNode(NodeTypes.BINARY_TIMES_OPERATOR_NODE,
+            return (ValueNode)nodeFactory.getNode(NodeType.BINARY_TIMES_OPERATOR_NODE,
                                                   leftOperand,
                                                   rightOperand,
                                                   parserContext);
         case DIV:
-            return (ValueNode)nodeFactory.getNode(NodeTypes.BINARY_DIV_OPERATOR_NODE,
+            return (ValueNode)nodeFactory.getNode(NodeType.BINARY_DIV_OPERATOR_NODE,
                                                   leftOperand,
                                                   rightOperand,
                                                   parserContext);
         case DIVIDE:
-            return (ValueNode)nodeFactory.getNode(NodeTypes.BINARY_DIVIDE_OPERATOR_NODE,
+            return (ValueNode)nodeFactory.getNode(NodeType.BINARY_DIVIDE_OPERATOR_NODE,
                                                   leftOperand,
                                                   rightOperand,
                                                   parserContext);
         case CONCATENATE:
-            return (ValueNode)nodeFactory.getNode(NodeTypes.CONCATENATION_OPERATOR_NODE,
+            return (ValueNode)nodeFactory.getNode(NodeType.CONCATENATION_OPERATOR_NODE,
                                                   leftOperand,
                                                   rightOperand,
                                                   parserContext);
@@ -1136,7 +1136,7 @@ class SQLGrammar implements SQLGrammarConstants {
      */
     private ParameterNode makeParameterNode(int number) throws StandardException {
         ParameterNode parm = (ParameterNode)
-            nodeFactory.getNode(NodeTypes.PARAMETER_NODE,
+            nodeFactory.getNode(NodeType.PARAMETER_NODE,
                                 number,
                                 null,
                                 parserContext);
@@ -1172,7 +1172,7 @@ class SQLGrammar implements SQLGrammarConstants {
             throws StandardException {
         // First try Integer.
         try {
-            return (NumericConstantNode)nodeFactory.getNode(NodeTypes.INT_CONSTANT_NODE,
+            return (NumericConstantNode)nodeFactory.getNode(NodeType.INT_CONSTANT_NODE,
                                                             new Integer(num),
                                                             parserContext);
         }
@@ -1181,7 +1181,7 @@ class SQLGrammar implements SQLGrammarConstants {
 
         // Then Long.
         try {
-            return (NumericConstantNode)nodeFactory.getNode(NodeTypes.LONGINT_CONSTANT_NODE,
+            return (NumericConstantNode)nodeFactory.getNode(NodeType.LONGINT_CONSTANT_NODE,
                                                             new Long(num),
                                                             parserContext);
         }
@@ -1192,7 +1192,7 @@ class SQLGrammar implements SQLGrammarConstants {
         }
 
         // Then Decimal.
-        return (NumericConstantNode)nodeFactory.getNode(NodeTypes.DECIMAL_CONSTANT_NODE,
+        return (NumericConstantNode)nodeFactory.getNode(NodeType.DECIMAL_CONSTANT_NODE,
                                                         num,
                                                         parserContext);
     }
@@ -1288,12 +1288,12 @@ class SQLGrammar implements SQLGrammarConstants {
                                 ValueNode whereClause,
                                 ResultColumnList returningList)
             throws StandardException {
-        FromList fromList = (FromList)nodeFactory.getNode(NodeTypes.FROM_LIST,
+        FromList fromList = (FromList)nodeFactory.getNode(NodeType.FROM_LIST,
                                                           parserContext);
 
         fromList.addFromTable(fromTable);
 
-        SelectNode resultSet = (SelectNode)nodeFactory.getNode(NodeTypes.SELECT_NODE,
+        SelectNode resultSet = (SelectNode)nodeFactory.getNode(NodeType.SELECT_NODE,
                                                                null,
                                                                null, /* AGGREGATE list */
                                                                fromList, /* FROM list */
@@ -1303,7 +1303,7 @@ class SQLGrammar implements SQLGrammarConstants {
                                                                null, /* window list */
                                                                parserContext);
 
-        StatementNode retval = (StatementNode)nodeFactory.getNode(NodeTypes.DELETE_NODE,
+        StatementNode retval = (StatementNode)nodeFactory.getNode(NodeType.DELETE_NODE,
                                                                   tableName,
                                                                   resultSet,
                                                                   returningList,
@@ -1321,12 +1321,12 @@ class SQLGrammar implements SQLGrammarConstants {
                                 ResultColumnList setClause, ValueNode whereClause,
                                 ResultColumnList returningList)
             throws StandardException {
-        FromList fromList = (FromList)nodeFactory.getNode(NodeTypes.FROM_LIST,
+        FromList fromList = (FromList)nodeFactory.getNode(NodeType.FROM_LIST,
                                                           parserContext);
 
         fromList.addFromTable(fromTable);
 
-        SelectNode resultSet = (SelectNode)nodeFactory.getNode(NodeTypes.SELECT_NODE,
+        SelectNode resultSet = (SelectNode)nodeFactory.getNode(NodeType.SELECT_NODE,
                                                                setClause,
                                                                null,
                                                                fromList, /* FROM list */
@@ -1337,7 +1337,7 @@ class SQLGrammar implements SQLGrammarConstants {
                                                                parserContext);
 
         StatementNode retval =
-            (StatementNode)nodeFactory.getNode(NodeTypes.UPDATE_NODE,
+            (StatementNode)nodeFactory.getNode(NodeType.UPDATE_NODE,
                                                tableName,
                                                resultSet,
                                                returningList,
@@ -1358,11 +1358,11 @@ class SQLGrammar implements SQLGrammarConstants {
                                   ValueNode trimSource)
             throws StandardException {
         if (trimChar == null) {
-            trimChar = (CharConstantNode)nodeFactory.getNode(NodeTypes.CHAR_CONSTANT_NODE,
+            trimChar = (CharConstantNode)nodeFactory.getNode(NodeType.CHAR_CONSTANT_NODE,
                                                              " ",
                                                              parserContext);
         }
-        return (ValueNode)nodeFactory.getNode(NodeTypes.TRIM_OPERATOR_NODE,
+        return (ValueNode)nodeFactory.getNode(NodeType.TRIM_OPERATOR_NODE,
                                               trimSource, // left
                                               trimChar,   // right
                                               trimType,
@@ -1400,7 +1400,7 @@ class SQLGrammar implements SQLGrammarConstants {
     /** Create a node for the drop alias/procedure call. */
     StatementNode dropAliasNode(TableName aliasName, AliasInfo.Type type, ExistenceCheck cond) throws StandardException {
 
-        StatementNode stmt = (StatementNode)nodeFactory.getNode(NodeTypes.DROP_ALIAS_NODE,
+        StatementNode stmt = (StatementNode)nodeFactory.getNode(NodeType.DROP_ALIAS_NODE,
                                                                 aliasName,
                                                                 type,
                                                                 cond,
@@ -1420,7 +1420,7 @@ class SQLGrammar implements SQLGrammarConstants {
     ValueNode getSubstringNode(ValueNode stringValue, ValueNode startPosition,
                                ValueNode length, Boolean boolVal)
             throws StandardException {
-        return (ValueNode)nodeFactory.getNode(NodeTypes.SUBSTRING_OPERATOR_NODE,
+        return (ValueNode)nodeFactory.getNode(NodeType.SUBSTRING_OPERATOR_NODE,
                                               stringValue,
                                               startPosition,
                                               length,
@@ -1430,14 +1430,14 @@ class SQLGrammar implements SQLGrammarConstants {
     }
 
     ValueNode getJdbcIntervalNode(int intervalType) throws StandardException {
-        return (ValueNode)nodeFactory.getNode(NodeTypes.INT_CONSTANT_NODE,
+        return (ValueNode)nodeFactory.getNode(NodeType.INT_CONSTANT_NODE,
                                               intervalType,
                                               parserContext);
     }
 
     /**
      * Construct a TableElementNode of type
-     * NodeTypes.MODIFY_COLUMN_DEFAULT_NODE.
+     * NodeType.MODIFY_COLUMN_DEFAULT_NODE.
      *
      * @param defaultNode the new default value node
      * @param columnName    the name of the column to be altered
@@ -1454,7 +1454,7 @@ class SQLGrammar implements SQLGrammarConstants {
         if (autoIncrementInfo[QueryTreeNode.AUTOINCREMENT_IS_AUTOINCREMENT_INDEX] == 0) {
             autoIncrementInfo = null;
         }
-        return (TableElementNode)nodeFactory.getNode(NodeTypes.MODIFY_COLUMN_DEFAULT_NODE,
+        return (TableElementNode)nodeFactory.getNode(NodeType.MODIFY_COLUMN_DEFAULT_NODE,
                                                      columnName,
                                                      defaultNode,
                                                      null,
@@ -1479,7 +1479,7 @@ class SQLGrammar implements SQLGrammarConstants {
             throws StandardException {
         switch(joinType) {
         case INNER:
-            return (JoinNode)nodeFactory.getNode(NodeTypes.JOIN_NODE,
+            return (JoinNode)nodeFactory.getNode(NodeType.JOIN_NODE,
                                                  leftRSN,
                                                  rightRSN,
                                                  onClause,
@@ -1490,7 +1490,7 @@ class SQLGrammar implements SQLGrammarConstants {
                                                  parserContext);
 
         case LEFT_OUTER:
-            return (JoinNode)nodeFactory.getNode(NodeTypes.HALF_OUTER_JOIN_NODE,
+            return (JoinNode)nodeFactory.getNode(NodeType.HALF_OUTER_JOIN_NODE,
                                                  leftRSN,
                                                  rightRSN,
                                                  onClause,
@@ -1500,7 +1500,7 @@ class SQLGrammar implements SQLGrammarConstants {
                                                  parserContext);
 
         case RIGHT_OUTER:
-            return (JoinNode)nodeFactory.getNode(NodeTypes.HALF_OUTER_JOIN_NODE,
+            return (JoinNode)nodeFactory.getNode(NodeType.HALF_OUTER_JOIN_NODE,
                                                  leftRSN,
                                                  rightRSN,
                                                  onClause,
@@ -1510,7 +1510,7 @@ class SQLGrammar implements SQLGrammarConstants {
                                                  parserContext);
 
         case FULL_OUTER:
-            return (JoinNode)nodeFactory.getNode(NodeTypes.FULL_OUTER_JOIN_NODE,
+            return (JoinNode)nodeFactory.getNode(NodeType.FULL_OUTER_JOIN_NODE,
                                                  leftRSN,
                                                  rightRSN,
                                                  onClause,
@@ -1522,7 +1522,7 @@ class SQLGrammar implements SQLGrammarConstants {
             {
                 Properties joinOrderStrategyProperties = new Properties();
                 joinOrderStrategyProperties.setProperty("STRAIGHT", "TRUE");
-                return (JoinNode)nodeFactory.getNode(NodeTypes.JOIN_NODE,
+                return (JoinNode)nodeFactory.getNode(NodeType.JOIN_NODE,
                                                      leftRSN,
                                                      rightRSN,
                                                      onClause,
@@ -1547,7 +1547,7 @@ class SQLGrammar implements SQLGrammarConstants {
 
     /* Common default argument pattern. */
     TableName qualifiedName() throws ParseException, StandardException {
-        return qualifiedName(NodeTypes.TABLE_NAME);
+        return qualifiedName(NodeType.TABLE_NAME);
     }
 
     ValueNode additiveExpression() throws ParseException, StandardException {
@@ -2200,7 +2200,7 @@ class SQLGrammar implements SQLGrammarConstants {
         jj_la1[10] = jj_gen;
         ;
       }
-        fromTable = (FromTable)nodeFactory.getNode(NodeTypes.FROM_VTI,
+        fromTable = (FromTable)nodeFactory.getNode(NodeType.FROM_VTI,
                                                    javaToSQLNode.getJavaValueNode(),
                                                    (String)null,
                                                    null,
@@ -2274,7 +2274,7 @@ class SQLGrammar implements SQLGrammarConstants {
          * like the language.
          */
         if (fromTable == null)
-            fromTable = (FromTable)nodeFactory.getNode(NodeTypes.FROM_BASE_TABLE,
+            fromTable = (FromTable)nodeFactory.getNode(NodeType.FROM_BASE_TABLE,
                                                        tableName,
                                                        correlationName,
                                                        FromBaseTable.UpdateOrDelete.DELETE,
@@ -2300,7 +2300,7 @@ class SQLGrammar implements SQLGrammarConstants {
     jj_consume_token(CURRENT);
     jj_consume_token(OF);
     cursorName = identifier();
-        {if (true) return (FromTable)nodeFactory.getNode(NodeTypes.CURRENT_OF_NODE,
+        {if (true) return (FromTable)nodeFactory.getNode(NodeType.CURRENT_OF_NODE,
                                               correlationName,
                                               cursorName,
                                               null,
@@ -2367,7 +2367,7 @@ class SQLGrammar implements SQLGrammarConstants {
         // Note: if ORDER BY is specified, the FOR UPDATE clause must be
         // READ ONLY or empty, and the cursor is implicitly READ_ONLY.
 
-        retval = (CursorNode)nodeFactory.getNode(NodeTypes.CURSOR_NODE,
+        retval = (CursorNode)nodeFactory.getNode(NodeType.CURSOR_NODE,
                                                  "SELECT",
                                                  queryExpression,
                                                  null,
@@ -2403,7 +2403,7 @@ class SQLGrammar implements SQLGrammarConstants {
     TableName tableName;
     if (newInvocationFollows(1)) {
       javaToSQLNode = newInvocation();
-        {if (true) return nodeFactory.getNode(NodeTypes.FROM_VTI,
+        {if (true) return nodeFactory.getNode(NodeType.FROM_VTI,
                                    javaToSQLNode.getJavaValueNode(),
                                    null,
                                    null,
@@ -2450,7 +2450,7 @@ class SQLGrammar implements SQLGrammarConstants {
         jj_la1[20] = jj_gen;
         ;
       }
-        fromTable = (FromTable)nodeFactory.getNode(NodeTypes.FROM_VTI,
+        fromTable = (FromTable)nodeFactory.getNode(NodeType.FROM_VTI,
                                                    javaToSQLNode.getJavaValueNode(),
                                                    (String)null,
                                                    null,
@@ -2525,7 +2525,7 @@ class SQLGrammar implements SQLGrammarConstants {
          * decision that the parser's output should look like the language.
          */
         if (fromTable == null)
-            fromTable = (FromTable)nodeFactory.getNode(NodeTypes.FROM_BASE_TABLE,
+            fromTable = (FromTable)nodeFactory.getNode(NodeType.FROM_BASE_TABLE,
                                                        tableName,
                                                        correlationName,
                                                        FromBaseTable.UpdateOrDelete.UPDATE,
@@ -2578,7 +2578,7 @@ class SQLGrammar implements SQLGrammarConstants {
         }
 
         StatementNode callStatement = (StatementNode)
-            nodeFactory.getNode(NodeTypes.CALL_STATEMENT_NODE,
+            nodeFactory.getNode(NodeType.CALL_STATEMENT_NODE,
                                 value,
                                 parserContext);
 
@@ -2608,7 +2608,7 @@ class SQLGrammar implements SQLGrammarConstants {
 
         // wrap the row result set in a cursor node
         StatementNode cursorNode = (StatementNode)
-            nodeFactory.getNode(NodeTypes.CURSOR_NODE,
+            nodeFactory.getNode(NodeType.CURSOR_NODE,
                                 "SELECT",
                                 resultSetNode,
                                 null,
@@ -2713,7 +2713,7 @@ class SQLGrammar implements SQLGrammarConstants {
       jj_consume_token(-1);
       throw new ParseException();
     }
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.SAVEPOINT_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.SAVEPOINT_NODE,
                                                   savepointName,
                                                   savepointStatementType,
                                                   parserContext);}
@@ -2805,7 +2805,7 @@ class SQLGrammar implements SQLGrammarConstants {
       jj_la1[36] = jj_gen;
       ;
     }
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.TRANSACTION_CONTROL_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.TRANSACTION_CONTROL_NODE,
                                                   transactionOperation,
                                                   parserContext);}
     throw new Error("Missing return statement in function");
@@ -2839,7 +2839,7 @@ class SQLGrammar implements SQLGrammarConstants {
         // if ON ROLLBACK behavior not explicitly specified in DECLARE command, resort to default ON ROLLBACK DELETE ROWS
         if (declareTableClauses[TEMPORARY_TABLE_ON_ROLLBACK] == null)
             declareTableClauses[TEMPORARY_TABLE_ON_ROLLBACK] = Boolean.TRUE;
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.CREATE_TABLE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.CREATE_TABLE_NODE,
                                                   tableName,
                                                   tableElementList,
                                                   (Properties)null,
@@ -2907,7 +2907,7 @@ class SQLGrammar implements SQLGrammarConstants {
 
   final public TableElementList tableElementList() throws ParseException, StandardException {
     TableElementList tableElementList =
-                    (TableElementList)nodeFactory.getNode(NodeTypes.TABLE_ELEMENT_LIST,
+                    (TableElementList)nodeFactory.getNode(NodeType.TABLE_ELEMENT_LIST,
                                                           parserContext);
     jj_consume_token(LEFT_PAREN);
     tableElement(tableElementList);
@@ -2970,7 +2970,7 @@ class SQLGrammar implements SQLGrammarConstants {
         }
 
         tableElementList.addTableElement((TableElementNode) nodeFactory.getNode(
-                                                            NodeTypes.COLUMN_DEFINITION_NODE,
+                                                            NodeType.COLUMN_DEFINITION_NODE,
                                                             columnName,
                                                             defaultNode,
                                                             typeDescriptor[0],
@@ -4256,7 +4256,7 @@ class SQLGrammar implements SQLGrammarConstants {
         list.add(qualifiedName);
   }
 
-  final public TableName qualifiedName(int nodeType) throws ParseException, StandardException {
+  final public TableName qualifiedName(NodeType nodeType) throws ParseException, StandardException {
 //String    catalogName = null;
     String  schemaName = null;
     String  qualifiedId;
@@ -4418,7 +4418,7 @@ class SQLGrammar implements SQLGrammarConstants {
             {if (true) return term;}
 
         case UNION_OP:
-            {if (true) return (ResultSetNode)nodeFactory.getNode(NodeTypes.UNION_NODE,
+            {if (true) return (ResultSetNode)nodeFactory.getNode(NodeType.UNION_NODE,
                                                       leftSide,
                                                       term,
                                                       Boolean.FALSE,
@@ -4427,7 +4427,7 @@ class SQLGrammar implements SQLGrammarConstants {
                                                       parserContext);}
 
         case UNION_ALL_OP:
-            {if (true) return (ResultSetNode)nodeFactory.getNode(NodeTypes.UNION_NODE,
+            {if (true) return (ResultSetNode)nodeFactory.getNode(NodeType.UNION_NODE,
                                                       leftSide,
                                                       term,
                                                       Boolean.TRUE,
@@ -4436,7 +4436,7 @@ class SQLGrammar implements SQLGrammarConstants {
                                                       parserContext);}
 
         case EXCEPT_OP:
-            {if (true) return (ResultSetNode)nodeFactory.getNode(NodeTypes.INTERSECT_OR_EXCEPT_NODE,
+            {if (true) return (ResultSetNode)nodeFactory.getNode(NodeType.INTERSECT_OR_EXCEPT_NODE,
                                                       IntersectOrExceptNode.OpType.EXCEPT,
                                                       leftSide,
                                                       term,
@@ -4445,7 +4445,7 @@ class SQLGrammar implements SQLGrammarConstants {
                                                       parserContext);}
 
         case EXCEPT_ALL_OP:
-            {if (true) return (ResultSetNode)nodeFactory.getNode(NodeTypes.INTERSECT_OR_EXCEPT_NODE,
+            {if (true) return (ResultSetNode)nodeFactory.getNode(NodeType.INTERSECT_OR_EXCEPT_NODE,
                                                       IntersectOrExceptNode.OpType.EXCEPT,
                                                       leftSide,
                                                       term,
@@ -4454,7 +4454,7 @@ class SQLGrammar implements SQLGrammarConstants {
                                                       parserContext);}
 
         case INTERSECT_OP:
-            {if (true) return (ResultSetNode)nodeFactory.getNode(NodeTypes.INTERSECT_OR_EXCEPT_NODE,
+            {if (true) return (ResultSetNode)nodeFactory.getNode(NodeType.INTERSECT_OR_EXCEPT_NODE,
                                                       IntersectOrExceptNode.OpType.INTERSECT,
                                                       leftSide,
                                                       term,
@@ -4463,7 +4463,7 @@ class SQLGrammar implements SQLGrammarConstants {
                                                       parserContext);}
 
         case INTERSECT_ALL_OP:
-            {if (true) return (ResultSetNode)nodeFactory.getNode(NodeTypes.INTERSECT_OR_EXCEPT_NODE,
+            {if (true) return (ResultSetNode)nodeFactory.getNode(NodeType.INTERSECT_OR_EXCEPT_NODE,
                                                       IntersectOrExceptNode.OpType.INTERSECT,
                                                       leftSide,
                                                       term,
@@ -4600,7 +4600,7 @@ class SQLGrammar implements SQLGrammarConstants {
   final public ResultColumnList selectList() throws ParseException, StandardException {
     ResultColumn allResultColumn;
     ResultColumnList resultColumns = (ResultColumnList)
-        nodeFactory.getNode(NodeTypes.RESULT_COLUMN_LIST,
+        nodeFactory.getNode(NodeType.RESULT_COLUMN_LIST,
                             parserContext);
     selectColumnList(resultColumns);
         {if (true) return resultColumns;}
@@ -4631,14 +4631,14 @@ class SQLGrammar implements SQLGrammarConstants {
     switch (jj_nt.kind) {
     case ASTERISK:
       jj_consume_token(ASTERISK);
-        allResultColumn = (ResultColumn)nodeFactory.getNode(NodeTypes.ALL_RESULT_COLUMN,
+        allResultColumn = (ResultColumn)nodeFactory.getNode(NodeType.ALL_RESULT_COLUMN,
                                                             Boolean.FALSE,
                                                             parserContext);
         resultColumns.addResultColumn(allResultColumn);
       break;
     case ASTERISK_ASTERISK:
       jj_consume_token(ASTERISK_ASTERISK);
-        allResultColumn = (ResultColumn)nodeFactory.getNode(NodeTypes.ALL_RESULT_COLUMN,
+        allResultColumn = (ResultColumn)nodeFactory.getNode(NodeType.ALL_RESULT_COLUMN,
                                                             Boolean.TRUE,
                                                             parserContext);
         resultColumns.addResultColumn(allResultColumn);
@@ -4651,7 +4651,7 @@ class SQLGrammar implements SQLGrammarConstants {
         tableName = qualifiedName();
         jj_consume_token(PERIOD);
         jj_consume_token(ASTERISK);
-        allResultColumn = (ResultColumn)nodeFactory.getNode(NodeTypes.ALL_RESULT_COLUMN,
+        allResultColumn = (ResultColumn)nodeFactory.getNode(NodeType.ALL_RESULT_COLUMN,
                                                             tableName,
                                                             parserContext);
         resultColumns.addResultColumn(allResultColumn);
@@ -4680,7 +4680,7 @@ class SQLGrammar implements SQLGrammarConstants {
         if ((columnName == null) && (columnExpression instanceof ColumnReference)) {
             columnName = ((ColumnReference)columnExpression).getColumnName();
         }
-        {if (true) return (ResultColumn)nodeFactory.getNode(NodeTypes.RESULT_COLUMN,
+        {if (true) return (ResultColumn)nodeFactory.getNode(NodeType.RESULT_COLUMN,
                                                  columnName,
                                                  columnExpression,
                                                  parserContext);}
@@ -4742,7 +4742,7 @@ class SQLGrammar implements SQLGrammarConstants {
             {if (true) return leftOperand;}
         }
         else {
-            {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.OR_NODE,
+            {if (true) return (ValueNode)nodeFactory.getNode(NodeType.OR_NODE,
                                                   farLeftOperand,
                                                   leftOperand,
                                                   parserContext);}
@@ -4762,12 +4762,12 @@ class SQLGrammar implements SQLGrammarConstants {
     test = isSearchCondition();
         /* Put any NOT on top of test */
         if (notToken != null) {
-            test = (ValueNode)nodeFactory.getNode(NodeTypes.NOT_NODE,
+            test = (ValueNode)nodeFactory.getNode(NodeType.NOT_NODE,
                                                   test,
                                                   parserContext);
         }
         if (farLeftOperand != null) {
-            test = (ValueNode)nodeFactory.getNode(NodeTypes.AND_NODE,
+            test = (ValueNode)nodeFactory.getNode(NodeType.AND_NODE,
                                                   farLeftOperand,
                                                   test,
                                                   parserContext);
@@ -4802,17 +4802,17 @@ class SQLGrammar implements SQLGrammarConstants {
     }
         if (isToken != null) {
             if (truthValue == null)
-                result = (ValueNode)nodeFactory.getNode(NodeTypes.IS_NULL_NODE,
+                result = (ValueNode)nodeFactory.getNode(NodeType.IS_NULL_NODE,
                                                         booleanPrimary,
                                                         parserContext);
             else
-                result = (ValueNode)nodeFactory.getNode(NodeTypes.IS_NODE,
+                result = (ValueNode)nodeFactory.getNode(NodeType.IS_NODE,
                                                         booleanPrimary,
                                                         truthValue,
                                                         parserContext);
             /* Put any NOT on top of the tree */
             if (notToken != null) {
-                result = (ValueNode)nodeFactory.getNode(NodeTypes.NOT_NODE,
+                result = (ValueNode)nodeFactory.getNode(NodeType.NOT_NODE,
                                                         result,
                                                         parserContext);
             }
@@ -4849,7 +4849,7 @@ class SQLGrammar implements SQLGrammarConstants {
       throw new ParseException();
     }
         {if (true) return (ValueNode)
-            nodeFactory.getNode(NodeTypes.BOOLEAN_CONSTANT_NODE,
+            nodeFactory.getNode(NodeType.BOOLEAN_CONSTANT_NODE,
                                 value,
                                 parserContext);}
     throw new Error("Missing return statement in function");
@@ -4922,7 +4922,7 @@ class SQLGrammar implements SQLGrammarConstants {
       value = remainingNegatablePredicate(value);
         /* Put any NOT on top of the tree */
         if (notToken != null) {
-            value = (ValueNode)nodeFactory.getNode(NodeTypes.NOT_NODE,
+            value = (ValueNode)nodeFactory.getNode(NodeType.NOT_NODE,
                                                    value,
                                                    parserContext);
         }
@@ -5009,7 +5009,7 @@ class SQLGrammar implements SQLGrammarConstants {
         jj_la1[119] = jj_gen;
         ;
       }
-        tree = (ValueNode)nodeFactory.getNode(NodeTypes.LIKE_OPERATOR_NODE,
+        tree = (ValueNode)nodeFactory.getNode(NodeType.LIKE_OPERATOR_NODE,
                                               leftOperand,
                                               likePattern,
                                               escapeValue,
@@ -5023,11 +5023,11 @@ class SQLGrammar implements SQLGrammarConstants {
       jj_consume_token(AND);
       betweenRight = additiveExpression();
         ValueNodeList betweenList = (ValueNodeList)
-            nodeFactory.getNode(NodeTypes.VALUE_NODE_LIST,
+            nodeFactory.getNode(NodeType.VALUE_NODE_LIST,
                                 parserContext);
         betweenList.addValueNode(betweenLeft);
         betweenList.addValueNode(betweenRight);
-        tree = (ValueNode)nodeFactory.getNode(NodeTypes.BETWEEN_OPERATOR_NODE,
+        tree = (ValueNode)nodeFactory.getNode(NodeType.BETWEEN_OPERATOR_NODE,
                                               leftOperand,
                                               betweenList,
                                               parserContext);
@@ -5104,35 +5104,35 @@ class SQLGrammar implements SQLGrammarConstants {
       ;
     }
         if (farLeftOperand != null) {
-            int nodeType;
+            NodeType nodeType;
             switch (compOp) {
             case EQ:
-                nodeType = NodeTypes.BINARY_EQUALS_OPERATOR_NODE;
+                nodeType = NodeType.BINARY_EQUALS_OPERATOR_NODE;
                 break;
 
             case NE:
-                nodeType = NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE;
+                nodeType = NodeType.BINARY_NOT_EQUALS_OPERATOR_NODE;
                 break;
 
             case LT:
-                nodeType = NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE;
+                nodeType = NodeType.BINARY_LESS_THAN_OPERATOR_NODE;
                 break;
 
             case GT:
-                nodeType = NodeTypes.BINARY_GREATER_THAN_OPERATOR_NODE;
+                nodeType = NodeType.BINARY_GREATER_THAN_OPERATOR_NODE;
                 break;
 
             case LE:
-                nodeType = NodeTypes.BINARY_LESS_EQUALS_OPERATOR_NODE;
+                nodeType = NodeType.BINARY_LESS_EQUALS_OPERATOR_NODE;
                 break;
 
             case GE:
-                nodeType = NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE;
+                nodeType = NodeType.BINARY_GREATER_EQUALS_OPERATOR_NODE;
                 break;
 
             default:
                 assert false : "Unknown comparison operator " + compOp;
-                nodeType = 0;
+                nodeType = null;
                 break;
             }
             leftOperand = (ValueNode)nodeFactory.getNode(nodeType,
@@ -5141,7 +5141,7 @@ class SQLGrammar implements SQLGrammarConstants {
                                                          parserContext);
         }
         if (collation != null)
-            leftOperand = (ValueNode)nodeFactory.getNode(NodeTypes.EXPLICIT_COLLATE_NODE,
+            leftOperand = (ValueNode)nodeFactory.getNode(NodeType.EXPLICIT_COLLATE_NODE,
                                                          leftOperand,
                                                          collation,
                                                          parserContext);
@@ -5223,13 +5223,13 @@ class SQLGrammar implements SQLGrammarConstants {
 
         switch (additiveOperator) {
         case PLUS:
-            {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.BINARY_PLUS_OPERATOR_NODE,
+            {if (true) return (ValueNode)nodeFactory.getNode(NodeType.BINARY_PLUS_OPERATOR_NODE,
                                                   farLeftOperand,
                                                   leftOperand,
                                                   parserContext);}
 
         case MINUS:
-            {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.BINARY_MINUS_OPERATOR_NODE,
+            {if (true) return (ValueNode)nodeFactory.getNode(NodeType.BINARY_MINUS_OPERATOR_NODE,
                                                   farLeftOperand,
                                                   leftOperand,
                                                   parserContext);}
@@ -5239,7 +5239,7 @@ class SQLGrammar implements SQLGrammarConstants {
         case BITXOR:
         case LEFT_SHIFT:
         case RIGHT_SHIFT:
-            {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.BINARY_BIT_OPERATOR_NODE,
+            {if (true) return (ValueNode)nodeFactory.getNode(NodeType.BINARY_BIT_OPERATOR_NODE,
                                                   additiveOperator,
                                                   farLeftOperand,
                                                   leftOperand,
@@ -5311,17 +5311,17 @@ class SQLGrammar implements SQLGrammarConstants {
     }
     value = primaryExpression();
         if ("-".equals(sign)) {
-            value = (ValueNode)nodeFactory.getNode(NodeTypes.UNARY_MINUS_OPERATOR_NODE,
+            value = (ValueNode)nodeFactory.getNode(NodeType.UNARY_MINUS_OPERATOR_NODE,
                                                    value,
                                                    parserContext);
         }
         else if ("+".equals(sign)) {
-            value = (ValueNode)nodeFactory.getNode(NodeTypes.UNARY_PLUS_OPERATOR_NODE,
+            value = (ValueNode)nodeFactory.getNode(NodeType.UNARY_PLUS_OPERATOR_NODE,
                                                    value,
                                                    parserContext);
         }
         else if ("~".equals(sign)) {
-            value = (ValueNode)nodeFactory.getNode(NodeTypes.UNARY_BITNOT_OPERATOR_NODE,
+            value = (ValueNode)nodeFactory.getNode(NodeType.UNARY_BITNOT_OPERATOR_NODE,
                                                    value,
                                                    parserContext);
         }
@@ -5415,7 +5415,7 @@ class SQLGrammar implements SQLGrammarConstants {
         ** out that this is being returned to the Java domain, we will
         ** get rid of this node.
         */
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.JAVA_TO_SQL_VALUE_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.JAVA_TO_SQL_VALUE_NODE,
                                               methodNode,
                                               parserContext);}
     } else {
@@ -5439,7 +5439,7 @@ class SQLGrammar implements SQLGrammarConstants {
         ** out that this is being returned to the Java domain, we will
         ** get rid of this node.
         */
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.JAVA_TO_SQL_VALUE_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.JAVA_TO_SQL_VALUE_NODE,
                                               methodNode,
                                               parserContext);}
         break;
@@ -5461,7 +5461,7 @@ class SQLGrammar implements SQLGrammarConstants {
         ** in later phases, like binding and code generation.
         */
         methodName = caseSensitiveIdentifierPlusReservedWords();
-        {if (true) return (MethodCallNode)nodeFactory.getNode(NodeTypes.NON_STATIC_METHOD_CALL_NODE,
+        {if (true) return (MethodCallNode)nodeFactory.getNode(NodeType.NON_STATIC_METHOD_CALL_NODE,
                                                    methodName,
                                                    receiver,
                                                    parserContext);}
@@ -5477,7 +5477,7 @@ class SQLGrammar implements SQLGrammarConstants {
         ** in later phases, like binding and code generation.
         */
         methodName = caseSensitiveIdentifierPlusReservedWords();
-        {if (true) return (MethodCallNode)nodeFactory.getNode(NodeTypes.STATIC_METHOD_CALL_NODE,
+        {if (true) return (MethodCallNode)nodeFactory.getNode(NodeType.STATIC_METHOD_CALL_NODE,
                                                    methodName,
                                                    javaClassName,
                                                    parserContext);}
@@ -5535,8 +5535,8 @@ class SQLGrammar implements SQLGrammarConstants {
     String fieldName;
     fieldName = caseSensitiveIdentifierPlusReservedWords();
         {if (true) return (ValueNode)
-            nodeFactory.getNode(NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                                nodeFactory.getNode(NodeTypes.STATIC_CLASS_FIELD_REFERENCE_NODE,
+            nodeFactory.getNode(NodeType.JAVA_TO_SQL_VALUE_NODE,
+                                nodeFactory.getNode(NodeType.STATIC_CLASS_FIELD_REFERENCE_NODE,
                                                     javaClassName,
                                                     fieldName,
                                                     nextToLastTokenDelimitedIdentifier,
@@ -5590,7 +5590,7 @@ class SQLGrammar implements SQLGrammarConstants {
         jj_consume_token(CURDATE);
         jj_consume_token(LEFT_PAREN);
         jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.CURRENT_DATETIME_OPERATOR_NODE,
                                               CurrentDatetimeOperatorNode.Field.DATE,
                                               parserContext);}
         break;
@@ -5598,7 +5598,7 @@ class SQLGrammar implements SQLGrammarConstants {
         jj_consume_token(CURTIME);
         jj_consume_token(LEFT_PAREN);
         jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.CURRENT_DATETIME_OPERATOR_NODE,
                                               CurrentDatetimeOperatorNode.Field.TIME,
                                               parserContext);}
         break;
@@ -5609,7 +5609,7 @@ class SQLGrammar implements SQLGrammarConstants {
         jj_consume_token(COMMA);
         str2 = additiveExpression();
         jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.CONCATENATION_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.CONCATENATION_OPERATOR_NODE,
                                               str1,
                                               str2,
                                               parserContext);}
@@ -5646,14 +5646,14 @@ class SQLGrammar implements SQLGrammarConstants {
     methodCallParameterList(parameterList);
         String sysFunName = getEscapedSYSFUN(tok.image);
 
-        TableName functionName = (TableName)nodeFactory.getNode(NodeTypes.TABLE_NAME,
+        TableName functionName = (TableName)nodeFactory.getNode(NodeType.TABLE_NAME,
                                                                 IBM_SYSTEM_FUN_SCHEMA_NAME,
                                                                 sysFunName,
                                                                 new Integer(0),
                                                                 new Integer(0),
                                                                 parserContext);
 
-        MethodCallNode methodNode = (MethodCallNode)nodeFactory.getNode(NodeTypes.STATIC_METHOD_CALL_NODE,
+        MethodCallNode methodNode = (MethodCallNode)nodeFactory.getNode(NodeType.STATIC_METHOD_CALL_NODE,
                                                                         functionName,
                                                                         null,
                                                                         parserContext);
@@ -5665,7 +5665,7 @@ class SQLGrammar implements SQLGrammarConstants {
         ** out that this is being returned to the Java domain, we will
         ** get rid of this node.
         */
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.JAVA_TO_SQL_VALUE_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.JAVA_TO_SQL_VALUE_NODE,
                                               methodNode,
                                               parserContext);}
     throw new Error("Missing return statement in function");
@@ -5688,25 +5688,25 @@ class SQLGrammar implements SQLGrammarConstants {
       jj_consume_token(COMMA);
       tstamp1 = additiveExpression();
       jj_consume_token(RIGHT_PAREN);
-        interval = (ValueNode)nodeFactory.getNode(NodeTypes.CAST_NODE,
+        interval = (ValueNode)nodeFactory.getNode(NodeType.CAST_NODE,
                                                interval, intervalTypeDesc,
                                                parserContext);
         if (factors[0] != 1)
-            interval = (ValueNode)nodeFactory.getNode(NodeTypes.BINARY_TIMES_OPERATOR_NODE,
+            interval = (ValueNode)nodeFactory.getNode(NodeType.BINARY_TIMES_OPERATOR_NODE,
                                                    interval,
-                                                   nodeFactory.getNode(NodeTypes.INT_CONSTANT_NODE,
+                                                   nodeFactory.getNode(NodeType.INT_CONSTANT_NODE,
                                                                        Integer.valueOf(factors[0]),
                                                                        parserContext),
                                                    parserContext);
         if (factors[1] != 1)
-            interval = (ValueNode)nodeFactory.getNode(NodeTypes.BINARY_DIVIDE_OPERATOR_NODE,
+            interval = (ValueNode)nodeFactory.getNode(NodeType.BINARY_DIVIDE_OPERATOR_NODE,
                                                    interval,
-                                                   nodeFactory.getNode(NodeTypes.INT_CONSTANT_NODE,
+                                                   nodeFactory.getNode(NodeType.INT_CONSTANT_NODE,
                                                                        Integer.valueOf(factors[1]),
                                                                        parserContext),
                                                    parserContext);
 
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.BINARY_PLUS_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.BINARY_PLUS_OPERATOR_NODE,
                                                   tstamp1,
                                                   interval,
                                                   parserContext);}
@@ -5720,7 +5720,7 @@ class SQLGrammar implements SQLGrammarConstants {
       jj_consume_token(COMMA);
       tstamp2 = additiveExpression();
       jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.TIMESTAMP_DIFF_FN_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.TIMESTAMP_DIFF_FN_NODE,
                                               intervalType,
                                               tstamp1,
                                               tstamp2,
@@ -6071,7 +6071,7 @@ class SQLGrammar implements SQLGrammarConstants {
       jj_consume_token(LEFT_PAREN);
       value = additiveExpression();
       jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.SQRT_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.SQRT_OPERATOR_NODE,
                                               value,
                                               parserContext);}
       break;
@@ -6084,7 +6084,7 @@ class SQLGrammar implements SQLGrammarConstants {
       jj_consume_token(IDENTITY_VAL_LOCAL);
       jj_consume_token(LEFT_PAREN);
       jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.IDENTITY_VAL_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.IDENTITY_VAL_NODE,
                                               parserContext);}
       break;
     default:
@@ -6096,7 +6096,7 @@ class SQLGrammar implements SQLGrammarConstants {
   }
 
   final public ValueNode coalesceFunction(String coalesceOrValue) throws ParseException, StandardException {
-    ValueNodeList expressionList = (ValueNodeList)nodeFactory.getNode(NodeTypes.VALUE_NODE_LIST,
+    ValueNodeList expressionList = (ValueNodeList)nodeFactory.getNode(NodeType.VALUE_NODE_LIST,
                                                                       parserContext);
     jj_consume_token(LEFT_PAREN);
     coalesceExpression(expressionList);
@@ -6114,7 +6114,7 @@ class SQLGrammar implements SQLGrammarConstants {
       coalesceExpression(expressionList);
     }
     jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.COALESCE_FUNCTION_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.COALESCE_FUNCTION_NODE,
                                               coalesceOrValue,
                                               expressionList,
                                               parserContext);}
@@ -6132,7 +6132,7 @@ class SQLGrammar implements SQLGrammarConstants {
     jj_consume_token(LEFT_PAREN);
     value = additiveExpression();
     jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.ABSOLUTE_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.ABSOLUTE_OPERATOR_NODE,
                                               value,
                                               parserContext);}
     throw new Error("Missing return statement in function");
@@ -6146,7 +6146,7 @@ class SQLGrammar implements SQLGrammarConstants {
     jj_consume_token(COMMA);
     int2 = additiveExpression();
     jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.MOD_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.MOD_OPERATOR_NODE,
                                               int1, int2,
                                               parserContext);}
     throw new Error("Missing return statement in function");
@@ -6231,7 +6231,7 @@ class SQLGrammar implements SQLGrammarConstants {
       jj_consume_token(LEFT_PAREN);
       value = additiveExpression();
       jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.SIMPLE_STRING_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.SIMPLE_STRING_OPERATOR_NODE,
                                               value,
                                               (upperTok != null) ? "upper" : "lower",
                                               parserContext);}
@@ -6253,7 +6253,7 @@ class SQLGrammar implements SQLGrammarConstants {
       jj_consume_token(LEFT_PAREN);
       value = additiveExpression();
       jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.SIMPLE_STRING_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.SIMPLE_STRING_OPERATOR_NODE,
                                               value,
                                               (upperTok != null) ? "upper" : "lower",
                                               parserContext);}
@@ -6292,10 +6292,10 @@ class SQLGrammar implements SQLGrammarConstants {
       }
       jj_consume_token(RIGHT_PAREN);
         // If start is missing, start is equal to 1.
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.LOCATE_FUNCTION_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.LOCATE_FUNCTION_NODE,
                                               str1,
                                               str2,
-                                              (value == null) ? nodeFactory.getNode(NodeTypes.INT_CONSTANT_NODE, 1, parserContext) : value,
+                                              (value == null) ? nodeFactory.getNode(NodeType.INT_CONSTANT_NODE, 1, parserContext) : value,
                                               TernaryOperatorNode.OperatorType.LOCATE,
                                               null,
                                               parserContext);}
@@ -6318,10 +6318,10 @@ class SQLGrammar implements SQLGrammarConstants {
       }
       str2 = additiveExpression();
       jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.LOCATE_FUNCTION_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.LOCATE_FUNCTION_NODE,
                                               str1,
                                               str2,
-                                              nodeFactory.getNode(NodeTypes.INT_CONSTANT_NODE, 1, parserContext),
+                                              nodeFactory.getNode(NodeType.INT_CONSTANT_NODE, 1, parserContext),
                                               TernaryOperatorNode.OperatorType.LOCATE,
                                               null,
                                               parserContext);}
@@ -6337,7 +6337,7 @@ class SQLGrammar implements SQLGrammarConstants {
           jj_consume_token(COMMA);
           str2 = additiveExpression();
           jj_consume_token(RIGHT_PAREN);
-            {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.LEFT_FN_NODE,
+            {if (true) return (ValueNode)nodeFactory.getNode(NodeType.LEFT_FN_NODE,
                                                     str1,
                                                     str2,
                                                     parserContext);}
@@ -6349,7 +6349,7 @@ class SQLGrammar implements SQLGrammarConstants {
           jj_consume_token(COMMA);
           str2 = additiveExpression();
           jj_consume_token(RIGHT_PAREN);
-            {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.RIGHT_FN_NODE,
+            {if (true) return (ValueNode)nodeFactory.getNode(NodeType.RIGHT_FN_NODE,
                                                     str1,
                                                     str2,
                                                     parserContext);}
@@ -6507,12 +6507,12 @@ class SQLGrammar implements SQLGrammarConstants {
         jj_consume_token(-1);
         throw new ParseException();
       }
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.CURRENT_SCHEMA_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.CURRENT_SCHEMA_NODE,
                                               parserContext);}
     } else if (getToken(2).kind == ISOLATION) {
       jj_consume_token(CURRENT);
       jj_consume_token(ISOLATION);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.CURRENT_ISOLATION_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.CURRENT_ISOLATION_NODE,
                                               parserContext);}
     } else if (jj_2_45(1)) {
       // TODO: *** What is this comment about?
@@ -6618,7 +6618,7 @@ class SQLGrammar implements SQLGrammarConstants {
       throw new ParseException();
     }
     jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.MATCH_FUNCTION_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.MATCH_FUNCTION_NODE,
                                               columnReference,
                                               queryText,
                                               parserContext);}
@@ -6632,8 +6632,8 @@ class SQLGrammar implements SQLGrammarConstants {
       jj_consume_token(GET_CURRENT_CONNECTION);
       jj_consume_token(LEFT_PAREN);
       jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                                              nodeFactory.getNode(NodeTypes.GET_CURRENT_CONNECTION_NODE, parserContext),
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.JAVA_TO_SQL_VALUE_NODE,
+                                              nodeFactory.getNode(NodeType.GET_CURRENT_CONNECTION_NODE, parserContext),
                                               parserContext);}
       break;
     case ABS:
@@ -6670,7 +6670,7 @@ class SQLGrammar implements SQLGrammarConstants {
           value = additiveExpression();
           jj_consume_token(RIGHT_PAREN);
         if (isJDBCEscape)
-            {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.CHAR_LENGTH_OPERATOR_NODE,
+            {if (true) return (ValueNode)nodeFactory.getNode(NodeType.CHAR_LENGTH_OPERATOR_NODE,
                                                   getTrimOperatorNode(BinaryOperatorNode.OperatorType.RTRIM,
                                                                       null,
                                                                       value),
@@ -6680,7 +6680,7 @@ class SQLGrammar implements SQLGrammarConstants {
             TODO: DECIDE wether LENGTH should be OCTET_LENGTH or CHARACTER_LENGTH
                   dependent upon some mode
         */
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.OCTET_LENGTH_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.OCTET_LENGTH_OPERATOR_NODE,
                                               value,
                                               parserContext);}
           break;
@@ -6701,7 +6701,7 @@ class SQLGrammar implements SQLGrammarConstants {
           jj_consume_token(LEFT_PAREN);
           value = additiveExpression();
           jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.CHAR_LENGTH_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.CHAR_LENGTH_OPERATOR_NODE,
                                               value,
                                               parserContext);}
           break;
@@ -6710,7 +6710,7 @@ class SQLGrammar implements SQLGrammarConstants {
           jj_consume_token(LEFT_PAREN);
           value = additiveExpression();
           jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.OCTET_LENGTH_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.OCTET_LENGTH_OPERATOR_NODE,
                                               value,
                                               parserContext);}
           break;
@@ -6762,7 +6762,7 @@ class SQLGrammar implements SQLGrammarConstants {
         jj_consume_token(LEFT_PAREN);
         operand = additiveExpression();
         jj_consume_token(RIGHT_PAREN);
-        value = (ValueNode)nodeFactory.getNode(NodeTypes.CAST_NODE,
+        value = (ValueNode)nodeFactory.getNode(NodeType.CAST_NODE,
                                                operand,
                                                dts,
                                                parserContext);
@@ -6787,7 +6787,7 @@ class SQLGrammar implements SQLGrammarConstants {
             ;
           }
           jj_consume_token(RIGHT_PAREN);
-        value = (ValueNode)nodeFactory.getNode(NodeTypes.CAST_NODE,
+        value = (ValueNode)nodeFactory.getNode(NodeType.CAST_NODE,
                                                operand,
                                                new Integer(charType),
                                                new Integer(length),
@@ -6880,7 +6880,7 @@ class SQLGrammar implements SQLGrammarConstants {
     boolean wsOption;
     value = additiveExpression();
     wsOption = xmlPreserveWhitespace();
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.XML_PARSE_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.XML_PARSE_OPERATOR_NODE,
                                               value,
                                               XMLUnaryOperatorNode.OperatorType.PARSE,
                                               new Object[] {(wsOption ? Boolean.TRUE : Boolean.FALSE)},
@@ -6936,7 +6936,7 @@ class SQLGrammar implements SQLGrammarConstants {
     DataTypeDescriptor targetType;
     value = additiveExpression();
     targetType = xmlSerializeTargetType();
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.XML_SERIALIZE_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.XML_SERIALIZE_OPERATOR_NODE,
                                               value,
                                               XMLUnaryOperatorNode.OperatorType.SERIALIZE,
                                               new Object[] {targetType},
@@ -7046,8 +7046,8 @@ class SQLGrammar implements SQLGrammarConstants {
       throw new ParseException();
     }
         ValueNode vNode = (ValueNode)nodeFactory.getNode((existsOnly
-                                                          ? NodeTypes.XML_EXISTS_OPERATOR_NODE
-                                                          : NodeTypes.XML_QUERY_OPERATOR_NODE),
+                                                          ? NodeType.XML_EXISTS_OPERATOR_NODE
+                                                          : NodeType.XML_QUERY_OPERATOR_NODE),
                                                          xqueryExpr,
                                                          xmlValue,
                                                          (existsOnly
@@ -7318,7 +7318,7 @@ class SQLGrammar implements SQLGrammarConstants {
       jj_consume_token(FROM);
       value = additiveExpression();
       jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.EXTRACT_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.EXTRACT_OPERATOR_NODE,
                                               field,
                                               value,
                                               parserContext);}
@@ -7328,7 +7328,7 @@ class SQLGrammar implements SQLGrammarConstants {
       jj_consume_token(LEFT_PAREN);
       value = additiveExpression();
       jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.UNARY_DATE_TIMESTAMP_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.UNARY_DATE_TIMESTAMP_OPERATOR_NODE,
                                               value,
                                               DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.TIME),
                                               parserContext);}
@@ -7338,7 +7338,7 @@ class SQLGrammar implements SQLGrammarConstants {
       jj_consume_token(LEFT_PAREN);
       value = additiveExpression();
       jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.UNARY_DATE_TIMESTAMP_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.UNARY_DATE_TIMESTAMP_OPERATOR_NODE,
                                               value,
                                               DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.DATE),
                                               parserContext);}
@@ -7360,7 +7360,7 @@ class SQLGrammar implements SQLGrammarConstants {
       jj_consume_token(LEFT_PAREN);
       value = additiveExpression();
       jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.EXTRACT_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.EXTRACT_OPERATOR_NODE,
                                               field,
                                               value,
                                               parserContext);}
@@ -7383,7 +7383,7 @@ class SQLGrammar implements SQLGrammarConstants {
     switch (jj_nt.kind) {
     case RIGHT_PAREN:
       jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.UNARY_DATE_TIMESTAMP_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.UNARY_DATE_TIMESTAMP_OPERATOR_NODE,
                                               firstArg,
                                               DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.TIMESTAMP),
                                               parserContext);}
@@ -7392,7 +7392,7 @@ class SQLGrammar implements SQLGrammarConstants {
       jj_consume_token(COMMA);
       timeValue = additiveExpression();
       jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.TIMESTAMP_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.TIMESTAMP_OPERATOR_NODE,
                                               firstArg,
                                               timeValue,
                                               parserContext);}
@@ -7458,19 +7458,19 @@ class SQLGrammar implements SQLGrammarConstants {
     switch (jj_nt.kind) {
     case USER:
       jj_consume_token(USER);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.USER_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.USER_NODE,
                                               parserContext);}
       break;
     case CURRENT_USER:
       jj_consume_token(CURRENT_USER);
         checkOptionalParens();
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.CURRENT_USER_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.CURRENT_USER_NODE,
                                               parserContext);}
       break;
     case SESSION_USER:
       jj_consume_token(SESSION_USER);
         checkOptionalParens();
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.SESSION_USER_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.SESSION_USER_NODE,
                                               parserContext);}
       break;
     default:
@@ -7483,7 +7483,7 @@ class SQLGrammar implements SQLGrammarConstants {
 
   final public ValueNode currentRoleNode() throws ParseException, StandardException {
     jj_consume_token(CURRENT_ROLE);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.CURRENT_ROLE_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.CURRENT_ROLE_NODE,
                                               parserContext);}
     throw new Error("Missing return statement in function");
   }
@@ -7491,7 +7491,7 @@ class SQLGrammar implements SQLGrammarConstants {
   final public ValueNode currentSchemaNode() throws ParseException, StandardException {
     jj_consume_token(CURRENT_SCHEMA);
         checkOptionalParens();
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.CURRENT_SCHEMA_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.CURRENT_SCHEMA_NODE,
                                               parserContext);}
     throw new Error("Missing return statement in function");
   }
@@ -7503,7 +7503,7 @@ class SQLGrammar implements SQLGrammarConstants {
     jj_consume_token(NEW);
     javaClassName = javaClassName();
     methodCallParameterList(parameterList);
-        newNode = nodeFactory.getNode(NodeTypes.NEW_INVOCATION_NODE,
+        newNode = nodeFactory.getNode(NodeType.NEW_INVOCATION_NODE,
                                       javaClassName,
                                       parameterList,
                                       lastTokenDelimitedIdentifier,
@@ -7514,7 +7514,7 @@ class SQLGrammar implements SQLGrammarConstants {
         ** out that this is being returned to the Java domain, we will
         ** get rid of this node.
         */
-        {if (true) return (JavaToSQLValueNode)nodeFactory.getNode(NodeTypes.JAVA_TO_SQL_VALUE_NODE,
+        {if (true) return (JavaToSQLValueNode)nodeFactory.getNode(NodeType.JAVA_TO_SQL_VALUE_NODE,
                                                        newNode,
                                                        parserContext);}
     throw new Error("Missing return statement in function");
@@ -7560,7 +7560,7 @@ class SQLGrammar implements SQLGrammarConstants {
          * TableDescriptor--we'll just create one from the table
          * name. See NewInvocationNode for more.
          */
-        newNode = (NewInvocationNode)nodeFactory.getNode(NodeTypes.NEW_INVOCATION_NODE,
+        newNode = (NewInvocationNode)nodeFactory.getNode(NodeType.NEW_INVOCATION_NODE,
                                                          vtiTableName,  // TableName
                                                          null,                  // TableDescriptor
                                                          parameterList,
@@ -7571,7 +7571,7 @@ class SQLGrammar implements SQLGrammarConstants {
             invocationNode = newNode;
         }
         else {
-            methodNode = (MethodCallNode)nodeFactory.getNode(NodeTypes.STATIC_METHOD_CALL_NODE,
+            methodNode = (MethodCallNode)nodeFactory.getNode(NodeType.STATIC_METHOD_CALL_NODE,
                                                              vtiTableName,
                                                              null,
                                                              parserContext);
@@ -7585,7 +7585,7 @@ class SQLGrammar implements SQLGrammarConstants {
         ** out that this is being returned to the Java domain, we will
         ** get rid of this node.
         */
-        {if (true) return (JavaToSQLValueNode)nodeFactory.getNode(NodeTypes.JAVA_TO_SQL_VALUE_NODE,
+        {if (true) return (JavaToSQLValueNode)nodeFactory.getNode(NodeType.JAVA_TO_SQL_VALUE_NODE,
                                                        invocationNode,
                                                        parserContext);}
     throw new Error("Missing return statement in function");
@@ -7603,7 +7603,7 @@ class SQLGrammar implements SQLGrammarConstants {
         ** out that this is being returned to the Java domain, we will
         ** get rid of this node.
         */
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.JAVA_TO_SQL_VALUE_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.JAVA_TO_SQL_VALUE_NODE,
                                               methodNode,
                                               parserContext);}
     throw new Error("Missing return statement in function");
@@ -7638,7 +7638,7 @@ class SQLGrammar implements SQLGrammarConstants {
     MethodCallNode methodNode;
     routineName = qualifiedName();
     methodCallParameterList(parameterList);
-        methodNode = (MethodCallNode)nodeFactory.getNode(NodeTypes.STATIC_METHOD_CALL_NODE,
+        methodNode = (MethodCallNode)nodeFactory.getNode(NodeType.STATIC_METHOD_CALL_NODE,
                                                          routineName,
                                                          null,
                                                          parserContext);
@@ -7650,7 +7650,7 @@ class SQLGrammar implements SQLGrammarConstants {
         ** out that this is being returned to the Java domain, we will
         ** get rid of this node.
         */
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.JAVA_TO_SQL_VALUE_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.JAVA_TO_SQL_VALUE_NODE,
                                               methodNode,
                                               parserContext);}
     throw new Error("Missing return statement in function");
@@ -7717,7 +7717,7 @@ class SQLGrammar implements SQLGrammarConstants {
         if (tableName != null) {
             // There is a table name, so get a TableName node
             tabName =
-                (TableName)nodeFactory.getNode(NodeTypes.TABLE_NAME,
+                (TableName)nodeFactory.getNode(NodeType.TABLE_NAME,
                                                schemaName,
                                                tableName,
                                                new Integer(nextToLastIdentifierToken.beginOffset),
@@ -7726,7 +7726,7 @@ class SQLGrammar implements SQLGrammarConstants {
         }
 
         // Get the column reference
-        retval = (ValueNode)nodeFactory.getNode(NodeTypes.COLUMN_REFERENCE,
+        retval = (ValueNode)nodeFactory.getNode(NodeType.COLUMN_REFERENCE,
                                                 columnName,
                                                 tabName,
                                                 new Integer(lastIdentifierToken.beginOffset),
@@ -7787,7 +7787,7 @@ class SQLGrammar implements SQLGrammarConstants {
             parserContext.checkIdentifierLengthLimit(tableName);
 
         if (tableName != null) {
-            tabName = (TableName)nodeFactory.getNode(NodeTypes.TABLE_NAME,
+            tabName = (TableName)nodeFactory.getNode(NodeType.TABLE_NAME,
                                                      schemaName,
                                                      tableName,
                                                      new Integer(nextToLastIdentifierToken.beginOffset),
@@ -7795,7 +7795,7 @@ class SQLGrammar implements SQLGrammarConstants {
                                                      parserContext);
             }
     if (jj_2_58(2147483647)) {
-            nestedColumn =  (NestedColumnReference)nodeFactory.getNode(NodeTypes.NESTED_COLUMN_REFERENCE,
+            nestedColumn =  (NestedColumnReference)nodeFactory.getNode(NodeType.NESTED_COLUMN_REFERENCE,
                                                     columnName,
                                                     tabName,
                                                     new Integer(lastIdentifierToken.beginOffset),
@@ -7805,14 +7805,14 @@ class SQLGrammar implements SQLGrammarConstants {
             {if (true) return nestedColumn;}
     } else {
             if (systemColumn == true) {
-                {if (true) return (SystemColumnReference)nodeFactory.getNode(NodeTypes.SYSTEM_COLUMN_REFERENCE,
+                {if (true) return (SystemColumnReference)nodeFactory.getNode(NodeType.SYSTEM_COLUMN_REFERENCE,
                                                         columnName,
                                                         tabName,
                                                         new Integer(lastIdentifierToken.beginOffset),
                                                         new Integer(lastIdentifierToken.endOffset),
                                                         parserContext);}
             } else {
-                {if (true) return (ColumnReference)nodeFactory.getNode(NodeTypes.COLUMN_REFERENCE,
+                {if (true) return (ColumnReference)nodeFactory.getNode(NodeType.COLUMN_REFERENCE,
                                                         columnName,
                                                         tabName,
                                                         new Integer(lastIdentifierToken.beginOffset),
@@ -7929,7 +7929,7 @@ columnReference() throws StandardException :
   }
 
   final public OrderByList sortSpecificationList() throws ParseException, StandardException {
-    OrderByList orderCols = (OrderByList)nodeFactory.getNode(NodeTypes.ORDER_BY_LIST,
+    OrderByList orderCols = (OrderByList)nodeFactory.getNode(NodeType.ORDER_BY_LIST,
                                                              parserContext);
     sortSpecification(orderCols);
     label_22:
@@ -7972,7 +7972,7 @@ columnReference() throws StandardException :
   final public OrderByColumn sortKey() throws ParseException, StandardException {
     ValueNode columnExpression;
     columnExpression = additiveExpression();
-        {if (true) return (OrderByColumn)nodeFactory.getNode(NodeTypes.ORDER_BY_COLUMN,
+        {if (true) return (OrderByColumn)nodeFactory.getNode(NodeType.ORDER_BY_COLUMN,
                                                   columnExpression,
                                                   parserContext);}
     throw new Error("Missing return statement in function");
@@ -8293,7 +8293,7 @@ columnReference() throws StandardException :
   }
 
   final public ResultColumnList setClauseList() throws ParseException, StandardException {
-    ResultColumnList    columnList = (ResultColumnList)nodeFactory.getNode(NodeTypes.RESULT_COLUMN_LIST,
+    ResultColumnList    columnList = (ResultColumnList)nodeFactory.getNode(NodeType.RESULT_COLUMN_LIST,
                                                                            parserContext);
     setClause(columnList);
     label_24:
@@ -8324,7 +8324,7 @@ columnReference() throws StandardException :
         columnName = columnReference();
     jj_consume_token(EQUALS_OPERATOR);
     valueNode = updateSource(columnName.getColumnName());
-        resultColumn = (ResultColumn)nodeFactory.getNode(NodeTypes.RESULT_COLUMN,
+        resultColumn = (ResultColumn)nodeFactory.getNode(NodeType.RESULT_COLUMN,
                                                          columnName,
                                                          valueNode,
                                                          parserContext);
@@ -8340,7 +8340,7 @@ columnReference() throws StandardException :
       switch (jj_nt.kind) {
       case _DEFAULT:
         jj_consume_token(_DEFAULT);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.DEFAULT_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.DEFAULT_NODE,
                                               columnName,
                                               parserContext);}
         break;
@@ -8355,7 +8355,7 @@ columnReference() throws StandardException :
 
   final public ValueNode nullSpecification() throws ParseException, StandardException {
     jj_consume_token(NULL);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.UNTYPED_NULL_CONSTANT_NODE,
                                               parserContext);}
     throw new Error("Missing return statement in function");
   }
@@ -8430,7 +8430,7 @@ columnReference() throws StandardException :
                                          ((offsetAndFetchFirst[0] != null) ? "OFFSET" : "FETCH"));}
         }
 
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.INSERT_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.INSERT_NODE,
                                                   targetTable,
                                                   columnList,
                                                   queryExpression,
@@ -8444,7 +8444,7 @@ columnReference() throws StandardException :
   }
 
   final public ResultColumnList insertColumnList() throws ParseException, StandardException {
-    ResultColumnList    columnList = (ResultColumnList)nodeFactory.getNode(NodeTypes.RESULT_COLUMN_LIST,
+    ResultColumnList    columnList = (ResultColumnList)nodeFactory.getNode(NodeType.RESULT_COLUMN_LIST,
                                                                            parserContext);
     columnQualifiedNameList(columnList);
         {if (true) return columnList;}
@@ -8482,7 +8482,7 @@ columnReference() throws StandardException :
         ** should be hooked up to each result column, so set that
         ** to null for now.
         */
-        resultColumn = (ResultColumn)nodeFactory.getNode(NodeTypes.RESULT_COLUMN,
+        resultColumn = (ResultColumn)nodeFactory.getNode(NodeType.RESULT_COLUMN,
                                                          columnRef,
                                                          null,
                                                          parserContext);
@@ -8490,7 +8490,7 @@ columnReference() throws StandardException :
   }
 
   final public ResultSetNode rowValueConstructor(ResultSetNode leftRSN) throws ParseException, StandardException {
-    ResultColumnList resultColumns = (ResultColumnList)nodeFactory.getNode(NodeTypes.RESULT_COLUMN_LIST,
+    ResultColumnList resultColumns = (ResultColumnList)nodeFactory.getNode(NodeType.RESULT_COLUMN_LIST,
                                                                            parserContext);
     if (rowValueConstructorListFollows()) {
       jj_consume_token(LEFT_PAREN);
@@ -8505,7 +8505,7 @@ columnReference() throws StandardException :
         * Else make a new list with both.
         */
         RowResultSetNode newRSN = (RowResultSetNode)
-            nodeFactory.getNode(NodeTypes.ROW_RESULT_SET_NODE,
+            nodeFactory.getNode(NodeType.ROW_RESULT_SET_NODE,
                                 resultColumns,
                                 null,
                                 parserContext);
@@ -8522,7 +8522,7 @@ columnReference() throws StandardException :
             rows = (RowsResultSetNode)leftRSN;
         else
             rows = (RowsResultSetNode)
-                nodeFactory.getNode(NodeTypes.ROWS_RESULT_SET_NODE,
+                nodeFactory.getNode(NodeType.ROWS_RESULT_SET_NODE,
                                     leftRSN,
                                     parserContext);
         rows.addRow(newRSN);
@@ -8535,14 +8535,14 @@ columnReference() throws StandardException :
     if (simpleLiteralInListFollows()) {
       value = literal();
         resultColumns.addResultColumn(
-            (ResultColumn)nodeFactory.getNode(NodeTypes.RESULT_COLUMN,
+            (ResultColumn)nodeFactory.getNode(NodeType.RESULT_COLUMN,
                                               null,
                                               value,
                                               parserContext));
     } else if (jj_2_62(1)) {
       value = orExpression(null);
         resultColumns.addResultColumn(
-            (ResultColumn)nodeFactory.getNode(NodeTypes.RESULT_COLUMN,
+            (ResultColumn)nodeFactory.getNode(NodeType.RESULT_COLUMN,
                                               null,
                                               value,
                                               parserContext));
@@ -8551,9 +8551,9 @@ columnReference() throws StandardException :
       case _DEFAULT:
         jj_consume_token(_DEFAULT);
         resultColumns.addResultColumn(
-            (ResultColumn)nodeFactory.getNode(NodeTypes.RESULT_COLUMN,
+            (ResultColumn)nodeFactory.getNode(NodeType.RESULT_COLUMN,
                                               null,
-                                              nodeFactory.getNode(NodeTypes.DEFAULT_NODE,
+                                              nodeFactory.getNode(NodeType.DEFAULT_NODE,
                                                                   null, parserContext),
                                               parserContext));
         break;
@@ -8616,7 +8616,7 @@ columnReference() throws StandardException :
       }
       offsetOrFetchFirstClause(offsetAndFetchFirst);
     }
-        subqueryNode = (SubqueryNode)nodeFactory.getNode(NodeTypes.SUBQUERY_NODE,
+        subqueryNode = (SubqueryNode)nodeFactory.getNode(NodeType.SUBQUERY_NODE,
                                                          queryExpression,
                                                          subqueryType,
                                                          leftOperand,
@@ -8640,7 +8640,7 @@ columnReference() throws StandardException :
       switch (jj_nt.kind) {
       case LEFT_PAREN:
         retval = rowCtor(count);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.IN_LIST_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.IN_LIST_OPERATOR_NODE,
                                               leftOperand,
                                               retval,
                                               parserContext);}
@@ -8655,7 +8655,7 @@ columnReference() throws StandardException :
   }
 
   final public ValueNode inValueList(ValueNode leftOperand) throws ParseException, StandardException {
-    ValueNodeList inList = (ValueNodeList)nodeFactory.getNode(NodeTypes.VALUE_NODE_LIST,
+    ValueNodeList inList = (ValueNodeList)nodeFactory.getNode(NodeType.VALUE_NODE_LIST,
                                                               parserContext);
     inElement(inList);
     label_29:
@@ -8671,7 +8671,7 @@ columnReference() throws StandardException :
       jj_consume_token(COMMA);
       inElement(inList);
     }
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.IN_LIST_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.IN_LIST_OPERATOR_NODE,
                                               leftOperand,
                                               inList,
                                               parserContext);}
@@ -8685,13 +8685,13 @@ columnReference() throws StandardException :
   }
 
   final public ValueNode rowCtor(int count[]) throws ParseException, StandardException {
-    ValueNodeList list = (ValueNodeList)nodeFactory.getNode(NodeTypes.VALUE_NODE_LIST,
+    ValueNodeList list = (ValueNodeList)nodeFactory.getNode(NodeType.VALUE_NODE_LIST,
                                                             parserContext);
     jj_consume_token(LEFT_PAREN);
     getRow(list, count);
     jj_consume_token(RIGHT_PAREN);
         ++count[0];
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.ROW_CTOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.ROW_CTOR_NODE,
                                               list,
                                               new int[]{count[0]},
                                               parserContext);}
@@ -8892,7 +8892,7 @@ columnReference() throws StandardException :
         // fix for HAVING without GROUP BY, makes sure we get one
         // aggregate operator by adding a count(*), this fixes beetle 5853, 5890
         if (havingClause != null && groupByList == null) {
-            ValueNode vn = (ValueNode)nodeFactory.getNode(NodeTypes.AGGREGATE_NODE,
+            ValueNode vn = (ValueNode)nodeFactory.getNode(NodeType.AGGREGATE_NODE,
                                                           null,
                                                           "CountAggregateDefinition",
                                                           Boolean.FALSE, // distinct Boolean.TRUE?
@@ -8904,11 +8904,11 @@ columnReference() throws StandardException :
         }
 
         if (fromList == null)
-          fromList = (FromList)nodeFactory.getNode(NodeTypes.FROM_LIST,
+          fromList = (FromList)nodeFactory.getNode(NodeType.FROM_LIST,
                                                    true,
                                                    parserContext);
 
-        selectNode = (SelectNode)nodeFactory.getNode(NodeTypes.SELECT_NODE,
+        selectNode = (SelectNode)nodeFactory.getNode(NodeType.SELECT_NODE,
                                                      selectList,
                                                      null,       /* AGGREGATE list */
                                                      fromList,
@@ -8923,7 +8923,7 @@ columnReference() throws StandardException :
   }
 
   final public FromList fromClause() throws ParseException, StandardException {
-    FromList fromList = (FromList)nodeFactory.getNode(NodeTypes.FROM_LIST,
+    FromList fromList = (FromList)nodeFactory.getNode(NodeType.FROM_LIST,
                                                       true, // nodeFactory.doJoinOrderOptimization()
                                                       parserContext);
     int tokKind;
@@ -9091,7 +9091,7 @@ columnReference() throws StandardException :
   }
 
   final public IndexHintList indexHints() throws ParseException, StandardException {
-    IndexHintList list = (IndexHintList)nodeFactory.getNode(NodeTypes.INDEX_HINT_LIST,
+    IndexHintList list = (IndexHintList)nodeFactory.getNode(NodeType.INDEX_HINT_LIST,
                                                             parserContext);
     indexHintList(list);
         {if (true) return list;}
@@ -9159,7 +9159,7 @@ columnReference() throws StandardException :
     }
     jj_consume_token(RIGHT_PAREN);
         IndexHintNode indexHint = (IndexHintNode)
-            nodeFactory.getNode(NodeTypes.INDEX_HINT_NODE,
+            nodeFactory.getNode(NodeType.INDEX_HINT_NODE,
                                 hintType,
                                 hintScope,
                                 indexes,
@@ -9302,7 +9302,7 @@ columnReference() throws StandardException :
         jj_la1[251] = jj_gen;
         ;
       }
-        fromTable = (FromTable)nodeFactory.getNode(NodeTypes.FROM_VTI,
+        fromTable = (FromTable)nodeFactory.getNode(NodeType.FROM_VTI,
                                                    javaToSQLNode.getJavaValueNode(),
                                                    correlationName,
                                                    derivedRCL,
@@ -9314,7 +9314,7 @@ columnReference() throws StandardException :
     } else if (jj_2_71(1)) {
       tableName = qualifiedName();
       optionalTableClauses = optionalTableClauses();
-        fromTable = (FromTable)nodeFactory.getNode(NodeTypes.FROM_BASE_TABLE,
+        fromTable = (FromTable)nodeFactory.getNode(NodeType.FROM_BASE_TABLE,
                                                    tableName,
                                                    optionalTableClauses[OPTIONAL_TABLE_CORRELATION_NAME],
                                                    optionalTableClauses[OPTIONAL_TABLE_DERIVED_RCL],
@@ -9352,7 +9352,7 @@ columnReference() throws StandardException :
         jj_la1[254] = jj_gen;
         ;
       }
-        fromTable = (FromTable)nodeFactory.getNode(NodeTypes.FROM_SUBQUERY,
+        fromTable = (FromTable)nodeFactory.getNode(NodeType.FROM_SUBQUERY,
                                                    derivedTable.getResultSet(),
                                                    derivedTable.getOrderByList(),
                                                    derivedTable.getOffset(),
@@ -9385,7 +9385,7 @@ columnReference() throws StandardException :
 
   final public ResultColumnList derivedColumnList() throws ParseException, StandardException {
     ResultColumnList resultColumns = (ResultColumnList)
-        nodeFactory.getNode(NodeTypes.RESULT_COLUMN_LIST,
+        nodeFactory.getNode(NodeType.RESULT_COLUMN_LIST,
                             parserContext);
     columnNameList(resultColumns);
         {if (true) return resultColumns;}
@@ -9419,7 +9419,7 @@ columnReference() throws StandardException :
         ** should be hooked up to each result column, so set that
         ** to null for now.
         */
-        resultColumn = (ResultColumn)nodeFactory.getNode(NodeTypes.RESULT_COLUMN,
+        resultColumn = (ResultColumn)nodeFactory.getNode(NodeType.RESULT_COLUMN,
                                                          columnName,
                                                          null,
                                                          parserContext);
@@ -9429,7 +9429,7 @@ columnReference() throws StandardException :
   final public IndexColumn getIndexColumn() throws ParseException, StandardException {
     String columnName;
     columnName = identifier();
-        {if (true) return (IndexColumn) nodeFactory.getNode(NodeTypes.INDEX_COLUMN,
+        {if (true) return (IndexColumn) nodeFactory.getNode(NodeType.INDEX_COLUMN,
                                                  columnName,
                                                  Boolean.TRUE,
                                                  parserContext);}
@@ -9463,7 +9463,7 @@ columnReference() throws StandardException :
       columnName = identifier();
           int latPosition = columnList.size();
           IndexColumn lat = (IndexColumn)
-              nodeFactory.getNode(NodeTypes.INDEX_COLUMN,
+              nodeFactory.getNode(NodeType.INDEX_COLUMN,
                                   columnName,
                                   Boolean.FALSE,
                                   parserContext);
@@ -9471,7 +9471,7 @@ columnReference() throws StandardException :
       jj_consume_token(COMMA);
       columnName = identifier();
           IndexColumn lon = (IndexColumn)
-              nodeFactory.getNode(NodeTypes.INDEX_COLUMN,
+              nodeFactory.getNode(NodeType.INDEX_COLUMN,
                                   columnName,
                                   Boolean.FALSE,
                                   parserContext);
@@ -9507,7 +9507,7 @@ columnReference() throws StandardException :
           ;
         }
           IndexColumn indexColumn = (IndexColumn)
-              nodeFactory.getNode(NodeTypes.INDEX_COLUMN,
+              nodeFactory.getNode(NodeType.INDEX_COLUMN,
                                   columnName,
                                   asc ? Boolean.TRUE : Boolean.FALSE,
                                   parserContext);
@@ -9523,7 +9523,7 @@ columnReference() throws StandardException :
     String columnName;
     columnName = identifier();
         IndexColumn indexColumn = (IndexColumn)
-            nodeFactory.getNode(NodeTypes.INDEX_COLUMN,
+            nodeFactory.getNode(NodeType.INDEX_COLUMN,
                                 columnName,
                                 Boolean.TRUE,
                                 parserContext);
@@ -9758,7 +9758,7 @@ columnReference() throws StandardException :
   }
 
   final public ResultColumnList namedColumnsJoin() throws ParseException, StandardException {
-    ResultColumnList usingClause = (ResultColumnList)nodeFactory.getNode(NodeTypes.RESULT_COLUMN_LIST,
+    ResultColumnList usingClause = (ResultColumnList)nodeFactory.getNode(NodeType.RESULT_COLUMN_LIST,
                                                                          parserContext);
     jj_consume_token(USING);
     jj_consume_token(LEFT_PAREN);
@@ -9814,7 +9814,7 @@ columnReference() throws StandardException :
     if ((getToken(1).kind == CURRENT && getToken(2).kind == DATE)) {
       jj_consume_token(CURRENT);
       jj_consume_token(DATE);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.CURRENT_DATETIME_OPERATOR_NODE,
                                               CurrentDatetimeOperatorNode.Field.DATE,
                                               parserContext);}
     } else {
@@ -9822,7 +9822,7 @@ columnReference() throws StandardException :
       case CURRENT_DATE:
         jj_consume_token(CURRENT_DATE);
         checkOptionalParens();
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.CURRENT_DATETIME_OPERATOR_NODE,
                                               CurrentDatetimeOperatorNode.Field.DATE,
                                               parserContext);}
         break;
@@ -9831,7 +9831,7 @@ columnReference() throws StandardException :
         if ((getToken(1).kind == CURRENT && getToken(2).kind == TIME)) {
           jj_consume_token(CURRENT);
           jj_consume_token(TIME);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.CURRENT_DATETIME_OPERATOR_NODE,
                                               CurrentDatetimeOperatorNode.Field.TIME,
                                               parserContext);}
         } else {
@@ -9839,7 +9839,7 @@ columnReference() throws StandardException :
           case CURRENT_TIME:
             jj_consume_token(CURRENT_TIME);
         checkOptionalParens();
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.CURRENT_DATETIME_OPERATOR_NODE,
                                               CurrentDatetimeOperatorNode.Field.TIME,
                                               parserContext);}
             break;
@@ -9848,7 +9848,7 @@ columnReference() throws StandardException :
             if ((getToken(1).kind == CURRENT && getToken(2).kind == TIMESTAMP)) {
               jj_consume_token(CURRENT);
               jj_consume_token(TIMESTAMP);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.CURRENT_DATETIME_OPERATOR_NODE,
                                               CurrentDatetimeOperatorNode.Field.TIMESTAMP,
                                               parserContext);}
             } else {
@@ -9856,7 +9856,7 @@ columnReference() throws StandardException :
               case CURRENT_TIMESTAMP:
                 jj_consume_token(CURRENT_TIMESTAMP);
         checkOptionalParens();
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.CURRENT_DATETIME_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.CURRENT_DATETIME_OPERATOR_NODE,
                                               CurrentDatetimeOperatorNode.Field.TIMESTAMP,
                                               parserContext);}
                 break;
@@ -9887,7 +9887,7 @@ columnReference() throws StandardException :
       switch (jj_nt.kind) {
       case ASTERISK:
         jj_consume_token(ASTERISK);
-            winOrAgg = (ValueNode)nodeFactory.getNode(NodeTypes.AGGREGATE_NODE,
+            winOrAgg = (ValueNode)nodeFactory.getNode(NodeType.AGGREGATE_NODE,
                                                       null,
                                                       "CountAggregateDefinition",
                                                       Boolean.FALSE,
@@ -9910,7 +9910,7 @@ columnReference() throws StandardException :
         ;
       }
         if (window != null) {
-            winOrAgg = (ValueNode)nodeFactory.getNode(NodeTypes.AGGREGATE_WINDOW_FUNCTION_NODE,
+            winOrAgg = (ValueNode)nodeFactory.getNode(NodeType.AGGREGATE_WINDOW_FUNCTION_NODE,
                                                       window,
                                                       winOrAgg,
                                                       parserContext);
@@ -9935,7 +9935,7 @@ columnReference() throws StandardException :
         ;
       }
         if (window != null) {
-            winOrAgg = (ValueNode)nodeFactory.getNode(NodeTypes.AGGREGATE_WINDOW_FUNCTION_NODE,
+            winOrAgg = (ValueNode)nodeFactory.getNode(NodeType.AGGREGATE_WINDOW_FUNCTION_NODE,
                                                       window,
                                                       winOrAgg,
                                                       parserContext);
@@ -9948,7 +9948,7 @@ columnReference() throws StandardException :
       jj_consume_token(LEFT_PAREN);
       jj_consume_token(RIGHT_PAREN);
       window = overClause();
-        winOrAgg = (ValueNode)nodeFactory.getNode(NodeTypes.ROW_NUMBER_FUNCTION_NODE,
+        winOrAgg = (ValueNode)nodeFactory.getNode(NodeType.ROW_NUMBER_FUNCTION_NODE,
                                                   null,
                                                   window,
                                                   parserContext);
@@ -9993,7 +9993,7 @@ columnReference() throws StandardException :
         ;
       }
       jj_consume_token(RIGHT_PAREN);
-        {if (true) return (QueryTreeNode)nodeFactory.getNode(NodeTypes.WINDOW_DEFINITION_NODE,
+        {if (true) return (QueryTreeNode)nodeFactory.getNode(NodeType.WINDOW_DEFINITION_NODE,
                                                   null,
                                                   partitionCols,
                                                   orderCols,
@@ -10003,7 +10003,7 @@ columnReference() throws StandardException :
       jj_la1[278] = jj_gen;
       if (jj_2_77(1)) {
         windowRef = identifier();
-         {if (true) return (QueryTreeNode)nodeFactory.getNode(NodeTypes.WINDOW_REFERENCE_NODE,
+         {if (true) return (QueryTreeNode)nodeFactory.getNode(NodeType.WINDOW_REFERENCE_NODE,
                                                    windowRef,
                                                    parserContext);}
       } else {
@@ -10015,7 +10015,7 @@ columnReference() throws StandardException :
   }
 
   final public PartitionByList partitionByClause() throws ParseException, StandardException {
-    PartitionByList partitionByList = (PartitionByList)nodeFactory.getNode(NodeTypes.PARTITION_BY_LIST,
+    PartitionByList partitionByList = (PartitionByList)nodeFactory.getNode(NodeType.PARTITION_BY_LIST,
                                                                        parserContext);
     jj_consume_token(PARTITION);
     jj_consume_token(BY);
@@ -10051,11 +10051,11 @@ columnReference() throws StandardException :
     }
         ValueNode partitionColumn = column;
         if (collation != null)
-            partitionColumn = (ValueNode)nodeFactory.getNode(NodeTypes.EXPLICIT_COLLATE_NODE,
+            partitionColumn = (ValueNode)nodeFactory.getNode(NodeType.EXPLICIT_COLLATE_NODE,
                                                              partitionColumn,
                                                              collation,
                                                              parserContext);
-        PartitionByColumn partitionBy = (PartitionByColumn)nodeFactory.getNode(NodeTypes.PARTITION_BY_COLUMN,
+        PartitionByColumn partitionBy = (PartitionByColumn)nodeFactory.getNode(NodeType.PARTITION_BY_COLUMN,
                                                                                partitionColumn,
                                                                                parserContext);
         partitionByList.add(partitionBy);
@@ -10091,7 +10091,7 @@ columnReference() throws StandardException :
       ;
     }
     jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.GROUP_CONCAT_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.GROUP_CONCAT_NODE,
                                               value,
                                               "GroupConcatDefinitionNode",
                                               distinct ? Boolean.TRUE : Boolean.FALSE,
@@ -10113,7 +10113,7 @@ columnReference() throws StandardException :
             case 1:
                 {if (true) return paramList.get(0);}
             default:
-                newNode = nodeFactory.getNode(NodeTypes.NEW_INVOCATION_NODE,
+                newNode = nodeFactory.getNode(NodeType.NEW_INVOCATION_NODE,
                                               "concat",
                                               paramList,
                                               lastTokenDelimitedIdentifier,
@@ -10121,7 +10121,7 @@ columnReference() throws StandardException :
                                               null,
                                               parserContext);
 
-                {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.JAVA_TO_SQL_VALUE_NODE,
+                {if (true) return (ValueNode)nodeFactory.getNode(NodeType.JAVA_TO_SQL_VALUE_NODE,
                                                                newNode,
                                                                parserContext);}
         }
@@ -10154,7 +10154,7 @@ columnReference() throws StandardException :
       ;
     }
     value = additiveExpression();
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.AGGREGATE_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.AGGREGATE_NODE,
                                               value,
                                               aggClass,
                                               distinct ? Boolean.TRUE : Boolean.FALSE,
@@ -10224,7 +10224,7 @@ columnReference() throws StandardException :
     jj_consume_token(AS);
     dts = dataTypeCast();
     jj_consume_token(RIGHT_PAREN);
-        treeTop = (ValueNode)nodeFactory.getNode(NodeTypes.CAST_NODE,
+        treeTop = (ValueNode)nodeFactory.getNode(NodeType.CAST_NODE,
                                                  value,
                                                  dts,
                                                  parserContext);
@@ -10234,8 +10234,8 @@ columnReference() throws StandardException :
          * the dataTypeCast is a user type.
          */
         if (dts.getTypeId().userType()) {
-            treeTop = (ValueNode)nodeFactory.getNode(NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                                                     nodeFactory.getNode(NodeTypes.SQL_TO_JAVA_VALUE_NODE,
+            treeTop = (ValueNode)nodeFactory.getNode(NodeType.JAVA_TO_SQL_VALUE_NODE,
+                                                     nodeFactory.getNode(NodeType.SQL_TO_JAVA_VALUE_NODE,
                                                                          treeTop,
                                                                          parserContext),
                                                      parserContext);
@@ -10255,7 +10255,7 @@ columnReference() throws StandardException :
     jj_consume_token(VALUE);
     jj_consume_token(FOR);
     sequenceName = qualifiedName();
-        nextValue = (ValueNode)nodeFactory.getNode(NodeTypes.NEXT_SEQUENCE_NODE,
+        nextValue = (ValueNode)nodeFactory.getNode(NodeType.NEXT_SEQUENCE_NODE,
                                                    sequenceName,
                                                    parserContext);
 
@@ -10279,7 +10279,7 @@ columnReference() throws StandardException :
     jj_consume_token(VALUE);
     jj_consume_token(FOR);
     sequenceName = qualifiedName();
-        sequenceValue = (ValueNode)nodeFactory.getNode(NodeTypes.CURRENT_SEQUENCE_NODE,
+        sequenceValue = (ValueNode)nodeFactory.getNode(NodeType.CURRENT_SEQUENCE_NODE,
                                                        sequenceName,
                                                        parserContext);
 
@@ -10367,7 +10367,7 @@ columnReference() throws StandardException :
   }
 
   final public GroupByList groupingColumnReferenceList() throws ParseException, StandardException {
-    GroupByList groupingCols = (GroupByList)nodeFactory.getNode(NodeTypes.GROUP_BY_LIST,
+    GroupByList groupingCols = (GroupByList)nodeFactory.getNode(NodeType.GROUP_BY_LIST,
                                                                 parserContext);
     groupingColumnReference(groupingCols);
     label_40:
@@ -10401,7 +10401,7 @@ columnReference() throws StandardException :
             {if (true) throw new StandardException("Parameters not allowed in GROUP BY");}
         }
         groupingCols.addGroupByColumn(
-            (GroupByColumn)nodeFactory.getNode(NodeTypes.GROUP_BY_COLUMN,
+            (GroupByColumn)nodeFactory.getNode(NodeType.GROUP_BY_COLUMN,
                                                columnExpression,
                                                parserContext));
   }
@@ -10461,7 +10461,7 @@ columnReference() throws StandardException :
     }
     jj_consume_token(RIGHT_PAREN);
         wl.addWindow(
-            (WindowDefinitionNode)nodeFactory.getNode(NodeTypes.WINDOW_DEFINITION_NODE,
+            (WindowDefinitionNode)nodeFactory.getNode(NodeType.WINDOW_DEFINITION_NODE,
                                                       windowName,
                                                       partitionCols,
                                                       orderCols,
@@ -10521,7 +10521,7 @@ columnReference() throws StandardException :
     } else {
       ;
     }
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.CREATE_SCHEMA_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.CREATE_SCHEMA_NODE,
                                                   schemaName,
                                                   authName,
                                                   defaultCharacterAttributes,
@@ -10534,7 +10534,7 @@ columnReference() throws StandardException :
     String roleName = null;
     jj_consume_token(ROLE);
     roleName = identifier();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.CREATE_ROLE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.CREATE_ROLE_NODE,
                                                   roleName,
                                                   parserContext);}
     throw new Error("Missing return statement in function");
@@ -10583,7 +10583,7 @@ columnReference() throws StandardException :
             cycle = (Boolean)optionalClauses[SEQUENCE_CYCLE];
         }
 
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.CREATE_SEQUENCE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.CREATE_SEQUENCE_NODE,
                                                   qualifiedSequenceName,
                                                   dtd,
                                                   initialValue,
@@ -10725,7 +10725,7 @@ columnReference() throws StandardException :
     cond = dropCondition();
     sequenceName = qualifiedName();
     jj_consume_token(RESTRICT);
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.DROP_SEQUENCE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.DROP_SEQUENCE_NODE,
                                                   sequenceName,
                                                   new Integer(StatementType.DROP_RESTRICT),
                                                   cond,
@@ -10767,7 +10767,7 @@ columnReference() throws StandardException :
         jj_la1[299] = jj_gen;
         ;
       }
-        StatementNode result = (StatementNode)nodeFactory.getNode(NodeTypes.CREATE_TABLE_NODE,
+        StatementNode result = (StatementNode)nodeFactory.getNode(NodeType.CREATE_TABLE_NODE,
                                                   tableName,
                                                   tableElementList,
                                                   properties,
@@ -10824,7 +10824,7 @@ columnReference() throws StandardException :
             {if (true) throw new StandardException("Parameters not allowed in CREATE TABLE");}
         }
 
-        StatementNode result = (StatementNode)nodeFactory.getNode(NodeTypes.CREATE_TABLE_NODE,
+        StatementNode result = (StatementNode)nodeFactory.getNode(NodeType.CREATE_TABLE_NODE,
                                                                   tableName,
                                                                   resultColumns,
                                                                   queryExpression,
@@ -10941,7 +10941,7 @@ columnReference() throws StandardException :
 
 /* CRATE TABLE PROPERTIES END */
   final public ResultColumnList tableColumnList() throws ParseException, StandardException {
-    ResultColumnList resultColumns = (ResultColumnList)nodeFactory.getNode(NodeTypes.RESULT_COLUMN_LIST,
+    ResultColumnList resultColumns = (ResultColumnList)nodeFactory.getNode(NodeType.RESULT_COLUMN_LIST,
                                                                            parserContext);
     columnNameList(resultColumns);
         {if (true) return resultColumns;}
@@ -11044,7 +11044,7 @@ columnReference() throws StandardException :
     jj_consume_token(USING);
     indexMethod = indexMethod();
     jj_consume_token(LEFT_PAREN);
-    indexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext));
+    indexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeType.INDEX_COLUMN_LIST, parserContext));
     jj_consume_token(RIGHT_PAREN);
     switch (jj_nt.kind) {
     case WITH:
@@ -11084,7 +11084,7 @@ columnReference() throws StandardException :
                 {if (true) throw new StandardException("Specified tables do not match: " + column.getTableName() + ", " + tableName);}
             }
         }
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.CREATE_INDEX_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.CREATE_INDEX_NODE,
                                                   false,
                                                   indexName,
                                                   tableName,
@@ -11124,7 +11124,7 @@ columnReference() throws StandardException :
  * Generic Key Value Pairs
  */
   final public GenericProperties genericProperties() throws ParseException, StandardException {
-    GenericProperties genericProperties = (GenericProperties)nodeFactory.getNode(NodeTypes.GENERIC_PROPERTIES, parserContext);
+    GenericProperties genericProperties = (GenericProperties)nodeFactory.getNode(NodeType.GENERIC_PROPERTIES, parserContext);
     genericProperty(genericProperties);
     label_45:
     while (true) {
@@ -11144,7 +11144,7 @@ columnReference() throws StandardException :
   }
 
   final public ValueNodeList valueNodeList() throws ParseException, StandardException {
-    ValueNodeList list = (ValueNodeList)nodeFactory.getNode(NodeTypes.VALUE_NODE_LIST, parserContext);
+    ValueNodeList list = (ValueNodeList)nodeFactory.getNode(NodeType.VALUE_NODE_LIST, parserContext);
     valueNodeListElement(list);
     label_46:
     while (true) {
@@ -11233,7 +11233,7 @@ columnReference() throws StandardException :
       jj_la1[317] = jj_gen;
       ;
     }
-        {if (true) return (NamedNodeWithOptionalProperties)nodeFactory.getNode(NodeTypes.NAMED_NODE_WITH_OPTIONAL_PROPERTIES,
+        {if (true) return (NamedNodeWithOptionalProperties)nodeFactory.getNode(NodeType.NAMED_NODE_WITH_OPTIONAL_PROPERTIES,
                                                                         name,
                                                                         properties,
                                                                         parserContext);}
@@ -11246,10 +11246,10 @@ columnReference() throws StandardException :
   final public StatementNode analyzerDefinition() throws ParseException, StandardException {
     TableName analyzerName = null;
     TableName extendedAnalyzerName = null;
-    AnalyzerElements analyzerElements = (AnalyzerElements)nodeFactory.getNode(NodeTypes.ANALYZER_ELEMENTS,
-                                                            (GenericProperties)nodeFactory.getNode(NodeTypes.GENERIC_PROPERTIES, parserContext),
-                                                            (TokenFilterList)nodeFactory.getNode(NodeTypes.TOKEN_FILTER_LIST, parserContext),
-                                                            (CharFilterList)nodeFactory.getNode(NodeTypes.CHAR_FILTER_LIST, parserContext),
+    AnalyzerElements analyzerElements = (AnalyzerElements)nodeFactory.getNode(NodeType.ANALYZER_ELEMENTS,
+                                                            (GenericProperties)nodeFactory.getNode(NodeType.GENERIC_PROPERTIES, parserContext),
+                                                            (TokenFilterList)nodeFactory.getNode(NodeType.TOKEN_FILTER_LIST, parserContext),
+                                                            (CharFilterList)nodeFactory.getNode(NodeType.CHAR_FILTER_LIST, parserContext),
                                                             parserContext);
     jj_consume_token(ANALYZER);
     analyzerName = qualifiedName();
@@ -11290,7 +11290,7 @@ columnReference() throws StandardException :
             {if (true) throw new StandardException("Tokenizer missing from non-extended analyzer");}
         }
 
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.CREATE_ANALYZER_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.CREATE_ANALYZER_NODE,
                                                     analyzerName,
                                                     extendedAnalyzerName,
                                                     analyzerElements,
@@ -11973,7 +11973,7 @@ columnReference() throws StandardException :
             {if (true) throw new StandardException("Parameters not allowed in CREATE VIEW");}
         }
 
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.CREATE_VIEW_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.CREATE_VIEW_NODE,
                                                   tableName,
                                                   resultColumns,
                                                   queryExpression,
@@ -11988,7 +11988,7 @@ columnReference() throws StandardException :
   }
 
   final public ResultColumnList viewColumnList() throws ParseException, StandardException {
-    ResultColumnList resultColumns = (ResultColumnList)nodeFactory.getNode(NodeTypes.RESULT_COLUMN_LIST,
+    ResultColumnList resultColumns = (ResultColumnList)nodeFactory.getNode(NodeType.RESULT_COLUMN_LIST,
                                                                            parserContext);
     columnNameList(resultColumns);
         {if (true) return resultColumns;}
@@ -12008,7 +12008,7 @@ columnReference() throws StandardException :
     int actionEnd;
     int triggerEvent;
     QueryTreeNode actionNode;
-    ResultColumnList triggerColumns = (ResultColumnList)nodeFactory.getNode(NodeTypes.RESULT_COLUMN_LIST,
+    ResultColumnList triggerColumns = (ResultColumnList)nodeFactory.getNode(NodeType.RESULT_COLUMN_LIST,
                                                                             parserContext);
     List<TriggerReferencingStruct> refClause = null;
     jj_consume_token(TRIGGER);
@@ -12060,7 +12060,7 @@ columnReference() throws StandardException :
             {if (true) throw new StandardException("Parameters not allowed in trigger action");}
         }
 
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.CREATE_TRIGGER_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.CREATE_TRIGGER_NODE,
                                                   triggerName,
                                                   tableName,
                                                   triggerEvent,
@@ -12293,7 +12293,7 @@ columnReference() throws StandardException :
   final public ValueNode defaultNullOnlyClause() throws ParseException, StandardException {
     jj_consume_token(_DEFAULT);
     jj_consume_token(NULL);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.UNTYPED_NULL_CONSTANT_NODE,
                                               parserContext);}
     throw new Error("Missing return statement in function");
   }
@@ -12345,7 +12345,7 @@ columnReference() throws StandardException :
     jj_consume_token(BY);
     jj_consume_token(_DEFAULT);
     asIdentity(autoIncrementInfo);
-        value = (ValueNode)nodeFactory.getNode(NodeTypes.DEFAULT_NODE,
+        value = (ValueNode)nodeFactory.getNode(NodeType.DEFAULT_NODE,
                                                parserContext) ;
 
         {if (true) return value;}
@@ -12375,7 +12375,7 @@ columnReference() throws StandardException :
     beginToken = jj_consume_token(LEFT_PAREN);
     value = valueExpression();
     endToken = jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.GENERATION_CLAUSE_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.GENERATION_CLAUSE_NODE,
                                               value,
                                               sliceSQLText(beginToken.endOffset + 1, endToken.beginOffset - 1, true),
                                               parserContext);}
@@ -12429,14 +12429,14 @@ columnReference() throws StandardException :
     if (getToken(1).kind == NULL &&
                                      !(getToken(2).kind == PERIOD || getToken(2).kind == DOUBLE_COLON)) {
       jj_consume_token(NULL);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.UNTYPED_NULL_CONSTANT_NODE,
                                               parserContext);}
     } else if (jj_2_92(1)) {
       value = DB2DefaultOption(columnName);
         endToken = getToken(0);
         value.setBeginOffset(beginToken.beginOffset);
         value.setEndOffset(endToken.endOffset);
-        value = (ValueNode)nodeFactory.getNode(NodeTypes.DEFAULT_NODE,
+        value = (ValueNode)nodeFactory.getNode(NodeType.DEFAULT_NODE,
                                                value,
                                                sliceSQLText(beginToken.beginOffset + 7, endToken.endOffset, true),
                                                parserContext);
@@ -12464,7 +12464,7 @@ columnReference() throws StandardException :
         jj_consume_token(-1);
         throw new ParseException();
       }
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.CURRENT_SCHEMA_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.CURRENT_SCHEMA_NODE,
                                               parserContext);}
     } else {
       switch (jj_nt.kind) {
@@ -12563,7 +12563,7 @@ columnReference() throws StandardException :
         case FALSE:
         case TRUE:
           tok = booleanLiteral();
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.BOOLEAN_CONSTANT_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.BOOLEAN_CONSTANT_NODE,
                                               "true".equalsIgnoreCase(tok.image) ? Boolean.TRUE : Boolean.FALSE,
                                               parserContext);}
           break;
@@ -12665,7 +12665,7 @@ columnReference() throws StandardException :
         if (Double.isNaN(dv) || Double.isInfinite(dv))
             {if (true) throw new StandardException("Floating point exponent overflow");}
 
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.DOUBLE_CONSTANT_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.DOUBLE_CONSTANT_NODE,
                                               doubleValue,
                                               parserContext);}
       break;
@@ -12692,7 +12692,7 @@ columnReference() throws StandardException :
       if (isDATETIME(getToken(1).kind) && getToken(2).kind == SINGLEQUOTED_STRING) {
         typeDescriptor = datetimeType();
         constantNode = stringLiteral();
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.CAST_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.CAST_NODE,
                                               constantNode, typeDescriptor,
                                               parserContext);}
       } else {
@@ -12732,7 +12732,7 @@ columnReference() throws StandardException :
   final public ValueNode bareDateLiteral() throws ParseException, StandardException {
     String dateString;
     dateString = string();
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.USERTYPE_CONSTANT_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.USERTYPE_CONSTANT_NODE,
                                               Date.valueOf(dateString),
                                               parserContext);}
     throw new Error("Missing return statement in function");
@@ -12741,7 +12741,7 @@ columnReference() throws StandardException :
   final public ValueNode bareTimeLiteral() throws ParseException, StandardException {
     String timeString;
     timeString = string();
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.USERTYPE_CONSTANT_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.USERTYPE_CONSTANT_NODE,
                                               Time.valueOf(timeString),
                                               parserContext);}
     throw new Error("Missing return statement in function");
@@ -12750,7 +12750,7 @@ columnReference() throws StandardException :
   final public ValueNode bareTimestampLiteral() throws ParseException, StandardException {
     String timestampString;
     timestampString = string();
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.USERTYPE_CONSTANT_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.USERTYPE_CONSTANT_NODE,
                                               Timestamp.valueOf(timestampString),
                                               parserContext);}
     throw new Error("Missing return statement in function");
@@ -12770,20 +12770,20 @@ columnReference() throws StandardException :
       jj_consume_token(-1);
       throw new ParseException();
     }
-        value = (ValueNode)nodeFactory.getNode(NodeTypes.CAST_NODE,
+        value = (ValueNode)nodeFactory.getNode(NodeType.CAST_NODE,
                                                value, intervalType,
                                                parserContext);
         if (factors[0] != 1)
-            value = (ValueNode)nodeFactory.getNode(NodeTypes.BINARY_TIMES_OPERATOR_NODE,
+            value = (ValueNode)nodeFactory.getNode(NodeType.BINARY_TIMES_OPERATOR_NODE,
                                                    value,
-                                                   nodeFactory.getNode(NodeTypes.INT_CONSTANT_NODE,
+                                                   nodeFactory.getNode(NodeType.INT_CONSTANT_NODE,
                                                                        Integer.valueOf(factors[0]),
                                                                        parserContext),
                                                    parserContext);
         if (factors[1] != 1)
-            value = (ValueNode)nodeFactory.getNode(NodeTypes.BINARY_DIVIDE_OPERATOR_NODE,
+            value = (ValueNode)nodeFactory.getNode(NodeType.BINARY_DIVIDE_OPERATOR_NODE,
                                                    value,
-                                                   nodeFactory.getNode(NodeTypes.INT_CONSTANT_NODE,
+                                                   nodeFactory.getNode(NodeType.INT_CONSTANT_NODE,
                                                                        Integer.valueOf(factors[1]),
                                                                        parserContext),
                                                    parserContext);
@@ -12901,7 +12901,7 @@ columnReference() throws StandardException :
   final public CharConstantNode stringLiteral() throws ParseException, StandardException {
     String st;
     st = getStringLiteral();
-        {if (true) return (CharConstantNode)nodeFactory.getNode(NodeTypes.CHAR_CONSTANT_NODE,
+        {if (true) return (CharConstantNode)nodeFactory.getNode(NodeType.CHAR_CONSTANT_NODE,
                                                     st,
                                                     parserContext);}
     throw new Error("Missing return statement in function");
@@ -12951,7 +12951,7 @@ columnReference() throws StandardException :
 
         int bitLength = ((hexLiteral.length() - 3) / 2);
         {if (true) return (ValueNode)
-                nodeFactory.getNode(NodeTypes.VARBIT_CONSTANT_NODE,
+                nodeFactory.getNode(NodeType.VARBIT_CONSTANT_NODE,
                                     hexLiteral.substring(2, hexLiteral.length() - 1), bitLength,
                                     parserContext);}
     throw new Error("Missing return statement in function");
@@ -12980,9 +12980,9 @@ columnReference() throws StandardException :
     endToken = jj_consume_token(RIGHT_PAREN);
         if (columnName != null) {
             /* Column check constraint */
-            rclList = (ResultColumnList)nodeFactory.getNode(NodeTypes.RESULT_COLUMN_LIST,
+            rclList = (ResultColumnList)nodeFactory.getNode(NodeType.RESULT_COLUMN_LIST,
                                                             parserContext);
-            rclList.addResultColumn((ResultColumn)nodeFactory.getNode(NodeTypes.RESULT_COLUMN,
+            rclList.addResultColumn((ResultColumn)nodeFactory.getNode(NodeType.RESULT_COLUMN,
                                                                       columnName,
                                                                       null,
                                                                       parserContext));
@@ -12990,7 +12990,7 @@ columnReference() throws StandardException :
 
         value.setBeginOffset(beginToken.beginOffset);
         value.setEndOffset(endToken.endOffset);
-        {if (true) return (ConstraintDefinitionNode)nodeFactory.getNode(NodeTypes.CONSTRAINT_DEFINITION_NODE,
+        {if (true) return (ConstraintDefinitionNode)nodeFactory.getNode(NodeType.CONSTRAINT_DEFINITION_NODE,
                                                              constraintName,
                                                              ConstraintDefinitionNode.ConstraintType.CHECK,
                                                              rclList,
@@ -13050,7 +13050,7 @@ columnReference() throws StandardException :
             if (schemaName != null)
                 parserContext.checkIdentifierLengthLimit(schemaName);
             parserContext.checkIdentifierLengthLimit(tableName);
-            retTableName[0] = (TableName)nodeFactory.getNode(NodeTypes.TABLE_NAME,
+            retTableName[0] = (TableName)nodeFactory.getNode(NodeType.TABLE_NAME,
                                                              schemaName,
                                                              tableName,
                                                              new Integer(nextToLastIdentifierToken.beginOffset),
@@ -13091,7 +13091,7 @@ columnReference() throws StandardException :
     tableName = qualifiedName();
     jj_consume_token(TO);
     newTableName = qualifiedName();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.RENAME_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.RENAME_NODE,
                                                   tableName,
                                                   null,
                                                   newTableName,
@@ -13108,7 +13108,7 @@ columnReference() throws StandardException :
     indexName = indexName(tableName);
     jj_consume_token(TO);
     newIndexName = identifier();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.RENAME_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.RENAME_NODE,
                                                   tableName[0],
                                                   indexName,
                                                   newIndexName,
@@ -13131,15 +13131,15 @@ columnReference() throws StandardException :
             {if (true) throw new StandardException("Table name missing in RENAME COLUMN");}
 
         tableElementList = (TableElementList)nodeFactory
-                    .getNode(NodeTypes.TABLE_ELEMENT_LIST, parserContext);
+                    .getNode(NodeType.TABLE_ELEMENT_LIST, parserContext);
 
         tableElementList.addTableElement((TableElementNode)nodeFactory
-                    .getNode(NodeTypes.AT_RENAME_COLUMN_NODE,
+                    .getNode(NodeType.AT_RENAME_COLUMN_NODE,
                              oldColumnReference.getColumnName(),
                              newColumnName,
                              parserContext));
 
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.ALTER_TABLE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.ALTER_TABLE_NODE,
                                                   tableName,
                                                   tableElementList,
                                                   new Character('\u005c0'),
@@ -13158,7 +13158,7 @@ columnReference() throws StandardException :
     jj_consume_token(IN);
     exclusiveMode = lockMode();
     jj_consume_token(MODE);
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.LOCK_TABLE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.LOCK_TABLE_NODE,
                                                   tableName,
                                                   exclusiveMode,
                                                   parserContext);}
@@ -13231,7 +13231,7 @@ columnReference() throws StandardException :
   final public TransactionStatementNode transactionMode() throws ParseException, StandardException {
     IsolationLevel isolationLevel;
     isolationLevel = isolationLevelDB2OrReset();
-        {if (true) return (TransactionStatementNode)nodeFactory.getNode(NodeTypes.SET_TRANSACTION_ISOLATION_NODE,
+        {if (true) return (TransactionStatementNode)nodeFactory.getNode(NodeType.SET_TRANSACTION_ISOLATION_NODE,
                                                              Boolean.FALSE,
                                                              isolationLevel,
                                                              parserContext);}
@@ -13417,7 +13417,7 @@ columnReference() throws StandardException :
     switch (jj_nt.kind) {
     case NONE:
       jj_consume_token(NONE);
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.SET_ROLE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.SET_ROLE_NODE,
                                                   roleName,
                                                   null,
                                                   parserContext);}
@@ -13426,7 +13426,7 @@ columnReference() throws StandardException :
       jj_la1[386] = jj_gen;
       if (jj_2_98(1)) {
         roleName = identifier();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.SET_ROLE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.SET_ROLE_NODE,
                                                   roleName,
                                                   null,
                                                   parserContext);}
@@ -13435,7 +13435,7 @@ columnReference() throws StandardException :
         case QUESTION_MARK:
         case DOLLAR_N:
           dynamicParameterSpecification();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.SET_ROLE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.SET_ROLE_NODE,
                                                   null,
                                                   StatementType.SET_ROLE_DYNAMIC,
                                                   parserContext);}
@@ -13444,7 +13444,7 @@ columnReference() throws StandardException :
         case DOUBLEDOLLAR_STRING:
         case SINGLEQUOTED_STRING:
           roleName = string();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.SET_ROLE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.SET_ROLE_NODE,
                                                   roleName,
                                                   null,
                                                   parserContext);}
@@ -13514,7 +13514,7 @@ columnReference() throws StandardException :
     String schemaName;
     if (jj_2_99(1)) {
       schemaName = identifier();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.SET_SCHEMA_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.SET_SCHEMA_NODE,
                                                   schemaName,
                                                   null,
                                                   parserContext);}
@@ -13522,7 +13522,7 @@ columnReference() throws StandardException :
       switch (jj_nt.kind) {
       case USER:
         jj_consume_token(USER);
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.SET_SCHEMA_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.SET_SCHEMA_NODE,
                                                   null,
                                                   StatementType.SET_SCHEMA_USER,
                                                   parserContext);}
@@ -13530,7 +13530,7 @@ columnReference() throws StandardException :
       case QUESTION_MARK:
       case DOLLAR_N:
         dynamicParameterSpecification();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.SET_SCHEMA_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.SET_SCHEMA_NODE,
                                                   null,
                                                   StatementType.SET_SCHEMA_DYNAMIC,
                                                   parserContext);}
@@ -13540,7 +13540,7 @@ columnReference() throws StandardException :
       case SINGLEQUOTED_STRING:
         schemaName = string();
         parserContext.checkIdentifierLengthLimit(schemaName);
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.SET_SCHEMA_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.SET_SCHEMA_NODE,
                                                   schemaName,
                                                   null,
                                                   parserContext);}
@@ -13564,7 +13564,7 @@ columnReference() throws StandardException :
     messageLocale = string();
         parserContext.setMessageLocale(messageLocale);
 
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.NOP_STATEMENT_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.NOP_STATEMENT_NODE,
                                                   parserContext);}
     throw new Error("Missing return statement in function");
   }
@@ -13600,14 +13600,14 @@ columnReference() throws StandardException :
     switch (jj_nt.kind) {
     case ISOLATION:
       isolationLevel = isolationLevel();
-        {if (true) return (TransactionStatementNode)nodeFactory.getNode(NodeTypes.SET_TRANSACTION_ISOLATION_NODE,
+        {if (true) return (TransactionStatementNode)nodeFactory.getNode(NodeType.SET_TRANSACTION_ISOLATION_NODE,
                                                              current,
                                                              isolationLevel,
                                                              parserContext);}
       break;
     case READ:
       accessMode = transactionAccessMode();
-        {if (true) return (TransactionStatementNode)nodeFactory.getNode(NodeTypes.SET_TRANSACTION_ACCESS_NODE,
+        {if (true) return (TransactionStatementNode)nodeFactory.getNode(NodeType.SET_TRANSACTION_ACCESS_NODE,
                                                              current,
                                                              accessMode,
                                                              parserContext);}
@@ -13668,7 +13668,7 @@ columnReference() throws StandardException :
       jj_consume_token(-1);
       throw new ParseException();
     }
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.SET_CONFIGURATION_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.SET_CONFIGURATION_NODE,
                                                   variable.image,
                                                   (value == null) ? null : value.getValue(),
                                                   parserContext);}
@@ -13703,15 +13703,15 @@ columnReference() throws StandardException :
         jj_consume_token(RIGHT_PAREN);
         // "NULLIF(L, R)" is the same as "L=R ? untyped NULL : L"
         // An impl assumption here is that Derby can promote CHAR to any comparable datatypes such as numeric
-        ValueNodeList thenElseList = (ValueNodeList)nodeFactory.getNode(NodeTypes.VALUE_NODE_LIST, parserContext);
+        ValueNodeList thenElseList = (ValueNodeList)nodeFactory.getNode(NodeType.VALUE_NODE_LIST, parserContext);
 
         //Use untyped null for then clause at this point. At the bind time, we will cast it to the datatype of L 
-        thenElseList.addValueNode((ValueNode)nodeFactory.getNode(NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
+        thenElseList.addValueNode((ValueNode)nodeFactory.getNode(NodeType.UNTYPED_NULL_CONSTANT_NODE,
                                                                  parserContext));
         thenElseList.addValueNode(leftExpression);
 
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.CONDITIONAL_NODE,
-                                              (ValueNode)nodeFactory.getNode(NodeTypes.BINARY_EQUALS_OPERATOR_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.CONDITIONAL_NODE,
+                                              (ValueNode)nodeFactory.getNode(NodeType.BINARY_EQUALS_OPERATOR_NODE,
                                                                              leftExpression,
                                                                              rightExpression,
                                                                              parserContext),
@@ -13770,11 +13770,11 @@ columnReference() throws StandardException :
     jj_consume_token(THEN);
     thenExpr = thenElseExpression();
     elseExpr = caseElseExpression();
-        ValueNodeList thenElseList = (ValueNodeList)nodeFactory.getNode(NodeTypes.VALUE_NODE_LIST, parserContext);
+        ValueNodeList thenElseList = (ValueNodeList)nodeFactory.getNode(NodeType.VALUE_NODE_LIST, parserContext);
         thenElseList.addValueNode(thenExpr); // then
         thenElseList.addValueNode(elseExpr); // else
 
-        {if (true) return((ValueNode)nodeFactory.getNode(NodeTypes.CONDITIONAL_NODE,
+        {if (true) return((ValueNode)nodeFactory.getNode(NodeType.CONDITIONAL_NODE,
                                               expr,
                                               thenElseList,
                                               Boolean.FALSE,
@@ -13786,8 +13786,8 @@ columnReference() throws StandardException :
     ValueNode expr;
     if (getToken(1).kind == NULL) {
       jj_consume_token(NULL);
-        ValueNode value = (ValueNode)nodeFactory.getNode(NodeTypes.CAST_NODE,
-                                                         (ValueNode)nodeFactory.getNode(NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
+        ValueNode value = (ValueNode)nodeFactory.getNode(NodeType.CAST_NODE,
+                                                         (ValueNode)nodeFactory.getNode(NodeType.UNTYPED_NULL_CONSTANT_NODE,
                                                                                         parserContext),
                                                          DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1),
                                                          parserContext);
@@ -13808,8 +13808,8 @@ columnReference() throws StandardException :
     switch (jj_nt.kind) {
     case END:
       jj_consume_token(END);
-        ValueNode value = (ValueNode)nodeFactory.getNode(NodeTypes.CAST_NODE,
-                                                         (ValueNode)nodeFactory.getNode(NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
+        ValueNode value = (ValueNode)nodeFactory.getNode(NodeType.CAST_NODE,
+                                                         (ValueNode)nodeFactory.getNode(NodeType.UNTYPED_NULL_CONSTANT_NODE,
                                                                                         parserContext),
                                                          DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, 1),
                                                          parserContext);
@@ -13838,7 +13838,7 @@ columnReference() throws StandardException :
     ValueNode operand;
     SimpleCaseNode caseExpr;
     operand = additiveExpression();
-        caseExpr = (SimpleCaseNode)nodeFactory.getNode(NodeTypes.SIMPLE_CASE_NODE,
+        caseExpr = (SimpleCaseNode)nodeFactory.getNode(NodeType.SIMPLE_CASE_NODE,
                                                        operand,
                                                        parserContext);
     simpleCaseWhenThenExpression(caseExpr);
@@ -13956,7 +13956,7 @@ columnReference() throws StandardException :
     jj_consume_token(USING);
     indexMethod = indexMethod();
     jj_consume_token(LEFT_PAREN);
-    indexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext));
+    indexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeType.INDEX_COLUMN_LIST, parserContext));
     jj_consume_token(RIGHT_PAREN);
     switch (jj_nt.kind) {
     case WITH:
@@ -13969,7 +13969,7 @@ columnReference() throws StandardException :
       jj_la1[405] = jj_gen;
       ;
     }
-        {if (true) return (ConstraintDefinitionNode)nodeFactory.getNode(NodeTypes.INDEX_CONSTRAINT_NODE,
+        {if (true) return (ConstraintDefinitionNode)nodeFactory.getNode(NodeType.INDEX_CONSTRAINT_NODE,
                                                                      constraintName,
                                                                      indexName,
                                                                      indexMethod,
@@ -14009,9 +14009,9 @@ columnReference() throws StandardException :
       throw new ParseException();
     }
         // add column to ColumnList
-        indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext);
+        indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeType.INDEX_COLUMN_LIST, parserContext);
         IndexColumn indexColumn = (IndexColumn)
-                    nodeFactory.getNode(NodeTypes.INDEX_COLUMN,
+                    nodeFactory.getNode(NodeType.INDEX_COLUMN,
                                         null, // no TableName in this case
                                         columnName,
                                         Boolean.TRUE,
@@ -14020,13 +14020,13 @@ columnReference() throws StandardException :
 
         if (indexOff) {
             // INDEX OFF CONSTRAINT
-            {if (true) return (ConstraintDefinitionNode)nodeFactory.getNode(NodeTypes.INDEX_CONSTRAINT_NODE,
+            {if (true) return (ConstraintDefinitionNode)nodeFactory.getNode(NodeType.INDEX_CONSTRAINT_NODE,
                                                                                     constraintName,
                                                                                     columnName,
                                                                                     indexOff,
                                                                                     parserContext);}
         } else {
-            {if (true) return (ConstraintDefinitionNode)nodeFactory.getNode(NodeTypes.INDEX_CONSTRAINT_NODE,
+            {if (true) return (ConstraintDefinitionNode)nodeFactory.getNode(NodeType.INDEX_CONSTRAINT_NODE,
                                                                                     constraintName,
                                                                                     columnName,
                                                                                     indexMethod,
@@ -14046,7 +14046,7 @@ columnReference() throws StandardException :
     jj_consume_token(LEFT_PAREN);
     uniqueColumnList = uniqueColumnList();
     jj_consume_token(RIGHT_PAREN);
-        {if (true) return (ConstraintDefinitionNode)nodeFactory.getNode(NodeTypes.CONSTRAINT_DEFINITION_NODE,
+        {if (true) return (ConstraintDefinitionNode)nodeFactory.getNode(NodeType.CONSTRAINT_DEFINITION_NODE,
                                                              constraintName,
                                                              constraintType,
                                                              uniqueColumnList,
@@ -14080,7 +14080,7 @@ columnReference() throws StandardException :
 
   final public ResultColumnList uniqueColumnList() throws ParseException, StandardException {
     ResultColumnList resultColumns = (ResultColumnList)
-        nodeFactory.getNode(NodeTypes.RESULT_COLUMN_LIST,
+        nodeFactory.getNode(NodeType.RESULT_COLUMN_LIST,
                             parserContext);
     columnNameList(resultColumns);
         {if (true) return resultColumns;}
@@ -14088,9 +14088,9 @@ columnReference() throws StandardException :
   }
 
   final public ConstraintDefinitionNode referentialConstraintDefinition(TableName constraintName) throws ParseException, StandardException {
-    ResultColumnList fkRcl = (ResultColumnList)nodeFactory.getNode(NodeTypes.RESULT_COLUMN_LIST,
+    ResultColumnList fkRcl = (ResultColumnList)nodeFactory.getNode(NodeType.RESULT_COLUMN_LIST,
                                                                    parserContext);
-    ResultColumnList refRcl = (ResultColumnList)nodeFactory.getNode(NodeTypes.RESULT_COLUMN_LIST,
+    ResultColumnList refRcl = (ResultColumnList)nodeFactory.getNode(NodeType.RESULT_COLUMN_LIST,
                                                                     parserContext);
     TableName referencedTable;
     int[] refActions = { StatementType.RA_NOACTION,
@@ -14107,7 +14107,7 @@ columnReference() throws StandardException :
     columnNameList(fkRcl);
     jj_consume_token(RIGHT_PAREN);
     referencedTable = referencesSpecification(refRcl, refActions);
-        {if (true) return (ConstraintDefinitionNode)nodeFactory.getNode(NodeTypes.FK_CONSTRAINT_DEFINITION_NODE,
+        {if (true) return (ConstraintDefinitionNode)nodeFactory.getNode(NodeType.FK_CONSTRAINT_DEFINITION_NODE,
                                                              constraintName,
                                                              referencedTable,
                                                              fkRcl,
@@ -14296,7 +14296,7 @@ columnReference() throws StandardException :
     ConstraintDefinitionNode.ConstraintType constraintType;
     Properties properties = null;
     ConstraintDefinitionNode tcdn;
-    ResultColumnList refRcl = (ResultColumnList)nodeFactory.getNode(NodeTypes.RESULT_COLUMN_LIST,
+    ResultColumnList refRcl = (ResultColumnList)nodeFactory.getNode(NodeType.RESULT_COLUMN_LIST,
                                                                     parserContext);
     TableName referencedTable;
     int[] refActions = {StatementType.RA_NOACTION,
@@ -14336,15 +14336,15 @@ columnReference() throws StandardException :
         ;
       }
         ResultColumnList uniqueColumnList = (ResultColumnList)
-            nodeFactory.getNode(NodeTypes.RESULT_COLUMN_LIST,
+            nodeFactory.getNode(NodeType.RESULT_COLUMN_LIST,
                                 parserContext);
         uniqueColumnList.addResultColumn((ResultColumn)
-                                         nodeFactory.getNode(NodeTypes.RESULT_COLUMN,
+                                         nodeFactory.getNode(NodeType.RESULT_COLUMN,
                                                              columnName,
                                                              null,
                                                              parserContext));
 
-        {if (true) return (ConstraintDefinitionNode)nodeFactory.getNode(NodeTypes.CONSTRAINT_DEFINITION_NODE,
+        {if (true) return (ConstraintDefinitionNode)nodeFactory.getNode(NodeType.CONSTRAINT_DEFINITION_NODE,
                                                              constraintName,
                                                              constraintType,
                                                              uniqueColumnList,
@@ -14372,13 +14372,13 @@ columnReference() throws StandardException :
           ;
         }
         ResultColumnList fkRcl = (ResultColumnList)
-            nodeFactory.getNode(NodeTypes.RESULT_COLUMN_LIST,
+            nodeFactory.getNode(NodeType.RESULT_COLUMN_LIST,
                                 parserContext);
-        fkRcl.addResultColumn((ResultColumn)nodeFactory.getNode(NodeTypes.RESULT_COLUMN,
+        fkRcl.addResultColumn((ResultColumn)nodeFactory.getNode(NodeType.RESULT_COLUMN,
                                                                 columnName,
                                                                 null,
                                                                 parserContext));
-        tcdn = (ConstraintDefinitionNode)nodeFactory.getNode(NodeTypes.FK_CONSTRAINT_DEFINITION_NODE,
+        tcdn = (ConstraintDefinitionNode)nodeFactory.getNode(NodeType.FK_CONSTRAINT_DEFINITION_NODE,
                                                              constraintName,
                                                              referencedTable,
                                                              fkRcl,
@@ -14414,7 +14414,7 @@ columnReference() throws StandardException :
     String roleName;
     jj_consume_token(ROLE);
     roleName = identifier();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.DROP_ROLE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.DROP_ROLE_NODE,
                                                   roleName,
                                                   parserContext);}
     throw new Error("Missing return statement in function");
@@ -14428,7 +14428,7 @@ columnReference() throws StandardException :
     cond = dropCondition();
     schemaName = identifier();
     dropBehavior(behavior);
-        StatementNode stmt = (StatementNode)nodeFactory.getNode(NodeTypes.DROP_SCHEMA_NODE,
+        StatementNode stmt = (StatementNode)nodeFactory.getNode(NodeType.DROP_SCHEMA_NODE,
                                                                 schemaName,
                                                                 new Integer(behavior[0]),
                                                                 cond,
@@ -14444,7 +14444,7 @@ columnReference() throws StandardException :
     ResultColumnList childColumns;
     ResultColumnList parentColumns = null;
     TableElementList tableElementList = (TableElementList)
-        nodeFactory.getNode(NodeTypes.TABLE_ELEMENT_LIST, parserContext);
+        nodeFactory.getNode(NodeType.TABLE_ELEMENT_LIST, parserContext);
     switch (jj_nt.kind) {
     case ADD:
       jj_consume_token(ADD);
@@ -14472,7 +14472,7 @@ columnReference() throws StandardException :
         //          REFERENCES <parent schema table name> [ ( <column name> [ , ... n ] ) ]
 
         tableElementList.addTableElement((TableElementNode)
-            nodeFactory.getNode(NodeTypes.FK_CONSTRAINT_DEFINITION_NODE,
+            nodeFactory.getNode(NodeType.FK_CONSTRAINT_DEFINITION_NODE,
                                  null,
                                  parentTable,
                                  childColumns,
@@ -14481,7 +14481,7 @@ columnReference() throws StandardException :
                                  Boolean.TRUE,
                                  parserContext));
 
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.ALTER_TABLE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.ALTER_TABLE_NODE,
                                                   childTable,
                                                   tableElementList,
                                                   new Character('\u005c0'),
@@ -14498,14 +14498,14 @@ columnReference() throws StandardException :
         // ALTER TABLE <leaf schema table name> DROP GROUPING FOREIGN KEY
 
         tableElementList.addTableElement((TableElementNode)
-            nodeFactory.getNode(NodeTypes.FK_CONSTRAINT_DEFINITION_NODE,
+            nodeFactory.getNode(NodeType.FK_CONSTRAINT_DEFINITION_NODE,
                                 null,
                                 ConstraintDefinitionNode.ConstraintType.DROP,
                                 StatementType.DROP_DEFAULT,
                                 Boolean.TRUE,
                                 parserContext));
 
-         {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.ALTER_TABLE_NODE,
+         {if (true) return (StatementNode)nodeFactory.getNode(NodeType.ALTER_TABLE_NODE,
                                                    childTable,
                                                    tableElementList,
                                                    new Character('\u005c0'),
@@ -14560,7 +14560,7 @@ columnReference() throws StandardException :
     case SET:
       jj_consume_token(SET);
       sn = setConfigurationStatement();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.ALTER_SERVER_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.ALTER_SERVER_NODE,
                                                 sn,
                                                 parserContext);}
       break;
@@ -14574,7 +14574,7 @@ columnReference() throws StandardException :
         jj_la1[425] = jj_gen;
         ;
       }
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.ALTER_SERVER_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.ALTER_SERVER_NODE,
                                                  new Boolean(immediate != null),
                                                  parserContext);}
       break;
@@ -14598,7 +14598,7 @@ columnReference() throws StandardException :
       }
       jj_consume_token(SESSION);
       sessionID = alterSessionID();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.ALTER_SERVER_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.ALTER_SERVER_NODE,
                                                 interrupt,
                                                 disconnect,
                                                 kill,
@@ -14624,7 +14624,7 @@ columnReference() throws StandardException :
       break;
     case ALL:
       jj_consume_token(ALL);
-        {if (true) return (ValueNode)nodeFactory.getNode(NodeTypes.DEFAULT_NODE,
+        {if (true) return (ValueNode)nodeFactory.getNode(NodeType.DEFAULT_NODE,
                                               null,
                                               parserContext);}
       break;
@@ -14641,7 +14641,7 @@ columnReference() throws StandardException :
     char lockGranularity = '\u005c0';
     String newTableName;
     TableElementList tableElementList = (TableElementList)
-        nodeFactory.getNode(NodeTypes.TABLE_ELEMENT_LIST, parserContext);
+        nodeFactory.getNode(NodeType.TABLE_ELEMENT_LIST, parserContext);
     int[] changeType = new int[1];
     int[] behavior = new int[1];
     String indexName = null;
@@ -14665,7 +14665,7 @@ columnReference() throws StandardException :
         //This will make sure that this ALTER TABLE...syntax can't be called directly.
         //This sql can only be generated internally (right now it is done for
         //syscs_util.SYSCS_UPDATE_STATISTICS procedure
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.ALTER_TABLE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.ALTER_TABLE_NODE,
                                                   tableName,
                                                   Boolean.TRUE,
                                                   null,
@@ -14678,7 +14678,7 @@ columnReference() throws StandardException :
         //This will make sure that this ALTER TABLE...syntax can't be called directly.
         //This sql can only be generated internally (right now it is done for
         //syscs_util.SYSCS_UPDATE_STATISTICS procedure
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.ALTER_TABLE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.ALTER_TABLE_NODE,
                                                   tableName,
                                                   Boolean.FALSE,
                                                   indexName,
@@ -14689,7 +14689,7 @@ columnReference() throws StandardException :
     case DROP:
     case RENAME:
       alterTableAction(tableElementList, changeType, behavior);
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.ALTER_TABLE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.ALTER_TABLE_NODE,
                                                   tableName,
                                                   tableElementList,
                                                   new Character(lockGranularity), // Not used, but we kind of nned it
@@ -14735,7 +14735,7 @@ columnReference() throws StandardException :
       jj_la1[433] = jj_gen;
       ;
     }
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.ALTER_TABLE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.ALTER_TABLE_NODE,
                                                   tableName,
                                                   new Boolean(purge != null),
                                                   new Boolean(defragment != null),
@@ -14754,7 +14754,7 @@ columnReference() throws StandardException :
       jj_la1[434] = jj_gen;
       ;
     }
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.ALTER_TABLE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.ALTER_TABLE_NODE,
                                                   tableName,
                                                   new Boolean(tok != null),
                                                   parserContext);}
@@ -14845,7 +14845,7 @@ columnReference() throws StandardException :
           ;
         }
         newCName = identifier();
-            tableElement = (TableElementNode)nodeFactory.getNode(NodeTypes.AT_RENAME_COLUMN_NODE,
+            tableElement = (TableElementNode)nodeFactory.getNode(NodeType.AT_RENAME_COLUMN_NODE,
                                                                  name,
                                                                  newCName,
                                                                  parserContext);
@@ -14879,7 +14879,7 @@ columnReference() throws StandardException :
           ;
         }
         newName = qualifiedName();
-            tableElement = (TableElementNode)nodeFactory.getNode(NodeTypes.AT_RENAME_NODE,
+            tableElement = (TableElementNode)nodeFactory.getNode(NodeType.AT_RENAME_NODE,
                                                                  newName,
                                                                  parserContext);
       } else {
@@ -14914,7 +14914,7 @@ columnReference() throws StandardException :
     }
     columnName = identifier();
     dropBehavior(behavior);
-        {if (true) return (TableElementNode)nodeFactory.getNode(NodeTypes.DROP_COLUMN_NODE,
+        {if (true) return (TableElementNode)nodeFactory.getNode(NodeType.DROP_COLUMN_NODE,
                                                      columnName, null,
                                                      null, null,
                                                      parserContext);}
@@ -14938,7 +14938,7 @@ columnReference() throws StandardException :
     }
     cond = dropCondition();
     indexName = identifier();
-        {if (true) return (TableElementNode)nodeFactory.getNode(NodeTypes.AT_DROP_INDEX_NODE,
+        {if (true) return (TableElementNode)nodeFactory.getNode(NodeType.AT_DROP_INDEX_NODE,
                                                      indexName, // name
                                                      cond,      // existence 
                                                      parserContext);}
@@ -14986,9 +14986,9 @@ columnReference() throws StandardException :
     indexName = identifier();
     jj_consume_token(LEFT_PAREN);
     if (groupFormat) {
-      groupIndexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext));
+      groupIndexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeType.INDEX_COLUMN_LIST, parserContext));
     } else if (!groupFormat) {
-      indexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeTypes.INDEX_COLUMN_LIST, parserContext));
+      indexItemList(indexColumnList = (IndexColumnList)nodeFactory.getNode(NodeType.INDEX_COLUMN_LIST, parserContext));
     } else {
       jj_consume_token(-1);
       throw new ParseException();
@@ -15020,7 +15020,7 @@ columnReference() throws StandardException :
       ;
     }
         tableElementList.addTableElement((TableElementNode)nodeFactory.getNode
-                                                                (NodeTypes.AT_ADD_INDEX_NODE,
+                                                                (NodeType.AT_ADD_INDEX_NODE,
                                                                  cond,
                                                                  unique,
                                                                  indexName,
@@ -15118,7 +15118,7 @@ columnReference() throws StandardException :
       jj_consume_token(DATA);
       jj_consume_token(TYPE);
       typeDescriptor = dataTypeDDL();
-        {if (true) return (TableElementNode)nodeFactory.getNode(NodeTypes.MODIFY_COLUMN_TYPE_NODE,
+        {if (true) return (TableElementNode)nodeFactory.getNode(NodeType.MODIFY_COLUMN_TYPE_NODE,
                                                      columnName, null,
                                                      typeDescriptor, null,
                                                      parserContext);}
@@ -15129,7 +15129,7 @@ columnReference() throws StandardException :
       autoIncrementIncrement = exactNumber();
         autoIncrementInfo[QueryTreeNode.AUTOINCREMENT_INC_INDEX] = autoIncrementIncrement;
         autoIncrementInfo[QueryTreeNode.AUTOINCREMENT_CREATE_MODIFY] = ColumnDefinitionNode.MODIFY_AUTOINCREMENT_INC_VALUE;
-        {if (true) return (TableElementNode)nodeFactory.getNode(NodeTypes.MODIFY_COLUMN_DEFAULT_NODE,
+        {if (true) return (TableElementNode)nodeFactory.getNode(NodeType.MODIFY_COLUMN_DEFAULT_NODE,
                                                      columnName,
                                                      null, null, autoIncrementInfo,
                                                      parserContext);}
@@ -15141,7 +15141,7 @@ columnReference() throws StandardException :
         autoIncrementRestartWith = exactNumber();
         autoIncrementInfo[QueryTreeNode.AUTOINCREMENT_START_INDEX] = autoIncrementRestartWith;
         autoIncrementInfo[QueryTreeNode.AUTOINCREMENT_CREATE_MODIFY] = ColumnDefinitionNode.MODIFY_AUTOINCREMENT_RESTART_VALUE;
-        {if (true) return (TableElementNode)nodeFactory.getNode(NodeTypes.MODIFY_COLUMN_DEFAULT_NODE,
+        {if (true) return (TableElementNode)nodeFactory.getNode(NodeType.MODIFY_COLUMN_DEFAULT_NODE,
                                                      columnName,
                                                      null, null, autoIncrementInfo,
                                                      parserContext);}
@@ -15169,7 +15169,7 @@ columnReference() throws StandardException :
           case DROP:
             jj_consume_token(DROP);
             jj_consume_token(_DEFAULT);
-        defaultNode = (ValueNode)nodeFactory.getNode(NodeTypes.UNTYPED_NULL_CONSTANT_NODE, parserContext);
+        defaultNode = (ValueNode)nodeFactory.getNode(NodeType.UNTYPED_NULL_CONSTANT_NODE, parserContext);
 
         {if (true) return wrapAlterColumnDefaultValue(defaultNode,
                                            columnName,
@@ -15184,7 +15184,7 @@ columnReference() throws StandardException :
         // column constraint is specified by setting the right value
         // in the nullability field of the data type but we don't have
         // a datatype here.
-        {if (true) return (TableElementNode)nodeFactory.getNode(NodeTypes.MODIFY_COLUMN_CONSTRAINT_NODE,
+        {if (true) return (TableElementNode)nodeFactory.getNode(NodeType.MODIFY_COLUMN_CONSTRAINT_NODE,
                                                      columnName, null, null, null,
                                                      parserContext);}
             } else if (getToken(1).kind == NOT) {
@@ -15195,7 +15195,7 @@ columnReference() throws StandardException :
         // column constraint is specified by setting the right value
         // in the nullability field of the data type but we don't have
         // a datatype here.
-        {if (true) return (TableElementNode)nodeFactory.getNode(NodeTypes.MODIFY_COLUMN_CONSTRAINT_NOT_NULL_NODE,
+        {if (true) return (TableElementNode)nodeFactory.getNode(NodeType.MODIFY_COLUMN_CONSTRAINT_NOT_NULL_NODE,
                                                      columnName, null, null, null,
                                                      parserContext);}
             } else {
@@ -15215,7 +15215,7 @@ columnReference() throws StandardException :
     if (getToken(1).kind == CONSTRAINT) {
       jj_consume_token(CONSTRAINT);
       constraintName = qualifiedName();
-        {if (true) return (TableElementNode)nodeFactory.getNode(NodeTypes.CONSTRAINT_DEFINITION_NODE,
+        {if (true) return (TableElementNode)nodeFactory.getNode(NodeType.CONSTRAINT_DEFINITION_NODE,
                                                      constraintName,
                                                      ConstraintDefinitionNode.ConstraintType.DROP,
                                                      null,
@@ -15227,7 +15227,7 @@ columnReference() throws StandardException :
     } else if (getToken(1).kind == PRIMARY) {
       jj_consume_token(PRIMARY);
       jj_consume_token(KEY);
-        {if (true) return (TableElementNode)nodeFactory.getNode(NodeTypes.CONSTRAINT_DEFINITION_NODE,
+        {if (true) return (TableElementNode)nodeFactory.getNode(NodeType.CONSTRAINT_DEFINITION_NODE,
                                                      null,
                                                      ConstraintDefinitionNode.ConstraintType.DROP,
                                                      null,
@@ -15254,7 +15254,7 @@ columnReference() throws StandardException :
       } else {
         ;
       }
-        {if (true) return (TableElementNode)nodeFactory.getNode(NodeTypes.FK_CONSTRAINT_DEFINITION_NODE,
+        {if (true) return (TableElementNode)nodeFactory.getNode(NodeType.FK_CONSTRAINT_DEFINITION_NODE,
                                                      constraintName,
                                                      ConstraintDefinitionNode.ConstraintType.DROP,
                                                      StatementType.DROP_DEFAULT,
@@ -15263,7 +15263,7 @@ columnReference() throws StandardException :
     } else if (getToken(1).kind == UNIQUE) {
       jj_consume_token(UNIQUE);
       constraintName = qualifiedName();
-        {if (true) return (TableElementNode)nodeFactory.getNode(NodeTypes.CONSTRAINT_DEFINITION_NODE,
+        {if (true) return (TableElementNode)nodeFactory.getNode(NodeType.CONSTRAINT_DEFINITION_NODE,
                                                      constraintName,
                                                      ConstraintDefinitionNode.ConstraintType.DROP,
                                                      null,
@@ -15278,7 +15278,7 @@ columnReference() throws StandardException :
       case CHECK:
         jj_consume_token(CHECK);
         constraintName = qualifiedName();
-        {if (true) return (TableElementNode)nodeFactory.getNode(NodeTypes.CONSTRAINT_DEFINITION_NODE,
+        {if (true) return (TableElementNode)nodeFactory.getNode(NodeType.CONSTRAINT_DEFINITION_NODE,
                                                      constraintName,
                                                      ConstraintDefinitionNode.ConstraintType.DROP,
                                                      null,
@@ -15306,7 +15306,7 @@ columnReference() throws StandardException :
     cond = dropCondition();
     tableName = qualifiedName();
     dropBehavior(behavior);
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.DROP_TABLE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.DROP_TABLE_NODE,
                                                   tableName,
                                                   new Integer(behavior[0]),
                                                   cond,
@@ -15321,7 +15321,7 @@ columnReference() throws StandardException :
     jj_consume_token(INDEX);
     cond = dropCondition();
     indexName = indexName(tableName);
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.DROP_INDEX_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.DROP_INDEX_NODE,
                                                   tableName[0],
                                                   indexName,
                                                   cond,
@@ -15372,7 +15372,7 @@ columnReference() throws StandardException :
     jj_consume_token(VIEW);
     cond = dropCondition();
     viewName = qualifiedName();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.DROP_VIEW_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.DROP_VIEW_NODE,
                                                   viewName,
                                                   cond,
                                                   parserContext);}
@@ -15385,7 +15385,7 @@ columnReference() throws StandardException :
     jj_consume_token(GROUP);
     cond = dropCondition();
     groupName = qualifiedName();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.DROP_GROUP_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.DROP_GROUP_NODE,
                                                    groupName,
                                                    cond,
                                                    parserContext);}
@@ -15396,7 +15396,7 @@ columnReference() throws StandardException :
     TableName triggerName;
     jj_consume_token(TRIGGER);
     triggerName = qualifiedName();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.DROP_TRIGGER_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.DROP_TRIGGER_NODE,
                                                   triggerName,
                                                   parserContext);}
     throw new Error("Missing return statement in function");
@@ -15414,7 +15414,7 @@ columnReference() throws StandardException :
     TableName tableName;
     jj_consume_token(TABLE);
     tableName = qualifiedName();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.ALTER_TABLE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.ALTER_TABLE_NODE,
                                                   tableName,
                                                   parserContext);}
     throw new Error("Missing return statement in function");
@@ -15473,7 +15473,7 @@ columnReference() throws StandardException :
     privileges = tablePrivileges();
     jj_consume_token(TO);
     grantees = granteeList();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.GRANT_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.GRANT_NODE,
                                                   privileges, grantees,
                                                   parserContext);}
     throw new Error("Missing return statement in function");
@@ -15493,7 +15493,7 @@ columnReference() throws StandardException :
       ;
     }
     objectName = qualifiedName();
-        {if (true) return (PrivilegeNode)nodeFactory.getNode(NodeTypes.PRIVILEGE_NODE,
+        {if (true) return (PrivilegeNode)nodeFactory.getNode(NodeType.PRIVILEGE_NODE,
                                                   PrivilegeNode.ObjectType.TABLE_PRIVILEGES,
                                                   objectName, tablePrivilegesNode,
                                                   parserContext);}
@@ -15502,7 +15502,7 @@ columnReference() throws StandardException :
 
   final public TablePrivilegesNode tableActions() throws ParseException, StandardException {
     TablePrivilegesNode tableActionsNode = (TablePrivilegesNode)
-        nodeFactory.getNode(NodeTypes.TABLE_PRIVILEGES_NODE, parserContext);
+        nodeFactory.getNode(NodeType.TABLE_PRIVILEGES_NODE, parserContext);
     switch (jj_nt.kind) {
     case ALL:
       jj_consume_token(ALL);
@@ -15549,11 +15549,11 @@ columnReference() throws StandardException :
     jj_consume_token(TO);
     grantees = granteeList();
         PrivilegeNode routinePrivilege = (PrivilegeNode)
-                    nodeFactory.getNode(NodeTypes.PRIVILEGE_NODE,
+                    nodeFactory.getNode(NodeType.PRIVILEGE_NODE,
                                         PrivilegeNode.ObjectType.ROUTINE_PRIVILEGES,
                                         routine, null,
                                         parserContext);
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.GRANT_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.GRANT_NODE,
                                                   routinePrivilege, grantees,
                                                   parserContext);}
     throw new Error("Missing return statement in function");
@@ -15569,13 +15569,13 @@ columnReference() throws StandardException :
     name = qualifiedName();
     jj_consume_token(TO);
     grantees = granteeList();
-                PrivilegeNode privilegeNode = (PrivilegeNode)nodeFactory.getNode(NodeTypes.PRIVILEGE_NODE,
+                PrivilegeNode privilegeNode = (PrivilegeNode)nodeFactory.getNode(NodeType.PRIVILEGE_NODE,
                                                                                  objectType,
                                                                                  name,
                                                                                  PrivilegeNode.USAGE_PRIV,
                                                                                  Boolean.FALSE,
                                                                                  parserContext);
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.GRANT_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.GRANT_NODE,
                                                   privilegeNode,
                                                   grantees,
                                                   parserContext);}
@@ -15720,7 +15720,7 @@ columnReference() throws StandardException :
   }
 
   final public ResultColumnList privilegeColumnList() throws ParseException, StandardException {
-    ResultColumnList cl = (ResultColumnList)nodeFactory.getNode(NodeTypes.RESULT_COLUMN_LIST,
+    ResultColumnList cl = (ResultColumnList)nodeFactory.getNode(NodeType.RESULT_COLUMN_LIST,
                                                                 parserContext);
     jj_consume_token(LEFT_PAREN);
     columnNameList(cl);
@@ -15780,7 +15780,7 @@ List<String> list = new ArrayList<String>();
         rolesGranted = roleList();
     jj_consume_token(TO);
     grantees = granteeList();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.GRANT_ROLE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.GRANT_ROLE_NODE,
                                                   rolesGranted,
                                                   grantees,
                                                   parserContext);}
@@ -15866,7 +15866,7 @@ List<String> list = new ArrayList<String>();
     privileges = tablePrivileges();
     jj_consume_token(FROM);
     grantees = granteeList();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.REVOKE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.REVOKE_NODE,
                                                   privileges, grantees,
                                                   parserContext);}
     throw new Error("Missing return statement in function");
@@ -15882,11 +15882,11 @@ List<String> list = new ArrayList<String>();
     grantees = granteeList();
     jj_consume_token(RESTRICT);
                 PrivilegeNode routinePrivilege = (PrivilegeNode)
-                    nodeFactory.getNode(NodeTypes.PRIVILEGE_NODE,
+                    nodeFactory.getNode(NodeType.PRIVILEGE_NODE,
                                         PrivilegeNode.ObjectType.ROUTINE_PRIVILEGES,
                                         routine, null,
                                         parserContext);
-                {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.REVOKE_NODE,
+                {if (true) return (StatementNode)nodeFactory.getNode(NodeType.REVOKE_NODE,
                                                           routinePrivilege, grantees,
                                                           parserContext);}
     throw new Error("Missing return statement in function");
@@ -15903,13 +15903,13 @@ List<String> list = new ArrayList<String>();
     jj_consume_token(FROM);
     grantees = granteeList();
     jj_consume_token(RESTRICT);
-        PrivilegeNode privilegeNode = (PrivilegeNode)nodeFactory.getNode(NodeTypes.PRIVILEGE_NODE,
+        PrivilegeNode privilegeNode = (PrivilegeNode)nodeFactory.getNode(NodeType.PRIVILEGE_NODE,
                                                                          objectType,
                                                                          name,
                                                                          PrivilegeNode.USAGE_PRIV,
                                                                          Boolean.TRUE,
                                                                          parserContext);
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.REVOKE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.REVOKE_NODE,
                                                   privilegeNode,
                                                   grantees,
                                                   parserContext);}
@@ -15922,7 +15922,7 @@ List<String> list = new ArrayList<String>();
     rolesRevokeed = roleList();
     jj_consume_token(FROM);
     grantees = granteeList();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.REVOKE_ROLE_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.REVOKE_ROLE_NODE,
                                                   rolesRevokeed,
                                                   grantees,
                                                   parserContext);}
@@ -15950,7 +15950,7 @@ List<String> list = new ArrayList<String>();
       jj_consume_token(CURSOR);
       jj_consume_token(FOR);
       stmt = declarableStatement(tokenHolder);
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.DECLARE_STATEMENT_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.DECLARE_STATEMENT_NODE,
                                                   name, stmt,
                                                   parserContext);}
       break;
@@ -15990,14 +15990,14 @@ List<String> list = new ArrayList<String>();
         ;
       }
       name = identifier();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.FETCH_STATEMENT_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.FETCH_STATEMENT_NODE,
                                                   name, count,
                                                   parserContext);}
       break;
     case CLOSE:
       jj_consume_token(CLOSE);
       name = identifier();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.CLOSE_STATEMENT_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.CLOSE_STATEMENT_NODE,
                                                   name,
                                                   parserContext);}
       break;
@@ -16008,14 +16008,14 @@ List<String> list = new ArrayList<String>();
       stmt = proceduralStatement(tokenHolder);
         stmt.setBeginOffset(tokenHolder[0].beginOffset);
         stmt.setEndOffset(getToken(0).endOffset);
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.PREPARE_STATEMENT_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.PREPARE_STATEMENT_NODE,
                                                   name, stmt,
                                                   parserContext);}
       break;
     case DEALLOCATE:
       jj_consume_token(DEALLOCATE);
       name = identifier();
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.DEALLOCATE_STATEMENT_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.DEALLOCATE_STATEMENT_NODE,
                                                   name,
                                                   parserContext);}
       break;
@@ -16071,11 +16071,11 @@ List<String> list = new ArrayList<String>();
       ;
     }
         ValueNodeList parameterList = (ValueNodeList)
-            nodeFactory.getNode(NodeTypes.VALUE_NODE_LIST,
+            nodeFactory.getNode(NodeType.VALUE_NODE_LIST,
                                 parserContext);
         for (ValueNode param : params)
             parameterList.add(param);
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.EXECUTE_STATEMENT_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.EXECUTE_STATEMENT_NODE,
                                                   name, parameterList,
                                                   parserContext);}
     throw new Error("Missing return statement in function");
@@ -16096,7 +16096,7 @@ List<String> list = new ArrayList<String>();
       ;
     }
     stmt = declarableStatement(tokenHolder);
-        {if (true) return (StatementNode)nodeFactory.getNode(NodeTypes.EXPLAIN_STATEMENT_NODE,
+        {if (true) return (StatementNode)nodeFactory.getNode(NodeType.EXPLAIN_STATEMENT_NODE,
                                                   stmt, detail,
                                                   parserContext);}
     throw new Error("Missing return statement in function");
@@ -16252,13 +16252,13 @@ List<String> list = new ArrayList<String>();
       throw new ParseException();
     }
         if (subquery != null)
-            {if (true) return (CopyStatementNode)nodeFactory.getNode(NodeTypes.COPY_STATEMENT_NODE,
+            {if (true) return (CopyStatementNode)nodeFactory.getNode(NodeType.COPY_STATEMENT_NODE,
                                                           mode,
                                                           subquery,
                                                           filename,
                                                           parserContext);}
         else
-            {if (true) return (CopyStatementNode)nodeFactory.getNode(NodeTypes.COPY_STATEMENT_NODE,
+            {if (true) return (CopyStatementNode)nodeFactory.getNode(NodeType.COPY_STATEMENT_NODE,
                                                           mode,
                                                           tableName, columnList,
                                                           filename,
@@ -18333,7 +18333,7 @@ List<String> list = new ArrayList<String>();
       ;
     }
         IndexColumn indexColumn = (IndexColumn)
-            nodeFactory.getNode(NodeTypes.INDEX_COLUMN,
+            nodeFactory.getNode(NodeType.INDEX_COLUMN,
                                 groupIndexColumnName.getTableNameNode(),
                                 groupIndexColumnName.getColumnName(),
                                 asc ? Boolean.TRUE : Boolean.FALSE,
@@ -18345,7 +18345,7 @@ List<String> list = new ArrayList<String>();
     ColumnReference groupIndexColumnName;
     groupIndexColumnName = groupIndexColumnName(columnList);
         IndexColumn indexColumn = (IndexColumn)
-            nodeFactory.getNode(NodeTypes.INDEX_COLUMN,
+            nodeFactory.getNode(NodeType.INDEX_COLUMN,
                                 groupIndexColumnName.getTableNameNode(),
                                 groupIndexColumnName.getColumnName(),
                                 Boolean.TRUE,
@@ -18386,13 +18386,13 @@ List<String> list = new ArrayList<String>();
         parserContext.checkIdentifierLengthLimit(thirdName);
         TableName tableName = null;
         if (secondName != null)
-            tableName = (TableName)nodeFactory.getNode(NodeTypes.TABLE_NAME,
+            tableName = (TableName)nodeFactory.getNode(NodeType.TABLE_NAME,
                                                        firstName,
                                                        secondName,
                                                        new Integer(nextToLastIdentifierToken.beginOffset),
                                                        new Integer(nextToLastIdentifierToken.endOffset),
                                                        parserContext);
-        {if (true) return (ColumnReference)nodeFactory.getNode(NodeTypes.COLUMN_REFERENCE,
+        {if (true) return (ColumnReference)nodeFactory.getNode(NodeType.COLUMN_REFERENCE,
                                                     thirdName,
                                                     tableName,
                                                     new Integer(lastIdentifierToken.beginOffset),

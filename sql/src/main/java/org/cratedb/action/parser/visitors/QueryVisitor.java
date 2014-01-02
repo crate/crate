@@ -283,12 +283,12 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         for (OrderByColumn column : node) {
             String columnName;
             String fqdn = getFQDN(stmt, column.getExpression());
-            if (column.getExpression().getNodeType() == NodeTypes.AGGREGATE_NODE) {
+            if (column.getExpression().getNodeType() == NodeType.AGGREGATE_NODE) {
                 AggExpr aggExpr = getAggregateExpression((AggregateNode)column.getExpression());
                 columnName = aggExpr.toString();
             } else if (context.globalExpressionService().expressionExists(fqdn)) {
                 columnName = fqdn;
-            } else if (column.getExpression().getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE ){
+            } else if (column.getExpression().getNodeType() == NodeType.NESTED_COLUMN_REFERENCE ){
                 columnName = ((NestedColumnReference)column.getExpression()).sqlPathString();
             } else {
                 columnName = column.getExpression().getColumnName();
@@ -345,7 +345,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 } else {
                     raiseUnsupportedSelectFromConstantNode(column);
                 }
-            } else if (column.getExpression().getNodeType() == NodeTypes.SYSTEM_COLUMN_REFERENCE) {
+            } else if (column.getExpression().getNodeType() == NodeType.SYSTEM_COLUMN_REFERENCE) {
                 if (columnName.equalsIgnoreCase("_version")) {
                     stmt.versionSysColumnSelected = true;
                 }
@@ -364,7 +364,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                     stmt.addGlobalExpressionSafe(expr);
                 }
                 fields.add(columnName);
-            } else if (column.getExpression().getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE) {
+            } else if (column.getExpression().getNodeType() == NodeType.NESTED_COLUMN_REFERENCE) {
                 NestedColumnReference nestedColumnReference =
                     (NestedColumnReference) column.getExpression();
                 validateColumnReference(nestedColumnReference);
@@ -374,7 +374,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 }
 
                 fields.add(columnName);
-            } else if (column.getExpression().getNodeType() == NodeTypes.COLUMN_REFERENCE) {
+            } else if (column.getExpression().getNodeType() == NodeType.COLUMN_REFERENCE) {
                 validateColumnReference((ColumnReference) column.getExpression());
                 fields.add(columnName);
             }
@@ -441,7 +441,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         if (aggregateName.equals(CountColumnAggFunction.NAME)) {
             if (node.isDistinct()) {
                 aggregateName = CountDistinctAggFunction.NAME;
-            } else if (operand.getNodeType() == NodeTypes.PARAMETER_NODE) {
+            } else if (operand.getNodeType() == NodeType.PARAMETER_NODE) {
                 // COUNT(*) with parameter
                 aggregateName = CountStarAggFunction.NAME;
             }
@@ -468,7 +468,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     private Expression getCollectorExpression(ValueNode node) throws StandardException {
         assert node != null;
         Expression expr;
-        if (node.getNodeType() == NodeTypes.PARAMETER_NODE) {
+        if (node.getNodeType() == NodeType.PARAMETER_NODE) {
             expr = new LiteralValueExpression(args[((ParameterNode)node).getParameterNumber()]);
         } else {
             String fqdn = getFQDN(stmt, node);
@@ -583,8 +583,8 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         ValueNode left = node.getReceiver();
         ValueNode right = node.getLeftOperand();
 
-        if (left.getNodeType() != NodeTypes.COLUMN_REFERENCE
-            && left.getNodeType() !=  NodeTypes.NESTED_COLUMN_REFERENCE) {
+        if (left.getNodeType() != NodeType.COLUMN_REFERENCE
+            && left.getNodeType() !=  NodeType.NESTED_COLUMN_REFERENCE) {
             tmp = left;
             left = right;
             right = tmp;
@@ -688,7 +688,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     private void binaryLogicalOperatorNode(ValueNode parentNode,
                                            BinaryLogicalOperatorNode node) throws Exception {
         BooleanQuery query = newBoolNode(parentNode);
-        if (node.getNodeType() == NodeTypes.OR_NODE) {
+        if (node.getNodeType() == NodeType.OR_NODE) {
             query.setMinimumNumberShouldMatch(1);
         }
 
@@ -740,7 +740,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     }
 
     private boolean isOrNode(ValueNode node) {
-        return node.getNodeType() == NodeTypes.OR_NODE;
+        return node.getNodeType() == NodeType.OR_NODE;
     }
 
     private Query queryFromBinaryRelationalOpNode(ValueNode parentNode, BinaryRelationalOperatorNode node) throws IOException {

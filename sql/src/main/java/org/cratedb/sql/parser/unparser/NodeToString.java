@@ -28,263 +28,263 @@ public class NodeToString
 
     public String toString(QueryTreeNode node) throws StandardException {
         switch (node.getNodeType()) {
-        case NodeTypes.CREATE_TABLE_NODE:
+        case CREATE_TABLE_NODE:
             return createTableNode((CreateTableNode)node);
-        case NodeTypes.CREATE_VIEW_NODE:
+        case CREATE_VIEW_NODE:
             return createViewNode((CreateViewNode)node);
-        case NodeTypes.CREATE_ANALYZER_NODE:
+        case CREATE_ANALYZER_NODE:
             return createAnalyzerNode((CreateAnalyzerNode)node);
-        case NodeTypes.NAMED_NODE_WITH_OPTIONAL_PROPERTIES:
+        case NAMED_NODE_WITH_OPTIONAL_PROPERTIES:
             return namedNodeWithOptionalProperties((NamedNodeWithOptionalProperties)node);
-        case NodeTypes.DROP_TABLE_NODE:
-        case NodeTypes.DROP_VIEW_NODE:
-        case NodeTypes.DROP_TRIGGER_NODE:
+        case DROP_TABLE_NODE:
+        case DROP_VIEW_NODE:
+        case DROP_TRIGGER_NODE:
             return qualifiedDDLNode((DDLStatementNode)node);
-        case NodeTypes.DROP_INDEX_NODE:
+        case DROP_INDEX_NODE:
             return dropIndexNode((DropIndexNode)node);
-        case NodeTypes.EXPLAIN_STATEMENT_NODE:
+        case EXPLAIN_STATEMENT_NODE:
             return explainStatementNode((ExplainStatementNode)node);
-        case NodeTypes.TRANSACTION_CONTROL_NODE:
+        case TRANSACTION_CONTROL_NODE:
             return transactionControlNode((TransactionControlNode)node);
-        case NodeTypes.SET_TRANSACTION_ISOLATION_NODE:
+        case SET_TRANSACTION_ISOLATION_NODE:
             return setTransactionIsolationNode((SetTransactionIsolationNode)node);
-        case NodeTypes.SET_TRANSACTION_ACCESS_NODE:
+        case SET_TRANSACTION_ACCESS_NODE:
             return setTransactionAccessNode((SetTransactionAccessNode)node);
-        case NodeTypes.SET_CONFIGURATION_NODE:
+        case SET_CONFIGURATION_NODE:
             return setConfigurationNode((SetConfigurationNode)node);
-        case NodeTypes.TABLE_ELEMENT_LIST:
+        case TABLE_ELEMENT_LIST:
             return tableElementList((TableElementList)node);
-        case NodeTypes.COLUMN_DEFINITION_NODE:
+        case COLUMN_DEFINITION_NODE:
             return columnDefinitionNode((ColumnDefinitionNode)node);
-        case NodeTypes.CONSTRAINT_DEFINITION_NODE:
+        case CONSTRAINT_DEFINITION_NODE:
             return constraintDefinitionNode((ConstraintDefinitionNode)node);
-        case NodeTypes.FK_CONSTRAINT_DEFINITION_NODE:
+        case FK_CONSTRAINT_DEFINITION_NODE:
             return fkConstraintDefinitionNode((FKConstraintDefinitionNode)node);
-        case NodeTypes.CREATE_INDEX_NODE:
+        case CREATE_INDEX_NODE:
             return createIndexNode((CreateIndexNode)node);
-        case NodeTypes.INDEX_COLUMN_LIST:
+        case INDEX_COLUMN_LIST:
             return indexColumnList((IndexColumnList)node);
-        case NodeTypes.INDEX_COLUMN:
+        case INDEX_COLUMN:
             return indexColumn((IndexColumn)node);
-        case NodeTypes.CREATE_ALIAS_NODE:
+        case CREATE_ALIAS_NODE:
             return createAliasNode((CreateAliasNode)node);
-        case NodeTypes.RENAME_NODE:
+        case RENAME_NODE:
             return renameNode((RenameNode)node);
-        case NodeTypes.CURSOR_NODE:
+        case CURSOR_NODE:
             return cursorNode((CursorNode)node);
-        case NodeTypes.SELECT_NODE:
+        case SELECT_NODE:
             return selectNode((SelectNode)node);
-        case NodeTypes.INSERT_NODE:
+        case INSERT_NODE:
             return insertNode((InsertNode)node);
-        case NodeTypes.UPDATE_NODE:
+        case UPDATE_NODE:
             return updateNode((UpdateNode)node);
-        case NodeTypes.DELETE_NODE:
+        case DELETE_NODE:
             return deleteNode((DeleteNode)node);
-        case NodeTypes.SUBQUERY_NODE:
+        case SUBQUERY_NODE:
             return subqueryNode((SubqueryNode)node);
-        case NodeTypes.RESULT_COLUMN_LIST:
+        case RESULT_COLUMN_LIST:
             return resultColumnList((ResultColumnList)node);
-        case NodeTypes.RESULT_COLUMN:
+        case RESULT_COLUMN:
             return resultColumn((ResultColumn)node);
-        case NodeTypes.ALL_RESULT_COLUMN:
+        case ALL_RESULT_COLUMN:
             return allResultColumn((AllResultColumn)node);
-        case NodeTypes.FROM_LIST:
+        case FROM_LIST:
             return fromList((FromList)node);
-        case NodeTypes.JOIN_NODE:
-        case NodeTypes.HALF_OUTER_JOIN_NODE:
-        case NodeTypes.FULL_OUTER_JOIN_NODE:
+        case JOIN_NODE:
+        case HALF_OUTER_JOIN_NODE:
+        case FULL_OUTER_JOIN_NODE:
             return joinNode((JoinNode)node);
-        case NodeTypes.UNION_NODE:
+        case UNION_NODE:
             return unionNode((UnionNode)node);
-        case NodeTypes.GROUP_BY_LIST:
+        case GROUP_BY_LIST:
             return groupByList((GroupByList)node);
-        case NodeTypes.GROUP_CONCAT_NODE:
+        case GROUP_CONCAT_NODE:
             return groupConcat((GroupConcatNode)node);
-        case NodeTypes.ORDER_BY_LIST:
+        case ORDER_BY_LIST:
             return orderByList((OrderByList)node);
-        case NodeTypes.VALUE_NODE_LIST:
+        case VALUE_NODE_LIST:
             return valueNodeList((ValueNodeList)node);
-        case NodeTypes.FROM_BASE_TABLE:
+        case FROM_BASE_TABLE:
             return fromBaseTable((FromBaseTable)node);
-        case NodeTypes.FROM_SUBQUERY:
+        case FROM_SUBQUERY:
             return fromSubquery((FromSubquery)node);
-        case NodeTypes.TABLE_NAME:
+        case TABLE_NAME:
             return tableName((TableName)node);
-        case NodeTypes.COLUMN_REFERENCE:
+        case COLUMN_REFERENCE:
             return columnReference((ColumnReference)node);
-        case NodeTypes.VIRTUAL_COLUMN_NODE:
+        case VIRTUAL_COLUMN_NODE:
             return virtualColumnNode((VirtualColumnNode)node);
-        case NodeTypes.ROW_RESULT_SET_NODE:
+        case ROW_RESULT_SET_NODE:
             return rowResultSetNode((RowResultSetNode)node);
-        case NodeTypes.ROWS_RESULT_SET_NODE:
+        case ROWS_RESULT_SET_NODE:
             return rowsResultSetNode((RowsResultSetNode)node);
-        case NodeTypes.GROUP_BY_COLUMN:
+        case GROUP_BY_COLUMN:
             return groupByColumn((GroupByColumn)node);
-        case NodeTypes.ORDER_BY_COLUMN:
+        case ORDER_BY_COLUMN:
             return orderByColumn((OrderByColumn)node);
-        case NodeTypes.PARTITION_BY_LIST:
+        case PARTITION_BY_LIST:
             return partitionByList((PartitionByList)node);
-        case NodeTypes.PARTITION_BY_COLUMN:
+        case PARTITION_BY_COLUMN:
             return partitionByColumn((PartitionByColumn)node);
-        case NodeTypes.WINDOW_DEFINITION_NODE:
+        case WINDOW_DEFINITION_NODE:
             return windowDefinitionNode((WindowDefinitionNode)node);
-        case NodeTypes.WINDOW_REFERENCE_NODE:
+        case WINDOW_REFERENCE_NODE:
             return windowReferenceNode((WindowReferenceNode)node);
-        case NodeTypes.AGGREGATE_WINDOW_FUNCTION_NODE:
+        case AGGREGATE_WINDOW_FUNCTION_NODE:
             return aggregateWindowFunctionNode((AggregateWindowFunctionNode)node);
-        case NodeTypes.ROW_NUMBER_FUNCTION_NODE:
+        case ROW_NUMBER_FUNCTION_NODE:
             return rowNumberFunctionNode((RowNumberFunctionNode)node);
-        case NodeTypes.AND_NODE:
-        case NodeTypes.OR_NODE:
+        case AND_NODE:
+        case OR_NODE:
             return binaryLogicalOperatorNode((BinaryLogicalOperatorNode)node);
-        case NodeTypes.BINARY_EQUALS_OPERATOR_NODE:
-        case NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE:
-        case NodeTypes.BINARY_GREATER_THAN_OPERATOR_NODE:
-        case NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE:
-        case NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE:
-        case NodeTypes.BINARY_LESS_EQUALS_OPERATOR_NODE:
+        case BINARY_EQUALS_OPERATOR_NODE:
+        case BINARY_NOT_EQUALS_OPERATOR_NODE:
+        case BINARY_GREATER_THAN_OPERATOR_NODE:
+        case BINARY_GREATER_EQUALS_OPERATOR_NODE:
+        case BINARY_LESS_THAN_OPERATOR_NODE:
+        case BINARY_LESS_EQUALS_OPERATOR_NODE:
             return binaryComparisonOperatorNode((BinaryComparisonOperatorNode)node);
-        case NodeTypes.BINARY_PLUS_OPERATOR_NODE:
-        case NodeTypes.BINARY_TIMES_OPERATOR_NODE:
-        case NodeTypes.BINARY_DIVIDE_OPERATOR_NODE:
-        case NodeTypes.BINARY_DIV_OPERATOR_NODE:
-        case NodeTypes.BINARY_MINUS_OPERATOR_NODE:
-        case NodeTypes.MOD_OPERATOR_NODE:
+        case BINARY_PLUS_OPERATOR_NODE:
+        case BINARY_TIMES_OPERATOR_NODE:
+        case BINARY_DIVIDE_OPERATOR_NODE:
+        case BINARY_DIV_OPERATOR_NODE:
+        case BINARY_MINUS_OPERATOR_NODE:
+        case MOD_OPERATOR_NODE:
             return binaryArithmeticOperatorNode((BinaryArithmeticOperatorNode)node);
-        case NodeTypes.BINARY_BIT_OPERATOR_NODE:
+        case BINARY_BIT_OPERATOR_NODE:
             return binaryBitOperatorNode((BinaryBitOperatorNode)node);
-        case NodeTypes.CONCATENATION_OPERATOR_NODE:
+        case CONCATENATION_OPERATOR_NODE:
             return concatenationOperatorNode((ConcatenationOperatorNode)node);
-        case NodeTypes.NOT_NODE:
+        case NOT_NODE:
             return notNode((NotNode)node);
-        case NodeTypes.IS_NULL_NODE:
-        case NodeTypes.IS_NOT_NULL_NODE:
+        case IS_NULL_NODE:
+        case IS_NOT_NULL_NODE:
             return isNullNode((IsNullNode)node);
-        case NodeTypes.IS_NODE:
+        case IS_NODE:
             return isNode((IsNode)node);
-        case NodeTypes.ABSOLUTE_OPERATOR_NODE:
-        case NodeTypes.SQRT_OPERATOR_NODE:
+        case ABSOLUTE_OPERATOR_NODE:
+        case SQRT_OPERATOR_NODE:
             return unaryArithmeticOperatorNode((UnaryArithmeticOperatorNode)node);
-        case NodeTypes.UNARY_PLUS_OPERATOR_NODE:
-        case NodeTypes.UNARY_MINUS_OPERATOR_NODE:
+        case UNARY_PLUS_OPERATOR_NODE:
+        case UNARY_MINUS_OPERATOR_NODE:
             return unaryPrefixOperatorNode((UnaryArithmeticOperatorNode)node);
-        case NodeTypes.UNARY_BITNOT_OPERATOR_NODE:
+        case UNARY_BITNOT_OPERATOR_NODE:
             return unaryBitOperatorNode((UnaryBitOperatorNode)node);
-        case NodeTypes.UNARY_DATE_TIMESTAMP_OPERATOR_NODE:
+        case UNARY_DATE_TIMESTAMP_OPERATOR_NODE:
           return unaryDateTimestampOperatorNode((UnaryDateTimestampOperatorNode)node);
-        case NodeTypes.TIMESTAMP_OPERATOR_NODE:
+        case TIMESTAMP_OPERATOR_NODE:
           return timestampOperatorNode((TimestampOperatorNode)node);
-        case NodeTypes.EXTRACT_OPERATOR_NODE:
+        case EXTRACT_OPERATOR_NODE:
           return extractOperatorNode((ExtractOperatorNode)node);
-        case NodeTypes.CHAR_LENGTH_OPERATOR_NODE:
+        case CHAR_LENGTH_OPERATOR_NODE:
           return lengthOperatorNode((LengthOperatorNode)node);
-        case NodeTypes.OCTET_LENGTH_OPERATOR_NODE:
+        case OCTET_LENGTH_OPERATOR_NODE:
           return octetLengthOperatorNode((OctetLengthOperatorNode)node);
-        case NodeTypes.RIGHT_FN_NODE:
-        case NodeTypes.LEFT_FN_NODE:
+        case RIGHT_FN_NODE:
+        case LEFT_FN_NODE:
             return leftRightFuncOperatorNode((LeftRightFuncOperatorNode)node);
-        case NodeTypes.SIMPLE_STRING_OPERATOR_NODE:
+        case SIMPLE_STRING_OPERATOR_NODE:
             return simpleStringOperatorNode((SimpleStringOperatorNode)node);
-        case NodeTypes.LIKE_OPERATOR_NODE:
+        case LIKE_OPERATOR_NODE:
             return likeEscapeOperatorNode((LikeEscapeOperatorNode)node);
-        case NodeTypes.LOCATE_FUNCTION_NODE:
-        case NodeTypes.SUBSTRING_OPERATOR_NODE:
+        case LOCATE_FUNCTION_NODE:
+        case SUBSTRING_OPERATOR_NODE:
             return ternaryOperatorNode((TernaryOperatorNode)node);
-        case NodeTypes.TIMESTAMP_ADD_FN_NODE:
-        case NodeTypes.TIMESTAMP_DIFF_FN_NODE:
+        case TIMESTAMP_ADD_FN_NODE:
+        case TIMESTAMP_DIFF_FN_NODE:
             return timestampFunctionNode((TernaryOperatorNode)node);
-        case NodeTypes.TRIM_OPERATOR_NODE:
+        case TRIM_OPERATOR_NODE:
             return trimOperatorNode((TrimOperatorNode)node);
-        case NodeTypes.IN_LIST_OPERATOR_NODE:
+        case IN_LIST_OPERATOR_NODE:
             return inListOperatorNode((InListOperatorNode)node);
-        case NodeTypes.ROW_CTOR_NODE:
+        case ROW_CTOR_NODE:
             return rowCtorNode((RowConstructorNode)node);
-        case NodeTypes.BETWEEN_OPERATOR_NODE:
+        case BETWEEN_OPERATOR_NODE:
             return betweenOperatorNode((BetweenOperatorNode)node);
-        case NodeTypes.CONDITIONAL_NODE:
+        case CONDITIONAL_NODE:
             return conditionalNode((ConditionalNode)node);
-        case NodeTypes.SIMPLE_CASE_NODE:
+        case SIMPLE_CASE_NODE:
             return simpleCaseNode((SimpleCaseNode)node);
-        case NodeTypes.COALESCE_FUNCTION_NODE:
+        case COALESCE_FUNCTION_NODE:
             return coalesceFunctionNode((CoalesceFunctionNode)node);
-        case NodeTypes.AGGREGATE_NODE:
+        case AGGREGATE_NODE:
             return aggregateNode((AggregateNode)node);
-        case NodeTypes.UNTYPED_NULL_CONSTANT_NODE:
-        case NodeTypes.SQL_BOOLEAN_CONSTANT_NODE:
-        case NodeTypes.BOOLEAN_CONSTANT_NODE:
-        case NodeTypes.BIT_CONSTANT_NODE:
-        case NodeTypes.VARBIT_CONSTANT_NODE:
-        case NodeTypes.CHAR_CONSTANT_NODE:
-        case NodeTypes.DECIMAL_CONSTANT_NODE:
-        case NodeTypes.DOUBLE_CONSTANT_NODE:
-        case NodeTypes.FLOAT_CONSTANT_NODE:
-        case NodeTypes.INT_CONSTANT_NODE:
-        case NodeTypes.LONGINT_CONSTANT_NODE:
-        case NodeTypes.LONGVARBIT_CONSTANT_NODE:
-        case NodeTypes.LONGVARCHAR_CONSTANT_NODE:
-        case NodeTypes.SMALLINT_CONSTANT_NODE:
-        case NodeTypes.TINYINT_CONSTANT_NODE:
-        case NodeTypes.USERTYPE_CONSTANT_NODE:
-        case NodeTypes.VARCHAR_CONSTANT_NODE:
-        case NodeTypes.BLOB_CONSTANT_NODE:
-        case NodeTypes.CLOB_CONSTANT_NODE:
-        case NodeTypes.XML_CONSTANT_NODE:
+        case UNTYPED_NULL_CONSTANT_NODE:
+        case SQL_BOOLEAN_CONSTANT_NODE:
+        case BOOLEAN_CONSTANT_NODE:
+        case BIT_CONSTANT_NODE:
+        case VARBIT_CONSTANT_NODE:
+        case CHAR_CONSTANT_NODE:
+        case DECIMAL_CONSTANT_NODE:
+        case DOUBLE_CONSTANT_NODE:
+        case FLOAT_CONSTANT_NODE:
+        case INT_CONSTANT_NODE:
+        case LONGINT_CONSTANT_NODE:
+        case LONGVARBIT_CONSTANT_NODE:
+        case LONGVARCHAR_CONSTANT_NODE:
+        case SMALLINT_CONSTANT_NODE:
+        case TINYINT_CONSTANT_NODE:
+        case USERTYPE_CONSTANT_NODE:
+        case VARCHAR_CONSTANT_NODE:
+        case BLOB_CONSTANT_NODE:
+        case CLOB_CONSTANT_NODE:
+        case XML_CONSTANT_NODE:
             return constantNode((ConstantNode)node);
-        case NodeTypes.PARAMETER_NODE:
+        case PARAMETER_NODE:
             return parameterNode((ParameterNode)node);
-        case NodeTypes.DEFAULT_NODE:
+        case DEFAULT_NODE:
             return "DEFAULT";
-        case NodeTypes.USER_NODE:
+        case USER_NODE:
             return "USER";
-        case NodeTypes.CURRENT_USER_NODE:
+        case CURRENT_USER_NODE:
             return "CURRENT_USER";
-        case NodeTypes.SESSION_USER_NODE:
+        case SESSION_USER_NODE:
             return "SESSION_USER";
-        case NodeTypes.SYSTEM_USER_NODE:
+        case SYSTEM_USER_NODE:
             return "SYSTEM_USER";
-        case NodeTypes.CURRENT_ISOLATION_NODE:
+        case CURRENT_ISOLATION_NODE:
             return "CURRENT ISOLATION";
-        case NodeTypes.IDENTITY_VAL_NODE:
+        case IDENTITY_VAL_NODE:
             return "IDENTITY_VAL_LOCAL()";
-        case NodeTypes.CURRENT_SCHEMA_NODE:
+        case CURRENT_SCHEMA_NODE:
             return "CURRENT SCHEMA";
-        case NodeTypes.CURRENT_ROLE_NODE:
+        case CURRENT_ROLE_NODE:
             return "CURRENT_ROLE";
-        case NodeTypes.CURRENT_DATETIME_OPERATOR_NODE:
+        case CURRENT_DATETIME_OPERATOR_NODE:
             return currentDatetimeOperatorNode((CurrentDatetimeOperatorNode)node);
-        case NodeTypes.CAST_NODE:
+        case CAST_NODE:
             return castNode((CastNode)node);
-        case NodeTypes.EXPLICIT_COLLATE_NODE:
+        case EXPLICIT_COLLATE_NODE:
             return explicitCollateNode((ExplicitCollateNode)node);
-        case NodeTypes.NEXT_SEQUENCE_NODE:
+        case NEXT_SEQUENCE_NODE:
             return nextSequenceNode((NextSequenceNode)node);
-        case NodeTypes.CURRENT_SEQUENCE_NODE:
+        case CURRENT_SEQUENCE_NODE:
             return currentSequenceNode((CurrentSequenceNode)node);
-        case NodeTypes.JAVA_TO_SQL_VALUE_NODE:
+        case JAVA_TO_SQL_VALUE_NODE:
             return javaToSQLValueNode((JavaToSQLValueNode)node);
-        case NodeTypes.SQL_TO_JAVA_VALUE_NODE:
+        case SQL_TO_JAVA_VALUE_NODE:
             return sqlToJavaValueNode((SQLToJavaValueNode)node);
-        case NodeTypes.STATIC_METHOD_CALL_NODE:
+        case STATIC_METHOD_CALL_NODE:
             return staticMethodCallNode((StaticMethodCallNode)node);
-        case NodeTypes.CALL_STATEMENT_NODE:
+        case CALL_STATEMENT_NODE:
             return callStatementNode((CallStatementNode)node);
-        case NodeTypes.INDEX_CONSTRAINT_NODE:
+        case INDEX_CONSTRAINT_NODE:
             return indexConstraint((IndexConstraintDefinitionNode)node);
-        case NodeTypes.DECLARE_STATEMENT_NODE:
+        case DECLARE_STATEMENT_NODE:
             return declareStatementNode((DeclareStatementNode)node);
-        case NodeTypes.FETCH_STATEMENT_NODE:
+        case FETCH_STATEMENT_NODE:
             return fetchStatementNode((FetchStatementNode)node);
-        case NodeTypes.CLOSE_STATEMENT_NODE:
+        case CLOSE_STATEMENT_NODE:
             return closeStatementNode((CloseStatementNode)node);
-        case NodeTypes.PREPARE_STATEMENT_NODE:
+        case PREPARE_STATEMENT_NODE:
             return prepareStatementNode((PrepareStatementNode)node);
-        case NodeTypes.EXECUTE_STATEMENT_NODE:
+        case EXECUTE_STATEMENT_NODE:
             return executeStatementNode((ExecuteStatementNode)node);
-        case NodeTypes.DEALLOCATE_STATEMENT_NODE:
+        case DEALLOCATE_STATEMENT_NODE:
             return deallocateStatementNode((DeallocateStatementNode)node);
-        case NodeTypes.COPY_STATEMENT_NODE:
+        case COPY_STATEMENT_NODE:
             return copyStatementNode((CopyStatementNode)node);
-        case NodeTypes.GENERIC_PROPERTIES:
+        case GENERIC_PROPERTIES:
             return genericProperties((GenericProperties)node);
         default:
             return "**UNKNOWN(" + node.getNodeType() +")**";

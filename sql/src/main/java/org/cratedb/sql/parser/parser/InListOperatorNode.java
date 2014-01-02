@@ -65,12 +65,12 @@ public final class InListOperatorNode extends ValueNode
         {
             // if left operand is not a RowConstructorNode
             // but soemthing else, wrap it in a one-element RowConstructorNode (1 column)
-            ValueNodeList list = (ValueNodeList)getNodeFactory().getNode(NodeTypes.VALUE_NODE_LIST,
+            ValueNodeList list = (ValueNodeList)getNodeFactory().getNode(NodeType.VALUE_NODE_LIST,
                                                                  getParserContext());
             list.addValueNode((ValueNode)leftOperand);
             
             this.leftOperand = (RowConstructorNode)
-                                        getNodeFactory().getNode(NodeTypes.ROW_CTOR_NODE,
+                                        getNodeFactory().getNode(NodeType.ROW_CTOR_NODE,
                                                                  list,
                                                                  new int[]{0},
                                                                  getParserContext());

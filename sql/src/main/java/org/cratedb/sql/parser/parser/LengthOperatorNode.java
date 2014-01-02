@@ -53,11 +53,11 @@ public final class LengthOperatorNode extends UnaryOperatorNode
     private int parameterType;
     private int parameterWidth;
 
-    public void setNodeType(int nodeType) {
+    public void setNodeType(NodeType nodeType) {
         String operator = null;
         String methodName = null;
 
-        if (nodeType == NodeTypes.CHAR_LENGTH_OPERATOR_NODE) {
+        if (nodeType == NodeType.CHAR_LENGTH_OPERATOR_NODE) {
             operator = "char_length";
             methodName = "charLength";
             parameterType = Types.VARCHAR;

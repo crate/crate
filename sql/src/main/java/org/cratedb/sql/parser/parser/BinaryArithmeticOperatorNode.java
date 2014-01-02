@@ -60,37 +60,37 @@ public class BinaryArithmeticOperatorNode extends BinaryOperatorNode
                    ValueClassName.NumberDataValue, ValueClassName.NumberDataValue);
     }
 
-    public void setNodeType(int nodeType) {
+    public void setNodeType(NodeType nodeType) {
         String operator = null;
         String methodName = null;
 
         switch (nodeType) {
-        case NodeTypes.BINARY_DIVIDE_OPERATOR_NODE:
+        case BINARY_DIVIDE_OPERATOR_NODE:
             operator = "/";
             methodName = "divide";
             break;
 
-        case NodeTypes.BINARY_MINUS_OPERATOR_NODE:
+        case BINARY_MINUS_OPERATOR_NODE:
             operator = "-";
             methodName = "minus";
             break;
 
-        case NodeTypes.BINARY_PLUS_OPERATOR_NODE:
+        case BINARY_PLUS_OPERATOR_NODE:
             operator = "+";
             methodName = "plus";
             break;
 
-        case NodeTypes.BINARY_TIMES_OPERATOR_NODE:
+        case BINARY_TIMES_OPERATOR_NODE:
             operator = "*";
             methodName = "times";
             break;
 
-        case NodeTypes.MOD_OPERATOR_NODE:
+        case MOD_OPERATOR_NODE:
             operator = "mod";
             methodName = "mod";
             break;
 
-        case NodeTypes.BINARY_DIV_OPERATOR_NODE:
+        case BINARY_DIV_OPERATOR_NODE:
             operator = "div";
             methodName = "div";
             break;

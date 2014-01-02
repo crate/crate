@@ -69,16 +69,16 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode
      */
     public void init(Object operand) throws StandardException {
         switch(getNodeType()) {
-        case NodeTypes.UNARY_PLUS_OPERATOR_NODE:
+        case UNARY_PLUS_OPERATOR_NODE:
             operatorType = OperatorType.PLUS;
             break;
-        case NodeTypes.UNARY_MINUS_OPERATOR_NODE:
+        case UNARY_MINUS_OPERATOR_NODE:
             operatorType = OperatorType.MINUS;
             break;
-        case NodeTypes.SQRT_OPERATOR_NODE:
+        case SQRT_OPERATOR_NODE:
             operatorType = OperatorType.SQRT;
             break;
-        case NodeTypes.ABSOLUTE_OPERATOR_NODE:
+        case ABSOLUTE_OPERATOR_NODE:
             operatorType = OperatorType.ABSOLUTE;
             break;
         default:

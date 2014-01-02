@@ -35,12 +35,12 @@ public class ViewDefinition
 
     public ViewDefinition(StatementNode parsed, SQLParserContext parserContext)
             throws StandardException {
-        if (parsed.getNodeType() != NodeTypes.CREATE_VIEW_NODE) {
+        if (parsed.getNodeType() != NodeType.CREATE_VIEW_NODE) {
             throw new StandardException("Parsed statement was not a view");
         }
         definition = (CreateViewNode)parsed;
         subquery = (FromSubquery)
-            parserContext.getNodeFactory().getNode(NodeTypes.FROM_SUBQUERY,
+            parserContext.getNodeFactory().getNode(NodeType.FROM_SUBQUERY,
                                                    definition.getParsedQueryExpression(),
                                                    definition.getOrderByList(),
                                                    definition.getOffset(),

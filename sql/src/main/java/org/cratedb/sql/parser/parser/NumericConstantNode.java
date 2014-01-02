@@ -73,7 +73,7 @@ public final class NumericConstantNode extends ConstantNode
         }
 
         switch (getNodeType()) {
-        case NodeTypes.TINYINT_CONSTANT_NODE:
+        case TINYINT_CONSTANT_NODE:
             precision = TypeId.SMALLINT_PRECISION;
             scal = TypeId.SMALLINT_SCALE;
             if (valueInP) {
@@ -83,7 +83,7 @@ public final class NumericConstantNode extends ConstantNode
             } 
             break;
 
-        case NodeTypes.INT_CONSTANT_NODE:
+        case INT_CONSTANT_NODE:
             precision = TypeId.INT_PRECISION;
             scal = TypeId.INT_SCALE;
             if (valueInP) {
@@ -93,7 +93,7 @@ public final class NumericConstantNode extends ConstantNode
             }
             break;
 
-        case NodeTypes.SMALLINT_CONSTANT_NODE:
+        case SMALLINT_CONSTANT_NODE:
             precision = TypeId.SMALLINT_PRECISION;
             scal = TypeId.SMALLINT_SCALE;
             if (valueInP) {
@@ -103,7 +103,7 @@ public final class NumericConstantNode extends ConstantNode
             }
             break;
 
-        case NodeTypes.LONGINT_CONSTANT_NODE:
+        case LONGINT_CONSTANT_NODE:
             precision = TypeId.LONGINT_PRECISION;
             scal = TypeId.LONGINT_SCALE;
             if (valueInP) {
@@ -113,7 +113,7 @@ public final class NumericConstantNode extends ConstantNode
             }
             break;
 
-        case NodeTypes.DECIMAL_CONSTANT_NODE:
+        case DECIMAL_CONSTANT_NODE:
             if (valueInP) {
                 typeid = Types.DECIMAL;
                 String image = (String)arg1;
@@ -138,7 +138,7 @@ public final class NumericConstantNode extends ConstantNode
             }
             break;
 
-        case NodeTypes.DOUBLE_CONSTANT_NODE:
+        case DOUBLE_CONSTANT_NODE:
             precision = TypeId.DOUBLE_PRECISION;
             scal = TypeId.DOUBLE_SCALE;
             if (valueInP) {
@@ -148,7 +148,7 @@ public final class NumericConstantNode extends ConstantNode
             }
             break;
 
-        case NodeTypes.FLOAT_CONSTANT_NODE:
+        case FLOAT_CONSTANT_NODE:
             precision = TypeId.REAL_PRECISION;
             scal = TypeId.REAL_SCALE;
             if (valueInP) {

@@ -6,7 +6,7 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
-import org.cratedb.sql.parser.parser.NodeTypes;
+import org.cratedb.sql.parser.parser.NodeType;
 import org.cratedb.sql.parser.parser.ParameterNode;
 import org.cratedb.sql.parser.parser.SQLParser;
 import org.cratedb.sql.parser.parser.StatementNode;
@@ -46,17 +46,17 @@ public class SQLParseService {
             StatementNode statementNode = parser.parseStatement(statement);
             BaseVisitor visitor;
             switch (statementNode.getNodeType()) {
-                case NodeTypes.INSERT_NODE:
+                case INSERT_NODE:
                     visitor = new InsertVisitor(context, stmt, args);
                     break;
-                case NodeTypes.CREATE_TABLE_NODE:
-                case NodeTypes.DROP_TABLE_NODE:
+                case CREATE_TABLE_NODE:
+                case DROP_TABLE_NODE:
                     visitor = new TableVisitor(context, stmt, args);
                     break;
-                case NodeTypes.CREATE_ANALYZER_NODE:
+                case CREATE_ANALYZER_NODE:
                     visitor = new AnalyzerVisitor(context, stmt, args);
                     break;
-                case NodeTypes.COPY_STATEMENT_NODE:
+                case COPY_STATEMENT_NODE:
                     visitor = new CopyVisitor(context, stmt, args);
                     break;
                 default:
