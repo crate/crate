@@ -602,7 +602,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         private void tryFinishResponse() {
             long mappersLeft = shardResponseCounter.get();
             long reducersLeft = reduceResponseCounter.get();
-            if (mappersLeft == 0 && (reducersLeft == 0 || reducers.length == 0)) {
+            if (mappersLeft == 0 && reducersLeft == 0) {
                 if (reducerErrors.get() || shardErrors.get()) {
                     listener.onFailure(lastException.get());
                 } else {

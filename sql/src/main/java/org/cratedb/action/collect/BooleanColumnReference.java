@@ -10,7 +10,7 @@ import org.elasticsearch.index.fielddata.IndexFieldData;
 public class BooleanColumnReference extends FieldCacheExpression<IndexFieldData, Boolean> {
 
     private BytesValues values;
-    private static BytesRef TRUE_BYTESREF = new BytesRef("T");
+    private static final BytesRef TRUE_BYTESREF = new BytesRef("T");
 
     public BooleanColumnReference(String columnName) {
         super(columnName);
@@ -33,9 +33,7 @@ public class BooleanColumnReference extends FieldCacheExpression<IndexFieldData,
             case 0:
                 return null;
             case 1:
-                values.nextValue();
-                BytesRef value = values.copyShared();
-                return value.compareTo(TRUE_BYTESREF) == 0;
+                return values.nextValue().compareTo(TRUE_BYTESREF) == 0;
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
