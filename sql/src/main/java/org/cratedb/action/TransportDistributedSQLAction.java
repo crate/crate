@@ -183,8 +183,10 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 }
             }
         } catch (CrateException e) {
+            logger.error("CrateException thrown during collect", e);
             exception = e;
         } catch (Exception e) {
+            logger.error("Error during collect", e);
             exception = new CrateException(e);
         }
 
@@ -542,7 +544,6 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                         @Override
                         public void handleResponse(SQLShardResponse response) {
                             onMapperOperation(response);
-
                         }
 
                         @Override
@@ -575,6 +576,12 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
         private void onMapperOperation(SQLShardResponse response) {
             shardResponseCounter.decrementAndGet();
+            if (logger.isTraceEnabled()) {
+                logger.trace("context {}: mapper operation done, {} still left",
+                    contextId,
+                    shardResponseCounter.get()
+                );
+            }
             if (response != null && response.results != null) {
                 onMapperResults(response.results);
             }
@@ -583,7 +590,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
 
         private void onMapperFailure(Throwable e) {
             shardErrors.set(true);
-            logger.error(e.getMessage(), e);
+            logger.error("Mapper Failure", e);
             lastException.set(e);
             onMapperOperation(null);
         }
@@ -593,12 +600,22 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         }
 
         private void tryFinishResponse() {
-            if (shardResponseCounter.get() == 0 &&
-                    (reduceResponseCounter.get() == 0 || reducers.length == 0)) {
+            long mappersLeft = shardResponseCounter.get();
+            long reducersLeft = reduceResponseCounter.get();
+            if (mappersLeft == 0 && reducersLeft == 0) {
                 if (reducerErrors.get() || shardErrors.get()) {
                     listener.onFailure(lastException.get());
                 } else {
                     sendSqlResponse();
+                }
+            } else {
+                if (logger.isTraceEnabled()) {
+                    logger.trace("[{}] context: {} not finished yet. {} mappers left. {} reducers left",
+                            clusterService.localNode().id(),
+                            contextId,
+                            mappersLeft,
+                            reducersLeft
+                    );
                 }
             }
         }

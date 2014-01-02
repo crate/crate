@@ -65,7 +65,6 @@ public class ReduceJobRequestContext {
                     bytesStreamOutputs = new ArrayList<>();
                     unreadStreams.put(request.contextId, bytesStreamOutputs);
                 }
-
                 bytesStreamOutputs.add(request.memoryOutputStream.bytes());
             } else {
                 mergeFromBytesReference(request.memoryOutputStream.bytes(), status);
