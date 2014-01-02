@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fix irregular deadlock while collect with ScriptValuesExpression
+
 2013/12/20 0.20.0
 =================
 

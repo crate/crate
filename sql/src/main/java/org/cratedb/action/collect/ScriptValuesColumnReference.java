@@ -1,14 +1,13 @@
 package org.cratedb.action.collect;
 
 import org.apache.lucene.index.AtomicReaderContext;
-import org.cratedb.DataType;
 import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.fielddata.IndexNumericFieldData;
-import org.elasticsearch.index.fielddata.LongValues;
 import org.elasticsearch.index.fielddata.ScriptDocValues;
 
-import java.util.List;
-
+/**
+ * do not use, because it leads to strange deadlocks
+ */
+@Deprecated
 public abstract class ScriptValuesColumnReference<ReturnType> extends
         FieldCacheExpression<IndexFieldData, ReturnType> {
 
