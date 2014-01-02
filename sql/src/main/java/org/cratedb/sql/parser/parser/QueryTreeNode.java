@@ -66,7 +66,7 @@ public abstract class QueryTreeNode implements Visitable
     private int beginOffset = -1; // offset into SQL input of the substring
     private int endOffset = -1;     // which this query node encodes.
 
-    private int nodeType;
+    private NodeType nodeType;
     private SQLParserContext pc;
     private Object userData;
 
@@ -422,11 +422,11 @@ public abstract class QueryTreeNode implements Visitable
      *
      * @param nodeType The node type.
      */
-    public void setNodeType(int nodeType) {
+    public void setNodeType(NodeType nodeType) {
         this.nodeType = nodeType;
     }
 
-    public int getNodeType() {
+    public NodeType getNodeType() {
         return nodeType;
     }
 
@@ -439,7 +439,7 @@ public abstract class QueryTreeNode implements Visitable
      * @return Whether or not
      * the node represents the specified nodeType.
      */
-    protected boolean isInstanceOf(int nodeType) {
+    protected boolean isInstanceOf(NodeType nodeType) {
         return (this.nodeType == nodeType);
     }
 
@@ -503,86 +503,86 @@ public abstract class QueryTreeNode implements Visitable
      * @exception StandardException Thrown on error
      */
     public ConstantNode getNullNode(DataTypeDescriptor type) throws StandardException {
-        int constantNodeType;
+        NodeType constantNodeType;
         switch (type.getTypeId().getJDBCTypeId()) {
         case Types.VARCHAR:
-            constantNodeType = NodeTypes.VARCHAR_CONSTANT_NODE;
+            constantNodeType = NodeType.VARCHAR_CONSTANT_NODE;
             break;
 
         case Types.CHAR:
-            constantNodeType = NodeTypes.CHAR_CONSTANT_NODE;
+            constantNodeType = NodeType.CHAR_CONSTANT_NODE;
             break;
 
         case Types.TINYINT:
-            constantNodeType = NodeTypes.TINYINT_CONSTANT_NODE;
+            constantNodeType = NodeType.TINYINT_CONSTANT_NODE;
             break;
 
         case Types.SMALLINT:
-            constantNodeType = NodeTypes.SMALLINT_CONSTANT_NODE;
+            constantNodeType = NodeType.SMALLINT_CONSTANT_NODE;
             break;
 
         case Types.INTEGER:
-            constantNodeType = NodeTypes.INT_CONSTANT_NODE;
+            constantNodeType = NodeType.INT_CONSTANT_NODE;
             break;
 
         case Types.BIGINT:
-            constantNodeType = NodeTypes.LONGINT_CONSTANT_NODE;
+            constantNodeType = NodeType.LONGINT_CONSTANT_NODE;
             break;
 
         case Types.REAL:
-            constantNodeType = NodeTypes.FLOAT_CONSTANT_NODE;
+            constantNodeType = NodeType.FLOAT_CONSTANT_NODE;
             break;
 
         case Types.DOUBLE:
-            constantNodeType = NodeTypes.DOUBLE_CONSTANT_NODE;
+            constantNodeType = NodeType.DOUBLE_CONSTANT_NODE;
             break;
 
         case Types.NUMERIC:
         case Types.DECIMAL:
-            constantNodeType = NodeTypes.DECIMAL_CONSTANT_NODE;
+            constantNodeType = NodeType.DECIMAL_CONSTANT_NODE;
             break;
 
         case Types.DATE:
         case Types.TIME:
         case Types.TIMESTAMP:
-            constantNodeType = NodeTypes.USERTYPE_CONSTANT_NODE;
+            constantNodeType = NodeType.USERTYPE_CONSTANT_NODE;
             break;
 
         case Types.BINARY:
-            constantNodeType = NodeTypes.BIT_CONSTANT_NODE;
+            constantNodeType = NodeType.BIT_CONSTANT_NODE;
             break;
 
         case Types.VARBINARY:
-            constantNodeType = NodeTypes.VARBIT_CONSTANT_NODE;
+            constantNodeType = NodeType.VARBIT_CONSTANT_NODE;
             break;
 
         case Types.LONGVARCHAR:
-            constantNodeType = NodeTypes.LONGVARCHAR_CONSTANT_NODE;
+            constantNodeType = NodeType.LONGVARCHAR_CONSTANT_NODE;
             break;
 
         case Types.CLOB:
-            constantNodeType = NodeTypes.CLOB_CONSTANT_NODE;
+            constantNodeType = NodeType.CLOB_CONSTANT_NODE;
             break;
 
         case Types.LONGVARBINARY:
-            constantNodeType = NodeTypes.LONGVARBIT_CONSTANT_NODE;
+            constantNodeType = NodeType.LONGVARBIT_CONSTANT_NODE;
             break;
 
         case Types.BLOB:
-            constantNodeType = NodeTypes.BLOB_CONSTANT_NODE;
+            constantNodeType = NodeType.BLOB_CONSTANT_NODE;
             break;
 
         case Types.SQLXML:
-            constantNodeType = NodeTypes.XML_CONSTANT_NODE;
+            constantNodeType = NodeType.XML_CONSTANT_NODE;
             break;
                         
         case Types.BOOLEAN:
-            constantNodeType = NodeTypes.BOOLEAN_CONSTANT_NODE;
+            constantNodeType = NodeType.BOOLEAN_CONSTANT_NODE;
             break;
 
         default:
             if (type.getTypeId().userType()) {
-                constantNodeType = NodeTypes.USERTYPE_CONSTANT_NODE;
+                constantNodeType = NodeType.USERTYPE_CONSTANT_NODE;
             }
             else {
                 assert false : 
@@ -859,7 +859,7 @@ public abstract class QueryTreeNode implements Visitable
                                           String schemaName,
                                           String flatName)
             throws StandardException {
-        return (TableName)nodeFactory.getNode(NodeTypes.TABLE_NAME,
+        return (TableName)nodeFactory.getNode(NodeType.TABLE_NAME,
                                               schemaName,
                                               flatName,
                                               parserContext);

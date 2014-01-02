@@ -28,18 +28,18 @@ public class LeftRightFuncOperatorNode extends BinaryOperatorNode
     }
     
     @Override
-    public void setNodeType(int nodeType) 
+    public void setNodeType(NodeType nodeType)
     {
         String op = null;
         String method = null;
         
         switch(nodeType)
         {
-            case NodeTypes.LEFT_FN_NODE:
+            case LEFT_FN_NODE:
                 op = "LEFT";
                 method = "getLeft";
                 break;
-            case NodeTypes.RIGHT_FN_NODE:
+            case RIGHT_FN_NODE:
                 op = "RIGHT";
                 method = "getRight";
                 break;

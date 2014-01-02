@@ -234,30 +234,30 @@ public class CopyStatementNode extends StatementNode
         }
         else {
             // Table case.
-            FromList fromList = (FromList)nodeFactory.getNode(NodeTypes.FROM_LIST,
+            FromList fromList = (FromList)nodeFactory.getNode(NodeType.FROM_LIST,
                                                               parserContext);
-            FromTable fromTable = (FromTable)nodeFactory.getNode(NodeTypes.FROM_BASE_TABLE,
+            FromTable fromTable = (FromTable)nodeFactory.getNode(NodeType.FROM_BASE_TABLE,
                                                                  tableName,
                                                                  null, null,
                                                                  parserContext);
             fromList.addFromTable(fromTable);
             ResultColumnList selectList = columnList;
             if (selectList == null) {
-                selectList = (ResultColumnList)nodeFactory.getNode(NodeTypes.RESULT_COLUMN_LIST,
+                selectList = (ResultColumnList)nodeFactory.getNode(NodeType.RESULT_COLUMN_LIST,
                                                                    parserContext);
-                ResultColumn star = (ResultColumn)nodeFactory.getNode(NodeTypes.ALL_RESULT_COLUMN,
+                ResultColumn star = (ResultColumn)nodeFactory.getNode(NodeType.ALL_RESULT_COLUMN,
                                                                       Boolean.FALSE,
                                                                       parserContext);
                 selectList.addResultColumn(star);
             }
-            resultSet = (SelectNode)nodeFactory.getNode(NodeTypes.SELECT_NODE,
+            resultSet = (SelectNode)nodeFactory.getNode(NodeType.SELECT_NODE,
                                                         selectList,
                                                         null,
                                                         fromList,
                                                         null, null, null, null,
                                                         parserContext);
         }
-        return (CursorNode)nodeFactory.getNode(NodeTypes.CURSOR_NODE,
+        return (CursorNode)nodeFactory.getNode(NodeType.CURSOR_NODE,
                                                "SELECT",
                                                resultSet,
                                                null,

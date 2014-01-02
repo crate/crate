@@ -36,9 +36,9 @@ public class SimpleCaseNode extends ValueNode
 
     public void init(Object operand) throws StandardException {
         this.operand = (ValueNode)operand;
-        this.caseOperands = (ValueNodeList)getNodeFactory().getNode(NodeTypes.VALUE_NODE_LIST,
+        this.caseOperands = (ValueNodeList)getNodeFactory().getNode(NodeType.VALUE_NODE_LIST,
                                                                     getParserContext());
-        this.resultValues = (ValueNodeList)getNodeFactory().getNode(NodeTypes.VALUE_NODE_LIST,
+        this.resultValues = (ValueNodeList)getNodeFactory().getNode(NodeType.VALUE_NODE_LIST,
                                                                     getParserContext());
     }
 

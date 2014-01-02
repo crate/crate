@@ -48,18 +48,18 @@ package org.cratedb.sql.parser.parser;
 public final class IsNullNode extends UnaryComparisonOperatorNode
 {
 
-    public void setNodeType(int nodeType)
+    public void setNodeType(NodeType nodeType)
     {
         String operator;
         String methodName;
 
-        if (nodeType == NodeTypes.IS_NULL_NODE) {
+        if (nodeType == NodeType.IS_NULL_NODE) {
             /* By convention, the method name for the is null operator is "isNull" */
             operator = "is null";
             methodName = "isNull";
         }
         else {
-            assert (nodeType == NodeTypes.IS_NOT_NULL_NODE);
+            assert (nodeType == NodeType.IS_NOT_NULL_NODE);
             /* By convention, the method name for the is not null operator is 
              * "isNotNull" 
              */

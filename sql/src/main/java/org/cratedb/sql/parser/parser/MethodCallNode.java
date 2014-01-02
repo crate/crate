@@ -136,7 +136,7 @@ public abstract class MethodCallNode extends JavaValueNode
             */
             if (!(qt instanceof JavaValueNode)) {
                 qt = (SQLToJavaValueNode)
-                    getNodeFactory().getNode(NodeTypes.SQL_TO_JAVA_VALUE_NODE, 
+                    getNodeFactory().getNode(NodeType.SQL_TO_JAVA_VALUE_NODE,
                                              qt, 
                                              getParserContext());
             }

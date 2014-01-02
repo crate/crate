@@ -155,7 +155,7 @@ public class ResultColumn extends ValueNode
          * update statement
          */
         if (expression != null &&
-            expression.isInstanceOf(NodeTypes.DEFAULT_NODE))
+            expression.isInstanceOf(NodeType.DEFAULT_NODE))
             defaultColumn = true;
     }
 

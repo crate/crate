@@ -60,7 +60,7 @@ public abstract class NodeFactory
      *
      * @exception StandardException Thrown on error.
      */
-    public abstract QueryTreeNode getNode(int nodeType, SQLParserContext pc)
+    public abstract QueryTreeNode getNode(NodeType nodeType, SQLParserContext pc)
             throws StandardException;
 
     /**
@@ -74,7 +74,7 @@ public abstract class NodeFactory
      *
      * @exception StandardException Thrown on error.
      */
-    public final QueryTreeNode getNode(int nodeType, Object arg1, SQLParserContext pc)
+    public final QueryTreeNode getNode(NodeType nodeType, Object arg1, SQLParserContext pc)
             throws StandardException {
         QueryTreeNode retval = getNode(nodeType, pc);
 
@@ -95,7 +95,7 @@ public abstract class NodeFactory
      *
      * @exception StandardException Thrown on error.
      */
-    public final QueryTreeNode getNode(int nodeType,
+    public final QueryTreeNode getNode(NodeType nodeType,
                                        Object arg1,
                                        Object arg2,
                                        SQLParserContext pc)
@@ -120,7 +120,7 @@ public abstract class NodeFactory
      *
      * @exception StandardException Thrown on error.
      */
-    public final QueryTreeNode getNode(int nodeType,
+    public final QueryTreeNode getNode(NodeType nodeType,
                                        Object arg1,
                                        Object arg2,
                                        Object arg3,
@@ -147,7 +147,7 @@ public abstract class NodeFactory
      *
      * @exception StandardException Thrown on error.
      */
-    public final QueryTreeNode getNode(int nodeType,
+    public final QueryTreeNode getNode(NodeType nodeType,
                                        Object arg1,
                                        Object arg2,
                                        Object arg3,
@@ -177,7 +177,7 @@ public abstract class NodeFactory
      *
      * @exception StandardException Thrown on error.
      */
-    public final QueryTreeNode getNode(int nodeType,
+    public final QueryTreeNode getNode(NodeType nodeType,
                                        Object arg1,
                                        Object arg2,
                                        Object arg3,
@@ -208,7 +208,7 @@ public abstract class NodeFactory
      *
      * @exception StandardException Thrown on error.
      */
-    public final QueryTreeNode getNode(int nodeType,
+    public final QueryTreeNode getNode(NodeType nodeType,
                                        Object arg1,
                                        Object arg2,
                                        Object arg3,
@@ -241,7 +241,7 @@ public abstract class NodeFactory
      *
      * @exception StandardException Thrown on error.
      */
-    public final QueryTreeNode getNode(int nodeType,
+    public final QueryTreeNode getNode(NodeType nodeType,
                                        Object arg1,
                                        Object arg2,
                                        Object arg3,
@@ -276,7 +276,7 @@ public abstract class NodeFactory
      *
      * @exception StandardException Thrown on error.
      */
-    public final QueryTreeNode getNode(int nodeType,
+    public final QueryTreeNode getNode(NodeType nodeType,
                                        Object arg1,
                                        Object arg2,
                                        Object arg3,
@@ -313,7 +313,7 @@ public abstract class NodeFactory
      *
      * @exception StandardException Thrown on error.
      */
-    public final QueryTreeNode getNode(int nodeType,
+    public final QueryTreeNode getNode(NodeType nodeType,
                                        Object arg1,
                                        Object arg2,
                                        Object arg3,
@@ -352,7 +352,7 @@ public abstract class NodeFactory
      *
      * @exception StandardException Thrown on error.
      */
-    public final QueryTreeNode getNode(int nodeType,
+    public final QueryTreeNode getNode(NodeType nodeType,
                                        Object arg1,
                                        Object arg2,
                                        Object arg3,
@@ -394,7 +394,7 @@ public abstract class NodeFactory
      *
      * @exception StandardException Thrown on error.
      */
-    public final QueryTreeNode getNode(int nodeType,
+    public final QueryTreeNode getNode(NodeType nodeType,
                                        Object arg1,
                                        Object arg2,
                                        Object arg3,
@@ -438,7 +438,7 @@ public abstract class NodeFactory
      *
      * @exception StandardException Thrown on error.
      */
-    public final QueryTreeNode getNode(int nodeType,
+    public final QueryTreeNode getNode(NodeType nodeType,
                                        Object arg1,
                                        Object arg2,
                                        Object arg3,
@@ -484,7 +484,7 @@ public abstract class NodeFactory
      *
      * @exception StandardException Thrown on error.
      */
-    public final QueryTreeNode getNode(int nodeType,
+    public final QueryTreeNode getNode(NodeType nodeType,
                                        Object arg1,
                                        Object arg2,
                                        Object arg3,
@@ -532,7 +532,7 @@ public abstract class NodeFactory
      *
      * @exception StandardException Thrown on error.
      */
-    public final QueryTreeNode getNode(int nodeType,
+    public final QueryTreeNode getNode(NodeType nodeType,
                                        Object arg1,
                                        Object arg2,
                                        Object arg3,
@@ -609,7 +609,7 @@ public abstract class NodeFactory
                                             Boolean createOrReplace,
                                             SQLParserContext pc)
             throws StandardException {
-        int nodeType = NodeTypes.CREATE_ALIAS_NODE;
+        NodeType nodeType = NodeType.CREATE_ALIAS_NODE;
         String methodName = null;
 
         if ((aliasType != AliasInfo.Type.SYNONYM) &&

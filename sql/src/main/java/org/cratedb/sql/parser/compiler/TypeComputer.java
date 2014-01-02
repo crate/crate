@@ -37,7 +37,7 @@ public class TypeComputer implements Visitor
     
     protected ValueNode setType(ValueNode node) throws StandardException {
         switch (node.getNodeType()) {
-        case NodeTypes.EXPLICIT_COLLATE_NODE:
+        case EXPLICIT_COLLATE_NODE:
             return collateNode((ExplicitCollateNode)node);
         default:
             node.setType(computeType(node));
@@ -45,52 +45,52 @@ public class TypeComputer implements Visitor
         }
     }
 
-    /** Probably need to subclass and handle <code>NodeTypes.COLUMN_REFERENCE</code>
+    /** Probably need to subclass and handle <code>NodeType.COLUMN_REFERENCE</code>
      * to get type propagation started. */
     protected DataTypeDescriptor computeType(ValueNode node) throws StandardException {
         switch (node.getNodeType()) {
-        case NodeTypes.RESULT_COLUMN:
+        case RESULT_COLUMN:
             return resultColumn((ResultColumn)node);
-        case NodeTypes.AND_NODE:
-        case NodeTypes.OR_NODE:
-        case NodeTypes.IS_NODE:
+        case AND_NODE:
+        case OR_NODE:
+        case IS_NODE:
             return binaryLogicalOperatorNode((BinaryLogicalOperatorNode)node);
-        case NodeTypes.NOT_NODE:
+        case NOT_NODE:
             return unaryLogicalOperatorNode((UnaryLogicalOperatorNode)node);
-        case NodeTypes.BINARY_PLUS_OPERATOR_NODE:
-        case NodeTypes.BINARY_TIMES_OPERATOR_NODE:
-        case NodeTypes.BINARY_DIVIDE_OPERATOR_NODE:
-        case NodeTypes.BINARY_DIV_OPERATOR_NODE:
-        case NodeTypes.BINARY_MINUS_OPERATOR_NODE:
+        case BINARY_PLUS_OPERATOR_NODE:
+        case BINARY_TIMES_OPERATOR_NODE:
+        case BINARY_DIVIDE_OPERATOR_NODE:
+        case BINARY_DIV_OPERATOR_NODE:
+        case BINARY_MINUS_OPERATOR_NODE:
             return binaryArithmeticOperatorNode((BinaryArithmeticOperatorNode)node);
-        case NodeTypes.BINARY_EQUALS_OPERATOR_NODE:
-        case NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE:
-        case NodeTypes.BINARY_GREATER_THAN_OPERATOR_NODE:
-        case NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE:
-        case NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE:
-        case NodeTypes.BINARY_LESS_EQUALS_OPERATOR_NODE:
+        case BINARY_EQUALS_OPERATOR_NODE:
+        case BINARY_NOT_EQUALS_OPERATOR_NODE:
+        case BINARY_GREATER_THAN_OPERATOR_NODE:
+        case BINARY_GREATER_EQUALS_OPERATOR_NODE:
+        case BINARY_LESS_THAN_OPERATOR_NODE:
+        case BINARY_LESS_EQUALS_OPERATOR_NODE:
             return binaryComparisonOperatorNode((BinaryComparisonOperatorNode)node);
-        case NodeTypes.BETWEEN_OPERATOR_NODE:
+        case BETWEEN_OPERATOR_NODE:
             return betweenOperatorNode((BetweenOperatorNode)node);
-        case NodeTypes.IN_LIST_OPERATOR_NODE:
+        case IN_LIST_OPERATOR_NODE:
             return inListOperatorNode((InListOperatorNode)node);
-        case NodeTypes.SUBQUERY_NODE:
+        case SUBQUERY_NODE:
             return subqueryNode((SubqueryNode)node);
-        case NodeTypes.CONDITIONAL_NODE:
+        case CONDITIONAL_NODE:
             return conditionalNode((ConditionalNode)node);
-        case NodeTypes.COALESCE_FUNCTION_NODE:
+        case COALESCE_FUNCTION_NODE:
             return coalesceFunctionNode((CoalesceFunctionNode)node);
-        case NodeTypes.AGGREGATE_NODE:
-        case NodeTypes.GROUP_CONCAT_NODE:
+        case AGGREGATE_NODE:
+        case GROUP_CONCAT_NODE:
             return aggregateNode((AggregateNode)node);
-        case NodeTypes.CONCATENATION_OPERATOR_NODE:
+        case CONCATENATION_OPERATOR_NODE:
             return concatenationOperatorNode((ConcatenationOperatorNode)node);
-        case NodeTypes.IS_NULL_NODE:
-        case NodeTypes.IS_NOT_NULL_NODE:
+        case IS_NULL_NODE:
+        case IS_NOT_NULL_NODE:
             return new DataTypeDescriptor(TypeId.BOOLEAN_ID, false);
-        case NodeTypes.NEXT_SEQUENCE_NODE:
+        case NEXT_SEQUENCE_NODE:
             return new DataTypeDescriptor(TypeId.BIGINT_ID, false);
-        case NodeTypes.CURRENT_SEQUENCE_NODE:
+        case CURRENT_SEQUENCE_NODE:
             return new DataTypeDescriptor(TypeId.BIGINT_ID, false);
         default:
             // assert false;
@@ -101,8 +101,8 @@ public class TypeComputer implements Visitor
     /** Nodes whose type is inferred from the context. */
     protected static boolean isParameterOrUntypedNull(ValueNode node) {
         switch (node.getNodeType()) {
-        case NodeTypes.PARAMETER_NODE:
-        case NodeTypes.UNTYPED_NULL_CONSTANT_NODE:
+        case PARAMETER_NODE:
+        case UNTYPED_NULL_CONSTANT_NODE:
             return true;
         default:
             return false;
@@ -130,7 +130,7 @@ public class TypeComputer implements Visitor
             !type.getTypeId().isBooleanTypeId()) {
             type = new DataTypeDescriptor(TypeId.BOOLEAN_ID, type.isNullable());
             operand = (ValueNode)node.getNodeFactory()
-                .getNode(NodeTypes.CAST_NODE, 
+                .getNode(NodeType.CAST_NODE,
                          operand, type, 
                          node.getParserContext());
             node.setOperand(operand);
@@ -152,7 +152,7 @@ public class TypeComputer implements Visitor
             !leftType.getTypeId().isBooleanTypeId()) {
             leftType = new DataTypeDescriptor(TypeId.BOOLEAN_ID, leftType.isNullable());
             leftOperand = (ValueNode)node.getNodeFactory()
-                .getNode(NodeTypes.CAST_NODE, 
+                .getNode(NodeType.CAST_NODE,
                          leftOperand, leftType, 
                          node.getParserContext());
             node.setLeftOperand(leftOperand);
@@ -165,7 +165,7 @@ public class TypeComputer implements Visitor
             !rightType.getTypeId().isBooleanTypeId()) {
             rightType = new DataTypeDescriptor(TypeId.BOOLEAN_ID, rightType.isNullable());
             rightOperand = (ValueNode)node.getNodeFactory()
-                .getNode(NodeTypes.CAST_NODE, 
+                .getNode(NodeType.CAST_NODE,
                          rightOperand, rightType, 
                          node.getParserContext());
             node.setRightOperand(rightOperand);
@@ -174,7 +174,7 @@ public class TypeComputer implements Visitor
             rightType = new DataTypeDescriptor(TypeId.BOOLEAN_ID, true);
             rightOperand.setType(rightType);
         }
-        if (node.getNodeType() == NodeTypes.IS_NODE)
+        if (node.getNodeType() == NodeType.IS_NODE)
             return new DataTypeDescriptor(TypeId.BOOLEAN_ID, false);
         if (leftType == null) 
             return rightType;
@@ -225,7 +225,7 @@ public class TypeComputer implements Visitor
             }
 
             leftOperand = (ValueNode)node.getNodeFactory()
-                .getNode(NodeTypes.CAST_NODE,
+                .getNode(NodeType.CAST_NODE,
                          leftOperand, 
                          new DataTypeDescriptor(rightTypeId, precision,
                                                 scale, nullableResult, 
@@ -253,7 +253,7 @@ public class TypeComputer implements Visitor
             }
             
             rightOperand = (ValueNode)node.getNodeFactory()
-                .getNode(NodeTypes.CAST_NODE,
+                .getNode(NodeType.CAST_NODE,
                          rightOperand, 
                          new DataTypeDescriptor(leftTypeId, precision,
                                                 scale, nullableResult, 
@@ -310,7 +310,7 @@ public class TypeComputer implements Visitor
             DataTypeDescriptor rightType = rightOperand.getType();
 
             rightOperand = (ValueNode)node.getNodeFactory()
-                .getNode(NodeTypes.CAST_NODE,
+                .getNode(NodeType.CAST_NODE,
                          rightOperand, 
                          leftType.getNullabilityType(rightType.isNullable()),
                          node.getParserContext());
@@ -321,7 +321,7 @@ public class TypeComputer implements Visitor
             DataTypeDescriptor rightType = rightOperand.getType();
 
             leftOperand = (ValueNode)node.getNodeFactory()
-                .getNode(NodeTypes.CAST_NODE,
+                .getNode(NodeType.CAST_NODE,
                          leftOperand,
                          rightType.getNullabilityType(leftType.isNullable()),
                          node.getParserContext());
@@ -375,7 +375,7 @@ public class TypeComputer implements Visitor
         if (!leftTypeId.isStringTypeId()) {
             if ((lowType != null) && lowType.getTypeId().isStringTypeId()) {
                 lowOperand = (ValueNode)node.getNodeFactory()
-                    .getNode(NodeTypes.CAST_NODE,
+                    .getNode(NodeType.CAST_NODE,
                              lowOperand,
                              leftType.getNullabilityType(lowType.isNullable()),
                              node.getParserContext());
@@ -383,7 +383,7 @@ public class TypeComputer implements Visitor
             }
             if ((highType != null) && highType.getTypeId().isStringTypeId()) {
                 highOperand = (ValueNode)node.getNodeFactory()
-                    .getNode(NodeTypes.CAST_NODE,
+                    .getNode(NodeType.CAST_NODE,
                              highOperand,
                              leftType.getNullabilityType(highType.isNullable()),
                              node.getParserContext());
@@ -505,7 +505,7 @@ public class TypeComputer implements Visitor
                                               leftType.isNullable(),
                                               leftType.getMaximumWidth());
             leftOperand = (ValueNode)node.getNodeFactory()
-                .getNode(NodeTypes.CAST_NODE, 
+                .getNode(NodeType.CAST_NODE,
                          leftOperand, leftType, 
                          node.getParserContext());
             node.setLeftOperand(leftOperand);
@@ -520,7 +520,7 @@ public class TypeComputer implements Visitor
                                               rightType.isNullable(),
                                               rightType.getMaximumWidth());
             rightOperand = (ValueNode)node.getNodeFactory()
-                .getNode(NodeTypes.CAST_NODE, 
+                .getNode(NodeType.CAST_NODE,
                          rightOperand, rightType, 
                          node.getParserContext());
             node.setRightOperand(rightOperand);
@@ -569,7 +569,7 @@ public class TypeComputer implements Visitor
                     node.setType(result.getNullabilityType(true));
                 else if (addDominantCast(result, node.getType())) {
                     node = (ValueNode)node.getNodeFactory()
-                        .getNode(NodeTypes.CAST_NODE, 
+                        .getNode(NodeType.CAST_NODE,
                                  node,
                                  result.getNullabilityType(node.getType().isNullable()),
                                  node.getParserContext());
@@ -639,13 +639,13 @@ public class TypeComputer implements Visitor
         else {
             // Some structural nodes require special handling.
             switch (((QueryTreeNode)node).getNodeType()) {
-            case NodeTypes.SELECT_NODE:
+            case SELECT_NODE:
                 selectNode((SelectNode)node);
                 break;
-            case NodeTypes.FROM_SUBQUERY:
+            case FROM_SUBQUERY:
                 fromSubquery((FromSubquery)node);
                 break;
-            case NodeTypes.INSERT_NODE:
+            case INSERT_NODE:
                 insertNode((InsertNode)node);
                 break;
             }

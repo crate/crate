@@ -47,7 +47,7 @@ public class InsertVisitor extends BaseVisitor {
             columnNameList = Lists.newArrayList(tableContext.allCols());
         } else {
             for (ResultColumn column : targetColumnList) {
-                if (column.getReference().getNodeType() == NodeTypes.NESTED_COLUMN_REFERENCE) {
+                if (column.getReference().getNodeType() == NodeType.NESTED_COLUMN_REFERENCE) {
                     throw new SQLParseException("Nested Column Reference not allowes in INSERT " +
                             "statement");
                 }

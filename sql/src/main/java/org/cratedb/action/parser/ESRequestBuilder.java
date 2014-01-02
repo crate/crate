@@ -3,7 +3,7 @@ package org.cratedb.action.parser;
 import org.cratedb.action.import_.ImportRequest;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.Constants;
-import org.cratedb.sql.parser.parser.NodeTypes;
+import org.cratedb.sql.parser.parser.NodeType;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
@@ -47,7 +47,7 @@ public class ESRequestBuilder {
         }
 
         // Update request should only be executed on primary shards
-        if (stmt.nodeType() == NodeTypes.UPDATE_NODE) {
+        if (stmt.nodeType() == NodeType.UPDATE_NODE) {
             request.preference("_primary");
         }
 

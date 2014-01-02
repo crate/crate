@@ -11,7 +11,7 @@ import org.cratedb.action.collect.scope.ScopedExpression;
 import org.cratedb.action.groupby.aggregate.AggExpr;
 import org.cratedb.action.parser.ColumnDescription;
 import org.cratedb.service.SQLParseService;
-import org.cratedb.sql.parser.parser.NodeTypes;
+import org.cratedb.sql.parser.parser.NodeType;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
@@ -33,7 +33,7 @@ public class ParsedStatement {
     private String[] indices = null;
 
     private ActionType type;
-    private int nodeType;
+    private NodeType nodeType;
 
     private Map<String, Object> updateDoc;
 
@@ -282,11 +282,11 @@ public class ParsedStatement {
         return type;
     }
 
-    public void nodeType(int nodeType) {
+    public void nodeType(NodeType nodeType) {
         this.nodeType = nodeType;
     }
 
-    public int nodeType() {
+    public NodeType nodeType() {
         return nodeType;
     }
 
@@ -320,7 +320,7 @@ public class ParsedStatement {
      */
     public boolean useFacet() {
         // currently only the update statement uses facets
-        return nodeType() == NodeTypes.UPDATE_NODE;
+        return nodeType() == NodeType.UPDATE_NODE;
     }
 
     public Map<String, Object> updateDoc() {

@@ -67,36 +67,36 @@ public class BinaryRelationalOperatorNode extends BinaryComparisonOperatorNode
         String operatorName = "";
 
         switch (getNodeType()) {
-        case NodeTypes.BINARY_EQUALS_OPERATOR_NODE:
+        case BINARY_EQUALS_OPERATOR_NODE:
             methodName = "equals";
             operatorName = "=";
             operatorType = EQUALS_RELOP;
             break;
 
-        case NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE:
+        case BINARY_GREATER_EQUALS_OPERATOR_NODE:
             methodName = "greaterOrEquals";
             operatorName = ">=";
             operatorType = GREATER_EQUALS_RELOP;
             break;
 
-        case NodeTypes.BINARY_GREATER_THAN_OPERATOR_NODE:
+        case BINARY_GREATER_THAN_OPERATOR_NODE:
             methodName = "greaterThan";
             operatorName = ">";
             operatorType = GREATER_THAN_RELOP;
             break;
 
-        case NodeTypes.BINARY_LESS_EQUALS_OPERATOR_NODE:
+        case BINARY_LESS_EQUALS_OPERATOR_NODE:
             methodName = "lessOrEquals";
             operatorName = "<=";
             operatorType =  LESS_EQUALS_RELOP;
             break;
 
-        case NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE:
+        case BINARY_LESS_THAN_OPERATOR_NODE:
             methodName = "lessThan";
             operatorName = "<";
             operatorType = LESS_THAN_RELOP;
             break;
-        case NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE:
+        case BINARY_NOT_EQUALS_OPERATOR_NODE:
             methodName = "notEquals";
             operatorName = "<>";
             operatorType = NOT_EQUALS_RELOP;

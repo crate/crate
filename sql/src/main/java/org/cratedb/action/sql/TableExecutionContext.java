@@ -6,7 +6,7 @@ import org.cratedb.index.IndexMetaDataExtractor;
 import org.cratedb.lucene.LuceneFieldMapper;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.ValidationException;
-import org.cratedb.sql.parser.parser.NodeTypes;
+import org.cratedb.sql.parser.parser.NodeType;
 import org.cratedb.sql.parser.parser.ValueNode;
 import org.cratedb.sql.types.SQLFieldMapper;
 import org.elasticsearch.common.logging.ESLogger;
@@ -152,8 +152,8 @@ public class TableExecutionContext implements ITableExecutionContext {
 
     @Override
     public Expression getCollectorExpression(ValueNode node) {
-        if (node.getNodeType()!=NodeTypes.COLUMN_REFERENCE &&
-                node.getNodeType() != NodeTypes.NESTED_COLUMN_REFERENCE){
+        if (node.getNodeType()!= NodeType.COLUMN_REFERENCE &&
+                node.getNodeType() != NodeType.NESTED_COLUMN_REFERENCE){
             return null;
         }
 

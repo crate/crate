@@ -92,7 +92,7 @@ public class FromVTI extends FromTable
         this.methodCall = (MethodCallNode)invocation;
 
         resultColumns = (ResultColumnList)derivedRCL;
-        subqueryList = (SubqueryList)getNodeFactory().getNode(NodeTypes.SUBQUERY_LIST,
+        subqueryList = (SubqueryList)getNodeFactory().getNode(NodeType.SUBQUERY_LIST,
                                                               getParserContext());
 
         /* Cache exposed name for this table.

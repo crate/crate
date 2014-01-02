@@ -47,7 +47,7 @@ public class QueryPlanner {
         }
 
 
-        if (stmt.nodeType() != NodeTypes.CURSOR_NODE
+        if (stmt.nodeType() != NodeType.CURSOR_NODE
             || stmt.hasOrderBy()
             || stmt.hasGroupBy()
             || (stmt.limit() < stmt.primaryKeyValues.size()))
@@ -70,16 +70,16 @@ public class QueryPlanner {
     private void optimizeActionType(ParsedStatement stmt) {
         if (stmt.primaryKeyLookupValue != null) {
             switch (stmt.nodeType()) {
-                case NodeTypes.CURSOR_NODE:
+                case CURSOR_NODE:
                     stmt.type(ParsedStatement.ActionType.GET_ACTION);
                     break;
-                case NodeTypes.UPDATE_NODE:
+                case UPDATE_NODE:
                     // version handling works only with sql facet and search_action
                     if (stmt.versionFilter == null) {
                         stmt.type(ParsedStatement.ActionType.UPDATE_ACTION);
                     }
                     break;
-                case NodeTypes.DELETE_NODE:
+                case DELETE_NODE:
                     stmt.type(ParsedStatement.ActionType.DELETE_ACTION);
                     break;
             }
@@ -89,7 +89,7 @@ public class QueryPlanner {
     private void verifyVersionSysColumn(ParsedStatement stmt) {
         if (stmt.versionFilter != null
             && stmt.primaryKeyLookupValue == null
-            && stmt.nodeType() != NodeTypes.UPDATE_NODE)
+            && stmt.nodeType() != NodeType.UPDATE_NODE)
         {
             raiseUnsupportedVersionSysColFilter();
         }
@@ -121,7 +121,7 @@ public class QueryPlanner {
             return false;
         }
 
-        if (parentNode != null && parentNode.getNodeType() == NodeTypes.OR_NODE) {
+        if (parentNode != null && parentNode.getNodeType() == NodeType.OR_NODE) {
             stmt.orClauses++;
         }
         if (operator == null || operator != BinaryRelationalOperatorNode.EQUALS_RELOP) {
@@ -137,7 +137,7 @@ public class QueryPlanner {
             }
         } else if (tableContext.primaryKeysIncludingDefault().contains(columnName)) {
             handlePrimaryKeyValue(stmt, parentNode, value);
-        } else if (tableContext.isRouting(columnName) && parentNode != null && parentNode.getNodeType() != NodeTypes.OR_NODE) {
+        } else if (tableContext.isRouting(columnName) && parentNode != null && parentNode.getNodeType() != NodeType.OR_NODE) {
             stmt.routingValues.add(value.toString());
             stmt.columnsWithFilter.add(columnName);
             resetPrimaryKeyValue(stmt);
@@ -153,8 +153,8 @@ public class QueryPlanner {
         if (parentNode == null) {
             assert stmt.primaryKeyLookupValue == null;
             stmt.primaryKeyLookupValue = value.toString();
-        } else if (parentNode.getNodeType() == NodeTypes.OR_NODE
-            || parentNode.getNodeType() == NodeTypes.IN_LIST_OPERATOR_NODE)
+        } else if (parentNode.getNodeType() == NodeType.OR_NODE
+            || parentNode.getNodeType() == NodeType.IN_LIST_OPERATOR_NODE)
         {
             stmt.primaryKeyValues.add(value.toString());
         } else if (stmt.columnsWithFilter.isEmpty()) {  // likely AndNode and other column is a _version column
@@ -165,7 +165,7 @@ public class QueryPlanner {
     }
 
     private boolean handleVersionSysColumn(ParsedStatement stmt, ValueNode parentNode, Number value) {
-        if (parentNode != null && parentNode.getNodeType() == NodeTypes.AND_NODE) {
+        if (parentNode != null && parentNode.getNodeType() == NodeType.AND_NODE) {
             if (stmt.versionFilter != null) {
                 throw new SQLParseException("Multiple _version columns in where clause are not supported");
             }
