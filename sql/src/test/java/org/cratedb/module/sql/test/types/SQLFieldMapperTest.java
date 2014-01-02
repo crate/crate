@@ -66,7 +66,7 @@ public class SQLFieldMapperTest extends SQLCrateNodesTest {
                     put("type", "date");
                     put("index", "not_analyzed");
                 }});
-                put("craty_field", new HashMap<String, Object>(){{
+                put("object_field", new HashMap<String, Object>(){{
                     put("type", "object");
                     put("properties", new HashMap<String, Object>(){{
                         put("title", new HashMap<String, Object>(){{
@@ -123,7 +123,7 @@ public class SQLFieldMapperTest extends SQLCrateNodesTest {
 
     @Test
     public void testDateType() {
-        String[] fields = new String[]{"date_field", "craty_field.created"};
+        String[] fields = new String[]{"date_field", "object_field.created"};
         for (int i=0; i<2; i++) {
             assertEquals(0L, this.mapper.mappedValue(fields[i],
                     "1970-01-01T00:00:00"));
@@ -138,8 +138,8 @@ public class SQLFieldMapperTest extends SQLCrateNodesTest {
     }
 
     @Test
-    public void testMapCratyColumn() {
-        Object mapped = this.mapper.mappedValue("craty_field", new HashMap<String,
+    public void testMapobjectColumn() {
+        Object mapped = this.mapper.mappedValue("object_field", new HashMap<String,
                 Object>() {{
             put("title", "The Total Perspective Vortex");
             put("size", 1024);
@@ -152,7 +152,7 @@ public class SQLFieldMapperTest extends SQLCrateNodesTest {
         assertEquals(new Integer(1024).shortValue(), mappedMap.get("size"));
         assertEquals(1384732800000L, mappedMap.get("created"));
 
-        assertEquals(1384732800000L, this.mapper.mappedValue("craty_field.created",
+        assertEquals(1384732800000L, this.mapper.mappedValue("object_field.created",
                 "2013-11-18"));
     }
 

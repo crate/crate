@@ -72,7 +72,7 @@ public class SQLFieldInvalidTest {
                     put("type", "date");
                     put("index", "not_analyzed");
                 }});
-                put("craty_field", new HashMap<String, Object>(){{
+                put("object_field", new HashMap<String, Object>(){{
                     put("type", "object");
                     put("properties", new HashMap<String, Object>(){{
                         put("title", new HashMap<String, Object>(){{
@@ -148,7 +148,7 @@ public class SQLFieldInvalidTest {
                                 false}
                 },
                 {
-                        "craty_field",
+                        "object_field",
                         new Object[]{Integer.MAX_VALUE, 1.0, "A String", true, false,
                             new HashMap<String, Object>(){{
                                 put("title", 0);

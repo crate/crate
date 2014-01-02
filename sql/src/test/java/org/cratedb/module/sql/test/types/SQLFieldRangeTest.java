@@ -77,7 +77,7 @@ public class SQLFieldRangeTest {
                     put("type", "date");
                     put("index", "not_analyzed");
                 }});
-                put("craty_field", new HashMap<String, Object>(){{
+                put("object_field", new HashMap<String, Object>(){{
                     put("type", "object");
                     put("properties", new HashMap<String, Object>(){{
                         put("title", new HashMap<String, Object>(){{

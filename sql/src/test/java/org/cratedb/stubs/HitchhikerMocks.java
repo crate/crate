@@ -2,7 +2,6 @@ package org.cratedb.stubs;
 
 import org.cratedb.Constants;
 import org.cratedb.DataType;
-import org.cratedb.action.collect.scope.ClusterLevelExpression;
 import org.cratedb.action.collect.scope.ClusterNameExpression;
 import org.cratedb.action.collect.scope.ScopedExpression;
 import org.cratedb.action.groupby.aggregate.AggFunction;
@@ -64,7 +63,7 @@ public class HitchhikerMocks {
         put(DataType.FLOAT, new FloatSQLType());
         put(DataType.DOUBLE, new DoubleSQLType());
         put(DataType.TIMESTAMP, new TimeStampSQLType());
-        put(DataType.CRATY, new CratySQLType());
+        put(DataType.OBJECT, new ObjectSQLType());
         put(DataType.IP, new IpSQLType());
     }};
 

@@ -168,8 +168,8 @@ public class TableExecutionContext implements ITableExecutionContext {
                 return new DoubleColumnReference(columnDefinition.columnName);
             case BOOLEAN:
                 return new BooleanColumnReference(columnDefinition.columnName);
-            case CRATY:
-                return new CratyColumnReference(columnDefinition.columnName);
+            case OBJECT:
+                return new ObjectColumnReference(columnDefinition.columnName);
             case FLOAT:
                 return new FloatColumnReference(columnDefinition.columnName);
             case SHORT:

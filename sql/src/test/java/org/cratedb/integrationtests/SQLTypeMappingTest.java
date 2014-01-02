@@ -1,7 +1,6 @@
 package org.cratedb.integrationtests;
 
 import org.cratedb.Constants;
-import org.cratedb.SQLCrateNodesTest;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLAction;
@@ -11,13 +10,14 @@ import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.ColumnUnknownException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.ValidationException;
-import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.node.internal.InternalNode;
-import org.junit.*;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
@@ -97,7 +97,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                         .field("type", "date")
                         .field("index", "not_analyzed")
                     .endObject()
-                    .startObject("craty_field")
+                    .startObject("object_field")
                         .field("type", "object")
                         .startObject("properties")
                             .startObject("inner")
@@ -152,12 +152,12 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         assertEquals(-128, response.rows()[1][3]);
     }
 
-    public void setUpCratyMapping() throws IOException {
+    public void setUpObjectMapping() throws IOException {
         XContentBuilder builder = XContentFactory.jsonBuilder()
                 .startObject()
                 .startObject(Constants.DEFAULT_MAPPING_TYPE)
                 .startObject("properties")
-                    .startObject("craty_field")
+                    .startObject("object_field")
                         .startObject("properties")
                             .startObject("size")
                                 .field("type", "byte")
@@ -214,9 +214,9 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testParseInsertObject() throws Exception {
-        setUpCratyMapping();
+        setUpObjectMapping();
 
-        execute("insert into test12 (craty_field, strict_field, " +
+        execute("insert into test12 (object_field, strict_field, " +
                 "no_dynamic_field) values (?,?,?)",
                 new Object[]{
                     new HashMap<String, Object>(){{
@@ -237,14 +237,14 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         });
         refresh();
 
-        SQLResponse response = execute("select craty_field, strict_field, " +
+        SQLResponse response = execute("select object_field, strict_field, " +
                 "no_dynamic_field from test12");
         assertEquals(1, response.rowCount());
         assertThat(response.rows()[0][0], instanceOf(Map.class));
         @SuppressWarnings("unchecked")
-        Map<String, Object> cratyMap = (Map<String, Object>)response.rows()[0][0];
-        assertEquals(1384819200000L, cratyMap.get("created"));
-        assertEquals(127, cratyMap.get("size"));
+        Map<String, Object> objectMap = (Map<String, Object>)response.rows()[0][0];
+        assertEquals(1384819200000L, objectMap.get("created"));
+        assertEquals(127, objectMap.get("size"));
 
         assertThat(response.rows()[0][1], instanceOf(Map.class));
         @SuppressWarnings("unchecked")
@@ -261,7 +261,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                 noDynamicMap.get("dynamic_again")
         );
 
-        response = execute("select craty_field['created'], craty_field['size'], " +
+        response = execute("select object_field['created'], object_field['size'], " +
                 "no_dynamic_field['dynamic_again']['field'] from test12");
         assertEquals(1384819200000L, response.rows()[0][0]);
         assertEquals(127, response.rows()[0][1]);
@@ -275,19 +275,19 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLParseException.class);
         expectedException.expectMessage("Nested Column Reference not allowes in INSERT statement");
 
-        setUpCratyMapping();
-        execute("insert into test12 (craty_field['size']) values (127)");
+        setUpObjectMapping();
+        execute("insert into test12 (object_field['size']) values (127)");
 
     }
 
     @Test
-    public void testInvalidInsertIntoCraty() throws Exception {
+    public void testInvalidInsertIntoObject() throws Exception {
 
         expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("Validation failed for craty_field.created: Invalid timestamp");
+        expectedException.expectMessage("Validation failed for object_field.created: Invalid timestamp");
 
-        setUpCratyMapping();
-        execute("insert into test12 (craty_field, strict_field) values (?,?)", new Object[]{
+        setUpObjectMapping();
+        execute("insert into test12 (object_field, strict_field) values (?,?)", new Object[]{
                 new HashMap<String, Object>(){{
                     put("created", true);
                     put("size", 127);
@@ -306,9 +306,9 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         ParsedStatement stmt = parseService.parse("select * from t1 where " +
                 "timestamp_field='1970-01-01T00:00:00'");
         assertEquals(
-                "{\"fields\":[\"boolean_field\",\"byte_field\",\"craty_field\",\"double_field\"," +
+                "{\"fields\":[\"boolean_field\",\"byte_field\",\"double_field\"," +
                         "\"float_field\",\"id\",\"integer_field\",\"ip_field\",\"long_field\"," +
-                        "\"short_field\",\"string_field\",\"timestamp_field\"]," +
+                        "\"object_field\",\"short_field\",\"string_field\",\"timestamp_field\"]," +
                         "\"query\":{\"term\":{\"timestamp_field\":0}},\"size\":10000}",
                 stmt.xcontent.toUtf8());
     }
@@ -338,7 +338,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
         execute("insert into t1 (id, byte_field, short_field, integer_field, long_field, " +
                 "float_field, double_field, boolean_field, string_field, timestamp_field," +
-                "craty_field) values (?,?,?,?,?,?,?,?,?,?,?)", new Object[]{
+                "object_field) values (?,?,?,?,?,?,?,?,?,?,?)", new Object[]{
                     0, 0, 0, 0, 0, 0.0, 1.0, false, "", "1970-01-01", new HashMap<String, Object>(){{ put("inner", "1970-01-01"); }}
                 });
         execute("update t1 set " +
@@ -351,7 +351,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                 "boolean_field=?," +
                 "string_field=?," +
                 "timestamp_field=?," +
-                "craty_field=?," +
+                "object_field=?," +
                 "ip_field=?" +
                 "where id=0", new Object[]{
                     Byte.MAX_VALUE, Short.MIN_VALUE, Integer.MAX_VALUE, Long.MIN_VALUE,
@@ -362,7 +362,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
         SQLResponse response = execute("select id, byte_field, short_field, integer_field, long_field," +
                 "float_field, double_field, boolean_field, string_field, timestamp_field," +
-                "craty_field, ip_field from t1 where id=0");
+                "object_field, ip_field from t1 where id=0");
         assertEquals(1, response.rowCount());
         assertEquals(0, response.rows()[0][0]);
         assertEquals(127, response.rows()[0][1]);
@@ -382,7 +382,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testGetRequestMapping() throws Exception {
         setUpSimple();
         execute("insert into t1 (id, string_field, boolean_field, byte_field, short_field, integer_field," +
-                "long_field, float_field, double_field, craty_field," +
+                "long_field, float_field, double_field, object_field," +
                 "timestamp_field, ip_field) values " +
                 "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", new Object[]{
                 0, "Blabla", true, 120, 1000, 1200000,
@@ -407,7 +407,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertNewCratyColumn() throws Exception {
+    public void testInsertNewObjectColumn() throws Exception {
         setUpSimple();
         execute("insert into t1 (id, new_col) values (?,?)", new Object[]{
                 0,
@@ -430,31 +430,31 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertNewColumnToCraty() throws Exception {
-        setUpCratyMapping();
-        Map<String, Object> cratyContent = new HashMap<String, Object>(){{
+    public void testInsertNewColumnToObject() throws Exception {
+        setUpObjectMapping();
+        Map<String, Object> objectContent = new HashMap<String, Object>(){{
             put("new_col", "a string");
             put("another_new_col", "1970-01-01T00:00:00");
         }};
-        execute("insert into test12 (craty_field) values (?)",
-                new Object[]{cratyContent});
+        execute("insert into test12 (object_field) values (?)",
+                new Object[]{objectContent});
         refresh();
-        SQLResponse response = execute("select craty_field from test12");
+        SQLResponse response = execute("select object_field from test12");
         assertEquals(1, response.rowCount());
         @SuppressWarnings("unchecked")
-        Map<String, Object> selectedCraty = (Map<String, Object>)response.rows()[0][0];
+        Map<String, Object> selectedObject = (Map<String, Object>)response.rows()[0][0];
 
-        assertThat((String)selectedCraty.get("new_col"), is("a string"));
-        assertEquals(0, selectedCraty.get("another_new_col"));
+        assertThat((String)selectedObject.get("new_col"), is("a string"));
+        assertEquals(0, selectedObject.get("another_new_col"));
     }
 
     @Test
-    public void testInsertNewColumnToStrictCraty() throws Exception {
+    public void testInsertNewColumnToStrictObject() throws Exception {
 
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column unknown");
 
-        setUpCratyMapping();
+        setUpObjectMapping();
         Map<String, Object> strictContent = new HashMap<String, Object>(){{
             put("new_col", "a string");
             put("another_new_col", "1970-01-01T00:00:00");
@@ -464,9 +464,9 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertNewColumnToNotDynamicCraty() throws Exception {
+    public void testInsertNewColumnToNotDynamicObject() throws Exception {
 
-        setUpCratyMapping();
+        setUpObjectMapping();
         Map<String, Object> notDynamicContent = new HashMap<String, Object>(){{
             put("new_col", "a string");
             put("another_new_col", "1970-01-01T00:00:00");

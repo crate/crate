@@ -56,7 +56,7 @@ definition like data type and ordinal position inside the table::
     | locations  | kind             | 4                | string    |
     | locations  | name             | 5                | string    |
     | locations  | position         | 6                | integer   |
-    | locations  | race             | 7                | craty     |
+    | locations  | race             | 7                | object    |
     | locations  | race.description | 8                | string    |
     | locations  | race.interests   | 9                | string    |
     | locations  | race.name        | 10               | string    |

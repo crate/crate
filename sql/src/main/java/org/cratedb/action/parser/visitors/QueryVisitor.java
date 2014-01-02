@@ -386,7 +386,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 if (columnDefinition != null) {
                     stmt.resultColumnList().add(new ColumnReferenceDescription(columnDefinition));
                 } else {
-                    stmt.resultColumnList().add(new ColumnReferenceDescription(columnName, DataType.CRATY));
+                    stmt.resultColumnList().add(new ColumnReferenceDescription(columnName, DataType.OBJECT));
                 }
             }
             stmt.addOutputField(columnAlias, columnName);

@@ -199,7 +199,7 @@ public class IndexMetaDataExtractor {
         String typeName = (String)columnProperties.get("type");
         if (typeName == null) {
             if (columnProperties.get("properties") != null) {
-                return DataType.CRATY;
+                return DataType.OBJECT;
             }
         } else {
             switch(typeName.toLowerCase()) {
@@ -225,7 +225,7 @@ public class IndexMetaDataExtractor {
                     return DataType.IP;
                 case "object":
                 case "nested":
-                    return DataType.CRATY;
+                    return DataType.OBJECT;
                 }
         }
         return null;

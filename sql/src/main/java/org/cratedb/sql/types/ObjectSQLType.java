@@ -2,9 +2,9 @@ package org.cratedb.sql.types;
 
 import java.util.Map;
 
-public class CratySQLType extends SQLType {
+public class ObjectSQLType extends SQLType {
 
-    public static final String NAME = "craty";
+    public static final String NAME = "object";
 
     @Override
     public String typeName() {

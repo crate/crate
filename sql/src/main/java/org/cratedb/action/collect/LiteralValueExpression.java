@@ -17,6 +17,6 @@ public class LiteralValueExpression extends CollectorExpression {
 
     @Override
     public DataType returnType() {
-        return DataType.CRATY;
+        return DataType.OBJECT;
     }
 }

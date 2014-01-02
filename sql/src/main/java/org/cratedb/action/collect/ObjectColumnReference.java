@@ -4,9 +4,9 @@ import org.cratedb.DataType;
 
 import java.util.Map;
 
-public class CratyColumnReference<ReturnType> extends ColumnReferenceCollectorExpression<Map<String, Object>> {
+public class ObjectColumnReference<ReturnType> extends ColumnReferenceCollectorExpression<Map<String, Object>> {
 
-    public CratyColumnReference(String columnName) {
+    public ObjectColumnReference(String columnName) {
         super(columnName);
     }
 
@@ -19,7 +19,7 @@ public class CratyColumnReference<ReturnType> extends ColumnReferenceCollectorEx
 
     @Override
     public DataType returnType() {
-        return DataType.CRATY;
+        return DataType.OBJECT;
     }
 
 }
