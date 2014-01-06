@@ -6,6 +6,7 @@ import org.cratedb.service.InformationSchemaService;
 import org.cratedb.service.SQLService;
 import org.cratedb.service.StatsService;
 import org.cratedb.sql.facet.SQLFacetParser;
+import org.cratedb.sys.SysExpressionModule;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -65,6 +66,7 @@ public class SQLPlugin extends AbstractPlugin {
         Collection<Class<? extends Module>> modules = newArrayList();
         if (!settings.getAsBoolean("node.client", false)) {
             modules.add(SQLModule.class);
+            modules.add(SysExpressionModule.class);
         }
         return modules;
     }
