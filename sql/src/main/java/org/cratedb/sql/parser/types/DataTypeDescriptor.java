@@ -87,13 +87,18 @@ public final class DataTypeDescriptor
      */
     public static final DataTypeDescriptor SMALLINT =
         new DataTypeDescriptor(TypeId.SMALLINT_ID, true);
-        
+
     /**
      * Runtime INTEGER type that is not nullable.
      */
     public static final DataTypeDescriptor SMALLINT_NOT_NULL =
         SMALLINT.getNullabilityType(false);
-         
+
+    /**
+     * Runtime OBJECT type that is nullable.
+     */
+    public static final DataTypeDescriptor OBJECT = new DataTypeDescriptor(TypeId.OBJECT_ID, true);
+
     /*
  *** Static creators
     */

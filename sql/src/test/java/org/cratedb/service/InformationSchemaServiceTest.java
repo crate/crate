@@ -13,6 +13,7 @@ import org.junit.*;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -620,5 +621,103 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
         assertEquals("t3", response.rows()[2][0]);
         assertEquals(2L, response.rows()[2][1]);
         assertEquals(cluster().clusterName(), response.rows()[0][2]);
+    }
+
+    @Test
+    public void selectDynamicObjectAddsSubColumn() throws Exception {
+        execUsingClient("create table t4 (" +
+                "  title string," +
+                "  stuff object(dynamic) as (" +
+                "    first_name string," +
+                "    last_name string" +
+                "  )" +
+                ")");
+        ensureYellow();
+        execUsingClient("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
+        assertEquals(4, response.rowCount());
+        assertEquals("stuff", response.rows()[0][0]);
+        assertEquals(1, response.rows()[0][1]);
+
+        assertEquals("stuff.first_name", response.rows()[1][0]);
+        assertEquals(2, response.rows()[1][1]);
+
+        assertEquals("stuff.last_name", response.rows()[2][0]);
+        assertEquals(3, response.rows()[2][1]);
+
+        assertEquals("title", response.rows()[3][0]);
+        assertEquals(4, response.rows()[3][1]);
+
+        execUsingClient("insert into t4 (stuff) values (?)", new Object[]{
+                new HashMap<String, Object>() {{
+                    put("first_name", "Douglas");
+                    put("middle_name", "Noel");
+                    put("last_name", "Adams");
+                }}
+        });
+
+        execUsingClient("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
+        assertEquals(5, response.rowCount());
+        assertEquals("stuff", response.rows()[0][0]);
+        assertEquals(1, response.rows()[0][1]);
+
+        assertEquals("stuff.first_name", response.rows()[1][0]);
+        assertEquals(2, response.rows()[1][1]);
+
+        assertEquals("stuff.last_name", response.rows()[2][0]);
+        assertEquals(3, response.rows()[2][1]);
+
+        assertEquals("stuff.middle_name", response.rows()[3][0]);
+        assertEquals(4, response.rows()[3][1]);
+
+
+        assertEquals("title", response.rows()[4][0]);
+        assertEquals(5, response.rows()[4][1]);
+    }
+
+    @Test
+    public void testAddColumnToIgnoredObject() throws Exception {
+        execUsingClient("create table t4 (" +
+                "  title string," +
+                "  stuff object(ignored) as (" +
+                "    first_name string," +
+                "    last_name string" +
+                "  )" +
+                ")");
+        ensureYellow();
+        execUsingClient("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
+        assertEquals(4, response.rowCount());
+        assertEquals("stuff", response.rows()[0][0]);
+        assertEquals(1, response.rows()[0][1]);
+
+        assertEquals("stuff.first_name", response.rows()[1][0]);
+        assertEquals(2, response.rows()[1][1]);
+
+        assertEquals("stuff.last_name", response.rows()[2][0]);
+        assertEquals(3, response.rows()[2][1]);
+
+        assertEquals("title", response.rows()[3][0]);
+        assertEquals(4, response.rows()[3][1]);
+
+        execUsingClient("insert into t4 (stuff) values (?)", new Object[]{
+                new HashMap<String, Object>() {{
+                    put("first_name", "Douglas");
+                    put("middle_name", "Noel");
+                    put("last_name", "Adams");
+                }}
+        });
+
+        execUsingClient("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
+        assertEquals(4, response.rowCount());
+        assertEquals("stuff", response.rows()[0][0]);
+        assertEquals(1, response.rows()[0][1]);
+
+        assertEquals("stuff.first_name", response.rows()[1][0]);
+        assertEquals(2, response.rows()[1][1]);
+
+        assertEquals("stuff.last_name", response.rows()[2][0]);
+        assertEquals(3, response.rows()[2][1]);
+
+        assertEquals("title", response.rows()[3][0]);
+        assertEquals(4, response.rows()[3][1]);
     }
 }

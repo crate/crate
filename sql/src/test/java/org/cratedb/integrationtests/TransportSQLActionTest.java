@@ -66,9 +66,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectCountStar() throws Exception {
-        createIndex("test");
-        client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
-        client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
+        execute("create table test (\"type\" string)");
+        execute("insert into test (name) values (?)", new Object[]{"Arthur"});
+        execute("insert into test (name) values (?)", new Object[]{"Trillian"});
         refresh();
         execute("select count(*) from test");
         assertEquals(1, response.rowCount());
@@ -77,10 +77,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectCountStarWithWhereClause() throws Exception {
-        prepareCreate("test")
-            .addMapping("default", "name", "type=string,index=not_analyzed").execute().actionGet();
-        client().prepareIndex("test", "default", "id1").setSource("{\"name\": \"Arthur\"}").execute().actionGet();
-        client().prepareIndex("test", "default", "id2").setSource("{\"name\": \"Trillian\"}").execute().actionGet();
+        execute("create table test (\"type\" string)");
+        execute("insert into test (name) values (?)", new Object[]{"Arthur"});
+        execute("insert into test (name) values (?)", new Object[]{"Trillian"});
         refresh();
         execute("select count(*) from test where name = 'Trillian'");
         assertEquals(1, response.rowCount());
@@ -89,11 +88,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectStar() throws Exception {
-        prepareCreate("test")
-                .addMapping("default",
-                    "firstName", "type=string",
-                    "lastName", "type=string")
-                .execute().actionGet();
+        execute("create table test (\"firstName\" string, \"lastName\" string)");
         waitForRelocation(ClusterHealthStatus.GREEN);
         execute("select * from test");
         assertArrayEquals(new String[]{"firstName", "lastName"}, response.cols());
@@ -138,12 +133,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectWithParams() throws Exception {
-        prepareCreate("test")
-            .addMapping("default",
-                "first_name", "type=string,index=not_analyzed",
-                "last_name", "type=string,index=not_analyzed",
-                "age", "type=double,index=not_analyzed")
-            .execute().actionGet();
+        execute("create table test (first_name string, last_name string, age double)");
         client().prepareIndex("test", "default", "id1").setRefresh(true)
             .setSource("{\"first_name\":\"Youri\",\"last_name\":\"Zoon\", \"age\": 38}")
             .execute().actionGet();
@@ -271,7 +261,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         "sunshine", "type=boolean,index=not_analyzed")
                 .execute().actionGet();
 
-        execute("insert into test values (?)", new Object[] {true});
+        execute("insert into test values (?)", new Object[]{true});
         refresh();
 
         execute("select sunshine from test where sunshine = true");
@@ -835,8 +825,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testTwoColumnUpdate() throws Exception {
         prepareCreate("test")
             .addMapping("default",
-                "col1", "type=string,index=not_analyzed",
-                "col2", "type=string,index=not_analyzed")
+                    "col1", "type=string,index=not_analyzed",
+                    "col2", "type=string,index=not_analyzed")
             .execute().actionGet();
 
         execute("insert into test values('hello', 'hallo'), ('again', 'nochmal')");
@@ -1161,7 +1151,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rowCount());
         refresh();
 
-        execute("select data from test where id = ?", new Object[] { "1" });
+        execute("select data from test where id = ?", new Object[]{"1"});
         assertEquals(new_data, response.rows()[0][0]);
     }
 

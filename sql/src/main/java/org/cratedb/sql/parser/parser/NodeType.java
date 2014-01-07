@@ -251,7 +251,9 @@ public enum NodeType implements TypedNodeFactory {
     TOKEN_FILTER_LIST(Factories.TOKEN_FILTER_LIST),
     CHAR_FILTER_LIST(Factories.CHAR_FILTER_LIST),
     NAMED_NODE_WITH_OPTIONAL_PROPERTIES(Factories.NAMED_NODE_WITH_OPTIONAL_PROPERTIES),
-    MATCH_FUNCTION_NODE(Factories.MATCH_FUNCTION_NODE),;
+    MATCH_FUNCTION_NODE(Factories.MATCH_FUNCTION_NODE),
+    OBJECT_COLUMN_DEFINITION_NODE(Factories.OBJECT_COLUMN_DEFINITION_NODE),
+    ;
     private TypedNodeFactory factory;
 
     NodeType(TypedNodeFactory factory) {

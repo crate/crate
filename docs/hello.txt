@@ -36,22 +36,16 @@ In this guide we want to create a database for quotes. Let's create
 the index and the ``quote`` type, which will contain information about
 the author of the quote and the quote itself::
 
-    sh$ curl -sSX PUT 'localhost:9200/quotes?pretty' -d @- <<EOF
+    sh$ curl -sSX POST 'localhost:9200/_sql?pretty=1&refresh=true' -d @- <<EOF
     ... {
-    ... "mappings" : {
-    ...  "default": {
-    ...   "properties": {
-    ...     "author": {
-    ...       "type": "string",
-    ...       "index": "not_analyzed"
-    ...     },
-    ...     "content": {
-    ...      "type": "string"
-    ... }}}}}
+    ... "stmt": "create table quotes (author string, content string)"
+    ... }
     ... EOF
     {
-      "ok" : true,
-      "acknowledged" : true
+      "cols" : [ ],
+      "rows" : [ ],
+      "rowcount" : 0,
+      "duration" : ...
     }
 
 Now we can add the first quote to the database::
@@ -68,7 +62,7 @@ Now we can add the first quote to the database::
       "duration" : ...
     }
 
-Refresh in order to make the result immediatly visible in subsequent queries::
+Refresh in order to make the result immediately visible in subsequent queries::
 
     sh$ curl -sSX POST 'localhost:9200/quotes/_refresh?pretty=1'
     {

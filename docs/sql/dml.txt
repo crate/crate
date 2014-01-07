@@ -28,11 +28,11 @@ If the '*' operator is used, all properties defined in the schema are returned
 for each object::
 
     cr> select date, description, kind, name, position, race from locations order by id limit 1 offset 1
-    +--------------------------+--------------...---+--------+-------------------+----------+------+
-    | date                     | description        | kind   | name              | position | race |
-    +--------------------------+--------------...---+--------+-------------------+----------+------+
-    | 1979-10-12T00:00:00.000Z | Motivated by ...s. | Planet | Arkintoofle Minor | 3        | NULL |
-    +--------------------------+--------------...---+--------+-------------------+----------+------+
+    +--------------+--------------...---+--------+-------------------+----------+------+
+    | date         | description        | kind   | name              | position | race |
+    +--------------+--------------...---+--------+-------------------+----------+------+
+    | 308534400000 | Motivated by ...s. | Planet | Arkintoofle Minor | 3        | NULL |
+    +--------------+--------------...---+--------+-------------------+----------+------+
     SELECT 1 row in set (... sec)
 
 Aliases can be used to change the output name of the columns::
@@ -128,12 +128,12 @@ The following example uses one of the supported ISO date formats::
 
     cr> select date, position from locations where date <= '1979-10-12' and
     ... position < 3 order by position
-    +--------------------------+----------+
-    | date                     | position |
-    +--------------------------+----------+
-    | 1979-10-12T00:00:00.000Z | 1        |
-    | 1979-10-12T00:00:00.000Z | 2        |
-    +--------------------------+----------+
+    +--------------+----------+
+    | date         | position |
+    +--------------+----------+
+    | 308534400000 | 1        |
+    | 308534400000 | 2        |
+    +--------------+----------+
     SELECT 2 rows in set (... sec)
 
 All supported default ISO date formats are comparable.

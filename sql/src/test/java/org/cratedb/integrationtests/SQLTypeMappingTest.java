@@ -1,6 +1,5 @@
 package org.cratedb.integrationtests;
 
-import org.cratedb.Constants;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLAction;
@@ -11,9 +10,6 @@ import org.cratedb.sql.ColumnUnknownException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.ValidationException;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
@@ -50,76 +46,22 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     }
 
     private void setUpSimple(int numShards) throws IOException {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
-                .startObject()
-                .startObject(Constants.DEFAULT_MAPPING_TYPE)
-                .startObject("_meta")
-                    .field("primary_keys", "id")
-                .endObject()
-                .startObject("properties")
-                    .startObject("id")
-                        .field("type", "integer")
-                        .field("index", "not_analyzed")
-                    .endObject()
-                    .startObject("string_field")
-                        .field("type", "string")
-                        .field("index", "not_analyzed")
-                    .endObject()
-                    .startObject("boolean_field")
-                        .field("type", "boolean")
-                        .field("index", "not_analyzed")
-                    .endObject()
-                    .startObject("byte_field")
-                        .field("type", "byte")
-                        .field("index", "not_analyzed")
-                    .endObject()
-                    .startObject("short_field")
-                        .field("type", "short")
-                        .field("index", "not_analyzed")
-                    .endObject()
-                    .startObject("integer_field")
-                        .field("type", "integer")
-                        .field("index", "not_analyzed")
-                    .endObject()
-                    .startObject("long_field")
-                        .field("type", "long")
-                        .field("index", "not_analyzed")
-                    .endObject()
-                    .startObject("float_field")
-                        .field("type", "float")
-                        .field("index", "not_analyzed")
-                    .endObject()
-                    .startObject("double_field")
-                        .field("type", "double")
-                        .field("index", "not_analyzed")
-                    .endObject()
-                    .startObject("timestamp_field")
-                        .field("type", "date")
-                        .field("index", "not_analyzed")
-                    .endObject()
-                    .startObject("object_field")
-                        .field("type", "object")
-                        .startObject("properties")
-                            .startObject("inner")
-                                .field("type", "date")
-                                .field("index", "not_analyzed")
-                            .endObject()
-                        .endObject()
-                    .endObject()
-                    .startObject("ip_field")
-                        .field("type", "ip")
-                        .field("index", "not_analyzed")
-                    .endObject()
-                .endObject()
-                .endObject();
+        String stmt = String.format("create table t1 (" +
+                " id integer primary key," +
+                " string_field string," +
+                " boolean_field boolean," +
+                " byte_field byte," +
+                " short_field short," +
+                " integer_field integer," +
+                " long_field long," +
+                " float_field float," +
+                " double_field double," +
+                " timestamp_field timestamp," +
+                " object_field object as (\"inner\" timestamp)," +
+                " ip_field ip" +
+                ") clustered by (id) into %d shards replicas 0", numShards);
+        execute(stmt);
 
-        client().admin().indices().prepareCreate("t1")
-                .setSettings(ImmutableSettings.builder()
-                        .put("number_of_replicas", 0)
-                        .put("number_of_shards", numShards)
-                        .put("index.mapper.map_source", false))
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
-                .execute().actionGet();
     }
 
     @Test
@@ -153,62 +95,14 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     }
 
     public void setUpObjectMapping() throws IOException {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
-                .startObject()
-                .startObject(Constants.DEFAULT_MAPPING_TYPE)
-                .startObject("properties")
-                    .startObject("object_field")
-                        .startObject("properties")
-                            .startObject("size")
-                                .field("type", "byte")
-                                .field("index", "not_analyzed")
-                            .endObject()
-                            .startObject("created")
-                                .field("type", "date")
-                                .field("index", "not_analyzed")
-                            .endObject()
-                        .endObject()
-                    .endObject()
-                    .startObject("strict_field")
-                        .field("type", "object")
-                        .field("dynamic", "strict")
-                        .startObject("properties")
-                            .startObject("path")
-                                .field("type", "string")
-                                .field("index", "not_analyzed")
-                            .endObject()
-                            .startObject("created")
-                                .field("type", "date")
-                                .field("index", "not_analyzed")
-                            .endObject()
-                        .endObject()
-                    .endObject()
-                    .startObject("no_dynamic_field")
-                        .field("type", "object")
-                        .field("dynamic", false)
-                        .startObject("properties")
-                            .startObject("path")
-                                .field("type", "string")
-                                .field("index", "not_analyzed")
-                            .endObject()
-                            .startObject("dynamic_again")
-                                .startObject("properties")
-                                    .startObject("field")
-                                        .field("type", "date")
-                                    .endObject()
-                                .endObject()
-                            .endObject()
-                        .endObject()
-                    .endObject()
-                .endObject()
-                .endObject()
-                .endObject();
-        client().admin().indices().prepareCreate("test12")
-                .setSettings(ImmutableSettings.builder()
-                        .put("number_of_replicas", 0)
-                        .put("number_of_shards", 2))
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, builder)
-                .execute().actionGet();
+        execute("create table test12 (" +
+                " object_field object(dynamic) as (size byte, created timestamp)," +
+                " strict_field object(strict) as (path string, created timestamp)," +
+                " no_dynamic_field object(ignored) as (" +
+                "  path string, " +
+                "  dynamic_again object(dynamic) as (field timestamp)" +
+                " )" +
+                ") clustered into 2 shards replicas 0");
         refresh();
     }
 
@@ -452,7 +346,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testInsertNewColumnToStrictObject() throws Exception {
 
         expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column unknown");
+        expectedException.expectMessage("Column 'strict_field.another_new_col' unknown");
 
         setUpObjectMapping();
         Map<String, Object> strictContent = new HashMap<String, Object>(){{
@@ -464,7 +358,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testInsertNewColumnToNotDynamicObject() throws Exception {
+    public void testInsertNewColumnToIgnoredObject() throws Exception {
 
         setUpObjectMapping();
         Map<String, Object> notDynamicContent = new HashMap<String, Object>(){{

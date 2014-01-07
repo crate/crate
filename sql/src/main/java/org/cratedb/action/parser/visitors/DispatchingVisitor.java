@@ -34,6 +34,7 @@ public abstract class DispatchingVisitor implements Visitor {
     protected void visit(CreateTableNode node) throws Exception {}
     protected void visit(DropTableNode node) throws Exception {}
     protected void visit(ColumnDefinitionNode node) throws Exception {}
+    protected void visit(ObjectColumnDefinitionNode node) throws Exception {}
     protected void visit(ConstraintDefinitionNode node) throws Exception {}
     protected void visit(CreateAnalyzerNode node) throws Exception {}
     protected void visit(IndexConstraintDefinitionNode node) throws Exception {}
@@ -101,6 +102,9 @@ public abstract class DispatchingVisitor implements Visitor {
         switch(tableElement.getNodeType()) {
             case COLUMN_DEFINITION_NODE:
                 visit((ColumnDefinitionNode) tableElement);
+                break;
+            case OBJECT_COLUMN_DEFINITION_NODE:
+                visit((ObjectColumnDefinitionNode)tableElement);
                 break;
             case CONSTRAINT_DEFINITION_NODE:
                 visit((ConstraintDefinitionNode)tableElement);

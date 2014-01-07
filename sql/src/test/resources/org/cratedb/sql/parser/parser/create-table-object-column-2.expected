@@ -1,0 +1,27 @@
+org.cratedb.sql.parser.parser.CreateTableNode@7bfc07a7
+name: t2
+statementType: CREATE TABLE
+lockGranularity: R
+existenceCheck: NO_CONDITION
+tableElementList: 	
+	org.cratedb.sql.parser.parser.TableElementList@37e80da0
+
+	[0]:	
+	org.cratedb.sql.parser.parser.ObjectColumnDefinitionNode@63d6a00c
+	type: OBJECT
+	name: col1
+	elementType: null
+	objectType: STRICT
+	subColumns: 		
+		org.cratedb.sql.parser.parser.TableElementList@1fa5a709
+
+		[0]:		
+		org.cratedb.sql.parser.parser.ColumnDefinitionNode@3479501a
+		type: INTEGER
+		name: col11
+		elementType: null
+		[1]:		
+		org.cratedb.sql.parser.parser.ColumnDefinitionNode@69c7f04d
+		type: string
+		name: col12
+		elementType: null

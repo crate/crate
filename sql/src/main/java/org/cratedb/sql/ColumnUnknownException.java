@@ -7,25 +7,25 @@ public class ColumnUnknownException extends CrateException {
     private final String columnName;
 
     public ColumnUnknownException(String columnName) {
-        super("Column unknwon");
+        super(String.format("Column '%s' unknown", columnName));
         this.tableName = null;
         this.columnName = columnName;
     }
 
     public ColumnUnknownException(String columnName, Throwable e) {
-        super("Column unknown", e);
+        super(String.format("Column '%s' unknown", columnName), e);
         this.tableName = null;
         this.columnName = columnName;
     }
 
     public ColumnUnknownException(String tableName, String columnName) {
-        super("Column unknown");
+        super(String.format("Column '%s' unknown", columnName));
         this.tableName = tableName;
         this.columnName = columnName;
     }
 
     public ColumnUnknownException(String tableName, String columnName, Throwable e) {
-        super("Column unknown", e);
+        super(String.format("Column '%s' unknown", columnName), e);
         this.tableName = tableName;
         this.columnName = columnName;
     }

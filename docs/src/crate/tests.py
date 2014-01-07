@@ -49,14 +49,17 @@ empty_layer = CrateLayer('crate',
 
 def setUpLocations(test):
     test.globs['cmd'] = cmd
-    requests.put('http://localhost:9200/locations', '''
-    index :
-     number_of_shards : 2
-     number_of_replicas : 0
-    ''')
-    requests.put('http://localhost:9200/locations/default/_mapping',
-                 open(project_path('sql/src/test/resources/essetup/mappings',
-                                   'test_a.json')))
+    cmd.onecmd("""
+        create table locations (
+          id string primary key,
+          name string,
+          date timestamp,
+          kind string,
+          position integer,
+          description string,
+          race object,
+          index name_description_ft using fulltext(name, description) with (analyzer='english')
+        ) clustered by(id) into 2 shards replicas 0""".strip())
 
     requests.post('http://localhost:9200/_bulk?refresh=true',
                   open(project_path('sql/src/test/resources/essetup/data',
@@ -66,14 +69,12 @@ def setUpLocations(test):
 
 def setUpQuotes(test):
     test.globs['cmd'] = cmd
-    requests.put('http://localhost:9200/quotes', '''
-    index :
-     number_of_shards : 2
-     number_of_replicas : 0
-    ''')
-    requests.put('http://localhost:9200/quotes/default/_mapping',
-                 open(project_path('sql/src/test/resources/essetup/mappings',
-                                   'test_b.json')))
+    cmd.onecmd("""
+        create table quotes (
+          id integer primary key,
+          quote string
+        ) clustered by(id) into 2 shards replicas 0
+    """.strip())
 
     crate_wd = empty_layer.wdPath()
     cluster_name = "Testing9200"

@@ -1,0 +1,1 @@
+CREATE TABLE t3 (col1 object(DYNAMIC) AS (col11 object, col12 integer, col13 object(STRICT) AS (col131 string)))

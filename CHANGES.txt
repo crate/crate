@@ -9,6 +9,9 @@ Unreleased
 
  - admin-ui: display long numbers as rounded units
 
+ - implemented ``object`` type within ``CREATE TABLE`` statements
+   allowing to create nested tables/documents with SQL
+
  - renamed all occurrences of ``craty`` to ``object``
 
  - fix irregular deadlock while collect with ScriptValuesExpression

@@ -2480,6 +2480,8 @@ TOKEN [IGNORE_CASE] :
 | <CHAR_FILTERS: "char_filters">
 | <EXTENDS: "extends">
 | <SHARDS: "shards">
+| <STRICT: "strict">
+| <IGNORED: "ignored">
 }
 
 /* This list should contain non-SQL92 keywords that are not reserved.
@@ -3900,7 +3902,14 @@ tableElement(TableElementList tableElementList) throws StandardException :
 {
 }
 {
-    columnDefinition(tableElementList) | tableConstraintDefinition(tableElementList)
+    (
+        LOOKAHEAD( { getToken(2).kind == OBJECT } )
+        objectColumnDefinition(tableElementList)
+    |
+        columnDefinition(tableElementList)
+    |
+        tableConstraintDefinition(tableElementList)
+    )
     {
         return ;
     }
@@ -3938,6 +3947,86 @@ columnDefinition(TableElementList tableElementList) throws StandardException :
         return autoIncrementInfo != null;
     }
 }
+
+boolean
+objectColumnDefinition(TableElementList tableElementList) throws StandardException :
+{
+    DataTypeDescriptor[] typeDescriptor = new DataTypeDescriptor[1];
+    String columnName;
+    ObjectType objectType = ObjectType.DYNAMIC;
+    TableElementList subColumns = (TableElementList)nodeFactory.getNode(
+                                    NodeType.TABLE_ELEMENT_LIST, parserContext);;
+}
+{
+    columnName = identifier()
+    <OBJECT>
+
+    [
+        <LEFT_PAREN>
+            objectType = objectType()
+        <RIGHT_PAREN>
+    ]
+    [
+        <AS>
+        <LEFT_PAREN>
+        objectColumnDefinitionList(subColumns)
+        <RIGHT_PAREN>
+    ]
+    {
+        tableElementList.addTableElement((TableElementNode)nodeFactory.getNode(
+                                                            NodeType.OBJECT_COLUMN_DEFINITION_NODE,
+                                                            columnName,
+                                                            objectType,
+                                                            subColumns,
+                                                            parserContext));
+        return true;
+    }
+}
+
+ObjectType
+objectType() throws StandardException :
+{
+    Token token;
+}
+{
+    (
+        token = <DYNAMIC>
+    |
+        token = <STRICT>
+    |
+        token = <IGNORED>
+    )
+    {
+        return ObjectType.getByName(token.image);
+    }
+}
+
+TableElementList
+objectColumnDefinitionList(TableElementList columnDefinitionList) throws StandardException :
+{
+}
+{
+    objectSubColumn(columnDefinitionList)
+    ( <COMMA> objectSubColumn(columnDefinitionList) )*
+    {
+        return columnDefinitionList;
+    }
+}
+
+void objectSubColumn(TableElementList tableElementList) throws StandardException :
+{}
+{
+    (
+        LOOKAHEAD( { getToken(2).kind == OBJECT } )
+        objectColumnDefinition(tableElementList)
+    |
+        columnDefinition(tableElementList)
+    )
+    {
+        return;
+    }
+}
+
 
 ValueNode
 defaultAndConstraints(DataTypeDescriptor[] typeDescriptor,
@@ -9282,12 +9371,13 @@ IndexColumn
 getIndexColumn() throws StandardException :
 {
     String columnName;
+    ColumnReference column;
 }
 {
-    columnName = identifier()
+    column = columnReference()
     {
         return (IndexColumn) nodeFactory.getNode(NodeType.INDEX_COLUMN,
-                                                 columnName,
+                                                 column.getColumnName(),
                                                  Boolean.TRUE,
                                                  parserContext);
     }
@@ -15743,6 +15833,8 @@ nonReservedKeyword() :
 | tok = <CHAR_FILTERS>
 | tok = <EXTENDS>
 | tok = <SHARDS>
+| tok = <STRICT>
+| tok = <IGNORED>
 )
     {
         // Remember last identifier token and whether it was delimited.
@@ -15888,8 +15980,9 @@ unorderedGroupIndexColumnItem(IndexColumnList columnList) throws StandardExcepti
     ColumnReference groupIndexColumnName;
 }
 {
-    groupIndexColumnName = groupIndexColumnName(columnList)
+    groupIndexColumnName = columnReference()
     {
+
         IndexColumn indexColumn = (IndexColumn)
             nodeFactory.getNode(NodeType.INDEX_COLUMN,
                                 groupIndexColumnName.getTableNameNode(),
