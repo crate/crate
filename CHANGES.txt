@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - admin-ui: fixed display/number of under-replicated docs while cluster state is red
+
+ - admin-ui: display long numbers as rounded units
+
  - renamed all occurrences of ``craty`` to ``object``
 
  - fix irregular deadlock while collect with ScriptValuesExpression

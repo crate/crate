@@ -23,8 +23,8 @@ angular.module('overview', ['stats', 'sql', 'common'])
     var refreshInterval = 5000;
 
     function getData() {
-      SQLQuery.execute('select table_name, sum(num_docs), "primary", relocating_node, avg(num_docs), count(*) '+
-                       'from stats.shards group by table_name, "primary",  relocating_node ' +
+      SQLQuery.execute('select table_name, sum(num_docs), "primary", relocating_node, avg(num_docs), count(*), state '+
+                       'from stats.shards group by table_name, "primary", relocating_node, state ' +
                        'order by table_name, "primary"').
         success(function(sqlQuery1){
           SQLQuery.execute('select table_name, sum(number_of_shards) from information_schema.tables ' +
@@ -70,7 +70,7 @@ angular.module('overview', ['stats', 'sql', 'common'])
           table_state[current_row[0]]['total'] = current_row[1];
           table_state[current_row[0]]['avg_docs'] += current_row[4];
           table_state[current_row[0]]['active_shards'] += current_row[5];
-        } else {
+        } else if (current_row[6] != 'UNASSIGNED') {
           table_state[current_row[0]]['replicated'] = current_row[1];
         }
       }
@@ -118,5 +118,8 @@ angular.module('overview', ['stats', 'sql', 'common'])
     }
 
     getData();
+
+    // bind tooltips
+    $("[rel=tooltip]").tooltip({ placement: 'top'});
 
   });

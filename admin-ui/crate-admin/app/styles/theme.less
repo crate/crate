@@ -37,10 +37,16 @@ h2 {
 // -------------------------
 
 .navbar-brand {
-  width: 100%;
-  height: 92px;
-  left: -15px;
-  /* Hide the text. */
+  background-image: url("@{image-url}/logo.png");
+  background-repeat: no-repeat;
+  background-position: center center;
+  width: 149px;
+  height: 104px;
+    /* Hide the text. */
+  text-indent: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+
   z-index: 1;
   position: relative;
   margin-top: 150px;
@@ -166,6 +172,10 @@ h2 {
       }
   }
 
+  .navbar-inverse .alert-danger {
+    background-color: #252525;
+  }
+
   .fa-question-circle {
     float: right;
     margin-top: 15px;
@@ -274,4 +284,13 @@ form {
   font-weight: bold;
   text-transform: uppercase;
   margin-bottom: 10px;
+}
+
+
+//
+// Mixins
+// --------------------------------------------------
+
+.inline-block {
+  display: inline-block;
 }
