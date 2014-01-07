@@ -129,10 +129,10 @@ fractions. Example::
 object
 ------
 
-The object type allows to define nested documents instead of old and busted flat tables.
+The object type allows to define nested documents instead of old-n-busted flat tables.
 An object can contain other fields of any type, even further object columns.
-It can be either dynamic, which means schemaless or enforce its schema or can be used as a kind of
-json-blob.
+An Object column can be either schemaless or enforce its defined schema.
+It can even can be used as a kind of json-blob.
 
 Syntax::
 
@@ -160,7 +160,7 @@ Example::
 strict
 ......
 
-It can be configured to be either ``strict``, rejecting any subcolumn that is not defined upfront
+It can be configured to be ``strict``, rejecting any subcolumn that is not defined upfront
 in the schema. As you might have guessed, defining ``strict`` objects without subcolumns results
 in an unusable column that will always be null, which is the most useless column one could create.
 
@@ -181,10 +181,13 @@ dynamic
 
 Another option is ``dynamic``, which means that new subcolumns can be added in this object.
 
-Note that adding new columns to ``dynamic`` object will affect the schema of the
+Note that adding new columns to a ``dynamic`` object will affect the schema of the
 table. Once a column is added, it shows up in the ``information_schema.columns`` and ``information_schema.indices``
-tables and its definition is fixed. If a new column ``a`` was added with type ``integer``, adding strings
-to this column will result in an error.
+tables and its its type and attributes are fixed. They will have the type that was guessed by their
+inserted/updated value and they will always be ``not_indexed`` which means
+they are analyzed with the ``plain`` analyzer, which means as-is.
+If a new column ``a`` was added with type ``integer``,
+adding strings to this column will result in an error.
 
 Examples::
 
@@ -208,8 +211,8 @@ which is exactly the same as::
     ... )
     CREATE OK (... sec)
 
-New columns added to ``dynamic`` objects will change the schema of the table.
-They are, once added, usable as usual subcolumns. One can retrieve them, sort by them
+New columns added to ``dynamic`` objects are, once added,
+usable as usual subcolumns. One can retrieve them, sort by them
 and use them in where clauses.
 
 ignored

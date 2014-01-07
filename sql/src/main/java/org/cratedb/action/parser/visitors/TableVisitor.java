@@ -58,7 +58,7 @@ public class TableVisitor extends BaseVisitor {
         indexSettings.put("number_of_shards", node.numberOfShards(5));
 
         // build mapping
-        // visit columnDefinitions first, then handle index constraints
+        // visit columnDefinitions and primary key constraint first, ...
         List<IndexConstraintDefinitionNode> indexConstraints = new ArrayList<>();
         for (TableElementNode tableElement : node.getTableElementList()) {
             if (tableElement.getNodeType() == NodeType.INDEX_CONSTRAINT_NODE) {
@@ -67,7 +67,7 @@ public class TableVisitor extends BaseVisitor {
             }
             visit(tableElement);
         }
-
+        // ... then handle index constraints
         for (IndexConstraintDefinitionNode indexConstraint : indexConstraints) {
             visit(indexConstraint);
         }
@@ -107,24 +107,6 @@ public class TableVisitor extends BaseVisitor {
         }
         // map timestamp to date
         columnType = columnType.equals("timestamp") ? "date" : columnType;
-
-        // support index definition before column definition
-        // we do handle indexes after all columnDefinitions, so this is not needed
-        /*
-        if (columnDefinition.containsKey("fields")) {
-            Map<String, Map<String, String>> columnFieldsDefinition = (Map)columnDefinition.get("fields");
-            columnDefinition = (Map)columnFieldsDefinition.get(node.getColumnName());
-            assert columnDefinition != null;
-
-            // fix types of the indexes (they are null because column was not defined already)
-            for (Map.Entry<String, Map<String,String>> entry : columnFieldsDefinition.entrySet()) {
-                if (entry.getKey().equals(node.getColumnName())) {
-                    continue;
-                }
-                entry.getValue().put("type", columnType);
-            }
-        }
-        */
 
         columnDefinition.put("type", columnType);
 
