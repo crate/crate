@@ -2,7 +2,9 @@ package org.cratedb.module.sql.benchmark;
 
 import junit.framework.TestCase;
 import org.cratedb.action.parser.QueryPlanner;
-import org.cratedb.test.integration.CrateIntegrationTest;
+import org.cratedb.action.sql.SQLAction;
+import org.cratedb.action.sql.SQLRequest;
+import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.test.integration.CrateTestCluster;
 import org.cratedb.test.integration.NodeSettingsSource;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -10,13 +12,8 @@ import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.node.NodeBuilder;
-import org.elasticsearch.node.internal.InternalSettingsPreparer;
 import org.elasticsearch.test.ElasticsearchTestCase;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -26,12 +23,10 @@ import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-
 import java.io.IOException;
 import java.util.Random;
 
 import static org.cratedb.test.integration.PathAccessor.bytesFromPath;
-import static org.cratedb.test.integration.PathAccessor.stringFromPath;
 
 
 @RunWith(JUnit4.class)
@@ -61,6 +56,10 @@ public class BenchmarkBase extends TestCase {
     @Rule
     public TestRule ruleChain = RuleChain.emptyRuleChain();
 
+    public SQLResponse execute(String stmt, Object[] args, boolean queryPlannerEnabled) {
+        return getClient(queryPlannerEnabled).execute(SQLAction.INSTANCE, new SQLRequest(stmt, args)).actionGet();
+    }
+
     @Before
     public void setUp() throws Exception {
         if (NODE1 == null) {
@@ -71,9 +70,24 @@ public class BenchmarkBase extends TestCase {
         }
 
         if (!indexExists()) {
-            getClient(false).admin().indices().prepareCreate(INDEX_NAME).setSettings(
-                    ImmutableSettings.builder().loadFromClasspath(SETTINGS).build())
-                    .addMapping("default", stringFromPath(MAPPING, InsertBenchmark.class)).execute().actionGet();
+            execute("create table countries (" +
+                    " \"areaInSqKm\" float," +
+                    " capital string," +
+                    " continent string," +
+                    " \"continentName\" string," +
+                    " \"countryCode\" string," +
+                    " \"countryName\" string," +
+                    " north float," +
+                    " east float," +
+                    " south float," +
+                    " west float," +
+                    " \"fipsCode\" string," +
+                    " \"currencyCode\" string," +
+                    " languages string," +
+                    " \"isoAlpha3\" string," +
+                    " \"isoNumeric\" string," +
+                    " population integer" +
+                    ") clustered into 2 shards replicas 0", new Object[0], false);
             refresh(client());
             if (loadData()) {
                 doLoadData();

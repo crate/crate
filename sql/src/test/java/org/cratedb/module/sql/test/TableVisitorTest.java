@@ -559,4 +559,289 @@ public class TableVisitorTest {
         assertEquals(expectedMapping, stmt.indexMapping);
     }
 
+    @Test
+    public void testCreateTableWithImplicitDynamicObject() throws Exception {
+        execStatement("create table chapters (title string, stuff object)");
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("properties", new HashMap<String, Object>(){{
+                put("title", new HashMap<String, Object>(){{
+                    put("type", "string");
+                    put("index", "not_analyzed");
+                    put("store", "false");
+                }});
+                put("stuff", new HashMap<String, Object>(){{
+                    put("type", "object");
+                    put("dynamic", "true");
+                }});
+            }});
+        }};
+        assertEquals(expectedMapping, stmt.indexMapping);
+    }
+
+    @Test
+    public void testCreateTableWIthExplicitDynamicObject() throws Exception {
+        execStatement("create table chapters (title string, stuff object(dynamic))");
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("properties", new HashMap<String, Object>(){{
+                put("title", new HashMap<String, Object>(){{
+                    put("type", "string");
+                    put("index", "not_analyzed");
+                    put("store", "false");
+                }});
+                put("stuff", new HashMap<String, Object>(){{
+                    put("type", "object");
+                    put("dynamic", "true");
+                }});
+            }});
+        }};
+        assertEquals(expectedMapping, stmt.indexMapping);
+    }
+
+    @Test
+    public void testCreateTableWithExplicitObjects() throws Exception {
+        execStatement("create table chapters (title string, stuff object(strict), stuff2 object(ignored))");
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("properties", new HashMap<String, Object>(){{
+                put("title", new HashMap<String, Object>(){{
+                    put("type", "string");
+                    put("index", "not_analyzed");
+                    put("store", "false");
+                }});
+                put("stuff", new HashMap<String, Object>(){{
+                    put("type", "object");
+                    put("dynamic", "strict");
+                }});
+                put("stuff2", new HashMap<String, Object>(){{
+                    put("type", "object");
+                    put("dynamic", "false");
+                }});
+            }});
+        }};
+        assertEquals(expectedMapping, stmt.indexMapping);
+    }
+
+    @Test
+    public void testCreateTableWithDynamicObjectWithColumns() throws Exception {
+        execStatement("create table chapters (title string, author object(dynamic) as ("+
+                "name string," +
+                "birthday timestamp))");
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("properties", new HashMap<String, Object>(){{
+                put("title", new HashMap<String, Object>(){{
+                    put("type", "string");
+                    put("index", "not_analyzed");
+                    put("store", "false");
+                }});
+                put("author", new HashMap<String, Object>(){{
+                    put("type", "object");
+                    put("dynamic", "true");
+                    put("properties", new HashMap<String, Object>(){{
+                        put("name", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "not_analyzed");
+                            put("store", "false");
+                        }});
+                        put("birthday", new HashMap<String, Object>(){{
+                            put("type", "date");
+                            put("index", "not_analyzed");
+                            put("store", "false");
+                        }});
+                    }});
+                }});
+
+            }});
+        }};
+        assertEquals(expectedMapping, stmt.indexMapping);
+    }
+
+    @Test
+    public void testCreateTableWithObjectWithNestedObject() throws Exception {
+        execStatement("create table chapters (" +
+                " title string, " +
+                " author object(strict) as ("+
+                "  name string," +
+                "  birthday timestamp," +
+                "  details object(dynamic) as (" +
+                "   age integer," +
+                "   hometown string" +
+                "  )" +
+                " )" +
+                ")");
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("properties", new HashMap<String, Object>(){{
+                put("title", new HashMap<String, Object>(){{
+                    put("type", "string");
+                    put("index", "not_analyzed");
+                    put("store", "false");
+                }});
+                put("author", new HashMap<String, Object>(){{
+                    put("type", "object");
+                    put("dynamic", "strict");
+                    put("properties", new HashMap<String, Object>(){{
+                        put("name", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "not_analyzed");
+                            put("store", "false");
+                        }});
+                        put("birthday", new HashMap<String, Object>(){{
+                            put("type", "date");
+                            put("index", "not_analyzed");
+                            put("store", "false");
+                        }});
+                        put("details", new HashMap<String, Object>(){{
+                            put("type", "object");
+                            put("dynamic", "true");
+                            put("properties", new HashMap<String, Object>(){{
+                                put("age", new HashMap<String, Object>(){{
+                                    put("type", "integer");
+                                    put("index", "not_analyzed");
+                                    put("store", "false");
+                                }});
+                                put("hometown", new HashMap<String, Object>(){{
+                                    put("type", "string");
+                                    put("index", "not_analyzed");
+                                    put("store", "false");
+                                }});
+                            }});
+                        }});
+                    }});
+                }});
+
+            }});
+        }};
+        assertEquals(expectedMapping, stmt.indexMapping);
+    }
+
+    @Test
+    public void testCreateTableWithStrictObjectWithColumnsAndIndexBefore() throws Exception {
+        execStatement("create table chapters (" +
+                " title string," +
+                " index ft using fulltext(title, author['name'])," +
+                " author object(strict) as (" +
+                "  name string," +
+                "  birthday timestamp" +
+                " )" +
+                ")");
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("properties", new HashMap<String, Object>(){{
+                put("title", new HashMap<String, Object>(){{
+                    put("type", "multi_field");
+                    put("path", "just_name");
+                    put("fields", new HashMap<String, Object>(){{
+                        put("title", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "not_analyzed");
+                            put("store", "false");
+                        }});
+                        put("ft", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "analyzed");
+                            put("analyzer", "standard");
+                            put("store", "false");
+                        }});
+                    }});
+
+                }});
+                put("author", new HashMap<String, Object>(){{
+                    put("type", "object");
+                    put("dynamic", "strict");
+                    put("properties", new HashMap<String, Object>(){{
+                        put("birthday", new HashMap<String, Object>(){{
+                            put("type", "date");
+                            put("index", "not_analyzed");
+                            put("store", "false");
+                        }});
+                    }});
+                }});
+                put("author.name", new HashMap<String, Object>(){{
+                    put("type", "multi_field");
+                    put("path", "just_name");
+                    put("fields", new HashMap<String, Object>(){{
+                        put("author.name", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "not_analyzed");
+                            put("store", "false");
+                        }});
+                        put("ft", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "analyzed");
+                            put("analyzer", "standard");
+                            put("store", "false");
+                        }});
+                    }});
+
+                }});
+
+            }});
+        }};
+        assertEquals(expectedMapping, stmt.indexMapping);
+
+    }
+
+    @Test
+    public void testCreateTableWithStrictObjectWithColumnsAndIndexAfter() throws Exception {
+        execStatement("create table chapters (" +
+                " title string," +
+                " author object(strict) as (" +
+                "  name string," +
+                "  birthday timestamp" +
+                " )," +
+                " index ft using fulltext(title, author['name'])" +
+                ")");
+        Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("properties", new HashMap<String, Object>(){{
+                put("title", new HashMap<String, Object>(){{
+                    put("type", "multi_field");
+                    put("path", "just_name");
+                    put("fields", new HashMap<String, Object>(){{
+                        put("title", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "not_analyzed");
+                            put("store", "false");
+                        }});
+                        put("ft", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "analyzed");
+                            put("analyzer", "standard");
+                            put("store", "false");
+                        }});
+                    }});
+
+                }});
+                put("author", new HashMap<String, Object>(){{
+                    put("type", "object");
+                    put("dynamic", "strict");
+                    put("properties", new HashMap<String, Object>(){{
+                        put("birthday", new HashMap<String, Object>(){{
+                            put("type", "date");
+                            put("index", "not_analyzed");
+                            put("store", "false");
+                        }});
+                    }});
+                }});
+                put("author.name", new HashMap<String, Object>(){{
+                    put("type", "multi_field");
+                    put("path", "just_name");
+                    put("fields", new HashMap<String, Object>(){{
+                        put("author.name", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "not_analyzed");
+                            put("store", "false");
+                        }});
+                        put("ft", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("index", "analyzed");
+                            put("analyzer", "standard");
+                            put("store", "false");
+                        }});
+                    }});
+
+                }});
+
+            }});
+        }};
+        assertEquals(expectedMapping, stmt.indexMapping);
+
+    }
+
 }

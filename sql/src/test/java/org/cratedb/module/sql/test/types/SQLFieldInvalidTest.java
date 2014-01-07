@@ -96,6 +96,7 @@ public class SQLFieldInvalidTest {
             }});
 
         }};
+
         MappingMetaData mappingMetaData = new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE,
                 mapping);
         IndexMetaData metaData = IndexMetaData.builder("test1")

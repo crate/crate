@@ -42,7 +42,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     @Before
     public void initTestData() throws Exception{
         setup.groupBySetup();
-        execute("create table quotes (id integer primary key, quote string)");
+        execute("create table quotes (id integer primary key, quote string) replicas 1");
         ensureGreen();
     }
 
@@ -153,7 +153,6 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
         execute("create table locations (id integer primary key, name string) replicas 2");
         refresh();
         ensureYellow();
-
         execute("select * from stats.shards order by state");
         assertEquals(35L, response.rowCount());
         assertEquals(9, response.cols().length);

@@ -1,6 +1,8 @@
 package org.cratedb.action.parser.visitors;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.SQLParseException;
@@ -8,16 +10,16 @@ import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static com.google.common.collect.Maps.newHashMap;
 
 public class TableVisitor extends BaseVisitor {
 
-    private final String[] allowedColumnTypes = {"string", "integer", "long", "short", "double",
-                                                 "float", "byte", "boolean", "timestamp"};
+    private final ImmutableSet<String> allowedColumnTypes = ImmutableSet.of("string", "integer",
+                                                                        "long", "short", "double",
+                                                                        "float", "byte", "boolean",
+                                                                        "timestamp", "object", "ip");
     private ColumnReference routingColumn;
     private List<String> primaryKeyColumns;
     private Map<String, Object> mappingProperties = newHashMap();
@@ -56,8 +58,18 @@ public class TableVisitor extends BaseVisitor {
         indexSettings.put("number_of_shards", node.numberOfShards(5));
 
         // build mapping
+        // visit columnDefinitions and primary key constraint first, ...
+        List<IndexConstraintDefinitionNode> indexConstraints = new ArrayList<>();
         for (TableElementNode tableElement : node.getTableElementList()) {
+            if (tableElement.getNodeType() == NodeType.INDEX_CONSTRAINT_NODE) {
+                indexConstraints.add((IndexConstraintDefinitionNode)tableElement);
+                continue;
+            }
             visit(tableElement);
+        }
+        // ... then handle index constraints
+        for (IndexConstraintDefinitionNode indexConstraint : indexConstraints) {
+            visit(indexConstraint);
         }
 
         routingColumn = node.routingColumn();
@@ -79,33 +91,22 @@ public class TableVisitor extends BaseVisitor {
         stmt.type(ParsedStatement.ActionType.DELETE_INDEX_ACTION);
     }
 
-    @Override
     public void visit(ColumnDefinitionNode node) throws SQLParseException {
+        visit(node, mappingProperties);
+    }
 
-        Map<String, Object> columnDefinition = safeColumnDefinition(node.getColumnName());
+    public void visit(ColumnDefinitionNode node, Map<String, Object> mapping) {
+
+        String columnName = node.getColumnName();
+        Map<String, Object> columnDefinition;
+        columnDefinition = safeColumnDefinition(columnName, mapping);
 
         String columnType = node.getType().getTypeName().toLowerCase();
-        List<String> allowedColumnTypeList = Arrays.asList(allowedColumnTypes);
-        if (!allowedColumnTypeList.contains(columnType)) {
+        if (!allowedColumnTypes.contains(columnType)) {
             throw new SQLParseException(String.format("Unsupported type: '%s'", columnType));
         }
         // map timestamp to date
         columnType = columnType.equals("timestamp") ? "date" : columnType;
-
-        // support index definition before column definition
-        if (columnDefinition.containsKey("fields")) {
-            Map<String, Map<String, String>> columnFieldsDefinition = (Map)columnDefinition.get("fields");
-            columnDefinition = (Map)columnFieldsDefinition.get(node.getColumnName());
-            assert columnDefinition != null;
-
-            // fix types of the indexes (they are null because column was not defined already)
-            for (Map.Entry<String, Map<String,String>> entry : columnFieldsDefinition.entrySet()) {
-                if (entry.getKey().equals(node.getColumnName())) {
-                    continue;
-                }
-                entry.getValue().put("type", columnType);
-            }
-        }
 
         columnDefinition.put("type", columnType);
 
@@ -115,6 +116,51 @@ public class TableVisitor extends BaseVisitor {
         }
         if (!columnDefinition.containsKey("store")) {
             columnDefinition.put("store", "false");
+        }
+    }
+
+    public void visit(ObjectColumnDefinitionNode node) throws SQLParseException {
+        visit(node, mappingProperties);
+    }
+
+    public void visit(ObjectColumnDefinitionNode node, Map<String, Object> mapping) throws SQLParseException {
+
+        String columnName = node.getColumnName();
+        Map<String, Object> columnDefinition = safeColumnDefinition(columnName, mapping);
+
+        String columnType = node.getType().getTypeName().toLowerCase();
+        if (!allowedColumnTypes.contains(columnType)) {
+            throw new SQLParseException(String.format("Unsupported type: '%s'", columnType));
+        }
+        columnDefinition.put("type", columnType);
+
+        switch (node.objectType()) {
+            case DYNAMIC:
+                columnDefinition.put("dynamic", "true");
+                break;
+            case STRICT:
+                columnDefinition.put("dynamic", "strict");
+                break;
+            case IGNORED:
+                columnDefinition.put("dynamic", "false");
+                break;
+        }
+        if (node.subColumns() != null && node.subColumns().size() > 0) {
+            Map<String, Object> subColumnsMapping = new HashMap<>();
+            columnDefinition.put("properties", subColumnsMapping);
+
+            for (TableElementNode subColumn: node.subColumns()) {
+                switch(subColumn.getNodeType()) {
+                    case COLUMN_DEFINITION_NODE:
+                        visit((ColumnDefinitionNode) subColumn, subColumnsMapping);
+                        break;
+                    case OBJECT_COLUMN_DEFINITION_NODE:
+                        visit((ObjectColumnDefinitionNode)subColumn, subColumnsMapping);
+                        break;
+                    default:
+
+                }
+            }
         }
     }
 
@@ -134,23 +180,48 @@ public class TableVisitor extends BaseVisitor {
         }
     }
 
+    /**
+     *
+     * @param node
+     * @throws StandardException
+     */
     @Override
     public void visit(IndexConstraintDefinitionNode node) throws StandardException {
         String indexName = node.getIndexName();
+
         if (node.isIndexOff()) {
-            Map<String, Object> columnDefinition = safeColumnDefinition(indexName);
+            Map<String, Object> columnDefinition = (Map<String, Object>)mappingProperties.get(indexName);
+            if (columnDefinition == null) {
+                throw new SQLParseException(String.format("Unknown Column '%s'", indexName));
+            }
             columnDefinition.put("index", "no");
         } else if (node.getIndexColumnList() != null) {
             for (IndexColumn indexColumn : node.getIndexColumnList()) {
                 String columnName = indexColumn.getColumnName();
-                Map<String, Object> columnDefinition = safeColumnDefinition(columnName);
+
+                // assume column definition exists
+                Map<String, Object> columnDefinition;
+                if (columnName.contains(".")) {
+                   columnDefinition = popColumnDefinition(columnName, mappingProperties);
+                   mappingProperties.put(columnName, columnDefinition);
+                } else {
+                    columnDefinition = (Map<String, Object>)mappingProperties.get(columnName);
+                    if (columnDefinition == null) {
+                        throw new SQLParseException(String.format("Unknown Column '%s'", columnName));
+                    }
+                }
+
                 Map<String, Object> indexColumnDefinition = newHashMap();
                 indexColumnDefinition.putAll(columnDefinition);
 
                 if (!indexName.equals(columnName)) {
                     // prepare for multi_field mapping
                     indexColumnDefinition.clear();
-                    indexColumnDefinition.put("type", columnDefinition.get("type"));
+                    String type = (String)columnDefinition.get("type");
+                    if (type != null && type.equals("object")) {
+                        throw new SQLParseException("Cannot index object columns");
+                    }
+                    indexColumnDefinition.put("type", type);
                     indexColumnDefinition.put("store", "false");
                 }
 
@@ -202,14 +273,58 @@ public class TableVisitor extends BaseVisitor {
         }
     }
 
-    private Map<String, Object> safeColumnDefinition(String columnName) {
-        Map<String, Object> columnDefinition = (Map)mappingProperties.get(columnName);
-        if (columnDefinition == null) {
-            columnDefinition = newHashMap();
-            mappingProperties.put(columnName, columnDefinition);
+    private Map<String, Object> safeColumnDefinition(String columnName, Map<String, Object> mapping) {
+        Map<String, Object> map = mapping;
+        Map<String, Object> subMap;
+        for (String pathElement : Splitter.on('.').split(columnName)) {
+
+            if (map.containsKey("properties")) {
+                subMap = (Map<String, Object>)((Map<String, Object>)map.get("properties")).get(pathElement);
+            } else {
+                subMap = (Map<String, Object>)map.get(pathElement);
+            }
+
+            if (subMap == null) {
+                subMap = new HashMap<>();
+                if (map.containsKey("properties") || map != mapping) {
+                    Map<String, Object> props = (Map<String, Object>)map.get("properties");
+                    if (props == null) {
+                        props = new HashMap<>();
+                        map.put("properties", props);
+                    }
+                    props.put(pathElement, subMap);
+
+                } else {
+                    map.put(pathElement, subMap);
+                }
+            }
+            map = subMap;
         }
 
+        return map;
+    }
+
+    private Map<String, Object> popColumnDefinition(String columnName, Map<String, Object> mapping) throws SQLParseException {
+        String lastElement = null;
+        Map<String, Object> columnDefinition = mapping;
+        Map<String, Object> map = null;
+        for (String pathElement : Splitter.on('.').split(columnName)) {
+            map = columnDefinition;
+            lastElement = pathElement;
+            if (map.containsKey("properties")) {
+                map = (Map<String, Object>)map.get("properties");
+            }
+            columnDefinition = (Map<String, Object>)map.get(pathElement);
+
+            if (columnDefinition == null) {
+                throw new SQLParseException(String.format("Unknown Column '%s'", columnName));
+            }
+        }
+        if (lastElement != null && map != null) {
+            map.remove(lastElement);
+        }
         return columnDefinition;
+
     }
 
     private Map<String, Object> mapping() {

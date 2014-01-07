@@ -205,6 +205,7 @@ public class TypeId
     public static final String INTERVAL_HOUR_MINUTE_NAME = "INTERVAL HOUR TO MINUTE";
     public static final String INTERVAL_HOUR_SECOND_NAME = "INTERVAL HOUR TO SECOND";
     public static final String INTERVAL_MINUTE_SECOND_NAME = "INTERVAL MINUTE TO SECOND";
+    public static final String OBJECT_NAME = "OBJECT";
 
     // Following use of "XML" is per SQL/XML (2003) spec,
     // section "10.2 Type name determination".
@@ -297,6 +298,7 @@ public class TypeId
         public static final int INTERVAL_YEAR_MONTH_ID = 24;
         public static final int INTERVAL_DAY_SECOND_ID = 25;
         public static final int MEDIUMINT_ID = 26;
+        public static final int OBJECT_ID = 42;
     }
 
     public static final TypeId BOOLEAN_ID = new TypeId(FormatIds.BOOLEAN_TYPE_ID);
@@ -357,6 +359,8 @@ public class TypeId
     public static final TypeId LONGBLOB_ID = new TypeId(FormatIds.BLOB_TYPE_ID, LONGBLOB_NAME);
     public static final TypeId LONGTEXT_ID = new TypeId(FormatIds.CLOB_TYPE_ID, LONGTEXT_NAME);
 
+    public static final TypeId OBJECT_ID = new TypeId(FormatIds.OBJECT_ID, OBJECT_NAME);
+
     private static final TypeId[] ALL_BUILTIN_TYPE_IDS = {
         BOOLEAN_ID,
         SMALLINT_ID,
@@ -413,6 +417,8 @@ public class TypeId
         MEDIUMTEXT_ID,
         LONGBLOB_ID,
         LONGTEXT_ID,
+
+        OBJECT_ID
     };
 
     /*
@@ -806,6 +812,10 @@ public class TypeId
         if (SQLTypeName.equals(REF_NAME)) {
             return REF_ID;
         }
+
+        if (SQLTypeName.equals(OBJECT_NAME)) {
+            return OBJECT_ID;
+        }
         return null;
     }
 
@@ -1159,6 +1169,12 @@ public class TypeId
             maxMaxWidth = -1;
             break;
 
+        case FormatIds.OBJECT_ID:
+            schemaName = null;
+            unqualifiedName = TypeId.OBJECT_NAME;
+            maxMaxWidth = -1;
+            break;
+
         default:
             assert false;
             break;
@@ -1201,6 +1217,9 @@ public class TypeId
                 break;
             case FormatIds.MEDIUMINT_ID:
                 unqualifiedName = TypeId.MEDIUMINT_UNSIGNED_NAME;
+                break;
+            case FormatIds.OBJECT_ID:
+                unqualifiedName = TypeId.OBJECT_NAME;
                 break;
             default:
                 assert false : "unknown formatId: " + formatId;

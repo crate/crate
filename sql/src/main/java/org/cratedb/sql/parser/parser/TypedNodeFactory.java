@@ -1268,6 +1268,12 @@ public interface TypedNodeFactory {
             }
         };
 
+        public static final TypedNodeFactory OBJECT_COLUMN_DEFINITION_NODE = new TypedNodeFactory() {
+            @Override
+            public QueryTreeNode newNode() {
+                return new ObjectColumnDefinitionNode();
+            }
+        };
     }
 
 }

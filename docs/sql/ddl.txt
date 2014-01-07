@@ -126,6 +126,119 @@ fractions. Example::
     cr> insert into my_table4 (id, first_column) values (3, 'wrong')
     ValidationException[Validation failed for first_column: Invalid timestamp: Invalid ISO-date string]
 
+object
+------
+
+The object type allows to define nested documents instead of old-n-busted flat tables.
+An object can contain other fields of any type, even further object columns.
+An Object column can be either schemaless or enforce its defined schema.
+It can even can be used as a kind of json-blob.
+
+Syntax::
+
+    <columnName> OBJECT [ ({DYNAMIC|STRICT|IGNORED}) ] [ AS ( <columnDefinition>* ) ]
+
+The only required part of this column definition is ``OBJECT``.
+The object type defining this objects behaviour is optional, if left out ``DYNAMIC`` will be used.
+The list of subcolumns is optional as well, if left out, this object will have any schema.
+
+Example::
+
+    cr> create table my_table11 (
+    ...   title string,
+    ...   col1 object,
+    ...   col3 object(strict) as (
+    ...     age integer,
+    ...     name string,
+    ...     col31 object as (
+    ...       birthday timestamp
+    ...     )
+    ...   )
+    ... )
+    CREATE OK (... sec)
+
+strict
+......
+
+It can be configured to be ``strict``, rejecting any subcolumn that is not defined upfront
+in the schema. As you might have guessed, defining ``strict`` objects without subcolumns results
+in an unusable column that will always be null, which is the most useless column one could create.
+
+Example::
+
+    cr> create table my_table12 (
+    ...   title string,
+    ...   author object(strict) as (
+    ...     name string,
+    ...     birthday timestamp
+    ...   )
+    ... )
+    CREATE OK (... sec)
+
+
+dynamic
+.......
+
+Another option is ``dynamic``, which means that new subcolumns can be added in this object.
+
+Note that adding new columns to a ``dynamic`` object will affect the schema of the
+table. Once a column is added, it shows up in the ``information_schema.columns`` and ``information_schema.indices``
+tables and its its type and attributes are fixed. They will have the type that was guessed by their
+inserted/updated value and they will always be ``not_indexed`` which means
+they are analyzed with the ``plain`` analyzer, which means as-is.
+If a new column ``a`` was added with type ``integer``,
+adding strings to this column will result in an error.
+
+Examples::
+
+    cr> create table my_table13 (
+    ...   title string,
+    ...   author object as (
+    ...     name string,
+    ...     birthday timestamp
+    ...   )
+    ... )
+    CREATE OK (... sec)
+
+which is exactly the same as::
+
+    cr> create table my_table14 (
+    ...   title string,
+    ...   author object(dynamic) as (
+    ...     name string,
+    ...     birthday timestamp
+    ...   )
+    ... )
+    CREATE OK (... sec)
+
+New columns added to ``dynamic`` objects are, once added,
+usable as usual subcolumns. One can retrieve them, sort by them
+and use them in where clauses.
+
+ignored
+.......
+
+The third option is ``ignored`` which results in an object that allows inserting new subcolumns
+but this adding will not affect the schema, they are not mapped according to their type,
+which is therefor not guessed as well. You can in fact add any value to an added column of the
+same name. The first value added does not determine what you can add further,
+like with ``dynamic`` objects.
+An object configured like this will simply accept and return the columns inserted into it,
+but otherwise ignore them.
+
+    cr> create table my_table15 (
+    ...   title string,
+    ...   details object(ignored) as (
+    ...     num_pages integer,
+    ...     font_size float
+    ...   )
+    ... )
+    CREATE OK (... sec)
+
+
+New columns added to ``ignored`` objects can be retrieved as result column in a ``SELECT`` statement,
+but one cannot order by them or use them in a where clause. They are simply there for fetching,
+nothing else.
 
 Sharding
 ========
@@ -333,6 +446,18 @@ columns are given to the ``fulltext`` index method::
     ...   title string,
     ...   body string,
     ...   INDEX title_body_ft using fulltext(title, body) with(analyzer='english')
+    ... )
+    CREATE OK (... sec)
+
+Composite indices can include nested columns within object columns as well::
+
+    cr> create table my_table1g (
+    ...   title string,
+    ...   author object(dynamic) as (
+    ...     name string,
+    ...     birthday timestamp
+    ...   ),
+    ...   INDEX author_title_ft using fulltext(title, author['name'])
     ... )
     CREATE OK (... sec)
 
