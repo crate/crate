@@ -219,8 +219,10 @@ ignored
 .......
 
 The third option is ``ignored`` which results in an object that allows inserting new subcolumns
-but this adding will not affect the schema, the columns are not fixed
-and they are not mapped according to their type, which is therefor not guessed as well.
+but this adding will not affect the schema, they are not mapped according to their type,
+which is therefor not guessed as well. You can in fact add any value to an added column of the
+same name. The first value added does not determine what you can add further,
+like with ``dynamic`` objects.
 An object configured like this will simply accept and return the columns inserted into it,
 but otherwise ignore them.
 
