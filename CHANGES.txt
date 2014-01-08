@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2014/01/08 0.20.2
+=================
+
  - admin-ui: implemented tables overview page
 
 2014/01/08 0.20.1
