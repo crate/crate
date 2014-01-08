@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2014/01/08 0.20.1
+=================
+
  - admin-ui: fixed display/number of under-replicated docs while cluster state is red
 
  - admin-ui: display long numbers as rounded units
