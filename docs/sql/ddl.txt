@@ -132,7 +132,7 @@ object
 The object type allows to define nested documents instead of old-n-busted flat tables.
 An object can contain other fields of any type, even further object columns.
 An Object column can be either schemaless or enforce its defined schema.
-It can even can be used as a kind of json-blob.
+It can even be used as a kind of json-blob.
 
 Syntax::
 
@@ -140,7 +140,8 @@ Syntax::
 
 The only required part of this column definition is ``OBJECT``.
 The object type defining this objects behaviour is optional, if left out ``DYNAMIC`` will be used.
-The list of subcolumns is optional as well, if left out, this object will have any schema.
+The list of subcolumns is optional as well, if left out, this object will have no schema
+(with a schema created on the fly on first inserts in case of ``DYNAMIC``).
 
 Example::
 
@@ -183,7 +184,7 @@ Another option is ``dynamic``, which means that new subcolumns can be added in t
 
 Note that adding new columns to a ``dynamic`` object will affect the schema of the
 table. Once a column is added, it shows up in the ``information_schema.columns`` and ``information_schema.indices``
-tables and its its type and attributes are fixed. They will have the type that was guessed by their
+tables and its type and attributes are fixed. They will have the type that was guessed by their
 inserted/updated value and they will always be ``not_indexed`` which means
 they are analyzed with the ``plain`` analyzer, which means as-is.
 If a new column ``a`` was added with type ``integer``,
@@ -599,7 +600,7 @@ System Columns
 
 On every table Crate implements several implicitly defined system columns. Their names are
 reserved and cannot be used as user-defined column names. All system columns are prefixed with
-an underscore and therefore must be quoted on usage.
+an underscore and therefor must be quoted on usage.
 
 .. _sql_ddl_system_column_version:
 
