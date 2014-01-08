@@ -7,7 +7,7 @@
     </div><!-- /.row -->
 
     <div class="row">
-      <div class="col-lg-4">
+      <div class="col-md-4 col-sm-5">
         <div class="panel {{cluster_color_class}}">
           <div class="panel-heading">
             <p class="announcement-heading">{{cluster_state | capitalize}}</p>
@@ -16,7 +16,7 @@
         </div>
       </div>
 
-      <div class="col-lg-4">
+      <div class="col-md-4 col-sm-5">
         <div class="panel" ng-class="{'panel-warning': replicated_data<100}">
           <div class="panel-heading">
             <p class="announcement-heading">{{replicated_data}}</p>
@@ -25,7 +25,7 @@
         </div>
       </div>
 
-      <div class="col-lg-4">
+      <div class="col-md-4 col-sm-5">
         <div class="panel" ng-class="{'panel-danger': available_data<100}">
           <div class="panel-heading">
             <p class="announcement-heading">{{available_data}}</p>
@@ -34,7 +34,7 @@
         </div>
       </div>
 
-      <div class="col-lg-4">
+      <div class="col-md-4 col-sm-5">
         <div class="panel">
           <div class="panel-heading">
             <p class="announcement-heading inline-block" data-toggle="tooltip" rel="tooltip" data-original-title="{{records_total | number:0}}">{{records_total | roundWithUnit:1}}</p>
@@ -43,7 +43,7 @@
         </div>
       </div>
 
-      <div class="col-lg-4">
+      <div class="col-md-4 col-sm-5">
         <div class="panel" ng-class="{'panel-warning': records_underreplicated>0}">
           <div class="panel-heading">
             <p class="announcement-heading inline-block" data-toggle="tooltip" rel="tooltip" data-original-title="{{records_underreplicated | number:0}}">{{records_underreplicated | roundWithUnit:1}}</p>
@@ -52,7 +52,7 @@
         </div>
       </div>
 
-      <div class="col-lg-4">
+      <div class="col-md-4 col-sm-5">
         <div class="panel" ng-class="{'panel-danger': records_unavailable>0}">
           <div class="panel-heading">
             <p class="announcement-heading inline-block" data-toggle="tooltip" rel="tooltip" data-original-title="{{records_unavailable | number:0}}">{{records_unavailable | roundWithUnit:1}}</p>

@@ -7,6 +7,7 @@ var crateAdminApp = angular.module('crateAdminApp', [
   'common',
   'overview',
   'console',
+  'tables'
 ]);
 
 crateAdminApp.config(['$routeProvider',
@@ -19,6 +20,10 @@ crateAdminApp.config(['$routeProvider',
       .when('/console', {
         templateUrl: 'views/console.html',
         controller: 'ConsoleController'
+      })
+      .when('/tables', {
+        templateUrl: 'views/tables.html',
+        controller: 'TablesController'
       })
       .otherwise({
         redirectTo: '/'
