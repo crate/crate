@@ -14,6 +14,7 @@ h2 {
 
 #page-wrapper {
   padding-top:30px;
+  padding-left: 42px;
 }
 
 .page-header {
@@ -25,7 +26,7 @@ h2 {
 @media (min-width: 768px) {
 
   #wrapper {
-    padding-left: 165px;
+    padding-left: 149px;
   }
 
   #page-wrapper {
@@ -115,16 +116,14 @@ h2 {
     li {
       padding-left:20px;
     }
-
     li > a {
       padding-top: 0px;
       padding-bottom: 0px;
       color: #fff;
-  }
-
+    }
     li > a:hover {
       color: @gray-darker;
-  }
+    }
 }
 
 .navbar-inverse .alert-success {
@@ -139,14 +138,13 @@ h2 {
 .navbar-inverse .alert-warning .label {
   background-color:@brand-warning;
   color: #000;
+
     .navbar-user li > a {
       color: #000;
     }
-
-.navbar-user li > a:hover {
+    .navbar-user li > a:hover {
       color: #fff;
     }
-
     span.label.label-warning {
       font-weight: bold;
     }
@@ -164,12 +162,27 @@ h2 {
 
   .side-nav {
     width: 100%;
+
       li > a {
-      float: left;
-      margin: 0;
-      padding-left:0;
-      padding: 10px;
+        float: left;
+        margin: 0;
+        padding-left:0;
+        padding: 10px;
       }
+
+      .fa-question-circle {
+        float: right;
+        color:#fff;
+      }
+  }
+
+  .navbar-inverse .alert-danger {
+    background-color: #252525;
+  }
+
+  .navbar-inverse .alert-warning {
+    color: #fff;
+    background-color: #252525;
   }
 
   .navbar-inverse .alert-danger {
@@ -188,11 +201,56 @@ h2 {
   }
 
   .navbar-fixed-top {
-    background-color: #252525
+    background-color: #252525;
+  }
+
+  .navbar-inverse .navbar-brand > li {
+    display: none;
+  }
+}
+
+// Second vertical Navigation
+
+#sidebar-wrapper {
+  background: #e2e2e2;
+  top: 27px;
+  font-size: 16px;
+
+  .nav > li > a {
+    color: #000;
+    border: 0;
+    border-radius: 0px;
+    border-bottom: 1px solid #cbcbcb;
+    padding: 20px 10px 20px 20px;
+    line-height: 18px;
+  }
+
+  .nav > li {
+    width: 100%;
+  }
+
+  .nav-tabs > li > a {
+    margin-right: 0;
+  }
+
+.nav-tabs > li.active > a {
+    border-bottom: 1px solid #fff;
+  }
+
+  h3 {
+    margin: 0;
+    margin-bottom: 3px;
+  }
+}
+
+@media (min-width:767px) {
+
+   #sidebar-wrapper {
+      left: 399px;
     }
 
-  .navbar-inverse .navbar-brand {
-    display: none;
+   .margin-left-250 {
+      margin-left: 250px;
     }
 }
 
@@ -208,11 +266,11 @@ h2 {
 }
 
 .label-load5 {
-  opacity: 0.5;
+  opacity: 0.8;
 }
 
 .label-load15 {
-  opacity: 0.4;
+  opacity: 0.5;
 }
 
 .alert {
@@ -251,13 +309,18 @@ h2 {
   border: 0;
   box-shadow: 0 0 0;
   -webkit-box-shadow: 0 0 0;
+  text-align: left;
     .panel-heading {
       color: #000;
-      background-color: #ffffff;
+      background-color: transparent;
       border: 0;
       padding: 0;
       margin-right: 10px;
     }
+}
+
+.announcement-heading {
+  font-size: @font-size-large;
 }
 
 .panel-warning > .panel-heading .announcement-heading {
@@ -276,16 +339,18 @@ h2 {
 }
 
 // Form
+
 form {
   margin-top: 30px;
 }
+
+// Buttons
 
 .btn-default {
   font-weight: bold;
   text-transform: uppercase;
   margin-bottom: 10px;
 }
-
 
 //
 // Mixins

@@ -6,7 +6,7 @@ var mountFolder = function (connect, dir) {
   return connect.static(require('path').resolve(dir));
 };
 
-var CRATE_THEME_VERSION = '0.0.5';
+var CRATE_THEME_VERSION = '0.0.6';
 
 // # Globbing
 // for performance reasons we're only matching one level down:
@@ -261,7 +261,7 @@ module.exports = function (grunt) {
             expand: true
         }, {
             cwd: 'tmp/crate-theme-'+CRATE_THEME_VERSION+'/src/crate_theme/bootstrap/crate-admin/',
-            src: '{theme,variables,sb-admin}.less',
+            src: '{theme,variables,sb-admin,simple-sidebar}.less',
             dest: '<%= yeoman.app %>/styles/',
             expand: true
         }, {
