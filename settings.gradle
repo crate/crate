@@ -7,4 +7,5 @@ include 'es',
         'sql',
         'docs',
         'app',
-        'client'
+        'client',
+        'sql-parser'
