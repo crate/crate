@@ -9,12 +9,13 @@
   </div>
 
   <div class="row">
-    <div class="col-lg-9 col-md-8" ng-class="{'margin-left-250': renderSidebar}">
+    <div class="col-lg-9 col-md-9" ng-class="{'margin-left-250': renderSidebar}">
 
       <div class="row">
-        <div class="col-lg-9 col-md-8">
+        <div class="col-lg-11 col-md-11">
           <div class="page-header">
-            <h1>{{table.name}}</h1><a id="menu-toggle" href="#" class="btn btn-default"><i class="icon-reorder"></i></a>
+            <h1>{{table.name}}</h1>
+            <div id="menu-toggle" ng-click="toggleSidebar()" class="btn btn-default"><i class="icon-reorder"></i></div>
           </div>
         </div>
       </div><!-- /.row -->
@@ -112,7 +113,7 @@
       </div><!-- /.row -->
 
       <div class="row" ng-show="renderSchema">
-        <div class="col-lg-9 col-md-8">
+        <div class="col-lg-11 col-md-11">
           <div class="page-header"></div>
           <h2>Schema</h2>
           <div class="table-responsive">
