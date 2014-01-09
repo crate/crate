@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - admin-ui: fixed table css + data reload flickering + sidebar button
+             re-enabled blender font at docu
+
  - added presto based sql-parser to the source tree
 
 2014/01/08 0.20.2

@@ -53,7 +53,7 @@ angular.module('tables', ['stats', 'sql', 'common'])
         }).
         error(function(sqlQuery) {
           $scope.tables = [];
-          $scope.table = empty_table;
+          $scope.table = angular.copy(empty_table);
           $scope.selected_table = '';
           $scope.renderSidebar = false;
           $scope.renderSchema = false;
@@ -131,7 +131,7 @@ angular.module('tables', ['stats', 'sql', 'common'])
 
       if (tables_list.length == 0) {
         $scope.tables = tables_list;
-        $scope.table = empty_table;
+        $scope.table = angular.copy(empty_table);
         $scope.selected_table = '';
         $scope.renderSidebar = false;
         $scope.renderSchema = false;
@@ -146,7 +146,6 @@ angular.module('tables', ['stats', 'sql', 'common'])
       $scope.tables = tables_list;
       $scope.table = tables[selected_table];
       $scope.selected_table = selected_table;
-      $scope.renderSchema = false;
 
       // query for table schema
       SQLQuery.execute("select column_name, data_type from information_schema.columns where table_name = '"+selected_table+"'").
@@ -160,6 +159,7 @@ angular.module('tables', ['stats', 'sql', 'common'])
           $scope.schemaRows = sqlQuery.rows;
         }).
         error(function(sqlQuery) {
+          $scope.renderSchema = false;
         });
 
     }
@@ -184,5 +184,11 @@ angular.module('tables', ['stats', 'sql', 'common'])
 
     // bind tooltips
     $("[rel=tooltip]").tooltip({ placement: 'top'});
+
+    // sidebar button handler (mobile view)
+    $scope.toggleSidebar = function() {
+      $("#wrapper").toggleClass("active");
+    };
+
 
   });
