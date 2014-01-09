@@ -1,0 +1,5 @@
+/build/
+*.tokens
+/src/main/java/io/crate/sql/parser/StatementLexer.java
+/src/main/java/io/crate/sql/parser/StatementParser.java
+/src/main/java/io/crate/sql/parser/StatementBuilder.java

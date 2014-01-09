@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - added presto based sql-parser to the source tree
+
 2014/01/08 0.20.2
 =================
 

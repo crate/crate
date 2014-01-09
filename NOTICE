@@ -1,5 +1,5 @@
 Crate
-Copyright 2013 Crate Technology GmbH
+Copyright 2013-2014 Crate Technology GmbH
 
 This product includes:
 
@@ -39,8 +39,12 @@ developed by Zachary Tong (http://www.euphonious-intuition.com/)
 License: MIT (https://raw.github.com/polyfractal/elasticsearch-segmentspy/master/LICENSE)
 
 =========================================================================
+SQL-Parser (Presto)
+https://github.com/facebook/presto
+License: Apache License v2 (http://www.apache.org/licenses)
+=========================================================================
 
-SQL-Parser
+SQL-Parser (FoundationDB)
 Copyright 2011-2013 FoundationDB, LLC
 https://github.com/FoundationDB/sql-parser
 developed by FoundationDB (http://www.foundationdb.com/)

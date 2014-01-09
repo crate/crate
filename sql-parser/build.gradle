@@ -1,0 +1,41 @@
+apply plugin: 'java'
+
+archivesBaseName = 'crate-sql-parser'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'com.google.code.findbugs:annotations:2.0.1'
+    compile 'com.fasterxml.jackson.core:jackson-core:2.1.4'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.1.4'
+    compile 'joda-time:joda-time:2.1'
+    compile 'io.airlift:slice:0.2'
+    compile 'com.google.guava:guava:15.0'
+    compile 'org.antlr:antlr-runtime:3.4'
+
+    testCompile 'org.testng:testng:6.8'
+}
+
+configurations {
+    antlr3
+}
+
+dependencies {
+    antlr3 'org.antlr:antlr:3.4'
+}
+
+task generateWithANTLR3(type:Exec) { 
+    commandLine = ['java', '-cp',  configurations.antlr3.getAsPath(), 'org.antlr.Tool', '-o', '.', 'src/main/java/io/crate/sql/parser/Statement.g', 'src/main/java/io/crate/sql/parser/StatementBuilder.g']
+}
+
+compileJava {
+    dependsOn generateWithANTLR3
+    source 'src/main/java/'
+}
+
+test {
+    // show standard out and standard error of the test JVM(s) on the console
+    testLogging.showStandardStreams = true
+}
