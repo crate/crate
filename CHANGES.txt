@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2014/01/09 0.20.3
+=================
+
  - admin-ui: fixed table css + data reload flickering + sidebar button
              re-enabled blender font at docu
 
