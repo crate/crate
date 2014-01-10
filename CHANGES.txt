@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2014/01/10 0.20.4
+=================
+
  - admin-ui: fixed number format, fixed table missing + underreplicated shards count,
              show first table if selected table was deleted/closed
 
