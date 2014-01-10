@@ -35,7 +35,6 @@ dependencies {
     compile 'org.apache.lucene:lucene-sandbox:4.5.1'
     compile 'org.apache.lucene:lucene-spatial:4.5.1'
     compile 'org.apache.lucene:lucene-suggest:4.5.1'
-    compile 'org.fusesource:sigar:1.6.4'
     compile 'org.mvel:mvel2:2.1.5.Final'
     compile 'org.slf4j:slf4j-api:1.6.2'
 

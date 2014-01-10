@@ -1,9 +1,7 @@
 package io.crate.udc.plugin;
 
-import io.crate.udc.module.UDCModule;
 import io.crate.udc.service.UDCService;
 import org.elasticsearch.common.component.LifecycleComponent;
-import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
@@ -26,7 +24,7 @@ public class UDCPlugin extends AbstractPlugin {
     public static final TimeValue INTERVAL_DEFAULT_SETTING = new TimeValue(24, TimeUnit.HOURS);
 
     public static final String URL_SETTING_NAME = "udc.url";
-    public static final String URL_DEFAULT_SETTING = "https://udc.crate.io/ping";
+    public static final String URL_DEFAULT_SETTING = "https://udc.crate.io/";
 
     private final Settings settings;
 
@@ -54,16 +52,6 @@ public class UDCPlugin extends AbstractPlugin {
             return services;
         }
         return super.services();
-    }
-
-    @Override
-    public Collection<Class<? extends Module>> modules() {
-        Collection<Class<? extends Module>> modules = newArrayList();
-        if (!settings.getAsBoolean("node.client", false)
-                && settings.getAsBoolean(ENABLED_SETTING_NAME, ENABLED_DEFAULT_SETTING)) {
-            modules.add(UDCModule.class);
-        }
-        return modules;
     }
 
     @Override
