@@ -35,7 +35,11 @@ angular.module('common', ['stats'])
 
 
     $scope.isActive = function (viewLocation) {
+      if (viewLocation == '/') {
         return viewLocation === $location.path();
+      } else {
+        return $location.path().substr(0, viewLocation.length) == viewLocation;
+      }
     };
 
     $scope.params = $location.search().prefix ? '?prefix='+$location.search().prefix : '';

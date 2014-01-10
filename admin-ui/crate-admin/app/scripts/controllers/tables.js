@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('tables', ['stats', 'sql', 'common'])
-  .controller('TablesController', function ($scope, $location, $log, $timeout, SQLQuery, roundWithUnitFilter, bytesFilter) {
+  .controller('TablesController', function ($scope, $location, $log, $timeout, $routeParams, SQLQuery, roundWithUnitFilter, bytesFilter) {
     var table_name = $location.search().table || '';
 
     var refreshInterval = 5000;
@@ -15,7 +15,7 @@ angular.module('tables', ['stats', 'sql', 'common'])
                     red: 'label-danger',
                     '--': ''};
 
-    var selected_table = $location.search().table || '';
+    var selected_table = $routeParams.table_name || '';
 
     var empty_table = {
       'name': 'Tables (0 found)',
@@ -92,7 +92,7 @@ angular.module('tables', ['stats', 'sql', 'common'])
                 tables[current_row[0]]['shards_started'] = current_row[4];
               }
             } else if (current_row[5] != 'UNASSIGNED') {
-              tables[current_row[0]]['records_replicated'] = current_row[1];
+              tables[current_row[0]]['records_replicated'] += current_row[1];
             } else {
               tables[current_row[0]]['shards_missing'] += current_row[4];
             }
@@ -107,16 +107,20 @@ angular.module('tables', ['stats', 'sql', 'common'])
         table['summary'] = roundWithUnitFilter(table['records_total'], 1) + ' Records (' + bytesFilter(table['size']) + ') / ' +
                            table['replicas_configured'] + ' Replicas / ' + table['shards_configured'] + ' Shards (' + table['shards_started'] + ' Started)';
 
-        if (table['shards_missing'] > 0) {
+        if (table['shards_missing'] > 0 && table['shards_active'] != table['shards_configured']) {
           table['records_unavailable'] = (table['shards_missing'] * table['avg_docs']).toFixed(0);
           table['health'] = 'red';
           table['summary'] = roundWithUnitFilter(table['records_unavailable'], 1) + ' Unavailable Records / ' + table['summary'];
+        } else if (table['shards_missing'] > 0) {
+          table['health'] = 'yellow';
+          table['shards_underreplicated'] = table['shards_configured'];
+          table['shards_missing'] = 0;
+          table['summary'] = table['shards_underreplicated'] + ' Underreplicated Shards / ' + table['summary'];
         }
         if (table['replicas_configured'] > 0 && table['records_total'] != table['records_replicated']) {
           table['records_underreplicated'] = table['records_total'] - table['records_replicated'];
-          table['shards_underreplicated'] = (table['records_not_replicated'] / table['avg_docs']).toFixed(1);
-          if (table['health'] == 'green') {
-            table['summary'] = table['shards_underreplicated'] + ' Underreplicated Shards / ' + table['summary'];
+          if (table['health'] != 'red') {
+            table['summary'] = table['records_underreplicated'] + ' Underreplicated Records / ' + table['summary'];
           }
           table['health'] = 'yellow';
         }
@@ -141,7 +145,11 @@ angular.module('tables', ['stats', 'sql', 'common'])
       // sort tables by health
       tables_list.sort(compareListByHealth);
 
-      selected_table = $location.search().table || tables_list[0].name;
+      if ($routeParams.table_name && tables[$routeParams.table_name] != undefined) {
+        selected_table = $routeParams.table_name;
+      } else {
+        selected_table = tables_list[0].name;
+      }
 
       $scope.tables = tables_list;
       $scope.table = tables[selected_table];
@@ -190,5 +198,7 @@ angular.module('tables', ['stats', 'sql', 'common'])
       $("#wrapper").toggleClass("active");
     };
 
+    // additional route params
+    $scope.routeParams = $location.search().prefix ? '?prefix='+$location.search().prefix : '';
 
   });

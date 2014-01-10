@@ -25,6 +25,10 @@ crateAdminApp.config(['$routeProvider',
         templateUrl: 'views/tables.html',
         controller: 'TablesController'
       })
+      .when('/tables/:table_name', {
+        templateUrl: 'views/tables.html',
+        controller: 'TablesController'
+      })
       .otherwise({
         redirectTo: '/'
       });
