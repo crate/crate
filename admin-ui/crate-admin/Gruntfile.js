@@ -6,7 +6,7 @@ var mountFolder = function (connect, dir) {
   return connect.static(require('path').resolve(dir));
 };
 
-var CRATE_THEME_VERSION = '0.0.7';
+var CRATE_THEME_VERSION = '0.0.8';
 
 // # Globbing
 // for performance reasons we're only matching one level down:
@@ -339,7 +339,7 @@ module.exports = function (grunt) {
   });
 
   grunt.registerTask('downloadCrateTheme', 'download the crate theme and extract less', function () {
-    grunt.log.writeln('starting download...');
+    grunt.log.writeln('starting download of crate-theme-'+CRATE_THEME_VERSION+'...');
 
     // Tell grunt the task is async
     var done = this.async();
