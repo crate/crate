@@ -42,11 +42,13 @@ public class SQLFieldMapper implements FieldMapper {
         columnSqlTypes.putAll(builtInColumnTypes);
         SQLType columnType;
         for (ColumnDefinition columnDefinition : metaDataExtractor.getColumnDefinitions()) {
-            columnType = sqlTypes.get(columnDefinition.dataType);
-            if (columnType == null) {
-                throw new TypeUnknownException(columnDefinition.dataType.getName());
+            if (columnDefinition.isSupported()) {
+                columnType = sqlTypes.get(columnDefinition.dataType);
+                if (columnType == null) {
+                    throw new TypeUnknownException(columnDefinition.dataType.getName());
+                }
+                columnSqlTypes.put(columnDefinition.columnName, new Tuple<>(columnDefinition, columnType));
             }
-            columnSqlTypes.put(columnDefinition.columnName, new Tuple<>(columnDefinition, columnType));
         }
     }
 

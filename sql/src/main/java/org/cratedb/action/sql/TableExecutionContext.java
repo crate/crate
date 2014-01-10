@@ -26,6 +26,8 @@ public class TableExecutionContext implements ITableExecutionContext {
     private SQLFieldMapper sqlFieldMapper;
     private boolean tableIsAlias = false;
 
+
+
     public TableExecutionContext(String name, IndexMetaDataExtractor indexMetaDataExtractor,
                           SQLFieldMapper sqlFieldMapper, boolean tableIsAlias) {
         this.indexMetaDataExtractor = indexMetaDataExtractor;
@@ -109,9 +111,11 @@ public class TableExecutionContext implements ITableExecutionContext {
     public Iterable<String> allCols() {
         Set<String> res = new TreeSet<>();
         if (mapping().size() > 0 && mapping().containsKey("properties")) {
-            for (String columnName : ((Map<String, Object>)mapping().get("properties")).keySet()) {
+            String columnName;
+            for (ColumnDefinition columnDefinition : indexMetaDataExtractor.getColumnDefinitions()) {
                 // don't add internal or sub object field names
-                if (columnName.startsWith("_") || columnName.contains(".")) {
+                columnName = columnDefinition.columnName;
+                if (columnName.startsWith("_") || columnName.contains(".") || !columnDefinition.isSupported()) {
                     continue;
                 }
 
@@ -122,9 +126,9 @@ public class TableExecutionContext implements ITableExecutionContext {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public boolean hasCol(String colName) {
-        return getColumnDefinition(colName) != null;
+        ColumnDefinition columnDefinition = getColumnDefinition(colName);
+        return columnDefinition != null && columnDefinition.isSupported();
     }
 
     /**
@@ -158,7 +162,7 @@ public class TableExecutionContext implements ITableExecutionContext {
         }
 
         ColumnDefinition columnDefinition = getColumnDefinition(node.getColumnName());
-        if (columnDefinition == null) {
+        if (columnDefinition == null || !columnDefinition.isSupported()) {
             throw new SQLParseException(String.format("Unknown column '%s'", node.getColumnName()));
         }
         switch (columnDefinition.dataType) {

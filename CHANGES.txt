@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - ignore unknown types in legacy mappings
+
 2014/01/09 0.20.3
 =================
 

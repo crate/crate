@@ -100,6 +100,5 @@ public class SQLModule extends AbstractModule {
         MapBinder<String, ScopedExpression> globalExpressions = MapBinder
                 .newMapBinder(binder(), String.class, ScopedExpression.class);
         globalExpressions.addBinding(ClusterNameExpression.NAME).to(ClusterNameExpression.class).asEagerSingleton();
-
     }
 }

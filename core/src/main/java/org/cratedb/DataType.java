@@ -109,7 +109,18 @@ public enum DataType {
             out.writeGenericValue(v);
         }
     }),
-    IP("ip", Streamer.BYTES_REF);
+    IP("ip", Streamer.BYTES_REF),
+    NOT_SUPPORTED("NOT SUPPORTED", new Streamer<Object>() {
+        @Override
+        public Object readFrom(StreamInput in) throws IOException {
+            return null;
+        }
+
+        @Override
+        public void writeTo(StreamOutput out, Object v) throws IOException {
+
+        }
+    });
 
     private final Streamer streamer;
 

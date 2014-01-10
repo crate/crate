@@ -10,6 +10,7 @@ import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.Version;
+import org.cratedb.DataType;
 import org.cratedb.action.collect.CollectorContext;
 import org.cratedb.action.collect.scope.GlobalExpressionDescription;
 import org.cratedb.action.groupby.*;
@@ -308,6 +309,8 @@ public abstract class AbstractInformationSchemaTable implements InformationSchem
                 Object rowValue = null;
                 if (stmt.resultColumnList().get(c) instanceof GlobalExpressionDescription) {
                     rowValue = stmt.globalExpressions().get(globalExprIdx++).evaluate();
+                } else if (stmt.resultColumnList().get(c).returnType() == DataType.NOT_SUPPORTED){
+                    rowValue = null;
                 } else {
                     IndexableField[] fields = doc.getFields(cols[c]);
                     LuceneField tableColumn = fieldMapper().get(cols[c]);

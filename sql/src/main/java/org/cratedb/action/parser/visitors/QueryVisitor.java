@@ -259,6 +259,10 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             } else if (idxAliases > -1 && idxNames < 0) {
                 columnName = stmt.outputFields().get(idxAliases).v2();
             }
+            if (!tableContext.hasCol(columnName) && !columnName.startsWith("_")) {
+                // ignore unknown columns
+                continue;
+            }
 
             count++;
             // orderByColumns are used to query the InformationSchema
@@ -326,17 +330,21 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 }
                 Iterable<String> cols = tableContext.allCols();
                 for (String name : cols) {
-                    stmt.addOutputField(name, name);
-                    fields.add(name);
-                    stmt.resultColumnList().add(
-                            new ColumnReferenceDescription(tableContext.getColumnDefinition(name))
-                    );
+                    ColumnDefinition columnDefinition = tableContext.getColumnDefinition(name);
+                    if (columnDefinition != null && columnDefinition.isSupported()) {
+                        stmt.addOutputField(name, name);
+                        fields.add(name);
+                        stmt.resultColumnList().add(
+                                new ColumnReferenceDescription(columnDefinition)
+                        );
+                    }
                 }
                 continue;
             }
             final String fqdn = getFQDN(stmt, column.getExpression());
             String columnName = column.getExpression().getColumnName();
             String columnAlias = column.getName();
+            ColumnDefinition columnDefinition = tableContext.getColumnDefinition(columnName);
 
             if (columnName == null) {
                 if (column.getExpression() instanceof AggregateNode) {
@@ -374,7 +382,8 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
                 }
 
                 fields.add(columnName);
-            } else if (column.getExpression().getNodeType() == NodeType.COLUMN_REFERENCE) {
+            } else if (column.getExpression().getNodeType() == NodeType.COLUMN_REFERENCE
+                    && (columnDefinition==null || columnDefinition.isSupported())) {
                 validateColumnReference((ColumnReference) column.getExpression());
                 fields.add(columnName);
             }
@@ -382,11 +391,11 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             if (context.globalExpressionService().expressionExists(fqdn)) {
                 stmt.resultColumnList().add(context.globalExpressionService().getDescription(fqdn));
             } else {
-                ColumnDefinition columnDefinition = tableContext.getColumnDefinition(columnName);
                 if (columnDefinition != null) {
                     stmt.resultColumnList().add(new ColumnReferenceDescription(columnDefinition));
                 } else {
-                    stmt.resultColumnList().add(new ColumnReferenceDescription(columnName, DataType.OBJECT));
+                    // fallback for unknown columns, DataType does not matter as this column is always null
+                    stmt.resultColumnList().add(new ColumnReferenceDescription(columnName, DataType.NOT_SUPPORTED));
                 }
             }
             stmt.addOutputField(columnAlias, columnName);
@@ -759,7 +768,6 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             value = mappedValueFromNode(columnName, node.getLeftOperand());
         }
 
-
         boolean plannerResult = queryPlanner.checkColumn(tableContext, stmt, parentNode,
                 operator, columnName, value);
 
@@ -936,7 +944,6 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         if (tableName != null && !tableName.equals(stmtTableName)) {
             throw new SQLParseException("Cannot reference column from different table.");
         }
-
     }
 
 }

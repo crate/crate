@@ -62,6 +62,8 @@ public class QueryPlannerTest {
         when(nec.queryPlanner()).thenReturn(queryPlanner);
         when(nec.tableContext(null, "phrases")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("pk_col", "phrase"));
+        when(tec.hasCol("pk_col")).thenReturn(true);
+        when(tec.hasCol("phrase")).thenReturn(true);
         when(tec.isRouting("pk_col")).thenReturn(true);
         when(tec.primaryKeys()).thenReturn(new ArrayList<String>(1) {{
             add("pk_col");

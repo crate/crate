@@ -44,4 +44,12 @@ public class ColumnDefinition {
         // this check is also wrong.
         return analyzer_method != null && !analyzer_method.equals("plain");
     }
+
+    /**
+     * returns true if this columnDefinition has a supported DataType
+     * @return
+     */
+    public boolean isSupported() {
+        return dataType != DataType.NOT_SUPPORTED;
+    }
 }

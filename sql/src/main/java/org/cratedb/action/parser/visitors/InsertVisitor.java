@@ -1,9 +1,9 @@
 package org.cratedb.action.parser.visitors;
 
 import com.google.common.collect.Lists;
+import org.cratedb.Constants;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
-import org.cratedb.Constants;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
@@ -48,7 +48,7 @@ public class InsertVisitor extends BaseVisitor {
         } else {
             for (ResultColumn column : targetColumnList) {
                 if (column.getReference().getNodeType() == NodeType.NESTED_COLUMN_REFERENCE) {
-                    throw new SQLParseException("Nested Column Reference not allowes in INSERT " +
+                    throw new SQLParseException("Nested Column Reference not allowed in INSERT " +
                             "statement");
                 }
             }

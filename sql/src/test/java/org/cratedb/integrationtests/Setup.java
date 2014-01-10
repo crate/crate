@@ -1,6 +1,8 @@
 package org.cratedb.integrationtests;
 
+import org.cratedb.Constants;
 import org.cratedb.SQLTransportIntegrationTest;
+import org.elasticsearch.common.settings.ImmutableSettings;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -198,6 +200,39 @@ public class Setup {
                         put("num_pages", 224);
                     }}
                 });
+        test.refresh();
+    }
+
+    public void setUpObjectMappingWithUnknownTypes() throws Exception {
+        test.prepareCreate("ut")
+                .setSettings(ImmutableSettings.builder().put("number_of_replicas", 0).put("number_of_shards", 2).build())
+                .addMapping(Constants.DEFAULT_MAPPING_TYPE, new HashMap<String, Object>(){{
+                    put("properties", new HashMap<String, Object>(){{
+                        put("name", new HashMap<String, Object>(){{
+                            put("type", "string");
+                            put("store", "false");
+                            put("index", "not_analyzed");
+                        }});
+                        put("location", new HashMap<String, Object>(){{
+                            put("type", "geo_point");
+                            put("fielddata", new HashMap<String, Object>(){{
+                                put("format", "compressed");
+                                put("precision", "3m");
+                            }});
+                        }});
+                        put("population", new HashMap<String, Object>(){{
+                            put("type", "long");
+                            put("store", "false");
+                            put("index", "not_analyzed");
+                        }});
+                    }});
+                }}).execute().actionGet();
+        test.client().prepareIndex("ut", Constants.DEFAULT_MAPPING_TYPE, "id1")
+                .setSource("{\"name\":\"Berlin\",\"location\":\"52.5081,13.4416\", \"population\":3500000}")
+                .execute().actionGet();
+        test.client().prepareIndex("ut", Constants.DEFAULT_MAPPING_TYPE, "id2")
+                .setSource("{\"name\":\"Dornbirn\",\"location\":\"47.3904,9.7562\", \"population\":46080}")
+                .execute().actionGet();;
         test.refresh();
     }
 }

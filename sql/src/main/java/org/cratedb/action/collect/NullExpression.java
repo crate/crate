@@ -2,9 +2,9 @@ package org.cratedb.action.collect;
 
 import org.cratedb.DataType;
 
-public class LiteralExpression implements Expression<Object> {
+public class NullExpression implements Expression<Object> {
 
-    public static final LiteralExpression INSTANCE = new LiteralExpression();
+    public static final NullExpression INSTANCE = new NullExpression();
 
     @Override
     public Object evaluate() {
@@ -22,7 +22,7 @@ public class LiteralExpression implements Expression<Object> {
             return false;
         if (obj == this)
             return true;
-        return (obj instanceof LiteralExpression);
+        return (obj instanceof NullExpression);
     }
 
 }

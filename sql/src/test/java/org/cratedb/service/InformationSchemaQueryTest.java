@@ -221,8 +221,8 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
         exec("select \"unknown\", routine_name from information_schema.routines order by " +
                 "routine_name asc");
         assertEquals(102L, response.rowCount());
-        assertEquals("unknown", response.cols()[0]);
-        assertEquals("routine_name", response.cols()[1]);
+        assertArrayEquals(new String[]{"unknown", "routine_name"}, response.cols());
+
         for (int i=0; i<response.rows().length;i++) {
             assertNull(response.rows()[i][0]);
         }
