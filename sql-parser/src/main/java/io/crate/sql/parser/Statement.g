@@ -374,8 +374,12 @@ predicate
     ;
 
 predicatePrimary
-    : (numericExpr -> numericExpr)
-      ( '||' e=numericExpr -> ^(FUNCTION_CALL ^(QNAME IDENT["concat"]) $predicatePrimary $e) )*
+    : (subscript -> subscript)
+      ( '||' e=subscript -> ^(FUNCTION_CALL ^(QNAME IDENT["concat"]) $predicatePrimary $e) )*
+    ;
+
+subscript
+    : numericExpr ('['^ numericExpr ']'!)*
     ;
 
 numericExpr

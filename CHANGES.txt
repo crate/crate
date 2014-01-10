@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - added support for subscript expressions to the new presto based sql-parser
+
 2014/01/10 0.20.4
 =================
 

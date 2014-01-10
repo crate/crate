@@ -391,4 +391,8 @@ public abstract class AstVisitor<R, C>
     {
         return visitNode(node, context);
     }
+
+    protected R visitSubscriptExpression(SubscriptExpression node, C context) {
+        return visitExpression(node, context);
+    }
 }
