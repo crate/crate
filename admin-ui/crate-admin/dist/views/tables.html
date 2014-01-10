@@ -3,7 +3,7 @@
   <div id="sidebar-wrapper" ng-show="renderSidebar">
 
     <ul class="nav nav-tabs">
-      <li ng-repeat="table in tables track by $index" ng-class="{ 'active': isActive(table.name)}"><a href="#/tables?table={{table.name}}" data-toggle="tab"><h3><span class="{{table.health_label_class}}">{{table.name}}</span></h3><span class="{{table.health_label_class}}">{{table.summary | truncate:65}}</span></a></li>
+      <li ng-repeat="table in tables track by $index" ng-class="{ 'active': isActive(table.name)}"><a href="#/tables/{{table.name}}{{routeParams}}" data-toggle="tab"><h3><span class="{{table.health_label_class}}">{{table.name}}</span></h3><span class="{{table.health_label_class}}">{{table.summary | truncate:65}}</span></a></li>
     </ul>
 
   </div>
@@ -67,7 +67,7 @@
         </div>
 
         <div class="col-md-4 col-sm-5">
-          <div class="panel panel-info text-right" ng-class="{ 'panel-warning': table.shards_under_replicated > 0}">
+          <div class="panel panel-info text-right" ng-class="{ 'panel-warning': table.shards_underreplicated > 0}">
             <div class="panel-heading">
               <p class="announcement-heading">{{table.shards_underreplicated}}</p>
               <p class="announcement-text">Underreplicated Shards</p>
@@ -85,19 +85,19 @@
         </div>
 
         <div class="col-md-4 col-sm-5">
-          <div class="panel panel-info text-right" ng-class="{ 'panel-warning': table.records_underreplicated > 0}">
+          <div class="panel panel-info text-right" ng-class="{ 'panel-danger': table.records_unavailable > 0}">
             <div class="panel-heading">
-              <p class="announcement-heading inline-block" data-toggle="tooltip" rel="tooltip" data-original-title="{{table.records_underreplicated | number:0}}">{{table.records_underreplicated | roundWithUnit:1}}</p>
-              <p class="announcement-text">Underreplicated Records</p>
+              <p class="announcement-heading inline-block" data-toggle="tooltip" rel="tooltip" data-original-title="{{table.records_unavailable | number:0}}">{{table.records_unavailable | roundWithUnit:1}}</p>
+              <p class="announcement-text">Unavailable Records</p>
             </div>
           </div>
         </div>
 
         <div class="col-md-4 col-sm-5">
-          <div class="panel panel-info text-right" ng-class="{ 'panel-danger': table.records_unavailable > 0}">
+          <div class="panel panel-info text-right" ng-class="{ 'panel-warning': table.records_underreplicated > 0}">
             <div class="panel-heading">
-              <p class="announcement-heading inline-block" data-toggle="tooltip" rel="tooltip" data-original-title="{{table.records_unavailable | number:0}}">{{table.records_unavailable | roundWithUnit:1}}</p>
-              <p class="announcement-text">Unavailable Records</p>
+              <p class="announcement-heading inline-block" data-toggle="tooltip" rel="tooltip" data-original-title="{{table.records_underreplicated | number:0}}">{{table.records_underreplicated | roundWithUnit:1}}</p>
+              <p class="announcement-text">Underreplicated Records</p>
             </div>
           </div>
         </div>

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - admin-ui: fixed number format, fixed table missing + underreplicated shards count,
+             show first table if selected table was deleted/closed
+
  - ignore unknown types in legacy mappings
 
 2014/01/09 0.20.3
