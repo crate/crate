@@ -226,6 +226,8 @@ public class IndexMetaDataExtractor {
                 case "object":
                 case "nested":
                     return DataType.OBJECT;
+                default:
+                    return DataType.NOT_SUPPORTED;
                 }
         }
         return null;
@@ -301,6 +303,8 @@ public class IndexMetaDataExtractor {
                                                   int startPos) {
         for (Map.Entry<String, Object> columnEntry: propertiesMap.entrySet()) {
             Map<String, Object> columnProperties = (Map)columnEntry.getValue();
+
+            DataType columnDataType = getColumnDataType(columnProperties);
             if (columnProperties.get("type") != null
                     && columnProperties.get("type").equals("multi_field")) {
                 for (Map.Entry<String, Object> multiColumnEntry:
@@ -323,13 +327,7 @@ public class IndexMetaDataExtractor {
                         );
                     }
                 }
-            } else if ((columnProperties.get("type") == null
-                    &&
-                    columnProperties.containsKey("properties"))
-                    ||
-                    columnProperties.get("type").equals("object")
-                    ||
-                    columnProperties.get("type").equals("nested")) {
+            } else if (columnDataType==DataType.OBJECT) {
                 boolean strict = columnProperties.get("dynamic") != null
                         && columnProperties.get("dynamic").equals("strict");
                 boolean dynamic = columnProperties.get("dynamic") == null ||
@@ -342,7 +340,7 @@ public class IndexMetaDataExtractor {
                 ObjectColumnDefinition objectColumnDefinition = new ObjectColumnDefinition(
                     indexName,
                     objectColumnName,
-                    getColumnDataType(columnProperties),
+                    columnDataType,
                     getAnalyzer(columnProperties).v2(),
                     startPos++,
                     dynamic,
@@ -368,9 +366,9 @@ public class IndexMetaDataExtractor {
                     new ColumnDefinition(
                         indexName,
                         columnName,
-                        getColumnDataType(columnProperties),
+                        columnDataType,
                         getAnalyzer(columnProperties).v2(),
-                        startPos++,
+                        columnDataType==DataType.NOT_SUPPORTED ? -1 : startPos++,
                         false,
                         true
                     )
@@ -402,6 +400,8 @@ public class IndexMetaDataExtractor {
                 for (Map.Entry<String, Object> columnEntry: propertiesMap.entrySet()) {
                     Map<String, Object> columnProperties = (Map)columnEntry.getValue();
 
+                    DataType columnDataType = getColumnDataType(columnProperties);
+
                     if (columnProperties.get("type") != null
                             && columnProperties.get("type").equals("multi_field")) {
                         for (Map.Entry<String, Object> multiColumnEntry:
@@ -416,9 +416,8 @@ public class IndexMetaDataExtractor {
                             if (idx != null) {
                                 indices.add(idx);
                             }
-
                         }
-                    } else {
+                    } else if (DataType.ALL_TYPES.contains(columnDataType)) {
                         Index idx = Index.create(
                                 tableName,
                                 columnEntry.getKey(),

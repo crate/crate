@@ -6,6 +6,7 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.integrationtests.Setup;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -719,5 +720,28 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
 
         assertEquals("title", response.rows()[3][0]);
         assertEquals(4, response.rows()[3][1]);
+    }
+
+    @Test
+    public void testUnknownTypes() throws Exception {
+        new Setup(this).setUpObjectMappingWithUnknownTypes();
+        execUsingClient("select * from information_schema.columns where table_name='ut' order by column_name");
+        assertEquals(2, response.rowCount());
+
+        assertEquals("name", response.rows()[0][1]);
+        assertEquals(1, response.rows()[0][2]);
+        assertEquals("string", response.rows()[0][3]);
+
+        assertEquals("population", response.rows()[1][1]);
+        assertEquals(2, response.rows()[1][2]);
+        assertEquals("long", response.rows()[1][3]);
+
+        execUsingClient("select * from information_schema.indices where table_name='ut' order by index_name");
+        assertEquals(2, response.rowCount());
+        assertEquals("name", response.rows()[0][1]);
+        assertEquals("population", response.rows()[1][1]);
+
+        execUsingClient("select sum(number_of_shards) from information_schema.tables");
+        assertEquals(1, response.rowCount());
     }
 }

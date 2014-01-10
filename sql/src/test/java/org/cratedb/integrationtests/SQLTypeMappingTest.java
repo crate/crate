@@ -30,6 +30,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     private static SQLParseService parseService;
+    private Setup setup = new Setup(this);
 
     @Before
     protected void beforeSQLTypeMappingTest() {
@@ -94,7 +95,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         assertEquals(-128, response.rows()[1][3]);
     }
 
-    public void setUpObjectMapping() throws IOException {
+    public void setUpObjectTable() throws IOException {
         execute("create table test12 (" +
                 " object_field object(dynamic) as (size byte, created timestamp)," +
                 " strict_field object(strict) as (path string, created timestamp)," +
@@ -108,7 +109,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testParseInsertObject() throws Exception {
-        setUpObjectMapping();
+        setUpObjectTable();
 
         execute("insert into test12 (object_field, strict_field, " +
                 "no_dynamic_field) values (?,?,?)",
@@ -167,9 +168,9 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testInsertObjectField() throws Exception {
 
         expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("Nested Column Reference not allowes in INSERT statement");
+        expectedException.expectMessage("Nested Column Reference not allowed in INSERT statement");
 
-        setUpObjectMapping();
+        setUpObjectTable();
         execute("insert into test12 (object_field['size']) values (127)");
 
     }
@@ -180,7 +181,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         expectedException.expect(ValidationException.class);
         expectedException.expectMessage("Validation failed for object_field.created: Invalid timestamp");
 
-        setUpObjectMapping();
+        setUpObjectTable();
         execute("insert into test12 (object_field, strict_field) values (?,?)", new Object[]{
                 new HashMap<String, Object>(){{
                     put("created", true);
@@ -325,7 +326,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertNewColumnToObject() throws Exception {
-        setUpObjectMapping();
+        setUpObjectTable();
         Map<String, Object> objectContent = new HashMap<String, Object>(){{
             put("new_col", "a string");
             put("another_new_col", "1970-01-01T00:00:00");
@@ -348,7 +349,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column 'strict_field.another_new_col' unknown");
 
-        setUpObjectMapping();
+        setUpObjectTable();
         Map<String, Object> strictContent = new HashMap<String, Object>(){{
             put("new_col", "a string");
             put("another_new_col", "1970-01-01T00:00:00");
@@ -360,7 +361,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertNewColumnToIgnoredObject() throws Exception {
 
-        setUpObjectMapping();
+        setUpObjectTable();
         Map<String, Object> notDynamicContent = new HashMap<String, Object>(){{
             put("new_col", "a string");
             put("another_new_col", "1970-01-01T00:00:00");
@@ -375,6 +376,68 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         // no mapping applied
         assertThat((String)selectedNoDynamic.get("new_col"), is("a string"));
         assertThat((String)selectedNoDynamic.get("another_new_col"), is("1970-01-01T00:00:00"));
+    }
+
+    @Test
+    public void testUnknownTypesSelect() throws Exception {
+        this.setup.setUpObjectMappingWithUnknownTypes();
+        SQLResponse response = execute("select * from ut");
+        assertEquals(2, response.rowCount());
+        assertArrayEquals(new String[]{"name", "population"}, response.cols());
+
+        response = execute("select name, location from ut order by name");
+        assertEquals("Berlin", response.rows()[0][0]);
+        assertEquals(null, response.rows()[0][1]);
+    }
+
+    @Test
+    public void testUnknownTypesInsert() throws Exception {
+        this.setup.setUpObjectMappingWithUnknownTypes();
+        SQLResponse response = execute(
+                "insert into ut (name, location, population) values (?, ?, ?)",
+                new Object[]{"Köln", "2014-01-09", 0}
+        );
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        response = execute("select name, location, population from ut order by name");
+        assertEquals(3, response.rowCount());
+        assertEquals("Berlin", response.rows()[0][0]);
+        assertEquals(null, response.rows()[0][1]);
+
+        assertEquals("Dornbirn", response.rows()[1][0]);
+        assertEquals(null, response.rows()[1][1]);
+
+        assertEquals("Köln", response.rows()[2][0]);
+        assertEquals(null, response.rows()[2][1]);
+    }
+
+    @Test
+    public void testUnknownTypesUpdate() throws Exception {
+        this.setup.setUpObjectMappingWithUnknownTypes();
+        execute("update ut set location='2014-01-09' where name='Berlin'");
+        SQLResponse response = execute("select name, location from ut where name='Berlin'");
+        assertEquals(1, response.rowCount());
+        assertEquals("Berlin", response.rows()[0][0]);
+        assertEquals(null, response.rows()[0][1]);
+    }
+
+    @Test
+    public void testUnknownTypesSelectGlobalAggregate() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Unknown column 'location'");
+
+        this.setup.setUpObjectMappingWithUnknownTypes();
+        SQLResponse response = execute("select any(location) from ut");
+    }
+
+    @Test
+    public void testUnknownTypesSelectGroupBy() throws Exception {
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("Unknown column 'location'");
+
+        this.setup.setUpObjectMappingWithUnknownTypes();
+        execute("select count(*) from ut group by location");
     }
 
 }

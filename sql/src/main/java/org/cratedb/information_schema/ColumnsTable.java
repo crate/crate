@@ -68,7 +68,9 @@ public class ColumnsTable extends AbstractInformationSchemaTable {
             }
 
             for (ColumnDefinition columnDefinition : extractor.getColumnDefinitions()) {
-                addColumnDocument(columnDefinition);
+                if (columnDefinition.isSupported()) {
+                    addColumnDocument(columnDefinition);
+                }
             }
         }
     }
