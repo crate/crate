@@ -5,8 +5,6 @@ import org.cratedb.DataType;
 
 public class Reference implements ValueSymbol {
 
-    public static final SymbolType TYPE = SymbolType.REFERENCE;
-
     public static final SymbolFactory<Reference> FACTORY = new SymbolFactory<Reference>() {
         @Override
         public Reference newInstance() {
@@ -58,7 +56,7 @@ public class Reference implements ValueSymbol {
 
     @Override
     public SymbolType symbolType() {
-        return TYPE;
+        return SymbolType.REFERENCE;
     }
 
     @Override

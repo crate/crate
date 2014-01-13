@@ -6,8 +6,6 @@ import java.util.List;
 
 public class Aggregation implements Symbol {
 
-    public static final SymbolType TYPE = SymbolType.AGGREGATION;
-
     public static final SymbolFactory<Aggregation> FACTORY = new SymbolFactory<Aggregation>() {
         @Override
         public Aggregation newInstance() {
@@ -37,7 +35,7 @@ public class Aggregation implements Symbol {
 
     @Override
     public SymbolType symbolType() {
-        return TYPE;
+        return SymbolType.AGGREGATION;
     }
 
     public FunctionIdent functionIdent() {

@@ -4,8 +4,6 @@ import org.cratedb.DataType;
 
 public class Value implements ValueSymbol {
 
-    public static final SymbolType TYPE = SymbolType.VALUE;
-
     public static final SymbolFactory<Value> FACTORY = new SymbolFactory<Value>() {
         @Override
         public Value newInstance() {
@@ -29,7 +27,7 @@ public class Value implements ValueSymbol {
 
     @Override
     public SymbolType symbolType() {
-        return TYPE;
+        return SymbolType.VALUE;
     }
 
 
