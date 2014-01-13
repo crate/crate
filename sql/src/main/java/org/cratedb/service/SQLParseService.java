@@ -1,5 +1,11 @@
 package org.cratedb.service;
 
+import com.google.common.collect.ImmutableList;
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.Statement;
+import io.crate.sql.tree.Table;
 import org.cratedb.action.parser.visitors.*;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
@@ -36,7 +42,7 @@ public class SQLParseService {
 
     public ParsedStatement parse(String statement, Object[] args) throws SQLParseException {
         StopWatch stopWatch = null;
-        ParsedStatement stmt = new ParsedStatement(statement);
+        ParsedStatement stmt;
 
         if (logger.isTraceEnabled()) {
             stopWatch = new StopWatch().start();
@@ -44,26 +50,7 @@ public class SQLParseService {
         try {
             SQLParser parser = new SQLParser();
             StatementNode statementNode = parser.parseStatement(statement);
-            BaseVisitor visitor;
-            switch (statementNode.getNodeType()) {
-                case INSERT_NODE:
-                    visitor = new InsertVisitor(context, stmt, args);
-                    break;
-                case CREATE_TABLE_NODE:
-                case DROP_TABLE_NODE:
-                    visitor = new TableVisitor(context, stmt, args);
-                    break;
-                case CREATE_ANALYZER_NODE:
-                    visitor = new AnalyzerVisitor(context, stmt, args);
-                    break;
-                case COPY_STATEMENT_NODE:
-                    visitor = new CopyVisitor(context, stmt, args);
-                    break;
-                default:
-                    visitor = new QueryVisitor(context, stmt, args);
-                    break;
-            }
-            statementNode.accept(visitor);
+            stmt = parse(statement, statementNode, args);
         } catch (CrateException ex) {
             throw ex;
         } catch (Exception ex) {
@@ -117,5 +104,40 @@ public class SQLParseService {
         }
 
         return result;
+    }
+
+    public ParsedStatement parse(String sql, StatementNode statementNode, Object[] args) {
+        ParsedStatement stmt = new ParsedStatement(sql);
+        BaseVisitor visitor;
+
+        try {
+            switch (statementNode.getNodeType()) {
+                case INSERT_NODE:
+                    visitor = new InsertVisitor(context, stmt, args);
+                    break;
+                case CREATE_TABLE_NODE:
+                case DROP_TABLE_NODE:
+                    visitor = new TableVisitor(context, stmt, args);
+                    break;
+                case CREATE_ANALYZER_NODE:
+                    visitor = new AnalyzerVisitor(context, stmt, args);
+                    break;
+                case COPY_STATEMENT_NODE:
+                    visitor = new CopyVisitor(context, stmt, args);
+                    break;
+                default:
+                    visitor = new QueryVisitor(context, stmt, args);
+                    break;
+            }
+
+            statementNode.accept(visitor);
+
+        } catch (CrateException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new SQLParseException(ex.getMessage(), ex);
+        }
+
+        return stmt;
     }
 }

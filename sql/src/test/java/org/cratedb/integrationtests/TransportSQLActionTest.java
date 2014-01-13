@@ -54,6 +54,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testSelectFromSysNodes() throws Exception {
+        execute("select * from sys.nodes");
+    }
+
+    @Test
     public void testSelectKeepsOrder() throws Exception {
         createIndex("test");
         client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
