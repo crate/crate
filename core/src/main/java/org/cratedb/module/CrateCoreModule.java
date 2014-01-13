@@ -1,5 +1,6 @@
 package org.cratedb.module;
 
+import org.cratedb.ClusterIdService;
 import org.cratedb.core.futures.GenericBaseFuture;
 import org.cratedb.rest.CrateRestMainAction;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -41,6 +42,9 @@ public class CrateCoreModule extends AbstractModule {
         bindListener(
             new SubclassOfMatcher(RestMainAction.class),
             new RestMainActionListener(crateListener.instanceFuture));
+
+
+        bind(ClusterIdService.class).asEagerSingleton();
     }
 
     private class RestMainActionListener implements TypeListener {
