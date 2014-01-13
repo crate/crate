@@ -2,6 +2,7 @@ package io.crate.udc.service;
 
 import io.crate.udc.ping.PingTask;
 import io.crate.udc.plugin.UDCPlugin;
+import org.cratedb.ClusterIdService;
 import org.elasticsearch.ElasticSearchException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -17,12 +18,17 @@ public class UDCService extends AbstractLifecycleComponent<UDCService> {
     private Timer timer;
 
     private final ClusterService clusterService;
+    private final ClusterIdService clusterIdService;
     private final HttpServerTransport httpServerTransport;
 
     @Inject
-    public UDCService(Settings settings, ClusterService clusterService, HttpServerTransport httpServerTransport) {
+    public UDCService(Settings settings,
+                      ClusterService clusterService,
+                      ClusterIdService clusterIdService,
+                      HttpServerTransport httpServerTransport) {
         super(settings);
         this.clusterService = clusterService;
+        this.clusterIdService = clusterIdService;
         this.httpServerTransport = httpServerTransport;
     }
 
@@ -32,7 +38,9 @@ public class UDCService extends AbstractLifecycleComponent<UDCService> {
         TimeValue initialDelay = settings.getAsTime(UDCPlugin.INITIAL_DELAY_SETTING_NAME, UDCPlugin.INITIAL_DELAY_DEFAULT_SETTING);
         TimeValue interval = settings.getAsTime(UDCPlugin.INTERVAL_SETTING_NAME, UDCPlugin.INTERVAL_DEFAULT_SETTING);
 
-        PingTask pingTask = new PingTask(this.clusterService, this.httpServerTransport, url);
+        logger.info("Starting with delay {} and period {}.", initialDelay.getSeconds(), interval.getSeconds());
+
+        PingTask pingTask = new PingTask(this.clusterService, this.clusterIdService, this.httpServerTransport, url);
 
         timer = new Timer("crate-udc");
         timer.scheduleAtFixedRate(pingTask, initialDelay.millis(), interval.millis());

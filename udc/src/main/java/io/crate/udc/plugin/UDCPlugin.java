@@ -2,7 +2,6 @@ package io.crate.udc.plugin;
 
 import io.crate.udc.service.UDCService;
 import org.elasticsearch.common.component.LifecycleComponent;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.plugins.AbstractPlugin;
@@ -14,7 +13,7 @@ import static com.google.common.collect.Lists.newArrayList;
 
 public class UDCPlugin extends AbstractPlugin {
 
-    public static final String ENABLED_SETTING_NAME = "udc.enables";
+    public static final String ENABLED_SETTING_NAME = "udc.enabled";
     public static final boolean ENABLED_DEFAULT_SETTING = true;
 
     public static final String INITIAL_DELAY_SETTING_NAME = "udc.initial_delay";
@@ -30,17 +29,6 @@ public class UDCPlugin extends AbstractPlugin {
 
     public UDCPlugin(Settings settings) {
         this.settings = settings;
-    }
-
-    @Override
-    public Settings additionalSettings() {
-        ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder();
-
-        builder.put(ENABLED_SETTING_NAME, ENABLED_DEFAULT_SETTING);
-        builder.put(INITIAL_DELAY_SETTING_NAME, INITIAL_DELAY_DEFAULT_SETTING.minutes(), TimeUnit.MINUTES);
-        builder.put(INTERVAL_SETTING_NAME, INTERVAL_DEFAULT_SETTING.hours(), TimeUnit.HOURS);
-        builder.put(URL_SETTING_NAME, URL_DEFAULT_SETTING);
-        return builder.build();
     }
 
     @Override
