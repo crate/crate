@@ -33,6 +33,8 @@ options {
 }
 
 @members {
+    private int parameterPos = 0;
+
     @Override
     protected Object recoverFromMismatchedToken(IntStream input, int tokenType, BitSet follow)
             throws RecognitionException
@@ -292,6 +294,7 @@ expr returns [Expression value]
     : NULL                  { $value = new NullLiteral(); }
     | qname                 { $value = new QualifiedNameReference($qname.value); }
     | subscript             { $value = $subscript.value; }
+    | parameterExpr         { $value = $parameterExpr.value; }
     | functionCall          { $value = $functionCall.value; }
     | arithmeticExpression  { $value = $arithmeticExpression.value; }
     | comparisonExpression  { $value = $comparisonExpression.value; }
@@ -319,6 +322,11 @@ expr returns [Expression value]
 
 exprList returns [List<Expression> value = new ArrayList<>()]
     : ( expr { $value.add($expr.value); } )*
+    ;
+
+parameterExpr returns [ParameterExpression value]
+    : ':' integer { $value = new ParameterExpression(Integer.parseInt($integer.value)); }
+    | '?'         { $value = new ParameterExpression(parameterPos++); }
     ;
 
 subscript returns [SubscriptExpression value]
