@@ -1,9 +1,9 @@
 package io.crate.udc.ping;
 
 import com.google.common.base.Joiner;
+import org.cratedb.ClusterIdService;
 import org.cratedb.Version;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.Base64;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -17,7 +17,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.*;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -30,14 +29,19 @@ public class PingTask extends TimerTask {
     private ESLogger logger = Loggers.getLogger(this.getClass());
 
     private final ClusterService clusterService;
+    private final ClusterIdService clusterIdService;
     private final HttpServerTransport httpServerTransport;
     private final String pingUrl;
 
     private AtomicLong successCounter = new AtomicLong(0);
     private AtomicLong failCounter = new AtomicLong(0);
 
-    public PingTask(ClusterService clusterService, HttpServerTransport httpServerTransport, String pingUrl) {
+    public PingTask(ClusterService clusterService,
+                    ClusterIdService clusterIdService,
+                    HttpServerTransport httpServerTransport,
+                    String pingUrl) {
         this.clusterService = clusterService;
+        this.clusterIdService = clusterIdService;
         this.httpServerTransport = httpServerTransport;
         this.pingUrl = pingUrl;
     }
@@ -48,15 +52,11 @@ public class PingTask extends TimerTask {
     }
 
     public String getClusterId() {
-        return "1";
+        return clusterIdService.clusterId().value().toString();
     }
 
-    public String getMasterNodeHash() throws NoSuchAlgorithmException {
-        String masterNodeName = clusterService.state().nodes().getMasterNode().getName();
-        MessageDigest sha256Md = MessageDigest.getInstance("SHA-256");
-        sha256Md.update(masterNodeName.getBytes());
-
-        return Base64.encodeBytes(sha256Md.digest());
+    public Boolean isMasterNode() {
+        return new Boolean(clusterService.state().nodes().localNodeMaster());
     }
 
     public Map<String, Object> getCounters() {
@@ -107,17 +107,21 @@ public class PingTask extends TimerTask {
         Map<String, String> queryMap = new HashMap<>();
         queryMap.put("kernel", XContentFactory.jsonBuilder().map(getKernelData()).string());
         queryMap.put("cluster_id", getClusterId());
-        queryMap.put("master_node", getMasterNodeHash());
+        queryMap.put("master", isMasterNode().toString());
         queryMap.put("ping_count", XContentFactory.jsonBuilder().map(getCounters()).string());
         queryMap.put("hardware_address", getHardwareAddress());
         queryMap.put("crate_version", getCrateVersion());
         queryMap.put("java_version", getJavaVersion());
 
+        if (logger.isDebugEnabled()) {
+            logger.debug("Sending data: {}", queryMap);
+        }
+
         final Joiner joiner = Joiner.on('=');
         List<String> params = new ArrayList<>(queryMap.size());
         for (Map.Entry<String, String> entry : queryMap.entrySet()) {
             if (entry.getValue() != null) {
-                params.add(URLEncoder.encode(joiner.join(entry.getKey(), "UTF-8"), URLEncoder.encode(entry.getKey(), "UTF-8")));
+                params.add(joiner.join(URLEncoder.encode(entry.getKey(), "UTF-8"), URLEncoder.encode(entry.getValue(), "UTF-8")));
             }
         }
         String query = Joiner.on('&').join(params);
