@@ -12,11 +12,11 @@ public class AggregationCollector {
     private AggregationState aggregationState;
     private AggregationFunction aggregationFunction;
 
-    public AggregationCollector(Aggregation a, AggregationFunction aggregationFunction, List<Input> inputs){
+    public AggregationCollector(Aggregation a, AggregationFunction aggregationFunction, Input... inputs){
         // TODO: implement othe start end steps
         assert(a.fromStep()== Aggregation.Step.ITER);
         assert(a.toStep()== Aggregation.Step.FINAL);
-        this.inputs = (Input[]) inputs.toArray();
+        this.inputs = inputs;
         this.aggregationFunction = aggregationFunction;
         this.aggregation = a;
     }
