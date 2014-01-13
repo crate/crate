@@ -14,20 +14,20 @@
 package io.crate.sql.parser;
 
 import io.crate.sql.SqlFormatter;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.Query;
-import io.crate.sql.tree.Statement;
+import io.crate.sql.tree.*;
 import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
 import org.antlr.runtime.tree.CommonTree;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.crate.sql.parser.TreeAssertions.assertFormattedSql;
 import static io.crate.sql.parser.TreePrinter.treeToString;
 import static com.google.common.base.Strings.repeat;
 import static java.lang.String.format;
+import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
 public class TestStatementBuilder
@@ -132,6 +132,35 @@ public class TestStatementBuilder
     public void testStatementSubscript() throws Exception {
         printStatement("select a['x'] from foo where a['x']['y']['z'] = 1");
         printStatement("select a['x'] from foo where a[1 + 2]['y'] = 1");
+    }
+
+    @Test
+    public void testParameterNode() throws Exception {
+        printStatement("select foo, :0 from foo where a = :1 or a = :2");
+
+        final AtomicInteger counter = new AtomicInteger(0);
+
+        Expression inExpression = SqlParser.createExpression("x in (?, ?, ?)");
+        inExpression.accept(new DefaultTraversalVisitor<Object, Object>() {
+            @Override
+            public Object visitParameterExpression(ParameterExpression node, Object context) {
+                assertEquals(counter.getAndIncrement(), node.position());
+                return super.visitParameterExpression(node, context);
+            }
+        }, null);
+
+        assertEquals(3, counter.get());
+        counter.set(0);
+
+        Expression andExpression = SqlParser.createExpression("a = ? and b = ? and c = :2");
+        andExpression.accept(new DefaultTraversalVisitor<Object, Object>() {
+            @Override
+            public Object visitParameterExpression(ParameterExpression node, Object context) {
+                assertEquals(counter.getAndIncrement(), node.position());
+                return super.visitParameterExpression(node, context);
+            }
+        }, null);
+        assertEquals(3, counter.get());
     }
 
     private static void printStatement(String sql)

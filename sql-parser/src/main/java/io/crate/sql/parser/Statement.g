@@ -402,6 +402,7 @@ exprPrimary
     | qnameOrFunction
     | specialFunction
     | number
+    | parameterExpr
     | bool
     | STRING
     | caseExpression
@@ -415,6 +416,12 @@ qnameOrFunction
       | ('(' setQuant? expr? (',' expr)* ')' over?  -> ^(FUNCTION_CALL $qnameOrFunction over? setQuant? expr*))
       )?
     ;
+
+parameterExpr
+    : ':' integer
+    | '?'
+    ;
+
 
 inList
     : ('(' expr) => ('(' expr (',' expr)* ')' -> ^(IN_LIST expr+))
