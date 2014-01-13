@@ -13,47 +13,7 @@
  */
 package io.crate.sql;
 
-import io.crate.sql.tree.AllColumns;
-import io.crate.sql.tree.ArithmeticExpression;
-import io.crate.sql.tree.AstVisitor;
-import io.crate.sql.tree.BetweenPredicate;
-import io.crate.sql.tree.BooleanLiteral;
-import io.crate.sql.tree.Cast;
-import io.crate.sql.tree.CoalesceExpression;
-import io.crate.sql.tree.ComparisonExpression;
-import io.crate.sql.tree.CurrentTime;
-import io.crate.sql.tree.DateLiteral;
-import io.crate.sql.tree.DoubleLiteral;
-import io.crate.sql.tree.ExistsPredicate;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.Extract;
-import io.crate.sql.tree.FrameBound;
-import io.crate.sql.tree.FunctionCall;
-import io.crate.sql.tree.IfExpression;
-import io.crate.sql.tree.InListExpression;
-import io.crate.sql.tree.InPredicate;
-import io.crate.sql.tree.InputReference;
-import io.crate.sql.tree.IntervalLiteral;
-import io.crate.sql.tree.IsNotNullPredicate;
-import io.crate.sql.tree.IsNullPredicate;
-import io.crate.sql.tree.LikePredicate;
-import io.crate.sql.tree.LogicalBinaryExpression;
-import io.crate.sql.tree.LongLiteral;
-import io.crate.sql.tree.NegativeExpression;
-import io.crate.sql.tree.Node;
-import io.crate.sql.tree.NotExpression;
-import io.crate.sql.tree.NullIfExpression;
-import io.crate.sql.tree.NullLiteral;
-import io.crate.sql.tree.QualifiedNameReference;
-import io.crate.sql.tree.SearchedCaseExpression;
-import io.crate.sql.tree.SimpleCaseExpression;
-import io.crate.sql.tree.StringLiteral;
-import io.crate.sql.tree.SubqueryExpression;
-import io.crate.sql.tree.TimeLiteral;
-import io.crate.sql.tree.TimestampLiteral;
-import io.crate.sql.tree.WhenClause;
-import io.crate.sql.tree.Window;
-import io.crate.sql.tree.WindowFrame;
+import io.crate.sql.tree.*;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -138,6 +98,11 @@ public final class ExpressionFormatter
         protected String visitBooleanLiteral(BooleanLiteral node, Void context)
         {
             return String.valueOf(node.getValue());
+        }
+
+        @Override
+        protected String visitSubscriptExpression(SubscriptExpression node, Void context) {
+            return String.format("%s[%s]", node.name(), node.index());
         }
 
         @Override

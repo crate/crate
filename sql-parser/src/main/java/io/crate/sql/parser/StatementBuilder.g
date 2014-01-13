@@ -291,6 +291,7 @@ singleExpression returns [Expression value]
 expr returns [Expression value]
     : NULL                  { $value = new NullLiteral(); }
     | qname                 { $value = new QualifiedNameReference($qname.value); }
+    | subscript             { $value = $subscript.value; }
     | functionCall          { $value = $functionCall.value; }
     | arithmeticExpression  { $value = $arithmeticExpression.value; }
     | comparisonExpression  { $value = $comparisonExpression.value; }
@@ -318,6 +319,10 @@ expr returns [Expression value]
 
 exprList returns [List<Expression> value = new ArrayList<>()]
     : ( expr { $value.add($expr.value); } )*
+    ;
+
+subscript returns [SubscriptExpression value]
+    :   ^('[' a=expr b=expr) { $value = new SubscriptExpression($a.value, $b.value); }
     ;
 
 qname returns [QualifiedName value]

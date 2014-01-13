@@ -14,6 +14,7 @@
 package io.crate.sql.parser;
 
 import io.crate.sql.SqlFormatter;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.Statement;
 import com.google.common.base.Charsets;
@@ -125,6 +126,12 @@ public class TestStatementBuilder
                 "phone 5",
                 "phone 6",
                 "phone 7");
+    }
+
+    @Test
+    public void testStatementSubscript() throws Exception {
+        printStatement("select a['x'] from foo where a['x']['y']['z'] = 1");
+        printStatement("select a['x'] from foo where a[1 + 2]['y'] = 1");
     }
 
     private static void printStatement(String sql)
