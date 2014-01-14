@@ -1,5 +1,7 @@
 package io.crate.planner.symbol;
 
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.RowGranularity;
 import org.cratedb.DataType;
 
@@ -12,46 +14,13 @@ public class Reference implements ValueSymbol {
         }
     };
 
-    private String schema;
-    private String table;
-    private String column;
-    private String[] path;
+    private ReferenceInfo info;
 
-    private RowGranularity granularity;
-    private DataType type;
-
-
-    public Reference(DataType type, RowGranularity granularity,
-                     String schema, String table, String column, String... path) {
-        this.type = type;
-        this.granularity = granularity;
-        this.schema = schema;
-        this.table = table;
-        this.column = column;
-        this.path = path;
+    public Reference(ReferenceInfo info) {
+        this.info = info;
     }
 
     public Reference() {
-    }
-
-    public String schema() {
-        return schema;
-    }
-
-    public String table() {
-        return table;
-    }
-
-    public String column() {
-        return column;
-    }
-
-    public String[] path() {
-        return path;
-    }
-
-    public RowGranularity granularity() {
-        return granularity;
     }
 
     @Override
@@ -61,6 +30,6 @@ public class Reference implements ValueSymbol {
 
     @Override
     public DataType valueType() {
-        return type;
+        return info.type();
     }
 }

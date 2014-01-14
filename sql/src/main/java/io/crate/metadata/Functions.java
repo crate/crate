@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class Functions {
 
-    private static Map<FunctionIdent, FunctionImplementation> functionImplemnetations = new ConcurrentHashMap<>();
+    private static final Map<FunctionIdent, FunctionImplementation> functionImplemnetations = new ConcurrentHashMap<>();
 
     public static void registerImplementation(FunctionImplementation impl) {
         functionImplemnetations.put(impl.info().ident(), impl);
