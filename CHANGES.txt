@@ -7,7 +7,7 @@ Unreleased
 
  - implemented UDC module
 
- - implemented generation of an unique ClusterId on initial cluster start-up
+ - implemented generation of an unique ClusterId on cluster start-up
 
  - added parameter expressions to presto based sql-parser
 
