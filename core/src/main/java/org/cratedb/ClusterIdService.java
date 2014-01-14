@@ -29,14 +29,18 @@ public class ClusterIdService implements ClusterStateListener {
 
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
+        if (logger.isTraceEnabled()) {
+            logger.trace("[{}] Receiving new cluster state, reason {}",
+                    clusterService.state().nodes().localNodeId(), event.source());
+        }
         if (event.source().equals("local-gateway-elected-state")) {
             // State recovered, read cluster_id
             boolean success = applyClusterIdFromSettings();
 
             if (event.localNodeMaster() && success == false) {
-                // None found, generate cluster_id and persist it on all nodes
+                // None found, generate cluster_id and broadcast it to all nodes
                 generateClusterId();
-                persistClusterIdToSettings();
+                saveClusterIdToSettings();
             }
         }
 
@@ -59,7 +63,7 @@ public class ClusterIdService implements ClusterStateListener {
     }
 
     private String readClusterIdFromSettings() {
-        return clusterService.state().metaData().persistentSettings().get(clusterIdSettingsKey);
+        return clusterService.state().metaData().transientSettings().get(clusterIdSettingsKey);
     }
 
     private boolean applyClusterIdFromSettings() {
@@ -80,7 +84,10 @@ public class ClusterIdService implements ClusterStateListener {
         return true;
     }
 
-    private void persistClusterIdToSettings() {
+    private void saveClusterIdToSettings() {
+        if (logger.isTraceEnabled()) {
+            logger.trace("Announcing new cluster_id to all nodes");
+        }
         clusterService.submitStateUpdateTask("new_cluster_id", Priority.URGENT, new ClusterStateUpdateTask() {
 
             @Override
@@ -90,13 +97,13 @@ public class ClusterIdService implements ClusterStateListener {
 
             @Override
             public ClusterState execute(final ClusterState currentState) {
-                ImmutableSettings.Builder persistentSettings = ImmutableSettings.settingsBuilder();
-                persistentSettings.put(currentState.metaData().persistentSettings());
-                persistentSettings.put(clusterIdSettingsKey, clusterId.value().toString());
+                ImmutableSettings.Builder transientSettings = ImmutableSettings.settingsBuilder();
+                transientSettings.put(currentState.metaData().transientSettings());
+                transientSettings.put(clusterIdSettingsKey, clusterId.value().toString());
 
                 MetaData.Builder metaData = MetaData.builder(currentState.metaData())
-                        .persistentSettings(persistentSettings.build())
-                        .transientSettings(currentState.metaData().transientSettings());
+                        .persistentSettings(currentState.metaData().persistentSettings())
+                        .transientSettings(transientSettings.build());
 
                 ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
                 boolean updatedReadOnly =
