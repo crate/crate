@@ -8,23 +8,19 @@ import java.util.List;
 
 public class ReferenceIdent implements Comparable<ReferenceIdent> {
 
-    private String schema;
-    private String table;
+    private TableIdent tableIdent;
     private String column;
     private List<String> path;
 
-    public ReferenceIdent(String schema, String table, String column, List<String> path) {
-        this(schema, table, column);
-        this.path = path;
-    }
-
-    public ReferenceIdent(String schema, String table, String column) {
-        this.schema = schema;
-        this.table = table;
+    public ReferenceIdent(TableIdent tableIdent, String column) {
+        this.tableIdent = tableIdent;
         this.column = column;
     }
 
-
+    public ReferenceIdent(TableIdent tableIdent, String column, List<String> path) {
+        this(tableIdent, column);
+        this.path = path;
+    }
 
     @Override
     public boolean equals(Object obj) {
@@ -35,22 +31,20 @@ public class ReferenceIdent implements Comparable<ReferenceIdent> {
             return false;
         }
         ReferenceIdent o = (ReferenceIdent) obj;
-        return Objects.equal(schema, o.schema) &&
-                Objects.equal(table, o.table) &&
-                Objects.equal(column, o.column) &&
+        return Objects.equal(column, o.column) &&
+                Objects.equal(tableIdent, o.tableIdent) &&
                 Objects.equal(path, o.path);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(schema, table, column, path);
+        return Objects.hashCode(tableIdent, column, path);
     }
 
     @Override
     public String toString() {
         return Objects.toStringHelper(this)
-                .add("schema", schema)
-                .add("table", table)
+                .add("table", tableIdent)
                 .add("column", column)
                 .add("path", path)
                 .toString();
@@ -59,8 +53,7 @@ public class ReferenceIdent implements Comparable<ReferenceIdent> {
     @Override
     public int compareTo(ReferenceIdent o) {
         return ComparisonChain.start()
-                .compare(schema, o.schema)
-                .compare(table, o.table)
+                .compare(tableIdent, o.tableIdent)
                 .compare(column, o.column)
                 .compare(path, o.path, Ordering.<String>natural().lexicographical())
                 .result();

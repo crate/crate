@@ -2,6 +2,7 @@ package io.crate.metadata.sys;
 
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.RowGranularity;
 import org.cratedb.DataType;
 
@@ -12,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SystemReferences {
 
     public static final String SCHEMA = "sys";
-    public static final String NODES = "nodes";
+    public static final TableIdent NODES = new TableIdent(SCHEMA, "nodes");
 
     private static final Map<ReferenceIdent, ReferenceInfo> referenceInfos = new ConcurrentHashMap<>();
 
@@ -23,7 +24,7 @@ public class SystemReferences {
 
     public static ReferenceInfo registerNodeReference(String column, DataType type, List<String> path) {
         return register(new ReferenceInfo(
-                new ReferenceIdent(SCHEMA, NODES, column, path),
+                new ReferenceIdent(NODES, column, path),
                 RowGranularity.NODE,
                 type));
     }
