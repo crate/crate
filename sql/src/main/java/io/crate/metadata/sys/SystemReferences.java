@@ -10,10 +10,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * This class provides a static registry of global system table metadata.
+ */
 public class SystemReferences {
 
     public static final String SCHEMA = "sys";
-    public static final TableIdent NODES = new TableIdent(SCHEMA, "nodes");
+    public static final TableIdent NODES_IDENT = new TableIdent(SCHEMA, "nodes");
 
     private static final Map<ReferenceIdent, ReferenceInfo> referenceInfos = new ConcurrentHashMap<>();
 
@@ -22,9 +25,13 @@ public class SystemReferences {
         return info;
     }
 
+    public static ReferenceInfo get(ReferenceIdent ident) {
+        return referenceInfos.get(ident);
+    }
+
     public static ReferenceInfo registerNodeReference(String column, DataType type, List<String> path) {
         return register(new ReferenceInfo(
-                new ReferenceIdent(NODES, column, path),
+                new ReferenceIdent(NODES_IDENT, column, path),
                 RowGranularity.NODE,
                 type));
     }

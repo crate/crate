@@ -22,6 +22,29 @@ public class ReferenceIdent implements Comparable<ReferenceIdent> {
         this.path = path;
     }
 
+    public TableIdent tableIdent() {
+        return tableIdent;
+    }
+
+    public String column() {
+        return column;
+    }
+
+    public List<String> path() {
+        return path;
+    }
+
+    public boolean isColumn() {
+        return path == null || path.size()==0;
+    }
+
+    public ReferenceIdent columnIdent(){
+        if (isColumn()){
+            return this;
+        }
+        return new ReferenceIdent(tableIdent, column);
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {

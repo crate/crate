@@ -16,6 +16,14 @@ public class TableIdent implements Comparable<TableIdent> {
         this.name = name;
     }
 
+    public String schema() {
+        return schema;
+    }
+
+    public String name() {
+        return name;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
