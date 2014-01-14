@@ -58,10 +58,6 @@ The Usage Data Collector can be configured by following parameters:
 
 How to disable UDC
 ==================
-We’ve tried to make it extremely easy to disable UDC.
-In fact, the code for UDC is not even included in the core jar but as a completely separate
-component.
-
 There are two ways you can disable UDC:
 
 By configuration
