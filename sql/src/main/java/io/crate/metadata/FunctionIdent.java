@@ -3,17 +3,16 @@ package io.crate.metadata;
 import com.google.common.base.Objects;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
-import io.crate.sql.tree.QualifiedName;
 import org.cratedb.DataType;
 
 import java.util.List;
 
 public class FunctionIdent implements Comparable<FunctionIdent> {
 
-    private final QualifiedName name;
+    private final String name;
     private final List<DataType> argumentTypes;
 
-    public FunctionIdent(QualifiedName name, List<DataType> argumentTypes) {
+    public FunctionIdent(String name, List<DataType> argumentTypes) {
         this.name = name;
         this.argumentTypes = argumentTypes;
     }
@@ -22,7 +21,7 @@ public class FunctionIdent implements Comparable<FunctionIdent> {
         return argumentTypes;
     }
 
-    public QualifiedName name() {
+    public String name() {
         return name;
     }
 
@@ -56,7 +55,7 @@ public class FunctionIdent implements Comparable<FunctionIdent> {
     @Override
     public int compareTo(FunctionIdent o) {
         return ComparisonChain.start()
-                .compare(name.toString(), o.name.toString())
+                .compare(name, o.name)
                 .compare(argumentTypes, o.argumentTypes, Ordering.<DataType>natural().lexicographical())
                 .result();
     }

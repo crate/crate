@@ -1,12 +1,12 @@
 package io.crate.operator.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.AggregationState;
-import io.crate.sql.tree.QualifiedName;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -15,20 +15,19 @@ import java.io.IOException;
 
 public class AverageAggregation extends AggregationFunction<AverageAggregation.AverageAggState> {
 
-    public static final QualifiedName NAME = new QualifiedName("avg");
-    public static final String DESCRIPTION = "Average";
+    public static final String NAME = "avg";
+
+    private final FunctionInfo info;
 
     public static void register() {
         for (DataType t : DataType.NUMERIC_TYPES) {
             Functions.registerImplementation(
                     new AverageAggregation(
-                            new FunctionInfo(NAME, DESCRIPTION, DataType.DOUBLE, ImmutableList.of(t), true))
+                            new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), DataType.DOUBLE, true))
             );
         }
 
     }
-
-    private final FunctionInfo info;
 
     AverageAggregation(FunctionInfo info) {
         this.info = info;
