@@ -1,7 +1,5 @@
 package io.crate.planner.plan;
 
-import io.crate.planner.symbol.Symbol;
-
 public class CollectNode extends PlanNode {
 
     public CollectNode(String id) {
