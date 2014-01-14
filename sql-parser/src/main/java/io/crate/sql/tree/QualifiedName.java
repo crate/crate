@@ -31,6 +31,7 @@ public class QualifiedName
 {
     private final List<String> parts;
 
+
     public static QualifiedName of(QualifiedName prefix, String suffix)
     {
         Preconditions.checkNotNull(prefix, "prefix is null");

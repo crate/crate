@@ -20,8 +20,8 @@ import com.google.common.base.Preconditions;
 public class SingleColumn
         extends SelectItem
 {
-    private final Optional<String> alias;
-    private final Expression expression;
+    private Optional<String> alias;
+    private Expression expression;
 
     public SingleColumn(Expression expression, Optional<String> alias)
     {
@@ -47,9 +47,18 @@ public class SingleColumn
         return alias;
     }
 
+    public void setAlias(String alias) {
+        Preconditions.checkNotNull(alias);
+        this.alias = Optional.of(alias);
+    }
+
     public Expression getExpression()
     {
         return expression;
+    }
+
+    public void setExpression(Expression expression) {
+        this.expression = expression;
     }
 
     @Override

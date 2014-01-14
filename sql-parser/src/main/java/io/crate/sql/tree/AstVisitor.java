@@ -13,6 +13,7 @@
  */
 package io.crate.sql.tree;
 
+
 import javax.annotation.Nullable;
 
 public abstract class AstVisitor<R, C>

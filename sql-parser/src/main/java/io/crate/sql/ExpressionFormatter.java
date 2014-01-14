@@ -49,6 +49,7 @@ public final class ExpressionFormatter
     public static class Formatter
             extends AstVisitor<String, Void>
     {
+
         @Override
         protected String visitNode(Node node, Void context)
         {

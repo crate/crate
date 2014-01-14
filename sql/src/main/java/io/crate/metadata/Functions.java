@@ -17,5 +17,4 @@ public class Functions {
     public FunctionImplementation get(FunctionIdent ident) {
         return functionImplemnetations.get(ident);
     }
-
 }

@@ -328,6 +328,13 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
     private void usePresto(SQLRequest request, ActionListener<SQLResponse> listener) {
         // TODO: implement
+
+        // tree = parser.parse(request.stmt());
+        // boundTree = binder.bind(tree).
+        // normalizedTree = analyzer.analyze(boundTree)
+        // job = planner.plan(analyzedTree)
+        // executor.execute(job)
+
         listener.onFailure(new UnsupportedOperationException());
     }
 

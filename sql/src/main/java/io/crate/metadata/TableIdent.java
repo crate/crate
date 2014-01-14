@@ -1,8 +1,10 @@
 package io.crate.metadata;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
+import io.crate.sql.tree.Table;
 
 import java.util.List;
 
@@ -11,12 +13,25 @@ public class TableIdent implements Comparable<TableIdent> {
     private String schema;
     private String name;
 
+    public static TableIdent of(Table tableNode) {
+        List<String> parts = tableNode.getName().getParts();
+        Preconditions.checkArgument(parts.size() < 3,
+                "Table with more then 2 QualifiedName parts is not supported. only <schema>.<tableName> works.");
+
+        if (parts.size() == 2) {
+            return new TableIdent(parts.get(0), parts.get(1));
+        }
+        return new TableIdent(null, parts.get(1));
+    }
+
     public TableIdent(String schema, String name) {
+        Preconditions.checkNotNull(name);
         this.schema = schema;
         this.name = name;
     }
 
     public String schema() {
+        // return Optional<String> ?
         return schema;
     }
 
