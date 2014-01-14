@@ -62,12 +62,7 @@ We’ve tried to make it extremely easy to disable UDC.
 In fact, the code for UDC is not even included in the core jar but as a completely separate
 component.
 
-There are three ways you can disable UDC:
-
-Remove JAR
-----------
-The easiest way is to just remove the ``crate-udc.jar`` file. By doing this, the node will
-not load UDC, and no pings will be sent.
+There are two ways you can disable UDC:
 
 By configuration
 ----------------

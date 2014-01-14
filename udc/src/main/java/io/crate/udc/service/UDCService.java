@@ -40,7 +40,7 @@ public class UDCService extends AbstractLifecycleComponent<UDCService> {
 
         logger.info("Starting with delay {} and period {}.", initialDelay.getSeconds(), interval.getSeconds());
 
-        PingTask pingTask = new PingTask(this.clusterService, this.clusterIdService, this.httpServerTransport, url);
+        PingTask pingTask = new PingTask(clusterService, clusterIdService, httpServerTransport, url);
 
         timer = new Timer("crate-udc");
         timer.scheduleAtFixedRate(pingTask, initialDelay.millis(), interval.millis());
