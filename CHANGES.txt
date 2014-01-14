@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fixed default cluster name (specially on linux platforms)
+
  - implemented UDC module
 
  - implemented generation of an unique ClusterId on cluster start-up
