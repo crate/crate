@@ -17,3 +17,4 @@ For general information about SQL please refer to `Wikipedia SQL`_.
    rest
    analyzer
    information_schema
+   stats
