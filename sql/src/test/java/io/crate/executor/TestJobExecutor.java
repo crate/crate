@@ -6,6 +6,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.executor.task.LocalAggregationTask;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operator.aggregation.impl.AverageAggregation;
 import io.crate.operator.reference.sys.NodeLoadExpression;
@@ -176,7 +177,7 @@ public class TestJobExecutor {
                 visitSources(node, context);
                 System.out.println("aggregationNode: " + node + " previous: " + context.previous);
 
-                LocalAggregationTask task = new LocalAggregationTask(node);
+                LocalAggregationTask task = new TestAggregationTask(node);
                 task.upstreamResult(context.previousTask.result());
                 context.job.addTask(task);
                 return task;

@@ -1,10 +1,8 @@
-package io.crate.executor;
+package io.crate.executor.task;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.SettableFuture;
+import io.crate.executor.Task;
 import io.crate.metadata.Functions;
 import io.crate.operator.Input;
 import io.crate.operator.InputCollectExpression;
@@ -17,21 +15,17 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-class LocalAggregationTask implements Task<Object[][]> {
+public abstract class LocalAggregationTask implements Task<Object[][]> {
 
-    private final AggregationNode planNode;
-    private final List<Aggregation> aggregations;
+    protected final AggregationNode planNode;
+    protected final List<Aggregation> aggregations;
+    protected final List<AggregationCollector> collectors;
 
-    private final List<AggregationCollector> collectors;
+    protected final CollectExpression[] inputs;
 
-    private final CollectExpression[] inputs;
-    private List<ListenableFuture<Object[][]>> upstreamResults;
-
-    private final SettableFuture<Object[][]> result = SettableFuture.create();
-    List<ListenableFuture<Object[][]>> results = ImmutableList.of((ListenableFuture<Object[][]>) result);
+    protected List<ListenableFuture<Object[][]>> upstreamResults;
 
     public LocalAggregationTask(AggregationNode node) {
         this.planNode = node;
@@ -51,9 +45,13 @@ class LocalAggregationTask implements Task<Object[][]> {
         collectors = new ArrayList<>(aggregations.size());
 
         for (Aggregation a : aggregations) {
+            // TODO: implement othe start end steps
+            assert (a.fromStep() == Aggregation.Step.ITER);
+            assert (a.toStep() == Aggregation.Step.FINAL);
 
             AggregationFunction impl = (AggregationFunction) Functions.get(a.functionIdent());
-            Preconditions.checkNotNull(impl);
+            Preconditions.checkNotNull(impl, "AggregationFunction implementation not found", a.functionIdent());
+
             Input[] aggInputs = new Input[a.inputs().size()];
             for (int i = 0; i < aggInputs.length; i++) {
                 aggInputs[i] = inputs[planNode.inputs().indexOf(a.inputs().get(i))];
@@ -69,7 +67,7 @@ class LocalAggregationTask implements Task<Object[][]> {
         }
     }
 
-    private void startCollect() {
+    protected void startCollect() {
         for (CollectExpression i : inputs) {
             i.startCollect();
         }
@@ -78,9 +76,8 @@ class LocalAggregationTask implements Task<Object[][]> {
         }
     }
 
-    private void processUpstreamResult(Object[][] rows) {
+    protected void processUpstreamResult(Object[][] rows) {
         for (Object[] row : rows) {
-            System.out.println("row: " + Arrays.toString(row));
             for (CollectExpression i : inputs) {
                 i.setNextRow(row);
             }
@@ -90,41 +87,13 @@ class LocalAggregationTask implements Task<Object[][]> {
         }
     }
 
-    private Object[][] finishCollect() {
-        Object[][] result = new Object[1][collectors.size()];
+    protected Object[][] finishCollect() {
+        Object[] row = new Object[collectors.size()];
         int idx = 0;
         for (AggregationCollector ac : collectors) {
-            result[0][idx] = ac.finishCollect();
+            row[idx] = ac.finishCollect();
         }
-        return result;
-    }
-
-    @Override
-    public void start() {
-        startCollect();
-        for (final ListenableFuture<Object[][]> f : upstreamResults) {
-            f.addListener(new Runnable() {
-
-                @Override
-                public void run() {
-                    Object[][] value = null;
-                    try {
-                        value = f.get();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    } catch (java.util.concurrent.ExecutionException e) {
-                        e.printStackTrace();
-                    }
-                    processUpstreamResult(value);
-                }
-            }, MoreExecutors.sameThreadExecutor());
-        }
-        result.set(finishCollect());
-    }
-
-    @Override
-    public List<ListenableFuture<Object[][]>> result() {
-        return results;
+        return new Object[][]{row};
     }
 
     @Override
