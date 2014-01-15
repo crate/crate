@@ -15,7 +15,7 @@ import java.util.Timer;
 
 public class UDCService extends AbstractLifecycleComponent<UDCService> {
 
-    private Timer timer;
+    private final Timer timer;
 
     private final ClusterService clusterService;
     private final ClusterIdService clusterIdService;
@@ -30,6 +30,7 @@ public class UDCService extends AbstractLifecycleComponent<UDCService> {
         this.clusterService = clusterService;
         this.clusterIdService = clusterIdService;
         this.httpServerTransport = httpServerTransport;
+        this.timer = new Timer("crate-udc");
     }
 
     @Override
@@ -41,8 +42,6 @@ public class UDCService extends AbstractLifecycleComponent<UDCService> {
         logger.info("Starting with delay {} and period {}.", initialDelay.getSeconds(), interval.getSeconds());
 
         PingTask pingTask = new PingTask(clusterService, clusterIdService, httpServerTransport, url);
-
-        timer = new Timer("crate-udc");
         timer.scheduleAtFixedRate(pingTask, initialDelay.millis(), interval.millis());
     }
 
