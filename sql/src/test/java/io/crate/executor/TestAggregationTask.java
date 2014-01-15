@@ -5,6 +5,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.task.LocalAggregationTask;
+import io.crate.metadata.Functions;
 import io.crate.planner.plan.AggregationNode;
 
 import java.util.List;
@@ -14,8 +15,8 @@ public class TestAggregationTask extends LocalAggregationTask {
     private final SettableFuture<Object[][]> result = SettableFuture.create();
     List<ListenableFuture<Object[][]>> results = ImmutableList.of((ListenableFuture<Object[][]>) result);
 
-    public TestAggregationTask(AggregationNode node) {
-        super(node);
+    public TestAggregationTask(AggregationNode node, Functions functions) {
+        super(node, functions);
     }
 
     @Override

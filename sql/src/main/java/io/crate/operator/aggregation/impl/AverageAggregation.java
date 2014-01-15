@@ -3,7 +3,6 @@ package io.crate.operator.aggregation.impl;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Functions;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.AggregationState;
@@ -16,12 +15,11 @@ import java.io.IOException;
 public class AverageAggregation extends AggregationFunction<AverageAggregation.AverageAggState> {
 
     public static final String NAME = "avg";
-
     private final FunctionInfo info;
 
-    public static void register() {
+    public static void register(AggregationImplModule mod) {
         for (DataType t : DataType.NUMERIC_TYPES) {
-            Functions.registerImplementation(
+            mod.registerAggregateFunction(
                     new AverageAggregation(
                             new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), DataType.DOUBLE, true))
             );

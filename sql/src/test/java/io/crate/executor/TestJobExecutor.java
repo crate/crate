@@ -8,7 +8,9 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.task.LocalAggregationTask;
 import io.crate.metadata.FunctionIdent;
-import io.crate.operator.aggregation.impl.AverageAggregation;
+import io.crate.metadata.Functions;
+import io.crate.metadata.MetaDataModule;
+import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.reference.sys.NodeLoadExpression;
 import io.crate.planner.plan.AggregationNode;
 import io.crate.planner.plan.CollectNode;
@@ -18,27 +20,48 @@ import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import org.cratedb.DataType;
+import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.inject.ModulesBuilder;
+import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
 public class TestJobExecutor {
 
     CollectNode collector;
+    private Injector injector;
+    private Functions functions;
 
     static class Context {
 
         private final Job job;
+        public final Functions functions;
         public PlanNode previous;
         public PlanNode next;
         public Task previousTask;
 
-        public Context() {
+        public Context(Functions functions) {
             this.job = new Job();
+            this.functions = functions;
         }
     }
+
+    @Before
+    public void setUp() throws Exception {
+        injector = new ModulesBuilder().add(
+                new MetaDataModule(),
+                new AggregationImplModule()
+        ).createInjector();
+        functions = injector.getInstance(Functions.class);
+
+    }
+
 
     static class FakeCollectTask implements Task<Object[][]> {
 
@@ -120,9 +143,15 @@ public class TestJobExecutor {
 
     static class FakeJobExecutor implements Executor {
 
+        private final Functions functions;
+
+        FakeJobExecutor(Functions functions) {
+            this.functions = functions;
+        }
+
         @Override
         public Job newJob(PlanNode node) {
-            Context context = new Context();
+            Context context = new Context(functions);
             node.accept(new ExectorPlanVisitor(), context);
             return context.job;
         }
@@ -137,7 +166,7 @@ public class TestJobExecutor {
             return lastTask.result();
         }
 
-        class ExectorPlanVisitor extends PlanVisitor<Context, Task> {
+        static class ExectorPlanVisitor extends PlanVisitor<Context, Task> {
 
             @Override
             protected Task visitPlan(PlanNode node, Context context) {
@@ -177,7 +206,7 @@ public class TestJobExecutor {
                 visitSources(node, context);
                 System.out.println("aggregationNode: " + node + " previous: " + context.previous);
 
-                LocalAggregationTask task = new TestAggregationTask(node);
+                LocalAggregationTask task = new TestAggregationTask(node, context.functions);
                 task.upstreamResult(context.previousTask.result());
                 context.job.addTask(task);
                 return task;
@@ -188,33 +217,7 @@ public class TestJobExecutor {
 
     @Test
     public void testNodeLoadAggregate() throws Exception {
-
-
-        // TODO: register aggregation functions somewhere else
-        AverageAggregation.register();
-
         Statement statement = SqlParser.createStatement("select avg(sys.nodes.load['1']) from sys.nodes");
-        //Expression expr = SqlParser.createExpression("avg(sys.nodes.load1)");
-
-        // select avg(load1) from sys.nodes;
-
-//        CollectorRoutingService crs = new FakeCollectorRoutingService();
-//        JobOld job = new JobOld();
-//        JobOld.CollectorTask ct = new JobOld.CollectorTask(job);
-//        ct.routing(crs.allNodes());
-
-
-//        FunctionInfo avg = new FunctionInfo(new QualifiedName("avg"), "Average", DataType.DOUBLE,
-//                ImmutableList.of(DataType.DOUBLE), true);
-
-        // example: select avg(sys.nodes.load1) from sys.nodes
-        // CollectRowsTask
-        // symbols = [
-        //           Reference(path='sys.nodes.load1', valueType=DOUBLE, granularity=NODE)
-        //           ]
-        //  inputs = [0]
-        //  outputs = [0]
-
 
         CollectNode collectNode = new CollectNode("collect");
 
@@ -250,7 +253,7 @@ public class TestJobExecutor {
         aggregationNode.outputs(agg);
 
         // the executor should be a singleton
-        FakeJobExecutor executor = new FakeJobExecutor();
+        FakeJobExecutor executor = new FakeJobExecutor(functions);
 
         Job job = executor.newJob(aggregationNode);
         Object[][] result = executor.execute(job).get(0).get();

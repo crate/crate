@@ -24,12 +24,13 @@ public abstract class LocalAggregationTask implements Task<Object[][]> {
     protected final List<AggregationCollector> collectors;
 
     protected final CollectExpression[] inputs;
+    protected final Functions functions;
 
     protected List<ListenableFuture<Object[][]>> upstreamResults;
 
-    public LocalAggregationTask(AggregationNode node) {
+    public LocalAggregationTask(AggregationNode node, Functions functions) {
         this.planNode = node;
-
+        this.functions = functions;
         aggregations = new ArrayList<>();
         for (Symbol s : planNode.symbols()) {
             if (s.symbolType() == SymbolType.AGGREGATION) {
@@ -49,7 +50,7 @@ public abstract class LocalAggregationTask implements Task<Object[][]> {
             assert (a.fromStep() == Aggregation.Step.ITER);
             assert (a.toStep() == Aggregation.Step.FINAL);
 
-            AggregationFunction impl = (AggregationFunction) Functions.get(a.functionIdent());
+            AggregationFunction impl = (AggregationFunction) functions.get(a.functionIdent());
             Preconditions.checkNotNull(impl, "AggregationFunction implementation not found", a.functionIdent());
 
             Input[] aggInputs = new Input[a.inputs().size()];

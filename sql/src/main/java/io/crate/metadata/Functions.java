@@ -1,17 +1,20 @@
 package io.crate.metadata;
 
+import org.elasticsearch.common.inject.Inject;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Functions {
 
-    private static final Map<FunctionIdent, FunctionImplementation> functionImplemnetations = new ConcurrentHashMap<>();
+    private final Map<FunctionIdent, FunctionImplementation> functionImplemnetations;
 
-    public static void registerImplementation(FunctionImplementation impl) {
-        functionImplemnetations.put(impl.info().ident(), impl);
+    @Inject
+    public Functions(Map<FunctionIdent, FunctionImplementation> functionImplemnetations) {
+        this.functionImplemnetations = functionImplemnetations;
     }
 
-    public static FunctionImplementation get(FunctionIdent ident) {
+    public FunctionImplementation get(FunctionIdent ident) {
         return functionImplemnetations.get(ident);
     }
 
