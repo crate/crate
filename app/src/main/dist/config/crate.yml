@@ -380,3 +380,23 @@
 # instead of hitting just the related single shard.
 #
 #crate.planner.optimize_pk_queries: true
+
+
+################################### UDC ###################################
+
+# Usage Data Collection
+#
+# If enabled crate will send usage data to the url stored in setting udc.url.
+# The sent usage data does not contain any confidential information.
+
+# enable/disable usage data collection at all
+#udc.enabled: true
+
+# The delay for first ping after start-up.
+#udc.initial_delay: 10m
+
+# The interval a ping is sent.
+#udc.interval: 24h
+
+# The url the ping is sent to.
+#udc.url: https://udc.crate.io
