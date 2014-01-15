@@ -34,10 +34,6 @@ public class NodeSettingsTest extends TestCase {
     protected Client client;
 
     private void doSetup() throws IOException {
-        doSetup(true);
-    }
-
-    private void doSetup(boolean localNode) throws IOException {
         tmp.create();
         ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder()
             .put("node.name", "node-test")
@@ -51,7 +47,7 @@ public class NodeSettingsTest extends TestCase {
             .put("index.number_of_shards", "1")
             .put("index.number_of_replicas", "0")
             .put("cluster.routing.schedule", "50ms")
-            .put("node.local", localNode);
+            .put("node.local", true);
         Tuple<Settings,Environment> settingsEnvironmentTuple = InternalSettingsPreparer.prepareSettings(builder.build(), true);
         node = NodeBuilder.nodeBuilder()
             .settings(settingsEnvironmentTuple.v1())
@@ -142,7 +138,7 @@ public class NodeSettingsTest extends TestCase {
 
     @Test
     public void testDefaultPorts() throws IOException {
-        doSetup(false);
+        doSetup();
 
         assertEquals(
                 Constants.HTTP_PORT_RANGE,
