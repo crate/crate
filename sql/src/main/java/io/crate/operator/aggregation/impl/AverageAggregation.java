@@ -33,7 +33,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         this.info = info;
     }
 
-    public class AverageAggState extends AggregationState<AverageAggState> {
+    public static class AverageAggState extends AggregationState<AverageAggState> {
 
         private double sum = 0;
         private long count = 0;
