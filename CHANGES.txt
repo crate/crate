@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fix Double URL encoding of udc parameters
+
  - fix NPE on close of UDCService
 
 2013/01/15 0.21.0

@@ -53,9 +53,7 @@ by the crate node to publish its own address to the rest of the cluster.
 Per default it is the first non local address.
 
 To explicitly bind crate to a specific interface use the interface name between underscores.
-For example::
-
-    _eth0_
+For example ``_eth0_``.
 
 This resolves to the ip address of this interface. With ``_eth0:ipv{4,6}_`` you explicitly listen on
  an ipv6 or ipv4 address.
