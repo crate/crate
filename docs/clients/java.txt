@@ -14,7 +14,7 @@ A minimal example is just a few lines of code::
 
     import org.cratedb.client.CrateClient;
 
-    CrateClient client = new CrateClient("server1.crate.org:9300", "server2.crate.org:9300");
+    CrateClient client = new CrateClient("server1.crate.org:4300", "server2.crate.org:4300");
     SQLResponse r = client.sql("select firstName, lastName from users").actionGet();
 
     System.out.println(Arrays.toString(r.cols()));

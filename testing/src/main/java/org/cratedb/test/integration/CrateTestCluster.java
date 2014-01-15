@@ -112,7 +112,9 @@ public class CrateTestCluster implements Iterable<Client> {
             .put(IndexEngineModule.EngineSettings.ENGINE_TYPE, MockEngineModule.class.getName())
             .put("cluster.name", clusterName)
                 // decrease the routing schedule so new nodes will be added quickly - some random value between 30 and 80 ms
-            .put("cluster.routing.schedule", "30ms");
+            .put("cluster.routing.schedule", "30ms")
+            .put("http.port", "44200-44300")
+            .put("transport.tcp.port", "44300-44400");
 
         if (tmpDataDir != null) {
             builder.put("path.data", tmpDataDir.toAbsolutePath());

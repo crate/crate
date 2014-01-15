@@ -36,6 +36,43 @@ will overwrite the prior one:
  3. options from config file
 
 
+Hosts
+-----
+
+Per default crate will bind itself to the ``0.0.0.0`` address.
+If you want to change this behaviour, adjust the ``network.host`` setting.
+
+This setting sets both the ``network.bind_host`` and ``network.publish_host`` values.
+
+``network.bind_host`` is ``0.0.0.0`` by default.
+This setting determines to which address crate should bind itself to.
+To only bind to localhost, set it to any local address or ``_local_``.
+
+The ``network.publish_host`` value is used
+by the crate node to publish its own address to the rest of the cluster.
+Per default it is the first non local address.
+
+To explicitly bind crate to a specific interface use the interface name between underscores.
+For example::
+
+    _eth0_
+
+This resolves to the ip address of this interface. With ``_eth0:ipv{4,6}_`` you explicitly listen on
+ an ipv6 or ipv4 address.
+
+Ports
+-----
+
+Per default crate will listen to the first free port in the range of ``4200-4300`` for HTTP Requests.
+If there is no crate process already running on that machine, it will usually be ``4200``.
+
+You can change the HTTP port range by adjusting the ``http.port`` setting.
+
+For internal cluster communication crate uses TCP and listens on the first free port
+in the range of ``4300-4400``.
+
+You can change the TCP port range by adjusting the ``transport.tcp.port`` setting.
+
 Logging
 -------
 

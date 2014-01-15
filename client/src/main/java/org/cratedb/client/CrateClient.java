@@ -70,7 +70,7 @@ public class CrateClient {
         for (String server : servers) {
             String[] parts = server.split(":");
             String host = parts[0];
-            Integer port = 9300;
+            Integer port = 4300;
             if (parts.length == 2) {
                 port = Integer.parseInt(parts[1]);
             }

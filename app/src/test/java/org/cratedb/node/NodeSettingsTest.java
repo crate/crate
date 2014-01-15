@@ -1,6 +1,7 @@
 package org.cratedb.node;
 
 import junit.framework.TestCase;
+import org.cratedb.Constants;
 import org.elasticsearch.ElasticSearchIllegalArgumentException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.collect.Tuple;
@@ -133,5 +134,19 @@ public class NodeSettingsTest extends TestCase {
         assertEquals("custom",
             client.admin().cluster().prepareHealth().
                 setWaitForGreenStatus().execute().actionGet().getClusterName());
+    }
+
+    @Test
+    public void testDefaultPorts() throws IOException {
+        doSetup();
+
+        assertEquals(
+                Constants.HTTP_PORT_RANGE,
+                node.settings().get("http.port")
+        );
+        assertEquals(
+                Constants.TRANSPORT_PORT_RANGE,
+                node.settings().get("transport.tcp.port")
+        );
     }
 }

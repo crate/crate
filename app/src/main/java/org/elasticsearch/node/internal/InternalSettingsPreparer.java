@@ -19,6 +19,7 @@
 
 package org.elasticsearch.node.internal;
 
+import org.cratedb.Constants;
 import org.cratedb.node.NodeSettings;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.Names;
@@ -42,6 +43,12 @@ public class InternalSettingsPreparer {
         boolean useSystemProperties = !pSettings.getAsBoolean("config.ignore_system_properties", false);
         // just create enough settings to build the environment
         ImmutableSettings.Builder settingsBuilder = settingsBuilder().put(pSettings);
+
+        // set default CRATE ports so they will be set, even if not defined anywhere else
+        settingsBuilder.put("http.port", Constants.HTTP_PORT_RANGE);
+        settingsBuilder.put("transport.tcp.port", Constants.TRANSPORT_PORT_RANGE);
+        settingsBuilder.put("thrift.port", Constants.THRIFT_PORT_RANGE);
+
         if (useSystemProperties) {
             settingsBuilder.putProperties("elasticsearch.default.", System.getProperties())
                     .putProperties("es.default.", System.getProperties())

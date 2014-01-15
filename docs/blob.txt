@@ -9,7 +9,7 @@ like regular data.
 Any index can hold blobs if enabled. To enable blobs on an index the
 ``blobs.enabled`` flag needs to be set to true like this::
 
-    sh$ curl -sSX PUT 'localhost:9200/myblobs?pretty' -d '{
+    sh$ curl -sSX PUT 'localhost:44200/myblobs?pretty' -d '{
     ... "number_of_shards": 3,
     ... "number_of_replicas": 1,
     ... "blobs.enabled": true}'
@@ -33,13 +33,13 @@ we use a fancy python one-liner to compute the shasum::
 
 The blob can now be uploaded by issuing a PUT request::
 
-    sh$ curl -isSX PUT 'localhost:9200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7' -d 'contents'
+    sh$ curl -isSX PUT 'localhost:44200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7' -d 'contents'
     HTTP/1.1 201 Created
     Content-Length: 0
 
 If a blob already exists with the given hash a 409 Conflict is returned::
 
-    sh$ curl -isSX PUT 'localhost:9200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7' -d 'contents'
+    sh$ curl -isSX PUT 'localhost:44200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7' -d 'contents'
     HTTP/1.1 409 Conflict
     Content-Length: 0
 
@@ -48,7 +48,7 @@ Download
 
 To download a blob simply use a GET request::
 
-    sh$ curl -sS 'localhost:9200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
+    sh$ curl -sS 'localhost:44200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
     contents
 
 .. note::
@@ -60,14 +60,14 @@ To download a blob simply use a GET request::
 
 If the blob doesn't exist a 404 Not Found error is returned::
 
-    sh$ curl -isS 'localhost:9200/myblobs/_blobs/e5fa44f2b31c1fb553b6021e7360d07d5d91ff5e'
+    sh$ curl -isS 'localhost:44200/myblobs/_blobs/e5fa44f2b31c1fb553b6021e7360d07d5d91ff5e'
     HTTP/1.1 404 Not Found
     Content-Length: 0
 
 To determine if a blob exists without downloading it, a HEAD request can be
 used::
 
-    sh$ curl -sS -I 'localhost:9200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
+    sh$ curl -sS -I 'localhost:44200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
     HTTP/1.1 200 OK
     Content-Length: 8
     Accept-Ranges: bytes
@@ -84,13 +84,13 @@ Delete
 
 To delete a blob simply use a DELETE request::
 
-    sh$ curl -isS -XDELETE 'localhost:9200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
+    sh$ curl -isS -XDELETE 'localhost:44200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
     HTTP/1.1 204 No Content
     Content-Length: 0
 
 If the blob doesn't exist a 404 Not Found error is returned::
 
-    sh$ curl -isS -XDELETE 'localhost:9200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
+    sh$ curl -isS -XDELETE 'localhost:44200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
     HTTP/1.1 404 Not Found
     Content-Length: 0
 

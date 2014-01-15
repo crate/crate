@@ -75,8 +75,8 @@
 # node.master: false
 # node.data: false
 
-# Use the Cluster Health API [http://localhost:9200/_cluster/health], the
-# Node Info API [http://localhost:9200/_cluster/nodes] or GUI tools
+# Use the Cluster Health API [http://localhost:4200/_cluster/health], the
+# Node Info API [http://localhost:4200/_cluster/nodes] or GUI tools
 # such as <http://github.com/lukas-vlcek/bigdesk> and
 # <http://mobz.github.com/elasticsearch-head> to inspect the cluster state.
 
@@ -136,7 +136,7 @@
 # results from nodes, etc. Experiment with different settings to fine-tune
 # your setup.
 
-# Use the Index Status API (<http://localhost:9200/A/_status>) to inspect
+# Use the Index Status API (<http://localhost:4200/A/_status>) to inspect
 # the index status.
 
 # Enable/disable to delete all indices (Delete on root):
@@ -201,8 +201,8 @@
 
 ############################## Network And HTTP ###############################
 
-# ElasticSearch, by default, binds itself to the 0.0.0.0 address, and listens
-# on port [9200-9300] for HTTP traffic and on port [9300-9400] for node-to-node
+# Crate, by default, binds itself to the 0.0.0.0 address, and listens
+# on port [4200-4300] for HTTP traffic and on port [4300-4400] for node-to-node
 # communication. (the range means that if the port is busy, it will automatically
 # try the next port).
 
@@ -219,9 +219,9 @@
 #
 # network.host: 192.168.0.1
 
-# Set a custom port for the node to node communication (9300 by default):
+# Set a custom port for the node to node communication (4300 by default):
 #
-# transport.tcp.port: 9300
+# transport.tcp.port: 4300
 
 # Enable compression for all communication between nodes (disabled by default):
 #
@@ -229,7 +229,7 @@
 
 # Set a custom port to listen for HTTP traffic:
 #
-# http.port: 9200
+# http.port: 4200
 
 # Set a custom allowed content length:
 #
