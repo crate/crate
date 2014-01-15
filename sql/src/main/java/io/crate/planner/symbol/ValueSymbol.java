@@ -18,5 +18,4 @@ public interface ValueSymbol extends Symbol {
     };
 
 
-
 }

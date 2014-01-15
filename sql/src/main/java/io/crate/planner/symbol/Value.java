@@ -30,5 +30,9 @@ public class Value implements ValueSymbol {
         return SymbolType.VALUE;
     }
 
+    @Override
+    public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
+        return visitor.visitValue(this, context);
+    }
 
 }

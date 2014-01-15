@@ -5,7 +5,8 @@ public enum SymbolType {
 
     AGGREGATION(Aggregation.FACTORY),
     REFERENCE(Reference.FACTORY),
-    VALUE(Value.FACTORY);
+    VALUE(Value.FACTORY),
+    ROUTING(Routing.FACTORY);
 
     private final Symbol.SymbolFactory factory;
 

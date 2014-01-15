@@ -1,7 +1,9 @@
 package io.crate.executor;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.metadata.FunctionIdent;
@@ -21,15 +23,9 @@ import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import org.cratedb.DataType;
-import org.cratedb.sql.planner.routing.CollectorRouting;
-import org.cratedb.sql.planner.routing.CollectorRoutingService;
-import org.cratedb.sql.planner.routing.SimpleNodesRouting;
-import org.elasticsearch.common.Preconditions;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.Assert.assertEquals;
 
@@ -51,24 +47,68 @@ public class TestJobExecutor {
 
     static class FakeCollectTask implements Task<Object[][]> {
 
-        private final SettableFuture<Object[][]> result;
-        List<ListenableFuture<Object[][]>> results = new ArrayList<>();
+        ListeningExecutorService executor = MoreExecutors.sameThreadExecutor();
+
+        Map<String, SettableFuture<Object[][]>> nodeResults;
+        List<ListenableFuture<Object[][]>> results;
+
+        private Routing routing;
+
 
         public FakeCollectTask(CollectNode node) {
-            //Rows rows = new GlobalRows();
             // TODO: real futures
-            result = SettableFuture.create();
-            results.add(result);
+            Visitor v = new Visitor();
+            v.processSymbols(node, null);
+            generateResult();
+        }
+
+        private void generateResult() {
+            nodeResults = new HashMap<>(routing.nodes().size());
+            results = new ArrayList<>(routing.nodes().size());
+
+            for (String nodeIdent : routing.nodes()) {
+                SettableFuture f = SettableFuture.<Object[][]>create();
+                nodeResults.put(nodeIdent, f);
+                results.add(f);
+
+            }
+        }
+
+
+        class Visitor extends SymbolVisitor<Void, Void> {
+
+            @Override
+            public Void visitRouting(Routing symbol, Void context) {
+                Preconditions.checkArgument(routing == null, "Multiple routings are not supported");
+                routing = symbol;
+                for (Map.Entry<String, Map<String, Integer>> entry : routing.locations().entrySet()) {
+                    Preconditions.checkArgument(entry.getValue() == null, "Shards are not supported");
+                }
+                return null;
+            }
+        }
+
+        private Object[][] collect(String nodeId) {
+            Double value;
+            if (nodeId == "node1") {
+                value = new Double(0.1);
+            } else {
+                value = new Double(0.5);
+            }
+            return new Object[][]{{value}};
         }
 
         @Override
         public void start() {
-            // TODO: real collect
-            Object[][] rows = {
-                    {new Double(0.1)},
-                    {new Double(0.5)
-                    }};
-            this.result.set(rows);
+            for (final Map.Entry<String, SettableFuture<Object[][]>> entry : nodeResults.entrySet()) {
+                executor.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        entry.getValue().set(collect(entry.getKey()));
+                    }
+                });
+                entry.getKey();
+            }
         }
 
         @Override
@@ -265,16 +305,6 @@ public class TestJobExecutor {
 
     }
 
-
-    class FakeCollectorRoutingService implements CollectorRoutingService {
-
-        @Override
-        public CollectorRouting allNodes() {
-            return new SimpleNodesRouting("nodeOne", "nodeTwo");
-        }
-    }
-
-
     @Test
     public void testNodeLoadAggregate() throws Exception {
 
@@ -307,8 +337,15 @@ public class TestJobExecutor {
 
         CollectNode collectNode = new CollectNode("collect");
 
-        Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_1);
-        collectNode.symbols(reference);
+        // we pretend we have two nodes
+        Map<String, Map<String, Integer>> locations = new HashMap<>(2);
+        locations.put("node1", null);
+        locations.put("node2", null);
+        Routing routing = new Routing(locations);
+        Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_1, routing);
+
+        // TODO: check if we need the .symbols in the interface
+        collectNode.symbols(reference, routing);
         collectNode.inputs(reference);
         collectNode.outputs(reference);
 

@@ -38,6 +38,11 @@ public class Aggregation implements Symbol {
         return SymbolType.AGGREGATION;
     }
 
+    @Override
+    public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
+        return visitor.visitAggregation(this, context);
+    }
+
     public FunctionIdent functionIdent() {
         return functionIdent;
     }

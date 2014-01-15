@@ -1,8 +1,6 @@
 package io.crate.planner.symbol;
 
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.planner.RowGranularity;
 import org.cratedb.DataType;
 
 public class Reference implements ValueSymbol {
@@ -14,13 +12,16 @@ public class Reference implements ValueSymbol {
         }
     };
 
+    private Routing routing;
     private ReferenceInfo info;
 
-    public Reference(ReferenceInfo info) {
+    public Reference(ReferenceInfo info, Routing routing) {
         this.info = info;
+        this.routing = routing;
     }
 
     public Reference() {
+
     }
 
     @Override
@@ -32,4 +33,11 @@ public class Reference implements ValueSymbol {
     public DataType valueType() {
         return info.type();
     }
+
+    @Override
+    public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
+        return visitor.visitReference(this, context);
+    }
+
+
 }
