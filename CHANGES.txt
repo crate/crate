@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - added ssl truststore including StartCom CA, fixes UDC
+
  - fixed default cluster name (specially on linux platforms)
 
  - implemented UDC module

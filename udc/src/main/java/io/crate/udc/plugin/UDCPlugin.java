@@ -6,6 +6,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.plugins.AbstractPlugin;
 
+import java.net.URL;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 
@@ -29,6 +30,11 @@ public class UDCPlugin extends AbstractPlugin {
 
     public UDCPlugin(Settings settings) {
         this.settings = settings;
+
+        // Add our own truststore including StartCom CA
+        URL trustStore = this.getClass().getResource("/ssl/truststore.ts");
+        System.setProperty("javax.net.ssl.trustStore", trustStore.getFile());
+        System.setProperty("javax.net.ssl.trustStorePassword", "udc.crate");
     }
 
     @Override
