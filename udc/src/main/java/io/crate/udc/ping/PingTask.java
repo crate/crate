@@ -121,7 +121,7 @@ public class PingTask extends TimerTask {
         List<String> params = new ArrayList<>(queryMap.size());
         for (Map.Entry<String, String> entry : queryMap.entrySet()) {
             if (entry.getValue() != null) {
-                params.add(joiner.join(URLEncoder.encode(entry.getKey(), "UTF-8"), URLEncoder.encode(entry.getValue(), "UTF-8")));
+                params.add(joiner.join(entry.getKey(), entry.getValue()));
             }
         }
         String query = Joiner.on('&').join(params);
