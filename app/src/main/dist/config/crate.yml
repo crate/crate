@@ -201,7 +201,7 @@
 
 ############################## Network And HTTP ###############################
 
-# ElasticSearch, by default, binds itself to the 0.0.0.0 address, and listens
+# Crate, by default, binds itself to the 0.0.0.0 address, and listens
 # on port [4200-4300] for HTTP traffic and on port [4300-4400] for node-to-node
 # communication. (the range means that if the port is busy, it will automatically
 # try the next port).

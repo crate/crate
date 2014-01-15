@@ -10,4 +10,5 @@ public class Constants {
     // port rangess for HTTP and Transport
     public static final String HTTP_PORT_RANGE = "4200-4300";
     public static final String TRANSPORT_PORT_RANGE = "4300-4400";
+    public static final String THRIFT_PORT_RANGE = "4500-4600";
 }

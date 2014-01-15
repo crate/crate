@@ -1,6 +1,5 @@
 package org.cratedb.node;
 
-import org.cratedb.Constants;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.env.Environment;
@@ -16,11 +15,6 @@ public class NodeSettings {
      * @return
      */
     public static void applyDefaultSettings(ImmutableSettings.Builder settingsBuilder) {
-
-        // set default ports so they will are set, even if not defined anywhere
-        settingsBuilder.put("http.port", Constants.HTTP_PORT_RANGE);
-        settingsBuilder.put("transport.tcp.port", Constants.TRANSPORT_PORT_RANGE);
-        // TODO: use 4500-4600 for thrift?
 
         // read also from crate.yml by default if no other config path has been set
         // if there is also a elasticsearch.yml file this file will be read first and the settings in crate.yml
