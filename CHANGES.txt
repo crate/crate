@@ -5,11 +5,14 @@ Changes for Crate
 Unreleased
 ==========
 
+2014/01/15 0.21.1
+=================
+
  - fix Double URL encoding of udc parameters
 
  - fix NPE on close of UDCService
 
-2013/01/15 0.21.0
+2014/01/15 0.21.0
 =================
 
  - changed default port ranges for http to 4200-4300 and for transport 4300-4400
