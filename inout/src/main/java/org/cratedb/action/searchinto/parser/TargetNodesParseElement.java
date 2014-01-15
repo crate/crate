@@ -12,11 +12,11 @@ import java.util.regex.Pattern;
 /**
  * parses the targetNode field which looks like
  * <p/>
- * "targetNode": ["host:9300", "host:9301"]
+ * "targetNode": ["host:4300", "host:4301"]
  *  <p/>
  * or
  *  <p/>
- * "targetNode": "host:9300"
+ * "targetNode": "host:4300"
  *
  */
 public class TargetNodesParseElement implements SearchParseElement {

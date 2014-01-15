@@ -79,7 +79,7 @@ class Response(object):
 
 
 class Endpoint(object):
-    def __init__(self, base='http://localhost:9200'):
+    def __init__(self, base='http://localhost:44200'):
         self.base = base
 
     def _req(self, path, headers=None):
@@ -168,7 +168,7 @@ def setUp(test):
     test.globs['mget'] = partial(mget, ep)
     test.globs['json'] = json
     test.globs['print_json'] = print_json
-    ep2 = Endpoint('http://localhost:9201')
+    ep2 = Endpoint('http://localhost:44201')
     test.globs['node2'] = ep2
 
 

@@ -9,6 +9,9 @@ import shutil
 from crate.client.crash import CrateCmd
 cmd = CrateCmd()
 
+# temporarily connect to new port
+cmd.do_connect("127.0.0.1:4200")
+
 here = os.path.dirname(__file__)
 
 
@@ -44,7 +47,7 @@ crash_parser = zc.customdoctests.DocTestParser(
 empty_layer = CrateLayer('crate',
                          crate_home=crate_path(),
                          crate_exec=crate_path('bin', 'crate'),
-                         port=9200,)
+                         port=4200,)
 
 
 def setUpLocations(test):
@@ -61,7 +64,7 @@ def setUpLocations(test):
           index name_description_ft using fulltext(name, description) with (analyzer='english')
         ) clustered by(id) into 2 shards replicas 0""".strip())
 
-    requests.post('http://localhost:9200/_bulk?refresh=true',
+    requests.post('http://localhost:4200/_bulk?refresh=true',
                   open(project_path('sql/src/test/resources/essetup/data',
                                     'test_a.json')))
 
@@ -77,7 +80,7 @@ def setUpQuotes(test):
     """.strip())
 
     crate_wd = empty_layer.wdPath()
-    cluster_name = "Testing9200"
+    cluster_name = "Testing4200"
     import_dir = os.path.join(crate_wd, cluster_name, "nodes", "0", "import_data")
     if not os.path.isdir(import_dir):
         os.mkdir(import_dir)

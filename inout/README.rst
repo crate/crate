@@ -28,7 +28,7 @@ systems supporting elasticsearch, but is not tested yet.
 Export data to files in the node's file system. The filenames will be expanded
 by index and shard names (p.e. /tmp/dump-myIndex-0)::
 
-    curl -X POST 'http://localhost:9200/_export' -d '{
+    curl -X POST 'http://localhost:4200/_export' -d '{
         "fields": ["_id", "_source", "_version", "_index", "_type"],
         "output_file": "/tmp/es-data/dump-${index}-${shard}"
     }
@@ -36,7 +36,7 @@ by index and shard names (p.e. /tmp/dump-myIndex-0)::
 
 Do GZIP compression on file exports::
 
-    curl -X POST 'http://localhost:9200/_export' -d '{
+    curl -X POST 'http://localhost:4200/_export' -d '{
         "fields": ["_id", "_source", "_version", "_index", "_type"],
         "output_file": "/tmp/es-data/dump-${index}-${shard}.gz",
         "compression": "gzip"
@@ -47,7 +47,7 @@ Pipe the export data through a single argumentless command on the corresponding
 node, like `cat`. This command actually returns the export data in the JSON
 result's stdout field::
 
-    curl -X POST 'http://localhost:9200/_export' -d '{
+    curl -X POST 'http://localhost:4200/_export' -d '{
         "fields": ["_id", "_source", "_version", "_index", "_type"],
         "output_cmd": "cat"
     }
@@ -58,7 +58,7 @@ provide your own sophisticated script on the node). This command will
 result in transforming the data to lower case and write the file to the
 node's file system::
 
-    curl -X POST 'http://localhost:9200/_export' -d '{
+    curl -X POST 'http://localhost:4200/_export' -d '{
         "fields": ["_id", "_source", "_version", "_index", "_type"],
         "output_cmd": ["/bin/sh", "-c", "tr [A-Z] [a-z] > /tmp/outputcommand.txt"]
     }
@@ -67,7 +67,7 @@ node's file system::
 Limit the exported data with a query. The same query syntax as for search can
 be used::
 
-    curl -X POST 'http://localhost:9200/_export' -d '{
+    curl -X POST 'http://localhost:4200/_export' -d '{
         "fields": ["_id", "_source", "_version", "_index", "_type"],
         "output_file": "/tmp/es-data/query-${index}-${shard}",
         "query": {
@@ -80,7 +80,7 @@ be used::
 
 Export only objects of a specifix index::
 
-    curl -X POST 'http://localhost:9200/myIndex/_export' -d '{
+    curl -X POST 'http://localhost:4200/myIndex/_export' -d '{
         "fields": ["_id", "_source", "_version", "_type"],
         "output_file": "/tmp/es-data/dump-${index}-${shard}"
     }
@@ -88,7 +88,7 @@ Export only objects of a specifix index::
 
 Export only objects of a specific type of an index::
 
-    curl -X POST 'http://localhost:9200/myIndex/myType/_export' -d '{
+    curl -X POST 'http://localhost:4200/myIndex/myType/_export' -d '{
         "fields": ["_id", "_source", "_version"],
         "output_file": "/tmp/es-data/dump-${index}-${shard}"
     }
@@ -99,14 +99,14 @@ example a new set up elasticsearch server with empty indexes. Take care to
 have the indexes prepared with correct mappings. The files must reside on the
 file system of the elastic search node(s)::
 
-    curl -X POST 'http://localhost:9200/_import' -d '{
+    curl -X POST 'http://localhost:4200/_import' -d '{
         "directory": "/tmp/es-data"
     }
     '
 
 Import data of gzipped files::
 
-    curl -X POST 'http://localhost:9200/_import' -d '{
+    curl -X POST 'http://localhost:4200/_import' -d '{
         "directory": "/tmp/es-data",
         "compression": "gzip"
     }
@@ -116,14 +116,14 @@ Import data into a specific index. Can be used if no _index is given in the
 export data or to force data of other indexes to be imported into a specific
 index::
 
-    curl -X POST 'http://localhost:9200/myNewIndex/_import' -d '{
+    curl -X POST 'http://localhost:4200/myNewIndex/_import' -d '{
         "directory": "/tmp/es-data"
     }
     '
 
 Import data into a specific type of an index::
 
-    curl -X POST 'http://localhost:9200/myNewIndex/myType/_import' -d '{
+    curl -X POST 'http://localhost:4200/myNewIndex/myType/_import' -d '{
         "directory": "/tmp/es-data"
     }
     '
@@ -131,7 +131,7 @@ Import data into a specific type of an index::
 Use a regular expression to filter imported file names (e.g. for specific
 indexes)::
 
-    curl -X POST 'http://localhost:9200/_import' -d '{
+    curl -X POST 'http://localhost:4200/_import' -d '{
         "directory": "/tmp/es-data",
         "file_pattern": "dump-myindex-(\\d).json"
     }
@@ -402,7 +402,7 @@ format.
 The ``_source`` field is required for a successful import of an object. If
 the ``_id`` field is not given, a random id is generated for the object.
 Also the ``_index`` and ``_type`` fields are required, as long as they are not
-given in the request URI (p.e. http://localhost:9200/<index>/<type>/_index).
+given in the request URI (p.e. http://localhost:4200/<index>/<type>/_index).
 
 Further optional fields are ``_routing``, ``_timestamp``, ``_ttl`` and
 ``_version``. See the ``fields`` section on export for more details on the
@@ -534,7 +534,7 @@ cluster as it was at the time of the dump.
 
 The basic usage of the endpoint is:
 
-    curl -X POST 'http://localhost:9200/_dump'
+    curl -X POST 'http://localhost:4200/_dump'
 
 All data (including also settings and mappings) will get saved to a subfolder
 within each nodes data directory.
@@ -570,7 +570,7 @@ Restore
 Dumped data is intended to get restored. This can be done by the _restore
 endpoint:
 
-    curl -X POST 'http://localhost:9200/_restore'
+    curl -X POST 'http://localhost:4200/_restore'
 
 It's possible to call _restore on root level, on index level or on type
 level.
@@ -599,15 +599,15 @@ The ``_reindex`` endpoint can reindex documents of a given search query.
 
 Reindex all indexes::
 
-    curl -X POST 'http://localhost:9200/_reindex'
+    curl -X POST 'http://localhost:4200/_reindex'
 
 Reindex a specific index::
 
-    curl -X POST 'http://localhost:9200/myIndex/_reindex'
+    curl -X POST 'http://localhost:4200/myIndex/_reindex'
 
 Reindex documents of a specified query::
 
-    curl -X POST 'http://localhost:9200/myIndex/aType/_reindex' -d '{
+    curl -X POST 'http://localhost:4200/myIndex/aType/_reindex' -d '{
         "query": {"text": {"name": "tobereindexed"}}
     }'
 
@@ -620,7 +620,7 @@ Search Into
 Via the ``_search_into`` endpoint it is possible to put the result of
 a given query directly into an index::
 
-    curl -X POST 'http://localhost:9200/oldindex/_search_into -d '{
+    curl -X POST 'http://localhost:4200/oldindex/_search_into -d '{
         "fields": ["_id", "_source", ["_index", "'newindex'"]]
     }'
 

@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - changed default port ranges for http to 4200-4300 and for transport 4300-4400
+
  - added ssl truststore including StartCom CA, fixes UDC
 
  - fixed default cluster name (specially on linux platforms)

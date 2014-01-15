@@ -1,6 +1,7 @@
 package org.cratedb.node;
 
 import junit.framework.TestCase;
+import org.cratedb.Constants;
 import org.elasticsearch.ElasticSearchIllegalArgumentException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.collect.Tuple;
@@ -33,6 +34,10 @@ public class NodeSettingsTest extends TestCase {
     protected Client client;
 
     private void doSetup() throws IOException {
+        doSetup(true);
+    }
+
+    private void doSetup(boolean localNode) throws IOException {
         tmp.create();
         ImmutableSettings.Builder builder = ImmutableSettings.settingsBuilder()
             .put("node.name", "node-test")
@@ -46,7 +51,7 @@ public class NodeSettingsTest extends TestCase {
             .put("index.number_of_shards", "1")
             .put("index.number_of_replicas", "0")
             .put("cluster.routing.schedule", "50ms")
-            .put("node.local", true);
+            .put("node.local", localNode);
         Tuple<Settings,Environment> settingsEnvironmentTuple = InternalSettingsPreparer.prepareSettings(builder.build(), true);
         node = NodeBuilder.nodeBuilder()
             .settings(settingsEnvironmentTuple.v1())
@@ -133,5 +138,19 @@ public class NodeSettingsTest extends TestCase {
         assertEquals("custom",
             client.admin().cluster().prepareHealth().
                 setWaitForGreenStatus().execute().actionGet().getClusterName());
+    }
+
+    @Test
+    public void testDefaultPorts() throws IOException {
+        doSetup(false);
+
+        assertEquals(
+                Constants.HTTP_PORT_RANGE,
+                node.settings().get("http.port")
+        );
+        assertEquals(
+                Constants.TRANSPORT_PORT_RANGE,
+                node.settings().get("transport.tcp.port")
+        );
     }
 }

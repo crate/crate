@@ -3,7 +3,7 @@
 { "index" : { "_index" : "locations", "_type" : "default", "_id" : "2" } }
 { "id": "2", "name": "Outer Eastern Rim", "date":308534400000, "kind": "Galaxy", "position": 2, "description": "The Outer Eastern Rim of the Galaxy where the Guide has supplanted the Encyclopedia Galactica among its more relaxed civilisations."}
 { "index" : { "_index" : "locations", "_type" : "default", "_id" : "3" } }
-{ "id": "3", "name": "Galactic Sector QQ7 Active J Gamma", "date":"2013-05-01", "kind": "Galaxy", "position": 4, "description": "Galactic Sector QQ7 Active J Gamma contains the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains."}
+{ "id": "3", "name": "Galactic Sector QQ7 Active J Gamma", "date":1373932800000, "kind": "Galaxy", "position": 4, "description": "Galactic Sector QQ7 Active J Gamma contains the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains."}
 { "index" : { "_index" : "locations", "_type" : "default", "_id" : "4" } }
 { "id": "4", "name": "Aldebaran", "date":1373932800000, "kind": "Star System", "position": 1, "description": "Max Quordlepleen claims that the only thing left after the end of the Universe will be the sweets trolley and a fine selection of Aldebaran liqueurs."}
 { "index" : { "_index" : "locations", "_type" : "default", "_id" : "5" } }
@@ -13,7 +13,7 @@
 { "index" : { "_index" : "locations", "_type" : "default", "_id" : "7" } }
 { "id": "7", "name": "Altair", "date":1373932800000, "kind": "Star System", "position": 4, "description": "The Altairian dollar is one of three freely convertible currencies in the galaxy, though by the time of the novels it had apparently recently collapsed."}
 { "index" : { "_index" : "locations", "_type" : "default", "_id" : "8" } }
-{ "id": "8", "name": "Allosimanius Syneca", "date":"2013-07-16", "kind": "Planet", "position": 1, "description": "Allosimanius Syneca is a planet noted for ice, snow, mind-hurtling beauty and stunning cold."}
+{ "id": "8", "name": "Allosimanius Syneca", "date":1367366400000, "kind": "Planet", "position": 1, "description": "Allosimanius Syneca is a planet noted for ice, snow, mind-hurtling beauty and stunning cold."}
 { "index" : { "_index" : "locations", "_type" : "default", "_id" : "9" } }
 { "id": "9", "name": "Argabuthon", "date":1373932800000, "kind": "Planet", "position": 2, "description": "It is also the home of Prak, a man placed into solitary confinement after an overdose of truth drug caused him to tell the Truth in its absolute and final form, causing anyone to hear it to go insane."}
 { "index" : { "_index" : "locations", "_type" : "default", "_id" : "10" } }
