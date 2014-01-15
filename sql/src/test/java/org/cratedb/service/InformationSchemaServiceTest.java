@@ -632,8 +632,8 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
                 "    first_name string," +
                 "    last_name string" +
                 "  )" +
-                ")");
-        ensureYellow();
+                ") replicas 0");
+        ensureGreen();
         execUsingClient("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
         assertEquals(4, response.rowCount());
         assertEquals("stuff", response.rows()[0][0]);
@@ -655,6 +655,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
                     put("last_name", "Adams");
                 }}
         });
+        refresh();
 
         execUsingClient("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
         assertEquals(5, response.rowCount());
