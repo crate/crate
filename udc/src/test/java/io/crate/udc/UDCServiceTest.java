@@ -66,5 +66,10 @@ public class UDCServiceTest extends CrateIntegrationTest {
         assertNotNull(map.get("crate_version"));
         assertTrue(map.containsKey("java_version"));
         assertNotNull(map.get("java_version"));
+
+
+        // clean system properties to make test suite happy
+        System.clearProperty("javax.net.ssl.trustStore");
+        System.clearProperty("javax.net.ssl.trustStorePassword");
     }
 }
