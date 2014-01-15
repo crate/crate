@@ -144,7 +144,7 @@ public class PingTask extends TimerTask {
             conn.setConnectTimeout((int)HTTP_TIMEOUT.millis());
             conn.setReadTimeout((int)HTTP_TIMEOUT.millis());
 
-            if (conn.getResponseCode() != 200) {
+            if (conn.getResponseCode() >= 300) {
                 throw new Exception(String.format("%s Responded with Code %d", url.getHost(), conn.getResponseCode()));
             }
             if (logger.isDebugEnabled()) {
