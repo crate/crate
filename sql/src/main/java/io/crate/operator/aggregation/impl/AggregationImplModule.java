@@ -18,5 +18,10 @@ public class AggregationImplModule extends AbstractModule {
     protected void configure() {
         functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
         AverageAggregation.register(this);
+        MinimumAggregation.register(this);
+        MaximumAggregation.register(this);
+        AnyAggregation.register(this);
+        SumAggregation.register(this);
+        CountAggregation.register(this);
     }
 }
