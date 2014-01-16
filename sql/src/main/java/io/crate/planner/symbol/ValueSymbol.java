@@ -5,9 +5,9 @@ import org.cratedb.DataType;
 
 import javax.annotation.Nullable;
 
-public interface ValueSymbol extends Symbol {
+public abstract class ValueSymbol extends Symbol {
 
-    public DataType valueType();
+    public abstract DataType valueType();
 
     public static Function<ValueSymbol, DataType> valueTypeGetter = new Function<ValueSymbol, DataType>() {
         @Nullable
@@ -16,6 +16,4 @@ public interface ValueSymbol extends Symbol {
             return input.valueType();
         }
     };
-
-
 }

@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableSet;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
 
@@ -122,6 +123,8 @@ public enum DataType {
         }
     });
 
+
+
     private final Streamer streamer;
 
     private String name;
@@ -142,6 +145,14 @@ public enum DataType {
     @Override
     public String toString() {
         return name;
+    }
+
+    public static DataType readFrom(StreamInput in) throws IOException {
+        return DataType.values()[in.readVInt()];
+    }
+
+    public static void writeTo(DataType type, StreamOutput out) throws IOException {
+        out.writeVInt(type.ordinal());
     }
 
     public interface Streamer<T> {
