@@ -83,7 +83,7 @@ public abstract class LocalAggregationTask implements Task<Object[][]> {
                 i.setNextRow(row);
             }
             for (AggregationCollector ac : collectors) {
-                ac.nextRow();
+                ac.processRow();
             }
         }
     }

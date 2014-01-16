@@ -24,4 +24,8 @@ public class PlanVisitor<C, R> {
     public R visitCollect(CollectNode node, C context) {
         return visitPlan(node, context);
     }
+
+    public R visitTopNNode(TopNNode node, C context) {
+        return visitPlan(node, context);
+    }
 }

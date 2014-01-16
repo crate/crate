@@ -2,6 +2,7 @@ package io.crate.executor;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -12,10 +13,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.MetaDataModule;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.reference.sys.NodeLoadExpression;
-import io.crate.planner.plan.AggregationNode;
-import io.crate.planner.plan.CollectNode;
-import io.crate.planner.plan.PlanNode;
-import io.crate.planner.plan.PlanVisitor;
+import io.crate.planner.plan.*;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
@@ -25,11 +23,9 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+import static junit.framework.TestCase.assertNotNull;
 import static org.junit.Assert.assertEquals;
 
 public class TestJobExecutor {
@@ -211,6 +207,60 @@ public class TestJobExecutor {
                 context.job.addTask(task);
                 return task;
             }
+
+            @Override
+            public Task visitTopNNode(TopNNode node, Context context) {
+                visitSources(node, context);
+                System.out.println("TOPNNode: " + node + " previous: " + context.previous);
+                TestTopNTask task = new TestTopNTask(node);
+                task.upstreamResult(context.previousTask.result());
+                context.job.addTask(task);
+                return task;
+            }
+        }
+
+    }
+
+    @Test
+    public void testTopN() throws Exception {
+        Statement statement = SqlParser.createStatement("select sys.nodes.load['5'] from sys.nodes limit 2");
+
+        CollectNode collectNode = new CollectNode("collect");
+        // 3 nodes
+        Map<String, Map<String, Integer>> locations = new HashMap<>(3);
+        locations.put("node1", null);
+        locations.put("node2", null);
+        locations.put("node3", null);
+        Routing routing = new Routing(locations);
+        Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_5, routing);
+
+        collectNode.symbols(reference, routing);
+        collectNode.inputs(reference);
+        collectNode.outputs(reference);
+
+        TopNNode topNNode = new TopNNode("topn");
+        topNNode.source(collectNode);
+
+        ValueSymbol value = new Value(DataType.DOUBLE);
+        TopN topN = new TopN(2, 0);
+
+        topNNode.symbols(topN, value);
+        topNNode.inputs(value);
+        topNNode.outputs(value);
+
+        // the executor should be a singleton
+        FakeJobExecutor executor = new FakeJobExecutor(functions);
+        Job job = executor.newJob(topNNode);
+        Object[][] result = executor.execute(job).get(0).get();
+
+        assertEquals(2, result.length);
+
+        Set<Double> expected = ImmutableSet.of(0.1, 0.5);
+
+        for (Object[] row : result) {
+            Double v = (Double) row[0];
+            assertNotNull(v);
+            assert (expected.contains(v));
         }
 
     }
@@ -228,18 +278,9 @@ public class TestJobExecutor {
         Routing routing = new Routing(locations);
         Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_1, routing);
 
-        // TODO: check if we need the .symbols in the interface
         collectNode.symbols(reference, routing);
         collectNode.inputs(reference);
         collectNode.outputs(reference);
-
-        // AggregateTask
-        //  symbols = [
-        //           Value(valueType=DOUBLE),
-        //           Aggregation(name="avg", operand=0, toStep=FINAL)
-        //           ]
-        //  inputs = [0]
-        //  outputs = [1]
 
         AggregationNode aggregationNode = new AggregationNode("aggregate");
         aggregationNode.source(collectNode);

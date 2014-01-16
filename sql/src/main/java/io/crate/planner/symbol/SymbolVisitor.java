@@ -40,4 +40,8 @@ public class SymbolVisitor<C, R> {
     public R visitReference(Reference symbol, C context) {
         return visitSymbol(symbol, context);
     }
+
+    public R visitTopN(TopN symbol, C context) {
+        return visitSymbol(symbol, context);
+    }
 }
