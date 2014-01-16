@@ -5,13 +5,18 @@ package io.crate.planner.plan;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolType;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Streamable;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class PlanNode {
+public abstract class PlanNode implements Streamable {
 
-    private final String id;
+    private String id;
     private List<PlanNode> sources;
     private List<PlanNode> targets;
     private List<Symbol> symbols;
@@ -41,24 +46,12 @@ public abstract class PlanNode {
         this.sources = ImmutableList.of(source);
     }
 
-    public void target(PlanNode target) {
-        this.sources = ImmutableList.of(target);
-    }
-
     public void sources(List<PlanNode> sources) {
         this.sources = sources;
     }
 
-    public void targets(List<PlanNode> targets) {
-        this.targets = targets;
-    }
-
     public List<PlanNode> sources() {
         return sources;
-    }
-
-    public List<PlanNode> targets() {
-        return targets;
     }
 
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
@@ -92,5 +85,50 @@ public abstract class PlanNode {
 
     public List<Symbol> outputs() {
         return outputs;
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        id = in.readString();
+
+        // TODO:
+        // int numSymbols = in.readVInt();
+        // symbols = new ArrayList<>(numSymbols);
+        // for (int i = 0; i < numSymbols; i++) {
+        //     symbols.add(SymbolType.readSymbol(in));
+        // }
+
+        // numSymbols = in.readVInt();
+        // inputs = new ArrayList<>(numSymbols);
+        // for (int i = 0; i < numSymbols; i++) {
+        //     inputs.add(SymbolType.readSymbol(in));
+        // }
+
+        // numSymbols = in.readVInt();
+        // outputs = new ArrayList<>(numSymbols);
+        // for (int i = 0; i < numSymbols; i++) {
+        //     outputs.add(SymbolType.readSymbol(in));
+        // }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeString(id);
+
+        // TODO:
+        // out.writeVInt(symbols.size());
+        // for (Symbol symbol : symbols) {
+        //     symbol.writeTo(out);
+        // }
+
+        // out.writeVInt(inputs.size());
+        // for (Symbol input : inputs) {
+        //     input.writeTo(out);
+        // }
+
+        // out.writeVInt(outputs.size());
+        // for (Symbol output : outputs) {
+        //     output.writeTo(out);
+        // }
     }
 }
