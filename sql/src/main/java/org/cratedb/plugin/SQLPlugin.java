@@ -1,5 +1,6 @@
 package org.cratedb.plugin;
 
+import io.crate.executor.transport.TransportExecutorModule;
 import org.cratedb.module.SQLModule;
 import org.cratedb.rest.action.RestSQLAction;
 import org.cratedb.service.InformationSchemaService;
@@ -65,6 +66,7 @@ public class SQLPlugin extends AbstractPlugin {
         Collection<Class<? extends Module>> modules = newArrayList();
         if (!settings.getAsBoolean("node.client", false)) {
             modules.add(SQLModule.class);
+            modules.add(TransportExecutorModule.class);
         }
         return modules;
     }

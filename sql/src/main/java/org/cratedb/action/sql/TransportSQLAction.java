@@ -333,6 +333,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         // boundTree = binder.bind(tree).
         // normalizedTree = analyzer.analyze(boundTree)
         // job = planner.plan(analyzedTree)
+
+
         // executor.execute(job)
 
         listener.onFailure(new UnsupportedOperationException());

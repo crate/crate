@@ -270,7 +270,6 @@ public class TestJobExecutor {
         Statement statement = SqlParser.createStatement("select avg(sys.nodes.load['1']) from sys.nodes");
 
         CollectNode collectNode = new CollectNode("collect");
-
         // we pretend we have two nodes
         Map<String, Map<String, Integer>> locations = new HashMap<>(2);
         locations.put("node1", null);
