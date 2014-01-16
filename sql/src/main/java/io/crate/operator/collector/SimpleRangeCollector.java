@@ -6,7 +6,11 @@ import io.crate.operator.RowCollector;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class SimpleRangeCollector<T> implements RowCollector<Object[][]> {
+/**
+ * A collector which returns a range given range of a collected inputs
+ */
+
+public class SimpleRangeCollector implements RowCollector<Object[][]> {
 
     private final AtomicInteger collected = new AtomicInteger();
     private int endPos;
@@ -17,11 +21,16 @@ public class SimpleRangeCollector<T> implements RowCollector<Object[][]> {
     private Object[][] result;
     private final int start;
     private final int end;
-    private final int limit;
 
+    /**
+     * Creates a new range collector
+     *
+     * @param offset the offset where the range starts
+     * @param limit  the size of the range
+     * @param input  the input implementation to get the values from
+     */
     public SimpleRangeCollector(int offset, int limit, Input<Object[]> input) {
         this.start = offset;
-        this.limit = limit;
         this.end = start + limit;
         this.result = new Object[end - start][];
         this.input = input;
