@@ -17,6 +17,6 @@ public class PassThroughExpression extends CollectExpression {
 
     @Override
     public Object value() {
-        return this.value;
+        return value;
     }
 }
