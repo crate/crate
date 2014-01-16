@@ -54,8 +54,10 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         }
 
         void add(Object otherValue) {
-            sum += ((Number) otherValue).doubleValue();
-            count++;
+            if (otherValue != null) {
+                sum += ((Number) otherValue).doubleValue();
+                count++;
+            }
         }
 
         @Override

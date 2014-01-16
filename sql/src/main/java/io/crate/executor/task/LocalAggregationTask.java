@@ -38,7 +38,11 @@ public abstract class LocalAggregationTask implements Task<Object[][]> {
             }
         }
 
-        inputs = new CollectExpression[planNode.inputs().size()];
+        int inputsSize = 0;
+        if (planNode.inputs() != null) {
+            inputsSize = planNode.inputs().size();
+        }
+        inputs = new CollectExpression[inputsSize];
         for (int i = 0; i < inputs.length; i++) {
             inputs[i] = new InputCollectExpression(i);
         }
