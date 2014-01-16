@@ -3,9 +3,8 @@ package io.crate.executor.task;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
-import io.crate.operator.Input;
-import io.crate.operator.RowCollector;
-import io.crate.operator.aggregation.CollectExpression;
+import io.crate.operator.collector.PassThroughExpression;
+import io.crate.operator.collector.SimpleRangeCollector;
 import io.crate.planner.plan.TopNNode;
 import io.crate.planner.symbol.SymbolVisitor;
 import io.crate.planner.symbol.TopN;
@@ -13,7 +12,6 @@ import org.apache.lucene.util.PriorityQueue;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class LocalTopNTask implements Task<Object[][]> {
 
@@ -24,7 +22,7 @@ public abstract class LocalTopNTask implements Task<Object[][]> {
     protected AtomicBoolean done = new AtomicBoolean(false);
 
     protected List<ListenableFuture<Object[][]>> upstreamResults;
-    private SimpleCollector collector;
+    private SimpleRangeCollector collector;
 
     // TODO: sorting
     class MyPriorityQueue extends PriorityQueue<Object[]> {
@@ -43,67 +41,8 @@ public abstract class LocalTopNTask implements Task<Object[][]> {
 
         @Override
         public Void visitTopN(TopN symbol, Void context) {
-            collector = new SimpleCollector(symbol.offset(), symbol.offset() + symbol.limit(),
-                    input);
+            collector = new SimpleRangeCollector(symbol.offset(), symbol.limit(), input);
             return null;
-        }
-    }
-
-    static class PassThroughExpression extends CollectExpression {
-
-        private Object value;
-
-        @Override
-        public boolean setNextRow(Object... args) {
-            this.value = args;
-            return true;
-        }
-
-        @Override
-        public Object value() {
-            return this.value;
-        }
-    }
-
-    static class SimpleCollector implements RowCollector<Object[][]> {
-
-        private final AtomicInteger collected = new AtomicInteger();
-        private final Input<Object[]> input;
-
-        private Object[][] result;
-        private final int start;
-        private final int end;
-
-        SimpleCollector(int start, int end, Input<Object[]> input) {
-            this.start = start;
-            this.end = end;
-            this.result = new Object[end - start][];
-            this.input = input;
-        }
-
-        @Override
-        public boolean startCollect() {
-            collected.set(0);
-            return true;
-        }
-
-        @Override
-        public boolean processRow() {
-            int pos = collected.incrementAndGet() - 1;
-            if (pos > end) {
-                return false;
-            } else if (pos < start) {
-                return true;
-            }
-            if (pos != end) {
-                result[pos] = input.value();
-            }
-            return true;
-        }
-
-        @Override
-        public Object[][] finishCollect() {
-            return result;
         }
     }
 
@@ -137,6 +76,7 @@ public abstract class LocalTopNTask implements Task<Object[][]> {
     }
 
     protected Object[][] finishCollect() {
+
         return collector.finishCollect();
     }
 

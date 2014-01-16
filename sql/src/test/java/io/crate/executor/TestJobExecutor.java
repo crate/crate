@@ -59,7 +59,7 @@ public class TestJobExecutor {
     }
 
 
-    static class FakeCollectTask implements Task<Object[][]> {
+    static class TestCollectTask implements Task<Object[][]> {
 
         ListeningExecutorService executor = MoreExecutors.sameThreadExecutor();
 
@@ -69,7 +69,7 @@ public class TestJobExecutor {
         private Routing routing;
 
 
-        public FakeCollectTask(CollectNode node) {
+        public TestCollectTask(CollectNode node) {
             // TODO: real futures
             Visitor v = new Visitor();
             v.processSymbols(node, null);
@@ -192,7 +192,7 @@ public class TestJobExecutor {
 
                 visitSources(node, context);
                 System.out.println("collectNode: " + node + " previous: " + context.previous);
-                FakeCollectTask task = new FakeCollectTask(node);
+                TestCollectTask task = new TestCollectTask(node);
                 context.job.addTask(task);
                 return task;
             }
