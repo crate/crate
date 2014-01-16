@@ -2,21 +2,19 @@
 Usage Data Collector
 ====================
 
-The Crate Usage Data Collector (UDC) is a sub-system that gathers usage data, reporting it to
-the UDC server at https://udc.crate.io.
-It is easy to disable, and does not collect any data that is confidential.
-For more information about what is being sent, see below.
+The Crate Usage Data Collector (UDC) is a sub-system that gathers usage data, reporting it to the
+UDC server at https://udc.crate.io. It is easy to disable, and does not collect any data that is
+confidential. For more information about what is being sent, see below.
 
-The Crate team uses this information as a form of automatic, effortless feedback from the
-Crate community. We want to verify that we are doing the right thing by matching download
-statistics with usage statistics. After each release, we can see if there is a larger retention
-span of the server software.
+Crate uses this information as a form of automatic, effortless feedback from the community. We want
+to verify that we are doing the right thing by matching download statistics with usage statistics.
+After each release, we can see if there is a larger retention span of the server software.
 
-The data collected is clearly stated here. If any future versions of this system collect
-additional data, we will clearly announce those changes.
+The data collected is clearly stated here. If any future versions of this system collect additional
+data, we will clearly announce those changes.
 
-The Crate team is very concerned about your privacy.
-We do not disclose any personally identifiable information.
+Crate is very concerned about your privacy. We do not disclose any personally identifiable
+information.
 
 Technical Information
 =====================
@@ -36,11 +34,10 @@ To gather good statistics about Crate usage, UDC collects this information:
     Hardware Address  MAC address to uniquely identify instances behind firewalls.
     ================  =============================================================================
 
-After startup, UDC waits for 10 minutes before sending the first ping.
-It does this for two reasons; first, we don’t want the startup to be slower because of UDC,
-and secondly, we want to keep pings from automatic tests to a minimum.
-By default, UDC is sending pings every 24 hours.
-The ping to the UDC servers is done with a HTTP GET.
+After startup, UDC waits for 10 minutes before sending the first ping. It does this for two reasons;
+first, we don't want the startup to be slower because of UDC, and secondly, we want to keep pings
+from automatic tests to a minimum. By default, UDC is sending pings every 24 hours. The ping to the
+UDC servers is done with a HTTP GET.
 
 Configuration
 =============
