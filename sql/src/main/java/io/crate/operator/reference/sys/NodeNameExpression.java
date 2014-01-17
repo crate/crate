@@ -21,31 +21,37 @@
 
 package io.crate.operator.reference.sys;
 
-import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysExpression;
+import io.crate.metadata.sys.SystemReferences;
+import org.cratedb.DataType;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.node.service.NodeService;
 
-import java.util.HashMap;
-import java.util.Map;
+public class NodeNameExpression extends SysExpression<String> {
 
-public abstract class SysObjectReference<ChildType> extends SysExpression<Map<String, ChildType>>
-        implements ReferenceImplementation {
+    public static final String COLNAME = "name";
 
-    protected final Map<String, SysExpression<ChildType>> childImplementations = new HashMap<>();
 
-    @Override
-    public SysExpression<ChildType> getChildImplementation(String name) {
-        return childImplementations.get(name);
+    public static final ReferenceInfo INFO_NAME = SystemReferences.registerNodeReference(
+            COLNAME, DataType.STRING);
+
+
+    private final NodeService nodeService;
+
+    @Inject
+    public NodeNameExpression(NodeService nodeService) {
+        this.nodeService = nodeService;
     }
 
     @Override
-    public Map<String, ChildType> value() {
-        ImmutableMap.Builder<String, ChildType> builder = ImmutableMap.builder();
-        for (Map.Entry<String, SysExpression<ChildType>> e : childImplementations.entrySet()) {
-            builder.put(e.getKey(), e.getValue().value());
-        }
-        return builder.build();
+    public String value() {
+        return nodeService.stats().getNode().getName();
     }
 
+    @Override
+    public ReferenceInfo info() {
+        return INFO_NAME;
+    }
 
 }
