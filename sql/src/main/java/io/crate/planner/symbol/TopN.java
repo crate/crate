@@ -1,10 +1,6 @@
 package io.crate.planner.symbol;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
-
-import java.util.Map;
-import java.util.Set;
 
 public class TopN implements Symbol {
 
@@ -19,6 +15,8 @@ public class TopN implements Symbol {
 
     }
 
+    int[] orderBy;
+    boolean[] reverseFlags;
     private int limit;
     private int offset;
 
@@ -28,12 +26,30 @@ public class TopN implements Symbol {
         this.offset = offset;
     }
 
+    public TopN(int limit, int offset, int[] orderBy, boolean[] reverseFlags) {
+        this(limit, offset);
+        this.orderBy = orderBy;
+        this.reverseFlags = reverseFlags;
+    }
+
+    public boolean isOrdered(){
+        return orderBy != null && orderBy.length>0;
+    }
+
     public int limit() {
         return limit;
     }
 
     public int offset() {
         return offset;
+    }
+
+    public int[] orderBy() {
+        return orderBy;
+    }
+
+    public boolean[] reverseFlags() {
+        return reverseFlags;
     }
 
     @Override

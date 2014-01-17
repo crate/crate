@@ -222,6 +222,93 @@ public class TestJobExecutor {
     }
 
     @Test
+    public void testTopNSortedDesc() throws Exception {
+        Statement statement = SqlParser.createStatement(
+                "select sys.nodes.load['5'] from sys.nodes order by sys.nodes.load['5'] desc");
+
+        CollectNode collectNode = new CollectNode("collect");
+        // 3 nodes
+        Map<String, Map<String, Integer>> locations = new HashMap<>(3);
+        locations.put("node1", null);
+        locations.put("node2", null);
+        locations.put("node3", null);
+        Routing routing = new Routing(locations);
+        Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_5, routing);
+
+        collectNode.symbols(reference, routing);
+        collectNode.inputs(reference);
+        collectNode.outputs(reference);
+
+        TopNNode topNNode = new TopNNode("topn_sorted_desc");
+        topNNode.source(collectNode);
+
+        ValueSymbol value = new Value(DataType.DOUBLE);
+        TopN topN = new TopN(10, 0, new int[]{0}, new boolean[]{true});
+
+        topNNode.symbols(topN, value);
+        topNNode.inputs(value);
+        topNNode.outputs(value);
+
+        // the executor should be a singleton
+        FakeJobExecutor executor = new FakeJobExecutor(functions);
+        Job job = executor.newJob(topNNode);
+        Object[][] result = executor.execute(job).get(0).get();
+
+        System.out.println("-----------------------");
+        for (int i = 0; i < result.length; i++) {
+            System.out.println("row: " + result[i][0]);
+        }
+
+
+        assertEquals(3, result.length);
+        assertEquals(0.5, result[0][0]);
+        assertEquals(0.5, result[1][0]);
+        assertEquals(0.1, result[2][0]);
+
+    }
+
+
+    @Test
+    public void testTopNSortedAsc() throws Exception {
+        Statement statement = SqlParser.createStatement(
+                "select sys.nodes.load['5'] from sys.nodes order by sys.nodes.load['5'] desc");
+
+        CollectNode collectNode = new CollectNode("collect");
+        // 3 nodes
+        Map<String, Map<String, Integer>> locations = new HashMap<>(3);
+        locations.put("node1", null);
+        locations.put("node2", null);
+        locations.put("node3", null);
+        Routing routing = new Routing(locations);
+        Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_5, routing);
+
+        collectNode.symbols(reference, routing);
+        collectNode.inputs(reference);
+        collectNode.outputs(reference);
+
+        TopNNode topNNode = new TopNNode("topn_sorted_asc");
+        topNNode.source(collectNode);
+
+        ValueSymbol value = new Value(DataType.DOUBLE);
+        TopN topN = new TopN(2, 0, new int[]{0}, new boolean[]{false});
+
+        topNNode.symbols(topN, value);
+        topNNode.inputs(value);
+        topNNode.outputs(value);
+
+        // the executor should be a singleton
+        FakeJobExecutor executor = new FakeJobExecutor(functions);
+        Job job = executor.newJob(topNNode);
+        Object[][] result = executor.execute(job).get(0).get();
+
+        assertEquals(2, result.length);
+        assertEquals(0.1, result[0][0]);
+        assertEquals(0.5, result[1][0]);
+
+    }
+
+
+    @Test
     public void testTopN() throws Exception {
         Statement statement = SqlParser.createStatement("select sys.nodes.load['5'] from sys.nodes limit 2");
 

@@ -48,6 +48,38 @@ public class SortingRangeCollectorTest extends TestCase {
 
 
     @Test
+    public void testDuplicates() throws Exception {
+
+        Object[][] result;
+        SortingRangeCollector collector;
+        PassThroughExpression input = new PassThroughExpression();
+        collector = new SortingRangeCollector(1, 2, new int[]{0}, new boolean[]{true}, input);
+        input.startCollect();
+        assertTrue(collector.startCollect());
+
+        double[] collected = new double[]{0.5, 0.1, 0.5};
+
+        for (double i : collected) {
+            input.setNextRow(i);
+            if (!collector.processRow()) {
+                break;
+            }
+        }
+        result = collector.finishCollect();
+//        System.out.println("-----------------------");
+//        for (int i = 0; i < result.length; i++) {
+//            System.out.println("row: " + Arrays.toString(result[i]));
+//        }
+
+        // the whole result would be 0.5, 0.5, 0.1 but we have an offset of 0.1
+        assertEquals(2, result.length);
+        assertEquals(0.5, result[0][0]);
+        assertEquals(0.1, result[1][0]);
+
+
+    }
+
+    @Test
     public void testMultiColAsc() throws Exception {
 
         Object[][] result;
