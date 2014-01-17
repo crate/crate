@@ -39,7 +39,7 @@ public class NodeLoadExpression extends SysObjectReference<Double> {
     public static final String FIFTEEN = "15";
 
     public static final ReferenceInfo INFO_LOAD = SystemReferences.registerNodeReference(
-            COLNAME, DataType.OBJECT, null);
+            COLNAME, DataType.OBJECT);
     public static final ReferenceInfo INFO_LOAD_1 = SystemReferences.registerNodeReference(
             COLNAME, DataType.DOUBLE, ImmutableList.of(ONE));
     public static final ReferenceInfo INFO_LOAD_5 = SystemReferences.registerNodeReference(

@@ -35,12 +35,10 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
+import org.elasticsearch.node.service.NodeService;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Map;
-
-import static junit.framework.Assert.assertNull;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -61,6 +59,9 @@ public class TestGlobalSysExpressions {
             when(osService.stats()).thenReturn(osStats);
             when(osStats.loadAverage()).thenReturn(new double[]{1, 5, 15});
             bind(OsService.class).toInstance(osService);
+
+            NodeService nodeService = mock(NodeService.class);
+            bind(NodeService.class).toInstance(nodeService);
         }
     }
 
@@ -101,31 +102,12 @@ public class TestGlobalSysExpressions {
         SysObjectReference<Double> load = (SysObjectReference<Double>) resolver.getImplementation(ident);
         assertEquals(NodeLoadExpression.INFO_LOAD, load.info());
 
+        Input<Double> ci = load.getChildImplementation("1");
+        assertEquals(new Double(1), ci.value());
+
         ident = NodeLoadExpression.INFO_LOAD_1.ident();
         SysExpression<Double> l1 = (SysExpression<Double>) resolver.getImplementation(ident);
         assertEquals(NodeLoadExpression.INFO_LOAD_1, l1.info());
-
-    }
-
-
-    @Test
-    public void testLoad() throws Exception {
-
-        ReferenceIdent ident = new ReferenceIdent(SystemReferences.NODES_IDENT, "load");
-        SysObjectReference<Double> load = (SysObjectReference<Double>) resolver.getImplementation(ident);
-
-        Map<String, Double> v = load.value();
-        assertNull(v.get("something"));
-        assertEquals(new Double(1), v.get("1"));
-        assertEquals(new Double(5), v.get("5"));
-        assertEquals(new Double(15), v.get("15"));
-
-        Input<Double> ci = load.getChildImplementation("1");
-        assertEquals(new Double(1), ci.value());
-        ci = load.getChildImplementation("5");
-        assertEquals(new Double(5), ci.value());
-        ci = load.getChildImplementation("15");
-        assertEquals(new Double(15), ci.value());
 
     }
 
