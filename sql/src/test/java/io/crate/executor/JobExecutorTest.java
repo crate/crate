@@ -61,6 +61,7 @@ public class JobExecutorTest {
 
     static class TestCollectTask implements Task<Object[][]> {
 
+        private final CollectNode node;
         ListeningExecutorService executor = MoreExecutors.sameThreadExecutor();
 
         Map<String, SettableFuture<Object[][]>> nodeResults;
@@ -71,8 +72,12 @@ public class JobExecutorTest {
 
         public TestCollectTask(CollectNode node) {
             // TODO: real futures
-            Visitor v = new Visitor();
-            v.processSymbols(node, null);
+            Preconditions.checkArgument(node.isRouted(), "Shards are not supported");
+            this.node = node;
+            this.routing = node.routing();
+            for (Map.Entry<String, Map<String, Integer>> entry : routing.locations().entrySet()) {
+                Preconditions.checkArgument(entry.getValue() == null, "Shards are not supported");
+            }
             generateResult();
         }
 
@@ -85,20 +90,6 @@ public class JobExecutorTest {
                 nodeResults.put(nodeIdent, f);
                 results.add(f);
 
-            }
-        }
-
-
-        class Visitor extends SymbolVisitor<Void, Void> {
-
-            @Override
-            public Void visitRouting(Routing symbol, Void context) {
-                Preconditions.checkArgument(routing == null, "Multiple routings are not supported");
-                routing = symbol;
-                for (Map.Entry<String, Map<String, Integer>> entry : routing.locations().entrySet()) {
-                    Preconditions.checkArgument(entry.getValue() == null, "Shards are not supported");
-                }
-                return null;
             }
         }
 
@@ -226,16 +217,17 @@ public class JobExecutorTest {
         Statement statement = SqlParser.createStatement(
                 "select sys.nodes.load['5'] from sys.nodes order by sys.nodes.load['5'] desc");
 
-        CollectNode collectNode = new CollectNode("collect");
+
         // 3 nodes
         Map<String, Map<String, Integer>> locations = new HashMap<>(3);
         locations.put("node1", null);
         locations.put("node2", null);
         locations.put("node3", null);
         Routing routing = new Routing(locations);
-        Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_5, routing);
+        Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_5);
 
-        collectNode.symbols(reference, routing);
+        CollectNode collectNode = new CollectNode("collect", routing);
+        collectNode.symbols(reference);
         collectNode.inputs(reference);
         collectNode.outputs(reference);
 
@@ -272,16 +264,16 @@ public class JobExecutorTest {
         Statement statement = SqlParser.createStatement(
                 "select sys.nodes.load['5'] from sys.nodes order by sys.nodes.load['5'] desc");
 
-        CollectNode collectNode = new CollectNode("collect");
         // 3 nodes
         Map<String, Map<String, Integer>> locations = new HashMap<>(3);
         locations.put("node1", null);
         locations.put("node2", null);
         locations.put("node3", null);
         Routing routing = new Routing(locations);
-        Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_5, routing);
+        Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_5);
 
-        collectNode.symbols(reference, routing);
+        CollectNode collectNode = new CollectNode("collect", routing);
+        collectNode.symbols(reference);
         collectNode.inputs(reference);
         collectNode.outputs(reference);
 
@@ -310,16 +302,16 @@ public class JobExecutorTest {
     public void testTopN() throws Exception {
         Statement statement = SqlParser.createStatement("select sys.nodes.load['5'] from sys.nodes limit 2");
 
-        CollectNode collectNode = new CollectNode("collect");
         // 3 nodes
         Map<String, Map<String, Integer>> locations = new HashMap<>(3);
         locations.put("node1", null);
         locations.put("node2", null);
         locations.put("node3", null);
         Routing routing = new Routing(locations);
-        Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_5, routing);
+        Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_5);
 
-        collectNode.symbols(reference, routing);
+        CollectNode collectNode = new CollectNode("collect", routing);
+        collectNode.symbols(reference);
         collectNode.inputs(reference);
         collectNode.outputs(reference);
 
@@ -352,15 +344,15 @@ public class JobExecutorTest {
     public void testNodeLoadAggregate() throws Exception {
         Statement statement = SqlParser.createStatement("select avg(sys.nodes.load['1']) from sys.nodes");
 
-        CollectNode collectNode = new CollectNode("collect");
         // we pretend we have two nodes
         Map<String, Map<String, Integer>> locations = new HashMap<>(2);
         locations.put("node1", null);
         locations.put("node2", null);
         Routing routing = new Routing(locations);
-        Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_1, routing);
+        Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_1);
 
-        collectNode.symbols(reference, routing);
+        CollectNode collectNode = new CollectNode("collect", routing);
+        collectNode.symbols(reference);
         collectNode.inputs(reference);
         collectNode.outputs(reference);
 

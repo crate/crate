@@ -1,6 +1,7 @@
 package io.crate.planner.symbol;
 
 import io.crate.metadata.ReferenceInfo;
+import io.crate.planner.plan.Routing;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -16,12 +17,10 @@ public class Reference extends ValueSymbol {
         }
     };
 
-    private Routing routing;
     private ReferenceInfo info;
 
-    public Reference(ReferenceInfo info, Routing routing) {
+    public Reference(ReferenceInfo info) {
         this.info = info;
-        this.routing = routing;
     }
 
     public Reference() {
@@ -45,15 +44,12 @@ public class Reference extends ValueSymbol {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        routing = new Routing();
-        routing.readFrom(in);
         info = new ReferenceInfo();
         info.readFrom(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        routing.writeTo(out);
         info.writeTo(out);
     }
 }

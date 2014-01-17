@@ -1,22 +1,17 @@
-package io.crate.planner.symbol;
+package io.crate.planner.plan;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class Routing extends Symbol {
-
-    public static final SymbolFactory<Routing> FACTORY = new SymbolFactory<Routing>() {
-        @Override
-        public Routing newInstance() {
-            return new Routing();
-        }
-    };
+public class Routing implements Streamable {
 
     public Routing() {
 
@@ -30,16 +25,6 @@ public class Routing extends Symbol {
 
     public Map<String, Map<String, Integer>> locations() {
         return locations;
-    }
-
-    @Override
-    public SymbolType symbolType() {
-        return SymbolType.ROUTING;
-    }
-
-    @Override
-    public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
-        return visitor.visitRouting(this, context);
     }
 
     public boolean hasLocations() {

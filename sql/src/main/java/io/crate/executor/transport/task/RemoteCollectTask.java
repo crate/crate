@@ -1,7 +1,6 @@
 package io.crate.executor.transport.task;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
@@ -9,20 +8,15 @@ import io.crate.executor.transport.NodesCollectRequest;
 import io.crate.executor.transport.NodesCollectResponse;
 import io.crate.executor.transport.TransportCollectNodeAction;
 import io.crate.planner.plan.CollectNode;
-import io.crate.planner.symbol.Routing;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.plan.Routing;
 import io.crate.planner.symbol.SymbolVisitor;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.nodes.NodeOperationResponse;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class RemoteCollectTask implements Task<Object[][]> {
-
-    private static Routing routing;
-    private final static RoutingVisitor routingVisitor = new RoutingVisitor();
 
     private final CollectNode collectNode;
     private final List<ListenableFuture<Object[][]>> result;
@@ -33,14 +27,16 @@ public class RemoteCollectTask implements Task<Object[][]> {
         this.collectNode = collectNode;
         this.transportCollectNodeAction = transportCollectNodeAction;
 
-        routingVisitor.processSymbols(collectNode, null);
-        Preconditions.checkArgument(
-                routing.hasLocations(),
-                "RemoteCollectTask currently only works for plans with locations"
+        Preconditions.checkArgument(collectNode.isRouted(),
+                "RemoteCollectTask currently only works for plans with routing"
         );
 
-        int resultSize = routing.nodes().size();
-        nodeIds = routing.nodes().toArray(new String[resultSize]);
+        for (Map.Entry<String, Map<String, Integer>> entry : collectNode.routing().locations().entrySet()) {
+            Preconditions.checkArgument(entry.getValue() == null, "Shards are not supported");
+        }
+
+        int resultSize = collectNode.routing().nodes().size();
+        nodeIds = collectNode.routing().nodes().toArray(new String[resultSize]);
         result = new ArrayList<>(resultSize);
         for (int i = 0; i < resultSize; i++) {
             result.add(SettableFuture.<Object[][]>create());
@@ -76,18 +72,5 @@ public class RemoteCollectTask implements Task<Object[][]> {
     @Override
     public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
         throw new UnsupportedOperationException("nope");
-    }
-
-    static class RoutingVisitor extends SymbolVisitor<Void, Void> {
-
-        @Override
-        public Void visitRouting(Routing symbol, Void context) {
-            Preconditions.checkArgument(routing == null, "Multiple routings are not supported");
-            routing = symbol;
-            for (Map.Entry<String, Map<String, Integer>> entry : routing.locations().entrySet()) {
-                Preconditions.checkArgument(entry.getValue() == null, "Shards are not supported");
-            }
-            return null;
-        }
     }
 }

@@ -28,10 +28,6 @@ public class SymbolVisitor<C, R> {
         return visitSymbol(symbol, context);
     }
 
-    public R visitRouting(Routing symbol, C context) {
-        return visitSymbol(symbol, context);
-    }
-
     public R visitValue(Value symbol, C context) {
         return visitSymbol(symbol, context);
     }

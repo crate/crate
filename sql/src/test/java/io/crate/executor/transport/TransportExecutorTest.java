@@ -5,7 +5,7 @@ import io.crate.executor.transport.task.RemoteCollectTask;
 import io.crate.operator.reference.sys.NodeLoadExpression;
 import io.crate.planner.plan.CollectNode;
 import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Routing;
+import io.crate.planner.plan.Routing;
 import io.crate.planner.symbol.Symbol;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.test.integration.CrateIntegrationTest;
@@ -34,7 +34,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     public void testRemoteCollectTask() {
         TransportExecutor executor = new TransportExecutor();
 
-        CollectNode collectNode = new CollectNode("collect");
+
         Map<String, Map<String, Integer>> locations = new HashMap<>(2);
 
         for (DiscoveryNode discoveryNode : clusterService.state().nodes()) {
@@ -42,9 +42,11 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         }
 
         Routing routing = new Routing(locations);
-        Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_1, routing);
+        Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_1);
 
-        collectNode.symbols(reference, routing);
+
+        CollectNode collectNode = new CollectNode("collect", routing);
+        collectNode.symbols(reference);
         collectNode.inputs(reference);
         collectNode.outputs(reference);
 
