@@ -4,13 +4,22 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
 import org.cratedb.DataType;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Streamable;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
-public class FunctionIdent implements Comparable<FunctionIdent> {
+public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
 
-    private final String name;
-    private final List<DataType> argumentTypes;
+    private String name;
+    private List<DataType> argumentTypes;
+
+    public FunctionIdent() {
+
+    }
 
     public FunctionIdent(String name, List<DataType> argumentTypes) {
         this.name = name;
@@ -61,4 +70,24 @@ public class FunctionIdent implements Comparable<FunctionIdent> {
     }
 
 
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        name = in.readString();
+        int numTypes = in.readVInt();
+        argumentTypes = new ArrayList<>(numTypes);
+
+        for (int i = 0; i < numTypes; i++) {
+            argumentTypes.add(DataType.readFrom(in));
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeString(name);
+        out.writeVInt(argumentTypes.size());
+
+        for (DataType argumentType : argumentTypes) {
+            DataType.writeTo(argumentType, out);
+        }
+    }
 }

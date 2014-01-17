@@ -27,15 +27,15 @@ public class NodesCollectRequest extends NodesOperationRequest<NodesCollectReque
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        // collectNode.writeTo(out);
+        collectNode.writeTo(out);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
 
-        // collectNode = new CollectNode(null);
-        // collectNode.readFrom(in);
+        collectNode = new CollectNode();
+        collectNode.readFrom(in);
     }
 
 }

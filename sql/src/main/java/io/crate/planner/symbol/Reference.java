@@ -2,8 +2,12 @@ package io.crate.planner.symbol;
 
 import io.crate.metadata.ReferenceInfo;
 import org.cratedb.DataType;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-public class Reference implements ValueSymbol {
+import java.io.IOException;
+
+public class Reference extends ValueSymbol {
 
     public static final SymbolFactory<Reference> FACTORY = new SymbolFactory<Reference>() {
         @Override
@@ -39,5 +43,17 @@ public class Reference implements ValueSymbol {
         return visitor.visitReference(this, context);
     }
 
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        routing = new Routing();
+        routing.readFrom(in);
+        info = new ReferenceInfo();
+        info.readFrom(in);
+    }
 
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        routing.writeTo(out);
+        info.writeTo(out);
+    }
 }

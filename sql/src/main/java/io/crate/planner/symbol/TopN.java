@@ -1,8 +1,12 @@
 package io.crate.planner.symbol;
 
 import com.google.common.base.Preconditions;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-public class TopN implements Symbol {
+import java.io.IOException;
+
+public class TopN extends Symbol {
 
     public static final SymbolFactory<TopN> FACTORY = new SymbolFactory<TopN>() {
         @Override
@@ -62,4 +66,34 @@ public class TopN implements Symbol {
         return visitor.visitTopN(this, context);
     }
 
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        offset = in.readVInt();
+        limit = in.readVInt();
+
+        orderBy = new int[in.readVInt()];
+        for (int i = 0; i < orderBy.length; i++) {
+            orderBy[i] = in.readVInt();
+        }
+
+        reverseFlags = new boolean[in.readVInt()];
+        for (int i = 0; i < reverseFlags.length; i++) {
+            reverseFlags[i] = in.readBoolean();
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeVInt(offset);
+        out.writeVInt(limit);
+        out.writeVInt(orderBy.length);
+        for (int i : orderBy) {
+            out.writeVInt(i);
+        }
+
+        out.writeVInt(reverseFlags.length);
+        for (boolean reverseFlag : reverseFlags) {
+            out.writeBoolean(reverseFlag);
+        }
+    }
 }
