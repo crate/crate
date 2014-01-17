@@ -1,5 +1,6 @@
 package io.crate.executor.transport;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.Job;
 import io.crate.executor.transport.task.RemoteCollectTask;
 import io.crate.operator.reference.sys.NodeLoadExpression;
@@ -31,7 +32,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testRemoteCollectTask() {
+    public void testRemoteCollectTask() throws Exception {
         TransportExecutor executor = new TransportExecutor();
 
 
@@ -55,8 +56,12 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Job job = new Job();
         job.addTask(task);
 
-        List result = executor.execute(job);
+        List<ListenableFuture<Object[][]>> result = executor.execute(job);
 
         assertThat(result.size(), is(2));
-    }
+        for (ListenableFuture<Object[][]> nodeResult : result) {
+            assertEquals(1, nodeResult.get().length);
+            assertEquals(0.4, nodeResult.get()[0][0]);
+        }
+   }
 }
