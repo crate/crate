@@ -8,7 +8,7 @@ distributed with this work for additional information regarding copyright
 ownership.
 
 Crate licenses this software to you under the Apache License, Version 2.0.
-However, if you have executed any another commercial license agreement with
+However, if you have executed another commercial license agreement with
 Crate these terms will supersede the license and you may use the software
 solely pursuant to the terms of the relevant commercial agreement.
 
