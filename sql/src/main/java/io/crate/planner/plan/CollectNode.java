@@ -2,6 +2,10 @@ package io.crate.planner.plan;
 
 public class CollectNode extends PlanNode {
 
+    public CollectNode() {
+        super();
+    }
+
     public CollectNode(String id) {
         super(id);
     }

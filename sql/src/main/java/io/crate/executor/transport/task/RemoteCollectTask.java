@@ -39,8 +39,8 @@ public class RemoteCollectTask implements Task<Object[][]> {
                 "RemoteCollectTask currently only works for plans with locations"
         );
 
-        int resultSize = routing.locations().size();
-        nodeIds = routing.locations().keySet().toArray(new String[resultSize]);
+        int resultSize = routing.nodes().size();
+        nodeIds = routing.nodes().toArray(new String[resultSize]);
         result = new ArrayList<>(resultSize);
         for (int i = 0; i < resultSize; i++) {
             result.add(SettableFuture.<Object[][]>create());

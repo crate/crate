@@ -5,10 +5,14 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
 import io.crate.sql.tree.Table;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Streamable;
 
+import java.io.IOException;
 import java.util.List;
 
-public class TableIdent implements Comparable<TableIdent> {
+public class TableIdent implements Comparable<TableIdent>, Streamable {
 
     private String schema;
     private String name;
@@ -22,6 +26,10 @@ public class TableIdent implements Comparable<TableIdent> {
             return new TableIdent(parts.get(0), parts.get(1));
         }
         return new TableIdent(null, parts.get(1));
+    }
+
+    public TableIdent() {
+
     }
 
     public TableIdent(String schema, String name) {
@@ -73,5 +81,15 @@ public class TableIdent implements Comparable<TableIdent> {
                 .result();
     }
 
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        schema = in.readString();
+        name = in.readString();
+    }
 
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeString(schema);
+        out.writeString(name);
+    }
 }

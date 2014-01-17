@@ -5,7 +5,6 @@ package io.crate.planner.plan;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -23,6 +22,10 @@ public abstract class PlanNode implements Streamable {
 
     private List<Symbol> inputs;
     private List<Symbol> outputs;
+
+    protected PlanNode() {
+
+    }
 
     protected PlanNode(String id) {
         this.id = id;
@@ -91,44 +94,42 @@ public abstract class PlanNode implements Streamable {
     public void readFrom(StreamInput in) throws IOException {
         id = in.readString();
 
-        // TODO:
-        // int numSymbols = in.readVInt();
-        // symbols = new ArrayList<>(numSymbols);
-        // for (int i = 0; i < numSymbols; i++) {
-        //     symbols.add(SymbolType.readSymbol(in));
-        // }
+        int numSymbols = in.readVInt();
+        symbols = new ArrayList<>(numSymbols);
+        for (int i = 0; i < numSymbols; i++) {
+            symbols.add(Symbol.fromStream(in));
+        }
 
-        // numSymbols = in.readVInt();
-        // inputs = new ArrayList<>(numSymbols);
-        // for (int i = 0; i < numSymbols; i++) {
-        //     inputs.add(SymbolType.readSymbol(in));
-        // }
+        numSymbols = in.readVInt();
+        inputs = new ArrayList<>(numSymbols);
+        for (int i = 0; i < numSymbols; i++) {
+            inputs.add(Symbol.fromStream(in));
+        }
 
-        // numSymbols = in.readVInt();
-        // outputs = new ArrayList<>(numSymbols);
-        // for (int i = 0; i < numSymbols; i++) {
-        //     outputs.add(SymbolType.readSymbol(in));
-        // }
+        numSymbols = in.readVInt();
+        outputs = new ArrayList<>(numSymbols);
+        for (int i = 0; i < numSymbols; i++) {
+            outputs.add(Symbol.fromStream(in));
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(id);
 
-        // TODO:
-        // out.writeVInt(symbols.size());
-        // for (Symbol symbol : symbols) {
-        //     symbol.writeTo(out);
-        // }
+        out.writeVInt(symbols.size());
+        for (Symbol symbol : symbols) {
+            Symbol.toStream(symbol, out);
+        }
 
-        // out.writeVInt(inputs.size());
-        // for (Symbol input : inputs) {
-        //     input.writeTo(out);
-        // }
+        out.writeVInt(inputs.size());
+        for (Symbol input : inputs) {
+            Symbol.toStream(input, out);
+        }
 
-        // out.writeVInt(outputs.size());
-        // for (Symbol output : outputs) {
-        //     output.writeTo(out);
-        // }
+        out.writeVInt(outputs.size());
+        for (Symbol output : outputs) {
+            Symbol.toStream(output, out);
+        }
     }
 }
