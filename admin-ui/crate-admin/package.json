@@ -3,7 +3,7 @@
   "description": "Admin UI for Crate.",
   "version": "0.0.1",
   "author": "Team",
-  "homepage": "http://cratedb.org/",
+  "homepage": "https://crate.io/",
   "license": "Apache License, Version 2.0, http://www.apache.org/licenses/LICENSE-2.0",
   "repository": {
     "type": "git",

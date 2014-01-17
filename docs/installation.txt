@@ -5,7 +5,7 @@ Installation Instructions
 .. highlight:: sh
 
 After downloading the latest stable version of Crate from
-http://download.cratedb.org/ the package needs to be unpacked::
+https://download.crate.io/ the package needs to be unpacked::
 
    sh$ tar zxf crate-*.tar.gz
 
