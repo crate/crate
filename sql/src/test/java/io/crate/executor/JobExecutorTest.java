@@ -239,13 +239,12 @@ public class JobExecutorTest {
         collectNode.inputs(reference);
         collectNode.outputs(reference);
 
-        TopNNode topNNode = new TopNNode("topn_sorted_desc");
+        TopNNode topNNode = new TopNNode("topn_sorted_desc", 10, 0, new int[]{0}, new boolean[]{true});
         topNNode.source(collectNode);
 
         ValueSymbol value = new Value(DataType.DOUBLE);
-        TopN topN = new TopN(10, 0, new int[]{0}, new boolean[]{true});
 
-        topNNode.symbols(topN, value);
+        topNNode.symbols(value);
         topNNode.inputs(value);
         topNNode.outputs(value);
 
@@ -286,13 +285,12 @@ public class JobExecutorTest {
         collectNode.inputs(reference);
         collectNode.outputs(reference);
 
-        TopNNode topNNode = new TopNNode("topn_sorted_asc");
+        TopNNode topNNode = new TopNNode("topn_sorted_asc", 2, 0, new int[]{0}, new boolean[]{false});
         topNNode.source(collectNode);
 
         ValueSymbol value = new Value(DataType.DOUBLE);
-        TopN topN = new TopN(2, 0, new int[]{0}, new boolean[]{false});
 
-        topNNode.symbols(topN, value);
+        topNNode.symbols(value);
         topNNode.inputs(value);
         topNNode.outputs(value);
 
@@ -325,13 +323,11 @@ public class JobExecutorTest {
         collectNode.inputs(reference);
         collectNode.outputs(reference);
 
-        TopNNode topNNode = new TopNNode("topn");
+        TopNNode topNNode = new TopNNode("topn", 2, 0);
         topNNode.source(collectNode);
-
         ValueSymbol value = new Value(DataType.DOUBLE);
-        TopN topN = new TopN(2, 0);
 
-        topNNode.symbols(topN, value);
+        topNNode.symbols(value);
         topNNode.inputs(value);
         topNNode.outputs(value);
 

@@ -20,7 +20,6 @@ public class SymbolVisitor<C, R> {
         return symbol.accept(this, context);
     }
 
-
     private R visitSymbol(Symbol symbol, C context) {
         return null;
     }
@@ -41,7 +40,4 @@ public class SymbolVisitor<C, R> {
         return visitSymbol(symbol, context);
     }
 
-    public R visitTopN(TopN symbol, C context) {
-        return visitSymbol(symbol, context);
-    }
 }

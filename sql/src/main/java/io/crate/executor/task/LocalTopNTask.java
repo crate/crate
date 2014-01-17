@@ -1,15 +1,12 @@
 package io.crate.executor.task;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
 import io.crate.operator.RowCollector;
 import io.crate.operator.collector.PassThroughExpression;
 import io.crate.operator.collector.SimpleRangeCollector;
 import io.crate.operator.collector.SortingRangeCollector;
 import io.crate.planner.plan.TopNNode;
-import io.crate.planner.symbol.SymbolVisitor;
-import io.crate.planner.symbol.TopN;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,27 +21,18 @@ public abstract class LocalTopNTask implements Task<Object[][]> {
     protected List<ListenableFuture<Object[][]>> upstreamResults;
     private RowCollector<Object[][]> collector;
 
-    class Visitor extends SymbolVisitor<Void, Void> {
-
-        @Override
-        public Void visitTopN(TopN symbol, Void context) {
-            if (symbol.isOrdered()) {
-                collector = new SortingRangeCollector(symbol.offset(), symbol.limit(),
-                        symbol.orderBy(), symbol.reverseFlags(), input);
-            } else {
-                collector = new SimpleRangeCollector(symbol.offset(), symbol.limit(), input);
-            }
-            return null;
-        }
-    }
-
     public LocalTopNTask(TopNNode node) {
         this.planNode = node;
-        Visitor v = new Visitor();
         // TODO: remove the PassThroughExpression here, since in the end we will need an input per column
         // anyways in order to evaluate aritmetics etc.
         this.input = new PassThroughExpression();
-        v.processSymbols(node, null);
+
+        if (node.isOrdered()) {
+            collector = new SortingRangeCollector(node.offset(), node.limit(),
+                    node.orderBy(), node.reverseFlags(), input);
+        } else {
+            collector = new SimpleRangeCollector(node.offset(), node.limit(), input);
+        }
     }
 
 
