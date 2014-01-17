@@ -159,6 +159,13 @@ License: MIT (https://github.com/quirkey/sammy/blob/master/LICENSE)
 
 =========================================================================
 
+Various Components of Lovely Systems GmbH
+http://www.lovelysystems.com
+Copyright Lovely Systems GmbH
+License: Apache 2.0 (http://www.apache.org/licenses)
+
+=========================================================================
+
 SQL-Parser (Presto)
 https://github.com/facebook/presto
 developed by Facebook (http://www.facebook.com)
@@ -166,12 +173,11 @@ License: Apache License v2 (http://www.apache.org/licenses)
 
 =========================================================================
 
-SQL-Parser (FoundationDB)
+SQL-Parser (FoundationDB), aka Akiban
 https://github.com/FoundationDB/sql-parser
 developed by FoundationDB (http://www.foundationdb.com/)
+Copyright 2011-2013 Akiban Technologies, Inc.
 License: Apache License v2 (http://www.apache.org/licenses)
-
-
 
 =========================================================================
 
