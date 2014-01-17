@@ -41,6 +41,8 @@ public abstract class LocalTopNTask implements Task<Object[][]> {
     public LocalTopNTask(TopNNode node) {
         this.planNode = node;
         Visitor v = new Visitor();
+        // TODO: remove the PassThroughExpression here, since in the end we will need an input per column
+        // anyways in order to evaluate aritmetics etc.
         this.input = new PassThroughExpression();
         v.processSymbols(node, null);
     }
