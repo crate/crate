@@ -243,6 +243,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
                 }
         );
         refresh();
+        ensureGreen();
         execute("select title, author['dead'] from ot order by author['dead'] desc");
         assertEquals(3, response.rowCount());
         assertEquals("Life, the Universe and Everything", response.rows()[0][0]);

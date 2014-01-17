@@ -94,7 +94,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
             try {
                 uri = new URI(request.getUri());
             } catch (URISyntaxException ex) {
-                // e.g. url like "localhost:9200//" throws exception
+                // e.g. url like "localhost:4200//" throws exception
                 // sendUpstream so that regular ES status is returned
                 ctx.sendUpstream(e);
                 return;

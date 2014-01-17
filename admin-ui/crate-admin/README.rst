@@ -4,8 +4,8 @@
 
 A web based admin interface for crate.
 
-Accessible via http://localhost:9200/admin or by the classic site
-plugin url http://localhost:9200/_plugin/crate-admin/
+Accessible via http://localhost:4200/admin or by the classic site
+plugin url http://localhost:4200/_plugin/crate-admin/
 
 
 Installation
@@ -64,7 +64,7 @@ test-server does not provide this API. To make sure the app will make
 it's API requests to a proper elasticsearch endpoint pass the optional
 ``prefix`` parameter pointing to a running elasticsearch instance.
 
- $ open http://localhost:9000/#/?prefix=http://localhost:9200
+ $ open http://localhost:9000/#/?prefix=http://localhost:4200
 
 
 running tests

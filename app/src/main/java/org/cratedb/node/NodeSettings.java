@@ -2,8 +2,10 @@ package org.cratedb.node;
 
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.env.Environment;
+import org.elasticsearch.env.FailedToResolveConfigException;
+
+import java.net.URL;
 
 public class NodeSettings {
 
@@ -20,7 +22,12 @@ public class NodeSettings {
         Environment environment = new Environment(settingsBuilder.build());
         if (System.getProperty("es.config") == null && System.getProperty("elasticsearch.config") == null) {
             // no explicit config path set
-            settingsBuilder.loadFromUrl(environment.resolveConfig("crate.yml"));
+            try {
+                URL crateConfigUrl = environment.resolveConfig("crate.yml");
+                settingsBuilder.loadFromUrl(crateConfigUrl);
+            } catch (FailedToResolveConfigException e) {
+                // ignore
+            }
         }
 
         // Forbid DELETE on '/' aka. deleting all indices

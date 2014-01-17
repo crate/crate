@@ -9,7 +9,7 @@ elasticsearch-head
 
 A web front end for an Elasticsearch cluster
 
-:Endpoint: http://localhost:9200/_plugin/head
+:Endpoint: http://localhost:4200/_plugin/head
 
 :Website: http://mobz.github.io/elasticsearch-head/
 
@@ -18,7 +18,7 @@ bigdesk
 
 Live charts and statistics for Elasticsearch cluster.
 
-:Endpoint: http://localhost:9200/_plugin/bigdesk
+:Endpoint: http://localhost:4200/_plugin/bigdesk
 
 :Website: http://bigdesk.org/
 
@@ -28,7 +28,7 @@ segmentspy
 
 Elasticsearch plugin to watch segment dynamics (additions, merges, deletes)
 
-:Endpoint: http://localhost:9200/_plugin/segmentspy
+:Endpoint: http://localhost:4200/_plugin/segmentspy
 
 :Website: https://github.com/polyfractal/elasticsearch-segmentspy
 

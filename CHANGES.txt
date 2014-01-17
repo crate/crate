@@ -5,6 +5,28 @@ Changes for Crate
 Unreleased
 ==========
 
+ - only log tracebacks with debug-level when udc failed
+
+2014/01/15 0.21.1
+=================
+
+ - fix Double URL encoding of udc parameters
+
+ - fix NPE on close of UDCService
+
+2014/01/15 0.21.0
+=================
+
+ - changed default port ranges for http to 4200-4300 and for transport 4300-4400
+
+ - added ssl truststore including StartCom CA, fixes UDC
+
+ - fixed default cluster name (especially on linux platforms)
+
+ - implemented UDC module
+
+ - implemented generation of an unique ClusterId on cluster start-up
+
  - added parameter expressions to presto based sql-parser
 
  - added support for subscript expressions to the new presto based sql-parser

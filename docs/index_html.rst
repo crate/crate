@@ -22,4 +22,5 @@ Contents
    sql/index
    blob
    3rd-party-plugins
+   udc
    clients
