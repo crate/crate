@@ -83,7 +83,12 @@ public class TransportCollectNodeAction {
     private NodeCollectResponse nodeOperation(NodeCollectRequest request) throws CrateException {
         CollectNode node = request.collectNode();
 
-        // TODO: generate real result
+        // TODO:
+        // node.routing  -> node operation / index operation / shard operation?
+
+
+        // LocalCollectTask
+        // Object[][] result = collectTask.result();
         Object[][] result = new Object[][] { new Object[] { 0.4 }};
 
         NodeCollectResponse response = new NodeCollectResponse(extractStreamers(node.outputs()));

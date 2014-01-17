@@ -57,4 +57,8 @@ public class AggregationCollector implements RowCollector {
         aggregationState.terminatePartial();
         return aggregationState.value();
     }
+
+    public AggregationState state() {
+        return aggregationState;
+    }
 }
