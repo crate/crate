@@ -32,7 +32,7 @@ public class Binder {
         statement.accept(rewritingVisitor, context);
     }
 
-    class TableBindingVisitor extends DefaultTraversalVisitor<Object, BindingContext> {
+    static class TableBindingVisitor extends DefaultTraversalVisitor<Object, BindingContext> {
 
         @Override
         protected Object visitTable(Table node, BindingContext context) {
@@ -42,7 +42,7 @@ public class Binder {
         }
     }
 
-    class DataTypeGatherer extends DefaultTraversalVisitor<DataType, BindingContext> {
+    static class DataTypeGatherer extends DefaultTraversalVisitor<DataType, BindingContext> {
 
         SubscriptVisitor visitor = new SubscriptVisitor();
 
