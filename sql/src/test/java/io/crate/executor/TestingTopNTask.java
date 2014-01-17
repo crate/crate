@@ -4,19 +4,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.executor.task.LocalAggregationTask;
-import io.crate.metadata.Functions;
-import io.crate.planner.plan.AggregationNode;
+import io.crate.executor.task.LocalTopNTask;
+import io.crate.planner.plan.TopNNode;
 
 import java.util.List;
 
-public class TestAggregationTask extends LocalAggregationTask {
+public class TestingTopNTask extends LocalTopNTask {
 
     private final SettableFuture<Object[][]> result = SettableFuture.create();
-    List<ListenableFuture<Object[][]>> results = ImmutableList.of((ListenableFuture<Object[][]>) result);
+    private final List<ListenableFuture<Object[][]>> results = ImmutableList.of((ListenableFuture<Object[][]>) result);
 
-    public TestAggregationTask(AggregationNode node, Functions functions) {
-        super(node, functions);
+    public TestingTopNTask(TopNNode node) {
+        super(node);
     }
 
     @Override
@@ -46,6 +45,4 @@ public class TestAggregationTask extends LocalAggregationTask {
     public List<ListenableFuture<Object[][]>> result() {
         return results;
     }
-
-
 }

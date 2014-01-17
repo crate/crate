@@ -28,7 +28,7 @@ import java.util.*;
 import static junit.framework.TestCase.assertNotNull;
 import static org.junit.Assert.assertEquals;
 
-public class TestJobExecutor {
+public class JobExecutorTest {
 
     CollectNode collector;
     private Injector injector;
@@ -202,7 +202,7 @@ public class TestJobExecutor {
                 visitSources(node, context);
                 System.out.println("aggregationNode: " + node + " previous: " + context.previous);
 
-                LocalAggregationTask task = new TestAggregationTask(node, context.functions);
+                LocalAggregationTask task = new TestingAggregationTask(node, context.functions);
                 task.upstreamResult(context.previousTask.result());
                 context.job.addTask(task);
                 return task;
@@ -212,7 +212,7 @@ public class TestJobExecutor {
             public Task visitTopNNode(TopNNode node, Context context) {
                 visitSources(node, context);
                 System.out.println("TOPNNode: " + node + " previous: " + context.previous);
-                TestTopNTask task = new TestTopNTask(node);
+                TestingTopNTask task = new TestingTopNTask(node);
                 task.upstreamResult(context.previousTask.result());
                 context.job.addTask(task);
                 return task;

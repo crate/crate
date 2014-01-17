@@ -1,7 +1,7 @@
 package io.crate.operator.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.executor.TestAggregationTask;
+import io.crate.executor.TestingAggregationTask;
 import io.crate.executor.task.LocalAggregationTask;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operator.aggregation.AggregationTest;
@@ -88,7 +88,7 @@ public class CountAggregationTest extends AggregationTest {
         aggregationNode.symbols(agg);
         aggregationNode.outputs(agg);
 
-        LocalAggregationTask task = new TestAggregationTask(aggregationNode, functions);
+        LocalAggregationTask task = new TestingAggregationTask(aggregationNode, functions);
         task.upstreamResult(results);
         task.start();
 
