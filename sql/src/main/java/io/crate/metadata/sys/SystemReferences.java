@@ -36,4 +36,11 @@ public class SystemReferences {
                 type));
     }
 
+    public static ReferenceInfo registerNodeReference(String column, DataType type) {
+        return register(new ReferenceInfo(
+                new ReferenceIdent(NODES_IDENT, column),
+                RowGranularity.NODE,
+                type));
+    }
+
 }
