@@ -4,12 +4,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
-import io.crate.executor.transport.NodesCollectRequest;
-import io.crate.executor.transport.NodesCollectResponse;
+import io.crate.executor.transport.NodeCollectRequest;
+import io.crate.executor.transport.NodeCollectResponse;
 import io.crate.executor.transport.TransportCollectNodeAction;
 import io.crate.planner.plan.CollectNode;
-import io.crate.planner.plan.Routing;
-import io.crate.planner.symbol.SymbolVisitor;
 import org.elasticsearch.action.ActionListener;
 
 import java.util.ArrayList;
@@ -45,23 +43,26 @@ public class RemoteCollectTask implements Task<Object[][]> {
 
     @Override
     public void start() {
-        transportCollectNodeAction.execute(
-                new NodesCollectRequest(collectNode, nodeIds),
-                new ActionListener<NodesCollectResponse>() {
-                    @Override
-                    public void onResponse(NodesCollectResponse nodesCollectResponse) {
-                        for (int i = 0; i < nodesCollectResponse.getNodes().length; i++) {
-                            SettableFuture<Object[][]> settableFuture = (SettableFuture<Object[][]>) result.get(i);
-                            settableFuture.set(nodesCollectResponse.getAt(i).value());
+        NodeCollectRequest request = new NodeCollectRequest(collectNode);
+        for (int i = 0; i < nodeIds.length; i++) {
+            final int resultIdx = i;
+
+            transportCollectNodeAction.execute(
+                    nodeIds[i],
+                    request,
+                    new ActionListener<NodeCollectResponse>() {
+                        @Override
+                        public void onResponse(NodeCollectResponse response) {
+                            ((SettableFuture<Object[][]>)result.get(resultIdx)).set(response.rows());
+                        }
+
+                        @Override
+                        public void onFailure(Throwable e) {
+                            ((SettableFuture<Object[][]>)result.get(resultIdx)).setException(e);
                         }
                     }
-
-                    @Override
-                    public void onFailure(Throwable e) {
-                        // TODO:
-                    }
-                }
-        );
+            );
+        }
     }
 
     @Override

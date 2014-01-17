@@ -64,11 +64,16 @@ public class Routing implements Streamable {
 
         for (Map.Entry<String, Map<String, Integer>> entry : locations.entrySet()) {
             out.writeString(entry.getKey());
-            out.writeVInt(entry.getValue().size());
 
-            for (Map.Entry<String, Integer> innerEntry : entry.getValue().entrySet()) {
-                out.writeString(innerEntry.getKey());
-                out.writeVInt(innerEntry.getValue());
+            if (entry.getValue() == null) {
+                out.writeVInt(0);
+            } else {
+
+                out.writeVInt(entry.getValue().size());
+                for (Map.Entry<String, Integer> innerEntry : entry.getValue().entrySet()) {
+                    out.writeString(innerEntry.getKey());
+                    out.writeVInt(innerEntry.getValue());
+                }
             }
         }
     }

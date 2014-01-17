@@ -1,5 +1,6 @@
 package io.crate.executor.transport;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.Executor;
 import io.crate.executor.Job;
 import io.crate.executor.Task;
@@ -18,7 +19,7 @@ public class TransportExecutor implements Executor {
     }
 
     @Override
-    public List execute(Job job) {
+    public List<ListenableFuture<Object[][]>> execute(Job job) {
         assert job.tasks().size() > 0;
 
         Task lastTask = null;
