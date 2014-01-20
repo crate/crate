@@ -26,8 +26,9 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Objects;
 
-public class StringLiteral extends ValueSymbol {
+public class StringLiteral extends Literal {
 
     public static final SymbolFactory<StringLiteral> FACTORY = new SymbolFactory<StringLiteral>() {
         @Override
@@ -51,13 +52,18 @@ public class StringLiteral extends ValueSymbol {
     }
 
     @Override
+    public String value() {
+        return value;
+    }
+
+    @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitStringLiteral(this, context);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        String value = in.readOptionalString();
+        value = in.readOptionalString();
     }
 
     @Override
@@ -68,5 +74,19 @@ public class StringLiteral extends ValueSymbol {
     @Override
     public DataType valueType() {
         return DataType.STRING;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        StringLiteral that = (StringLiteral) o;
+        return Objects.equals(value, that.value);
+    }
+
+    @Override
+    public int hashCode() {
+        return value != null ? value.hashCode() : 0;
     }
 }

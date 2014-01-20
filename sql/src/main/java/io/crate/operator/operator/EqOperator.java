@@ -21,21 +21,20 @@
 
 package io.crate.operator.operator;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 
-public class EqOperator implements FunctionImplementation {
+import java.util.Objects;
+
+
+public class EqOperator implements Operator {
 
     public static final String NAME = "op_eq";
     private final FunctionInfo info;
-
-    @Override
-    public FunctionInfo info() {
-        return info;
-    }
 
     public static void register(OperatorModule module) {
         module.registerOperatorFunction(
@@ -45,6 +44,29 @@ public class EqOperator implements FunctionImplementation {
                         false)
                 )
         );
+        module.registerOperatorFunction(
+                new EqOperator(new FunctionInfo(
+                        new FunctionIdent(NAME, ImmutableList.of(DataType.DOUBLE, DataType.DOUBLE)),
+                        DataType.BOOLEAN,
+                        false)
+                )
+        );
+    }
+
+    @Override
+    public FunctionInfo info() {
+        return info;
+    }
+
+    @Override
+    public Symbol optimizeSymbol(Symbol symbol) {
+        Preconditions.checkNotNull(symbol);
+        Preconditions.checkArgument(symbol.symbolType() == SymbolType.FUNCTION);
+        Function function = (Function)symbol;
+        Preconditions.checkArgument(function.arguments().size() == 2);
+
+        return new BooleanLiteral(
+                Objects.equals(function.arguments().get(0), function.arguments().get(1)));
     }
 
     EqOperator(FunctionInfo info) {

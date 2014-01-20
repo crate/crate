@@ -46,6 +46,4 @@ public abstract class SysObjectReference<ChildType> extends SysExpression<Map<St
         }
         return builder.build();
     }
-
-
 }

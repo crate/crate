@@ -29,6 +29,9 @@ public enum SymbolType {
     VALUE(Value.FACTORY),
     FUNCTION(Function.FACTORY),
     STRING_LITERAL(StringLiteral.FACTORY),
+    DOUBLE_LITERAL(DoubleLiteral.FACTORY),
+    BOOlEAN_LITERAL(BooleanLiteral.FACTORY),
+    INTEGER_LITERAL(IntegerLiteral.FACTORY),
     INPUT_COLUMN(InputColumn.FACTORY);
 
     private final Symbol.SymbolFactory factory;

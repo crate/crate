@@ -21,21 +21,22 @@
 
 package io.crate.operator.operator;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.planner.symbol.BooleanLiteral;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolType;
 import org.cratedb.DataType;
 
-public class NotEqOperator implements FunctionImplementation {
+import java.util.Objects;
+
+public class NotEqOperator implements Operator {
 
     public static final String NAME = "op_neq";
     private final FunctionInfo info;
-
-    @Override
-    public FunctionInfo info() {
-        return info;
-    }
 
     public static void register(OperatorModule module) {
         module.registerOperatorFunction(
@@ -48,5 +49,23 @@ public class NotEqOperator implements FunctionImplementation {
 
     NotEqOperator(FunctionInfo info) {
         this.info = info;
+    }
+
+    @Override
+    public FunctionInfo info() {
+        return info;
+    }
+
+    @Override
+    public Symbol optimizeSymbol(Symbol symbol) {
+        Preconditions.checkNotNull(symbol);
+        Preconditions.checkArgument(symbol.symbolType() == SymbolType.FUNCTION);
+
+        Function function = (Function)symbol;
+        Preconditions.checkArgument(function.arguments().size() == 2);
+
+        return new BooleanLiteral(
+                !(Objects.equals(function.arguments().get(0), function.arguments().get(1)))
+        );
     }
 }

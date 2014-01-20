@@ -1,8 +1,8 @@
 package io.crate.planner.symbol;
 
+import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionInfo;
 import org.cratedb.DataType;
-import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -23,6 +23,7 @@ public class Function extends ValueSymbol {
     private FunctionInfo info;
 
     public Function(FunctionInfo info, List<ValueSymbol> arguments) {
+        Preconditions.checkNotNull(info);
         Preconditions.checkArgument(arguments.size() == info.ident().argumentTypes().size());
         this.info = info;
         this.arguments = arguments;
@@ -34,6 +35,10 @@ public class Function extends ValueSymbol {
 
     public List<ValueSymbol> arguments() {
         return arguments;
+    }
+
+    public void setArgument(int index, ValueSymbol symbol) {
+        arguments.set(index, symbol);
     }
 
     public FunctionInfo info() {
@@ -74,5 +79,10 @@ public class Function extends ValueSymbol {
         for (ValueSymbol argument : arguments) {
             Symbol.toStream(argument, out);
         }
+    }
+
+    @Override
+    public String toString() {
+        return info.ident().name();
     }
 }

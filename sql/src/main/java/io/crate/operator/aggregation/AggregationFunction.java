@@ -23,6 +23,7 @@ package io.crate.operator.aggregation;
 
 import io.crate.metadata.FunctionImplementation;
 import io.crate.operator.Input;
+import io.crate.planner.symbol.Symbol;
 
 import java.util.List;
 
@@ -46,4 +47,8 @@ public abstract class AggregationFunction<T extends AggregationState> implements
      */
     public abstract T newState();
 
+    @Override
+    public Symbol optimizeSymbol(Symbol symbol) {
+        return symbol;
+    }
 }
