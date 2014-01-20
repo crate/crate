@@ -240,8 +240,8 @@
 # gateway.type: local
 
 # Settings below control how and when to start the initial recovery process on
-# a full cluster restart (to reuse as much local data as possible when using shared
-# gateway).
+# a full cluster restart (to reuse as much local data as possible when
+# using shared gateway).
 
 # Allow recovery process after N nodes in a cluster are up:
 #
@@ -277,7 +277,7 @@
 
 # Set to throttle throughput when recovering (eg. 100mb, by default unlimited):
 #
-# indices.recovery.max_size_per_sec: 0
+# indices.recovery.max_size_per_sec: 20mb
 
 # Set to limit the number of open concurrent streams when
 # recovering a shard from a peer:
@@ -291,8 +291,8 @@
 # and master node is elected. Multicast discovery is the default.
 
 # Set to ensure a node sees N other master eligible nodes to be considered
-# operational within the cluster. Set this option to a higher value (2-4)
-# for large clusters (>3 nodes):
+# operational within the cluster. Its recommended to set it to a higher value
+# than 1 when running more than 2 nodes in the cluster.
 #
 # discovery.zen.minimum_master_nodes: 1
 
@@ -313,7 +313,7 @@
 # 2. Configure an initial list of master nodes in the cluster
 #    to perform discovery when new nodes (master or data) are started:
 #
-# discovery.zen.ping.unicast.hosts: ["host1", "host2:port", "host3[portX-portY]"]
+# discovery.zen.ping.unicast.hosts: ["host1", "host2:port"]
 
 
 ################################## Slow Log ##################################
