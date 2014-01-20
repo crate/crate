@@ -75,11 +75,15 @@
 # bigdesk [http://localhost:4200/_plugin/bigdesk/] and
 # segmentspy [http://localhost:4200/_plugin/segmentspy/].
 
+# A node can have generic attributes associated with it, which can later be
+# used for customized shard allocation filtering, or allocation awareness.
+# An attribute is a simple key value pair, similar to node.key: value, here is
+# an example:
 #
 # node.rack: rack314
 
-# By default, multiple nodes are allowed to start from the same installation location
-# to disable it, set the following:
+# By default, multiple nodes are allowed to start from the same installation
+# location to disable it, set the following:
 # node.max_local_storage_nodes: 1
 
 
