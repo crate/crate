@@ -36,6 +36,10 @@ public class Function extends ValueSymbol {
         return arguments;
     }
 
+    public FunctionInfo info() {
+        return info;
+    }
+
     @Override
     public DataType valueType() {
         return info.returnType();
