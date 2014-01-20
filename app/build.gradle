@@ -56,7 +56,8 @@ dependencies {
     compile project(':inout')
     compile project(':blob')
     compile project(':udc')
-    testCompile 'com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.0.10'
+
+    testCompile 'com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.0.15'
 }
 
 installDist.dependsOn(jar, ":docs:sphinx")

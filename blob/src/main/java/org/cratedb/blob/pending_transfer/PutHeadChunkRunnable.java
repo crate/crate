@@ -79,9 +79,9 @@ public class PutHeadChunkRunnable implements Runnable {
 
 
         } catch (FileNotFoundException ex) {
-            logger.error("Can't send HeadChunk - file not found", ex, null);
+            logger.error("Can't send HeadChunk - file not found", ex);
         } catch (IOException ex) {
-            logger.error("IOException in PutHeadChunkRunnable", ex, null);
+            logger.error("IOException in PutHeadChunkRunnable", ex);
         } finally {
             blobTransferTarget.putHeadChunkTransferFinished(transferId);
         }
@@ -112,9 +112,9 @@ public class PutHeadChunkRunnable implements Runnable {
                 }
             }
         } catch (IOException ex) {
-            return;
+            // ignore
         } catch (InterruptedException ex) {
-            return;
+            // ignore
         }
     }
 

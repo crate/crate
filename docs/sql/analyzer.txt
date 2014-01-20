@@ -977,6 +977,17 @@ normalization
 ``type='arabic_normalization'`` or ``type='persian_normalization'``
 
 
+.. _typeaspayload-tokenfilter:
+
+type_as_payload
+---------------
+
+``type='type_as_payload'``
+
+Stores the type of every single token encoded as UTF-8 String as additional payload.
+This is currently not usable from within crate, so it has no effect on how fulltext search
+works on your tables.
+
 .. _builtin-char-filter:
 
 Builtin Char Filter

@@ -1,5 +1,6 @@
 package org.cratedb.information_schema;
 
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
@@ -58,8 +59,8 @@ public class TableConstraintsTable extends AbstractInformationSchemaTable {
         StringField constraintName = new StringField(Columns.CONSTRAINT_NAME, "", Field.Store.YES);
         StringField constraintType = new StringField(Columns.CONSTRAINT_TYPE, "", Field.Store.YES);
 
-        for (IndexMetaData indexMetaData : clusterState.metaData().indices().values()) {
-            IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(indexMetaData);
+        for (ObjectCursor<IndexMetaData> cursor : clusterState.metaData().indices().values()) {
+            IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(cursor.value);
             // ignore closed indices
             if (extractor.isIndexClosed()) {
                 continue;

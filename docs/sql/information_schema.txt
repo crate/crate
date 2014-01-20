@@ -182,7 +182,7 @@ You can use this table to see e.g. what builtin tokenizers exist::
     | 45       | ANALYZER     |
     | 4        | CHAR_FILTER  |
     | 13       | TOKENIZER    |
-    | 43       | TOKEN_FILTER |
+    | 44       | TOKEN_FILTER |
     +----------+--------------+
     SELECT 4 rows in set (... sec)
 

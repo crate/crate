@@ -209,7 +209,7 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectNonExistingColumn() throws Exception {
         exec("select routine_non_existing from information_schema.routines");
-        assertEquals(102L, response.rowCount());
+        assertEquals(103L, response.rowCount());
         assertEquals("routine_non_existing", response.cols()[0]);
         for (int i=0; i<response.rows().length;i++) {
             assertNull(response.rows()[i][0]);
@@ -220,7 +220,7 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
     public void selectNonExistingAndExistingColumns() throws Exception {
         exec("select \"unknown\", routine_name from information_schema.routines order by " +
                 "routine_name asc");
-        assertEquals(102L, response.rowCount());
+        assertEquals(103L, response.rowCount());
         assertArrayEquals(new String[]{"unknown", "routine_name"}, response.cols());
 
         for (int i=0; i<response.rows().length;i++) {
@@ -237,7 +237,7 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
     @Test
     public void selectWhereNonExistingColumnIsNull() throws Exception {
         exec("select * from information_schema.routines where something IS NULL");
-        assertEquals(102L, response.rowCount());  // something does not exist,
+        assertEquals(103L, response.rowCount());  // something does not exist,
         // so we get all documents
     }
 

@@ -14,7 +14,7 @@ whereby the statement is sent as value associated to the key `stmt`".
 
 A simple `SELECT` statement can be submitted like this::
 
-    sh$ curl -sSXPOST 'localhost:44200/_sql?pretty' -d '{
+    sh$ curl -sSXPOST '127.0.0.1:44200/_sql?pretty' -d '{
     ... "stmt":"select name, position from locations order by id limit 2"
     ... }'
     {
@@ -34,7 +34,7 @@ etc.) or unnumbered using a question mark `?`
 The placeholders will then be substituted with values from an array that is
 expected under the `args` key::
 
-    sh$ curl -sSXPOST 'localhost:44200/_sql?pretty' -d@- <<- EOF
+    sh$ curl -sSXPOST '127.0.0.1:44200/_sql?pretty' -d@- <<- EOF
     ... {"stmt":
     ...     "select date,position from locations
     ...     where date <= \$1 and position < \$2 order by position",
@@ -55,7 +55,7 @@ expected under the `args` key::
 
 The same query using question marks as placeholders looks like this::
 
-    sh$ curl -sSXPOST 'localhost:44200/_sql?pretty' -d@- <<- EOF
+    sh$ curl -sSXPOST '127.0.0.1:44200/_sql?pretty' -d@- <<- EOF
     ... {"stmt":
     ...     "select date,position from locations
     ...     where date <= ? and position < ? order by position",
@@ -79,7 +79,7 @@ cases additional arguments that are specific to the error code.
 Client libraries should use the error code to translate the error into an
 appropriate exception::
 
-    sh$ curl -sSXPOST 'localhost:44200/_sql?pretty' -d '{
+    sh$ curl -sSXPOST '127.0.0.1:44200/_sql?pretty' -d '{
     ... "stmt":"select name, position"
     ... }'
     {
@@ -92,7 +92,7 @@ appropriate exception::
 To get more insight into what exactly went wrong an additional `error_trace`
 GET parameter can be specified to return the stack trace::
 
-    sh$ curl -sSXPOST 'localhost:44200/_sql?pretty&error_trace=True' -d '{
+    sh$ curl -sSXPOST '127.0.0.1:44200/_sql?pretty&error_trace=True' -d '{
     ... "stmt":"select name, position"
     ... }'
     {

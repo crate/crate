@@ -152,7 +152,9 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     public void testSelectIncludingUnassignedShards() throws Exception {
         execute("create table locations (id integer primary key, name string) replicas 2");
         refresh();
-        ensureYellow();
+
+        client().admin().cluster().prepareHealth("locations").setWaitForYellowStatus().execute().actionGet();
+
         execute("select * from stats.shards order by state");
         assertEquals(35L, response.rowCount());
         assertEquals(9, response.cols().length);
