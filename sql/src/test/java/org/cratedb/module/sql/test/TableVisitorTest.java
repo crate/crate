@@ -128,6 +128,9 @@ public class TableVisitorTest {
             put("_meta", new HashMap<String, String>(){{
                 put("primary_keys", "pk_col");
             }});
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
             put("properties", new HashMap<String, Object>(){{
                 put("pk_col", new HashMap<String, Object>(){{
                     put("type", "integer");
@@ -166,6 +169,9 @@ public class TableVisitorTest {
             put("_meta", new HashMap<String, String>(){{
                 put("primary_keys", "pk_col");
             }});
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
             put("properties", new HashMap<String, Object>(){{
                 put("pk_col", new HashMap<String, Object>(){{
                     put("type", "integer");
@@ -198,6 +204,9 @@ public class TableVisitorTest {
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
             put("_meta", new HashMap<String, String>(){{
                 put("primary_keys", "pk_col");
+            }});
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
             }});
             put("properties", new HashMap<String, Object>(){{
                 put("pk_col", new HashMap<String, Object>(){{
@@ -246,6 +255,9 @@ public class TableVisitorTest {
         execStatement("create table phrases (phrase string index using plain)");
 
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
             put("properties", new HashMap<String, Object>(){{
                 put("phrase", new HashMap<String, Object>(){{
                     put("type", "string");
@@ -263,6 +275,9 @@ public class TableVisitorTest {
         execStatement("create table phrases (phrase string index using fulltext)");
 
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
             put("properties", new HashMap<String, Object>(){{
                 put("phrase", new HashMap<String, Object>(){{
                     put("type", "string");
@@ -281,6 +296,9 @@ public class TableVisitorTest {
         execStatement("create table phrases (phrase string index off)");
 
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
             put("properties", new HashMap<String, Object>(){{
                 put("phrase", new HashMap<String, Object>(){{
                     put("type", "string");
@@ -299,6 +317,9 @@ public class TableVisitorTest {
                 "with (analyzer='german'))");
 
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
             put("properties", new HashMap<String, Object>(){{
                 put("phrase", new HashMap<String, Object>(){{
                     put("type", "string");
@@ -318,6 +339,9 @@ public class TableVisitorTest {
                 "with (analyzer='tabletest'))");
 
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
             put("properties", new HashMap<String, Object>(){{
                 put("phrase", new HashMap<String, Object>(){{
                     put("type", "string");
@@ -376,6 +400,9 @@ public class TableVisitorTest {
                 "index phrase_fulltext using fulltext(phrase))");
 
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
             put("properties", new HashMap<String, Object>(){{
                 put("phrase", new HashMap<String, Object>(){{
                     put("type", "multi_field");
@@ -406,6 +433,9 @@ public class TableVisitorTest {
                 "index phrase_fulltext using fulltext(phrase) with(analyzer='german'))");
 
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
             put("properties", new HashMap<String, Object>(){{
                 put("phrase", new HashMap<String, Object>(){{
                     put("type", "multi_field");
@@ -436,6 +466,9 @@ public class TableVisitorTest {
                 "index phrase_fulltext using fulltext(phrase) with(analyzer='tabletest'))");
 
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
             put("properties", new HashMap<String, Object>(){{
                 put("phrase", new HashMap<String, Object>(){{
                     put("type", "multi_field");
@@ -487,6 +520,9 @@ public class TableVisitorTest {
                 "phrase string)");
 
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
             put("properties", new HashMap<String, Object>(){{
                 put("phrase", new HashMap<String, Object>(){{
                     put("type", "multi_field");
@@ -518,6 +554,9 @@ public class TableVisitorTest {
                 "with(analyzer='german'))");
 
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
             put("properties", new HashMap<String, Object>(){{
                 put("title", new HashMap<String, Object>(){{
                     put("type", "multi_field");
@@ -563,6 +602,9 @@ public class TableVisitorTest {
     public void testCreateTableWithImplicitDynamicObject() throws Exception {
         execStatement("create table chapters (title string, stuff object)");
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
             put("properties", new HashMap<String, Object>(){{
                 put("title", new HashMap<String, Object>(){{
                     put("type", "string");
@@ -582,6 +624,9 @@ public class TableVisitorTest {
     public void testCreateTableWIthExplicitDynamicObject() throws Exception {
         execStatement("create table chapters (title string, stuff object(dynamic))");
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
             put("properties", new HashMap<String, Object>(){{
                 put("title", new HashMap<String, Object>(){{
                     put("type", "string");
@@ -601,6 +646,9 @@ public class TableVisitorTest {
     public void testCreateTableWithExplicitObjects() throws Exception {
         execStatement("create table chapters (title string, stuff object(strict), stuff2 object(ignored))");
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
             put("properties", new HashMap<String, Object>(){{
                 put("title", new HashMap<String, Object>(){{
                     put("type", "string");
@@ -626,6 +674,9 @@ public class TableVisitorTest {
                 "name string," +
                 "birthday timestamp))");
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
             put("properties", new HashMap<String, Object>(){{
                 put("title", new HashMap<String, Object>(){{
                     put("type", "string");
@@ -668,6 +719,9 @@ public class TableVisitorTest {
                 " )" +
                 ")");
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
             put("properties", new HashMap<String, Object>(){{
                 put("title", new HashMap<String, Object>(){{
                     put("type", "string");
@@ -723,6 +777,9 @@ public class TableVisitorTest {
                 " )" +
                 ")");
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
             put("properties", new HashMap<String, Object>(){{
                 put("title", new HashMap<String, Object>(){{
                     put("type", "multi_field");
@@ -789,6 +846,9 @@ public class TableVisitorTest {
                 " index ft using fulltext(title, author['name'])" +
                 ")");
         Map<String, Object> expectedMapping = new HashMap<String, Object>(){{
+            put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
             put("properties", new HashMap<String, Object>(){{
                 put("title", new HashMap<String, Object>(){{
                     put("type", "multi_field");

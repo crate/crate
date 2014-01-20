@@ -333,6 +333,10 @@ public class TableVisitor extends BaseVisitor {
                 mapping.put("_meta", mappingMeta);
             }
             mapping.put("properties", mappingProperties);
+            // disable _all fields
+            mapping.put("_all", new HashMap<String, Boolean>(){{
+                put("enabled", false);
+            }});
         }
         return mapping;
     }
