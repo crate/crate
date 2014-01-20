@@ -101,14 +101,14 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
     public void readFrom(StreamInput in) throws IOException {
         ident = new ReferenceIdent();
         ident.readFrom(in);
-        type = DataType.readFrom(in);
+        type = DataType.fromStream(in);
         granularity = RowGranularity.fromStream(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         ident.writeTo(out);
-        DataType.writeTo(type, out);
+        DataType.toStream(type, out);
         RowGranularity.toStream(granularity, out);
     }
 }

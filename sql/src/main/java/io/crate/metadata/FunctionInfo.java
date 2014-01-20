@@ -28,14 +28,22 @@ import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ComparisonChain;
 import org.cratedb.DataType;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Streamable;
 
-public class FunctionInfo
-        implements Comparable<FunctionInfo> {
+import java.io.IOException;
 
-    private final FunctionIdent ident;
-    private final DataType returnType;
-    private final boolean isAggregate;
-    private final boolean deterministic;
+public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
+
+    private FunctionIdent ident;
+    private DataType returnType;
+    private boolean isAggregate;
+    private boolean deterministic;
+
+    public FunctionInfo() {
+
+    }
 
     public FunctionInfo(FunctionIdent ident, DataType returnType, boolean isAggregate) {
         this.ident = ident;
@@ -107,5 +115,23 @@ public class FunctionInfo
                 return functionInfo.isAggregate();
             }
         };
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        ident = new FunctionIdent();
+        ident.readFrom(in);
+
+        returnType = DataType.fromStream(in);
+        isAggregate = in.readBoolean();
+        deterministic = in.readBoolean();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        ident.writeTo(out);
+        DataType.toStream(returnType, out);
+        out.writeBoolean(isAggregate);
+        out.writeBoolean(deterministic);
     }
 }

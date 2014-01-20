@@ -98,7 +98,7 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
         argumentTypes = new ArrayList<>(numTypes);
 
         for (int i = 0; i < numTypes; i++) {
-            argumentTypes.add(DataType.readFrom(in));
+            argumentTypes.add(DataType.fromStream(in));
         }
     }
 
@@ -108,7 +108,7 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
         out.writeVInt(argumentTypes.size());
 
         for (DataType argumentType : argumentTypes) {
-            DataType.writeTo(argumentType, out);
+            DataType.toStream(argumentType, out);
         }
     }
 }

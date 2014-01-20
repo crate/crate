@@ -62,11 +62,11 @@ public class Value extends ValueSymbol {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        type = DataType.readFrom(in);
+        type = DataType.fromStream(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        DataType.writeTo(type, out);
+        DataType.toStream(type, out);
     }
 }

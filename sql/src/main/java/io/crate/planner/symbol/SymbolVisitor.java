@@ -58,4 +58,7 @@ public class SymbolVisitor<C, R> {
         return visitSymbol(symbol, context);
     }
 
+    public R visitFunction(Function function, C context) {
+        return visitSymbol(function, context);
+    }
 }

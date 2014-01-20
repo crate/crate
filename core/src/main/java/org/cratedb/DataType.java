@@ -168,11 +168,11 @@ public enum DataType {
         return name;
     }
 
-    public static DataType readFrom(StreamInput in) throws IOException {
+    public static DataType fromStream(StreamInput in) throws IOException {
         return DataType.values()[in.readVInt()];
     }
 
-    public static void writeTo(DataType type, StreamOutput out) throws IOException {
+    public static void toStream(DataType type, StreamOutput out) throws IOException {
         out.writeVInt(type.ordinal());
     }
 
