@@ -128,7 +128,7 @@
 # by using the Index Update Settings API.
 # The "number_of_shards" is a one-time setting for a table.
 #
-# ElasticSearch takes care about load balancing, relocating, gathering the
+# Crate takes care about load balancing, relocating, gathering the
 # results from nodes, etc. Experiment with different settings to fine-tune
 # your setup.
 
@@ -180,7 +180,7 @@
 
 ################################### Memory ####################################
 
-# ElasticSearch performs poorly when JVM starts swapping: you should ensure that
+# Crate performs poorly when JVM starts swapping: you should ensure that
 # it _never_ swaps.
 #
 # Set this property to true to lock the memory:
@@ -189,9 +189,9 @@
 
 # Make sure that the CRATE_MIN_MEM and CRATE_MAX_MEM environment variables are
 # set to the same value, and that the machine has enough memory to allocate
-# for ElasticSearch, leaving enough memory for the operating system itself.
+# for Crate, leaving enough memory for the operating system itself.
 #
-# You should also make sure that the ElasticSearch process is allowed to lock
+# You should also make sure that the Crate process is allowed to lock
 # the memory, eg. by using `ulimit -l unlimited`.
 
 
