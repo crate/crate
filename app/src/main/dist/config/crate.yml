@@ -1,23 +1,15 @@
-######################### Crate Configuration Example ##########################
+######################### Crate Configuration Example #########################
 
-# The crate configuration is mainly the configuration of it's internal
-# elasticsearch instance, so the parameters are the same as for elasticsearch
-# configurations. 
+# The default configuration offers the ability to use Crate right away.
+# The purpose of this file is to give operators an overview of the various
+# different configuration settings. To read the full documentation go to
+# <https://docs.crate.io/>
 
-# This file contains an overview of various configuration settings,
-# targeted at operations staff. Application developers should
-# consult the guide at <http://elasticsearch.org/guide>.
-#
-# The installation procedure is covered at
-# <http://elasticsearch.org/guide/reference/setup/installation.html>.
-#
-# ElasticSearch comes with reasonable defaults for most settings,
-# so you can try it out without bothering with configuration.
-#
-# Most of the time, these defaults are just fine for running a production
-# cluster. If you're fine-tuning your cluster, or wondering about the
-# effect of certain configuration option, please _do ask_ on the
-# mailing list or IRC channel [http://elasticsearch.org/community].
+# As mentioned before, you can use Crate right away. For fine-tuning consider
+# to configure Crate as you need or want it to behave.
+# Use this file to fine-tune your Crate cluster. If you have any questions
+# you are very welcome to conact us on our IRC channel #crate
+# (irc.freenode.net).
 
 # Any element in the configuration can be replaced with environment variables
 # by placing them in ${...} notation. For example:
@@ -75,14 +67,14 @@
 # node.master: false
 # node.data: false
 
-# Use the Cluster Health API [http://localhost:4200/_cluster/health], the
-# Node Info API [http://localhost:4200/_cluster/nodes] or GUI tools
-# such as <http://github.com/lukas-vlcek/bigdesk> and
-# <http://mobz.github.com/elasticsearch-head> to inspect the cluster state.
+# Inspect the cluster state via the Cluster Health API
+# [http://localhost:4200/_cluster/health/], the
+# Node Info API [http://localhost:4200/_cluster/nodes/] or GUI tools
+# such as Crate Admin [http://localhost:4200/admin/],
+# elasticsearch-head [http://localhost:4200/_plugin/head/],
+# bigdesk [http://localhost:4200/_plugin/bigdesk/] and
+# segmentspy [http://localhost:4200/_plugin/segmentspy/].
 
-# A node can have generic attributes associated with it, which can later be used
-# for customized shard allocation filtering, or allocation awareness. An attribute
-# is a simple key value pair, similar to node.key: value, here is an example:
 #
 # node.rack: rack314
 
