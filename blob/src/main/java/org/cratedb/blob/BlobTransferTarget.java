@@ -232,7 +232,7 @@ public class BlobTransferTarget extends AbstractComponent {
                 activePutHeadChunkTransfers.add(transferId);
                 getHeadRequestLatch.countDown();
             } catch (InterruptedException e) {
-                logger.error("can't retrieve getHeadRequestLatch", e, null);
+                logger.error("can't retrieve getHeadRequestLatch", e);
             } catch (ExecutionException e) {
                 logger.error("can't retrieve getHeadRequestLatch", e);
             }

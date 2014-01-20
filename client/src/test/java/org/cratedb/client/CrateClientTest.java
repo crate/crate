@@ -4,7 +4,6 @@ import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.transport.TransportService;
-import org.junit.After;
 import org.junit.Test;
 
 import java.util.Arrays;

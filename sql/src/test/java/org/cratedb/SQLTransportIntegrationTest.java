@@ -1,5 +1,6 @@
 package org.cratedb;
 
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLRequestBuilder;
@@ -18,8 +19,6 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.test.ElasticsearchIntegrationTest;
-import org.junit.Before;
 
 import java.io.IOException;
 import java.util.Map;
@@ -78,9 +77,9 @@ public class SQLTransportIntegrationTest extends CrateIntegrationTest {
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
 
         IndexMetaData indexMetaData = metaData.iterator().next();
-        for (MappingMetaData mappingMd : indexMetaData.mappings().values()) {
-            builder.field(mappingMd.type());
-            builder.map(mappingMd.sourceAsMap());
+        for (ObjectCursor<MappingMetaData> cursor: indexMetaData.mappings().values()) {
+            builder.field(cursor.value.type());
+            builder.map(cursor.value.sourceAsMap());
         }
         builder.endObject();
 

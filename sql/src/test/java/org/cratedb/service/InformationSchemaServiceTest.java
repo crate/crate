@@ -1,5 +1,6 @@
 package org.cratedb.service;
 
+import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.Joiner;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.ParsedStatement;
@@ -15,6 +16,7 @@ import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -54,8 +56,16 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
 
     @After
     public void cleanUp() throws Exception {
-        Set<String> indices = client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metaData().getIndices().keySet();
+
+        final Set<String> indices = new HashSet<>();
+        client().admin().cluster().prepareState().execute().actionGet()
+                .getState().metaData().getIndices().keys().forEach(new ObjectProcedure<String>() {
+            @Override
+            public void apply(String value) {
+                indices.add(value);
+            }
+        });
+
         client().admin().indices()
                 .prepareDelete(indices.toArray(new String[indices.size()]))
                 .execute()
@@ -287,7 +297,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
 
         execUsingClient("create table test2 (col1a string primary key, col2a timestamp)");
         ensureGreen();
-        execUsingClient("select * from INFORMATION_SCHEMA.table_constraints");
+        execUsingClient("select * from INFORMATION_SCHEMA.table_constraints order by table_name asc");
 
         assertEquals(2L, response.rowCount());
         assertEquals("test2", response.rows()[1][0]);
@@ -373,7 +383,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
         execUsingClient("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
                 "\"routine_type\"='TOKEN_FILTER' AND \"routine_definition\"='BUILTIN' order by " +
                 "routine_name asc");
-        assertEquals(43L, response.rowCount());
+        assertEquals(44L, response.rowCount());
         String[] tokenFilterNames = new String[response.rows().length];
         for (int i=0; i<response.rowCount(); i++) {
             tokenFilterNames[i] = (String)response.rows()[i][0];
@@ -386,7 +396,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
                 "length, lowercase, nGram, ngram, pattern_capture, pattern_replace, " +
                 "persian_normalization, porter_stem, reverse, russian_stem, shingle, " +
                 "snowball, standard, stemmer, stemmer_override, stop, synonym, trim, " +
-                "truncate, unique, word_delimiter",
+                "truncate, type_as_payload, unique, word_delimiter",
                 Joiner.on(", ").join(tokenFilterNames)
         );
     }

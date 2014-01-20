@@ -5,8 +5,8 @@ Reindex
 .. doctest::
     :hide:
 
-    >>> ep = Endpoint('http://localhost:9202')
-    >>> ep2 = Endpoint('http://localhost:9203')
+    >>> ep = Endpoint('http://localhost:44202')
+    >>> ep2 = Endpoint('http://localhost:44203')
 
 
 Via the ``_reindex`` endpoint it is possible to reindex one or all indexes
