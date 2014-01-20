@@ -27,7 +27,7 @@ import io.crate.executor.transport.task.RemoteCollectTask;
 import io.crate.operator.reference.sys.NodeLoadExpression;
 import io.crate.planner.plan.CollectNode;
 import io.crate.planner.symbol.Reference;
-import io.crate.planner.plan.Routing;
+import io.crate.metadata.Routing;
 import io.crate.planner.symbol.Symbol;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.test.integration.CrateIntegrationTest;

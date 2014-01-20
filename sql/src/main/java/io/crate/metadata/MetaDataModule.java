@@ -28,6 +28,8 @@ public class MetaDataModule extends AbstractModule {
     @Override
     protected void configure() {
 
+        bind(Routings.class).to(RoutingService.class).asEagerSingleton();
+
         MapBinder.newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
         bind(ReferenceResolver.class).to(GlobalReferenceResolver.class).asEagerSingleton();
 

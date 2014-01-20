@@ -32,6 +32,7 @@ import io.crate.executor.task.LocalAggregationTask;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.Routing;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.reference.sys.NodeLoadExpression;
 import io.crate.planner.plan.*;

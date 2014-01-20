@@ -21,24 +21,28 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.Routing;
+import io.crate.metadata.Routings;
+import io.crate.metadata.TableIdent;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
-import io.crate.operator.aggregation.impl.AverageAggregation;
 import io.crate.operator.reference.sys.SysExpressionModule;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.routing.RoutingService;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Map;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -55,7 +59,27 @@ public class BindingVisitorTest {
 
         @Override
         protected void configure() {
+
+
+            Map<String, Map<String, Integer>> locations = ImmutableMap.<String, Map<String, Integer>>builder()
+                    .put("nodeOne", ImmutableMap.<String, Integer>of())
+                    .put("nodeTwo", ImmutableMap.<String, Integer>of())
+                    .build();
+            Routing routing = new Routing(locations);
+//            Routings routings = new Routings() {
+//
+//                @Override
+//                public Routing getRouting(TableIdent tableIdent) {
+//                    return routing;
+//                }
+//            };
+
             bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
+
+            ClusterService cs = mock(ClusterService.class);
+            bind(ClusterService.class).toInstance(cs);
+
+            //bind(Routings.class).toInstance(routings);
 
             OsService osService = mock(OsService.class);
             OsStats osStats = mock(OsStats.class);
@@ -65,8 +89,11 @@ public class BindingVisitorTest {
         }
     }
 
+
     @Before
     public void setUp() throws Exception {
+
+
         injector = new ModulesBuilder()
                 .add(new TestModule())
                 .add(new MetaDataModule())
@@ -75,11 +102,42 @@ public class BindingVisitorTest {
                 .createInjector();
     }
 
+
     @Test
-    public void testBindingVisitor() {
+    public void testAnalyze() throws Exception {
+
         Statement statement = SqlParser.createStatement("select avg(load['1']) from sys.nodes");
 
-        Binder binder = injector.getInstance(Binder.class);
-        binder.bind(statement);
+        // analyze query
+        //Analyzer analyzer = new Analyzer(stateMachine.getSession(), metadata, Optional.of(queryExplainer));
+        Analyzer analyzer = injector.getInstance(Analyzer.class);
+
+        //Analysis analysis = analyzer.analyze(statement);
+        Analysis analysis = analyzer.analyze(statement);
+
+//        PlanNodeIdAllocator idAllocator = new PlanNodeIdAllocator();
+//        // plan query
+//        LogicalPlanner logicalPlanner = new LogicalPlanner(stateMachine.getSession(), planOptimizers, idAllocator, metadata, periodicImportManager, storageManager);
+//        Plan plan = logicalPlanner.plan(analysis);
+//
+//        List<Input> inputs = new InputExtractor(metadata).extract(plan.getRoot());
+//        stateMachine.setInputs(inputs);
+//
+//        // fragment the plan
+//        SubPlan subplan = new DistributedLogicalPlanner(metadata, idAllocator).createSubPlans(plan, false);
+//
+//        stateMachine.recordAnalysisTime(analysisStart);
+//        return subplan;
+
+
+    }
+
+    @Test
+    public void testBindingVisitor() {
+
+        Statement statement = SqlParser.createStatement("select avg(load['1']) from sys.nodes");
+
+        Analyzer analyzer = injector.getInstance(Analyzer.class);
+        analyzer.analyze(statement);
     }
 }

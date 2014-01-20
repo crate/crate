@@ -22,7 +22,6 @@
 package io.crate.planner.symbol;
 
 import io.crate.metadata.ReferenceInfo;
-import io.crate.planner.plan.Routing;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
