@@ -81,7 +81,8 @@ public class Version {
 
     // PRE-CREATED TO POINT TO THE CURRENT ES VERSION
     public static final int V_0_22_00_ID = /*00*/220099;
-    public static final Version V_0_22_00 = new Version(V_0_22_00_ID, true, org.elasticsearch.Version.V_0_90_11);
+    public static final Version V_0_22_00 = new Version(V_0_22_00_ID, false,
+            org.elasticsearch.Version.V_0_90_11);
 
     public static final Version CURRENT = V_0_22_00;
 

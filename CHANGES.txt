@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2014/01/20 0.22.0
+=================
+
  - disabled logging of udc at info level
 
  - fix: udc ssl truststore was not found at JAR's
