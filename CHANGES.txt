@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fix: distinct count aggregation should return 0 when hitting no column
+
  - upgraded elasticsearch to 0.90.10
 
  - only log tracebacks with debug-level when udc failed
