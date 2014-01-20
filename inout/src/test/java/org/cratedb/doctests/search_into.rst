@@ -14,8 +14,8 @@ endpoint.
 .. doctest::
     :hide:
 
-    >>> ep = Endpoint('http://localhost:9202')
-    >>> ep2 = Endpoint('http://localhost:9203')
+    >>> ep = Endpoint('http://localhost:44202')
+    >>> ep2 = Endpoint('http://localhost:44203')
 
 
 Copy an existing index
@@ -113,7 +113,7 @@ Initially, the second cluster does not contain any indizes::
     }
 
     >>> payload = {"fields":["_id", "_source"],
-    ...            "targetNodes":"localhost:9303"}
+    ...            "targetNodes":"localhost:44303"}
 
     >>> ep.ppost("/users/_search_into?pretty=1", payload)
     {

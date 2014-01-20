@@ -22,7 +22,6 @@
 package org.cratedb.module.import_.test;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
 import org.cratedb.action.export.ExportAction;
 import org.cratedb.action.export.ExportRequest;
 import org.cratedb.action.export.ExportResponse;
@@ -40,6 +39,7 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.junit.Test;
 
@@ -369,8 +369,8 @@ public class RestImportActionTest extends AbstractRestActionTest {
         executeImportRequest("{\"directory\": \"" + path + "\", \"mappings\": true}");
 
         ClusterStateRequest clusterStateRequest = Requests.clusterStateRequest().filteredIndices("index1");
-        ImmutableMap<String, MappingMetaData> mappings = ImmutableMap.copyOf(
-            client().admin().cluster().state(clusterStateRequest).actionGet().getState().metaData().index("index1").getMappings());
+        ImmutableOpenMap<String, MappingMetaData> mappings = new ImmutableOpenMap.Builder<>(
+                client().admin().cluster().state(clusterStateRequest).actionGet().getState().metaData().index("index1").getMappings()).build();
         assertEquals("{\"1\":{\"_timestamp\":{\"enabled\":true,\"store\":true},\"_ttl\":{\"enabled\":true,\"default\":86400000},\"properties\":{\"name\":{\"type\":\"string\",\"store\":true}}}}",
                 mappings.get("1").source().toString());
     }

@@ -21,8 +21,9 @@
 
 package org.cratedb.export;
 
-import org.cratedb.action.export.ExportContext;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 import org.apache.lucene.search.Query;
+import org.cratedb.action.export.ExportContext;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.client.ClusterAdminClient;
@@ -180,10 +181,10 @@ public class Exporter {
                 builder.startObject(indexMetaData.index(), XContentBuilder.FieldCaseConversion.NONE);
                 Set<String> types = new HashSet<String>(Arrays.asList(context.types()));
                 boolean noTypes = types.isEmpty();
-                for (MappingMetaData mappingMetaData : indexMetaData.mappings().values()) {
-                    if (noTypes || types.contains(mappingMetaData.type())) {
-                        builder.field(mappingMetaData.type());
-                        builder.map(mappingMetaData.sourceAsMap());
+                for (ObjectCursor<MappingMetaData> cursor: indexMetaData.mappings().values()) {
+                    if (noTypes || types.contains(cursor.value.type())) {
+                        builder.field(cursor.value.type());
+                        builder.map(cursor.value.sourceAsMap());
                     }
                 }
                 builder.endObject();

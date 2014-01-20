@@ -21,9 +21,9 @@
 
 package org.cratedb.import_;
 
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.collect.ImmutableMap;
 import org.cratedb.action.import_.ImportContext;
 import org.cratedb.action.import_.NodeImportRequest;
 import org.elasticsearch.ElasticSearchException;
@@ -40,6 +40,7 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
@@ -409,22 +410,24 @@ public class Importer {
 
     private Set<String> getMissingIndexes(Set<String> indexes) {
         try {
-            ImmutableMap<String, IndexMetaData> foundIndices = getIndexMetaData(indexes);
-            indexes.removeAll(foundIndices.keySet());
+            ImmutableOpenMap<String, IndexMetaData> foundIndices = getIndexMetaData(indexes);
+            for (ObjectCursor<String> cursor : foundIndices.keys()) {
+                indexes.remove(cursor.value);
+            }
         } catch (IndexMissingException e) {
             // all indexes are missing
         }
         return indexes;
     }
 
-    private ImmutableMap<String, IndexMetaData> getIndexMetaData(Set<String> indexes) {
+    private ImmutableOpenMap<String, IndexMetaData> getIndexMetaData(Set<String> indexes) {
         ClusterStateRequest clusterStateRequest = Requests.clusterStateRequest()
                 .filterRoutingTable(true)
                 .filterNodes(true)
                 .filteredIndices(indexes.toArray(new String[indexes.size()]));
         clusterStateRequest.listenerThreaded(false);
         ClusterStateResponse response = client.admin().cluster().state(clusterStateRequest).actionGet();
-        return ImmutableMap.copyOf(response.getState().metaData().indices());
+        return ImmutableOpenMap.builder(response.getState().metaData().indices()).build();
     }
 
 
@@ -438,8 +441,7 @@ public class Importer {
         }
         byte[] bytes = sb.toString().getBytes();
         XContentParser parser = XContentFactory.xContent(bytes).createParser(bytes);
-        Map<String, Object> map = parser.map();
-        return map;
+        return parser.map();
     }
 
     class MappingImportException extends ElasticSearchException {

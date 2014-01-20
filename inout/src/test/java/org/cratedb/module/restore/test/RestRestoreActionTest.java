@@ -90,7 +90,7 @@ public class RestRestoreActionTest extends AbstractRestActionTest {
 
         ClusterStateRequest clusterStateRequest = Requests.clusterStateRequest().filteredIndices("users");
         IndexMetaData metaData = client().admin().cluster().state(clusterStateRequest).actionGet().getState().metaData().index("users");
-        assertEquals("{\"d\":{\"properties\":{\"name\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"store\":true,\"omit_norms\":true,\"index_options\":\"docs\"}}}}",
+        assertEquals("{\"d\":{\"properties\":{\"name\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"store\":true,\"norms\":{\"enabled\":false},\"index_options\":\"docs\"}}}}",
                 metaData.mappings().get("d").source().toString());
         assertEquals(2, metaData.numberOfShards());
         assertEquals(0, metaData.numberOfReplicas());

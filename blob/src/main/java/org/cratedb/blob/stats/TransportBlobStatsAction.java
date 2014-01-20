@@ -36,6 +36,7 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -43,7 +44,6 @@ import org.elasticsearch.transport.TransportService;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 
 import static com.google.common.collect.Lists.newArrayList;
@@ -131,7 +131,7 @@ public class TransportBlobStatsAction extends
     protected GroupShardsIterator shards(ClusterState clusterState, BlobStatsRequest request, String[] concreteIndices) {
 
         List<String> blobIndices = new ArrayList<String>();
-        Map<String, IndexMetaData> indexMetaDataMap = clusterState.getMetaData().getIndices();
+        ImmutableOpenMap<String, IndexMetaData> indexMetaDataMap = clusterState.getMetaData().getIndices();
         for (String index : concreteIndices) {
             if (indexMetaDataMap.get(index).getSettings().getAsBoolean(
                 BlobIndices.SETTING_BLOBS_ENABLED, false))
