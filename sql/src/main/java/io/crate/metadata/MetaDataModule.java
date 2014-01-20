@@ -25,13 +25,31 @@ import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
 public class MetaDataModule extends AbstractModule {
+
+    protected MapBinder<ReferenceIdent, ReferenceImplementation> referenceBinder;
+    protected MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
+
     @Override
     protected void configure() {
+        bindRoutings();
+        bindReferences();
+        bindFunctions();
+    }
 
-        MapBinder.newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
+    protected void bindRoutings() {
+        bind(Routings.class).to(RoutingsService.class).asEagerSingleton();
+    }
+
+
+    protected void bindReferences() {
+        referenceBinder = MapBinder.newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
         bind(ReferenceResolver.class).to(GlobalReferenceResolver.class).asEagerSingleton();
+    }
 
-        MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
+    protected void bindFunctions() {
+        functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
         bind(Functions.class).asEagerSingleton();
     }
+
+
 }
