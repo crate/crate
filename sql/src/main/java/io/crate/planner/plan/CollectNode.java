@@ -73,4 +73,8 @@ public class CollectNode extends PlanNode {
             out.writeBoolean(false);
         }
     }
+
+    public void routing(Routing routing) {
+        this.routing = routing;
+    }
 }

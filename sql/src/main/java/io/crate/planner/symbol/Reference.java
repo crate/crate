@@ -21,6 +21,7 @@
 
 package io.crate.planner.symbol;
 
+import com.google.common.base.Objects;
 import io.crate.metadata.ReferenceInfo;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -62,6 +63,13 @@ public class Reference extends ValueSymbol {
     }
 
     @Override
+    public String toString() {
+        return Objects.toStringHelper(this)
+                .add("info", info)
+                .toString();
+    }
+
+    @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitReference(this, context);
     }
@@ -76,4 +84,18 @@ public class Reference extends ValueSymbol {
     public void writeTo(StreamOutput out) throws IOException {
         info.writeTo(out);
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if ((obj == null) || (getClass() != obj.getClass())) {
+            return false;
+        }
+
+        Reference o = (Reference) obj;
+        return Objects.equal(info.ident(), o.info.ident());
+    }
+
 }

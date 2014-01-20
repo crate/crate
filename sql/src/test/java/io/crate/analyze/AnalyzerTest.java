@@ -26,8 +26,12 @@ import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Routing;
 import io.crate.metadata.Routings;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.sys.SystemReferences;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
+import io.crate.operator.aggregation.impl.AverageAggregation;
 import io.crate.operator.reference.sys.NodeLoadExpression;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Reference;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -42,12 +46,14 @@ import org.junit.Test;
 
 import java.util.Map;
 
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class AnalyzerTest {
 
     private Injector injector;
+    private Analyzer analyzer;
 
     class TestMetaDataModule extends MetaDataModule {
 
@@ -119,16 +125,81 @@ public class AnalyzerTest {
                 .add(new TestMetaDataModule())
                 .add(new AggregationImplModule())
                 .createInjector();
+        analyzer = injector.getInstance(Analyzer.class);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGroupedSelectMissingOutput() throws Exception {
+        Statement statement = SqlParser.createStatement("select load['5'] from sys.nodes group by load['1']");
+        analyzer.analyze(statement);
+
     }
 
 
     @Test
-    public void testAnalyze() throws Exception {
-
-        Statement statement = SqlParser.createStatement("select avg(load['1']) from sys.nodes");
-        Analyzer analyzer = injector.getInstance(Analyzer.class);
+    public void testOrderedSelect() throws Exception {
+        Statement statement = SqlParser.createStatement("select load['1'] from sys.nodes order by load['5'] desc");
         Analysis analysis = analyzer.analyze(statement);
+        assertTrue(analysis.routing().hasLocations());
+        assertNull(analysis.limit());
+
+        assertFalse(analysis.hasGroupBy());
+        assertTrue(analysis.isSorted());
+
+
+        assertEquals(1, analysis.outputSymbols().size());
+        assertEquals(1, analysis.sortSymbols().size());
+        assertEquals(1, analysis.reverseFlags().size());
+
+        assertEquals(NodeLoadExpression.INFO_LOAD_5, ((Reference) analysis.sortSymbols().get(0)).info());
 
     }
+
+
+    @Test
+    public void testGroupedSelect() throws Exception {
+        Statement statement = SqlParser.createStatement("select load['1'],load['5'] from sys.nodes group by load['1']");
+        Analysis analysis = analyzer.analyze(statement);
+        assertTrue(analysis.routing().hasLocations());
+        assertNull(analysis.limit());
+
+        assertTrue(analysis.hasGroupBy());
+        assertEquals(2, analysis.outputSymbols().size());
+        assertEquals(1, analysis.groupBy().size());
+        assertEquals(NodeLoadExpression.INFO_LOAD_1, ((Reference) analysis.groupBy().get(0)).info());
+
+    }
+
+
+    @Test
+    public void testSimpleSelect() throws Exception {
+        Statement statement = SqlParser.createStatement("select load['5'] from sys.nodes limit 2");
+        Analysis analysis = analyzer.analyze(statement);
+        assertTrue(analysis.routing().hasLocations());
+        assertEquals(new Integer(2), analysis.limit());
+
+        assertFalse(analysis.hasGroupBy());
+
+
+        assertEquals(SystemReferences.NODES_IDENT, analysis.table());
+        assertEquals(1, analysis.outputSymbols().size());
+        Reference col1 = (Reference) analysis.outputSymbols().get(0);
+        assertEquals(NodeLoadExpression.INFO_LOAD_5, col1.info());
+
+    }
+
+    @Test
+    public void testAggregationSelect() throws Exception {
+        Statement statement = SqlParser.createStatement("select avg(load['5']) from sys.nodes");
+        Analysis analysis = analyzer.analyze(statement);
+        assertTrue(analysis.routing().hasLocations());
+        assertFalse(analysis.hasGroupBy());
+        assertEquals(1, analysis.outputSymbols().size());
+        Function col1 = (Function) analysis.outputSymbols().get(0);
+        assertTrue(col1.info().isAggregate());
+        assertEquals(AverageAggregation.NAME, col1.info().ident().name());
+
+    }
+
 
 }

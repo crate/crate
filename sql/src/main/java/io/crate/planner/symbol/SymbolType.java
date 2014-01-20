@@ -27,7 +27,9 @@ public enum SymbolType {
     AGGREGATION(Aggregation.FACTORY),
     REFERENCE(Reference.FACTORY),
     VALUE(Value.FACTORY),
-    FUNCTION(Function.FACTORY);
+    FUNCTION(Function.FACTORY),
+    STRING_LITERAL(StringLiteral.FACTORY),
+    ;
 
     private final Symbol.SymbolFactory factory;
 
