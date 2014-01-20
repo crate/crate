@@ -16,9 +16,6 @@
 #
 # node.rack: ${RACK_ENV_VAR}
 
-# See <http://elasticsearch.org/guide/reference/setup/configuration.html>
-# for information on supported formats and syntax for the configuration file.
-
 
 ################################### Cluster ###################################
 
@@ -94,11 +91,7 @@
 # in this file.
 #
 # Note, that it makes more sense to configure table settings specifically for
-# a certain table, either when creating it or by using the table templates API.
-#
-# See <http://elasticsearch.org/guide/reference/index-modules/> and
-# <http://elasticsearch.org/guide/reference/api/admin-indices-create-index.html>
-# for more information.
+# a certain table when creating it.
 
 # Set the number of shards (splits) of a table (5 by default):
 #
@@ -123,9 +116,6 @@
 # 2. Having more *replicas* enhances the _search_ performance and improves the
 #    cluster _availability_.
 #
-#
-# The "number_of_replicas" can be increased or decreased anytime,
-# by using the Index Update Settings API.
 # The "number_of_shards" is a one-time setting for a table.
 #
 # Crate takes care about load balancing, relocating, gathering the
@@ -243,8 +233,7 @@
 # in the gateway, and when the cluster starts up for the first time,
 # it will read its state from the gateway.
 
-# There are several types of gateway implementations. For more information,
-# see <http://elasticsearch.org/guide/reference/modules/gateway>.
+# There are several types of gateway implementations.
 
 # The default gateway type is the "local" gateway (recommended):
 #
@@ -313,9 +302,6 @@
 #
 # discovery.zen.ping.timeout: 3s
 
-# See <http://elasticsearch.org/guide/reference/modules/discovery/zen.html>
-# for more information.
-
 # Unicast discovery allows to explicitly control which nodes will be used
 # to discover the cluster. It can be used when multicast is not present,
 # or to restrict the cluster communication-wise.
@@ -328,16 +314,6 @@
 #    to perform discovery when new nodes (master or data) are started:
 #
 # discovery.zen.ping.unicast.hosts: ["host1", "host2:port", "host3[portX-portY]"]
-
-# EC2 discovery allows to use AWS EC2 API in order to perform discovery.
-#
-# You have to install the cloud-aws plugin for enabling the EC2 discovery.
-#
-# See <http://elasticsearch.org/guide/reference/modules/discovery/ec2.html>
-# for more information.
-#
-# See <http://elasticsearch.org/tutorials/2011/08/22/elasticsearch-on-ec2.html>
-# for a step-by-step tutorial.
 
 
 ################################## Slow Log ##################################
