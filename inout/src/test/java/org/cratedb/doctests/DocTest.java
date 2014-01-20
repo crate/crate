@@ -48,8 +48,8 @@ public class DocTest extends DoctestTestCase {
 
         Settings s1 = ImmutableSettings.settingsBuilder()
                 .put("cluster.name", "a")
-                .put("http.port", 9202)
-                .put("transport.tcp.port", 9302)
+                .put("http.port", 44202)
+                .put("transport.tcp.port", 44302)
                 .put("index.number_of_shards", 1)
                 .put("index.number_of_replicas", 0)
                 .build();
@@ -66,8 +66,8 @@ public class DocTest extends DoctestTestCase {
         client(node1).admin().indices().prepareRefresh("users").execute().actionGet();
 
         Settings s2 = ImmutableSettings.settingsBuilder()
-                .put("http.port", 9203)
-                .put("transport.tcp.port", 9303)
+                .put("http.port", 44203)
+                .put("transport.tcp.port", 44303)
                 .put("cluster.name", "b")
                 .put("index.number_of_shards", 1)
                 .put("index.number_of_replicas", 0)

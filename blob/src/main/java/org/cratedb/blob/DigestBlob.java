@@ -148,7 +148,7 @@ public class DigestBlob {
             }
             stream.close();
         } catch (IOException ex) {
-            logger.error("error accessing file to calculate digest", ex, null);
+            logger.error("error accessing file to calculate digest", ex);
         }
     }
 
