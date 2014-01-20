@@ -27,11 +27,9 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.Routings;
 import io.crate.metadata.TableIdent;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
-import io.crate.operator.reference.sys.SysExpressionModule;
+import io.crate.operator.reference.sys.NodeLoadExpression;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.routing.RoutingService;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -51,6 +49,33 @@ public class BindingVisitorTest {
 
     private Injector injector;
 
+    class TestMetaDataModule extends MetaDataModule {
+
+        @Override
+        protected void bindRoutings() {
+            Map<String, Map<String, Integer>> locations = ImmutableMap.<String, Map<String, Integer>>builder()
+                    .put("nodeOne", ImmutableMap.<String, Integer>of())
+                    .put("nodeTwo", ImmutableMap.<String, Integer>of())
+                    .build();
+            final Routing routing = new Routing(locations);
+
+            Routings routings = new Routings() {
+
+                @Override
+                public Routing getRouting(TableIdent tableIdent) {
+                    return routing;
+                }
+            };
+            bind(Routings.class).toInstance(routings);
+        }
+
+        @Override
+        protected void bindReferences() {
+            super.bindReferences();
+            referenceBinder.addBinding(NodeLoadExpression.INFO_LOAD.ident()).to(NodeLoadExpression.class).asEagerSingleton();
+        }
+    }
+
     /**
      * borrowed from {@link io.crate.operator.reference.sys.TestGlobalSysExpressions}
      * // TODO share it
@@ -61,25 +86,20 @@ public class BindingVisitorTest {
         protected void configure() {
 
 
-            Map<String, Map<String, Integer>> locations = ImmutableMap.<String, Map<String, Integer>>builder()
-                    .put("nodeOne", ImmutableMap.<String, Integer>of())
-                    .put("nodeTwo", ImmutableMap.<String, Integer>of())
-                    .build();
-            Routing routing = new Routing(locations);
-//            Routings routings = new Routings() {
-//
-//                @Override
-//                public Routing getRouting(TableIdent tableIdent) {
-//                    return routing;
-//                }
-//            };
-
             bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
 
-            ClusterService cs = mock(ClusterService.class);
-            bind(ClusterService.class).toInstance(cs);
+//            ClusterService cs = mock(ClusterService.class);
+//            ClusterState clusterState = mock(ClusterState.class);
+//            bind(ClusterService.class).toInstance(cs);
+//            when(cs.state()).thenReturn(clusterState);
+            //bind(RoutingsService.class).toInstance(routings);
 
-            //bind(Routings.class).toInstance(routings);
+            //DiscoveryNodes dn = mock(DiscoveryNodes.class);
+
+            //when(clusterState.nodes()).thenReturn(dn);
+
+            //when(dn.iterator()).theReturn(Iterators.)
+
 
             OsService osService = mock(OsService.class);
             OsStats osStats = mock(OsStats.class);
@@ -96,8 +116,7 @@ public class BindingVisitorTest {
 
         injector = new ModulesBuilder()
                 .add(new TestModule())
-                .add(new MetaDataModule())
-                .add(new SysExpressionModule())
+                .add(new TestMetaDataModule())
                 .add(new AggregationImplModule())
                 .createInjector();
     }
