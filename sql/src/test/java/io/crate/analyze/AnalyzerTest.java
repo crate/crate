@@ -45,7 +45,7 @@ import java.util.Map;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class BindingVisitorTest {
+public class AnalyzerTest {
 
     private Injector injector;
 
@@ -126,37 +126,9 @@ public class BindingVisitorTest {
     public void testAnalyze() throws Exception {
 
         Statement statement = SqlParser.createStatement("select avg(load['1']) from sys.nodes");
-
-        // analyze query
-        //Analyzer analyzer = new Analyzer(stateMachine.getSession(), metadata, Optional.of(queryExplainer));
         Analyzer analyzer = injector.getInstance(Analyzer.class);
-
-        //Analysis analysis = analyzer.analyze(statement);
         Analysis analysis = analyzer.analyze(statement);
 
-//        PlanNodeIdAllocator idAllocator = new PlanNodeIdAllocator();
-//        // plan query
-//        LogicalPlanner logicalPlanner = new LogicalPlanner(stateMachine.getSession(), planOptimizers, idAllocator, metadata, periodicImportManager, storageManager);
-//        Plan plan = logicalPlanner.plan(analysis);
-//
-//        List<Input> inputs = new InputExtractor(metadata).extract(plan.getRoot());
-//        stateMachine.setInputs(inputs);
-//
-//        // fragment the plan
-//        SubPlan subplan = new DistributedLogicalPlanner(metadata, idAllocator).createSubPlans(plan, false);
-//
-//        stateMachine.recordAnalysisTime(analysisStart);
-//        return subplan;
-
-
     }
 
-    @Test
-    public void testBindingVisitor() {
-
-        Statement statement = SqlParser.createStatement("select avg(load['1']) from sys.nodes");
-
-        Analyzer analyzer = injector.getInstance(Analyzer.class);
-        analyzer.analyze(statement);
-    }
 }
