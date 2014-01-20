@@ -47,6 +47,10 @@ public class Reference extends ValueSymbol {
 
     }
 
+    public ReferenceInfo info() {
+        return info;
+    }
+
     @Override
     public SymbolType symbolType() {
         return SymbolType.REFERENCE;
