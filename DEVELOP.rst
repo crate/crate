@@ -44,7 +44,8 @@ Before creating a new distribution, a new version and tag should be created:
 
  - Push to origin
 
- - Create a tag using the ``create_tag.sh`` script.
+ - Create a tag using the ``create_tag.sh`` script
+   (run ``./devtools/create_tag.sh``).
 
 Now everything is ready for building a new distribution, either manually or let jenkins do the
 job as usual :-)
@@ -102,11 +103,11 @@ Then create the configuration files for both nodes::
 And add the following settings::
 
     node.name: local1
-    
+
     http.port: 19201
     transport.tcp.port: 19301
     network.host: localhost
-    
+
     multicast.enabled: false
     discovery.zen.ping.unicast.hosts:
       - 127.0.0.1:19301
@@ -115,7 +116,7 @@ And add the following settings::
 .. note::
 
     In the second files the port number and node name has to be changed.
-    19201 to 19202 and 19301 to 19302. 
+    19201 to 19202 and 19301 to 19302.
 
 In addition to the `crate.yml` file it is also recommended to create a logging
 configuration file for both nodes. To do so create the files
@@ -128,7 +129,7 @@ A minimal example for the logging configuration looks like this::
       # log action execution errors for easier debugging
       action: DEBUG
       crate.elasticsearch.blob: TRACE
-    
+
     appender:
       console:
         type: console
