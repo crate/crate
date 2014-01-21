@@ -177,9 +177,13 @@
 #
 # bootstrap.mlockall: true
 
-# Make sure that the CRATE_MIN_MEM and CRATE_MAX_MEM environment variables are
-# set to the same value, and that the machine has enough memory to allocate
-# for Crate, leaving enough memory for the operating system itself.
+# Make sure that the machine has enough memory to allocate for Crate, leaving
+# enough memory for the operating system itself.
+# You can allocate memory for Crate as follows:
+#  - Set CRATE_MIN_MEM and CRATE_MAX_MEM environment variables
+#    (We recommend to set MIN and MAX to the same value).
+#  - Set CRATE_HEAP_SIZE environment varaible. This sets MIN and MAX to the
+#    same value for you.
 #
 # You should also make sure that the Crate process is allowed to lock
 # the memory, eg. by using `ulimit -l unlimited`.
