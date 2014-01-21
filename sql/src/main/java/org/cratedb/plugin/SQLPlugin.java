@@ -22,6 +22,9 @@
 package org.cratedb.plugin;
 
 import io.crate.executor.transport.TransportExecutorModule;
+import io.crate.metadata.MetaDataModule;
+import io.crate.operator.aggregation.impl.AggregationImplModule;
+import io.crate.operator.reference.sys.SysExpressionModule;
 import org.cratedb.module.SQLModule;
 import org.cratedb.rest.action.RestSQLAction;
 import org.cratedb.service.InformationSchemaService;
@@ -88,6 +91,10 @@ public class SQLPlugin extends AbstractPlugin {
         if (!settings.getAsBoolean("node.client", false)) {
             modules.add(SQLModule.class);
             modules.add(TransportExecutorModule.class);
+
+            modules.add(MetaDataModule.class);
+            modules.add(SysExpressionModule.class);
+            modules.add(AggregationImplModule.class);
         }
         return modules;
     }

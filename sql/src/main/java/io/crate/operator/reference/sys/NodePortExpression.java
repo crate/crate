@@ -32,6 +32,7 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.HttpServer;
 import org.elasticsearch.node.service.NodeService;
 
+
 public class NodePortExpression extends SysObjectReference<Integer> {
 
     abstract class PortExpression extends SysExpression<Integer> {
@@ -85,7 +86,6 @@ public class NodePortExpression extends SysObjectReference<Integer> {
                 } else {
                     return null;
                 }
-
             }
         });
         childImplementations.put(TRANSPORT, new PortExpression(INFO_PORT_TRANSPORT) {
