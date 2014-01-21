@@ -97,5 +97,5 @@ public class Reference extends ValueSymbol {
         Reference o = (Reference) obj;
         return Objects.equal(info.ident(), o.info.ident());
     }
-    }
+
 }

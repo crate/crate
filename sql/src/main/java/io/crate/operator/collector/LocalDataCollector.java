@@ -71,7 +71,7 @@ public class LocalDataCollector implements RowCollector<Object[][]> {
                 case REFERENCE:
                     ReferenceImplementation impl = this.resolver.getImplementation(((Reference)symbol).info().ident());
                     if (impl == null) {
-                        throw new CrateException(String.format("Unknown Reference")); // TODO: better exception
+                        throw new CrateException(String.format("Unknown Reference"));
                     }
                     this.implementationMap.put(symbol, impl);
                     break;

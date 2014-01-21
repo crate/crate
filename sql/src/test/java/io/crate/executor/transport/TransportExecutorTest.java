@@ -25,7 +25,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.Job;
 import io.crate.executor.transport.task.RemoteCollectTask;
 import io.crate.metadata.Routing;
-import io.crate.operator.collector.LocalDataCollector;
 import io.crate.operator.reference.sys.NodeLoadExpression;
 import io.crate.planner.plan.CollectNode;
 import io.crate.planner.symbol.Reference;
@@ -34,7 +33,6 @@ import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.logging.Loggers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -55,7 +53,6 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     public void transportSetUp() {
         transportCollectNodeAction = cluster().getInstance(TransportCollectNodeAction.class);
         clusterService = cluster().getInstance(ClusterService.class);
-        Loggers.getLogger(LocalDataCollector.class).setLevel("TRACE");
     }
 
     @Test
