@@ -21,6 +21,7 @@
 
 package org.cratedb.information_schema;
 
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
@@ -72,8 +73,8 @@ public class TablesTable extends AbstractInformationSchemaTable {
         IntField numberOfReplicas = new IntField(TablesTable.Columns.NUMBER_OF_REPLICAS, 0, Field.Store.YES);
         StringField routingColumn = new StringField(Columns.ROUTING_COLUMN, "", Field.Store.YES);
 
-        for (IndexMetaData metaData : clusterState.metaData().indices().values()) {
-            IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(metaData);
+        for (ObjectCursor<IndexMetaData> cursor : clusterState.metaData().indices().values()) {
+            IndexMetaDataExtractor extractor = new IndexMetaDataExtractor(cursor.value);
 
             // ignore closed indices
             if (extractor.isIndexClosed()) {

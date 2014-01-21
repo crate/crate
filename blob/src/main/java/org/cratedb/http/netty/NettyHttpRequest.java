@@ -25,7 +25,6 @@ import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.bytes.ChannelBufferBytesReference;
 import org.elasticsearch.http.HttpRequest;
-import org.elasticsearch.rest.support.AbstractRestRequest;
 import org.elasticsearch.rest.support.RestUtils;
 import org.jboss.netty.handler.codec.http.HttpMethod;
 
@@ -35,7 +34,7 @@ import java.util.Map;
 /**
  *
  */
-public class NettyHttpRequest extends AbstractRestRequest implements HttpRequest {
+public class NettyHttpRequest extends HttpRequest {
 
     private final org.jboss.netty.handler.codec.http.HttpRequest request;
 
@@ -123,7 +122,12 @@ public class NettyHttpRequest extends AbstractRestRequest implements HttpRequest
 
     @Override
     public String header(String name) {
-        return request.getHeader(name);
+        return request.headers().get(name);
+    }
+
+    @Override
+    public Iterable<Map.Entry<String, String>> headers() {
+        return request.headers();
     }
 
     @Override

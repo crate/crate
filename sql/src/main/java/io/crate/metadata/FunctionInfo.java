@@ -45,6 +45,10 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
 
     }
 
+    public FunctionInfo(FunctionIdent ident, DataType returnType) {
+        this(ident, returnType, false);
+    }
+
     public FunctionInfo(FunctionIdent ident, DataType returnType, boolean isAggregate) {
         this.ident = ident;
         this.returnType = returnType;

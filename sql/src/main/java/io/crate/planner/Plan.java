@@ -19,26 +19,9 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.symbol;
+package io.crate.planner;
 
-public enum SymbolType {
+public class Plan {
 
-
-    AGGREGATION(Aggregation.FACTORY),
-    REFERENCE(Reference.FACTORY),
-    VALUE(Value.FACTORY),
-    FUNCTION(Function.FACTORY),
-    STRING_LITERAL(StringLiteral.FACTORY),
-    ;
-
-    private final Symbol.SymbolFactory factory;
-
-    SymbolType(Symbol.SymbolFactory factory) {
-        this.factory = factory;
-    }
-
-    public Symbol newInstance() {
-        return factory.newInstance();
-    }
 
 }

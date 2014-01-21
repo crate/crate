@@ -19,37 +19,34 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata;
+package io.crate.operator.operator;
 
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
+import com.google.common.collect.ImmutableList;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
+import org.cratedb.DataType;
 
-public class MetaDataModule extends AbstractModule {
+public class NotEqOperator implements FunctionImplementation {
 
-    protected MapBinder<ReferenceIdent, ReferenceImplementation> referenceBinder;
-    protected MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
+    public static final String NAME = "op_neq";
+    private final FunctionInfo info;
 
     @Override
-    protected void configure() {
-        bindRoutings();
-        bindReferences();
-        bindFunctions();
+    public FunctionInfo info() {
+        return info;
     }
 
-    protected void bindRoutings() {
-        bind(Routings.class).to(RoutingsService.class).asEagerSingleton();
+    public static void register(OperatorModule module) {
+        module.registerOperatorFunction(
+                new NotEqOperator(new FunctionInfo(
+                        new FunctionIdent(NAME, ImmutableList.of(DataType.STRING, DataType.STRING)),
+                        DataType.BOOLEAN)
+                )
+        );
     }
 
-
-    protected void bindReferences() {
-        referenceBinder = MapBinder.newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
-        bind(ReferenceResolver.class).to(GlobalReferenceResolver.class).asEagerSingleton();
+    NotEqOperator(FunctionInfo info) {
+        this.info = info;
     }
-
-    protected void bindFunctions() {
-        functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
-        bind(Functions.class).asEagerSingleton();
-    }
-
-
 }

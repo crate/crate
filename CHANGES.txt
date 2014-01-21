@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - upgraded elasticsearch to 0.90.10
+
  - only log tracebacks with debug-level when udc failed
 
 2014/01/15 0.21.1

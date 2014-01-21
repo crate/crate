@@ -301,7 +301,7 @@ public class BlobRecoveryHandler {
                     request.shardId().index().name(), request.shardId().id(), file.getName(),
                     request.targetNode().getName());
             } catch (IOException ex) {
-                logger.error("exception while file transfer", ex, null);
+                logger.error("exception while file transfer", ex);
                 lastException.set(ex);
             } finally {
                 latch.countDown();

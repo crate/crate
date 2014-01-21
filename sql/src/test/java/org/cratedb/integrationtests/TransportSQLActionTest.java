@@ -485,8 +485,15 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSqlRequestWithDateFilter() throws Exception {
         prepareCreate("test")
-                .addMapping("default",
-                        "date", "type=date")
+                .addMapping("default", XContentFactory.jsonBuilder()
+                        .startObject()
+                        .startObject("default")
+                            .startObject("properties")
+                                .startObject("date")
+                                    .field("type", "date")
+                                .endObject()
+                            .endObject()
+                        .endObject().endObject())
                 .execute().actionGet();
 
         client().prepareIndex("test", "default", "id1")
@@ -1708,17 +1715,18 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         String expectedMapping = "{\"default\":{" +
                 "\"_meta\":{\"primary_keys\":\"col1\"}," +
+                "\"_all\":{\"enabled\":false}," +
                 "\"properties\":{" +
                     "\"col1\":{\"type\":\"integer\"}," +
                     "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"," +
-                                "\"omit_norms\":true,\"index_options\":\"docs\"}" +
+                                "\"norms\":{\"enabled\":false},\"index_options\":\"docs\"}" +
                 "}}}";
 
         String expectedSettings = "{\"test\":{" +
                 "\"settings\":{" +
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
-                "\"index.version.created\":\"900799\"" +
+                "\"index.version.created\":\"901199\"" +
                 "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
@@ -1821,17 +1829,18 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         String expectedMapping = "{\"default\":{" +
                 "\"_meta\":{\"primary_keys\":\"col1\"}," +
+                "\"_all\":{\"enabled\":false}," +
                 "\"properties\":{" +
                 "\"col1\":{\"type\":\"integer\"}," +
                 "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"," +
-                "\"omit_norms\":true,\"index_options\":\"docs\"}" +
+                "\"norms\":{\"enabled\":false},\"index_options\":\"docs\"}" +
                 "}}}";
 
         String expectedSettings = "{\"test\":{" +
                 "\"settings\":{" +
                     "\"index.number_of_replicas\":\"2\"," +
                     "\"index.number_of_shards\":\"10\"," +
-                    "\"index.version.created\":\"900799\"" +
+                    "\"index.version.created\":\"901199\"" +
                 "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
@@ -2040,15 +2049,16 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testSelectOrderByScore() throws Exception {
         execute("create table quotes (quote string index off," +
                 "index quote_ft using fulltext(quote))");
-        assertTrue(client().admin().indices().exists(new IndicesExistsRequest("quotes"))
-                .actionGet().isExists());
-
-        execute("insert into quotes values (?), (?)",
-                new Object[]{"Would it save you a lot of time if I just gave up and went mad now?",
-                        "Time is an illusion. Lunchtime doubly so"}
+        ensureGreen();
+        execute("insert into quotes values (?)",
+                new Object[]{"Would it save you a lot of time if I just gave up and went mad now?"}
+        );
+        execute("insert into quotes values (?)",
+                new Object[]{"Time is an illusion. Lunchtime doubly so"}
         );
         refresh();
 
+        execute("select * from quotes");
         execute("select quote, \"_score\" from quotes where match(quote_ft, ?) " +
                 "order by \"_score\" desc",
                 new Object[]{"time", "time"});
@@ -2257,7 +2267,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
         execute("select * from information_schema.routines");
-        assertEquals(102L, response.rowCount());
+        assertEquals(103L, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
     }
 

@@ -21,8 +21,8 @@
 
 package io.crate.planner.symbol;
 
+import com.google.common.base.Objects;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.planner.plan.Routing;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -48,6 +48,10 @@ public class Reference extends ValueSymbol {
 
     }
 
+    public ReferenceInfo info() {
+        return info;
+    }
+
     @Override
     public SymbolType symbolType() {
         return SymbolType.REFERENCE;
@@ -56,6 +60,13 @@ public class Reference extends ValueSymbol {
     @Override
     public DataType valueType() {
         return info.type();
+    }
+
+    @Override
+    public String toString() {
+        return Objects.toStringHelper(this)
+                .add("info", info)
+                .toString();
     }
 
     @Override
@@ -73,4 +84,18 @@ public class Reference extends ValueSymbol {
     public void writeTo(StreamOutput out) throws IOException {
         info.writeTo(out);
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if ((obj == null) || (getClass() != obj.getClass())) {
+            return false;
+        }
+
+        Reference o = (Reference) obj;
+        return Objects.equal(info.ident(), o.info.ident());
+    }
+
 }

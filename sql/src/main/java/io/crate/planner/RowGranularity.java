@@ -28,7 +28,11 @@ import java.io.IOException;
 
 public enum RowGranularity {
 
-    DOC, SHARD, NODE, CLUSTER;
+    // a higher ordinal represents a higher granularity, so order matters here
+    CLUSTER,
+    NODE,
+    SHARD,
+    DOC;
 
     public static RowGranularity fromStream(StreamInput in) throws IOException {
         return RowGranularity.values()[in.readVInt()];

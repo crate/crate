@@ -19,62 +19,54 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.plan;
+package io.crate.planner.symbol;
 
-import io.crate.metadata.Routing;
+import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class CollectNode extends PlanNode {
+public class StringLiteral extends ValueSymbol {
 
-    private Routing routing;
+    public static final SymbolFactory<StringLiteral> FACTORY = new SymbolFactory<StringLiteral>() {
+        @Override
+        public StringLiteral newInstance() {
+            return new StringLiteral();
+        }
+    };
+    private String value;
 
-    public CollectNode() {
-        super();
+    public StringLiteral(String value) {
+        this.value = value;
     }
 
-    public CollectNode(String id, Routing routing) {
-        super(id);
-        this.routing = routing;
-    }
+    public StringLiteral() {
 
-    public Routing routing() {
-        return routing;
     }
-
-    public boolean isRouted() {
-        return routing != null && routing.hasLocations();
-    }
-
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitCollect(this, context);
+    public SymbolType symbolType() {
+        return SymbolType.STRING_LITERAL;
+    }
+
+    @Override
+    public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
+        return visitor.visitStringLiteral(this, context);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        if (in.readBoolean()) {
-            routing = new Routing();
-            routing.readFrom(in);
-        }
+        String value = in.readOptionalString();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        if (routing != null) {
-            out.writeBoolean(true);
-            routing.writeTo(out);
-        } else {
-            out.writeBoolean(false);
-        }
+        out.writeOptionalString(value);
     }
 
-    public void routing(Routing routing) {
-        this.routing = routing;
+    @Override
+    public DataType valueType() {
+        return DataType.STRING;
     }
 }
