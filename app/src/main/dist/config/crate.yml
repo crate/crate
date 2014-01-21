@@ -261,6 +261,10 @@
 # operational within the cluster. Its recommended to set it to a higher value
 # than 1 when running more than 2 nodes in the cluster.
 #
+# We highly recommend to set the minimum master nodes as follows:
+#   minimum_master_nodes: (N / 2) + 1
+# That will ensure a full recovery of the cluster state.
+#
 # discovery.zen.minimum_master_nodes: 1
 
 # Set the time to wait for ping responses from other nodes when discovering.
