@@ -10,10 +10,6 @@ logger:
   # Log action execution errors for easier debugging
   action: DEBUG
 
-  # Gateway
-  #gateway: DEBUG
-  #index.gateway: DEBUG
-
   # Peer shard recovery
   #indices.recovery: DEBUG
 

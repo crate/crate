@@ -226,39 +226,6 @@
 # http.enabled: false
 
 
-################################### Gateway ###################################
-
-# The gateway allows for persisting the cluster state between full cluster
-# restarts. Every change to the state (such as adding a table) will be stored
-# in the gateway, and when the cluster starts up for the first time,
-# it will read its state from the gateway.
-
-# There are several types of gateway implementations.
-
-# The default gateway type is the "local" gateway (recommended):
-#
-# gateway.type: local
-
-# Settings below control how and when to start the initial recovery process on
-# a full cluster restart (to reuse as much local data as possible when
-# using shared gateway).
-
-# Allow recovery process after N nodes in a cluster are up:
-#
-# gateway.recover_after_nodes: 1
-
-# Set the timeout to initiate the recovery process, once the N nodes
-# from previous setting are up (accepts time value):
-#
-# gateway.recover_after_time: 5m
-
-# Set how many nodes are expected in this cluster. Once these N nodes
-# are up (and recover_after_nodes is met), begin recovery process immediately
-# (without waiting for recover_after_time to expire):
-#
-# gateway.expected_nodes: 2
-
-
 ############################# Recovery Throttling #############################
 
 # These settings allow to control the process of shards allocation between
