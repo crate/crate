@@ -261,12 +261,12 @@
 # Discovery infrastructure ensures nodes can be found within a cluster
 # and master node is elected. Multicast discovery is the default.
 
-# Set to ensure a node sees N other master eligible nodes to be considered
+# Set to ensure a node sees M other master eligible nodes to be considered
 # operational within the cluster. Its recommended to set it to a higher value
 # than 1 when running more than 2 nodes in the cluster.
 #
 # We highly recommend to set the minimum master nodes as follows:
-#   minimum_master_nodes: (N / 2) + 1
+#   minimum_master_nodes: (N / 2) + 1 where N is the cluster size
 # That will ensure a full recovery of the cluster state.
 #
 # discovery.zen.minimum_master_nodes: 1
@@ -280,6 +280,9 @@
 # Unicast discovery allows to explicitly control which nodes will be used
 # to discover the cluster. It can be used when multicast is not present,
 # or to restrict the cluster communication-wise.
+# For example, Amazon Web Services doesn't support multicast discovery.
+# Therefore, you need to specify the instances you want to connect to a
+# cluster as described in the following steps:
 #
 # 1. Disable multicast discovery (enabled by default):
 #
