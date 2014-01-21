@@ -26,6 +26,7 @@ def crate_path(*parts):
 
 
 def bash_transform(s):
+    s.replace(':4200/', ':44200/')
     return (
         r'import subprocess;'
         r'print(subprocess.check_output(r"""%s""",stderr=subprocess.STDOUT,shell=True))' % s) + '\n'

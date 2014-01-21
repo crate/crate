@@ -11,7 +11,7 @@ utility to do the requests.
 To check if Crate is running, we can do a GET on the root, which
 displays basic system information::
 
-    sh$ curl -sS '127.0.0.1:44200/?pretty=1'
+    sh$ curl -sS '127.0.0.1:4200/?pretty=1'
     {
       "ok" : true,
       "status" : 200,
@@ -36,7 +36,7 @@ In this guide we want to create a database for quotes. Let's create
 the index and the ``quote`` type, which will contain information about
 the author of the quote and the quote itself::
 
-    sh$ curl -sSX POST 'http://127.0.0.1:44200/_sql?pretty=1&refresh=true' -d @- <<EOF
+    sh$ curl -sSX POST 'http://127.0.0.1:4200/_sql?pretty=1&refresh=true' -d @- <<EOF
     ... {
     ... "stmt": "create table quotes (author string, content string)"
     ... }
@@ -50,7 +50,7 @@ the author of the quote and the quote itself::
 
 Now we can add the first quote to the database::
 
-    sh$ curl -sSX POST '127.0.0.1:44200/_sql?pretty=1&refresh=true' -d @- <<EOF
+    sh$ curl -sSX POST '127.0.0.1:4200/_sql?pretty=1&refresh=true' -d @- <<EOF
     ... {
     ... "stmt": "insert into quotes values('Me', 'Hello Crate!')"
     ... }
@@ -64,7 +64,7 @@ Now we can add the first quote to the database::
 
 Refresh in order to make the result immediately visible in subsequent queries::
 
-    sh$ curl -sSX POST '127.0.0.1:44200/quotes/_refresh?pretty=1'
+    sh$ curl -sSX POST '127.0.0.1:4200/quotes/_refresh?pretty=1'
     {
       "ok" : true,
       "_shards" : {
@@ -77,7 +77,7 @@ Refresh in order to make the result immediately visible in subsequent queries::
 
 We can now view what we have just inserted like this::
 
-    sh$ curl -sSX POST '127.0.0.1:44200/_sql?pretty=1' -d @- <<EOF
+    sh$ curl -sSX POST '127.0.0.1:4200/_sql?pretty=1' -d @- <<EOF
     ... {
     ... "stmt": "select author, content from quotes order by author"
     ... }
@@ -91,7 +91,7 @@ We can now view what we have just inserted like this::
 
 Let's add another quote::
 
-    sh$ curl -sSX POST '127.0.0.1:44200/_sql?pretty=1&refresh=true' -d @- <<EOF
+    sh$ curl -sSX POST '127.0.0.1:4200/_sql?pretty=1&refresh=true' -d @- <<EOF
     ... {
     ... "stmt": "insert into quotes values('Ford', 'Don''t panic... don''t panic...')"
     ... }
@@ -105,7 +105,7 @@ Let's add another quote::
 
 Refresh again::
 
-    sh$ curl -sSX POST '127.0.0.1:44200/quotes/_refresh?pretty=1'
+    sh$ curl -sSX POST '127.0.0.1:4200/quotes/_refresh?pretty=1'
     {
       "ok" : true,
       "_shards" : {
@@ -117,7 +117,7 @@ Refresh again::
 
 Looking up only Ford's quotes::
 
-    sh$ curl -sSX POST '127.0.0.1:44200/_sql?pretty=1' -d @- <<EOF
+    sh$ curl -sSX POST '127.0.0.1:4200/_sql?pretty=1' -d @- <<EOF
     ... {
     ... "stmt": "select content from quotes where author='Ford'"
     ... }
