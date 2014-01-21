@@ -37,6 +37,9 @@ Crate Launchpad_ Page
 RPM: CentOS, Scientific Linux and yum
 -------------------------------------
 Repository config:
+
+::
+
     crate.repo # /etc/yum.repos.d/crate.repo
     [crate]
     gpgcheck=0
@@ -59,5 +62,5 @@ Contact
 For further information visit `https://crate.io/ <https://crate.io/>`_.
 You're very welcome to join our IRC channel #crate on Freenode_.
 
-.. _Freenode: http://irc.freenode.net
+.. _Freenode: http://freenode.net
 
