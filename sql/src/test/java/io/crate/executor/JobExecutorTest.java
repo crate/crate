@@ -23,16 +23,14 @@ package io.crate.executor;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.task.LocalAggregationTask;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.Functions;
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.Routing;
+import io.crate.metadata.*;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.reference.sys.NodeLoadExpression;
 import io.crate.planner.plan.*;
@@ -52,7 +50,6 @@ import static org.junit.Assert.assertEquals;
 
 public class JobExecutorTest {
 
-    CollectNode collector;
     private Injector injector;
     private Functions functions;
 
@@ -70,10 +67,30 @@ public class JobExecutorTest {
         }
     }
 
+    class TestMetaDataModule extends MetaDataModule {
+        @Override
+        protected void bindRoutings() {
+            Map<String, Map<String, Integer>> locations = ImmutableMap.<String, Map<String, Integer>>builder()
+                    .put("nodeOne", ImmutableMap.<String, Integer>of())
+                    .put("nodeTwo", ImmutableMap.<String, Integer>of())
+                    .build();
+            final Routing routing = new Routing(locations);
+
+            Routings routings = new Routings() {
+
+                @Override
+                public Routing getRouting(TableIdent tableIdent) {
+                    return routing;
+                }
+            };
+            bind(Routings.class).toInstance(routings);
+        }
+    }
+
     @Before
     public void setUp() throws Exception {
         injector = new ModulesBuilder().add(
-                new MetaDataModule(),
+                new TestMetaDataModule(),
                 new AggregationImplModule()
         ).createInjector();
         functions = injector.getInstance(Functions.class);
