@@ -39,7 +39,9 @@ public class UDCService extends AbstractLifecycleComponent<UDCService> {
         TimeValue initialDelay = settings.getAsTime(UDCPlugin.INITIAL_DELAY_SETTING_NAME, UDCPlugin.INITIAL_DELAY_DEFAULT_SETTING);
         TimeValue interval = settings.getAsTime(UDCPlugin.INTERVAL_SETTING_NAME, UDCPlugin.INTERVAL_DEFAULT_SETTING);
 
-        logger.info("Starting with delay {} and period {}.", initialDelay.getSeconds(), interval.getSeconds());
+        if (logger.isDebugEnabled()) {
+            logger.debug("Starting with delay {} and period {}.", initialDelay.getSeconds(), interval.getSeconds());
+        }
 
         PingTask pingTask = new PingTask(clusterService, clusterIdService, httpServerTransport, url);
         timer.scheduleAtFixedRate(pingTask, initialDelay.millis(), interval.millis());
