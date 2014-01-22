@@ -2,11 +2,9 @@ package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
 import io.crate.metadata.*;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.ValueSymbol;
+import io.crate.planner.symbol.*;
 import io.crate.sql.tree.*;
+import io.crate.sql.tree.StringLiteral;
 import org.cratedb.DataType;
 
 import java.util.ArrayList;
@@ -51,9 +49,11 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
         if (node.getOrderBy().size()>0){
             List<Symbol> sortSymbols = new ArrayList<>(node.getOrderBy().size());
-            context.reverseFlags(new ArrayList<Boolean>(sortSymbols.size()));
+            context.reverseFlags(new boolean[node.getOrderBy().size()]);
+            int i=0;
             for (SortItem sortItem : node.getOrderBy()) {
                 sortSymbols.add(process(sortItem, context));
+                context.reverseFlags()[i++] = sortItem.getOrdering()== SortItem.Ordering.DESCENDING;
             }
             context.sortSymbols(sortSymbols);
         }
@@ -63,7 +63,6 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     @Override
     protected Symbol visitSortItem(SortItem node, Analysis context) {
-        context.reverseFlags().add(node.getOrdering()== SortItem.Ordering.DESCENDING);
         return super.visitSortItem(node, context);
     }
 
@@ -118,8 +117,7 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
         FunctionIdent ident = new FunctionIdent(node.getName().toString(), argumentTypes);
         FunctionInfo functionInfo = context.getFunctionInfo(ident);
 
-        Function function = new Function(functionInfo, arguments);
-        return function;
+        return context.allocateFunction(functionInfo, arguments);
     }
 
     @Override
@@ -132,11 +130,7 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     @Override
     protected Symbol visitQualifiedNameReference(QualifiedNameReference node, Analysis context) {
-        ReferenceInfo info = context.getReferenceInfo(
-                new ReferenceIdent(context.table(), node.getSuffix().getSuffix())
-        );
-        //context.putReferenceInfo(node, info);
-        return new Reference(info);
+        return context.allocateReference(new ReferenceIdent(context.table(), node.getSuffix().getSuffix()));
     }
 
     @Override
@@ -145,8 +139,6 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
         node.accept(visitor, subscriptContext);
         ReferenceIdent ident = new ReferenceIdent(
                 context.table(), subscriptContext.column(), subscriptContext.parts());
-        ReferenceInfo info = context.getReferenceInfo(ident);
-        //context.putReferenceInfo(node, info);
-        return new Reference(info);
+        return context.allocateReference(ident);
     }
 }

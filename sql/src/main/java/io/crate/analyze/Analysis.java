@@ -2,7 +2,8 @@ package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
 import io.crate.metadata.*;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.*;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.Query;
@@ -24,17 +25,21 @@ public class Analysis {
     private final Functions functions;
     private TableIdent table;
 
-    private Map<FunctionCall, FunctionInfo> functionInfos = new IdentityHashMap<>();
-    private Map<Expression, ReferenceInfo> referenceInfos = new IdentityHashMap<>();
-    private List<ReferenceInfo> toCollect = new ArrayList<ReferenceInfo>();
+    private Map<Function, Function> functionSymbols = new HashMap<>();
+
+    //private Map<Aggregation, Aggregation> aggregationSymbols = new HashMap<>();
+    private Map<ReferenceIdent, Reference> referenceSymbols = new IdentityHashMap<>();
+
     private Map<Expression, DataType> types = new IdentityHashMap<>();
     private Routing routing;
     private List<String> outputNames;
     private List<Symbol> outputSymbols;
     private Integer limit;
     private List<Symbol> groupBy;
-    private List<Boolean> reverseFlags;
+    private boolean[] reverseFlags;
     private List<Symbol> sortSymbols;
+    private RowGranularity rowGranularity;
+    private boolean hasAggregates = false;
 
     public Analysis(ReferenceResolver referenceResolver, Functions functions, Routings routings) {
         this.referenceResolver = referenceResolver;
@@ -63,16 +68,23 @@ public class Analysis {
         this.query = query;
     }
 
+    public Reference allocateReference(ReferenceIdent ident){
+        Reference reference = referenceSymbols.get(ident);
+        if (reference==null){
+            ReferenceInfo info = getReferenceInfo(ident);
+            reference = new Reference(info);
+            referenceSymbols.put(info.ident(), reference);
+        }
+        updateRowGranularity(reference.info().granularity());
+        return reference;
+    }
+
     public ReferenceInfo getReferenceInfo(ReferenceIdent ident) {
         ReferenceInfo info = referenceResolver.getInfo(ident);
         if (info == null) {
             throw new UnsupportedOperationException("TODO: unknown column reference: " + ident);
         }
         return info;
-    }
-
-    public Collection<ReferenceInfo> referenceInfos() {
-        return referenceInfos.values();
     }
 
     public FunctionInfo getFunctionInfo(FunctionIdent ident) {
@@ -83,26 +95,6 @@ public class Analysis {
         return implementation.info();
     }
 
-    public void putFunctionInfo(FunctionCall node, FunctionInfo functionInfo) {
-        functionInfos.put(node, functionInfo);
-        types.put(node, functionInfo.returnType());
-    }
-
-    public void putReferenceInfo(Expression node, ReferenceInfo info) {
-        referenceInfos.put(node, info);
-        types.put(node, info.type());
-        if (!toCollect.contains(info)) {
-            toCollect.add(info);
-        }
-    }
-
-    public ReferenceInfo getReferenceInfo(SubscriptExpression node) {
-        return referenceInfos.get(node);
-    }
-
-    public FunctionInfo getFunctionInfo(FunctionCall node) {
-        return functionInfos.get(node);
-    }
 
     public void putType(Expression expression, DataType type) {
         types.put(expression, type);
@@ -112,11 +104,6 @@ public class Analysis {
     public DataType getType(Expression expression) {
         Preconditions.checkArgument(types.containsKey(expression), "Expression not analyzed: %s", expression);
         return types.get(expression);
-    }
-
-
-    public List<ReferenceInfo> toCollect() {
-        return toCollect;
     }
 
     public void addOutputName(String s) {
@@ -159,11 +146,11 @@ public class Analysis {
         return groupBy != null && groupBy.size() > 0;
     }
 
-    public void reverseFlags(List<Boolean> reverseFlags) {
+    public void reverseFlags(boolean[] reverseFlags) {
         this.reverseFlags = reverseFlags;
     }
 
-    public List<Boolean> reverseFlags() {
+    public boolean[] reverseFlags() {
         return reverseFlags;
     }
 
@@ -177,5 +164,48 @@ public class Analysis {
 
     public boolean isSorted() {
         return sortSymbols != null && sortSymbols.size() > 0;
+    }
+
+    /**
+     * Updates the row granularity of this query if it is higher than the current row granularity.
+     * @param granularity the row granularity as seen by a reference
+     * @return
+     */
+    private RowGranularity updateRowGranularity(RowGranularity granularity){
+        if (rowGranularity==null || rowGranularity.ordinal()<granularity.ordinal()){
+            rowGranularity=granularity;
+        }
+        return rowGranularity;
+    }
+
+    public RowGranularity rowGranularity() {
+        return rowGranularity;
+    }
+
+    public Collection<Reference> references() {
+        return referenceSymbols.values();
+    }
+
+    public Collection<Function> functions() {
+        return functionSymbols.values();
+    }
+
+
+    public boolean hasAggregates() {
+        return hasAggregates;
+    }
+
+    public Function allocateFunction(FunctionInfo info, List<ValueSymbol> arguments) {
+        if (info.isAggregate()){
+            hasAggregates = true;
+        }
+        Function function = new Function(info, arguments);
+        Function existing = functionSymbols.get(function);
+        if (existing != null){
+            return existing;
+        } else {
+            functionSymbols.put(function, function);
+        }
+        return function;
     }
 }

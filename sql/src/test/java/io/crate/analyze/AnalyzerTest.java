@@ -149,7 +149,7 @@ public class AnalyzerTest {
 
         assertEquals(1, analysis.outputSymbols().size());
         assertEquals(1, analysis.sortSymbols().size());
-        assertEquals(1, analysis.reverseFlags().size());
+        assertEquals(1, analysis.reverseFlags().length);
 
         assertEquals(NodeLoadExpression.INFO_LOAD_5, ((Reference) analysis.sortSymbols().get(0)).info());
 
