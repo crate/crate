@@ -352,4 +352,4 @@
 #udc.interval: 24h
 
 # The url the ping is sent to.
-#udc.url: https://udc.crate.io
+#udc.url: https://udc.crate.io/
