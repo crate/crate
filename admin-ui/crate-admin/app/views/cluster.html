@@ -1,0 +1,100 @@
+<div ng-controller="ClusterController">
+
+  <div id="sidebar-wrapper" class="sidebar-350" ng-show="renderSidebar">
+
+    <ul class="nav nav-tabs">
+      <li ng-repeat="node in nodes track by $index" ng-class="{ 'active': isActive(node.name)}"><a href="#/cluster/{{node.name}}{{routeParams}}" data-toggle="tab">
+        <div class="row">
+          <div class="col-md-8 col-sm-8">
+            <h3><span class="{{node.health_label_class}}">{{node.name}}</span></h3>
+          </div>
+          <div class="col-md-4 col-sm-4">
+            <span class="pull-right">{{node.hostname}}</span>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-8 col-sm-8">
+            <span class="{{node.health_label_class}}">{{node.summary.join(' / ') | truncate:65}}</span>
+          </div>
+          <div class="col-md-4 col-sm-4">
+            <span class="pull-right">{{node.address}}</span>
+          </div>
+        </div>
+      </a></li>
+    </ul>
+
+  </div>
+
+  <div class="row">
+    <div class="col-lg-6 col-md-6" ng-class="{'margin-left-350': renderSidebar}">
+
+      <div class="row">
+        <div class="col-lg-11 col-md-11">
+          <div class="page-header">
+            <h1>{{node.name}}</h1>
+            <div id="menu-toggle" ng-click="toggleSidebar()" class="btn btn-default"><i class="icon-reorder"></i></div>
+          </div>
+        </div>
+      </div><!-- /.row -->
+
+      <div class="row">
+        <div class="col-md-6 col-sm-11">
+          <div class="panel panel-info text-right">
+            <div class="panel-heading">
+              <p class="announcement-heading">{{node.hostname}}</p>
+              <p class="announcement-text">Hostname</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-sm-11">
+          <div class="panel panel-info text-right">
+            <div class="panel-heading">
+              <p class="announcement-heading">{{node.address}}</p>
+              <p class="announcement-text">Address</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-sm-11">
+          <div class="panel panel-info text-right" ng-class="{ 'panel-warning': node.heap.used_percent >= percentageLimitYellow, 'panel-danger': node.heap.used_percent >= percentageLimitRed }">
+            <div class="panel-heading">
+              <p class="announcement-heading inline-block" data-toggle="tooltip" rel="tooltip" data-original-title="{{node.heap.used | number:0}}">{{node.heap.used | bytes}}</p>
+              <p class="announcement-text">Used HEAP</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-sm-11">
+          <div class="panel panel-info text-right">
+            <div class="panel-heading">
+              <p class="announcement-heading inline-block" data-toggle="tooltip" rel="tooltip" data-original-title="{{node.heap.total | number:0}}">{{node.heap.total | bytes}}</p>
+              <p class="announcement-text">Total HEAP</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-sm-11">
+          <div class="panel panel-info text-right" ng-class="{ 'panel-warning': node.fs.used_percent >= percentageLimitYellow, 'panel-danger': node.fs.used_percent >= percentageLimitRed }">
+            <div class="panel-heading">
+              <p class="announcement-heading inline-block" data-toggle="tooltip" rel="tooltip" data-original-title="{{node.fs.used | number:0}}">{{node.fs.used | bytes}}</p>
+              <p class="announcement-text">Used Disk</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6 col-sm-11">
+          <div class="panel panel-info text-right">
+            <div class="panel-heading">
+              <p class="announcement-heading inline-block" data-toggle="tooltip" rel="tooltip" data-original-title="{{node.fs.free | number:0}}">{{node.fs.free | bytes}}</p>
+              <p class="announcement-text">Free Disk</p>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.row -->
+
+    </div>
+  </div><!-- /.row -->
+
+</div>
