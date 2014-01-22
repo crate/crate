@@ -32,7 +32,7 @@ public class CountDistinctAggState extends AggState<CountDistinctAggState> {
 
     // TODO: we have a limit of Integer.MAX_VALUE for counts due to seenValues.size()
     public Set<Object> seenValues;
-    Long value;
+    Long value = 0L;
 
     @Override
     public Object value() {
@@ -50,7 +50,7 @@ public class CountDistinctAggState extends AggState<CountDistinctAggState> {
 
     @Override
     public int compareTo(CountDistinctAggState o) {
-        return Integer.compare(value == null ? seenValues.size() : value.intValue(), (Integer) o.value());
+        return Integer.compare(value.intValue(), (Integer) o.value());
     }
 
     @Override

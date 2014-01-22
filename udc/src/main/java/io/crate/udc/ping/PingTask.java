@@ -155,7 +155,6 @@ public class PingTask extends TimerTask {
 
     @Override
     public void run() {
-        logger.info("Sending UDC information...");
         try {
             URL url = buildPingUrl();
             if (logger.isDebugEnabled()) {
@@ -183,9 +182,7 @@ public class PingTask extends TimerTask {
             if (logger.isDebugEnabled()) {
                 logger.debug("Error sending UDC information", e);
             }
-            logger.info("Sending UDC information failed.");
             failCounter.incrementAndGet();
         }
-        logger.info("done.");
     }
 }

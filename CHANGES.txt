@@ -5,9 +5,18 @@ Changes for Crate
 Unreleased
 ==========
 
- - upgraded elasticsearch to 0.90.10
+ - updated default config files crate.yml and logging.yml
 
- - only log tracebacks with debug-level when udc failed
+2014/01/20 0.22.0
+=================
+
+ - disabled logging of udc at info level
+
+ - fix: udc ssl truststore was not found at JAR's
+
+ - fix: distinct count aggregation should return 0 when hitting no column
+
+ - upgraded elasticsearch to 0.90.10
 
 2014/01/15 0.21.1
 =================

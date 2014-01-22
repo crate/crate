@@ -442,15 +442,15 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
     public void testTableConstraintsWithOrderBy() throws Exception {
         execUsingClient("create table test1 (col11 integer primary key, col12 float)");
         execUsingClient("create table test2 (col21 double primary key, col22 string)");
-        execUsingClient("create table \"äbc\" (col31 integer primary key, col32 string)");
+        execUsingClient("create table abc (col31 integer primary key, col32 string)");
 
         ensureGreen();
         execUsingClient("select table_name from INFORMATION_SCHEMA.table_constraints ORDER BY " +
                 "table_name");
         assertEquals(3L, response.rowCount());
-        assertEquals(response.rows()[0][0], "test1");
-        assertEquals(response.rows()[1][0], "test2");
-        assertEquals(response.rows()[2][0], "äbc");
+        assertEquals(response.rows()[0][0], "abc");
+        assertEquals(response.rows()[1][0], "test1");
+        assertEquals(response.rows()[2][0], "test2");
     }
 
     @Test

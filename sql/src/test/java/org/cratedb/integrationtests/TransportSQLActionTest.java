@@ -2722,4 +2722,16 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals("Vogon", response.rows()[2][1]);
     }
 
+    @Test
+    public void testSelectCountDistinctZero() throws Exception {
+        execute("create table test (col1 int)");
+        ensureGreen();
+
+        execute("select count(distinct col1) from test");
+
+        assertEquals(1, response.rowCount());
+        assertEquals(0L, response.rows()[0][0]);
+
+    }
+
 }
