@@ -22,7 +22,6 @@
 package io.crate.executor;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -384,8 +383,8 @@ public class JobExecutorTest {
         aggregationNode.source(collectNode);
 
         ValueSymbol value = new Value(DataType.DOUBLE);
-        FunctionIdent fi = new FunctionIdent("avg", ImmutableList.of(reference.info().type()));
-        Aggregation agg = new Aggregation(fi, ImmutableList.<Symbol>of(new InputColumn(0)),
+        FunctionIdent fi = new FunctionIdent("avg", Arrays.asList(reference.info().type()));
+        Aggregation agg = new Aggregation(fi, Arrays.<Symbol>asList(new InputColumn(0)),
                 Aggregation.Step.ITER, Aggregation.Step.FINAL);
 
         aggregationNode.outputs(agg);

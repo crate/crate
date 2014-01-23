@@ -21,17 +21,17 @@
 
 package io.crate.operator.aggregation;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.TestingAggregationTask;
 import io.crate.executor.task.LocalAggregationTask;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
-import io.crate.metadata.MetaDataModule;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.planner.plan.AggregationNode;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
@@ -40,10 +40,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public abstract class AggregationTest {
 
@@ -89,11 +86,9 @@ public abstract class AggregationTest {
         AggregationNode aggregationNode = new AggregationNode("aggregate");
 
 
-
-        FunctionIdent fi = new FunctionIdent(name, ImmutableList.of(dataType));
-        Aggregation agg = new Aggregation(fi, ImmutableList.<Symbol>of(new InputColumn(0)),
+        FunctionIdent fi = new FunctionIdent(name, Arrays.asList(dataType));
+        Aggregation agg = new Aggregation(fi, Arrays.<Symbol>asList(new InputColumn(0)),
                 Aggregation.Step.ITER, Aggregation.Step.FINAL);
-
 
 
         aggregationNode.outputs(agg);
