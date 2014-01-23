@@ -1,12 +1,8 @@
 package io.crate.operator.operator;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.sun.org.apache.xalan.internal.xsltc.compiler.sym;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.operator.Input;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 
@@ -36,18 +32,16 @@ public class OrOperator implements Operator {
     }
 
     @Override
-    public Symbol optimizeSymbol(Symbol symbol) {
-        Preconditions.checkArgument(symbol.symbolType() == SymbolType.FUNCTION);
-        Function function = (Function) symbol;
+    public Symbol normalizeSymbol(Function function) {
 
-        for (ValueSymbol valueSymbol : function.arguments()) {
-            if (valueSymbol.symbolType() == SymbolType.BOOlEAN_LITERAL) {
-                if (((BooleanLiteral)valueSymbol).value()) {
+        for (Symbol symbol : function.arguments()) {
+            if (symbol.symbolType() == SymbolType.BOOlEAN_LITERAL) {
+                if (((BooleanLiteral)symbol).value()) {
                     return new BooleanLiteral(true);
                 }
             }
         }
 
-        return symbol;
+        return function;
     }
 }

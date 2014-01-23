@@ -27,18 +27,19 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
     @Override
     public Symbol visitFunction(Function function, Void context) {
         int i = 0;
-        for (ValueSymbol valueSymbol : function.arguments()) {
-            function.setArgument(i, (ValueSymbol)valueSymbol.accept(this, context));
+        for (Symbol symbol : function.arguments()) {
+            function.setArgument(i, symbol.accept(this, context));
             i++;
         }
 
         return optimize(function);
     }
 
+    @SuppressWarnings("unchecked")
     private Symbol optimize(Function function) {
         FunctionImplementation impl = functions.get(function.info().ident());
         if (impl != null) {
-            return impl.optimizeSymbol(function);
+            return impl.normalizeSymbol(function);
         } else {
             logger.warn("No implementation found for function {}", function);
         }
@@ -56,6 +57,11 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
             }
         }
 
+        return symbol;
+    }
+
+    @Override
+    protected Symbol visitSymbol(Symbol symbol, Void context) {
         return symbol;
     }
 }

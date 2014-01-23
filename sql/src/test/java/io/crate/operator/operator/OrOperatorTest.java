@@ -21,9 +21,9 @@ public class OrOperatorTest {
         );
         OrOperator operator = new OrOperator(info);
 
-        Function function = new Function(info, Arrays.asList(new Reference(), new BooleanLiteral(true)));
-        Symbol optimizedSymbol = operator.optimizeSymbol(function);
-        assertThat(optimizedSymbol, instanceOf(BooleanLiteral.class));
+        Function function = new Function(info, Arrays.<Symbol>asList(new Reference(), new BooleanLiteral(true)));
+        Symbol normalizedSymbol = operator.normalizeSymbol(function);
+        assertThat(normalizedSymbol, instanceOf(BooleanLiteral.class));
     }
 
     @Test
@@ -34,8 +34,8 @@ public class OrOperatorTest {
         );
         OrOperator operator = new OrOperator(info);
 
-        Function function = new Function(info, Arrays.<ValueSymbol>asList(new Reference(), new Reference()));
-        Symbol unoptimized = operator.optimizeSymbol(function);
-        assertThat(unoptimized, instanceOf(Function.class));
+        Function function = new Function(info, Arrays.<Symbol>asList(new Reference(), new Reference()));
+        Symbol normalizedSymbol = operator.normalizeSymbol(function);
+        assertThat(normalizedSymbol, instanceOf(Function.class));
     }
 }

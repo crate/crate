@@ -81,16 +81,17 @@ public class EvaluatingNormalizerTest {
         /**
          * prepare the following where clause as function symbol tree:
          *
-         *  where load['1'] = 0.01 or name != 'x' and name != 'y'
+         *  where load['1'] = 0.08 or name != 'x' and name != 'y'
           */
 
         Reference load_1 = new Reference(NodeLoadExpression.INFO_LOAD_1);
-        Function x_eq_1 = new Function(
+        DoubleLiteral d01 = new DoubleLiteral(0.08);
+        Function load_eq_01 = new Function(
                 new FunctionInfo(
                         new FunctionIdent(EqOperator.NAME, Arrays.asList(DataType.DOUBLE, DataType.DOUBLE)),
                         DataType.BOOLEAN
                 ),
-                Arrays.<ValueSymbol>asList(load_1, load_1) // TODO use other second valueSymbol
+                Arrays.<Symbol>asList(load_1, d01)
         );
 
         ValueSymbol name_ref = new Reference(
@@ -108,14 +109,14 @@ public class EvaluatingNormalizerTest {
                         new FunctionIdent(NotEqOperator.NAME, ImmutableList.of(DataType.STRING, DataType.STRING)),
                         DataType.BOOLEAN
                 ),
-                Arrays.asList(name_ref, x_literal)
+                Arrays.<Symbol>asList(name_ref, x_literal)
         );
         Function name_neq_y = new Function(
                 new FunctionInfo(
                         new FunctionIdent(NotEqOperator.NAME, ImmutableList.of(DataType.STRING, DataType.STRING)),
                         DataType.BOOLEAN
                 ),
-                Arrays.asList(name_ref, y_literal)
+                Arrays.<Symbol>asList(name_ref, y_literal)
         );
 
         Function op_and = new Function(
@@ -123,7 +124,7 @@ public class EvaluatingNormalizerTest {
                         new FunctionIdent(AndOperator.NAME, Arrays.asList(DataType.BOOLEAN, DataType.BOOLEAN)),
                         DataType.BOOLEAN
                 ),
-                Arrays.<ValueSymbol>asList(name_neq_x, name_neq_y)
+                Arrays.<Symbol>asList(name_neq_x, name_neq_y)
         );
 
         Function op_or = new Function(
@@ -131,11 +132,11 @@ public class EvaluatingNormalizerTest {
                         new FunctionIdent(OrOperator.NAME, Arrays.asList(DataType.BOOLEAN, DataType.BOOLEAN)),
                         DataType.BOOLEAN
                 ),
-                Arrays.<ValueSymbol>asList(x_eq_1, op_and)
+                Arrays.<Symbol>asList(load_eq_01, op_and)
         );
 
 
-        // the load['1'] == 0.01 parts evaluates to true and therefore the whole query is optimized to true
+        // the load['1'] == 0.08 parts evaluates to true and therefore the whole query is optimized to true
         Symbol query = visitor.process(op_or, null);
         assertThat(query, instanceOf(BooleanLiteral.class));
         assertThat(((BooleanLiteral) query).value(), is(true));

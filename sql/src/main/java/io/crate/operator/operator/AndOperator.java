@@ -21,7 +21,6 @@
 
 package io.crate.operator.operator;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -29,7 +28,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 
-public class AndOperator implements FunctionImplementation {
+public class AndOperator implements FunctionImplementation<Function> {
 
     public static final String NAME = "op_and";
     private final FunctionInfo info;
@@ -54,16 +53,13 @@ public class AndOperator implements FunctionImplementation {
     }
 
     @Override
-    public Symbol optimizeSymbol(Symbol symbol) {
-        Preconditions.checkArgument(symbol.symbolType() == SymbolType.FUNCTION);
-        Function function = (Function)symbol;
-
+    public Symbol normalizeSymbol(Function function) {
         Boolean result = true;
-        for (ValueSymbol valueSymbol : function.arguments()) {
-            if (valueSymbol instanceof BooleanLiteral) {
-                result = result && ((BooleanLiteral) valueSymbol).value();
+        for (Symbol symbol : function.arguments()) {
+            if (symbol instanceof BooleanLiteral) {
+                result = result && ((BooleanLiteral) symbol).value();
             } else {
-                return symbol; // can't optimize -> return unmodified symbol
+                return function; // can't optimize -> return unmodified symbol
             }
         }
 

@@ -19,10 +19,10 @@ public class Function extends ValueSymbol {
         }
     };
 
-    private List<ValueSymbol> arguments;
+    private List<Symbol> arguments;
     private FunctionInfo info;
 
-    public Function(FunctionInfo info, List<ValueSymbol> arguments) {
+    public Function(FunctionInfo info, List<Symbol> arguments) {
         Preconditions.checkNotNull(info);
         Preconditions.checkArgument(arguments.size() == info.ident().argumentTypes().size());
         this.info = info;
@@ -33,11 +33,11 @@ public class Function extends ValueSymbol {
 
     }
 
-    public List<ValueSymbol> arguments() {
+    public List<Symbol> arguments() {
         return arguments;
     }
 
-    public void setArgument(int index, ValueSymbol symbol) {
+    public void setArgument(int index, Symbol symbol) {
         arguments.set(index, symbol);
     }
 
@@ -76,7 +76,7 @@ public class Function extends ValueSymbol {
     public void writeTo(StreamOutput out) throws IOException {
         info.writeTo(out);
         out.writeVInt(arguments.size());
-        for (ValueSymbol argument : arguments) {
+        for (Symbol argument : arguments) {
             Symbol.toStream(argument, out);
         }
     }

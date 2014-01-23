@@ -47,8 +47,9 @@ public abstract class AggregationFunction<T extends AggregationState> implements
      */
     public abstract T newState();
 
+
     @Override
-    public Symbol optimizeSymbol(Symbol symbol) {
+    public Symbol normalizeSymbol(Symbol symbol) {
         return symbol;
     }
 }

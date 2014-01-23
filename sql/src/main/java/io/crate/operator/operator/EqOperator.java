@@ -53,23 +53,28 @@ public class EqOperator implements Operator {
         );
     }
 
+    EqOperator(FunctionInfo info) {
+        this.info = info;
+    }
+
     @Override
     public FunctionInfo info() {
         return info;
     }
 
     @Override
-    public Symbol optimizeSymbol(Symbol symbol) {
-        Preconditions.checkNotNull(symbol);
-        Preconditions.checkArgument(symbol.symbolType() == SymbolType.FUNCTION);
-        Function function = (Function)symbol;
+    public Symbol normalizeSymbol(Function function) {
+        Preconditions.checkNotNull(function);
         Preconditions.checkArgument(function.arguments().size() == 2);
 
-        return new BooleanLiteral(
-                Objects.equals(function.arguments().get(0), function.arguments().get(1)));
-    }
+        Symbol left = function.arguments().get(0);
+        Symbol right = function.arguments().get(1);
 
-    EqOperator(FunctionInfo info) {
-        this.info = info;
+        if (left instanceof Literal && right instanceof Literal) {
+            return new BooleanLiteral(
+                    Objects.equals(((Literal) left).value(), ((Literal) right).value()));
+        }
+
+        return function;
     }
 }

@@ -25,10 +25,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.planner.symbol.BooleanLiteral;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
+import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 
 import java.util.Objects;
@@ -57,15 +54,17 @@ public class NotEqOperator implements Operator {
     }
 
     @Override
-    public Symbol optimizeSymbol(Symbol symbol) {
-        Preconditions.checkNotNull(symbol);
-        Preconditions.checkArgument(symbol.symbolType() == SymbolType.FUNCTION);
-
-        Function function = (Function)symbol;
+    public Symbol normalizeSymbol(Function function) {
+        Preconditions.checkNotNull(function);
         Preconditions.checkArgument(function.arguments().size() == 2);
 
-        return new BooleanLiteral(
-                !(Objects.equals(function.arguments().get(0), function.arguments().get(1)))
-        );
+        Symbol left = function.arguments().get(0);
+        Symbol right = function.arguments().get(1);
+        if (left instanceof Literal && right instanceof Literal) {
+            return new BooleanLiteral(
+                    !(Objects.equals(((Literal) left).value(), ((Literal) right).value())));
+        }
+
+        return function;
     }
 }
