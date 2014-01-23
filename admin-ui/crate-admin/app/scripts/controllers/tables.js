@@ -23,8 +23,6 @@
 
 angular.module('tables', ['stats', 'sql', 'common'])
   .controller('TablesController', function ($scope, $location, $log, $timeout, $routeParams, SQLQuery, roundWithUnitFilter, bytesFilter) {
-    var table_name = $location.search().table || '';
-
     var refreshInterval = 5000;
 
     var colorMapPanel = {green: 'panel-success',

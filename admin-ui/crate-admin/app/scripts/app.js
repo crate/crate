@@ -28,7 +28,8 @@ var crateAdminApp = angular.module('crateAdminApp', [
   'common',
   'overview',
   'console',
-  'tables'
+  'tables',
+  'cluster'
 ]);
 
 crateAdminApp.config(['$routeProvider',
@@ -49,6 +50,14 @@ crateAdminApp.config(['$routeProvider',
       .when('/tables/:table_name', {
         templateUrl: 'views/tables.html',
         controller: 'TablesController'
+      })
+      .when('/cluster', {
+        templateUrl: 'views/cluster.html',
+        controller: 'ClusterController'
+      })
+      .when('/cluster/:node_name', {
+        templateUrl: 'views/cluster.html',
+        controller: 'ClusterController'
       })
       .otherwise({
         redirectTo: '/'
