@@ -33,7 +33,7 @@ public class Function extends ValueSymbol {
 
     }
 
-    public List<? extends Symbol> arguments() {
+    public List<Symbol> arguments() {
         return arguments;
     }
 

@@ -40,23 +40,23 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
         FunctionImplementation impl = functions.get(function.info().ident());
         if (impl != null) {
             return impl.normalizeSymbol(function);
-        } else {
-            logger.warn("No implementation found for function {}", function);
         }
+        logger.warn("No implementation found for function {}", function);
         return function;
     }
 
     @Override
     public Symbol visitReference(Reference symbol, Void context) {
-        if (symbol.info().granularity() == granularity) {
-            Input input = (Input) referenceResolver.getImplementation(symbol.info().ident());
-            if (input != null) {
-                return Literal.forType(symbol.info().type(), input.value());
-            } else {
-                logger.warn("Can't resolve reference {}", symbol);
-            }
+        if (symbol.info().granularity() != granularity) {
+            return symbol;
         }
 
+        Input input = (Input) referenceResolver.getImplementation(symbol.info().ident());
+        if (input != null) {
+            return Literal.forType(symbol.info().type(), input.value());
+        }
+
+        logger.warn("Can't resolve reference {}", symbol);
         return symbol;
     }
 
