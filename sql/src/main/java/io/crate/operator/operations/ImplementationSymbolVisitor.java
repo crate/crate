@@ -23,9 +23,8 @@ package io.crate.operator.operations;
 
 import io.crate.metadata.*;
 import io.crate.operator.Input;
-import io.crate.operator.InputCollectExpression;
 import io.crate.operator.aggregation.CollectExpression;
-import io.crate.operator.aggregation.NestedCollectExpression;
+import io.crate.operator.aggregation.FunctionCollectExpression;
 import io.crate.planner.plan.PlanNode;
 import io.crate.planner.symbol.*;
 import org.cratedb.sql.CrateException;
@@ -36,40 +35,25 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSymbolVisitor.Context, Void>{
+public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSymbolVisitor.Context, Input<?>>{
 
     public static class Context {
-        private Set<Input<?>> leafs = new LinkedHashSet<>(); // to keep insertion order
-        private List<CollectExpression<?>> topLevelOutputs = new ArrayList<>();
+        private Set<CollectExpression<?>> collectExpressions = new LinkedHashSet<>(); // to keep insertion order
+        private List<Input<?>> topLevelInputs = new ArrayList<>();
 
-        private NestedCollectExpression<?> currentParentExpression = null;
-
-        public void addLeaf(Input<?> inputLeaf) {
-            leafs.add(inputLeaf);
-        }
-
-        public Input<?>[] leafs() {
-            return leafs.toArray(new Input<?>[leafs.size()]);
-        }
-
-        public void add(CollectExpression<?> collectExpression) {
-            if (currentParentExpression == null) {
-                topLevelOutputs.add(collectExpression);
-            } else {
-                currentParentExpression.nestedExpressions.add(collectExpression);
+        public void add(Input<?> input) {
+            topLevelInputs.add(input);
+            if (input instanceof CollectExpression<?>) {
+                collectExpressions.add((CollectExpression<?>)input);
             }
         }
 
-        public NestedCollectExpression<?> currentParentExpression() {
-            return currentParentExpression;
+        public Set<CollectExpression<?>> collectExpressions() {
+            return collectExpressions;
         }
 
-        public void currentParentExpression(NestedCollectExpression<?> newParent) {
-            currentParentExpression = newParent;
-        }
-
-        public CollectExpression<?>[] topLevelOutputs() {
-            return topLevelOutputs.toArray(new CollectExpression<?>[topLevelOutputs.size()]);
+        public Input<?>[] topLevelInputs() {
+            return topLevelInputs.toArray(new Input<?>[topLevelInputs.size()]);
         }
 
     }
@@ -88,84 +72,41 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
         Context context = new Context();
         if (node.outputs() != null) {
             for (Symbol symbol : node.outputs()) {
-                process(symbol, context);
+                context.add(process(symbol, context));
             }
         }
         return context;
     }
 
     @Override
-    public Void visitFunction(Function function, Context context) {
+    public Input<?> visitFunction(Function function, Context context) {
         final FunctionImplementation functionImplementation = functions.get(function.info().ident());
         if (functionImplementation != null && functionImplementation instanceof Scalar<?>) {
 
-            NestedCollectExpression<Object> functionCollectExpression = new NestedCollectExpression<Object>() {
-                @Override
-                public boolean doSetNextRow(Object... args) {
-                    return true;
-                }
-
-                @Override
-                public Object value() {
-                    return null;
-                }
-            };
-
-            NestedCollectExpression<?> currentParent = context.currentParentExpression();
-            context.currentParentExpression(functionCollectExpression);
+            List<ValueSymbol> arguments = function.arguments();
+            Input[] argumentInputs = new Input[arguments.size()];
+            int i = 0;
             for (ValueSymbol argument : function.arguments()) {
-                process(argument, context);
+                argumentInputs[i++] = process(argument, context);
             }
-            context.currentParentExpression(currentParent);
-
-            // TODO: how to determine level?
-            context.topLevelOutputs.add(new CollectExpression<Object>() {
-                private Object[] args = new Object[0];
-
-                @Override
-                public Object value() {
-                    return ((Scalar<?>) functionImplementation).evaluate(args);
-                }
-
-                @Override
-                public boolean setNextRow(Object... args) {
-                    this.args = args;
-                    return true;
-                }
-            });
+            return new FunctionCollectExpression<>((Scalar<?>) functionImplementation, argumentInputs);
         } else {
             throw new CrateException("Unknown Function");
         }
-        return null;
     }
 
     @Override
-    public Void visitReference(Reference symbol, Context context) {
+    public Input<?> visitReference(Reference symbol, Context context) {
         ReferenceImplementation impl = referenceResolver.getImplementation(symbol.info().ident());
         if (impl != null && impl instanceof Input<?>) {
-            context.add(new InputCollectExpression<>(context.leafs.size()));
-            // references are always leafs
-            context.addLeaf((Input<?>) impl);
+            return (Input<?>)impl;
         } else {
             throw new CrateException("Unknown Reference");
         }
-        return null;
     }
 
     @Override
-    public Void visitStringLiteral(StringLiteral literal, Context context) {
-        final String literalValue = literal.value();
-        context.add(new CollectExpression<Object>() {
-            @Override
-            public boolean setNextRow(Object... args) {
-                return true;
-            }
-
-            @Override
-            public Object value() {
-                return literalValue;
-            }
-        });
-        return null;
+    public Input<?> visitStringLiteral(StringLiteral literal, Context context) {
+        return literal;
     }
 }

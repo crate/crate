@@ -21,24 +21,24 @@
 
 package io.crate.operator.collector;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.operator.Input;
-import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.operator.operations.collect.LocalDataCollectOperation;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.plan.CollectNode;
+import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.ValueSymbol;
 import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,13 +50,13 @@ public class LocalDataCollectorTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    static class TestExpression implements ReferenceImplementation, Input<String> {
-        public static final ReferenceIdent ident = new ReferenceIdent(new TableIdent("default", "collect"), "test");
-        public static final ReferenceInfo info = new ReferenceInfo(ident, RowGranularity.NODE, DataType.STRING);
+    static class TestExpression implements ReferenceImplementation, Input<Integer> {
+        public static final ReferenceIdent ident = new ReferenceIdent(new TableIdent("default", "collect"), "truth");
+        public static final ReferenceInfo info = new ReferenceInfo(ident, RowGranularity.NODE, DataType.INTEGER);
 
         @Override
-        public String value() {
-            return "foobar";
+        public Integer value() {
+            return 42;
         }
 
         @Override
@@ -70,27 +70,36 @@ public class LocalDataCollectorTest {
         }
     }
 
+    static class TestFunction implements Scalar<Integer> {
+        public static final FunctionIdent ident = new FunctionIdent("twoTimes", ImmutableList.of(DataType.INTEGER));
+        public static final FunctionInfo info = new FunctionInfo(ident, DataType.INTEGER, false);
+
+        @Override
+        public Integer evaluate(Object... args) {
+            if (args.length == 0) { return 0; }
+            assert args[0] instanceof Number;
+            return ((Integer)args[0])*2;
+        }
+
+        @Override
+        public FunctionInfo info() {
+            return info;
+        }
+    }
+
     private LocalDataCollectOperation operation;
     private Routing testRouting = new Routing(new HashMap<String, Map<String, Integer>>(1){{
         put(TEST_NODE_ID, new HashMap<String, Integer>());
     }});
     private final static String TEST_NODE_ID = "test";
 
-    class CollectorTestmodule extends AbstractModule {
-
-        @Override
-        protected void configure() {
-            bind(Functions.class).asEagerSingleton();
-        }
-    }
-
     @Before
     public void configure() {
-        Injector injector = new ModulesBuilder().add(
-                new CollectorTestmodule(),
-                new AggregationImplModule()
-        ).createInjector();
-        Functions functions = injector.getInstance(Functions.class);
+        Functions functions = new Functions(
+                new HashMap<FunctionIdent, FunctionImplementation>(){{
+                    put(TestFunction.ident, new TestFunction());
+                }}
+        );
         ReferenceResolver referenceResolver = new GlobalReferenceResolver(
                 new HashMap<ReferenceIdent, ReferenceImplementation>(){{
                     put(TestExpression.ident, new TestExpression());
@@ -114,7 +123,7 @@ public class LocalDataCollectorTest {
 
         assertThat(result.length, equalTo(1));
 
-        assertThat((String) result[0][0], equalTo("foobar"));
+        assertThat((Integer) result[0][0], equalTo(42));
     }
 
     @Test
@@ -143,5 +152,23 @@ public class LocalDataCollectorTest {
         );
         collectNode.outputs(unknownReference);
         Object[][] result = operation.collect(TEST_NODE_ID, collectNode);
+    }
+
+    @Test
+    public void testCollectFunctionWithoutArgs() {
+        CollectNode collectNode = new CollectNode("function", testRouting);
+        final Reference truthReference = new Reference(TestExpression.info);
+        Function twoTimesTruthFunction = new Function(
+                TestFunction.info,
+                new ArrayList<ValueSymbol>(){{
+                    add(truthReference);
+                }}
+        );
+        collectNode.outputs(twoTimesTruthFunction, truthReference);
+        Object[][] result = operation.collect(TEST_NODE_ID, collectNode);
+        assertThat(result.length, equalTo(1));
+        assertThat(result[0].length, equalTo(2));
+        assertThat((Integer)result[0][0], equalTo(84));
+        assertThat((Integer)result[0][1], equalTo(42));
     }
 }

@@ -25,7 +25,9 @@ import io.crate.operator.Input;
 import io.crate.operator.RowCollector;
 import io.crate.operator.aggregation.CollectExpression;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Simple Collector that only collects one row and does not support any query or aggregation
@@ -33,45 +35,37 @@ import java.util.Arrays;
 public class SimpleCollector implements RowCollector<Object[][]> {
 
     private final Input<?>[] inputs;
-    private final CollectExpression<?>[] outputs;
-    private Object[] result = null;
-    private Object[] inputResults;
+    private final Set<CollectExpression<?>> collectExpressions;
+    private List<Object[]> results = new ArrayList<>();
 
-    public SimpleCollector(Input<?>[] inputs, CollectExpression<?>[] outputs) {
+    public SimpleCollector(Input<?>[] inputs, Set<CollectExpression<?>> collectExpressions) {
         this.inputs = inputs;
-        this.outputs = outputs;
-        this.inputResults = new Object[this.inputs.length];
+        this.collectExpressions = collectExpressions;
     }
 
     @Override
     public boolean startCollect() {
-        for (int i=0; i<outputs.length; i++) {
-            outputs[i].startCollect();
+        for (CollectExpression<?> collectExpression : collectExpressions) {
+            collectExpression.startCollect();
         }
-        return outputs.length > 0;
+        return inputs.length > 0;
     }
 
     @Override
     public boolean processRow() {
-        result = new Object[outputs.length];
-
-        Arrays.fill(inputResults, null);
+        Object[] result = new Object[inputs.length];
+        for (CollectExpression<?> collectExpression : collectExpressions) {
+            collectExpression.setNextRow(/* TODO: what to put here? */);
+        }
         for (int i=0; i<inputs.length; i++) {
-            inputResults[i] = inputs[i].value();
+            result[i] = inputs[i].value();
         }
-        for (int i=0; i<outputs.length; i++) {
-            outputs[i].setNextRow(inputResults);
-            result[i] = outputs[i].value();
-        }
+        results.add(result);
         return false;
     }
 
     @Override
     public Object[][] finishCollect() {
-        if (result == null) {
-            return new Object[0][];
-        } else {
-            return new Object[][]{result};
-        }
+        return results.toArray(new Object[results.size()][]);
     }
 }

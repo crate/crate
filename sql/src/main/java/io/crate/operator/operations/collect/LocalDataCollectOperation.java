@@ -31,6 +31,8 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
+import java.util.Set;
+
 /**
  * - get Collector according to maximum RowGranularity of CollectNode
  * - dispatch to contexts/collectors (separate threadpool)
@@ -63,10 +65,10 @@ public class LocalDataCollectOperation {
 
         // resolve Implementations
         ImplementationSymbolVisitor.Context ctx = implementationSymbolVisitor.process(collectNode);
-        Input<?>[] leafImplementations = ctx.leafs();
-        CollectExpression<?>[] topLevelOutputs = ctx.topLevelOutputs();
+        Input<?>[] inputs = ctx.topLevelInputs();
+        Set<CollectExpression<?>> collectExpressions = ctx.collectExpressions();
 
-        RowCollector<Object[][]> innerRowCollector = new SimpleCollector(leafImplementations, topLevelOutputs);
+        RowCollector<Object[][]> innerRowCollector = new SimpleCollector(inputs,  collectExpressions);
         if (innerRowCollector.startCollect()) {
             boolean carryOnProcessing;
             do {
