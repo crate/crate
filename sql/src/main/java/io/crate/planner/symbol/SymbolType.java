@@ -33,7 +33,7 @@ public enum SymbolType {
     BOOlEAN_LITERAL(BooleanLiteral.FACTORY),
     INTEGER_LITERAL(IntegerLiteral.FACTORY),
     INPUT_COLUMN(InputColumn.FACTORY),
-    NULL_LITERAL(NullLiteral.FACTORY);
+    NULL_LITERAL(Null.FACTORY);
 
     private final Symbol.SymbolFactory factory;
 

@@ -22,8 +22,6 @@
 package io.crate.operator.operator;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
@@ -31,14 +29,14 @@ import org.cratedb.DataType;
 import java.util.Objects;
 
 
-public class EqOperator implements Operator {
+public class EqOperator extends Operator {
 
     public static final String NAME = "op_eq";
     private final FunctionInfo info;
 
     public static void register(OperatorModule module) {
         for (DataType type : DataType.ALL_TYPES) {
-            module.registerOperatorFunction(new EqOperator(generateInfo(type)));
+            module.registerOperatorFunction(new EqOperator(generateInfo(NAME, type)));
         }
     }
 
@@ -51,10 +49,6 @@ public class EqOperator implements Operator {
         return info;
     }
 
-    public static FunctionInfo generateInfo(DataType type) {
-        return new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(type, type)), DataType.BOOLEAN);
-    }
-
     @Override
     public Symbol normalizeSymbol(Function function) {
         Preconditions.checkNotNull(function);
@@ -64,9 +58,14 @@ public class EqOperator implements Operator {
         Symbol right = function.arguments().get(1);
 
         // TODO: could be improved to support other symbols.. e.g.:  f(x) == f(x)
+
+        if (left.symbolType() == SymbolType.NULL_LITERAL || right.symbolType() == SymbolType.NULL_LITERAL) {
+            // according to the function registration both function arguments have to have the same type
+            return Null.INSTANCE;
+        }
+
         if (left instanceof Literal && right instanceof Literal) {
-            return new BooleanLiteral(
-                    Objects.equals(((Literal) left).value(), ((Literal) right).value()));
+            return new BooleanLiteral(Objects.equals(left, right));
         }
 
         return function;

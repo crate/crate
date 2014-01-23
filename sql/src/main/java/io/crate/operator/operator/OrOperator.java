@@ -1,23 +1,18 @@
 package io.crate.operator.operator;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 
-public class OrOperator implements Operator {
+public class OrOperator extends Operator {
 
     public static final String NAME = "op_or";
-    public static final FunctionInfo INFO = new FunctionInfo(
-            new FunctionIdent(NAME, ImmutableList.of(DataType.BOOLEAN, DataType.BOOLEAN)), DataType.BOOLEAN
-    );
+    public static final FunctionInfo INFO = generateInfo(NAME, DataType.BOOLEAN);
 
     public static void register(OperatorModule module) {
         module.registerOperatorFunction(new OrOperator());
     }
-
 
     @Override
     public FunctionInfo info() {

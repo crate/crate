@@ -73,7 +73,7 @@ public class SymbolVisitor<C, R> {
         return visitSymbol(inputColumn, context);
     }
 
-    public R visitNullLiteral(NullLiteral symbol, C context) {
+    public R visitNullLiteral(Null symbol, C context) {
         return visitSymbol(symbol, context);
     }
 }

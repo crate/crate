@@ -6,31 +6,19 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class NullLiteral extends Literal<Object> {
+public class Null extends Literal<Void> {
 
-    public static final SymbolFactory<NullLiteral> FACTORY = new SymbolFactory<NullLiteral>() {
+    public static final Null INSTANCE = new Null();
+    public static final SymbolFactory<Null> FACTORY = new SymbolFactory<Null>() {
         @Override
-        public NullLiteral newInstance() {
-            return new NullLiteral();
+        public Null newInstance() {
+            return INSTANCE;
         }
     };
 
-    private DataType type;
-
-    public NullLiteral(DataType type) {
-        this.type = type;
-    }
-
-    NullLiteral() {}
-
-    @Override
-    public Object value() {
-        return null;
-    }
-
     @Override
     public DataType valueType() {
-        return type;
+        return DataType.NULL;
     }
 
     @Override
@@ -44,12 +32,17 @@ public class NullLiteral extends Literal<Object> {
     }
 
     @Override
+    public Void value() {
+        return null;
+    }
+
+    @Override
     public void readFrom(StreamInput in) throws IOException {
-        type = DataType.fromStream(in);
+
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        DataType.toStream(type, out);
+
     }
 }

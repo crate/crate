@@ -2,16 +2,12 @@ package io.crate.planner.symbol;
 
 import io.crate.operator.Input;
 import org.cratedb.DataType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
 
 public abstract class Literal<T> extends ValueSymbol implements Input {
 
     public static Literal forType(DataType type, Object value) {
         if (value == null) {
-            return new NullLiteral(type);
+            return Null.INSTANCE;
         }
 
         switch (type) {

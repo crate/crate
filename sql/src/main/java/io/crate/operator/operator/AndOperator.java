@@ -27,11 +27,10 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 
-public class AndOperator implements Operator {
+public class AndOperator extends Operator {
 
     public static final String NAME = "op_and";
-    public static final FunctionInfo INFO = new FunctionInfo(
-            new FunctionIdent(NAME, ImmutableList.of(DataType.BOOLEAN, DataType.BOOLEAN)), DataType.BOOLEAN);
+    public static final FunctionInfo INFO = generateInfo(NAME, DataType.BOOLEAN);
 
     @Override
     public FunctionInfo info() {

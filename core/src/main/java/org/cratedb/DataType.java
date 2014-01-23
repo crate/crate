@@ -144,6 +144,15 @@ public enum DataType {
         public void writeTo(StreamOutput out, Object v) throws IOException {
 
         }
+    }), NULL("null", new Streamer<Void>() {
+        @Override
+        public Void readFrom(StreamInput in) throws IOException {
+            return null;
+        }
+
+        @Override
+        public void writeTo(StreamOutput out, Object v) throws IOException {
+        }
     });
 
 

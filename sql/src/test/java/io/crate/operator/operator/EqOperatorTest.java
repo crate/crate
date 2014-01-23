@@ -17,7 +17,7 @@ public class EqOperatorTest {
 
     @Test
     public void testNormalizeSymbol() {
-        EqOperator op = new EqOperator(EqOperator.generateInfo(DataType.INTEGER));
+        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataType.INTEGER));
 
         Function function = new Function(
                 op.info(), Arrays.<Symbol>asList(new IntegerLiteral(2), new IntegerLiteral(2)));
@@ -28,8 +28,26 @@ public class EqOperatorTest {
     }
 
     @Test
+    public void testNormalizeSymbolWithNullLiteral() {
+        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataType.INTEGER));
+        Function function = new Function(
+                op.info(), Arrays.<Symbol>asList(Null.INSTANCE, Null.INSTANCE));
+        Symbol result = op.normalizeSymbol(function);
+        assertThat(result, instanceOf(Null.class));
+    }
+
+    @Test
+    public void testNormalizeSymbolWithOneNullLiteral() {
+        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataType.INTEGER));
+        Function function = new Function(
+                op.info(), Arrays.<Symbol>asList(new IntegerLiteral(2), Null.INSTANCE));
+        Symbol result = op.normalizeSymbol(function);
+        assertThat(result, instanceOf(Null.class));
+    }
+
+    @Test
     public void testNormalizeSymbolNeq() {
-        EqOperator op = new EqOperator(EqOperator.generateInfo(DataType.INTEGER));
+        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataType.INTEGER));
 
         Function function = new Function(
                 op.info(), Arrays.<Symbol>asList(new IntegerLiteral(2), new IntegerLiteral(4)));
@@ -41,7 +59,7 @@ public class EqOperatorTest {
 
     @Test
     public void testNormalizeSymbolNonLiteral() {
-        EqOperator op = new EqOperator(EqOperator.generateInfo(DataType.INTEGER));
+        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataType.INTEGER));
         Function f1 = new Function(
                 new FunctionInfo(
                         new FunctionIdent("dummy_function", Arrays.asList(DataType.INTEGER)),
