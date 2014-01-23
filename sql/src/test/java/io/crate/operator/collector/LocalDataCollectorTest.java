@@ -76,10 +76,10 @@ public class LocalDataCollectorTest {
         public static final FunctionInfo info = new FunctionInfo(ident, DataType.INTEGER, false);
 
         @Override
-        public Integer evaluate(Object... args) {
+        public Integer evaluate(Input<?>... args) {
             if (args.length == 0) { return 0; }
-            assert args[0] instanceof Number;
-            return ((Integer)args[0])*2;
+            Integer value = (Integer)args[0].value();
+            return (value)*2;
         }
 
         @Override

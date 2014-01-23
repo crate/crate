@@ -21,10 +21,12 @@
 
 package io.crate.metadata;
 
+import io.crate.operator.Input;
+
 /**
  * evaluatable function implementation
  * @param <T> the class of the returned value
  */
 public interface Scalar<T> extends FunctionImplementation {
-    public T evaluate(Object... args);
+    public T evaluate(Input<?>... args);
 }

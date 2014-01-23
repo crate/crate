@@ -25,21 +25,20 @@ import io.crate.operator.Input;
 import io.crate.operator.RowCollector;
 import io.crate.operator.aggregation.CollectExpression;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 
 /**
  * Simple Collector that only collects one row and does not support any query or aggregation
  */
-public class SimpleCollector implements RowCollector<Object[][]> {
+public class SimpleOneRowCollector implements RowCollector<Object[][]> {
 
     private final Input<?>[] inputs;
     private final Set<CollectExpression<?>> collectExpressions;
-    private List<Object[]> results = new ArrayList<>();
+    private final Object[] result;
 
-    public SimpleCollector(Input<?>[] inputs, Set<CollectExpression<?>> collectExpressions) {
+    public SimpleOneRowCollector(Input<?>[] inputs, Set<CollectExpression<?>> collectExpressions) {
         this.inputs = inputs;
+        this.result = new Object[inputs.length];
         this.collectExpressions = collectExpressions;
     }
 
@@ -48,24 +47,24 @@ public class SimpleCollector implements RowCollector<Object[][]> {
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.startCollect();
         }
-        return inputs.length > 0;
+        return false;
     }
 
     @Override
     public boolean processRow() {
-        Object[] result = new Object[inputs.length];
-        for (CollectExpression<?> collectExpression : collectExpressions) {
-            collectExpression.setNextRow(/* TODO: what to put here? */);
-        }
-        for (int i=0; i<inputs.length; i++) {
-            result[i] = inputs[i].value();
-        }
-        results.add(result);
         return false;
     }
 
     @Override
     public Object[][] finishCollect() {
-        return results.toArray(new Object[results.size()][]);
+        int i = 0;
+        if (inputs == null || inputs.length == 0) {
+            return new Object[0][];
+        } else {
+            for (Input<?> input : inputs) {
+                result[i++] = input.value();
+            }
+            return new Object[][]{ result };
+        }
     }
 }

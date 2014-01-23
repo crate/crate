@@ -34,12 +34,7 @@ import org.elasticsearch.common.logging.Loggers;
 import java.util.Set;
 
 /**
- * - get Collector according to maximum RowGranularity of CollectNode
- * - dispatch to contexts/collectors (separate threadpool)
- *   - normalize down to current RowGranularity according to context
- *   - collect/iterate
- *
- * in case of node level operation, only normalizing is necessary, handle this is special collector
+ * collect local data from node/shards/docs on shards
  */
 public class LocalDataCollectOperation {
 
@@ -68,7 +63,7 @@ public class LocalDataCollectOperation {
         Input<?>[] inputs = ctx.topLevelInputs();
         Set<CollectExpression<?>> collectExpressions = ctx.collectExpressions();
 
-        RowCollector<Object[][]> innerRowCollector = new SimpleCollector(inputs,  collectExpressions);
+        RowCollector<Object[][]> innerRowCollector = new SimpleOneRowCollector(inputs,  collectExpressions);
         if (innerRowCollector.startCollect()) {
             boolean carryOnProcessing;
             do {

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,31 +21,21 @@
 
 package io.crate.operator.aggregation;
 
-import java.util.ArrayList;
-import java.util.List;
+import io.crate.metadata.Scalar;
+import io.crate.operator.Input;
 
-public abstract class NestedCollectExpression<ReturnType> extends CollectExpression<ReturnType> {
-    public List<CollectExpression<?>> nestedExpressions = new ArrayList<>();
+public class FunctionExpression<ReturnType> implements Input<ReturnType> {
 
-    @Override
-    public void startCollect() {
-        for (CollectExpression<?> nestedExpression : nestedExpressions) {
-            nestedExpression.startCollect();
-        }
-        doStartCollect();
-    }
+    private final Input<?>[] childInputs;
+    private Scalar<ReturnType> functionImplementation;
 
-    public void doStartCollect() {
-        super.startCollect();
+    public FunctionExpression(Scalar<ReturnType> functionImplementation, Input<?>[] childInputs) {
+        this.functionImplementation = functionImplementation;
+        this.childInputs = childInputs;
     }
 
     @Override
-    public boolean setNextRow(Object... args) {
-        for (CollectExpression<?> nestedExpression : nestedExpressions) {
-            nestedExpression.setNextRow(args);
-        }
-        return doSetNextRow(args);
+    public ReturnType value() {
+        return functionImplementation.evaluate(childInputs);
     }
-
-    public abstract boolean doSetNextRow(Object... args);
 }

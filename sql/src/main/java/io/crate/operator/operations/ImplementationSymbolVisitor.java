@@ -24,7 +24,7 @@ package io.crate.operator.operations;
 import io.crate.metadata.*;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
-import io.crate.operator.aggregation.FunctionCollectExpression;
+import io.crate.operator.aggregation.FunctionExpression;
 import io.crate.planner.plan.PlanNode;
 import io.crate.planner.symbol.*;
 import org.cratedb.sql.CrateException;
@@ -43,9 +43,6 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
 
         public void add(Input<?> input) {
             topLevelInputs.add(input);
-            if (input instanceof CollectExpression<?>) {
-                collectExpressions.add((CollectExpression<?>)input);
-            }
         }
 
         public Set<CollectExpression<?>> collectExpressions() {
@@ -89,7 +86,7 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
             for (ValueSymbol argument : function.arguments()) {
                 argumentInputs[i++] = process(argument, context);
             }
-            return new FunctionCollectExpression<>((Scalar<?>) functionImplementation, argumentInputs);
+            return new FunctionExpression<>((Scalar<?>) functionImplementation, argumentInputs);
         } else {
             throw new CrateException("Unknown Function");
         }
@@ -99,6 +96,10 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
     public Input<?> visitReference(Reference symbol, Context context) {
         ReferenceImplementation impl = referenceResolver.getImplementation(symbol.info().ident());
         if (impl != null && impl instanceof Input<?>) {
+            // collect collectExpressions separately
+            if (impl instanceof CollectExpression<?>) {
+                context.collectExpressions.add((CollectExpression<?>) impl);
+            }
             return (Input<?>)impl;
         } else {
             throw new CrateException("Unknown Reference");
