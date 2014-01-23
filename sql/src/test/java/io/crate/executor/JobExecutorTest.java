@@ -266,17 +266,12 @@ public class JobExecutorTest {
         Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_5);
 
         CollectNode collectNode = new CollectNode("collect", routing);
-        collectNode.symbols(reference);
-        collectNode.inputs(reference);
         collectNode.outputs(reference);
 
         TopNNode topNNode = new TopNNode("topn_sorted_desc", 10, 0, new int[]{0}, new boolean[]{true});
         topNNode.source(collectNode);
 
         ValueSymbol value = new Value(DataType.DOUBLE);
-
-        topNNode.symbols(value);
-        topNNode.inputs(value);
         topNNode.outputs(value);
 
         // the executor should be a singleton
@@ -312,8 +307,6 @@ public class JobExecutorTest {
         Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_5);
 
         CollectNode collectNode = new CollectNode("collect", routing);
-        collectNode.symbols(reference);
-        collectNode.inputs(reference);
         collectNode.outputs(reference);
 
         TopNNode topNNode = new TopNNode("topn_sorted_asc", 2, 0, new int[]{0}, new boolean[]{false});
@@ -321,8 +314,6 @@ public class JobExecutorTest {
 
         ValueSymbol value = new Value(DataType.DOUBLE);
 
-        topNNode.symbols(value);
-        topNNode.inputs(value);
         topNNode.outputs(value);
 
         // the executor should be a singleton
@@ -350,16 +341,12 @@ public class JobExecutorTest {
         Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_5);
 
         CollectNode collectNode = new CollectNode("collect", routing);
-        collectNode.symbols(reference);
-        collectNode.inputs(reference);
         collectNode.outputs(reference);
 
         TopNNode topNNode = new TopNNode("topn", 2, 0);
         topNNode.source(collectNode);
         ValueSymbol value = new Value(DataType.DOUBLE);
 
-        topNNode.symbols(value);
-        topNNode.inputs(value);
         topNNode.outputs(value);
 
         // the executor should be a singleton
@@ -388,22 +375,19 @@ public class JobExecutorTest {
         locations.put("node1", null);
         locations.put("node2", null);
         Routing routing = new Routing(locations);
-        Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_1);
+        Reference reference = new Reference(NodeLoadExpression.INFO_LOAD_1);
 
         CollectNode collectNode = new CollectNode("collect", routing);
-        collectNode.symbols(reference);
-        collectNode.inputs(reference);
         collectNode.outputs(reference);
 
         AggregationNode aggregationNode = new AggregationNode("aggregate");
         aggregationNode.source(collectNode);
 
         ValueSymbol value = new Value(DataType.DOUBLE);
-        FunctionIdent fi = new FunctionIdent("avg", ImmutableList.of(value.valueType()));
-        Aggregation agg = new Aggregation(fi, ImmutableList.of(value), Aggregation.Step.ITER, Aggregation.Step.FINAL);
+        FunctionIdent fi = new FunctionIdent("avg", ImmutableList.of(reference.info().type()));
+        Aggregation agg = new Aggregation(fi, ImmutableList.<Symbol>of(new InputColumn(0)),
+                Aggregation.Step.ITER, Aggregation.Step.FINAL);
 
-        aggregationNode.symbols(value, agg);
-        aggregationNode.inputs(value);
         aggregationNode.outputs(agg);
 
         // the executor should be a singleton

@@ -29,7 +29,7 @@ public enum SymbolType {
     VALUE(Value.FACTORY),
     FUNCTION(Function.FACTORY),
     STRING_LITERAL(StringLiteral.FACTORY),
-    ;
+    INPUT_COLUMN(InputColumn.FACTORY);
 
     private final Symbol.SymbolFactory factory;
 

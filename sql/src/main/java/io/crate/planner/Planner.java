@@ -27,19 +27,16 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
 
         Reference[] references = (Reference[]) analysis.references().toArray();
 
-        CollectNode cn = new CollectNode();
-        cn.routing(analysis.routing());
-
-        cn.symbols(references);
-        cn.inputs(references);
-        cn.outputs(references);
+        CollectNode collectNode = new CollectNode();
+        collectNode.routing(analysis.routing());
+        collectNode.outputs(references);
 
         if (analysis.hasAggregates()) {
             if (analysis.hasGroupBy()) {
                 throw new UnsupportedOperationException("query not supported");
             } else {
                 AggregationNode aggregationNode = new AggregationNode("aggregate");
-                aggregationNode.source(cn);
+                aggregationNode.source(collectNode);
 ////
 ////                Aggregation[] aggs = new Aggregation[analysis.aggregations().size()];
 ////                int i = 0;
@@ -67,14 +64,13 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 throw new UnsupportedOperationException("query not supported");
             } else {
                 TopNNode topNNode;
-                Value[] inputs = getInputs(cn.outputs());
+                Value[] inputs = getInputs(collectNode.outputs());
                 if (analysis.isSorted()) {
-                    topNNode = sortedTopN(cn.outputs(), analysis);
+                    topNNode = sortedTopN(collectNode.outputs(), analysis);
                 } else {
                     topNNode = new TopNNode("topn", analysis.limit(), 0);
                 }
-                topNNode.source(cn);
-                topNNode.inputs(inputs);
+                topNNode.source(collectNode);
                 topNNode.outputs(inputs);
             }
         }

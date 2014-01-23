@@ -38,10 +38,6 @@ public abstract class PlanNode implements Streamable {
 
     private String id;
     private List<PlanNode> sources;
-    private List<PlanNode> targets;
-    private List<Symbol> symbols;
-
-    private List<Symbol> inputs;
     private List<Symbol> outputs;
 
     protected PlanNode() {
@@ -52,14 +48,9 @@ public abstract class PlanNode implements Streamable {
         this.id = id;
     }
 
-    protected PlanNode(String id, List<PlanNode> sources, List<PlanNode> targets) {
+    protected PlanNode(String id, List<PlanNode> sources) {
         this(id);
         this.sources = sources;
-        this.targets = targets;
-    }
-
-    protected PlanNode(String id, PlanNode source, PlanNode target) {
-        this(id, ImmutableList.of(source), ImmutableList.of(target));
     }
 
     public String id() {
@@ -82,29 +73,12 @@ public abstract class PlanNode implements Streamable {
         return visitor.visitPlan(this, context);
     }
 
-    public void symbols(Symbol... symbols) {
-        // TODO: check if this is possible without copy
-        this.symbols = ImmutableList.copyOf(symbols);
-    }
-
-    public void inputs(Symbol... inputs) {
-        this.inputs = ImmutableList.copyOf(inputs);
-    }
-
     public void outputs(Symbol... outputs) {
         this.outputs = ImmutableList.copyOf(outputs);
     }
 
     public String getId() {
         return id;
-    }
-
-    public List<Symbol> symbols() {
-        return symbols;
-    }
-
-    public List<Symbol> inputs() {
-        return inputs;
     }
 
     public List<Symbol> outputs() {
@@ -115,21 +89,9 @@ public abstract class PlanNode implements Streamable {
     public void readFrom(StreamInput in) throws IOException {
         id = in.readString();
 
-        int numSymbols = in.readVInt();
-        symbols = new ArrayList<>(numSymbols);
-        for (int i = 0; i < numSymbols; i++) {
-            symbols.add(Symbol.fromStream(in));
-        }
-
-        numSymbols = in.readVInt();
-        inputs = new ArrayList<>(numSymbols);
-        for (int i = 0; i < numSymbols; i++) {
-            inputs.add(Symbol.fromStream(in));
-        }
-
-        numSymbols = in.readVInt();
-        outputs = new ArrayList<>(numSymbols);
-        for (int i = 0; i < numSymbols; i++) {
+        int numOutputs = in.readVInt();
+        outputs = new ArrayList<>(numOutputs);
+        for (int i = 0; i < numOutputs; i++) {
             outputs.add(Symbol.fromStream(in));
         }
     }
@@ -137,16 +99,6 @@ public abstract class PlanNode implements Streamable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(id);
-
-        out.writeVInt(symbols.size());
-        for (Symbol symbol : symbols) {
-            Symbol.toStream(symbol, out);
-        }
-
-        out.writeVInt(inputs.size());
-        for (Symbol input : inputs) {
-            Symbol.toStream(input, out);
-        }
 
         out.writeVInt(outputs.size());
         for (Symbol output : outputs) {

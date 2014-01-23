@@ -56,11 +56,11 @@ public class Aggregation extends Symbol {
     }
 
     private FunctionIdent functionIdent;
-    private List<ValueSymbol> inputs;
+    private List<Symbol> inputs;
     private Step fromStep;
     private Step toStep;
 
-    public Aggregation(FunctionIdent functionIdent, List<ValueSymbol> inputs, Step fromStep, Step toStep) {
+    public Aggregation(FunctionIdent functionIdent, List<Symbol> inputs, Step fromStep, Step toStep) {
         Preconditions.checkNotNull(inputs);
         this.functionIdent = functionIdent;
         this.inputs = inputs;
@@ -82,7 +82,7 @@ public class Aggregation extends Symbol {
         return functionIdent;
     }
 
-    public List<ValueSymbol> inputs() {
+    public List<Symbol> inputs() {
         return inputs;
     }
 
@@ -118,7 +118,7 @@ public class Aggregation extends Symbol {
         Step.writeTo(toStep, out);
 
         out.writeVInt(inputs.size());
-        for (ValueSymbol input : inputs) {
+        for (Symbol input : inputs) {
             Symbol.toStream(input, out);
         }
     }

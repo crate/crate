@@ -21,6 +21,7 @@
 
 package io.crate.operator.collector;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.MetaDataModule;
@@ -28,9 +29,7 @@ import io.crate.operator.Input;
 import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.aggregation.impl.AverageAggregation;
-import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.Value;
-import io.crate.planner.symbol.ValueSymbol;
+import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -59,12 +58,12 @@ public class GroupingCollectorTest {
                 new AggregationImplModule()
         ).createInjector();
 
-        doubleValue = new Value(DataType.DOUBLE);
         functions = injector.getInstance(Functions.class);
-        functionIdent = new FunctionIdent(AverageAggregation.NAME, Arrays.asList(doubleValue.valueType()));
+        functionIdent = new FunctionIdent(AverageAggregation.NAME, ImmutableList.of(DataType.DOUBLE));
 
         aggregations = new Aggregation[] {
-                new Aggregation(functionIdent, Arrays.asList(doubleValue), Aggregation.Step.ITER, Aggregation.Step.FINAL)
+                new Aggregation(functionIdent, ImmutableList.<Symbol>of(new InputColumn(0)),
+                        Aggregation.Step.ITER, Aggregation.Step.FINAL)
         };
     }
 
