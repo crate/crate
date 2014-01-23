@@ -22,14 +22,8 @@
 package io.crate.operator.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.executor.TestingAggregationTask;
-import io.crate.executor.task.LocalAggregationTask;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operator.aggregation.AggregationTest;
-import io.crate.planner.plan.AggregationNode;
-import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.ValueSymbol;
 import org.cratedb.DataType;
 import org.junit.Test;
 
@@ -37,84 +31,63 @@ import static org.junit.Assert.assertEquals;
 
 public class CountAggregationTest extends AggregationTest {
 
-    private Object[][] executeAggregation(DataType dataType) throws Exception {
-        return executeAggregation("count", dataType);
+    private Object[][] executeAggregation(DataType dataType, Object[][] data) throws Exception {
+        return executeAggregation("count", dataType, data);
     }
 
     @Test
     public void testReturnType() throws Exception {
         FunctionIdent fi = new FunctionIdent("count", ImmutableList.of(DataType.INTEGER));
         // Return type is fixed to Long
-        assertEquals(DataType.LONG ,functions.get(fi).info().returnType());
+        assertEquals(DataType.LONG, functions.get(fi).info().returnType());
     }
 
     @Test
     public void testDouble() throws Exception {
-        setUpTestData(new Object[][]{{0.7d}, {0.3d}});
-        Object[][] result = executeAggregation(DataType.DOUBLE);
+        Object[][] result = executeAggregation(DataType.DOUBLE, new Object[][]{{0.7d}, {0.3d}});
 
         assertEquals(2L, result[0][0]);
     }
 
     @Test
     public void testFloat() throws Exception {
-        setUpTestData(new Object[][]{{0.7f}, {0.3f}});
-        Object[][] result = executeAggregation(DataType.FLOAT);
+        Object[][] result = executeAggregation(DataType.FLOAT, new Object[][]{{0.7f}, {0.3f}});
 
         assertEquals(2L, result[0][0]);
     }
 
     @Test
     public void testInteger() throws Exception {
-        setUpTestData(new Object[][]{{7}, {3}});
-        Object[][] result = executeAggregation(DataType.INTEGER);
+        Object[][] result = executeAggregation(DataType.INTEGER, new Object[][]{{7}, {3}});
 
         assertEquals(2L, result[0][0]);
     }
 
     @Test
     public void testLong() throws Exception {
-        setUpTestData(new Object[][]{{7L}, {3L}});
-        Object[][] result = executeAggregation(DataType.LONG);
+        Object[][] result = executeAggregation(DataType.LONG, new Object[][]{{7L}, {3L}});
 
         assertEquals(2L, result[0][0]);
     }
 
     @Test
     public void testShort() throws Exception {
-        setUpTestData(new Object[][]{{(short) 7}, {(short) 3}});
-        Object[][] result = executeAggregation(DataType.SHORT);
+        Object[][] result = executeAggregation(DataType.SHORT, new Object[][]{{(short) 7}, {(short) 3}});
 
         assertEquals(2L, result[0][0]);
     }
 
     @Test
     public void testString() throws Exception {
-        setUpTestData(new Object[][]{{"Youri"}, {"Ruben"}});
-        Object[][] result = executeAggregation(DataType.STRING);
+        Object[][] result = executeAggregation(DataType.STRING, new Object[][]{{"Youri"}, {"Ruben"}});
 
         assertEquals(2L, result[0][0]);
     }
 
-    @Test
+
     public void testNoInput() throws Exception {
         // aka. COUNT(*)
-
-        setUpTestData(new Object[][]{{}, {}});
-
-        AggregationNode aggregationNode = new AggregationNode("aggregate");
-
-        FunctionIdent fi = new FunctionIdent("count", ImmutableList.<DataType>of());
-        Aggregation agg = new Aggregation(fi, ImmutableList.<Symbol>of(), Aggregation.Step.ITER, Aggregation.Step.FINAL);
-
-        aggregationNode.outputs(agg);
-
-        LocalAggregationTask task = new TestingAggregationTask(aggregationNode, functions);
-        task.upstreamResult(results);
-        task.start();
-
-        Object[][] result = task.result().get(0).get();
-
+        Object[][] result = executeAggregation(null, new Object[][]{{}, {}});
         assertEquals(2L, result[0][0]);
     }
 }

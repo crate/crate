@@ -21,17 +21,13 @@
 
 package io.crate.operator.aggregation;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.executor.TestingAggregationTask;
-import io.crate.executor.task.LocalAggregationTask;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
+import io.crate.operator.InputCollectExpression;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
-import io.crate.planner.plan.AggregationNode;
-import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
@@ -40,7 +36,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 public abstract class AggregationTest {
 
@@ -51,6 +48,7 @@ public abstract class AggregationTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
+    private Object[][] testData;
 
 
     class AggregationTestModule extends AbstractModule {
@@ -72,32 +70,28 @@ public abstract class AggregationTest {
     }
 
 
-    public void setUpTestData(Object[][] data) {
-        // Setup test data
-        nodeResults = new HashMap<>(1);
-        results = new ArrayList<>(1);
-        SettableFuture f = SettableFuture.<Object[][]>create();
-        f.set(data);
-        nodeResults.put("node_0", f);
-        results.add(f);
-    }
+    public Object[][] executeAggregation(String name, DataType dataType, Object[][] data) throws Exception {
 
-    public Object[][] executeAggregation(String name, DataType dataType) throws Exception {
-        AggregationNode aggregationNode = new AggregationNode("aggregate");
+        FunctionIdent fi;
+        InputCollectExpression[] inputs;
+        if (dataType != null) {
+            fi = new FunctionIdent(name, ImmutableList.of(dataType));
+            inputs = new InputCollectExpression[]{new InputCollectExpression(0)};
+        } else {
+            fi = new FunctionIdent(name, ImmutableList.<DataType>of());
+            inputs = new InputCollectExpression[0];
+        }
+        AggregationFunction impl = (AggregationFunction) functions.get(fi);
+        AggregationState state = impl.newState();
 
+        for (Object[] row : data) {
+            for (InputCollectExpression i : inputs) {
+                i.setNextRow(row);
+            }
+            impl.iterate(state, inputs);
 
-        FunctionIdent fi = new FunctionIdent(name, Arrays.asList(dataType));
-        Aggregation agg = new Aggregation(fi, Arrays.<Symbol>asList(new InputColumn(0)),
-                Aggregation.Step.ITER, Aggregation.Step.FINAL);
-
-
-        aggregationNode.outputs(agg);
-
-        LocalAggregationTask task = new TestingAggregationTask(aggregationNode, functions);
-        task.upstreamResult(results);
-        task.start();
-
-        return task.result().get(0).get();
+        }
+        return new Object[][]{{state.value()}};
     }
 
 }
