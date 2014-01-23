@@ -24,18 +24,17 @@ package io.crate.metadata;
 import org.elasticsearch.common.inject.Inject;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class Functions {
 
-    private final Map<FunctionIdent, FunctionImplementation> functionImplemnetations;
+    private final Map<FunctionIdent, FunctionImplementation> functionImplementations;
 
     @Inject
-    public Functions(Map<FunctionIdent, FunctionImplementation> functionImplemnetations) {
-        this.functionImplemnetations = functionImplemnetations;
+    public Functions(Map<FunctionIdent, FunctionImplementation> functionImplementations) {
+        this.functionImplementations = functionImplementations;
     }
 
     public FunctionImplementation get(FunctionIdent ident) {
-        return functionImplemnetations.get(ident);
+        return functionImplementations.get(ident);
     }
 }

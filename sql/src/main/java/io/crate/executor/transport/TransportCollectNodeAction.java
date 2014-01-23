@@ -22,6 +22,7 @@
 package io.crate.executor.transport;
 
 import com.google.common.base.Preconditions;
+import io.crate.operator.operations.collect.LocalDataCollectOperation;
 import io.crate.planner.plan.CollectNode;
 import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
@@ -43,15 +44,18 @@ public class TransportCollectNodeAction {
     private final TransportService transportService;
     private final ThreadPool threadPool;
     private final ClusterService clusterService;
+    private final LocalDataCollectOperation localDataCollector;
     private final String executor = ThreadPool.Names.SEARCH;
 
     @Inject
     public TransportCollectNodeAction(ThreadPool threadPool,
                                       ClusterService clusterService,
-                                      TransportService transportService) {
+                                      TransportService transportService,
+                                      LocalDataCollectOperation localDataCollector) {
         this.threadPool = threadPool;
         this.transportService = transportService;
         this.clusterService = clusterService;
+        this.localDataCollector = localDataCollector;
 
         streamerVisitor = new StreamerVisitor();
         transportService.registerHandler(transportAction, new TransportHandler());
@@ -85,11 +89,7 @@ public class TransportCollectNodeAction {
 
         // TODO:
         // node.routing  -> node operation / index operation / shard operation?
-
-
-        // LocalCollectTask
-        // Object[][] result = collectTask.result();
-        Object[][] result = new Object[][] { new Object[] { 0.4 }};
+        Object[][] result = localDataCollector.collect(clusterService.localNode().id(), node);
 
         NodeCollectResponse response = new NodeCollectResponse(extractStreamers(node.outputs()));
         response.rows(result);

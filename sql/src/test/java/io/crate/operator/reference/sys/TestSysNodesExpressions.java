@@ -120,7 +120,6 @@ public class TestSysNodesExpressions {
             });
 
             bind(NodeService.class).toInstance(nodeService);
-
             HttpServer httpServer = mock(HttpServer.class);
             HttpInfo httpInfo = mock(HttpInfo.class);
             BoundTransportAddress boundTransportAddress = new BoundTransportAddress(

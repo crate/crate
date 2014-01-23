@@ -19,19 +19,23 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata;
+package io.crate.operator.aggregation;
 
-public interface ReferenceImplementation {
+import io.crate.metadata.Scalar;
+import io.crate.operator.Input;
 
-    public abstract ReferenceInfo info();
+public class FunctionExpression<ReturnType> implements Input<ReturnType> {
 
-    /**
-     * Returns an implementation for a child.
-     *
-     * @param name The name of the child
-     * @return an implementation for the child or null if not applicable or if there is no child available
-     * with the given name
-     */
-    public ReferenceImplementation getChildImplementation(String name);
+    private final Input<?>[] childInputs;
+    private Scalar<ReturnType> functionImplementation;
 
+    public FunctionExpression(Scalar<ReturnType> functionImplementation, Input<?>[] childInputs) {
+        this.functionImplementation = functionImplementation;
+        this.childInputs = childInputs;
+    }
+
+    @Override
+    public ReturnType value() {
+        return functionImplementation.evaluate(childInputs);
+    }
 }

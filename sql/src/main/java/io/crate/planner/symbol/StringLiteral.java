@@ -21,13 +21,13 @@
 
 package io.crate.planner.symbol;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+
 import com.google.common.base.Preconditions;
 import org.cratedb.DataType;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.Objects;
 
 public class StringLiteral extends Literal {
 

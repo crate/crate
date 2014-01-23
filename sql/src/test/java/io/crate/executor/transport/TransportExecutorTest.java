@@ -24,10 +24,10 @@ package io.crate.executor.transport;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.Job;
 import io.crate.executor.transport.task.RemoteCollectTask;
+import io.crate.metadata.Routing;
 import io.crate.operator.reference.sys.NodeLoadExpression;
 import io.crate.planner.plan.CollectNode;
 import io.crate.planner.symbol.Reference;
-import io.crate.metadata.Routing;
 import io.crate.planner.symbol.Symbol;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.test.integration.CrateIntegrationTest;
@@ -36,9 +36,12 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.number.OrderingComparison.greaterThan;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class TransportExecutorTest extends SQLTransportIntegrationTest {
@@ -79,7 +82,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat(result.size(), is(2));
         for (ListenableFuture<Object[][]> nodeResult : result) {
             assertEquals(1, nodeResult.get().length);
-            assertEquals(0.4, nodeResult.get()[0][0]);
+            assertThat((Double) nodeResult.get()[0][0], is(greaterThan(0.0)));
+
         }
    }
 }
