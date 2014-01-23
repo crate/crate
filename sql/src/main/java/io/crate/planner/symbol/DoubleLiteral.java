@@ -14,15 +14,13 @@ public class DoubleLiteral extends Literal<Double> {
             return new DoubleLiteral();
         }
     };
-    private Double value;
+    private double value;
 
     public DoubleLiteral(Number value) {
         this.value = value.doubleValue();
     }
 
-    public DoubleLiteral() {
-
-    }
+    DoubleLiteral() {}
 
     @Override
     public SymbolType symbolType() {
@@ -41,18 +39,12 @@ public class DoubleLiteral extends Literal<Double> {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        if (in.readBoolean()) {
-            value = in.readDouble();
-        }
+        value = in.readDouble();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        boolean hasValue = value != null;
-        out.writeBoolean(hasValue);
-        if (hasValue) {
-            out.writeDouble(value);
-        }
+        out.writeDouble(value);
     }
 
     @Override
@@ -67,13 +59,14 @@ public class DoubleLiteral extends Literal<Double> {
 
         DoubleLiteral that = (DoubleLiteral) o;
 
-        if (value != null ? !value.equals(that.value) : that.value != null) return false;
+        if (Double.compare(that.value, value) != 0) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        return value != null ? value.hashCode() : 0;
+        long temp = Double.doubleToLongBits(value);
+        return (int) (temp ^ (temp >>> 32));
     }
 }

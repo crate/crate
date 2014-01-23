@@ -10,6 +10,10 @@ import java.io.IOException;
 public abstract class Literal<T> extends ValueSymbol implements Input {
 
     public static Literal forType(DataType type, Object value) {
+        if (value == null) {
+            return new NullLiteral(type);
+        }
+
         switch (type) {
             case BYTE:
                 break;
@@ -31,7 +35,7 @@ public abstract class Literal<T> extends ValueSymbol implements Input {
             case OBJECT:
                 break;
             case NOT_SUPPORTED:
-                break;
+                throw new UnsupportedOperationException();
         }
 
         return null;

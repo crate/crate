@@ -21,6 +21,7 @@
 
 package io.crate.planner.symbol;
 
+import com.google.common.base.Preconditions;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -38,13 +39,13 @@ public class StringLiteral extends Literal {
     };
     private String value;
 
+
     public StringLiteral(String value) {
+        Preconditions.checkNotNull(value);
         this.value = value;
     }
 
-    public StringLiteral() {
-
-    }
+    StringLiteral() {}
 
     @Override
     public SymbolType symbolType() {
@@ -63,12 +64,12 @@ public class StringLiteral extends Literal {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        value = in.readOptionalString();
+        value = in.readString();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeOptionalString(value);
+        out.writeString(value);
     }
 
     @Override
@@ -82,11 +83,14 @@ public class StringLiteral extends Literal {
         if (o == null || getClass() != o.getClass()) return false;
 
         StringLiteral that = (StringLiteral) o;
-        return Objects.equals(value, that.value);
+
+        if (!value.equals(that.value)) return false;
+
+        return true;
     }
 
     @Override
     public int hashCode() {
-        return value != null ? value.hashCode() : 0;
+        return value.hashCode();
     }
 }

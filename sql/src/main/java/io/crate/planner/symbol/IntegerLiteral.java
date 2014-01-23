@@ -8,7 +8,7 @@ import java.io.IOException;
 
 public class IntegerLiteral extends Literal<Integer> {
 
-    private Integer value;
+    private int value;
 
     public static final SymbolFactory<IntegerLiteral> FACTORY = new SymbolFactory<IntegerLiteral>() {
         @Override
@@ -19,10 +19,9 @@ public class IntegerLiteral extends Literal<Integer> {
 
     IntegerLiteral() {}
 
-    public IntegerLiteral(Integer value) {
+    public IntegerLiteral(int value) {
         this.value = value;
     }
-
 
     @Override
     public Integer value() {
@@ -46,18 +45,12 @@ public class IntegerLiteral extends Literal<Integer> {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        if (in.readBoolean()) {
-            value = in.readVInt();
-        }
+        value = in.readVInt();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        boolean notNull = value != null;
-        out.writeBoolean(notNull);
-        if (notNull) {
-            out.writeVInt(value);
-        }
+        out.writeVInt(value);
     }
 
     @Override
@@ -67,13 +60,13 @@ public class IntegerLiteral extends Literal<Integer> {
 
         IntegerLiteral that = (IntegerLiteral) o;
 
-        if (value != null ? !value.equals(that.value) : that.value != null) return false;
+        if (value != that.value) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        return value != null ? value.hashCode() : 0;
+        return value;
     }
 }

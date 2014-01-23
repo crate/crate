@@ -23,11 +23,12 @@ package io.crate.operator.aggregation;
 
 import io.crate.metadata.FunctionImplementation;
 import io.crate.operator.Input;
+import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
 
 import java.util.List;
 
-public abstract class AggregationFunction<T extends AggregationState> implements FunctionImplementation {
+public abstract class AggregationFunction<T extends AggregationState> implements FunctionImplementation<Aggregation> {
 
 
     /**
@@ -49,7 +50,7 @@ public abstract class AggregationFunction<T extends AggregationState> implements
 
 
     @Override
-    public Symbol normalizeSymbol(Symbol symbol) {
+    public Symbol normalizeSymbol(Aggregation symbol) {
         return symbol;
     }
 }

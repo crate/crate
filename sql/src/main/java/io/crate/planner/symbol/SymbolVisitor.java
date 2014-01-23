@@ -72,4 +72,8 @@ public class SymbolVisitor<C, R> {
     public R visitInputColumn(InputColumn inputColumn, C context) {
         return visitSymbol(inputColumn, context);
     }
+
+    public R visitNullLiteral(NullLiteral symbol, C context) {
+        return visitSymbol(symbol, context);
+    }
 }
