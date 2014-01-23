@@ -79,12 +79,15 @@ public class Version {
     public static final Version V_0_21_01 = new Version(V_0_21_01_ID, false,
             org.elasticsearch.Version.V_0_90_7);
 
-    // PRE-CREATED TO POINT TO THE CURRENT ES VERSION
     public static final int V_0_22_00_ID = /*00*/220099;
     public static final Version V_0_22_00 = new Version(V_0_22_00_ID, false,
             org.elasticsearch.Version.V_0_90_11);
 
-    public static final Version CURRENT = V_0_22_00;
+    public static final int V_0_22_01_ID = /*00*/220199;
+    public static final Version V_0_22_01 = new Version(V_0_22_01_ID, false,
+            org.elasticsearch.Version.V_0_90_11);
+
+    public static final Version CURRENT = V_0_22_01;
 
     static {
         assert CURRENT.esVersion == org.elasticsearch.Version.CURRENT : "Version must be " +
