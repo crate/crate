@@ -81,11 +81,8 @@ public class NodePortExpression extends SysObjectReference<Integer> {
         childImplementations.put(HTTP, new PortExpression(INFO_PORT_HTTP) {
             @Override
             public Integer value() {
-                if (httpServer != null) {
-                    return portFromAddress(httpServer.info().address().publishAddress());
-                } else {
-                    return null;
-                }
+
+                return portFromAddress(httpServer.info().address().publishAddress()); //nodeService.stats().getNode().attributes().get("http_address"));
             }
         });
         childImplementations.put(TRANSPORT, new PortExpression(INFO_PORT_TRANSPORT) {

@@ -80,10 +80,10 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
         final FunctionImplementation functionImplementation = functions.get(function.info().ident());
         if (functionImplementation != null && functionImplementation instanceof Scalar<?>) {
 
-            List<ValueSymbol> arguments = function.arguments();
+            List<Symbol> arguments = function.arguments();
             Input[] argumentInputs = new Input[arguments.size()];
             int i = 0;
-            for (ValueSymbol argument : function.arguments()) {
+            for (Symbol argument : function.arguments()) {
                 argumentInputs[i++] = process(argument, context);
             }
             return new FunctionExpression<>((Scalar<?>) functionImplementation, argumentInputs);

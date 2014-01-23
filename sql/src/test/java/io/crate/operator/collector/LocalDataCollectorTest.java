@@ -30,7 +30,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.plan.CollectNode;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.ValueSymbol;
+import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.ElasticSearchIllegalStateException;
@@ -85,6 +85,11 @@ public class LocalDataCollectorTest {
         @Override
         public FunctionInfo info() {
             return info;
+        }
+
+        @Override
+        public Symbol normalizeSymbol(Symbol symbol) {
+            return symbol;
         }
     }
 
@@ -176,7 +181,7 @@ public class LocalDataCollectorTest {
         final Reference truthReference = new Reference(TestExpression.info);
         Function twoTimesTruthFunction = new Function(
                 TestFunction.info,
-                new ArrayList<ValueSymbol>(){{
+                new ArrayList<Symbol>(){{
                     add(truthReference);
                 }}
         );
@@ -202,7 +207,7 @@ public class LocalDataCollectorTest {
                         DataType.BOOLEAN,
                         false
                 ),
-                ImmutableList.<ValueSymbol>of()
+                ImmutableList.<Symbol>of()
         );
         collectNode.outputs(unknownFunction);
         operation.collect(TEST_NODE_ID, collectNode);
