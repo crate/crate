@@ -21,11 +21,11 @@
 
 package io.crate.metadata;
 
-/**
- * Created by bd on 12.1.14.
- */
-public interface FunctionImplementation {
+import io.crate.planner.symbol.Symbol;
+
+public interface FunctionImplementation<SymbolType extends Symbol> {
 
     public abstract FunctionInfo info();
 
+    public Symbol normalizeSymbol(SymbolType symbol);
 }

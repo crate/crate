@@ -23,31 +23,39 @@ package io.crate.operator.operator;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 
-public class AndOperator implements FunctionImplementation {
+public class AndOperator extends Operator {
 
     public static final String NAME = "op_and";
-    private final FunctionInfo info;
+    public static final FunctionInfo INFO = generateInfo(NAME, DataType.BOOLEAN);
 
     @Override
     public FunctionInfo info() {
-        return info;
+        return INFO;
     }
 
     public static void register(OperatorModule module) {
-        module.registerOperatorFunction(
-                new AndOperator(new FunctionInfo(
-                        new FunctionIdent(NAME, ImmutableList.of(DataType.BOOLEAN, DataType.BOOLEAN)),
-                        DataType.BOOLEAN,
-                        false)
-                )
-        );
+        module.registerOperatorFunction(new AndOperator());
     }
 
-    AndOperator(FunctionInfo info) {
-        this.info = info;
+    public static FunctionInfo info(DataType type) {
+        return new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(type, type)), DataType.BOOLEAN);
+    }
+
+    @Override
+    public Symbol normalizeSymbol(Function function) {
+        Boolean result = true;
+        for (Symbol symbol : function.arguments()) {
+            if (symbol instanceof BooleanLiteral) {
+                result = result && ((BooleanLiteral) symbol).value();
+            } else {
+                return function; // can't optimize -> return unmodified symbol
+            }
+        }
+
+        return new BooleanLiteral(result);
     }
 }

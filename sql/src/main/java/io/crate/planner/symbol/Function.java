@@ -1,8 +1,8 @@
 package io.crate.planner.symbol;
 
+import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionInfo;
 import org.cratedb.DataType;
-import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -19,10 +19,11 @@ public class Function extends ValueSymbol {
         }
     };
 
-    private List<ValueSymbol> arguments;
+    private List<Symbol> arguments;
     private FunctionInfo info;
 
-    public Function(FunctionInfo info, List<ValueSymbol> arguments) {
+    public Function(FunctionInfo info, List<Symbol> arguments) {
+        Preconditions.checkNotNull(info);
         Preconditions.checkArgument(arguments.size() == info.ident().argumentTypes().size());
         this.info = info;
         this.arguments = arguments;
@@ -32,8 +33,12 @@ public class Function extends ValueSymbol {
 
     }
 
-    public List<ValueSymbol> arguments() {
+    public List<Symbol> arguments() {
         return arguments;
+    }
+
+    public void setArgument(int index, Symbol symbol) {
+        arguments.set(index, symbol);
     }
 
     public FunctionInfo info() {
@@ -63,7 +68,7 @@ public class Function extends ValueSymbol {
         int numArguments = in.readVInt();
         arguments = new ArrayList<>(numArguments);
         for (int i = 0; i < numArguments; i++) {
-            arguments.add((ValueSymbol)Symbol.fromStream(in));
+            arguments.add(Symbol.fromStream(in));
         }
     }
 
@@ -71,8 +76,34 @@ public class Function extends ValueSymbol {
     public void writeTo(StreamOutput out) throws IOException {
         info.writeTo(out);
         out.writeVInt(arguments.size());
-        for (ValueSymbol argument : arguments) {
+        for (Symbol argument : arguments) {
             Symbol.toStream(argument, out);
         }
+    }
+
+    @Override
+    public String toString() {
+        return info.ident().name();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Function function = (Function) o;
+
+        if (arguments != null ? !arguments.equals(function.arguments) : function.arguments != null)
+            return false;
+        if (info != null ? !info.equals(function.info) : function.info != null) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = arguments != null ? arguments.hashCode() : 0;
+        result = 31 * result + (info != null ? info.hashCode() : 0);
+        return result;
     }
 }

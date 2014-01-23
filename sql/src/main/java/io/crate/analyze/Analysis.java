@@ -195,7 +195,7 @@ public class Analysis {
         return hasAggregates;
     }
 
-    public Function allocateFunction(FunctionInfo info, List<ValueSymbol> arguments) {
+    public Function allocateFunction(FunctionInfo info, List<Symbol> arguments) {
         if (info.isAggregate()){
             hasAggregates = true;
         }

@@ -107,7 +107,7 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     @Override
     protected Symbol visitFunctionCall(FunctionCall node, Analysis context) {
-        List<ValueSymbol> arguments = new ArrayList<>(node.getArguments().size());
+        List<Symbol> arguments = new ArrayList<>(node.getArguments().size());
         List<DataType> argumentTypes = new ArrayList<>(node.getArguments().size());
         for (Expression expression : node.getArguments()) {
             ValueSymbol vs = (ValueSymbol) expression.accept(this, context);

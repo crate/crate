@@ -73,7 +73,6 @@ public class TestGlobalSysExpressions {
                 new SysExpressionModule()
         ).createInjector();
         resolver = injector.getInstance(ReferenceResolver.class);
-
     }
 
     @Test(expected = IllegalArgumentException.class)

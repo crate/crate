@@ -132,6 +132,8 @@ public enum DataType {
         }
     }),
     IP("ip", Streamer.BYTES_REF),
+
+    // TODO: remove DataType
     NOT_SUPPORTED("NOT SUPPORTED", new Streamer<Object>() {
         @Override
         public Object readFrom(StreamInput in) throws IOException {
@@ -141,6 +143,15 @@ public enum DataType {
         @Override
         public void writeTo(StreamOutput out, Object v) throws IOException {
 
+        }
+    }), NULL("null", new Streamer<Void>() {
+        @Override
+        public Void readFrom(StreamInput in) throws IOException {
+            return null;
+        }
+
+        @Override
+        public void writeTo(StreamOutput out, Object v) throws IOException {
         }
     });
 

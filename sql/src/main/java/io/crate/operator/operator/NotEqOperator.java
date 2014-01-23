@@ -21,32 +21,49 @@
 
 package io.crate.operator.operator;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
+import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionInfo;
+import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 
-public class NotEqOperator implements FunctionImplementation {
+import java.util.Objects;
+
+public class NotEqOperator extends Operator {
 
     public static final String NAME = "op_neq";
     private final FunctionInfo info;
+
+    public static void register(OperatorModule module) {
+        for (DataType type : DataType.ALL_TYPES) {
+            module.registerOperatorFunction(new NotEqOperator(generateInfo(NAME, type)));
+        }
+    }
+
+    NotEqOperator(FunctionInfo info) {
+        this.info = info;
+    }
 
     @Override
     public FunctionInfo info() {
         return info;
     }
 
-    public static void register(OperatorModule module) {
-        module.registerOperatorFunction(
-                new NotEqOperator(new FunctionInfo(
-                        new FunctionIdent(NAME, ImmutableList.of(DataType.STRING, DataType.STRING)),
-                        DataType.BOOLEAN)
-                )
-        );
-    }
+    @Override
+    public Symbol normalizeSymbol(Function function) {
+        Preconditions.checkNotNull(function);
+        Preconditions.checkArgument(function.arguments().size() == 2);
 
-    NotEqOperator(FunctionInfo info) {
-        this.info = info;
+        Symbol left = function.arguments().get(0);
+        Symbol right = function.arguments().get(1);
+
+        if (left.symbolType() == SymbolType.NULL_LITERAL || right.symbolType() == SymbolType.NULL_LITERAL) {
+            return Null.INSTANCE;
+        }
+
+        if (left instanceof Literal && right instanceof Literal) {
+            return new BooleanLiteral(!(Objects.equals(left, right)));
+        }
+
+        return function;
     }
 }

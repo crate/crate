@@ -21,13 +21,15 @@
 
 package io.crate.planner.symbol;
 
+import com.google.common.base.Preconditions;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Objects;
 
-public class StringLiteral extends ValueSymbol {
+public class StringLiteral extends Literal {
 
     public static final SymbolFactory<StringLiteral> FACTORY = new SymbolFactory<StringLiteral>() {
         @Override
@@ -37,17 +39,22 @@ public class StringLiteral extends ValueSymbol {
     };
     private String value;
 
+
     public StringLiteral(String value) {
+        Preconditions.checkNotNull(value);
         this.value = value;
     }
 
-    public StringLiteral() {
-
-    }
+    StringLiteral() {}
 
     @Override
     public SymbolType symbolType() {
         return SymbolType.STRING_LITERAL;
+    }
+
+    @Override
+    public String value() {
+        return value;
     }
 
     @Override
@@ -57,16 +64,33 @@ public class StringLiteral extends ValueSymbol {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        String value = in.readOptionalString();
+        value = in.readString();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeOptionalString(value);
+        out.writeString(value);
     }
 
     @Override
     public DataType valueType() {
         return DataType.STRING;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        StringLiteral that = (StringLiteral) o;
+
+        if (!value.equals(that.value)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return value.hashCode();
     }
 }

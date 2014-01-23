@@ -49,15 +49,31 @@ public class SymbolVisitor<C, R> {
         return visitSymbol(symbol, context);
     }
 
-    public R visitFunction(Function function, C context) {
-        return visitSymbol(function, context);
+    public R visitFunction(Function symbol, C context) {
+        return visitSymbol(symbol, context);
     }
 
-    public R visitStringLiteral(StringLiteral literal, C context) {
-        return visitSymbol(literal, context);
+    public R visitStringLiteral(StringLiteral symbol, C context) {
+        return visitSymbol(symbol, context);
+    }
+
+    public R visitDoubleLiteral(DoubleLiteral symbol, C context) {
+        return visitSymbol(symbol, context);
+    }
+
+    public R visitBooleanLiteral(BooleanLiteral symbol, C context) {
+        return visitSymbol(symbol, context);
+    }
+
+    public R visitIntegerLiteral(IntegerLiteral symbol, C context) {
+        return visitSymbol(symbol, context);
     }
 
     public R visitInputColumn(InputColumn inputColumn, C context) {
         return visitSymbol(inputColumn, context);
+    }
+
+    public R visitNullLiteral(Null symbol, C context) {
+        return visitSymbol(symbol, context);
     }
 }

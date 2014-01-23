@@ -21,33 +21,53 @@
 
 package io.crate.operator.operator;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
+import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionInfo;
+import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 
-public class EqOperator implements FunctionImplementation {
+import java.util.Objects;
+
+
+public class EqOperator extends Operator {
 
     public static final String NAME = "op_eq";
     private final FunctionInfo info;
+
+    public static void register(OperatorModule module) {
+        for (DataType type : DataType.ALL_TYPES) {
+            module.registerOperatorFunction(new EqOperator(generateInfo(NAME, type)));
+        }
+    }
+
+    EqOperator(FunctionInfo info) {
+        this.info = info;
+    }
 
     @Override
     public FunctionInfo info() {
         return info;
     }
 
-    public static void register(OperatorModule module) {
-        module.registerOperatorFunction(
-                new EqOperator(new FunctionInfo(
-                        new FunctionIdent(NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)),
-                        DataType.BOOLEAN,
-                        false)
-                )
-        );
-    }
+    @Override
+    public Symbol normalizeSymbol(Function function) {
+        Preconditions.checkNotNull(function);
+        Preconditions.checkArgument(function.arguments().size() == 2);
 
-    EqOperator(FunctionInfo info) {
-        this.info = info;
+        Symbol left = function.arguments().get(0);
+        Symbol right = function.arguments().get(1);
+
+        // TODO: could be improved to support other symbols.. e.g.:  f(x) == f(x)
+
+        if (left.symbolType() == SymbolType.NULL_LITERAL || right.symbolType() == SymbolType.NULL_LITERAL) {
+            // according to the function registration both function arguments have to have the same type
+            return Null.INSTANCE;
+        }
+
+        if (left instanceof Literal && right instanceof Literal) {
+            return new BooleanLiteral(Objects.equals(left, right));
+        }
+
+        return function;
     }
 }
