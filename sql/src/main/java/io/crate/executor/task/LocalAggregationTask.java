@@ -31,12 +31,12 @@ import io.crate.operator.aggregation.AggregationCollector;
 import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.planner.plan.AggregationNode;
-import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
+import io.crate.planner.symbol.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public abstract class LocalAggregationTask implements Task<Object[][]> {
 
@@ -49,48 +49,84 @@ public abstract class LocalAggregationTask implements Task<Object[][]> {
 
     protected List<ListenableFuture<Object[][]>> upstreamResults;
 
+    static class VisitorContext {
+
+        private Map<Integer, InputCollectExpression> inputExpressions = new HashMap<>();
+
+        Input[] inputArray;
+        int idx;
+
+        private InputCollectExpression allocateInputExpression(int pos) {
+            InputCollectExpression i = inputExpressions.get(pos);
+            if (i != null) {
+                return i;
+            }
+            i = new InputCollectExpression(pos);
+            inputExpressions.put(pos, i);
+            return i;
+        }
+
+        public InputCollectExpression[] getInputExpressions(){
+            InputCollectExpression[] res = new InputCollectExpression[inputExpressions.size()];
+            for (int i = 0; i < res.length; i++) {
+                InputCollectExpression e = inputExpressions.get(i);
+                Preconditions.checkNotNull(e, "Input column missing ", i);
+                res[i] = e;
+            }
+            return res;
+        }
+
+    }
+
+    class Visitor extends SymbolVisitor<VisitorContext, Symbol> {
+
+        public VisitorContext process(AggregationNode node) {
+            VisitorContext context = new VisitorContext();
+            for (Symbol symbol : node.outputs()) {
+                process(symbol, context);
+            }
+            return context;
+        }
+
+        @Override
+        public Symbol visitAggregation(Aggregation aggregation, VisitorContext context) {
+            assert (aggregation.fromStep() == Aggregation.Step.ITER);
+            assert (aggregation.toStep() == Aggregation.Step.FINAL);
+            aggregations.add(aggregation);
+            AggregationFunction impl = (AggregationFunction) functions.get(aggregation.functionIdent());
+            Preconditions.checkNotNull(impl, "AggregationFunction implementation not found", aggregation.functionIdent());
+
+            context.inputArray = new Input[aggregation.inputs().size()];
+            context.idx = 0;
+            for (Symbol input : aggregation.inputs()) {
+                process(input, context);
+                context.idx++;
+            }
+            collectors.add(new AggregationCollector(aggregation, impl, context.inputArray));
+            return aggregation;
+        }
+
+
+        @Override
+        public Symbol visitInputColumn(InputColumn inputColumn, VisitorContext context) {
+            context.inputArray[context.idx] = context.allocateInputExpression(inputColumn.index());
+            return inputColumn;
+        }
+
+
+    }
+
+
     public LocalAggregationTask(AggregationNode node, Functions functions) {
         this.planNode = node;
         this.functions = functions;
         aggregations = new ArrayList<>();
-        for (Symbol s : planNode.symbols()) {
-            if (s.symbolType() == SymbolType.AGGREGATION) {
-                aggregations.add((Aggregation) s);
-            }
-        }
+        collectors = new ArrayList<>();
 
-        int inputsSize = 0;
-        if (planNode.inputs() != null) {
-            inputsSize = planNode.inputs().size();
-        }
-        inputs = new CollectExpression[inputsSize];
-        for (int i = 0; i < inputs.length; i++) {
-            inputs[i] = new InputCollectExpression(i);
-        }
+        Visitor v = new Visitor();
+        VisitorContext vc = v.process(node);
+        inputs = vc.getInputExpressions();
 
-        collectors = new ArrayList<>(aggregations.size());
-
-        for (Aggregation a : aggregations) {
-            // TODO: implement othe start end steps
-            assert (a.fromStep() == Aggregation.Step.ITER);
-            assert (a.toStep() == Aggregation.Step.FINAL);
-
-            AggregationFunction impl = (AggregationFunction) functions.get(a.functionIdent());
-            Preconditions.checkNotNull(impl, "AggregationFunction implementation not found", a.functionIdent());
-
-            Input[] aggInputs = new Input[a.inputs().size()];
-            for (int i = 0; i < aggInputs.length; i++) {
-                aggInputs[i] = inputs[planNode.inputs().indexOf(a.inputs().get(i))];
-            }
-            // TODO: distinct input
-            if (a.fromStep() == Aggregation.Step.ITER) {
-                collectors.add(new AggregationCollector(a, impl, aggInputs));
-
-            } else {
-                throw new RuntimeException("Step not implemented " + a.fromStep());
-            }
-
-        }
     }
 
     protected void startCollect() {

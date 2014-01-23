@@ -21,30 +21,26 @@
 
 package io.crate.operator.aggregation;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.TestingAggregationTask;
 import io.crate.executor.task.LocalAggregationTask;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
-import io.crate.metadata.MetaDataModule;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.planner.plan.AggregationNode;
 import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.Value;
-import io.crate.planner.symbol.ValueSymbol;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
+import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public abstract class AggregationTest {
 
@@ -56,12 +52,22 @@ public abstract class AggregationTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
+
+    class AggregationTestModule extends AbstractModule {
+
+        @Override
+        protected void configure() {
+            bind(Functions.class).asEagerSingleton();
+        }
+    }
+
     @Before
     public void setUp() throws Exception {
         injector = new ModulesBuilder().add(
-                new MetaDataModule(),
+                new AggregationTestModule(),
                 new AggregationImplModule()
         ).createInjector();
+
         functions = injector.getInstance(Functions.class);
     }
 
@@ -79,12 +85,12 @@ public abstract class AggregationTest {
     public Object[][] executeAggregation(String name, DataType dataType) throws Exception {
         AggregationNode aggregationNode = new AggregationNode("aggregate");
 
-        ValueSymbol value = new Value(dataType);
-        FunctionIdent fi = new FunctionIdent(name, ImmutableList.of(value.valueType()));
-        Aggregation agg = new Aggregation(fi, ImmutableList.of(value), Aggregation.Step.ITER, Aggregation.Step.FINAL);
 
-        aggregationNode.symbols(value, agg);
-        aggregationNode.inputs(value);
+        FunctionIdent fi = new FunctionIdent(name, Arrays.asList(dataType));
+        Aggregation agg = new Aggregation(fi, Arrays.<Symbol>asList(new InputColumn(0)),
+                Aggregation.Step.ITER, Aggregation.Step.FINAL);
+
+
         aggregationNode.outputs(agg);
 
         LocalAggregationTask task = new TestingAggregationTask(aggregationNode, functions);

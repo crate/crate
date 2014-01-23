@@ -67,8 +67,6 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_1);
 
         CollectNode collectNode = new CollectNode("collect", routing);
-        collectNode.symbols(reference);
-        collectNode.inputs(reference);
         collectNode.outputs(reference);
 
         // later created inside executor.newJob

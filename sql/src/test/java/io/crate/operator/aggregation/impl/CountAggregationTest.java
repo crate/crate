@@ -28,6 +28,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.operator.aggregation.AggregationTest;
 import io.crate.planner.plan.AggregationNode;
 import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.ValueSymbol;
 import org.cratedb.DataType;
 import org.junit.Test;
@@ -104,9 +105,8 @@ public class CountAggregationTest extends AggregationTest {
         AggregationNode aggregationNode = new AggregationNode("aggregate");
 
         FunctionIdent fi = new FunctionIdent("count", ImmutableList.<DataType>of());
-        Aggregation agg = new Aggregation(fi, ImmutableList.<ValueSymbol>of(), Aggregation.Step.ITER, Aggregation.Step.FINAL);
+        Aggregation agg = new Aggregation(fi, ImmutableList.<Symbol>of(), Aggregation.Step.ITER, Aggregation.Step.FINAL);
 
-        aggregationNode.symbols(agg);
         aggregationNode.outputs(agg);
 
         LocalAggregationTask task = new TestingAggregationTask(aggregationNode, functions);

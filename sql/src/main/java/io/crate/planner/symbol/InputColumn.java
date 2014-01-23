@@ -21,43 +21,55 @@
 
 package io.crate.planner.symbol;
 
-// PRESTOBORROW
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import java.io.IOException;
+
+/**
+ * A symbol which represents a column of a result array
+ */
+public class InputColumn extends Symbol {
+
+    public static final SymbolFactory<InputColumn> FACTORY = new SymbolFactory<InputColumn>() {
+        @Override
+        public InputColumn newInstance() {
+            return new InputColumn();
+        }
+    };
 
 
-import org.elasticsearch.common.Nullable;
+    private int index;
 
-public class SymbolVisitor<C, R> {
-
-    public R process(Symbol symbol, @Nullable C context) {
-        return symbol.accept(this, context);
+    public InputColumn(int index) {
+        this.index = index;
     }
 
+    public InputColumn() {
 
-    protected R visitSymbol(Symbol symbol, C context) {
-        return null;
     }
 
-    public R visitAggregation(Aggregation symbol, C context) {
-        return visitSymbol(symbol, context);
+    public int index() {
+        return index;
     }
 
-    public R visitValue(Value symbol, C context) {
-        return visitSymbol(symbol, context);
+    @Override
+    public SymbolType symbolType() {
+        return SymbolType.INPUT_COLUMN;
     }
 
-    public R visitReference(Reference symbol, C context) {
-        return visitSymbol(symbol, context);
+    @Override
+    public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
+        return visitor.visitInputColumn(this, context);
     }
 
-    public R visitFunction(Function function, C context) {
-        return visitSymbol(function, context);
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        index = in.readVInt();
     }
 
-    public R visitStringLiteral(StringLiteral literal, C context) {
-        return visitSymbol(literal, context);
-    }
-
-    public R visitInputColumn(InputColumn inputColumn, C context) {
-        return visitSymbol(inputColumn, context);
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeVInt(index);
     }
 }
