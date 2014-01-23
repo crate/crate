@@ -102,7 +102,6 @@ public abstract class LocalAggregationTask implements Task<Object[][]> {
                 process(input, context);
                 context.idx++;
             }
-            aggregation.inputs();
             collectors.add(new AggregationCollector(aggregation, impl, context.inputArray));
             return aggregation;
         }
