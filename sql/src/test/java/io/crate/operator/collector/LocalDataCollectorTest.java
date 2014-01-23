@@ -28,9 +28,7 @@ import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.operator.operations.collect.LocalDataCollectOperation;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.plan.CollectNode;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.ElasticSearchIllegalStateException;
@@ -211,5 +209,23 @@ public class LocalDataCollectorTest {
         );
         collectNode.outputs(unknownFunction);
         operation.collect(TEST_NODE_ID, collectNode);
+    }
+
+    @Test
+    public void testCollectLiterals() {
+        CollectNode collectNode = new CollectNode("literals", testRouting);
+        collectNode.outputs(
+                new StringLiteral("foobar"),
+                new BooleanLiteral(true),
+                new IntegerLiteral(1),
+                new DoubleLiteral(4.2)
+        );
+        Object[][] result = operation.collect(TEST_NODE_ID, collectNode);
+        assertThat(result.length, equalTo(1));
+        assertThat((String)result[0][0], equalTo("foobar"));
+        assertThat((Boolean)result[0][1], equalTo(true));
+        assertThat((Integer)result[0][2], equalTo(1));
+        assertThat((Double)result[0][3], equalTo(4.2));
+
     }
 }

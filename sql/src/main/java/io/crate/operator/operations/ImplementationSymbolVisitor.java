@@ -107,7 +107,10 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
     }
 
     @Override
-    public Input<?> visitStringLiteral(StringLiteral literal, Context context) {
-        return literal;
+    protected Input<?> visitSymbol(Symbol symbol, Context context) {
+        if (symbol instanceof Literal<?>) {
+            return (Literal<?>)symbol;
+        }
+        return super.visitSymbol(symbol, context);
     }
 }
