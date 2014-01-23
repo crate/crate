@@ -27,6 +27,9 @@ import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SystemReferences;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.http.HttpServer;
 import org.elasticsearch.node.service.NodeService;
 
 public class NodePortExpression extends SysObjectReference<Integer> {
@@ -59,10 +62,12 @@ public class NodePortExpression extends SysObjectReference<Integer> {
 
 
     private final NodeService nodeService;
+    private final HttpServer httpServer;
 
     @Inject
-    public NodePortExpression(NodeService nodeService) {
+    public NodePortExpression(NodeService nodeService, HttpServer httpServer) {
         this.nodeService = nodeService;
+        this.httpServer = httpServer;
         addChildImplementations();
     }
 
@@ -75,24 +80,26 @@ public class NodePortExpression extends SysObjectReference<Integer> {
         childImplementations.put(HTTP, new PortExpression(INFO_PORT_HTTP) {
             @Override
             public Integer value() {
-                return portFromAddress(nodeService.stats().getNode().attributes().get("http_address"));
+                if (httpServer != null) {
+                    return portFromAddress(httpServer.info().address().publishAddress());
+                } else {
+                    return null;
+                }
+
             }
         });
         childImplementations.put(TRANSPORT, new PortExpression(INFO_PORT_TRANSPORT) {
             @Override
             public Integer value() {
-                return portFromAddress(nodeService.stats().getNode().address().toString());
+                return portFromAddress(nodeService.stats().getNode().address());
             }
         });
     }
 
-    private Integer portFromAddress(String address) {
+    private Integer portFromAddress(TransportAddress address) {
         Integer port = 0;
-        if (address != null) {
-            String[] addressParts = address.split(":");
-            if (addressParts.length > 1) {
-                port = new Integer(addressParts[1]);
-            }
+        if (address instanceof InetSocketTransportAddress) {
+            port = ((InetSocketTransportAddress) address).address().getPort();
         }
         return port;
     }

@@ -20,8 +20,7 @@
  */
 package io.crate.operator.reference.sys;
 
-import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.GlobalReferenceResolver;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.sys.SysExpression;
@@ -34,8 +33,12 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.BoundTransportAddress;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.http.HttpInfo;
+import org.elasticsearch.http.HttpServer;
 import org.elasticsearch.monitor.fs.FsStats;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
@@ -46,7 +49,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
 import static junit.framework.Assert.assertNull;
@@ -89,15 +91,11 @@ public class TestSysNodesExpressions {
             when(nodeStats.getHostname()).thenReturn("localhost");
 
             DiscoveryNode node = mock(DiscoveryNode.class);
-            TransportAddress transportAddress = mock(TransportAddress.class);
-            Map<String, String> attributes = new HashMap<String, String>(){{
-                put("http_address", "localhost:4200");
-            }};
+            TransportAddress transportAddress = new InetSocketTransportAddress("localhost", 44300);
+
             when(nodeStats.getNode()).thenReturn(node);
             when(node.getName()).thenReturn("node 1");
-            when(node.attributes()).thenReturn(ImmutableMap.copyOf(attributes));
             when(node.address()).thenReturn(transportAddress);
-            when(transportAddress.toString()).thenReturn("localhost:4300");
 
             FsStats fsStats = mock(FsStats.class);
             when(nodeStats.getFs()).thenReturn(fsStats);
@@ -122,6 +120,18 @@ public class TestSysNodesExpressions {
             });
 
             bind(NodeService.class).toInstance(nodeService);
+
+            HttpServer httpServer = mock(HttpServer.class);
+            HttpInfo httpInfo = mock(HttpInfo.class);
+            BoundTransportAddress boundTransportAddress = new BoundTransportAddress(
+                    new InetSocketTransportAddress("localhost", 44200),
+                    new InetSocketTransportAddress("localhost", 44200)
+            );
+            when(httpInfo.address()).thenReturn(boundTransportAddress);
+            when(httpServer.info()).thenReturn(httpInfo);
+            bind(HttpServer.class).toInstance(httpServer);
+
+            bind(ReferenceResolver.class).to(GlobalReferenceResolver.class).asEagerSingleton();
         }
     }
 
@@ -129,7 +139,6 @@ public class TestSysNodesExpressions {
     public void setUp() throws Exception {
         injector = new ModulesBuilder().add(
                 new TestModule(),
-                new MetaDataModule(),
                 new SysExpressionModule()
         ).createInjector();
         resolver = injector.getInstance(ReferenceResolver.class);
@@ -182,8 +191,8 @@ public class TestSysNodesExpressions {
         SysObjectReference<Integer> port = (SysObjectReference<Integer>) resolver.getImplementation(ident);
 
         Map<String, Integer> v = port.value();
-        assertEquals(new Integer(4200), v.get("http"));
-        assertEquals(new Integer(4300), v.get("transport"));
+        assertEquals(new Integer(44200), v.get("http"));
+        assertEquals(new Integer(44300), v.get("transport"));
     }
 
     @Test
