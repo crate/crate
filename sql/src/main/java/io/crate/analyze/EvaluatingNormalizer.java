@@ -47,7 +47,7 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
 
     @Override
     public Symbol visitReference(Reference symbol, Void context) {
-        if (symbol.info().granularity() != granularity) {
+        if (symbol.info().granularity().ordinal() > granularity.ordinal()) {
             return symbol;
         }
 

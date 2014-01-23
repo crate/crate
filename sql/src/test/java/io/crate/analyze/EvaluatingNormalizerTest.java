@@ -4,8 +4,6 @@ import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.operator.operator.*;
-import io.crate.operator.reference.sys.NodeLoadExpression;
-import io.crate.operator.reference.sys.SysObjectReference;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
@@ -25,17 +23,16 @@ public class EvaluatingNormalizerTest {
 
     private ReferenceResolver referenceResolver;
     private Functions functions;
-    private ReferenceIdent dummyLoadReference;
     private ReferenceInfo dummyLoadInfo;
 
     @Before
     public void setUp() throws Exception {
         Map<ReferenceIdent, ReferenceImplementation> referenceImplementationMap = new HashMap<>(1, 1);
 
-        dummyLoadReference = new ReferenceIdent(new TableIdent("test", "dummy"), "load");
-        dummyLoadInfo = new ReferenceInfo(dummyLoadReference, RowGranularity.NODE, DataType.DOUBLE);
+        ReferenceIdent dummyLoadIdent = new ReferenceIdent(new TableIdent("test", "dummy"), "load");
+        dummyLoadInfo = new ReferenceInfo(dummyLoadIdent, RowGranularity.NODE, DataType.DOUBLE);
 
-        referenceImplementationMap.put(dummyLoadReference, new SysExpression<Double>() {
+        referenceImplementationMap.put(dummyLoadIdent, new SysExpression<Double>() {
             @Override
             public Double value() {
                 return 0.08;
@@ -54,17 +51,15 @@ public class EvaluatingNormalizerTest {
         referenceResolver = new GlobalReferenceResolver(referenceImplementationMap);
     }
 
-    @Test
-    public void testEvaluation() {
-
-        EvaluatingNormalizer visitor = new EvaluatingNormalizer(
-                functions, RowGranularity.NODE, referenceResolver);
-
-        /**
-         * prepare the following where clause as function symbol tree:
-         *
-         *  where load['1'] = 0.08 or name != 'x' and name != 'y'
-          */
+    /**
+     * prepare the following where clause as function symbol tree:
+     *
+     *  where test.dummy.load = 0.08 or name != 'x' and name != 'y'
+     *
+     *  test.dummy.load is a expression that can be evaluated on node level
+     *  name would be a doc level reference and is untouched
+     */
+    private Function prepareFunctionTree() {
 
         Reference load_1 = new Reference(dummyLoadInfo);
         DoubleLiteral d01 = new DoubleLiteral(0.08);
@@ -90,14 +85,32 @@ public class EvaluatingNormalizerTest {
         Function op_and = new Function(
                 functionInfo(AndOperator.NAME, DataType.BOOLEAN), Arrays.<Symbol>asList(name_neq_x, name_neq_y));
 
-        Function op_or = new Function(
+        return new Function(
                 functionInfo(OrOperator.NAME, DataType.BOOLEAN), Arrays.<Symbol>asList(load_eq_01, op_and));
+    }
 
+    @Test
+    public void testEvaluation() {
+        EvaluatingNormalizer visitor = new EvaluatingNormalizer(
+                functions, RowGranularity.NODE, referenceResolver);
 
-        // the load['1'] == 0.08 parts evaluates to true and therefore the whole query is optimized to true
+        Function op_or = prepareFunctionTree();
+
+        // the dummy reference load == 0.08 evaluates to true,
+        // so the whole query can be normalized to a single boolean literal
         Symbol query = visitor.process(op_or, null);
         assertThat(query, instanceOf(BooleanLiteral.class));
         assertThat(((BooleanLiteral) query).value(), is(true));
+    }
+
+    @Test
+    public void testEvaluationClusterGranularity() {
+        EvaluatingNormalizer visitor = new EvaluatingNormalizer(
+                functions, RowGranularity.CLUSTER, referenceResolver);
+
+        Function op_or = prepareFunctionTree();
+        Symbol query = visitor.process(op_or, null);
+        assertThat(query, instanceOf(Function.class));
     }
 
     private FunctionInfo functionInfo(String name, DataType aDouble) {
