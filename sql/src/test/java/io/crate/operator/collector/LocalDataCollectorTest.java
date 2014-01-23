@@ -33,6 +33,7 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.ValueSymbol;
 import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
+import org.elasticsearch.ElasticSearchIllegalStateException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -127,6 +128,21 @@ public class LocalDataCollectorTest {
     }
 
     @Test
+    public void testWrongRouting() {
+
+        expectedException.expect(ElasticSearchIllegalStateException.class);
+        expectedException.expectMessage("unsupported routing");
+
+        CollectNode collectNode = new CollectNode("wrong", new Routing(new HashMap<String, Map<String, Integer>>(){{
+            put("bla", new HashMap<String, Integer>(){{
+                put("my_index", 1);
+                put("my_index", 2);
+            }});
+        }}));
+        operation.collect(TEST_NODE_ID, collectNode);
+    }
+
+    @Test
     public void testCollectNothing() {
         CollectNode collectNode = new CollectNode("nothing", testRouting);
         Object[][] result = operation.collect(TEST_NODE_ID, collectNode);
@@ -155,7 +171,7 @@ public class LocalDataCollectorTest {
     }
 
     @Test
-    public void testCollectFunctionWithoutArgs() {
+    public void testCollectFunction() {
         CollectNode collectNode = new CollectNode("function", testRouting);
         final Reference truthReference = new Reference(TestExpression.info);
         Function twoTimesTruthFunction = new Function(
@@ -170,5 +186,25 @@ public class LocalDataCollectorTest {
         assertThat(result[0].length, equalTo(2));
         assertThat((Integer)result[0][0], equalTo(84));
         assertThat((Integer)result[0][1], equalTo(42));
+    }
+
+
+    @Test
+    public void testUnknownFunction() {
+
+        expectedException.expect(CrateException.class);
+        expectedException.expectMessage("Unknown Function");
+
+        CollectNode collectNode = new CollectNode("unknownFunction", testRouting);
+        Function unknownFunction = new Function(
+                new FunctionInfo(
+                        new FunctionIdent("", ImmutableList.<DataType>of()),
+                        DataType.BOOLEAN,
+                        false
+                ),
+                ImmutableList.<ValueSymbol>of()
+        );
+        collectNode.outputs(unknownFunction);
+        operation.collect(TEST_NODE_ID, collectNode);
     }
 }

@@ -60,7 +60,7 @@ public class LocalDataCollectOperation {
                 collectNode.routing().nodes().contains(nodeId) &&
                 collectNode.routing().locations().get(nodeId) != null &&
                 collectNode.routing().locations().get(nodeId).size() == 0,
-                "unsupported routing {}", collectNode.routing()
+                "unsupported routing"
         );
 
         // resolve Implementations
