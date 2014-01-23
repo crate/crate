@@ -31,70 +31,60 @@ import static org.junit.Assert.assertEquals;
 
 public class MinimumAggregationTest extends AggregationTest {
 
-    private Object[][] executeAggregation(DataType dataType) throws Exception {
-        return executeAggregation("min", dataType);
+    private Object[][] executeAggregation(DataType dataType, Object[][] data) throws Exception {
+        return executeAggregation("min", dataType, data);
     }
 
     @Test
     public void testReturnType() throws Exception {
         FunctionIdent fi = new FunctionIdent("min", ImmutableList.of(DataType.INTEGER));
-        assertEquals(DataType.INTEGER ,functions.get(fi).info().returnType());
+        assertEquals(DataType.INTEGER, functions.get(fi).info().returnType());
     }
 
     @Test
     public void testDouble() throws Exception {
-        setUpTestData(new Object[][]{{0.8d}, {0.3d}});
-        Object[][] result = executeAggregation(DataType.DOUBLE);
+        Object[][] result = executeAggregation(DataType.DOUBLE, new Object[][]{{0.8d}, {0.3d}});
 
         assertEquals(0.3d, result[0][0]);
     }
 
     @Test
     public void testFloat() throws Exception {
-        setUpTestData(new Object[][]{{0.8f}, {0.3f}});
-        Object[][] result = executeAggregation(DataType.FLOAT);
+        Object[][] result = executeAggregation(DataType.FLOAT, new Object[][]{{0.8f}, {0.3f}});
 
         assertEquals(0.3f, result[0][0]);
     }
 
     @Test
     public void testInteger() throws Exception {
-        setUpTestData(new Object[][]{{8}, {3}});
-        Object[][] result = executeAggregation(DataType.INTEGER);
+        Object[][] result = executeAggregation(DataType.INTEGER, new Object[][]{{8}, {3}});
 
         assertEquals(3, result[0][0]);
     }
 
     @Test
     public void testLong() throws Exception {
-        setUpTestData(new Object[][]{{8L}, {3L}});
-        Object[][] result = executeAggregation(DataType.LONG);
+        Object[][] result = executeAggregation(DataType.LONG, new Object[][]{{8L}, {3L}});
 
         assertEquals(3L, result[0][0]);
     }
 
     @Test
     public void testShort() throws Exception {
-        setUpTestData(new Object[][]{{(short) 8}, {(short) 3}});
-        Object[][] result = executeAggregation(DataType.SHORT);
+        Object[][] result = executeAggregation(DataType.SHORT, new Object[][]{{(short) 8}, {(short) 3}});
 
-        assertEquals((short)3, result[0][0]);
+        assertEquals((short) 3, result[0][0]);
     }
 
     @Test
     public void testString() throws Exception {
-        setUpTestData(new Object[][]{{"Youri"}, {"Ruben"}});
-        Object[][] result = executeAggregation(DataType.STRING);
+        Object[][] result = executeAggregation(DataType.STRING, new Object[][]{{"Youri"}, {"Ruben"}});
 
         assertEquals("Ruben", result[0][0]);
     }
 
-    @Test
+    @Test(expected = NullPointerException.class)
     public void testUnsupportedType() throws Exception {
-        setUpTestData(new Object[][]{{new Object()}});
-
-        expectedException.expect(NullPointerException.class);
-        expectedException.expectMessage("AggregationFunction implementation not found [FunctionIdent{name=min, argumentTypes=[object]}]");
-        Object[][] result = executeAggregation(DataType.OBJECT);
+        Object[][] result = executeAggregation(DataType.OBJECT, new Object[][]{{new Object()}});
     }
 }
