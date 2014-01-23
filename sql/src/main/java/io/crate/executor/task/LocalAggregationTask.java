@@ -121,7 +121,7 @@ public abstract class LocalAggregationTask implements Task<Object[][]> {
         this.planNode = node;
         this.functions = functions;
         aggregations = new ArrayList<>();
-        collectors = new ArrayList<>(aggregations.size());
+        collectors = new ArrayList<>();
 
         Visitor v = new Visitor();
         VisitorContext vc = v.process(node);
