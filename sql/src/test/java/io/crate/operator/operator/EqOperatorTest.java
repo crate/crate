@@ -17,39 +17,53 @@ public class EqOperatorTest {
 
     @Test
     public void testNormalizeSymbol() {
-        FunctionInfo info = new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, Arrays.asList(DataType.INTEGER, DataType.INTEGER)),
-                DataType.BOOLEAN
-        );
-        EqOperator op = new EqOperator(info);
+        EqOperator op = new EqOperator(EqOperator.generateInfo(DataType.INTEGER));
 
-        Function function = new Function(info, Arrays.<Symbol>asList(new IntegerLiteral(2), new IntegerLiteral(2)));
+        Function function = new Function(
+                op.info(), Arrays.<Symbol>asList(new IntegerLiteral(2), new IntegerLiteral(2)));
         Symbol result = op.normalizeSymbol(function);
 
-        assertThat(
-                result,
-                instanceOf(BooleanLiteral.class)
-        );
-
+        assertThat(result, instanceOf(BooleanLiteral.class));
         assertThat(((BooleanLiteral) result).value(), is(true));
     }
 
     @Test
     public void testNormalizeSymbolNeq() {
-        FunctionInfo info = new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, Arrays.asList(DataType.INTEGER, DataType.INTEGER)),
-                DataType.BOOLEAN
-        );
-        EqOperator op = new EqOperator(info);
+        EqOperator op = new EqOperator(EqOperator.generateInfo(DataType.INTEGER));
 
-        Function function = new Function(info, Arrays.<Symbol>asList(new IntegerLiteral(2), new IntegerLiteral(4)));
+        Function function = new Function(
+                op.info(), Arrays.<Symbol>asList(new IntegerLiteral(2), new IntegerLiteral(4)));
         Symbol result = op.normalizeSymbol(function);
 
-        assertThat(
-                result,
-                instanceOf(BooleanLiteral.class)
+        assertThat(result, instanceOf(BooleanLiteral.class));
+        assertThat(((BooleanLiteral) result).value(), is(false));
+    }
+
+    @Test
+    public void testNormalizeSymbolNonLiteral() {
+        EqOperator op = new EqOperator(EqOperator.generateInfo(DataType.INTEGER));
+        Function f1 = new Function(
+                new FunctionInfo(
+                        new FunctionIdent("dummy_function", Arrays.asList(DataType.INTEGER)),
+                        DataType.INTEGER
+                ),
+                Arrays.<Symbol>asList(new IntegerLiteral(2))
         );
 
-        assertThat(((BooleanLiteral) result).value(), is(false));
+        Function f2 = new Function(
+                new FunctionInfo(
+                        new FunctionIdent("dummy_function", Arrays.asList(DataType.INTEGER)),
+                        DataType.INTEGER
+                ),
+                Arrays.<Symbol>asList(new IntegerLiteral(2))
+        );
+
+        assertThat(f1.equals(f2), is(true)); // symbols are equal
+
+        // EqOperator doesn't know (yet) if the result of the functions will be equal so no normalization
+        Function function = new Function(op.info(), Arrays.<Symbol>asList(f1, f2));
+        Symbol result = op.normalizeSymbol(function);
+
+        assertThat(result, instanceOf(Function.class));
     }
 }

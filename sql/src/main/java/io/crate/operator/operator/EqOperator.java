@@ -37,20 +37,9 @@ public class EqOperator implements Operator {
     private final FunctionInfo info;
 
     public static void register(OperatorModule module) {
-        module.registerOperatorFunction(
-                new EqOperator(new FunctionInfo(
-                        new FunctionIdent(NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)),
-                        DataType.BOOLEAN,
-                        false)
-                )
-        );
-        module.registerOperatorFunction(
-                new EqOperator(new FunctionInfo(
-                        new FunctionIdent(NAME, ImmutableList.of(DataType.DOUBLE, DataType.DOUBLE)),
-                        DataType.BOOLEAN,
-                        false)
-                )
-        );
+        for (DataType type : DataType.ALL_TYPES) {
+            module.registerOperatorFunction(new EqOperator(generateInfo(type)));
+        }
     }
 
     EqOperator(FunctionInfo info) {
@@ -62,6 +51,10 @@ public class EqOperator implements Operator {
         return info;
     }
 
+    public static FunctionInfo generateInfo(DataType type) {
+        return new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(type, type)), DataType.BOOLEAN);
+    }
+
     @Override
     public Symbol normalizeSymbol(Function function) {
         Preconditions.checkNotNull(function);
@@ -70,6 +63,7 @@ public class EqOperator implements Operator {
         Symbol left = function.arguments().get(0);
         Symbol right = function.arguments().get(1);
 
+        // TODO: could be improved to support other symbols.. e.g.:  f(x) == f(x)
         if (left instanceof Literal && right instanceof Literal) {
             return new BooleanLiteral(
                     Objects.equals(((Literal) left).value(), ((Literal) right).value()));

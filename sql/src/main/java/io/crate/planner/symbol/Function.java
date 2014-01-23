@@ -33,7 +33,7 @@ public class Function extends ValueSymbol {
 
     }
 
-    public List<Symbol> arguments() {
+    public List<? extends Symbol> arguments() {
         return arguments;
     }
 
@@ -68,7 +68,7 @@ public class Function extends ValueSymbol {
         int numArguments = in.readVInt();
         arguments = new ArrayList<>(numArguments);
         for (int i = 0; i < numArguments; i++) {
-            arguments.add((ValueSymbol)Symbol.fromStream(in));
+            arguments.add(Symbol.fromStream(in));
         }
     }
 
@@ -84,5 +84,26 @@ public class Function extends ValueSymbol {
     @Override
     public String toString() {
         return info.ident().name();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Function function = (Function) o;
+
+        if (arguments != null ? !arguments.equals(function.arguments) : function.arguments != null)
+            return false;
+        if (info != null ? !info.equals(function.info) : function.info != null) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = arguments != null ? arguments.hashCode() : 0;
+        result = 31 * result + (info != null ? info.hashCode() : 0);
+        return result;
     }
 }
