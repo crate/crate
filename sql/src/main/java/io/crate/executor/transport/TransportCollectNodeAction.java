@@ -22,8 +22,7 @@
 package io.crate.executor.transport;
 
 import com.google.common.base.Preconditions;
-import io.crate.metadata.ReferenceResolver;
-import io.crate.operator.collector.LocalDataCollector;
+import io.crate.operator.operations.collect.LocalDataCollectOperation;
 import io.crate.planner.plan.CollectNode;
 import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
@@ -45,18 +44,18 @@ public class TransportCollectNodeAction {
     private final TransportService transportService;
     private final ThreadPool threadPool;
     private final ClusterService clusterService;
+    private final LocalDataCollectOperation localDataCollector;
     private final String executor = ThreadPool.Names.SEARCH;
-    private final ReferenceResolver referenceResolver;
 
     @Inject
     public TransportCollectNodeAction(ThreadPool threadPool,
                                       ClusterService clusterService,
                                       TransportService transportService,
-                                      ReferenceResolver referenceResolver) {
+                                      LocalDataCollectOperation localDataCollector) {
         this.threadPool = threadPool;
         this.transportService = transportService;
         this.clusterService = clusterService;
-        this.referenceResolver = referenceResolver;
+        this.localDataCollector = localDataCollector;
 
         streamerVisitor = new StreamerVisitor();
         transportService.registerHandler(transportAction, new TransportHandler());
@@ -90,15 +89,7 @@ public class TransportCollectNodeAction {
 
         // TODO:
         // node.routing  -> node operation / index operation / shard operation?
-
-        LocalDataCollector localCollector = new LocalDataCollector(referenceResolver, node);
-        if (localCollector.startCollect()) {
-            boolean carryOnProcessing = localCollector.processRow();
-            while(carryOnProcessing) {
-                carryOnProcessing = localCollector.processRow();
-            }
-        }
-        Object[][] result = localCollector.finishCollect();
+        Object[][] result = localDataCollector.collect(clusterService.localNode().id(), node);
 
         NodeCollectResponse response = new NodeCollectResponse(extractStreamers(node.outputs()));
         response.rows(result);
