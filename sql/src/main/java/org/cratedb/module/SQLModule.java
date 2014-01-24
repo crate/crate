@@ -17,8 +17,6 @@ import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.TransportSQLAction;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
-import org.cratedb.action.sql.analyzer.ClusterUpdateCrateSettingsAction;
-import org.cratedb.action.sql.analyzer.TransportClusterUpdateCrateSettingsAction;
 import org.cratedb.information_schema.*;
 import org.cratedb.service.InformationSchemaService;
 import org.cratedb.service.SQLParseService;
@@ -37,7 +35,6 @@ public class SQLModule extends AbstractModule {
         bind(SQLParseService.class).asEagerSingleton();
         bind(TransportSQLAction.class).asEagerSingleton();
         bind(InformationSchemaService.class).asEagerSingleton();
-        bind(TransportClusterUpdateCrateSettingsAction.class).asEagerSingleton();
         bind(NodeExecutionContext.class).asEagerSingleton();
         bind(AnalyzerService.class).asEagerSingleton();
         bind(TransportSQLReduceHandler.class).asEagerSingleton();
@@ -56,11 +53,9 @@ public class SQLModule extends AbstractModule {
         aggFunctionBinder.addBinding(AnyAggFunction.NAME).to(AnyAggFunction.class).asEagerSingleton();
 
         transportActionsBinder.addBinding(SQLAction.INSTANCE).to(TransportSQLAction.class).asEagerSingleton();
-        transportActionsBinder.addBinding(ClusterUpdateCrateSettingsAction.INSTANCE).to(TransportClusterUpdateCrateSettingsAction.class).asEagerSingleton();
 
         MapBinder<String, GenericAction> actionsBinder = MapBinder.newMapBinder(binder(), String.class, GenericAction.class);
         actionsBinder.addBinding(SQLAction.NAME).toInstance(SQLAction.INSTANCE);
-        actionsBinder.addBinding(ClusterUpdateCrateSettingsAction.NAME).toInstance(ClusterUpdateCrateSettingsAction.INSTANCE);
 
         // Information schema tables
         MapBinder<String, InformationSchemaTable> informationSchemaTables = MapBinder
