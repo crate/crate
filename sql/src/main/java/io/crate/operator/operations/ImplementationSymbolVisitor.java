@@ -28,7 +28,6 @@ import io.crate.operator.aggregation.FunctionExpression;
 import io.crate.planner.plan.PlanNode;
 import io.crate.planner.symbol.*;
 import org.cratedb.sql.CrateException;
-import org.elasticsearch.common.inject.Inject;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -59,7 +58,6 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
     private final Functions functions;
 
 
-    @Inject
     public ImplementationSymbolVisitor(ReferenceResolver referenceResolver, Functions functions) {
         this.referenceResolver = referenceResolver;
         this.functions = functions;
