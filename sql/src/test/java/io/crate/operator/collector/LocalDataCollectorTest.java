@@ -24,14 +24,20 @@ package io.crate.operator.collector;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.operator.Input;
-import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.operator.operations.collect.LocalDataCollectOperation;
+import io.crate.operator.operator.AndOperator;
+import io.crate.operator.operator.EqOperator;
+import io.crate.operator.operator.OperatorModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.plan.CollectNode;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.ElasticSearchIllegalStateException;
+import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -43,6 +49,7 @@ import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertArrayEquals;
 
 public class LocalDataCollectorTest {
 
@@ -70,7 +77,7 @@ public class LocalDataCollectorTest {
     }
 
     static class TestFunction implements Scalar<Integer> {
-        public static final FunctionIdent ident = new FunctionIdent("twoTimes", ImmutableList.of(DataType.INTEGER));
+        public static final FunctionIdent ident = new FunctionIdent("twoTimes", new ArrayList<DataType>(){{ add(DataType.INTEGER); }});
         public static final FunctionInfo info = new FunctionInfo(ident, DataType.INTEGER, false);
 
         @Override
@@ -91,29 +98,37 @@ public class LocalDataCollectorTest {
         }
     }
 
+    private Functions functions;
     private LocalDataCollectOperation operation;
     private Routing testRouting = new Routing(new HashMap<String, Map<String, Integer>>(1){{
         put(TEST_NODE_ID, new HashMap<String, Integer>());
     }});
     private final static String TEST_NODE_ID = "test";
 
+    class TestModule extends AbstractModule {
+        protected MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
+        @Override
+        protected void configure() {
+            functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
+            functionBinder.addBinding(TestFunction.ident).toInstance(new TestFunction());
+            bind(Functions.class).asEagerSingleton();
+        }
+    }
+
     @Before
     public void configure() {
-        Functions functions = new Functions(
-                new HashMap<FunctionIdent, FunctionImplementation>(){{
-                    put(TestFunction.ident, new TestFunction());
-                }}
-        );
+        Injector injector = new ModulesBuilder().add(
+                new OperatorModule(),
+                new TestModule()
+        ).createInjector();
+
+        functions = injector.getInstance(Functions.class);
         ReferenceResolver referenceResolver = new GlobalReferenceResolver(
                 new HashMap<ReferenceIdent, ReferenceImplementation>(){{
                     put(TestExpression.ident, new TestExpression());
                 }}
         );
-        ImplementationSymbolVisitor symbolVisitor = new ImplementationSymbolVisitor(
-                referenceResolver,
-                functions
-        );
-        operation = new LocalDataCollectOperation(symbolVisitor);
+        operation = new LocalDataCollectOperation(functions, referenceResolver);
     }
 
     @Test
@@ -222,10 +237,64 @@ public class LocalDataCollectorTest {
         );
         Object[][] result = operation.collect(TEST_NODE_ID, collectNode);
         assertThat(result.length, equalTo(1));
-        assertThat((String)result[0][0], equalTo("foobar"));
-        assertThat((Boolean)result[0][1], equalTo(true));
+        assertThat((String) result[0][0], equalTo("foobar"));
+        assertThat((Boolean) result[0][1], equalTo(true));
         assertThat((Integer)result[0][2], equalTo(1));
         assertThat((Double)result[0][3], equalTo(4.2));
 
+    }
+
+    @Test
+    public void testCollectWithFalseWhereClause() {
+        CollectNode collectNode = new CollectNode("whereClause", testRouting,
+                new Function(
+                        AndOperator.INFO,
+                        new ArrayList<Symbol>(){{
+                            add(new BooleanLiteral(false));
+                            add(new BooleanLiteral(false));
+                        }}
+                )
+        );
+        Reference testReference = new Reference(TestExpression.info);
+        collectNode.outputs(testReference);
+        Object[][] result = operation.collect(TEST_NODE_ID, collectNode);
+        assertArrayEquals(new Object[0][], result);
+    }
+
+    @Test
+    public void testCollectWithTrueWhereClause() {
+        CollectNode collectNode = new CollectNode("whereClause", testRouting,
+                new Function(
+                        AndOperator.INFO,
+                        new ArrayList<Symbol>(){{
+                            add(new BooleanLiteral(true));
+                            add(new BooleanLiteral(true));
+                        }}
+                )
+        );
+        Reference testReference = new Reference(TestExpression.info);
+        collectNode.outputs(testReference);
+        Object[][] result = operation.collect(TEST_NODE_ID, collectNode);
+        assertThat(result.length, equalTo(1));
+        assertThat((Integer)result[0][0], equalTo(42));
+
+    }
+
+    @Test
+    public void testCollectWithNullWhereClause() {
+        EqOperator op = (EqOperator)functions.get(new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)));
+        CollectNode collectNode = new CollectNode("whereClause", testRouting,
+                new Function(
+                        op.info(),
+                        new ArrayList<Symbol>(){{
+                            add(Null.INSTANCE);
+                            add(Null.INSTANCE);
+                        }}
+                )
+        );
+        Reference testReference = new Reference(TestExpression.info);
+        collectNode.outputs(testReference);
+        Object[][] result = operation.collect(TEST_NODE_ID, collectNode);
+        assertArrayEquals(new Object[0][], result);
     }
 }

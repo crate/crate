@@ -22,22 +22,30 @@
 package io.crate.planner.plan;
 
 import io.crate.metadata.Routing;
+import io.crate.planner.symbol.Function;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 public class CollectNode extends PlanNode {
 
     private Routing routing;
+    private Function whereClause;
 
     public CollectNode() {
         super();
     }
 
     public CollectNode(String id, Routing routing) {
+        this(id, routing, null);
+    }
+
+    public CollectNode(String id, Routing routing, @Nullable Function whereClause) {
         super(id);
         this.routing = routing;
+        this.whereClause = whereClause;
     }
 
     public Routing routing() {
@@ -46,6 +54,14 @@ public class CollectNode extends PlanNode {
 
     public boolean isRouted() {
         return routing != null && routing.hasLocations();
+    }
+
+    public Function whereClause() {
+        return whereClause;
+    }
+
+    public boolean hasWhereClause() {
+        return whereClause != null;
     }
 
 

@@ -21,11 +21,18 @@
 
 package io.crate.operator.operations.collect;
 
+import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReferenceResolver;
 import io.crate.operator.Input;
 import io.crate.operator.RowCollector;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
+import io.crate.planner.RowGranularity;
 import io.crate.planner.plan.CollectNode;
+import io.crate.planner.symbol.BooleanLiteral;
+import io.crate.planner.symbol.Null;
+import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
@@ -38,13 +45,19 @@ import java.util.Set;
  */
 public class LocalDataCollectOperation {
 
+    public static final Object[][] EMPTY_RESULT = new Object[0][];
+
     private ESLogger logger = Loggers.getLogger(getClass());
 
+    private final Functions functions;
     private final ImplementationSymbolVisitor implementationSymbolVisitor;
+    private final EvaluatingNormalizer normalizer;
 
     @Inject
-    public LocalDataCollectOperation(ImplementationSymbolVisitor implementationSymbolVisitor) {
-        this.implementationSymbolVisitor = implementationSymbolVisitor;
+    public LocalDataCollectOperation(Functions functions, ReferenceResolver referenceResolver) {
+        this.functions = functions;
+        this.implementationSymbolVisitor = new ImplementationSymbolVisitor(referenceResolver, functions);
+        this.normalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
     }
 
     public Object[][] collect(String nodeId, CollectNode collectNode) {
@@ -57,6 +70,17 @@ public class LocalDataCollectOperation {
                 collectNode.routing().locations().get(nodeId).size() == 0,
                 "unsupported routing"
         );
+
+
+        if (collectNode.hasWhereClause()) {
+            // normalize where clause if possible
+            Symbol normalizedWhereClause = normalizer.process(collectNode.whereClause(), null);
+            if (normalizedWhereClause instanceof Null ||
+                    (normalizedWhereClause instanceof BooleanLiteral &&
+                            !((BooleanLiteral) normalizedWhereClause).value())) {
+                return EMPTY_RESULT;
+            }
+        }
 
         // resolve Implementations
         ImplementationSymbolVisitor.Context ctx = implementationSymbolVisitor.process(collectNode);
