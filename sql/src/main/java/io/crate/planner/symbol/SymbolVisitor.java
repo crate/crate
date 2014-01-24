@@ -76,4 +76,9 @@ public class SymbolVisitor<C, R> {
     public R visitNullLiteral(Null symbol, C context) {
         return visitSymbol(symbol, context);
     }
+
+    public R visitLongLiteral(LongLiteral symbol, C context) {
+        return visitSymbol(symbol, context);
+    }
 }
+

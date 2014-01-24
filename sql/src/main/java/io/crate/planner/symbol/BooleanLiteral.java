@@ -1,12 +1,13 @@
 package io.crate.planner.symbol;
 
+import com.google.common.base.Preconditions;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class BooleanLiteral extends Literal<Boolean> {
+public class BooleanLiteral extends Literal<Boolean, BooleanLiteral> {
 
     private Boolean value;
 
@@ -69,5 +70,11 @@ public class BooleanLiteral extends Literal<Boolean> {
     @Override
     public int hashCode() {
         return value != null ? value.hashCode() : 0;
+    }
+
+    @Override
+    public int compareTo(BooleanLiteral o) {
+        Preconditions.checkNotNull(o);
+        return Integer.signum(Boolean.compare(value, o.value));
     }
 }

@@ -20,5 +20,9 @@ public class OperatorModule extends AbstractModule {
         OrOperator.register(this);
         EqOperator.register(this);
         NotEqOperator.register(this);
+        LtOperator.register(this);
+        LteOperator.register(this);
+        GtOperator.register(this);
+        GteOperator.register(this);
     }
 }

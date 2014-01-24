@@ -6,7 +6,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class Null extends Literal<Void> {
+public class Null extends Literal<Void, Null> {
 
     public static final Null INSTANCE = new Null();
     public static final SymbolFactory<Null> FACTORY = new SymbolFactory<Null>() {
@@ -44,5 +44,10 @@ public class Null extends Literal<Void> {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
 
+    }
+
+    @Override
+    public int compareTo(Null o) {
+        return 0;
     }
 }
