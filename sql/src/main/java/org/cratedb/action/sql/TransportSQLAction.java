@@ -1,5 +1,33 @@
+/*
+ * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
+ */
+
 package org.cratedb.action.sql;
 
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.Statement;
+import io.crate.sql.tree.Table;
 import org.cratedb.action.DistributedSQLRequest;
 import org.cratedb.action.TransportDistributedSQLAction;
 import org.cratedb.action.import_.ImportRequest;
@@ -11,6 +39,9 @@ import org.cratedb.action.sql.analyzer.TransportClusterUpdateCrateSettingsAction
 import org.cratedb.service.InformationSchemaService;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.ExceptionHelper;
+import org.cratedb.sql.TableUnknownException;
+import org.cratedb.sql.parser.StandardException;
+import org.cratedb.sql.parser.parser.*;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
@@ -51,6 +82,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 
 public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse> {
@@ -215,8 +248,17 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     @Override
     protected void doExecute(SQLRequest request, ActionListener<SQLResponse> listener) {
         logger.trace("doExecute: " + request);
+
         try {
-            ParsedStatement stmt = sqlParseService.parse(request.stmt(), request.args());
+            StatementNode akibanNode = getAkibanNode(request.stmt());
+            ParsedStatement stmt;
+            if (akibanNode != null) {
+                stmt = sqlParseService.parse(request.stmt(), akibanNode, request.args());
+            } else {
+                usePresto(request, listener);
+                return;
+            }
+
             ESRequestBuilder builder = new ESRequestBuilder(stmt);
             switch (stmt.type()) {
                 case INFORMATION_SCHEMA:
@@ -303,6 +345,74 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         } catch (Exception e) {
             listener.onFailure(ExceptionHelper.transformToCrateException(e));
         }
+    }
+
+    private void usePresto(SQLRequest request, ActionListener<SQLResponse> listener) {
+        // TODO: implement
+
+        // tree = parser.parse(request.stmt());
+        // boundTree = binder.bind(tree).
+        // normalizedTree = analyzer.analyze(boundTree)
+        // job = planner.plan(analyzedTree)
+
+
+        // executor.execute(job)
+
+        listener.onFailure(new UnsupportedOperationException());
+    }
+
+    /**
+     * for the migration from akiban to the presto based sql-parser
+     * if presto should be used it returns null, otherwise it returns the parsed StatementNode for akiban.
+     *
+     * @param stmt sql statement as string
+     * @return null or the akiban StatementNode
+     * @throws StandardException
+     */
+    private StatementNode getAkibanNode(String stmt) throws StandardException {
+
+        SQLParser parser = new SQLParser();
+        StatementNode node = parser.parseStatement(stmt);
+        final AtomicReference<Boolean> isPresto = new AtomicReference<>(false);
+
+        Visitor visitor = new Visitor() {
+            @Override
+            public Visitable visit(Visitable node) throws StandardException {
+                if (((QueryTreeNode)node).getNodeType() == NodeType.FROM_BASE_TABLE) {
+                    TableName tableName = ((FromBaseTable) node).getTableName();
+                    if (tableName.getSchemaName() != null
+                            && tableName.getSchemaName().equalsIgnoreCase("sys")
+                            && tableName.getTableName().equalsIgnoreCase("nodes")) {
+
+                        isPresto.set(true);
+                        return null;
+                    }
+                }
+                return node;
+            }
+
+            @Override
+            public boolean visitChildrenFirst(Visitable node) {
+                return false;
+            }
+
+            @Override
+            public boolean stopTraversal() {
+                return isPresto.get();
+            }
+
+            @Override
+            public boolean skipChildren(Visitable node) throws StandardException {
+                return false;
+            }
+        };
+
+        node.accept(visitor);
+
+        if (isPresto.get()) {
+            return null;
+        }
+        return node;
     }
 
     private class TransportHandler extends BaseTransportRequestHandler<SQLRequest> {
