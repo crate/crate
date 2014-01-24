@@ -21,23 +21,32 @@
 
 package io.crate.planner.plan;
 
+import com.google.common.base.Optional;
 import io.crate.metadata.Routing;
+import io.crate.planner.symbol.Function;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 public class CollectNode extends PlanNode {
 
     private Routing routing;
+    private Optional<Function> whereClause;
 
     public CollectNode() {
         super();
     }
 
     public CollectNode(String id, Routing routing) {
+        this(id, routing, null);
+    }
+
+    public CollectNode(String id, Routing routing, @Nullable Function whereClause) {
         super(id);
         this.routing = routing;
+        this.whereClause = Optional.fromNullable(whereClause);
     }
 
     public Routing routing() {
@@ -48,6 +57,9 @@ public class CollectNode extends PlanNode {
         return routing != null && routing.hasLocations();
     }
 
+    public Optional<Function> whereClause() {
+        return whereClause;
+    }
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
@@ -61,6 +73,14 @@ public class CollectNode extends PlanNode {
             routing = new Routing();
             routing.readFrom(in);
         }
+        if (in.readBoolean()) {
+            Function f = new Function();
+            f.readFrom(in);
+            whereClause = Optional.of(f);
+        } else {
+            whereClause = Optional.absent();
+        }
+
     }
 
     @Override
@@ -69,6 +89,12 @@ public class CollectNode extends PlanNode {
         if (routing != null) {
             out.writeBoolean(true);
             routing.writeTo(out);
+        } else {
+            out.writeBoolean(false);
+        }
+        if (whereClause.isPresent()) {
+            out.writeBoolean(true);
+            whereClause.get().writeTo(out);
         } else {
             out.writeBoolean(false);
         }
