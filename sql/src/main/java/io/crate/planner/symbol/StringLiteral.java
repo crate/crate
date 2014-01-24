@@ -21,6 +21,8 @@
 
 package io.crate.planner.symbol;
 
+import com.google.common.collect.Ordering;
+import com.sun.istack.internal.NotNull;
 import org.elasticsearch.common.io.stream.StreamInput;
 
 import com.google.common.base.Preconditions;
@@ -29,7 +31,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class StringLiteral extends Literal {
+public class StringLiteral extends Literal<String, StringLiteral> {
 
     public static final SymbolFactory<StringLiteral> FACTORY = new SymbolFactory<StringLiteral>() {
         @Override
@@ -92,5 +94,10 @@ public class StringLiteral extends Literal {
     @Override
     public int hashCode() {
         return value.hashCode();
+    }
+
+    @Override
+    public int compareTo(StringLiteral o) {
+        return Ordering.natural().compare(value, o.value);
     }
 }

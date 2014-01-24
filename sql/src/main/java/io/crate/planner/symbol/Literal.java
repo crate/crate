@@ -3,7 +3,8 @@ package io.crate.planner.symbol;
 import io.crate.operator.Input;
 import org.cratedb.DataType;
 
-public abstract class Literal<T> extends ValueSymbol implements Input {
+public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
+        implements Input<ValueType>, Comparable<LiteralType> {
 
     public static Literal forType(DataType type, Object value) {
         if (value == null) {

@@ -1,12 +1,13 @@
 package io.crate.planner.symbol;
 
+import com.google.common.base.Preconditions;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class IntegerLiteral extends Literal<Integer> {
+public class IntegerLiteral extends Literal<Integer, IntegerLiteral> {
 
     private int value;
 
@@ -45,12 +46,12 @@ public class IntegerLiteral extends Literal<Integer> {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        value = in.readVInt();
+        value = in.readInt();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(value);
+        out.writeInt(value);
     }
 
     @Override
@@ -68,5 +69,11 @@ public class IntegerLiteral extends Literal<Integer> {
     @Override
     public int hashCode() {
         return value;
+    }
+
+    @Override
+    public int compareTo(IntegerLiteral o) {
+        Preconditions.checkNotNull(o);
+        return Integer.signum(Integer.compare(value, o.value));
     }
 }

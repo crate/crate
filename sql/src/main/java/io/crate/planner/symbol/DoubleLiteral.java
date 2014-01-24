@@ -1,12 +1,13 @@
 package io.crate.planner.symbol;
 
+import com.google.common.base.Preconditions;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class DoubleLiteral extends Literal<Double> {
+public class DoubleLiteral extends Literal<Double, DoubleLiteral> {
 
     public static final SymbolFactory<DoubleLiteral> FACTORY = new SymbolFactory<DoubleLiteral>() {
         @Override
@@ -68,5 +69,11 @@ public class DoubleLiteral extends Literal<Double> {
     public int hashCode() {
         long temp = Double.doubleToLongBits(value);
         return (int) (temp ^ (temp >>> 32));
+    }
+
+    @Override
+    public int compareTo(DoubleLiteral o) {
+        Preconditions.checkNotNull(o);
+        return Integer.signum(Double.compare(value, o.value));
     }
 }
