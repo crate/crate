@@ -13,6 +13,11 @@ Unreleased
 
  - introduced folder 'devtools'.
 
+2014/01/23 0.22.1
+=================
+
+ - admin-ui: implemented basic cluster view with list of nodes
+
  - updated default config files crate.yml and logging.yml
 
 2014/01/20 0.22.0
