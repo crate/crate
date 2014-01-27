@@ -129,7 +129,8 @@ To do so, please refer to ``DEVELOP.rst``.
 Contributing
 -------------
 
-If you intend to contribute to Crate, we suggest to do so as follows:
+If you intend to contribute to Crate we need you to agree to our CLA_.
+Once that is done, we suggest to continue as follows:
 
 1. Fork this repository of Crate.
 
@@ -145,6 +146,7 @@ If you intend to contribute to Crate, we suggest to do so as follows:
 
 6. Lay back and relax while waiting for our response.
 
+.. _CLA: https://crate.io/contributing-to-crate/
 
 Help & Contact
 ==============
