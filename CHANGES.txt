@@ -11,8 +11,6 @@ Unreleased
    Attention: Because of relative paths, you _have_ to invoke the script as
    follows: './devtools/create_tag.sh'.
 
- - introduced folder 'devtools'.
-
 2014/01/23 0.22.1
 =================
 

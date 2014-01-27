@@ -9,7 +9,9 @@ Crate...
 
 - is a document oriented data base.
 
-- manages the documents in a relational database like manner.
+- has the ability to scale horizontally extremely well.
+
+- forms a cluster and handles replicas for you.
 
 - offers SQL to query and manage documents.
 
@@ -50,7 +52,8 @@ Binary Archive
 Debian Package
 --------------
 
-Crate Launchpad_ Page
+Crate Launchpad_ Page. A package is available for Ubuntu versions Lucid Lync,
+Saucy Salamander and Precise Pangolin.
 
 ::
 
@@ -103,13 +106,17 @@ There are several different ways to manage data in Crate.
 
 - The `admin interface <http://localhost:4200/admin>`_
 
-- Python client (``pip install crate``)
+- `Python client`_ (see: GitHub_, pypi_, get it: ``pip install crate``)
 
   - The python client also comes with the `crash`. crash is a command-line
     util to perform SQL queries,...
 
-- Java client
+- `Java client`_
 
+.. _Python client: https://docs.crate.io/current/clients.html#crate-python-client
+.. _GitHub: https://github.com/crate/crate-python
+.. _pypi: https://pypi.python.org/pypi/crate/
+.. _Java client: https://docs.crate.io/current/clients.html#crate-java-client
 
 Are you a Developer?
 ====================
