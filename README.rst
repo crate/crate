@@ -21,6 +21,8 @@ Crate...
 
   - and data types.
 
+- offers support to manage BLOBs.
+
 
 Getting Started
 ===============
@@ -52,8 +54,8 @@ Binary Archive
 Debian Package
 --------------
 
-Crate Launchpad_ Page. A package is available for Ubuntu versions Lucid Lync,
-Saucy Salamander and Precise Pangolin.
+Crate Launchpad_ Page. A package is available for the Ubuntu versions Lucid
+Lync, Saucy Salamander and Precise Pangolin.
 
 ::
 
