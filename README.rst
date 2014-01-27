@@ -8,10 +8,15 @@ cluster database."``
 Crate...
 
 - is a document oriented data base.
+
 - manages the documents in a relational database like manner.
+
 - offers SQL to query and manage documents.
+
 - lets you specify a schema
+
   - to define tables
+
   - and data types.
 
 
@@ -21,10 +26,13 @@ Getting Started
 Installation
 ------------
 
-* Download_ the latest release and unzip the archive.
-* Run ``bin/crate -f`` on unix or ``bin/crate.bat`` on Windows.
-* Say hello to Crate ``curl -sS '127.0.0.1:4200/?pretty=1'``
-* Start some more servers to form a cluster and relax.
+- Download_ the latest release and unzip the archive.
+
+- Run ``bin/crate -f`` on unix or ``bin/crate.bat`` on Windows.
+
+- Say hello to Crate ``curl -sS '127.0.0.1:4200/?pretty=1'``
+
+- Start some more servers to form a cluster and relax.
 
 .. _Download: https://download.crate.io/
 
@@ -44,10 +52,12 @@ Debian Package
 
 Crate Launchpad_ Page
 
-- ``sudo apt-get install python-software-properties``
-- ``sudo add-apt-repository ppa:crate/stable``
-- ``sudo apt-get update``
-- ``sudo apt-get install crate``
+::
+
+    sudo apt-get install python-software-properties
+    sudo add-apt-repository ppa:crate/stable
+    sudo apt-get update
+    sudo apt-get install crate
 
 
 RPM: CentOS, Scientific Linux
@@ -91,10 +101,13 @@ Managing data
 
 There are several different ways to manage data in Crate.
 
-- The `admin interface <http://localhost:4200/admin`>_
+- The `admin interface <http://localhost:4200/admin>`_
+
 - Python client (``pip install crate``)
+
   - The python client also comes with the `crash`. crash is a command-line
     util to perform SQL queries,...
+
 - Java client
 
 
@@ -110,10 +123,17 @@ Contributing
 If you intend to contribute to Crate, we suggest to do so as follows:
 
 1. Fork this repository of Crate.
+
 2. Create a feature branch (``git checkout -b my_feature``)
+
 3. Add your contributions (``git commit -am "Added feature"``)
-4. Commit and publish your feature branch to your own fork (``git push -u origin my_markup``).
-5. Create a `pull requests <https://help.github.com/articles/using-pull-requests>`_ specifing the Crate repository as the destination.
+
+4. Commit and publish your feature branch to your own fork
+   (``git push -u origin my_markup``).
+
+5. Create a `pull requests <https://help.github.com/articles/using-pull-requests>`_
+   specifying the Crate repository as the destination.
+
 6. Lay back and relax while waiting for our response.
 
 
