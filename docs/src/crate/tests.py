@@ -29,7 +29,7 @@ def bash_transform(s):
     # The examples in the docs show the real port '4200' to a reader.
     # Our test suite requires the port to be '44200' to avoid conflicts.
     # Therefore, we need to replace the ports before a test is being run.
-    s.replace(':4200/', ':44200/')
+    s = s.replace(':4200/', ':44200/')
     return (
         r'import subprocess;'
         r'print(subprocess.check_output(r"""%s""",stderr=subprocess.STDOUT,shell=True))' % s) + '\n'
