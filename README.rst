@@ -6,6 +6,7 @@ Crate DB
 cluster database."``
 
 Crate...
+
 - is a document oriented data base.
 - manages the documents in a relational database like manner.
 - offers SQL to query and manage documents.
@@ -49,8 +50,8 @@ Crate Launchpad_ Page
 - ``sudo apt-get install crate``
 
 
-RPM: CentOS, Scientific Linux and yum
--------------------------------------
+RPM: CentOS, Scientific Linux
+-----------------------------
 
 Add the following config for the repository to ``/etc/yum.repos.d/crate.repo``:
 
@@ -70,7 +71,7 @@ repository config:
 
 Then install Crate:
 
-    ``yum install crate``
+``yum install crate``
 
 
 .. _Download: https://download.crate.io/
@@ -82,13 +83,14 @@ Where to go from here?
 That is certainly not all Crate offers to you. Take a look at the
 documentation found under the ``docs`` directory or visit
 `https://docs.crate.io/ <https://docs.crate.io/>`_. If you already installed
-Crate you can also use the documentation it was shipped with
+Crate you can also use the documentation it was shipped with available via
 `http://localhost:4200/_plugin/docs/ <http://localhost:4200/_plugin/docs/>`_.
 
 Managing data
 -------------
 
 There are several different ways to manage data in Crate.
+
 - The `admin interface <http://localhost:4200/admin`>_
 - Python client (``pip install crate``)
   - The python client also comes with the `crash`. crash is a command-line
@@ -106,6 +108,7 @@ Contributing
 -------------
 
 If you intend to contribute to Crate, we suggest to do so as follows:
+
 1. Fork this repository of Crate.
 2. Create a feature branch (``git checkout -b my_feature``)
 3. Add your contributions (``git commit -am "Added feature"``)
