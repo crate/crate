@@ -5,6 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
+ - updated README.rst
+
+ - Moved 'create_tag.sh' to 'devtools'.
+   Attention: Because of relative paths, you _have_ to invoke the script as
+   follows: './devtools/create_tag.sh'.
+
 2014/01/23 0.22.1
 =================
 
