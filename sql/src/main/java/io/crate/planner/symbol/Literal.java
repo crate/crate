@@ -20,10 +20,11 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
                 return new IntegerLiteral((Integer)value);
             case TIMESTAMP:
             case LONG:
-                break;
+                return new LongLiteral((Long)value);
             case FLOAT:
+                return new FloatLiteral((Float)value);
             case DOUBLE:
-                return new DoubleLiteral((Number)value);
+                return new DoubleLiteral((Double)value);
             case BOOLEAN:
                 return new BooleanLiteral((Boolean)value);
             case IP:

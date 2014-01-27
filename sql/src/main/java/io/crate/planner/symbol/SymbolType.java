@@ -30,11 +30,12 @@ public enum SymbolType {
     FUNCTION(Function.FACTORY),
     STRING_LITERAL(StringLiteral.FACTORY),
     DOUBLE_LITERAL(DoubleLiteral.FACTORY),
+    FLOAT_LITERAL(FloatLiteral.FACTORY),
     BOOlEAN_LITERAL(BooleanLiteral.FACTORY),
     INTEGER_LITERAL(IntegerLiteral.FACTORY),
     LONG_LITERAL(LongLiteral.FACTORY),
-    INPUT_COLUMN(InputColumn.FACTORY),
-    NULL_LITERAL(Null.FACTORY);
+    NULL_LITERAL(Null.FACTORY),
+    INPUT_COLUMN(InputColumn.FACTORY);
 
     private final Symbol.SymbolFactory factory;
 
@@ -46,4 +47,7 @@ public enum SymbolType {
         return factory.newInstance();
     }
 
+    public boolean isLiteral() {
+        return ordinal() > FUNCTION.ordinal() && ordinal() < INPUT_COLUMN.ordinal();
+    }
 }

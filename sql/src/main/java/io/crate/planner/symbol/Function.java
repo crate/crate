@@ -1,5 +1,6 @@
 package io.crate.planner.symbol;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionInfo;
 import org.cratedb.DataType;
@@ -83,7 +84,7 @@ public class Function extends ValueSymbol {
 
     @Override
     public String toString() {
-        return info.ident().name();
+        return String.format("%s(%s)", info.ident().name(), Joiner.on(",").join(arguments()));
     }
 
     @Override

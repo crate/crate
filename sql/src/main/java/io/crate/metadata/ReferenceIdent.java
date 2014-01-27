@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Ordering;
@@ -59,6 +60,13 @@ public class ReferenceIdent implements Comparable<ReferenceIdent>, Streamable {
 
     public String column() {
         return column;
+    }
+
+    public String fqDottedColumnName() {
+        if (path.size() > 0) {
+            return Joiner.on(".").join(column, path.toArray(new String[path.size()]));
+        }
+        return column();
     }
 
     public List<String> path() {
