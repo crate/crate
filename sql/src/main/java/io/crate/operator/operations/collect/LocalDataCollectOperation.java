@@ -78,7 +78,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
     private final ThreadPool threadPool;
     private final ClusterService clusterService;
 
-    private final int queueSizeMultiplicator;
+    private Integer queueSizeMultiplicator = null;
 
     @Inject
     public LocalDataCollectOperation(ClusterService clusterService,
@@ -92,10 +92,6 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
         this.indicesService = indicesService;
         this.normalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
         this.threadPool = threadPool;
-
-        this.queueSizeMultiplicator = clusterService.state().metaData().settings().getAsInt(
-                COLLECT_QUEUE_SIZE_MULTIPLY_NAME,
-                COLLECT_QUEUE_SIZE_MULTIPLY_DEFAULT);
     }
 
 
@@ -153,6 +149,15 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
         return innerRowCollector.finishCollect();
     }
 
+    private int getQueueSizeMultiplicator() {
+        if (queueSizeMultiplicator == null) {
+            queueSizeMultiplicator = clusterService.state().metaData().settings().getAsInt(
+                    COLLECT_QUEUE_SIZE_MULTIPLY_NAME,
+                    COLLECT_QUEUE_SIZE_MULTIPLY_DEFAULT);
+        }
+        return queueSizeMultiplicator;
+    }
+
     /**
      * collect data on shard level only - one row per shard expected
      *
@@ -164,6 +169,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
      */
     private Object[][] handleShardCollect(CollectNode collectNode) {
         String localNodeId = clusterService.localNode().id();
+
         Optional<Function> whereClause = collectNode.whereClause();
         if (whereClause.isPresent() && NormalizationHelper.evaluatesToFalse(whereClause.get(), this.normalizer)) {
             return EMPTY_RESULT;
@@ -188,7 +194,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
                 break;
             default:
                 collectResultQueue = new ArrayBlockingQueue<>(
-                        numShards * queueSizeMultiplicator
+                        numShards * getQueueSizeMultiplicator()
                 );
                 break;
         }
