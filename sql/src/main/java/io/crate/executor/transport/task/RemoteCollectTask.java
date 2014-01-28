@@ -52,7 +52,7 @@ public class RemoteCollectTask implements Task<Object[][]> {
         );
 
         for (Map.Entry<String, Map<String, Set<Integer>>> entry : collectNode.routing().locations().entrySet()) {
-            Preconditions.checkArgument(entry.getValue() == null, "Shards are not supported");
+            Preconditions.checkArgument(entry.getValue() == null || entry.getValue().size() == 0, "Shards are not supported");
         }
 
         int resultSize = collectNode.routing().nodes().size();

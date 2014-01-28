@@ -36,12 +36,13 @@ import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.ElasticSearchIllegalStateException;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
-import org.elasticsearch.index.LocalNodeId;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
@@ -127,7 +128,6 @@ public class LocalDataCollectorTest {
             functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
             functionBinder.addBinding(TestFunction.ident).toInstance(new TestFunction());
             bind(Functions.class).asEagerSingleton();
-            bind(String.class).annotatedWith(LocalNodeId.class).toInstance(TEST_NODE_ID);
             bind(ThreadPool.class).toInstance(testThreadPool);
         }
     }
@@ -204,7 +204,12 @@ public class LocalDataCollectorTest {
         when(testIndexService.shardInjectorSafe(0)).thenReturn(shard0Injector);
         when(testIndexService.shardInjectorSafe(1)).thenReturn(shard1Injector);
         when(indicesService.indexServiceSafe("test")).thenReturn(testIndexService);
-        operation = new LocalDataCollectOperation(TEST_NODE_ID, functions, referenceResolver, indicesService, testThreadPool);
+
+        ClusterService clusterService = mock(ClusterService.class);
+        DiscoveryNode mockedNode = mock(DiscoveryNode.class);
+        when(mockedNode.id()).thenReturn(TEST_NODE_ID);
+        when(clusterService.localNode()).thenReturn(mockedNode);
+        operation = new LocalDataCollectOperation(clusterService, functions, referenceResolver, indicesService, testThreadPool);
     }
 
     @Test

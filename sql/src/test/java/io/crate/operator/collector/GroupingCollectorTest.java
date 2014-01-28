@@ -29,14 +29,17 @@ import io.crate.operator.Input;
 import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.aggregation.impl.AverageAggregation;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.ValueSymbol;
 import org.cratedb.DataType;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Arrays;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
@@ -51,9 +54,20 @@ public class GroupingCollectorTest {
     private ValueSymbol doubleValue;
     private Aggregation[] aggregations;
 
+    static class TestModule extends AbstractModule {
+
+        @Override
+        protected void configure() {
+            bind(ClusterService.class).toInstance(mock(ClusterService.class));
+        }
+    }
+
     @Before
     public void setUp() throws Exception {
+
+
         Injector injector = new ModulesBuilder().add(
+                new TestModule(),
                 new MetaDataModule(),
                 new AggregationImplModule()
         ).createInjector();

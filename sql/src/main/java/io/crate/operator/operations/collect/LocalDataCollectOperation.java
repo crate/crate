@@ -34,6 +34,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.plan.CollectNode;
 import io.crate.planner.symbol.*;
 import org.cratedb.sql.CrateException;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
@@ -41,7 +42,6 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.IndexShardMissingException;
-import org.elasticsearch.index.LocalNodeId;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
@@ -64,21 +64,21 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
 
     private ESLogger logger = Loggers.getLogger(getClass());
 
-    private final String localNodeId;
     private final Functions functions;
     private final ReferenceResolver referenceResolver;
     private final ImplementationSymbolVisitor implementationSymbolVisitor;
     private final IndicesService indicesService;
     private final EvaluatingNormalizer normalizer;
     private final ThreadPool threadPool;
+    private final ClusterService clusterService;
 
     @Inject
-    public LocalDataCollectOperation(@LocalNodeId String localNodeId,
+    public LocalDataCollectOperation(ClusterService clusterService,
                                      Functions functions,
                                      ReferenceResolver referenceResolver,
                                      IndicesService indicesService,
                                      ThreadPool threadPool) {
-        this.localNodeId = localNodeId;
+        this.clusterService = clusterService;
         this.functions = functions;
         this.referenceResolver = referenceResolver;
         this.implementationSymbolVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.NODE);
@@ -90,12 +90,11 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
     @Override
     public Object[][] collect(CollectNode collectNode) {
         assert collectNode.routing().hasLocations();
-
+        String localNodeId = clusterService.localNode().id();
         Routing routing = collectNode.routing();
         // assert we have at least a node routing to this node
         Preconditions.checkState(
-                routing.nodes().contains(localNodeId) &&
-                routing.locations().get(localNodeId) != null,
+                routing.nodes().contains(localNodeId),
                 "unsupported routing"
         );
 
@@ -162,6 +161,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
      * @return the collect results from all shards on this node that were given in {@link io.crate.planner.plan.CollectNode#routing}
      */
     private Object[][] handleShardCollect(CollectNode collectNode) {
+        String localNodeId = clusterService.localNode().id();
         Optional<Function> whereClause = collectNode.whereClause();
         if (whereClause.isPresent() && !normalize(whereClause.get())) {
             return EMPTY_RESULT;

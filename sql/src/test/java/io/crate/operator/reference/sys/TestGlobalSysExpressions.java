@@ -21,23 +21,35 @@
 
 package io.crate.operator.reference.sys;
 
+
+import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SystemReferences;
 import io.crate.operator.Input;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.BoundTransportAddress;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.http.HttpInfo;
+import org.elasticsearch.http.HttpServer;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.node.service.NodeService;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -69,14 +81,55 @@ public class TestGlobalSysExpressions {
             MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
                     .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
             b.addBinding(NodeLoadExpression.INFO_LOAD.ident()).to(NodeLoadExpression.class).asEagerSingleton();
+
+            NodeStats nodeStats = mock(NodeStats.class);
+            when(nodeService.stats()).thenReturn(nodeStats);
+            when(nodeStats.getHostname()).thenReturn("localhost");
+
+            DiscoveryNode node = mock(DiscoveryNode.class);
+            TransportAddress transportAddress = new InetSocketTransportAddress("localhost", 44300);
+
+            when(nodeStats.getNode()).thenReturn(node);
+            when(node.getName()).thenReturn("node 1");
+            when(node.address()).thenReturn(transportAddress);
+
+            HttpServer httpServer = mock(HttpServer.class);
+            HttpInfo httpInfo = mock(HttpInfo.class);
+            BoundTransportAddress boundTransportAddress = new BoundTransportAddress(
+                    new InetSocketTransportAddress("localhost", 44200),
+                    new InetSocketTransportAddress("localhost", 44200)
+            );
+            when(httpInfo.address()).thenReturn(boundTransportAddress);
+            when(httpServer.info()).thenReturn(httpInfo);
+            bind(HttpServer.class).toInstance(httpServer);
         }
+    }
+
+    class TestMetaDataModule extends MetaDataModule {
+        @Override
+        protected void bindRoutings() {
+            Map<String, Map<String, Set<Integer>>> locations = ImmutableMap.<String, Map<String, Set<Integer>>>builder()
+                    .put("nodeOne", ImmutableMap.<String, Set<Integer>>of())
+                    .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
+                    .build();
+            final Routing routing = new Routing(locations);
+
+            Routings routings = new Routings() {
+
+                @Override
+                public Routing getRouting(TableIdent tableIdent) {
+                    return routing;
+                }
+            };
+            bind(Routings.class).toInstance(routings);
+       }
     }
 
     @Before
     public void setUp() throws Exception {
         injector = new ModulesBuilder().add(
                 new TestModule(),
-                new MetaDataModule()
+                new TestMetaDataModule()
         ).createInjector();
         resolver = injector.getInstance(ReferenceResolver.class);
     }

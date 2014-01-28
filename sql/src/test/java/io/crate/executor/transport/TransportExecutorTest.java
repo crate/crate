@@ -64,7 +64,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Map<String, Map<String, Set<Integer>>> locations = new HashMap<>(2);
 
         for (DiscoveryNode discoveryNode : clusterService.state().nodes()) {
-            locations.put(discoveryNode.id(), null);
+            locations.put(discoveryNode.id(), new HashMap<String, Set<Integer>>());
         }
 
         Routing routing = new Routing(locations);
