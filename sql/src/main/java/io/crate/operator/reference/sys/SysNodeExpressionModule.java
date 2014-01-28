@@ -23,6 +23,7 @@ package io.crate.operator.reference.sys;
 
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceImplementation;
+import io.crate.operator.reference.sys.node.*;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
@@ -33,10 +34,6 @@ public class SysNodeExpressionModule extends AbstractModule {
         MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
                 .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
 
-        // Cluster Expressions
-        b.addBinding(ClusterNameExpression.INFO_NAME.ident()).to(ClusterNameExpression.class).asEagerSingleton();
-
-        // Node Expressions
         b.addBinding(NodeLoadExpression.INFO_LOAD.ident()).to(NodeLoadExpression.class).asEagerSingleton();
         b.addBinding(NodeNameExpression.INFO_NAME.ident()).to(NodeNameExpression.class).asEagerSingleton();
         b.addBinding(NodeHostnameExpression.INFO_HOSTNAME.ident()).to(NodeHostnameExpression.class).asEagerSingleton();

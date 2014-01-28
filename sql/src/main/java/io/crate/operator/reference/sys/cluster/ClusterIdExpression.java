@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *  http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -14,44 +14,44 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  *
- * However, if you have executed any another commercial license agreement
+ * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.reference.sys;
+package io.crate.operator.reference.sys.cluster;
 
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SystemReferences;
+import org.cratedb.ClusterIdService;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.node.service.NodeService;
 
-public class NodeNameExpression extends SysExpression<String> {
+public class ClusterIdExpression extends SysExpression<String> {
 
-    public static final String COLNAME = "name";
+    public static final String COLNAME = "id";
 
 
-    public static final ReferenceInfo INFO_NAME = SystemReferences.registerNodeReference(
+    public static final ReferenceInfo INFO_ID = SystemReferences.registerClusterReference(
             COLNAME, DataType.STRING);
 
 
-    private final NodeService nodeService;
+    private final ClusterIdService clusterIdService;
 
     @Inject
-    public NodeNameExpression(NodeService nodeService) {
-        this.nodeService = nodeService;
+    public ClusterIdExpression(ClusterIdService clusterIdService) {
+        this.clusterIdService = clusterIdService;
     }
 
     @Override
     public String value() {
-        return nodeService.stats().getNode().getName();
+        return clusterIdService.clusterId().value().toString();
     }
 
     @Override
     public ReferenceInfo info() {
-        return INFO_NAME;
+        return INFO_ID;
     }
 
 }

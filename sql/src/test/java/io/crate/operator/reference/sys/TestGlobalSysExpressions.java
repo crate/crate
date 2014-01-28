@@ -21,16 +21,16 @@
 
 package io.crate.operator.reference.sys;
 
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceResolver;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SystemReferences;
 import io.crate.operator.Input;
+import io.crate.operator.reference.sys.node.NodeLoadExpression;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.monitor.os.OsService;
@@ -62,6 +62,13 @@ public class TestGlobalSysExpressions {
 
             NodeService nodeService = mock(NodeService.class);
             bind(NodeService.class).toInstance(nodeService);
+
+            ClusterService clusterService = mock(ClusterService.class);
+            bind(ClusterService.class).toInstance(clusterService);
+
+            MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
+                    .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
+            b.addBinding(NodeLoadExpression.INFO_LOAD.ident()).to(NodeLoadExpression.class).asEagerSingleton();
         }
     }
 
@@ -69,8 +76,7 @@ public class TestGlobalSysExpressions {
     public void setUp() throws Exception {
         injector = new ModulesBuilder().add(
                 new TestModule(),
-                new MetaDataModule(),
-                new SysExpressionModule()
+                new MetaDataModule()
         ).createInjector();
         resolver = injector.getInstance(ReferenceResolver.class);
     }
@@ -107,7 +113,6 @@ public class TestGlobalSysExpressions {
         ident = NodeLoadExpression.INFO_LOAD_1.ident();
         SysExpression<Double> l1 = (SysExpression<Double>) resolver.getImplementation(ident);
         assertEquals(NodeLoadExpression.INFO_LOAD_1, l1.info());
-
     }
 
 }

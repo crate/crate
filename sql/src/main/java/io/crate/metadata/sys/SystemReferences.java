@@ -37,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SystemReferences {
 
     public static final String SCHEMA = "sys";
+    public static final TableIdent CLUSTER_IDENT = new TableIdent(SCHEMA, "cluster");
     public static final TableIdent NODES_IDENT = new TableIdent(SCHEMA, "nodes");
 
     private static final Map<ReferenceIdent, ReferenceInfo> referenceInfos = new ConcurrentHashMap<>();
@@ -61,6 +62,13 @@ public class SystemReferences {
         return register(new ReferenceInfo(
                 new ReferenceIdent(NODES_IDENT, column),
                 RowGranularity.NODE,
+                type));
+    }
+
+    public static ReferenceInfo registerClusterReference(String column, DataType type) {
+        return register(new ReferenceInfo(
+                new ReferenceIdent(CLUSTER_IDENT, column),
+                RowGranularity.CLUSTER,
                 type));
     }
 

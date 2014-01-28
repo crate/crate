@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *  http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -23,21 +23,19 @@ package io.crate.operator.reference.sys;
 
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceImplementation;
+import io.crate.operator.reference.sys.cluster.ClusterIdExpression;
+import io.crate.operator.reference.sys.cluster.ClusterNameExpression;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
-public class SysExpressionModule extends AbstractModule {
+public class SysClusterExpressionModule extends AbstractModule {
 
     @Override
     protected void configure() {
         MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
                 .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
-        // Node Expressions
-        b.addBinding(NodeLoadExpression.INFO_LOAD.ident()).to(NodeLoadExpression.class).asEagerSingleton();
-        b.addBinding(NodeNameExpression.INFO_NAME.ident()).to(NodeNameExpression.class).asEagerSingleton();
-        b.addBinding(NodeHostnameExpression.INFO_HOSTNAME.ident()).to(NodeHostnameExpression.class).asEagerSingleton();
-        b.addBinding(NodePortExpression.INFO_PORT.ident()).to(NodePortExpression.class).asEagerSingleton();
-        b.addBinding(NodeMemoryExpression.INFO_MEM.ident()).to(NodeMemoryExpression.class).asEagerSingleton();
-        b.addBinding(NodeFsExpression.INFO_FS.ident()).to(NodeFsExpression.class).asEagerSingleton();
+
+        b.addBinding(ClusterNameExpression.INFO_NAME.ident()).to(ClusterNameExpression.class).asEagerSingleton();
+        b.addBinding(ClusterIdExpression.INFO_ID.ident()).to(ClusterIdExpression.class).asEagerSingleton();
     }
 }

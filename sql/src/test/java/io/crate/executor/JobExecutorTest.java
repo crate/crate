@@ -31,7 +31,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.task.LocalAggregationTask;
 import io.crate.metadata.*;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
-import io.crate.operator.reference.sys.NodeLoadExpression;
+import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import io.crate.planner.plan.*;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;

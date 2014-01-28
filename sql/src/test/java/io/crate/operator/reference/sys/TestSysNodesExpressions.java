@@ -138,7 +138,7 @@ public class TestSysNodesExpressions {
     public void setUp() throws Exception {
         injector = new ModulesBuilder().add(
                 new TestModule(),
-                new SysExpressionModule()
+                new SysNodeExpressionModule()
         ).createInjector();
         resolver = injector.getInstance(ReferenceResolver.class);
 
