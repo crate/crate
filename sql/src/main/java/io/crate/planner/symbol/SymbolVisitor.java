@@ -80,5 +80,9 @@ public class SymbolVisitor<C, R> {
     public R visitLongLiteral(LongLiteral symbol, C context) {
         return visitSymbol(symbol, context);
     }
+
+    public R visitFloatLiteral(FloatLiteral symbol, C context) {
+        return visitSymbol(symbol, context);
+    }
 }
 
