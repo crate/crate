@@ -113,6 +113,28 @@ public class EvaluatingNormalizerTest {
         assertThat(query, instanceOf(Function.class));
     }
 
+    @Test
+    public void testYodaFunctionCallRewrite() {
+        // eq(1, name) should become eq(name, 1)
+
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+                functions, RowGranularity.CLUSTER, referenceResolver);
+
+        TableIdent dummyTable = new TableIdent(null, "dummy");
+        Reference strcol = new Reference(new ReferenceInfo(
+                new ReferenceIdent(dummyTable, "strCol"), RowGranularity.DOC, DataType.STRING));
+
+        FunctionInfo eqInfo = functionInfo(EqOperator.NAME, DataType.STRING);
+        Function eq = new Function(eqInfo, Arrays.<Symbol>asList(new StringLiteral("foo"), strcol));
+
+        Symbol query = normalizer.process(eq, null);
+        assertThat(query, instanceOf(Function.class));
+        Function qFunction = (Function)query;
+
+        assertThat(qFunction.arguments().get(0), instanceOf(Reference.class));
+        assertThat(qFunction.arguments().get(1), instanceOf(StringLiteral.class));
+    }
+
     private FunctionInfo functionInfo(String name, DataType aDouble) {
         return functions.get(new FunctionIdent(name, ImmutableList.of(aDouble, aDouble))).info();
     }
