@@ -45,6 +45,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
@@ -59,9 +60,9 @@ public class AnalyzerTest {
 
         @Override
         protected void bindRoutings() {
-            Map<String, Map<String, Integer>> locations = ImmutableMap.<String, Map<String, Integer>>builder()
-                    .put("nodeOne", ImmutableMap.<String, Integer>of())
-                    .put("nodeTwo", ImmutableMap.<String, Integer>of())
+            Map<String, Map<String, Set<Integer>>> locations = ImmutableMap.<String, Map<String, Set<Integer>>>builder()
+                    .put("nodeOne", ImmutableMap.<String, Set<Integer>>of())
+                    .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
                     .build();
             final Routing routing = new Routing(locations);
 

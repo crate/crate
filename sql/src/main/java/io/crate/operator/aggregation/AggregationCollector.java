@@ -25,8 +25,6 @@ import io.crate.operator.Input;
 import io.crate.operator.RowCollector;
 import io.crate.planner.symbol.Aggregation;
 
-import java.util.List;
-
 public class AggregationCollector implements RowCollector {
 
     private final Input[] inputs;

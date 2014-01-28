@@ -39,6 +39,7 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
@@ -60,10 +61,10 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         TransportExecutor executor = new TransportExecutor();
 
 
-        Map<String, Map<String, Integer>> locations = new HashMap<>(2);
+        Map<String, Map<String, Set<Integer>>> locations = new HashMap<>(2);
 
         for (DiscoveryNode discoveryNode : clusterService.state().nodes()) {
-            locations.put(discoveryNode.id(), null);
+            locations.put(discoveryNode.id(), new HashMap<String, Set<Integer>>());
         }
 
         Routing routing = new Routing(locations);

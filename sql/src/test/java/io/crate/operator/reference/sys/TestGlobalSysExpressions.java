@@ -21,6 +21,7 @@
 
 package io.crate.operator.reference.sys;
 
+
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SystemReferences;
@@ -71,6 +72,8 @@ public class TestGlobalSysExpressions {
             b.addBinding(NodeLoadExpression.INFO_LOAD.ident()).to(NodeLoadExpression.class).asEagerSingleton();
         }
     }
+
+
 
     @Before
     public void setUp() throws Exception {

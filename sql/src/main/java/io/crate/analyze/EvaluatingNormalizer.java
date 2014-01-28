@@ -27,12 +27,13 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
     @Override
     public Symbol visitFunction(Function function, Void context) {
         int i = 0;
+        // copy function to not modify where clause
+        Function copy = function.clone();
         for (Symbol symbol : function.arguments()) {
-            function.setArgument(i, symbol.accept(this, context));
+            copy.setArgument(i, symbol.accept(this, context));
             i++;
         }
-
-        return optimize(function);
+        return optimize(copy);
     }
 
     @SuppressWarnings("unchecked")

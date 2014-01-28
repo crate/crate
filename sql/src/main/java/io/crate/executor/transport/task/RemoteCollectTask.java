@@ -33,7 +33,6 @@ import org.elasticsearch.action.ActionListener;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class RemoteCollectTask implements Task<Object[][]> {
 
@@ -50,9 +49,8 @@ public class RemoteCollectTask implements Task<Object[][]> {
                 "RemoteCollectTask currently only works for plans with routing"
         );
 
-        for (Map.Entry<String, Map<String, Integer>> entry : collectNode.routing().locations().entrySet()) {
-            Preconditions.checkArgument(entry.getValue() == null, "Shards are not supported");
-        }
+        Preconditions.checkArgument(collectNode.routing().hasLocations(), "RemoteCollectTask does not need to be executed.");
+
 
         int resultSize = collectNode.routing().nodes().size();
         nodeIds = collectNode.routing().nodes().toArray(new String[resultSize]);

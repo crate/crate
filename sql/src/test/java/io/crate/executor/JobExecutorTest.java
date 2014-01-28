@@ -69,9 +69,9 @@ public class JobExecutorTest {
     class TestMetaDataModule extends MetaDataModule {
         @Override
         protected void bindRoutings() {
-            Map<String, Map<String, Integer>> locations = ImmutableMap.<String, Map<String, Integer>>builder()
-                    .put("nodeOne", ImmutableMap.<String, Integer>of())
-                    .put("nodeTwo", ImmutableMap.<String, Integer>of())
+            Map<String, Map<String, Set<Integer>>> locations = ImmutableMap.<String, Map<String, Set<Integer>>>builder()
+                    .put("nodeOne", ImmutableMap.<String, Set<Integer>>of())
+                    .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
                     .build();
             final Routing routing = new Routing(locations);
 
@@ -113,7 +113,7 @@ public class JobExecutorTest {
             Preconditions.checkArgument(node.isRouted(), "Shards are not supported");
             this.node = node;
             this.routing = node.routing();
-            for (Map.Entry<String, Map<String, Integer>> entry : routing.locations().entrySet()) {
+            for (Map.Entry<String, Map<String, Set<Integer>>> entry : routing.locations().entrySet()) {
                 Preconditions.checkArgument(entry.getValue() == null, "Shards are not supported");
             }
             generateResult();
@@ -257,7 +257,7 @@ public class JobExecutorTest {
 
 
         // 3 nodes
-        Map<String, Map<String, Integer>> locations = new HashMap<>(3);
+        Map<String, Map<String, Set<Integer>>> locations = new HashMap<>(3);
         locations.put("node1", null);
         locations.put("node2", null);
         locations.put("node3", null);
@@ -298,7 +298,7 @@ public class JobExecutorTest {
                 "select sys.nodes.load['5'] from sys.nodes order by sys.nodes.load['5'] desc");
 
         // 3 nodes
-        Map<String, Map<String, Integer>> locations = new HashMap<>(3);
+        Map<String, Map<String, Set<Integer>>> locations = new HashMap<>(3);
         locations.put("node1", null);
         locations.put("node2", null);
         locations.put("node3", null);
@@ -332,7 +332,7 @@ public class JobExecutorTest {
         Statement statement = SqlParser.createStatement("select sys.nodes.load['5'] from sys.nodes limit 2");
 
         // 3 nodes
-        Map<String, Map<String, Integer>> locations = new HashMap<>(3);
+        Map<String, Map<String, Set<Integer>>> locations = new HashMap<>(3);
         locations.put("node1", null);
         locations.put("node2", null);
         locations.put("node3", null);
@@ -370,7 +370,7 @@ public class JobExecutorTest {
         Statement statement = SqlParser.createStatement("select avg(sys.nodes.load['1']) from sys.nodes");
 
         // we pretend we have two nodes
-        Map<String, Map<String, Integer>> locations = new HashMap<>(2);
+        Map<String, Map<String, Set<Integer>>> locations = new HashMap<>(2);
         locations.put("node1", null);
         locations.put("node2", null);
         Routing routing = new Routing(locations);

@@ -24,7 +24,7 @@ public class OrOperator extends Operator {
         Preconditions.checkNotNull(function);
 
         for (Symbol symbol : function.arguments()) {
-            if (symbol.symbolType() == SymbolType.BOOlEAN_LITERAL) {
+            if (symbol.symbolType() == SymbolType.BOOLEAN_LITERAL) {
                 if (((BooleanLiteral)symbol).value()) {
                     return new BooleanLiteral(true);
                 }

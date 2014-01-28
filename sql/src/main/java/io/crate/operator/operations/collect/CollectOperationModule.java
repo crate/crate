@@ -19,35 +19,13 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.symbol;
+package io.crate.operator.operations.collect;
 
-public enum SymbolType {
+import org.elasticsearch.common.inject.AbstractModule;
 
-
-    AGGREGATION(Aggregation.FACTORY),
-    REFERENCE(Reference.FACTORY),
-    VALUE(Value.FACTORY),
-    FUNCTION(Function.FACTORY),
-    STRING_LITERAL(StringLiteral.FACTORY),
-    DOUBLE_LITERAL(DoubleLiteral.FACTORY),
-    FLOAT_LITERAL(FloatLiteral.FACTORY),
-    BOOLEAN_LITERAL(BooleanLiteral.FACTORY),
-    INTEGER_LITERAL(IntegerLiteral.FACTORY),
-    LONG_LITERAL(LongLiteral.FACTORY),
-    NULL_LITERAL(Null.FACTORY),
-    INPUT_COLUMN(InputColumn.FACTORY);
-
-    private final Symbol.SymbolFactory factory;
-
-    SymbolType(Symbol.SymbolFactory factory) {
-        this.factory = factory;
-    }
-
-    public Symbol newInstance() {
-        return factory.newInstance();
-    }
-
-    public boolean isLiteral() {
-        return ordinal() > FUNCTION.ordinal() && ordinal() < INPUT_COLUMN.ordinal();
+public class CollectOperationModule extends AbstractModule {
+    @Override
+    protected void configure() {
+        bind(LocalDataCollectOperation.class).asEagerSingleton();
     }
 }

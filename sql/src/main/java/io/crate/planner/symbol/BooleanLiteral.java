@@ -27,7 +27,7 @@ public class BooleanLiteral extends Literal<Boolean, BooleanLiteral> {
 
     @Override
     public SymbolType symbolType() {
-        return SymbolType.BOOlEAN_LITERAL;
+        return SymbolType.BOOLEAN_LITERAL;
     }
 
     @Override

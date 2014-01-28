@@ -10,6 +10,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.Map;
+import java.util.Set;
 
 @Singleton
 public class RoutingsService implements Routings {
@@ -27,9 +28,9 @@ public class RoutingsService implements Routings {
         Preconditions.checkState(SystemReferences.NODES_IDENT.equals(tableIdent),
                 "Table ident not supported", tableIdent);
         DiscoveryNodes nodes = clusterService.state().nodes();
-        ImmutableMap.Builder<String, Map<String, Integer>> builder = ImmutableMap.<String, Map<String, Integer>>builder();
+        ImmutableMap.Builder<String, Map<String, Set<Integer>>> builder = ImmutableMap.builder();
         for (DiscoveryNode node : nodes) {
-            builder.put(node.id(), ImmutableMap.<String, Integer>of());
+            builder.put(node.id(), ImmutableMap.<String, Set<Integer>>of());
         }
         return new Routing(builder.build());
     }
