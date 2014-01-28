@@ -22,22 +22,31 @@
 package io.crate.executor.transport;
 
 import com.google.common.base.Preconditions;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.operator.operations.collect.LocalDataCollectOperation;
 import io.crate.planner.plan.CollectNode;
 import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ListenableActionFuture;
+import org.elasticsearch.action.support.PlainListenableActionFuture;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public class TransportCollectNodeAction {
+
+    private final ESLogger logger = Loggers.getLogger(getClass());
 
     private final StreamerVisitor streamerVisitor;
     private final String transportAction = "crate/sql/node/collect";
@@ -84,16 +93,28 @@ public class TransportCollectNodeAction {
         return streamers;
     }
 
-    private NodeCollectResponse nodeOperation(NodeCollectRequest request) throws CrateException {
+    private ListenableActionFuture<NodeCollectResponse> nodeOperation(final NodeCollectRequest request) throws CrateException {
         CollectNode node = request.collectNode();
+        final ListenableFuture<Object[][]> collectResult = localDataCollector.collect(node);
+        final PlainListenableActionFuture<NodeCollectResponse> collectResponse = new PlainListenableActionFuture<>(false, threadPool);
+        collectResult.addListener(new Runnable() {
+            @Override
+            public void run() {
+                if (collectResult.isDone()) {
+                    try {
+                        NodeCollectResponse response = new NodeCollectResponse(extractStreamers(request.collectNode().outputs()));
+                        response.rows(collectResult.get());
+                        collectResponse.onResponse(response);
+                    } catch (ExecutionException | InterruptedException e) {
+                        collectResponse.onFailure(e);
+                    }
+                }
+            }
+        }, threadPool.generic());
 
         // TODO:
         // node.routing  -> node operation / index operation / shard operation?
-        Object[][] result = localDataCollector.collect(node);
-
-        NodeCollectResponse response = new NodeCollectResponse(extractStreamers(node.outputs()));
-        response.rows(result);
-        return response;
+        return collectResponse;
     }
 
     private class AsyncAction {
@@ -123,7 +144,18 @@ public class TransportCollectNodeAction {
                     @Override
                     public void run() {
                         try {
-                            listener.onResponse(nodeOperation(request));
+                            ListenableActionFuture<NodeCollectResponse> collectResponseFuture = nodeOperation(request);
+                            collectResponseFuture.addListener(new ActionListener<NodeCollectResponse>() {
+                                @Override
+                                public void onResponse(NodeCollectResponse nodeCollectResponse) {
+                                    listener.onResponse(nodeCollectResponse);
+                                }
+
+                                @Override
+                                public void onFailure(Throwable e) {
+                                    listener.onFailure(e);
+                                }
+                            });
                         } catch (Throwable e) {
                             listener.onFailure(e);
                         }
@@ -170,9 +202,27 @@ public class TransportCollectNodeAction {
         }
 
         @Override
-        public void messageReceived(NodeCollectRequest request, TransportChannel channel) throws Exception {
+        public void messageReceived(final NodeCollectRequest request, final TransportChannel channel) throws Exception {
             try {
-                channel.sendResponse(nodeOperation(request));
+                nodeOperation(request).addListener(new ActionListener<NodeCollectResponse>() {
+                    @Override
+                    public void onResponse(NodeCollectResponse response) {
+                        try {
+                            channel.sendResponse(response);
+                        } catch (IOException e) {
+                            logger.error("Error sending collect response", e);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Throwable e) {
+                        try {
+                            channel.sendResponse(e);
+                        } catch (IOException e1) {
+                            logger.error("Error sending collect failure", e1);
+                        }
+                    }
+                });
             } catch (CrateException e) {
                 channel.sendResponse(e);
             }

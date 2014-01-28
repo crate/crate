@@ -22,6 +22,8 @@
 package io.crate.operator.operations.collect;
 
 import com.google.common.base.Optional;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.NormalizationHelper;
 import io.crate.metadata.Functions;
@@ -58,6 +60,7 @@ import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * collect local data from node/shards/docs on shards
@@ -97,7 +100,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
 
 
     @Override
-    public Object[][] collect(CollectNode collectNode) {
+    public ListenableFuture<Object[][]> collect(CollectNode collectNode) {
         assert collectNode.routing().hasLocations();
         String localNodeId = clusterService.localNode().id();
         Routing routing = collectNode.routing();
@@ -122,10 +125,12 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
      * @param collectNode {@link io.crate.planner.plan.CollectNode} instance containing routing information and symbols to collect
      * @return the collect result from this node, one row only so return value is <code>Object[1][]</code>
      */
-    private Object[][] handleNodeCollect(CollectNode collectNode) {
+    private ListenableFuture<Object[][]> handleNodeCollect(CollectNode collectNode) {
+        SettableFuture<Object[][]> result = SettableFuture.create();
         Optional<Function> whereClause = collectNode.whereClause();
         if (whereClause.isPresent() && NormalizationHelper.evaluatesToFalse(whereClause.get(), this.normalizer)) {
-            return EMPTY_RESULT;
+            result.set(EMPTY_RESULT);
+            return result;
         }
 
         // resolve Implementations
@@ -146,7 +151,8 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
                 carryOnProcessing = innerRowCollector.processRow();
             } while(carryOnProcessing);
         }
-        return innerRowCollector.finishCollect();
+        result.set(innerRowCollector.finishCollect());
+        return result;
     }
 
     private int getQueueSizeMultiplicator() {
@@ -167,14 +173,18 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
      * @param collectNode {@link io.crate.planner.plan.CollectNode} containing routing information and symbols to collect
      * @return the collect results from all shards on this node that were given in {@link io.crate.planner.plan.CollectNode#routing}
      */
-    private Object[][] handleShardCollect(CollectNode collectNode) {
+    private ListenableFuture<Object[][]> handleShardCollect(CollectNode collectNode) {
+
+        final SettableFuture<Object[][]> result = SettableFuture.create();
+
         String localNodeId = clusterService.localNode().id();
 
         Optional<Function> whereClause = collectNode.whereClause();
         if (whereClause.isPresent() && NormalizationHelper.evaluatesToFalse(whereClause.get(), this.normalizer)) {
-            return EMPTY_RESULT;
+            result.set(EMPTY_RESULT);
+            return result;
         }
-        int numShards = collectNode.routing().numShards(localNodeId);
+        final int numShards = collectNode.routing().numShards(localNodeId);
         List<Runnable> shardCollectors = new ArrayList<>(numShards);
 
         // resolve implementations on node level and collect shard/doc level references
@@ -243,39 +253,48 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
         if (logger.isTraceEnabled()) {
             logger.trace("started {} shardCollectors", numShards);
         }
+        this.threadPool.executor(ThreadPool.Names.SEARCH).execute(new Runnable() {
+            @Override
+            public void run() {
+                // start draining the queue
+                int shardsToGo = numShards;
+                long timeoutTimestamp = System.currentTimeMillis() + timeout.millis();
+                while (shardsToGo > 0 && System.currentTimeMillis() < timeoutTimestamp) {
+                    try {
+                        Object[] collectedShardRow = collectResultQueue.take();
+                        if (collectedShardRow == SimpleShardCollector.EMPTY_ROW) {
+                            // SHARD FINISHED MARKER received
+                            shardsToGo--;
+                            if (logger.isTraceEnabled()) {
+                                logger.trace("Received SHARD FINISHED MARKER. {} shards to go.", shardsToGo);
+                            }
+                        } else {
+                            if (logger.isTraceEnabled()) {
+                                logger.trace("Received 1 row from a shard.");
+                            }
+                            // result row received, feed to collectExpressions
+                            for (CollectExpression<?> collectExpression : collectExpressions) {
+                                collectExpression.setNextRow(collectedShardRow);
+                            }
 
-        // start draining the queue
-        int shardsToGo = numShards;
-        long timeoutTimestamp = System.currentTimeMillis() + timeout.millis();
-        while (shardsToGo > 0 && System.currentTimeMillis() < timeoutTimestamp) {
-            try {
-                Object[] collectedShardRow = collectResultQueue.take();
-                if (collectedShardRow == SimpleShardCollector.EMPTY_ROW) {
-                    // SHARD FINISHED MARKER received
-                    shardsToGo--;
-                    if (logger.isTraceEnabled()) {
-                        logger.trace("Received SHARD FINISHED MARKER. {} shards to go.", shardsToGo);
+                            Object[] processedShardResult = new Object[inputs.length];
+                            for (int i = 0, length = inputs.length; i < length; i++) {
+                                processedShardResult[i] = inputs[i].value();
+                            }
+                            results.add(processedShardResult);
+                        }
+                    } catch (InterruptedException e) {
+                        logger.debug("interrupted while collecting from shards", e);
                     }
-                } else {
-                    if (logger.isTraceEnabled()) {
-                        logger.trace("Received 1 row from a shard.");
-                    }
-                    // result row received, feed to collectExpressions
-                    for (CollectExpression<?> collectExpression : collectExpressions) {
-                        collectExpression.setNextRow(collectedShardRow);
-                    }
-
-                    Object[] processedShardResult = new Object[inputs.length];
-                    for (int i = 0, length = inputs.length; i < length; i++) {
-                        processedShardResult[i] = inputs[i].value();
-                    }
-                    results.add(processedShardResult);
                 }
-            } catch (InterruptedException e) {
-                logger.debug("interrupted while collecting from shards", e);
+                if (shardsToGo>0) {
+                    result.setException(new TimeoutException("Collect operation timed out."));
+                } else {
+                    result.set(results.toArray(new Object[results.size()][]));
+                }
             }
-        }
+        });
 
-        return results.toArray(new Object[results.size()][]);
+        return result;
     }
 }
