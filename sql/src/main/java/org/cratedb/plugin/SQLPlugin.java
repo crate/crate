@@ -26,6 +26,7 @@ import io.crate.metadata.MetaDataModule;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.reference.sys.SysClusterExpressionModule;
 import io.crate.operator.reference.sys.SysNodeExpressionModule;
+import io.crate.operator.reference.sys.SysShardExpressionModule;
 import org.cratedb.module.SQLModule;
 import org.cratedb.rest.action.RestSQLAction;
 import org.cratedb.service.InformationSchemaService;
@@ -97,6 +98,15 @@ public class SQLPlugin extends AbstractPlugin {
             modules.add(SysClusterExpressionModule.class);
             modules.add(SysNodeExpressionModule.class);
             modules.add(AggregationImplModule.class);
+        }
+        return modules;
+    }
+
+    @Override
+    public Collection<Class<? extends Module>> shardModules() {
+        Collection<Class<? extends Module>> modules = newArrayList();
+        if (!settings.getAsBoolean("node.client", false)) {
+            modules.add(SysShardExpressionModule.class);
         }
         return modules;
     }

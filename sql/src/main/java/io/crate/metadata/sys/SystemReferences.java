@@ -39,6 +39,7 @@ public class SystemReferences {
     public static final String SCHEMA = "sys";
     public static final TableIdent CLUSTER_IDENT = new TableIdent(SCHEMA, "cluster");
     public static final TableIdent NODES_IDENT = new TableIdent(SCHEMA, "nodes");
+    public static final TableIdent SHARDS_IDENT = new TableIdent(SCHEMA, "shards");
 
     private static final Map<ReferenceIdent, ReferenceInfo> referenceInfos = new ConcurrentHashMap<>();
 
@@ -69,6 +70,13 @@ public class SystemReferences {
         return register(new ReferenceInfo(
                 new ReferenceIdent(CLUSTER_IDENT, column),
                 RowGranularity.CLUSTER,
+                type));
+    }
+
+    public static ReferenceInfo registerShardReference(String column, DataType type) {
+        return register(new ReferenceInfo(
+                new ReferenceIdent(SHARDS_IDENT, column),
+                RowGranularity.SHARD,
                 type));
     }
 
