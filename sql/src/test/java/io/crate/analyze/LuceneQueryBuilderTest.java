@@ -35,6 +35,7 @@ import org.apache.lucene.util.Version;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
+import org.elasticsearch.index.mapper.core.ShortFieldMapper;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -60,6 +61,10 @@ public class LuceneQueryBuilderTest {
             new ReferenceIdent(characters, "float_ref"), RowGranularity.DOC, DataType.FLOAT));
     Reference long_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "long_ref"), RowGranularity.DOC, DataType.LONG));
+    Reference short_ref = new Reference(new ReferenceInfo(
+            new ReferenceIdent(characters, "short_ref"), RowGranularity.DOC, DataType.SHORT));
+    Reference isParanoid = new Reference(new ReferenceInfo(
+            new ReferenceIdent(characters, "isParanoid"), RowGranularity.DOC, DataType.BOOLEAN));
 
     private IndexSearcher indexSeacher;
     private Sort sort;
@@ -82,6 +87,10 @@ public class LuceneQueryBuilderTest {
         DoubleField weight = new DoubleField("weight", 0.0, Field.Store.YES);
         FloatField floatField = new FloatField("float_ref", 0.0f, Field.Store.YES);
         LongField longField = new LongField("long_ref", 0, Field.Store.YES);
+        // lucene has no shortField -> int is used instead
+        IntField shortField = new IntField("short_ref", 0, Field.Store.YES);
+        StringField isParanoid = new StringField("isParanoid", "", Field.Store.YES);
+
 
         Document doc = new Document();
 
@@ -90,12 +99,16 @@ public class LuceneQueryBuilderTest {
         weight.setDoubleValue(492.0);
         floatField.setFloatValue(22.2f);
         longField.setLongValue(8L);
+        shortField.setIntValue(2);
+        isParanoid.setStringValue("T");
 
         doc.add(name);
         doc.add(age);
         doc.add(weight);
         doc.add(floatField);
         doc.add(longField);
+        doc.add(shortField);
+        doc.add(isParanoid);
         indexWriter.addDocument(doc);
 
         name.setStringValue("Trillian");
@@ -103,12 +116,16 @@ public class LuceneQueryBuilderTest {
         weight.setDoubleValue(54.2);
         floatField.setFloatValue(42.2f);
         longField.setLongValue(16L);
+        shortField.setIntValue(3);
+        isParanoid.setStringValue("F");
 
         doc.add(name);
         doc.add(age);
         doc.add(weight);
         doc.add(floatField);
         doc.add(longField);
+        doc.add(shortField);
+        doc.add(isParanoid);
         indexWriter.addDocument(doc);
 
         name.setStringValue("Arthur");
@@ -116,12 +133,16 @@ public class LuceneQueryBuilderTest {
         weight.setDoubleValue(84.1);
         floatField.setFloatValue(12.2f);
         longField.setLongValue(300L);
+        shortField.setIntValue(4);
+        isParanoid.setStringValue("F");
 
         doc.add(name);
         doc.add(age);
         doc.add(weight);
         doc.add(floatField);
         doc.add(longField);
+        doc.add(shortField);
+        doc.add(isParanoid);
         indexWriter.addDocument(doc);
 
         searcherManager.maybeRefresh();
@@ -254,4 +275,31 @@ public class LuceneQueryBuilderTest {
         TopFieldDocs search = indexSeacher.search(query, 5, sort);
         assertThat(search.totalHits, is(2));
     }
+      
+    @Test
+    public void testWhereReferenceEqShort() throws Exception {
+        FunctionImplementation impl = functions.get(new FunctionIdent(EqOperator.NAME, typeX2(DataType.SHORT)));
+        Function whereClause = new Function(impl.info(), Arrays.<Symbol>asList(short_ref, Literal.forType(DataType.SHORT, (short)2)));
+        Query query = builder.convert(whereClause);
+
+        assertThat(query, instanceOf(NumericRangeQuery.class));
+        TopFieldDocs search = indexSeacher.search(query, 5, sort);
+        assertThat(search.totalHits, is(1));
+    }
+
+    @Test
+    public void testWhereReferenceEqBoolean() throws Exception {
+        FunctionImplementation impl = functions.get(new FunctionIdent(EqOperator.NAME, typeX2(isParanoid.valueType())));
+        Function whereClause = new Function(impl.info(),
+                Arrays.<Symbol>asList(isParanoid, Literal.forType(isParanoid.valueType(), true)));
+
+        Query query = builder.convert(whereClause);
+        assertThat(query, instanceOf(TermQuery.class));
+
+        TopFieldDocs search = indexSeacher.search(query, 1, sort);
+        assertThat(search.totalHits, is(1));
+
+    }
+
+
 }

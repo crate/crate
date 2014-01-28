@@ -15,13 +15,14 @@ public abstract class QueryBuilderHelper {
     private final static QueryBuilderHelper stringQueryBuilder = new StringQueryBuilder();
     private final static QueryBuilderHelper doubleQueryBuilder = new DoubleQueryBuilder();
     private final static QueryBuilderHelper floatQueryBuilder = new FloatQueryBuilder();
+    private final static QueryBuilderHelper booleanQueryBuilder = new BooleanQueryBuilder();
 
     public static QueryBuilderHelper forType(DataType dataType) {
         switch (dataType) {
             case BYTE:
-                break;
+                return intQueryBuilder;
             case SHORT:
-                break;
+                return intQueryBuilder;
             case INTEGER:
                 return intQueryBuilder;
             case TIMESTAMP:
@@ -32,7 +33,7 @@ public abstract class QueryBuilderHelper {
             case DOUBLE:
                 return doubleQueryBuilder;
             case BOOLEAN:
-                break;
+                return booleanQueryBuilder;
             case IP:
             case STRING:
                 return stringQueryBuilder;
@@ -52,6 +53,33 @@ public abstract class QueryBuilderHelper {
     public abstract Query lte(String columnName, Object value);
     public abstract Query gt(String columnName, Object value);
     public abstract Query gte(String columnName, Object value);
+
+    static final class BooleanQueryBuilder extends QueryBuilderHelper {
+        @Override
+        public Query eq(String columnName, Object value) {
+            return new TermQuery(new Term(columnName, value == true ? "T" : "F"));
+        }
+
+        @Override
+        public Query lt(String columnName, Object value) {
+            throw new UnsupportedOperationException("\"<\" operator doesn't work on boolean fields");
+        }
+
+        @Override
+        public Query lte(String columnName, Object value) {
+            throw new UnsupportedOperationException("\"<=\" operator doesn't work on boolean fields");
+        }
+
+        @Override
+        public Query gt(String columnName, Object value) {
+            throw new UnsupportedOperationException("\">\" operator doesn't work on boolean fields");
+        }
+
+        @Override
+        public Query gte(String columnName, Object value) {
+            throw new UnsupportedOperationException("\">=\" operator doesn't work on boolean fields");
+        }
+    }
 
     static final class FloatQueryBuilder extends QueryBuilderHelper {
 
