@@ -93,9 +93,9 @@ public class SQLPlugin extends AbstractPlugin {
         Collection<Class<? extends Module>> modules = newArrayList();
         if (!settings.getAsBoolean("node.client", false)) {
             modules.add(SQLModule.class);
+
             modules.add(TransportExecutorModule.class);
             modules.add(CollectOperationModule.class);
-
             modules.add(MetaDataModule.class);
             modules.add(SysClusterExpressionModule.class);
             modules.add(SysNodeExpressionModule.class);

@@ -9,9 +9,6 @@ import io.crate.planner.symbol.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
-import java.util.ArrayList;
-import java.util.List;
-
 
 public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
 
@@ -31,8 +28,7 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
     public Symbol visitFunction(Function function, Void context) {
         int i = 0;
         // copy function to not modify where clause
-        List<Symbol> args = new ArrayList<>(function.arguments());
-        Function copy = new Function(function.info(), args);
+        Function copy = function.clone();
         for (Symbol symbol : function.arguments()) {
             copy.setArgument(i, symbol.accept(this, context));
             i++;

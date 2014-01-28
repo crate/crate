@@ -66,7 +66,7 @@ public class Routing implements Streamable {
         if (nodeRouting != null) {
             Set<Integer> shardIds = nodeRouting.get(index);
             if (shardIds != null) {
-                count += shardIds.size();
+                count = shardIds.size();
             }
         }
         return count;
@@ -117,6 +117,7 @@ public class Routing implements Streamable {
                     if (shardIds == null || shardIds.size() == 0) {
                         out.writeVInt(0);
                     } else {
+                        out.writeVInt(shardIds.size());
                         for (Integer shardId : shardIds) {
                             out.writeVInt(shardId);
                         }

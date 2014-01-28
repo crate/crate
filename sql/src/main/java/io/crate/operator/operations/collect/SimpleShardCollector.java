@@ -23,11 +23,12 @@ package io.crate.operator.operations.collect;
 
 import com.google.common.base.Optional;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.NormalizationHelper;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operator.Input;
 import io.crate.operator.RowCollector;
-import io.crate.operator.operations.ImplementationSymbolVisitor;
+import io.crate.operator.operations.LenientImplementationSymbolVisitor;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 
@@ -42,6 +43,7 @@ public class SimpleShardCollector implements RowCollector<Object[][]>, Runnable 
     private final BlockingQueue<Object[]> resultQueue;
     private Input<?>[] inputs;
     private Object[] result;
+    private final EvaluatingNormalizer normalizer;
 
     private boolean doCollect = true;
 
@@ -53,26 +55,25 @@ public class SimpleShardCollector implements RowCollector<Object[][]>, Runnable 
         this.functions = functions;
         this.referenceResolver = referenceResolver;
         this.resultQueue = resultQueue;
-
+        this.normalizer = new EvaluatingNormalizer(this.functions, RowGranularity.SHARD, this.referenceResolver);
         // normalize on shard level
         if (whereClause.isPresent()) {
-            EvaluatingNormalizer normalizer = new EvaluatingNormalizer(this.functions, RowGranularity.SHARD, this.referenceResolver);
-            Symbol normalizedWhereClause = normalizer.process(whereClause.get(), null);
-            if (normalizedWhereClause.symbolType() == SymbolType.NULL_LITERAL ||
-                    (normalizedWhereClause.symbolType()==SymbolType.BOOLEAN_LITERAL && !((BooleanLiteral) normalizedWhereClause).value())) {
+
+            if (whereClause.isPresent() && NormalizationHelper.evaluatesToFalse(whereClause.get(), this.normalizer)) {
                 inputs = new Input<?>[0];
                 result = EMPTY_ROW;
                 doCollect = false;
             }
+
         }
         if (doCollect) {
             // get Inputs
-            ImplementationSymbolVisitor visitor = new ImplementationSymbolVisitor(
+            LenientImplementationSymbolVisitor visitor = new LenientImplementationSymbolVisitor(
                     this.referenceResolver,
                     this.functions,
                     RowGranularity.SHARD // TODO: doc level?
             );
-            ImplementationSymbolVisitor.Context ctx = visitor.process(shardOrDocLevelReferences);
+            LenientImplementationSymbolVisitor.Context ctx = visitor.process(shardOrDocLevelReferences);
             // TODO: when also collecting on doc level, resolve/normalize shard level expression and store them
             // for easy access
             inputs = ctx.topLevelInputs();
@@ -99,7 +100,7 @@ public class SimpleShardCollector implements RowCollector<Object[][]>, Runnable 
         } catch(InterruptedException e) {
             // TODO: handle or ignore
         }
-        return false;
+        return false; // only one row will be processed on shard level, stop here
     }
 
     @Override

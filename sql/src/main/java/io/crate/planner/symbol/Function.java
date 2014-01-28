@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Function extends ValueSymbol {
+public class Function extends ValueSymbol implements Cloneable {
 
     public static final SymbolFactory<Function> FACTORY = new SymbolFactory<Function>() {
         @Override
@@ -106,5 +106,11 @@ public class Function extends ValueSymbol {
         int result = arguments != null ? arguments.hashCode() : 0;
         result = 31 * result + (info != null ? info.hashCode() : 0);
         return result;
+    }
+
+    @Override
+    public Function clone() {
+        List<Symbol> args = new ArrayList<>(this.arguments);
+        return new Function(this.info, args);
     }
 }

@@ -23,6 +23,7 @@ package io.crate.operator.operations.collect;
 
 import com.google.common.base.Optional;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.NormalizationHelper;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.Routing;
@@ -30,10 +31,13 @@ import io.crate.operator.Input;
 import io.crate.operator.RowCollector;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
+import io.crate.operator.operations.LenientImplementationSymbolVisitor;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.plan.CollectNode;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Reference;
 import org.cratedb.sql.CrateException;
+import org.cratedb.sql.TableUnknownException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.inject.Inject;
@@ -61,16 +65,20 @@ import java.util.concurrent.TimeUnit;
 public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
 
     public static final Object[][] EMPTY_RESULT = new Object[0][];
+    public static final TimeValue timeout = new TimeValue(2, TimeUnit.MINUTES);
+    public static final String COLLECT_QUEUE_SIZE_MULTIPLY_NAME = "collect.concurrency.queue_size_multiply";
+    public static final int COLLECT_QUEUE_SIZE_MULTIPLY_DEFAULT = 10;
 
     private ESLogger logger = Loggers.getLogger(getClass());
 
     private final Functions functions;
     private final ReferenceResolver referenceResolver;
-    private final ImplementationSymbolVisitor implementationSymbolVisitor;
     private final IndicesService indicesService;
     private final EvaluatingNormalizer normalizer;
     private final ThreadPool threadPool;
     private final ClusterService clusterService;
+
+    private final int queueSizeMultiplicator;
 
     @Inject
     public LocalDataCollectOperation(ClusterService clusterService,
@@ -81,11 +89,16 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
         this.clusterService = clusterService;
         this.functions = functions;
         this.referenceResolver = referenceResolver;
-        this.implementationSymbolVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.NODE);
         this.indicesService = indicesService;
         this.normalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
         this.threadPool = threadPool;
+
+        this.queueSizeMultiplicator = clusterService.state().metaData().settings().getAsInt(
+                COLLECT_QUEUE_SIZE_MULTIPLY_NAME,
+                COLLECT_QUEUE_SIZE_MULTIPLY_DEFAULT);
     }
+
+
 
     @Override
     public Object[][] collect(CollectNode collectNode) {
@@ -109,33 +122,22 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
     }
 
     /**
-     * normalize whereClause and return whether a query is necessary
-     *
-     * @param whereClause
-     * @return false if whereClause evaluates to <code>false</code> or {@link io.crate.planner.symbol.Null}
-     *         so no query has to be executed, <code>true</code> otherwise
-     */
-    private boolean normalize(Function whereClause) {
-        // normalize where clause if possible
-        Symbol normalizedWhereClause = normalizer.process(whereClause, null);
-        return (normalizedWhereClause.symbolType() != SymbolType.NULL_LITERAL &&
-                (normalizedWhereClause.symbolType() != SymbolType.BOOLEAN_LITERAL ||
-                        ((BooleanLiteral) normalizedWhereClause).value()));
-    }
-
-    /**
      * collect data on node level only - one row per node expected
      * @param collectNode {@link io.crate.planner.plan.CollectNode} instance containing routing information and symbols to collect
      * @return the collect result from this node, one row only so return value is <code>Object[1][]</code>
      */
     private Object[][] handleNodeCollect(CollectNode collectNode) {
         Optional<Function> whereClause = collectNode.whereClause();
-        if (whereClause.isPresent() && !normalize(whereClause.get())) {
+        if (whereClause.isPresent() && NormalizationHelper.evaluatesToFalse(whereClause.get(), this.normalizer)) {
             return EMPTY_RESULT;
         }
 
         // resolve Implementations
-        ImplementationSymbolVisitor.Context ctx = implementationSymbolVisitor.process(collectNode);
+        ImplementationSymbolVisitor.Context ctx = new ImplementationSymbolVisitor(
+                this.referenceResolver,
+                this.functions,
+                RowGranularity.NODE
+        ).process(collectNode);
         Input<?>[] inputs = ctx.topLevelInputs();
         Set<CollectExpression<?>> collectExpressions = ctx.collectExpressions();
 
@@ -163,14 +165,18 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
     private Object[][] handleShardCollect(CollectNode collectNode) {
         String localNodeId = clusterService.localNode().id();
         Optional<Function> whereClause = collectNode.whereClause();
-        if (whereClause.isPresent() && !normalize(whereClause.get())) {
+        if (whereClause.isPresent() && NormalizationHelper.evaluatesToFalse(whereClause.get(), this.normalizer)) {
             return EMPTY_RESULT;
         }
         int numShards = collectNode.routing().numShards(localNodeId);
         List<Runnable> shardCollectors = new ArrayList<>(numShards);
 
-        // resolve implementations on node level
-        ImplementationSymbolVisitor.Context ctx = implementationSymbolVisitor.process(collectNode);
+        // resolve implementations on node level and collect shard/doc level references
+        LenientImplementationSymbolVisitor.Context ctx = new LenientImplementationSymbolVisitor(
+                this.referenceResolver,
+                this.functions,
+                RowGranularity.NODE
+        ).process(collectNode);
         final Input<?>[] inputs = ctx.topLevelInputs();
         final Set<CollectExpression<?>> collectExpressions = ctx.collectExpressions();
         Reference[] higherGranularityReferences = ctx.higherGranularityReferences();
@@ -181,7 +187,9 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
                 collectResultQueue = new ArrayBlockingQueue<>(numShards); // assume one row per shard
                 break;
             default:
-                collectResultQueue = new ArrayBlockingQueue<>(numShards*10); // FIXME: find good number here
+                collectResultQueue = new ArrayBlockingQueue<>(
+                        numShards * queueSizeMultiplicator
+                );
                 break;
         }
 
@@ -194,7 +202,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
             try {
                 indexService = indicesService.indexServiceSafe(entry.getKey());
             } catch(IndexMissingException e) {
-                throw new CrateException("unknown index");
+                throw new TableUnknownException(entry.getKey(), e);
             }
 
             for (Integer shardId : entry.getValue()) {
@@ -232,15 +240,15 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
 
         // start draining the queue
         int shardsToGo = numShards;
-        long timeout = System.currentTimeMillis() + new TimeValue(2, TimeUnit.MINUTES).millis();
-        while (shardsToGo > 0 && System.currentTimeMillis() < timeout) {
+        long timeoutTimestamp = System.currentTimeMillis() + timeout.millis();
+        while (shardsToGo > 0 && System.currentTimeMillis() < timeoutTimestamp) {
             try {
                 Object[] collectedShardRow = collectResultQueue.take();
                 if (collectedShardRow == SimpleShardCollector.EMPTY_ROW) {
                     // SHARD FINISHED MARKER received
                     shardsToGo--;
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Received SHARD FINISHED MARKER. {} shards to go.", shardsToGo);
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("Received SHARD FINISHED MARKER. {} shards to go.", shardsToGo);
                     }
                 } else {
                     if (logger.isTraceEnabled()) {

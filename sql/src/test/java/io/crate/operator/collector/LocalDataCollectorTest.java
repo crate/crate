@@ -118,8 +118,8 @@ public class LocalDataCollectorTest {
         put(TEST_NODE_ID, new HashMap<String, Set<Integer>>());
     }});
     private final ThreadPool testThreadPool = new ThreadPool();
-    private final static String TEST_NODE_ID = "test";
-    private final static String TEST_TABLE_NAME = "test";
+    private final static String TEST_NODE_ID = "test_node";
+    private final static String TEST_TABLE_NAME = "test_table";
 
     class TestModule extends AbstractModule {
         protected MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
@@ -203,7 +203,7 @@ public class LocalDataCollectorTest {
 
         when(testIndexService.shardInjectorSafe(0)).thenReturn(shard0Injector);
         when(testIndexService.shardInjectorSafe(1)).thenReturn(shard1Injector);
-        when(indicesService.indexServiceSafe("test")).thenReturn(testIndexService);
+        when(indicesService.indexServiceSafe(TEST_TABLE_NAME)).thenReturn(testIndexService);
 
         ClusterService clusterService = mock(ClusterService.class);
         DiscoveryNode mockedNode = mock(DiscoveryNode.class);
