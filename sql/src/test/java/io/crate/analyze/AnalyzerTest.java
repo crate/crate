@@ -29,7 +29,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.sys.SystemReferences;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.aggregation.impl.AverageAggregation;
-import io.crate.operator.reference.sys.NodeLoadExpression;
+import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.sql.parser.SqlParser;
