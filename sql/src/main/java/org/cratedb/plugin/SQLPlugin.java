@@ -21,7 +21,6 @@
 
 package org.cratedb.plugin;
 
-import io.crate.executor.transport.TransportExecutorModule;
 import io.crate.metadata.MetaDataModule;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.reference.sys.SysClusterExpressionModule;
@@ -92,7 +91,7 @@ public class SQLPlugin extends AbstractPlugin {
         Collection<Class<? extends Module>> modules = newArrayList();
         if (!settings.getAsBoolean("node.client", false)) {
             modules.add(SQLModule.class);
-            modules.add(TransportExecutorModule.class);
+            //modules.add(TransportExecutorModule.class);
 
             modules.add(MetaDataModule.class);
             modules.add(SysClusterExpressionModule.class);

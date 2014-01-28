@@ -23,8 +23,10 @@ package io.crate.operator.operations;
 
 import io.crate.metadata.*;
 import io.crate.operator.Input;
+import io.crate.operator.InputCollectExpression;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.aggregation.FunctionExpression;
+import io.crate.planner.RowGranularity;
 import io.crate.planner.plan.PlanNode;
 import io.crate.planner.symbol.*;
 import org.cratedb.sql.CrateException;
@@ -34,11 +36,27 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * convert Symbols into Inputs to simply evaluate and CollectExpressions
+ * that might be treated in a special way (TODO how)
+ */
 public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSymbolVisitor.Context, Input<?>>{
 
     public static class Context {
         private Set<CollectExpression<?>> collectExpressions = new LinkedHashSet<>(); // to keep insertion order
         private List<Input<?>> topLevelInputs = new ArrayList<>();
+        private RowGranularity maxGranularity = RowGranularity.CLUSTER;
+        private List<Reference> higherGranularityReferences = new ArrayList<>();
+
+        public RowGranularity maxGranularity() {
+            return maxGranularity;
+        }
+
+        protected void setMaxGranularity(RowGranularity granularity) {
+            if (granularity.ordinal() > this.maxGranularity.ordinal()) {
+                this.maxGranularity = granularity;
+            }
+        }
 
         public void add(Input<?> input) {
             topLevelInputs.add(input);
@@ -52,15 +70,32 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
             return topLevelInputs.toArray(new Input<?>[topLevelInputs.size()]);
         }
 
+        public CollectExpression<?> handleHigherGranularityReference(Reference shardLevelReference) {
+            InputCollectExpression<?> expr = new InputCollectExpression<>(higherGranularityReferences.size());
+            collectExpressions.add(expr);
+            // order matters, this has to be after creating expr
+            higherGranularityReferences.add(shardLevelReference);
+            return expr;
+        }
+
+        /**
+         * list of references that
+         * @return
+         */
+        public Reference[] higherGranularityReferences() {
+            return higherGranularityReferences.toArray(new Reference[higherGranularityReferences.size()]);
+        }
     }
 
     private final ReferenceResolver referenceResolver;
     private final Functions functions;
+    private final RowGranularity rowGranularity;
 
 
-    public ImplementationSymbolVisitor(ReferenceResolver referenceResolver, Functions functions) {
+    public ImplementationSymbolVisitor(ReferenceResolver referenceResolver, Functions functions, RowGranularity rowGranularity) {
         this.referenceResolver = referenceResolver;
         this.functions = functions;
+        this.rowGranularity = rowGranularity;
     }
 
     public Context process(PlanNode node) {
@@ -69,6 +104,14 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
             for (Symbol symbol : node.outputs()) {
                 context.add(process(symbol, context));
             }
+        }
+        return context;
+    }
+
+    public Context process(Symbol... symbols) {
+        Context context = new Context();
+        for (Symbol symbol : symbols) {
+            context.add(process(symbol, context));
         }
         return context;
     }
@@ -93,14 +136,22 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
     @Override
     public Input<?> visitReference(Reference symbol, Context context) {
         ReferenceImplementation impl = referenceResolver.getImplementation(symbol.info().ident());
-        if (impl != null && impl instanceof Input<?>) {
-            // collect collectExpressions separately
-            if (impl instanceof CollectExpression<?>) {
-                context.collectExpressions.add((CollectExpression<?>) impl);
+        if (rowGranularity.compareTo(symbol.info().granularity()) >= 0) {
+            if (impl != null && impl instanceof Input<?>) {
+                context.setMaxGranularity(symbol.info().granularity());
+                // collect collectExpressions separately
+                if (impl instanceof CollectExpression<?>) {
+                    context.collectExpressions.add((CollectExpression<?>) impl);
+                }
+                return (Input<?>)impl;
+            } else {
+                // same or lower granularity and not found means unknown
+                throw new CrateException("Unknown Reference");
             }
-            return (Input<?>)impl;
         } else {
-            throw new CrateException("Unknown Reference");
+            // higher granularity
+            context.setMaxGranularity(symbol.info().granularity());
+            return context.handleHigherGranularityReference(symbol);
         }
     }
 

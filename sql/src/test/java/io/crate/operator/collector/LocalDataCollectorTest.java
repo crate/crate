@@ -22,6 +22,8 @@
 package io.crate.operator.collector;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import io.crate.metadata.*;
 import io.crate.operator.Input;
 import io.crate.operator.operations.collect.LocalDataCollectOperation;
@@ -35,9 +37,16 @@ import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.ElasticSearchIllegalStateException;
 import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
+import org.elasticsearch.index.LocalNodeId;
+import org.elasticsearch.index.service.IndexService;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -46,10 +55,14 @@ import org.junit.rules.ExpectedException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertArrayEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class LocalDataCollectorTest {
 
@@ -100,10 +113,12 @@ public class LocalDataCollectorTest {
 
     private Functions functions;
     private LocalDataCollectOperation operation;
-    private Routing testRouting = new Routing(new HashMap<String, Map<String, Integer>>(1){{
-        put(TEST_NODE_ID, new HashMap<String, Integer>());
+    private Routing testRouting = new Routing(new HashMap<String, Map<String, Set<Integer>>>(1){{
+        put(TEST_NODE_ID, new HashMap<String, Set<Integer>>());
     }});
+    private final ThreadPool testThreadPool = new ThreadPool();
     private final static String TEST_NODE_ID = "test";
+    private final static String TEST_TABLE_NAME = "test";
 
     class TestModule extends AbstractModule {
         protected MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
@@ -112,6 +127,55 @@ public class LocalDataCollectorTest {
             functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
             functionBinder.addBinding(TestFunction.ident).toInstance(new TestFunction());
             bind(Functions.class).asEagerSingleton();
+            bind(String.class).annotatedWith(LocalNodeId.class).toInstance(TEST_NODE_ID);
+            bind(ThreadPool.class).toInstance(testThreadPool);
+        }
+    }
+
+    static class ShardIdExpression implements ReferenceImplementation, Input<Integer> {
+        public static final ReferenceIdent ident = new ReferenceIdent(new TableIdent("sys", "shards"), "id");
+        public static final ReferenceInfo info = new ReferenceInfo(ident, RowGranularity.SHARD, DataType.INTEGER);
+
+        private final ShardId shardId;
+
+        @Inject
+        public ShardIdExpression(ShardId shardId) {
+            this.shardId = shardId;
+        }
+
+        @Override
+        public Integer value() {
+            return shardId.id();
+        }
+
+        @Override
+        public ReferenceInfo info() {
+            return info;
+        }
+
+        @Override
+        public ReferenceImplementation getChildImplementation(String name) {
+            return null;
+        }
+    }
+
+    class TestShardModule extends AbstractModule {
+
+        private final ShardId shardId;
+        private final ShardIdExpression shardIdExpression;
+
+        public TestShardModule(int shardId) {
+            super();
+            this.shardId = new ShardId(TEST_TABLE_NAME, shardId);
+            this.shardIdExpression = new ShardIdExpression(this.shardId);
+        }
+
+        @Override
+        protected void configure() {
+            bind(ShardId.class).toInstance(shardId);
+            bind(ReferenceResolver.class).toInstance(new GlobalReferenceResolver(new HashMap<ReferenceIdent, ReferenceImplementation>(){{
+               put(ShardIdExpression.ident, shardIdExpression);
+            }}));
         }
     }
 
@@ -121,14 +185,26 @@ public class LocalDataCollectorTest {
                 new OperatorModule(),
                 new TestModule()
         ).createInjector();
-
+        Injector shard0Injector = injector.createChildInjector(
+                new TestShardModule(0)
+        );
+        Injector shard1Injector = injector.createChildInjector(
+                new TestShardModule(1)
+        );
         functions = injector.getInstance(Functions.class);
         ReferenceResolver referenceResolver = new GlobalReferenceResolver(
                 new HashMap<ReferenceIdent, ReferenceImplementation>(){{
                     put(TestExpression.ident, new TestExpression());
                 }}
         );
-        operation = new LocalDataCollectOperation(functions, referenceResolver);
+
+        IndicesService indicesService = mock(IndicesService.class);
+        IndexService testIndexService = mock(IndexService.class);
+
+        when(testIndexService.shardInjectorSafe(0)).thenReturn(shard0Injector);
+        when(testIndexService.shardInjectorSafe(1)).thenReturn(shard1Injector);
+        when(indicesService.indexServiceSafe("test")).thenReturn(testIndexService);
+        operation = new LocalDataCollectOperation(TEST_NODE_ID, functions, referenceResolver, indicesService, testThreadPool);
     }
 
     @Test
@@ -138,7 +214,7 @@ public class LocalDataCollectorTest {
 
         collectNode.outputs(testReference);
 
-        Object[][] result = operation.collect(TEST_NODE_ID, collectNode);
+        Object[][] result = operation.collect(collectNode);
 
         assertThat(result.length, equalTo(1));
 
@@ -151,19 +227,19 @@ public class LocalDataCollectorTest {
         expectedException.expect(ElasticSearchIllegalStateException.class);
         expectedException.expectMessage("unsupported routing");
 
-        CollectNode collectNode = new CollectNode("wrong", new Routing(new HashMap<String, Map<String, Integer>>(){{
-            put("bla", new HashMap<String, Integer>(){{
-                put("my_index", 1);
-                put("my_index", 2);
+        CollectNode collectNode = new CollectNode("wrong", new Routing(new HashMap<String, Map<String, Set<Integer>>>(){{
+            put("bla", new HashMap<String, Set<Integer>>(){{
+                put("my_index", Sets.newHashSet(1));
+                put("my_index", Sets.newHashSet(1));
             }});
         }}));
-        operation.collect(TEST_NODE_ID, collectNode);
+        operation.collect(collectNode);
     }
 
     @Test
     public void testCollectNothing() {
         CollectNode collectNode = new CollectNode("nothing", testRouting);
-        Object[][] result = operation.collect(TEST_NODE_ID, collectNode);
+        Object[][] result = operation.collect(collectNode);
         assertThat(result, equalTo(new Object[0]));
     }
 
@@ -185,7 +261,7 @@ public class LocalDataCollectorTest {
                 )
         );
         collectNode.outputs(unknownReference);
-        Object[][] result = operation.collect(TEST_NODE_ID, collectNode);
+        Object[][] result = operation.collect(collectNode);
     }
 
     @Test
@@ -197,7 +273,7 @@ public class LocalDataCollectorTest {
                 Arrays.<Symbol>asList(truthReference)
         );
         collectNode.outputs(twoTimesTruthFunction, truthReference);
-        Object[][] result = operation.collect(TEST_NODE_ID, collectNode);
+        Object[][] result = operation.collect(collectNode);
         assertThat(result.length, equalTo(1));
         assertThat(result[0].length, equalTo(2));
         assertThat((Integer)result[0][0], equalTo(84));
@@ -221,7 +297,7 @@ public class LocalDataCollectorTest {
                 ImmutableList.<Symbol>of()
         );
         collectNode.outputs(unknownFunction);
-        operation.collect(TEST_NODE_ID, collectNode);
+        operation.collect(collectNode);
     }
 
     @Test
@@ -233,7 +309,7 @@ public class LocalDataCollectorTest {
                 new IntegerLiteral(1),
                 new DoubleLiteral(4.2)
         );
-        Object[][] result = operation.collect(TEST_NODE_ID, collectNode);
+        Object[][] result = operation.collect(collectNode);
         assertThat(result.length, equalTo(1));
         assertThat((String) result[0][0], equalTo("foobar"));
         assertThat((Boolean) result[0][1], equalTo(true));
@@ -252,7 +328,7 @@ public class LocalDataCollectorTest {
         );
         Reference testReference = new Reference(TestExpression.info);
         collectNode.outputs(testReference);
-        Object[][] result = operation.collect(TEST_NODE_ID, collectNode);
+        Object[][] result = operation.collect(collectNode);
         assertArrayEquals(new Object[0][], result);
     }
 
@@ -266,7 +342,7 @@ public class LocalDataCollectorTest {
         );
         Reference testReference = new Reference(TestExpression.info);
         collectNode.outputs(testReference);
-        Object[][] result = operation.collect(TEST_NODE_ID, collectNode);
+        Object[][] result = operation.collect(collectNode);
         assertThat(result.length, equalTo(1));
         assertThat((Integer)result[0][0], equalTo(42));
 
@@ -283,7 +359,65 @@ public class LocalDataCollectorTest {
         );
         Reference testReference = new Reference(TestExpression.info);
         collectNode.outputs(testReference);
-        Object[][] result = operation.collect(TEST_NODE_ID, collectNode);
+        Object[][] result = operation.collect(collectNode);
         assertArrayEquals(new Object[0][], result);
+    }
+
+    @Test
+    public void testCollectShardExpressions() {
+        Routing shardRouting = new Routing(new HashMap<String, Map<String, Set<Integer>>>(){{
+            put(TEST_NODE_ID, new HashMap<String, Set<Integer>>(){{
+                put(TEST_TABLE_NAME, ImmutableSet.<Integer>of(0, 1));
+            }});
+        }});
+        CollectNode collectNode = new CollectNode("shardCollect", shardRouting);
+        Reference testReference = new Reference(ShardIdExpression.info);
+        collectNode.outputs(testReference);
+        Object[][] result = operation.collect(collectNode);
+        assertThat(result.length, is(equalTo(2)));
+        assertThat((Integer)result[0][0], Matchers.isOneOf(0, 1));
+        assertThat((Integer)result[1][0], Matchers.isOneOf(0, 1));
+    }
+
+    @Test
+    public void testCollectShardExpressionsWhereShardIdIs0() {
+        Routing shardRouting = new Routing(new HashMap<String, Map<String, Set<Integer>>>(){{
+            put(TEST_NODE_ID, new HashMap<String, Set<Integer>>(){{
+                put(TEST_TABLE_NAME, ImmutableSet.<Integer>of(0, 1));
+            }});
+        }});
+        EqOperator op = (EqOperator)functions.get(new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)));
+
+        CollectNode collectNode = new CollectNode("shardCollect", shardRouting,
+                new Function(op.info(), Arrays.<Symbol>asList(new Reference(ShardIdExpression.info), new IntegerLiteral(0))));
+        Reference testReference = new Reference(ShardIdExpression.info);
+        collectNode.outputs(testReference);
+        Object[][] result = operation.collect(collectNode);
+        assertThat(result.length, is(equalTo(1)));
+        assertThat((Integer)result[0][0], is(0));
+    }
+
+    @Test
+    public void testCollectShardExpressionsLiteralsAndNodeExpressions() {
+        Routing shardRouting = new Routing(new HashMap<String, Map<String, Set<Integer>>>(){{
+            put(TEST_NODE_ID, new HashMap<String, Set<Integer>>(){{
+                put(TEST_TABLE_NAME, ImmutableSet.<Integer>of(0, 1));
+            }});
+        }});
+        CollectNode collectNode = new CollectNode("shardCollect", shardRouting);
+        Reference testShardReference = new Reference(ShardIdExpression.info);
+        Reference testNodeReference = new Reference(TestExpression.info);
+        collectNode.outputs(testShardReference, new BooleanLiteral(true), testNodeReference);
+        Object[][] result = operation.collect(collectNode);
+        assertThat(result.length, is(equalTo(2)));
+        assertThat(result[0].length, is(equalTo(3)));
+        assertThat((Integer)result[0][0], is(0));
+        assertThat((Boolean)result[0][1], is(true));
+        assertThat((Integer)result[0][2], is(42));
+
+        assertThat((Integer)result[1][0], is(1));
+        assertThat((Boolean)result[1][1], is(true));
+        assertThat((Integer)result[1][2], is(42));
+
     }
 }

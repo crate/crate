@@ -23,13 +23,9 @@ package org.cratedb.action.collect;
 
 import org.apache.lucene.index.AtomicReaderContext;
 import org.cratedb.Constants;
-import org.cratedb.sql.parser.parser.ValueNode;
-import org.elasticsearch.index.fielddata.BytesValues;
 import org.elasticsearch.index.fielddata.IndexFieldData;
-import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.mapper.FieldMapper;
 
-import java.io.IOException;
 
 public abstract class FieldCacheExpression<IFD extends IndexFieldData, ReturnType> extends
         ColumnReferenceCollectorExpression<ReturnType> {

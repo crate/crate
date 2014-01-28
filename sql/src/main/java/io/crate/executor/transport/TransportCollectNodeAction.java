@@ -89,7 +89,7 @@ public class TransportCollectNodeAction {
 
         // TODO:
         // node.routing  -> node operation / index operation / shard operation?
-        Object[][] result = localDataCollector.collect(clusterService.localNode().id(), node);
+        Object[][] result = localDataCollector.collect(node);
 
         NodeCollectResponse response = new NodeCollectResponse(extractStreamers(node.outputs()));
         response.rows(result);
