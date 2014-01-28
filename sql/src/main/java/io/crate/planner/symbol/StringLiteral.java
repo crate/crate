@@ -22,7 +22,6 @@
 package io.crate.planner.symbol;
 
 import com.google.common.collect.Ordering;
-import com.sun.istack.internal.NotNull;
 import org.elasticsearch.common.io.stream.StreamInput;
 
 import com.google.common.base.Preconditions;
