@@ -213,13 +213,13 @@ public class LocalDataCollectorTest {
     }
 
     @Test
-    public void testCollectExpressions() {
+    public void testCollectExpressions() throws Exception {
         CollectNode collectNode = new CollectNode("collect", testRouting);
         Reference testReference = new Reference(TestExpression.info);
 
         collectNode.outputs(testReference);
 
-        Object[][] result = operation.collect(collectNode);
+        Object[][] result = operation.collect(collectNode).get();
 
         assertThat(result.length, equalTo(1));
 
@@ -227,7 +227,7 @@ public class LocalDataCollectorTest {
     }
 
     @Test
-    public void testWrongRouting() {
+    public void testWrongRouting() throws Exception {
 
         expectedException.expect(ElasticSearchIllegalStateException.class);
         expectedException.expectMessage("unsupported routing");
@@ -242,14 +242,14 @@ public class LocalDataCollectorTest {
     }
 
     @Test
-    public void testCollectNothing() {
+    public void testCollectNothing() throws Exception {
         CollectNode collectNode = new CollectNode("nothing", testRouting);
-        Object[][] result = operation.collect(collectNode);
+        Object[][] result = operation.collect(collectNode).get();
         assertThat(result, equalTo(new Object[0]));
     }
 
     @Test
-    public void testCollectUnknownReference() {
+    public void testCollectUnknownReference() throws Exception {
 
         expectedException.expect(CrateException.class);
         expectedException.expectMessage("Unknown Reference");
@@ -266,11 +266,11 @@ public class LocalDataCollectorTest {
                 )
         );
         collectNode.outputs(unknownReference);
-        Object[][] result = operation.collect(collectNode);
+        operation.collect(collectNode);
     }
 
     @Test
-    public void testCollectFunction() {
+    public void testCollectFunction() throws Exception {
         CollectNode collectNode = new CollectNode("function", testRouting);
         final Reference truthReference = new Reference(TestExpression.info);
         Function twoTimesTruthFunction = new Function(
@@ -278,16 +278,17 @@ public class LocalDataCollectorTest {
                 Arrays.<Symbol>asList(truthReference)
         );
         collectNode.outputs(twoTimesTruthFunction, truthReference);
-        Object[][] result = operation.collect(collectNode);
+        Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, equalTo(1));
         assertThat(result[0].length, equalTo(2));
         assertThat((Integer)result[0][0], equalTo(84));
         assertThat((Integer)result[0][1], equalTo(42));
+
     }
 
 
     @Test
-    public void testUnknownFunction() {
+    public void testUnknownFunction() throws Exception {
 
         expectedException.expect(CrateException.class);
         expectedException.expectMessage("Unknown Function");
@@ -306,7 +307,7 @@ public class LocalDataCollectorTest {
     }
 
     @Test
-    public void testCollectLiterals() {
+    public void testCollectLiterals() throws Exception {
         CollectNode collectNode = new CollectNode("literals", testRouting);
         collectNode.outputs(
                 new StringLiteral("foobar"),
@@ -314,7 +315,7 @@ public class LocalDataCollectorTest {
                 new IntegerLiteral(1),
                 new DoubleLiteral(4.2)
         );
-        Object[][] result = operation.collect(collectNode);
+        Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, equalTo(1));
         assertThat((String) result[0][0], equalTo("foobar"));
         assertThat((Boolean) result[0][1], equalTo(true));
@@ -324,7 +325,7 @@ public class LocalDataCollectorTest {
     }
 
     @Test
-    public void testCollectWithFalseWhereClause() {
+    public void testCollectWithFalseWhereClause() throws Exception {
         CollectNode collectNode = new CollectNode("whereClause", testRouting,
                 new Function(
                         AndOperator.INFO,
@@ -333,12 +334,12 @@ public class LocalDataCollectorTest {
         );
         Reference testReference = new Reference(TestExpression.info);
         collectNode.outputs(testReference);
-        Object[][] result = operation.collect(collectNode);
+        Object[][] result = operation.collect(collectNode).get();
         assertArrayEquals(new Object[0][], result);
     }
 
     @Test
-    public void testCollectWithTrueWhereClause() {
+    public void testCollectWithTrueWhereClause() throws Exception {
         CollectNode collectNode = new CollectNode("whereClause", testRouting,
                 new Function(
                         AndOperator.INFO,
@@ -347,14 +348,14 @@ public class LocalDataCollectorTest {
         );
         Reference testReference = new Reference(TestExpression.info);
         collectNode.outputs(testReference);
-        Object[][] result = operation.collect(collectNode);
+        Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, equalTo(1));
         assertThat((Integer)result[0][0], equalTo(42));
 
     }
 
     @Test
-    public void testCollectWithNullWhereClause() {
+    public void testCollectWithNullWhereClause() throws Exception {
         EqOperator op = (EqOperator)functions.get(new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)));
         CollectNode collectNode = new CollectNode("whereClause", testRouting,
                 new Function(
@@ -364,12 +365,12 @@ public class LocalDataCollectorTest {
         );
         Reference testReference = new Reference(TestExpression.info);
         collectNode.outputs(testReference);
-        Object[][] result = operation.collect(collectNode);
+        Object[][] result = operation.collect(collectNode).get();
         assertArrayEquals(new Object[0][], result);
     }
 
     @Test
-    public void testCollectShardExpressions() {
+    public void testCollectShardExpressions() throws Exception {
         Routing shardRouting = new Routing(new HashMap<String, Map<String, Set<Integer>>>(){{
             put(TEST_NODE_ID, new HashMap<String, Set<Integer>>(){{
                 put(TEST_TABLE_NAME, ImmutableSet.<Integer>of(0, 1));
@@ -378,14 +379,15 @@ public class LocalDataCollectorTest {
         CollectNode collectNode = new CollectNode("shardCollect", shardRouting);
         Reference testReference = new Reference(ShardIdExpression.info);
         collectNode.outputs(testReference);
-        Object[][] result = operation.collect(collectNode);
+        Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(equalTo(2)));
         assertThat((Integer)result[0][0], Matchers.isOneOf(0, 1));
         assertThat((Integer)result[1][0], Matchers.isOneOf(0, 1));
+
     }
 
     @Test
-    public void testCollectShardExpressionsWhereShardIdIs0() {
+    public void testCollectShardExpressionsWhereShardIdIs0() throws Exception {
         Routing shardRouting = new Routing(new HashMap<String, Map<String, Set<Integer>>>(){{
             put(TEST_NODE_ID, new HashMap<String, Set<Integer>>(){{
                 put(TEST_TABLE_NAME, ImmutableSet.<Integer>of(0, 1));
@@ -397,13 +399,13 @@ public class LocalDataCollectorTest {
                 new Function(op.info(), Arrays.<Symbol>asList(new Reference(ShardIdExpression.info), new IntegerLiteral(0))));
         Reference testReference = new Reference(ShardIdExpression.info);
         collectNode.outputs(testReference);
-        Object[][] result = operation.collect(collectNode);
+        Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(equalTo(1)));
         assertThat((Integer)result[0][0], is(0));
     }
 
     @Test
-    public void testCollectShardExpressionsLiteralsAndNodeExpressions() {
+    public void testCollectShardExpressionsLiteralsAndNodeExpressions() throws Exception {
         Routing shardRouting = new Routing(new HashMap<String, Map<String, Set<Integer>>>(){{
             put(TEST_NODE_ID, new HashMap<String, Set<Integer>>(){{
                 put(TEST_TABLE_NAME, ImmutableSet.<Integer>of(0, 1));
@@ -413,7 +415,7 @@ public class LocalDataCollectorTest {
         Reference testShardReference = new Reference(ShardIdExpression.info);
         Reference testNodeReference = new Reference(TestExpression.info);
         collectNode.outputs(testShardReference, new BooleanLiteral(true), testNodeReference);
-        Object[][] result = operation.collect(collectNode);
+        Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(equalTo(2)));
         assertThat(result[0].length, is(equalTo(3)));
         assertThat((Integer)result[0][0], is(0));
