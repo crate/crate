@@ -82,7 +82,7 @@ repository config:
 
 ::
 
-    echo -e '[crate]\ngpcheck=0\nbaseurl=https://yum.crate.io/release/\nname=Crate' >> /etc/yum.repos.d/crate.repo
+    echo -e '[crate]\ngpgcheck=0\nbaseurl=https://yum.crate.io/release/\nname=Crate' >> /etc/yum.repos.d/crate.repo
 
 Then install Crate:
 
