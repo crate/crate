@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.lucene;
 
 import com.google.common.base.*;
 import com.google.common.collect.ImmutableMap;

@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.base.Optional;
+import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.*;
 import io.crate.operator.operator.*;
 import io.crate.planner.RowGranularity;
