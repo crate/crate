@@ -35,7 +35,6 @@ import org.apache.lucene.util.Version;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
-import org.elasticsearch.index.mapper.core.ShortFieldMapper;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -65,10 +64,11 @@ public class LuceneQueryBuilderTest {
             new ReferenceIdent(characters, "short_ref"), RowGranularity.DOC, DataType.SHORT));
     Reference isParanoid = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "isParanoid"), RowGranularity.DOC, DataType.BOOLEAN));
+    Reference extrafield = new Reference(new ReferenceInfo(
+            new ReferenceIdent(characters, "extrafield"), RowGranularity.DOC, DataType.STRING));
 
     private IndexSearcher indexSeacher;
     private Sort sort;
-    private RAMDirectory indexDirectory;
 
     @Before
     public void setUp() throws Exception {
@@ -76,7 +76,7 @@ public class LuceneQueryBuilderTest {
                 .add(new OperatorModule())
                 .createInjector().getInstance(Functions.class);
 
-        indexDirectory = new RAMDirectory();
+        RAMDirectory indexDirectory = new RAMDirectory();
         IndexWriterConfig indexWriterConfig = new IndexWriterConfig(Version.LUCENE_46, null);
         IndexWriter indexWriter = new IndexWriter(indexDirectory, indexWriterConfig);
         SearcherFactory searcherFactory = new SearcherFactory();
@@ -92,7 +92,6 @@ public class LuceneQueryBuilderTest {
         StringField isParanoid = new StringField("isParanoid", "", Field.Store.YES);
 
 
-        Document doc = new Document();
 
         name.setStringValue("Marvin");
         age.setIntValue(84);
@@ -102,6 +101,7 @@ public class LuceneQueryBuilderTest {
         shortField.setIntValue(2);
         isParanoid.setStringValue("T");
 
+        Document doc = new Document();
         doc.add(name);
         doc.add(age);
         doc.add(weight);
@@ -119,6 +119,7 @@ public class LuceneQueryBuilderTest {
         shortField.setIntValue(3);
         isParanoid.setStringValue("F");
 
+        doc = new Document();
         doc.add(name);
         doc.add(age);
         doc.add(weight);
@@ -136,6 +137,7 @@ public class LuceneQueryBuilderTest {
         shortField.setIntValue(4);
         isParanoid.setStringValue("F");
 
+        doc = new Document();
         doc.add(name);
         doc.add(age);
         doc.add(weight);
@@ -143,6 +145,11 @@ public class LuceneQueryBuilderTest {
         doc.add(longField);
         doc.add(shortField);
         doc.add(isParanoid);
+        indexWriter.addDocument(doc);
+
+        StringField extrafield = new StringField("extrafield", "", Field.Store.YES);
+        doc = new Document();
+        doc.add(extrafield);
         indexWriter.addDocument(doc);
 
         searcherManager.maybeRefresh();
@@ -229,7 +236,7 @@ public class LuceneQueryBuilderTest {
 
         assertThat(query, instanceOf(BooleanQuery.class));
         TopFieldDocs search = indexSeacher.search(query, 5, sort);
-        assertThat(search.totalHits, is(2));
+        assertThat(search.totalHits, is(3));
     }
 
     @Test
@@ -327,6 +334,24 @@ public class LuceneQueryBuilderTest {
 
         assertThat(query, instanceOf(BooleanQuery.class));
         TopFieldDocs docs = indexSeacher.search(query, 5, sort);
-        assertThat(docs.totalHits, is(2));
+        assertThat(docs.totalHits, is(3));
+    }
+
+    @Test
+    public void testWhereReferenceIsNull() throws Exception {
+        FunctionImplementation isNullImpl = functions.get(
+                new FunctionIdent(IsNullOperator.NAME, Arrays.asList(extrafield.valueType())));
+
+        Function isNull = new Function(isNullImpl.info(), Arrays.<Symbol>asList(extrafield));
+        Query query = builder.convert(isNull);
+
+        TopFieldDocs docs = indexSeacher.search(query, 5, sort);
+        assertThat(docs.totalHits, is(3));
+
+
+        isNull = new Function(isNullImpl.info(), Arrays.<Symbol>asList(name_ref));
+        query = builder.convert(isNull);
+        docs = indexSeacher.search(query, 5, sort);
+        assertThat(docs.totalHits, is(1));
     }
 }

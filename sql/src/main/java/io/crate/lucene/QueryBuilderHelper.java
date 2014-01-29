@@ -45,179 +45,100 @@ public abstract class QueryBuilderHelper {
         throw new UnsupportedOperationException(String.format("type %s not supported", dataType));
     }
 
-    public abstract Query eq(String columnName, Object value);
-    public abstract Query lt(String columnName, Object value);
-    public abstract Query lte(String columnName, Object value);
-    public abstract Query gt(String columnName, Object value);
-    public abstract Query gte(String columnName, Object value);
+    public abstract Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper);
+    public abstract Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper);
+
+    public Query eq(String columnName, Object value) {
+        return rangeQuery(columnName, value, value, true, true);
+    }
+
     public Query like(String columnName, Object value) {
         return eq(columnName, value);
     }
 
     static final class BooleanQueryBuilder extends QueryBuilderHelper {
         @Override
+        public Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
+            throw new UnsupportedOperationException("This type of comparison is not supported on boolean fields");
+        }
+
+        @Override
+        public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
+            throw new UnsupportedOperationException("This type of comparison is not supported on boolean fields");
+        }
+
+        @Override
         public Query eq(String columnName, Object value) {
             return new TermQuery(new Term(columnName, value == true ? "T" : "F"));
-        }
-
-        @Override
-        public Query lt(String columnName, Object value) {
-            throw new UnsupportedOperationException("\"<\" operator doesn't work on boolean fields");
-        }
-
-        @Override
-        public Query lte(String columnName, Object value) {
-            throw new UnsupportedOperationException("\"<=\" operator doesn't work on boolean fields");
-        }
-
-        @Override
-        public Query gt(String columnName, Object value) {
-            throw new UnsupportedOperationException("\">\" operator doesn't work on boolean fields");
-        }
-
-        @Override
-        public Query gte(String columnName, Object value) {
-            throw new UnsupportedOperationException("\">=\" operator doesn't work on boolean fields");
         }
     }
 
     static final class FloatQueryBuilder extends QueryBuilderHelper {
 
         @Override
-        public Query eq(String columnName, Object value) {
-            return NumericRangeQuery.newFloatRange(columnName, (Float)value, (Float)value, true, true);
+        public Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
+            return NumericRangeFilter.newFloatRange(columnName, (Float)from, (Float)to, includeLower, includeUpper);
         }
 
         @Override
-        public Query lt(String columnName, Object value) {
-            return NumericRangeQuery.newFloatRange(columnName, null, (Float)value, false, false);
-        }
-
-        @Override
-        public Query lte(String columnName, Object value) {
-            return NumericRangeQuery.newFloatRange(columnName, null, (Float)value, true, false);
-        }
-
-        @Override
-        public Query gt(String columnName, Object value) {
-            return NumericRangeQuery.newFloatRange(columnName, (Float)value, null, false, false);
-        }
-
-        @Override
-        public Query gte(String columnName, Object value) {
-            return NumericRangeQuery.newFloatRange(columnName, (Float)value, null, true, false);
+        public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
+            return NumericRangeQuery.newFloatRange(columnName, (Float)from, (Float)to, includeLower, includeUpper);
         }
     }
 
     static final class DoubleQueryBuilder extends QueryBuilderHelper {
 
         @Override
-        public Query eq(String columnName, Object value) {
-            return NumericRangeQuery.newDoubleRange(columnName, (Double) value, (Double) value, true, true);
+        public Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
+            return NumericRangeFilter.newDoubleRange(columnName, (Double) from, (Double) to, includeLower, includeUpper);
         }
 
         @Override
-        public Query lt(String columnName, Object value) {
-            return NumericRangeQuery.newDoubleRange(columnName, null, (Double)value, false, false);
-        }
-
-        @Override
-        public Query lte(String columnName, Object value) {
-            return NumericRangeQuery.newDoubleRange(columnName, null, (Double)value, true, false);
-        }
-
-        @Override
-        public Query gt(String columnName, Object value) {
-            return NumericRangeQuery.newDoubleRange(columnName, (Double)value, null, false, false);
-        }
-
-        @Override
-        public Query gte(String columnName, Object value) {
-            return NumericRangeQuery.newDoubleRange(columnName, (Double)value, null, true, false);
+        public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
+            return NumericRangeQuery.newDoubleRange(columnName, (Double)from, (Double)to, includeLower, includeUpper);
         }
     }
 
     static final class LongQueryBuilder extends QueryBuilderHelper {
 
         @Override
-        public Query eq(String columnName, Object value) {
-            return NumericRangeQuery.newLongRange(columnName, (Long)value, (Long)value, true, true);
+        public Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
+            return NumericRangeFilter.newLongRange(columnName, (Long) from, (Long) to, includeLower, includeUpper);
         }
 
         @Override
-        public Query lt(String columnName, Object value) {
-            return NumericRangeQuery.newLongRange(columnName, null, (Long)value, false, false);
-        }
-
-        @Override
-        public Query lte(String columnName, Object value) {
-            return NumericRangeQuery.newLongRange(columnName, null, (Long)value, false, true);
-        }
-
-        @Override
-        public Query gt(String columnName, Object value) {
-            return NumericRangeQuery.newLongRange(columnName, (Long)value, null, false, false);
-        }
-
-        @Override
-        public Query gte(String columnName, Object value) {
-            return NumericRangeQuery.newLongRange(columnName, (Long)value, null, true, false);
+        public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
+            return NumericRangeQuery.newLongRange(columnName, (Long)from, (Long)to, includeLower, includeUpper);
         }
     }
 
     static final class IntegerQueryBuilder extends QueryBuilderHelper {
-
         @Override
-        public Query eq(String columnName, Object value) {
-            return NumericRangeQuery.newIntRange(columnName, (Integer)value, (Integer)value, true, true);
+        public Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
+            return NumericRangeFilter.newIntRange(columnName, (Integer) from, (Integer) to, includeLower, includeUpper);
         }
 
         @Override
-        public Query lt(String columnName, Object value) {
-            return NumericRangeQuery.newIntRange(columnName, null, (Integer) value, false, false);
-        }
-
-        @Override
-        public Query lte(String columnName, Object value) {
-            return NumericRangeQuery.newIntRange(columnName, null, (Integer) value, false, true);
-        }
-
-        @Override
-        public Query gt(String columnName, Object value) {
-            return NumericRangeQuery.newIntRange(columnName, (Integer)value, null, false, false);
-        }
-
-        @Override
-        public Query gte(String columnName, Object value) {
-            return NumericRangeQuery.newIntRange(columnName, (Integer)value, null, true, false);
+        public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
+            return NumericRangeQuery.newIntRange(columnName, (Integer) from, (Integer) to, includeLower, includeUpper);
         }
     }
 
     static final class StringQueryBuilder extends QueryBuilderHelper {
 
         @Override
+        public Filter rangeFilter(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
+            return new TermRangeFilter(columnName, BytesRefs.toBytesRef(from), BytesRefs.toBytesRef(to), includeLower, includeUpper);
+        }
+
+        @Override
+        public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
+            return new TermRangeQuery(columnName, BytesRefs.toBytesRef(from), BytesRefs.toBytesRef(to), includeLower, includeUpper);
+        }
+
+        @Override
         public Query eq(String columnName, Object value) {
             return new TermQuery(new Term(columnName, (String)value));
-        }
-
-        @Override
-        public Query lt(String columnName, Object value) {
-            return new TermRangeQuery(columnName, null, BytesRefs.toBytesRef(value), false, false);
-        }
-
-        @Override
-        public Query lte(String columnName, Object value) {
-            return new TermRangeQuery(columnName, null, BytesRefs.toBytesRef(value), false, true);
-        }
-
-        @Override
-        public Query gt(String columnName, Object value) {
-            return new TermRangeQuery(columnName, BytesRefs.toBytesRef(value), null, false, false);
-        }
-
-        @Override
-        public Query gte(String columnName, Object value) {
-            return new TermRangeQuery(columnName, BytesRefs.toBytesRef(value), null, true, false);
         }
 
         @Override
