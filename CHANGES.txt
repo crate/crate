@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2014/01/29 0.22.2
+=================
+
  - fix: `_search_into` now works again with `targetNodes`
 
  - updated README.rst
