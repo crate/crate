@@ -24,14 +24,13 @@ package io.crate.operator.operator;
 import io.crate.metadata.FunctionInfo;
 import org.cratedb.DataType;
 
+public class LikeOperator extends CmpOperator {
 
-public class EqOperator extends CmpOperator {
-
-    public static final String NAME = "op_eq";
+    public static final String NAME = "op_like";
 
     public static void register(OperatorModule module) {
-        for (DataType type : DataType.ALL_TYPES) {
-            module.registerOperatorFunction(new EqOperator(generateInfo(NAME, type)));
+        for (DataType type : DataType.PRIMITIVE_TYPES) {
+            module.registerOperatorFunction(new LikeOperator(generateInfo(NAME, type)));
         }
     }
 
@@ -40,7 +39,7 @@ public class EqOperator extends CmpOperator {
         return comparisonResult == 0;
     }
 
-    EqOperator(FunctionInfo info) {
+    LikeOperator(FunctionInfo info) {
         super(info);
     }
 }

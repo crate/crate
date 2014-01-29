@@ -42,7 +42,7 @@ public abstract class CmpOperator extends Operator {
             return Null.INSTANCE;
         }
 
-        if (left instanceof Literal && right instanceof Literal) {
+        if (left.symbolType().isLiteral() && right.symbolType().isLiteral()) {
 
             // must be true due to the function registration (argument DataType signature)
             assert left.getClass() == right.getClass();
