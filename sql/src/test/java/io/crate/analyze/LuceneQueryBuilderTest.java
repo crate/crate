@@ -313,4 +313,20 @@ public class LuceneQueryBuilderTest {
         TopFieldDocs docs = indexSeacher.search(query, 5, sort);
         assertThat(docs.totalHits, is(1));
     }
+
+    @Test
+    public void testWhereNotReferenceLikeString() throws Exception {
+        FunctionImplementation notOp = functions.get(new FunctionIdent(NotOperator.NAME, Arrays.asList(DataType.BOOLEAN)));
+        FunctionImplementation likeOp = functions.get(new FunctionIdent(LikeOperator.NAME, typeX2(name_ref.valueType())));
+
+        Function likeClause = new Function(likeOp.info(),
+                Arrays.<Symbol>asList(name_ref, new StringLiteral("%thu%")));
+        Function whereClause = new Function(notOp.info(), Arrays.<Symbol>asList(likeClause));
+
+        Query query = builder.convert(whereClause);
+
+        assertThat(query, instanceOf(BooleanQuery.class));
+        TopFieldDocs docs = indexSeacher.search(query, 5, sort);
+        assertThat(docs.totalHits, is(2));
+    }
 }
