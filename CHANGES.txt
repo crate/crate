@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - fix: `_search_into` now works again with `targetNodes`
+
  - updated README.rst
 
  - Moved 'create_tag.sh' to 'devtools'.

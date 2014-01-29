@@ -45,9 +45,11 @@ public class BlobPlugin extends AbstractPlugin {
     @Override
     public Collection<Class<? extends Module>> modules() {
         Collection<Class<? extends Module>> modules = Lists.newArrayList();
-        modules.add(BlobModule.class);
-        modules.add(BlobIndicesModule.class);
-        modules.add(BlobStatsModule.class);
+        if (!settings.getAsBoolean("node.client", false)) {
+            modules.add(BlobModule.class);
+            modules.add(BlobIndicesModule.class);
+            modules.add(BlobStatsModule.class);
+        }
         return modules;
     }
 
@@ -80,5 +82,4 @@ public class BlobPlugin extends AbstractPlugin {
         modules.add(BlobShardModule.class);
         return modules;
     }
-
 }
