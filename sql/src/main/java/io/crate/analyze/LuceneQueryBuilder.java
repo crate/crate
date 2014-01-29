@@ -75,6 +75,18 @@ public class LuceneQueryBuilder {
             }
         }
 
+        class LikeQuery extends CmpQuery {
+
+            @Override
+            public Query apply(Function input) {
+                Tuple<Reference, Literal> tuple = super.prepare(input);
+
+                String columnName = tuple.v1().info().ident().fqDottedColumnName();
+                QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
+                return builder.like(columnName, tuple.v2().value());
+            }
+        }
+
         class EqQuery extends CmpQuery {
             @Override
             public Query apply(Function input) {
@@ -179,6 +191,7 @@ public class LuceneQueryBuilder {
                     .put(LteOperator.NAME, new LteQuery())
                     .put(GteOperator.NAME, new GteQuery())
                     .put(GtOperator.NAME, new GtQuery())
+                    .put(LikeOperator.NAME, new LikeQuery())
                 .build();
 
         @Override

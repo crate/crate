@@ -296,10 +296,21 @@ public class LuceneQueryBuilderTest {
         Query query = builder.convert(whereClause);
         assertThat(query, instanceOf(TermQuery.class));
 
-        TopFieldDocs search = indexSeacher.search(query, 1, sort);
+        TopFieldDocs search = indexSeacher.search(query, 5, sort);
         assertThat(search.totalHits, is(1));
 
     }
 
+    @Test
+    public void testWhereReferenceLikeString() throws Exception {
+        FunctionImplementation impl = functions.get(new FunctionIdent(LikeOperator.NAME, typeX2(name_ref.valueType())));
+        Function whereClause = new Function(impl.info(),
+                Arrays.<Symbol>asList(name_ref, new StringLiteral("%thu%")));
 
+        Query query = builder.convert(whereClause);
+
+        assertThat(query, instanceOf(WildcardQuery.class));
+        TopFieldDocs docs = indexSeacher.search(query, 5, sort);
+        assertThat(docs.totalHits, is(1));
+    }
 }

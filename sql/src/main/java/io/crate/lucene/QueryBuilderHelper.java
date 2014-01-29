@@ -1,10 +1,7 @@
 package io.crate.lucene;
 
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.NumericRangeQuery;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TermRangeQuery;
+import org.apache.lucene.search.*;
 import org.cratedb.DataType;
 import org.elasticsearch.common.lucene.BytesRefs;
 
@@ -53,6 +50,9 @@ public abstract class QueryBuilderHelper {
     public abstract Query lte(String columnName, Object value);
     public abstract Query gt(String columnName, Object value);
     public abstract Query gte(String columnName, Object value);
+    public Query like(String columnName, Object value) {
+        return eq(columnName, value);
+    }
 
     static final class BooleanQueryBuilder extends QueryBuilderHelper {
         @Override
@@ -218,6 +218,24 @@ public abstract class QueryBuilderHelper {
         @Override
         public Query gte(String columnName, Object value) {
             return new TermRangeQuery(columnName, BytesRefs.toBytesRef(value), null, true, false);
+        }
+
+        @Override
+        public Query like(String columnName, Object value) {
+            String like = (String)value;
+
+            // lucene uses * and ? as wildcard characters
+            // but via SQL they are used as % and _
+            // here they are converted back.
+            like = like.replaceAll("(?<!\\\\)\\*", "\\\\*");
+            like = like.replaceAll("(?<!\\\\)%", "*");
+            like = like.replaceAll("\\\\%", "%");
+
+            like = like.replaceAll("(?<!\\\\)\\?", "\\\\?");
+            like = like.replaceAll("(?<!\\\\)_", "?");
+            like = like.replaceAll("\\\\_", "_");
+
+            return new WildcardQuery(new Term(columnName, like));
         }
     }
 }
