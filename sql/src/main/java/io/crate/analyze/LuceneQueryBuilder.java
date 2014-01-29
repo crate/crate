@@ -30,6 +30,7 @@ import io.crate.planner.symbol.Function;
 import org.apache.lucene.search.*;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
+import org.elasticsearch.common.lucene.search.NotFilter;
 
 import javax.annotation.Nullable;
 
@@ -102,6 +103,25 @@ public class LuceneQueryBuilder {
             }
         }
 
+        class IsNullQuery extends FunctionToQuery {
+
+            @Override
+            public Query apply(Function input) {
+                Preconditions.checkNotNull(input);
+                Preconditions.checkArgument(input.arguments().size() == 1);
+                Symbol arg = input.arguments().get(0);
+                Preconditions.checkArgument(arg.symbolType() == SymbolType.REFERENCE);
+
+                Reference reference = (Reference)arg;
+
+                String columnName = reference.info().ident().fqDottedColumnName();
+                QueryBuilderHelper builderHelper = QueryBuilderHelper.forType(reference.valueType());
+                return new FilteredQuery(
+                        new MatchAllDocsQuery(),
+                        new NotFilter(builderHelper.rangeFilter(columnName, null, null, true, true)));
+            }
+        }
+
         class EqQuery extends CmpQuery {
             @Override
             public Query apply(Function input) {
@@ -158,7 +178,7 @@ public class LuceneQueryBuilder {
 
                 String columnName = tuple.v1().info().ident().fqDottedColumnName();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
-                return builder.lt(columnName, tuple.v2().value());
+                return builder.rangeQuery(columnName, null, tuple.v2().value(), false, false);
             }
         }
 
@@ -170,9 +190,10 @@ public class LuceneQueryBuilder {
 
                 String columnName = tuple.v1().info().ident().fqDottedColumnName();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
-                return builder.lte(columnName, tuple.v2().value());
+                return builder.rangeQuery(columnName, null, tuple.v2().value(), false, true);
             }
         }
+
         class GtQuery extends CmpQuery {
 
             @Override
@@ -181,9 +202,10 @@ public class LuceneQueryBuilder {
 
                 String columnName = tuple.v1().info().ident().fqDottedColumnName();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
-                return builder.gt(columnName, tuple.v2().value());
+                return builder.rangeQuery(columnName, tuple.v2().value(), null, false, false);
             }
         }
+
         class GteQuery extends CmpQuery {
 
             @Override
@@ -192,7 +214,7 @@ public class LuceneQueryBuilder {
 
                 String columnName = tuple.v1().info().ident().fqDottedColumnName();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
-                return builder.gte(columnName, tuple.v2().value());
+                return builder.rangeQuery(columnName, tuple.v2().value(), null, true, false);
             }
         }
 
@@ -208,6 +230,7 @@ public class LuceneQueryBuilder {
                     .put(GtOperator.NAME, new GtQuery())
                     .put(LikeOperator.NAME, new LikeQuery())
                     .put(NotOperator.NAME, new NotQuery())
+                    .put(IsNullOperator.NAME, new IsNullQuery())
                 .build();
 
         @Override
