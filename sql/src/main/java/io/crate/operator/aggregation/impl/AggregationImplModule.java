@@ -44,5 +44,6 @@ public class AggregationImplModule extends AbstractModule {
         AnyAggregation.register(this);
         SumAggregation.register(this);
         CountAggregation.register(this);
+        CountDistinctAggregation.register(this);
     }
 }

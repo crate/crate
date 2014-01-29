@@ -36,6 +36,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -71,18 +72,25 @@ public abstract class AggregationTest {
 
 
     public Object[][] executeAggregation(String name, DataType dataType, Object[][] data) throws Exception {
+        return executeAggregation(name, dataType, data, false);
+    }
+
+    public Object[][] executeAggregation(String name, DataType dataType, Object[][] data, boolean distinct) throws Exception {
 
         FunctionIdent fi;
         InputCollectExpression[] inputs;
         if (dataType != null) {
-            fi = new FunctionIdent(name, ImmutableList.of(dataType));
+            fi = new FunctionIdent(name, ImmutableList.of(dataType), distinct);
             inputs = new InputCollectExpression[]{new InputCollectExpression(0)};
         } else {
-            fi = new FunctionIdent(name, ImmutableList.<DataType>of());
+            fi = new FunctionIdent(name, ImmutableList.<DataType>of(), distinct);
             inputs = new InputCollectExpression[0];
         }
         AggregationFunction impl = (AggregationFunction) functions.get(fi);
         AggregationState state = impl.newState();
+        if (distinct) {
+            state.setSeenValuesRef(new HashSet<>());
+        }
 
         for (Object[] row : data) {
             for (InputCollectExpression i : inputs) {

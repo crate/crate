@@ -29,6 +29,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.sys.SystemReferences;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.aggregation.impl.AverageAggregation;
+import io.crate.operator.aggregation.impl.CountDistinctAggregation;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
@@ -200,6 +201,19 @@ public class AnalyzerTest {
         assertTrue(col1.info().isAggregate());
         assertEquals(AverageAggregation.NAME, col1.info().ident().name());
 
+    }
+
+    @Test
+    public void testAggregationDistinctSelect() throws Exception {
+        Statement statement = SqlParser.createStatement("select count(distinct load['5']) from sys.nodes");
+        Analysis analysis = analyzer.analyze(statement);
+        assertTrue(analysis.routing().hasLocations());
+        assertFalse(analysis.hasGroupBy());
+        assertEquals(1, analysis.outputSymbols().size());
+        Function col1 = (Function) analysis.outputSymbols().get(0);
+        assertTrue(col1.info().isAggregate());
+        assertEquals(CountDistinctAggregation.NAME, col1.info().ident().name());
+        assertEquals(true, col1.info().ident().isDistinct());
     }
 
 
