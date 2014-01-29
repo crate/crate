@@ -37,14 +37,20 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
 
     private String name;
     private List<DataType> argumentTypes;
+    private boolean distinct;
 
     public FunctionIdent() {
 
     }
 
     public FunctionIdent(String name, List<DataType> argumentTypes) {
+        this(name, argumentTypes, false);
+    }
+
+    public FunctionIdent(String name, List<DataType> argumentTypes, boolean distinct) {
         this.name = name;
         this.argumentTypes = argumentTypes;
+        this.distinct = distinct;
     }
 
     public List<DataType> argumentTypes() {
@@ -53,6 +59,10 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
 
     public String name() {
         return name;
+    }
+
+    public boolean isDistinct() {
+        return distinct;
     }
 
     @Override
@@ -66,12 +76,13 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
 
         FunctionIdent o = (FunctionIdent) obj;
         return Objects.equal(name, o.name) &&
-                Objects.equal(argumentTypes, o.argumentTypes);
+                Objects.equal(argumentTypes, o.argumentTypes) &&
+                distinct == o.distinct;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(name, argumentTypes);
+        return Objects.hashCode(name, argumentTypes, distinct);
     }
 
     @Override
@@ -79,6 +90,7 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
         return Objects.toStringHelper(this)
                 .add("name", name)
                 .add("argumentTypes", argumentTypes)
+                .add("distinct", distinct)
                 .toString();
     }
 
@@ -87,6 +99,7 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
         return ComparisonChain.start()
                 .compare(name, o.name)
                 .compare(argumentTypes, o.argumentTypes, Ordering.<DataType>natural().lexicographical())
+                .compareFalseFirst(distinct, o.distinct)
                 .result();
     }
 
@@ -100,6 +113,8 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
         for (int i = 0; i < numTypes; i++) {
             argumentTypes.add(DataType.fromStream(in));
         }
+
+        distinct = in.readBoolean();
     }
 
     @Override
@@ -110,5 +125,7 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
         for (DataType argumentType : argumentTypes) {
             DataType.toStream(argumentType, out);
         }
+
+        out.writeBoolean(distinct);
     }
 }

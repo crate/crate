@@ -114,7 +114,7 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
             arguments.add(vs);
             argumentTypes.add(vs.valueType());
         }
-        FunctionIdent ident = new FunctionIdent(node.getName().toString(), argumentTypes);
+        FunctionIdent ident = new FunctionIdent(node.getName().toString(), argumentTypes, node.isDistinct());
         FunctionInfo functionInfo = context.getFunctionInfo(ident);
 
         return context.allocateFunction(functionInfo, arguments);
