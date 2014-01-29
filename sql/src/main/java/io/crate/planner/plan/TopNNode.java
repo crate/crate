@@ -22,6 +22,7 @@
 package io.crate.planner.plan;
 
 import com.google.common.base.Preconditions;
+import org.cratedb.service.SQLParseService;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -29,11 +30,16 @@ import java.io.IOException;
 
 public class TopNNode extends PlanNode {
 
-
+    public static int NO_LIMIT = -1;
+    public static int NO_OFFSET  = 0;
     int[] orderBy;
     boolean[] reverseFlags;
-    private int limit;
-    private int offset;
+    private int limit = NO_LIMIT;
+    private int offset = NO_OFFSET;
+
+    public TopNNode() {
+        super();
+    }
 
     public TopNNode(String id) {
         super(id);
@@ -56,8 +62,16 @@ public class TopNNode extends PlanNode {
         return orderBy != null && orderBy.length > 0;
     }
 
+    public boolean isLimited() {
+        return this.limit != NO_LIMIT;
+    }
+
+    public boolean hasOffset() {
+        return this.offset != NO_OFFSET;
+    }
+
     public int limit() {
-        return limit;
+        return limit == NO_LIMIT ? SQLParseService.DEFAULT_SELECT_LIMIT : limit;
     }
 
     public int offset() {

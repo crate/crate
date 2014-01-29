@@ -32,6 +32,9 @@ import io.crate.metadata.Routing;
 import io.crate.operator.Input;
 import io.crate.operator.RowCollector;
 import io.crate.operator.aggregation.CollectExpression;
+import io.crate.operator.collector.PassThroughExpression;
+import io.crate.operator.collector.SimpleCollector;
+import io.crate.operator.collector.SortingRangeCollector;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.operator.operations.LenientImplementationSymbolVisitor;
 import io.crate.planner.RowGranularity;
@@ -115,7 +118,6 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
             return handleNodeCollect(collectNode);
         } else {
             // shard or doc level
-            // assume shard level
             return handleShardCollect(collectNode);
         }
     }
@@ -128,7 +130,9 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
     private ListenableFuture<Object[][]> handleNodeCollect(CollectNode collectNode) {
         SettableFuture<Object[][]> result = SettableFuture.create();
         Optional<Function> whereClause = collectNode.whereClause();
-        if (whereClause.isPresent() && NormalizationHelper.evaluatesToFalse(whereClause.get(), this.normalizer)) {
+        if ((whereClause.isPresent() && NormalizationHelper.evaluatesToFalse(whereClause.get(), this.normalizer))
+            || collectNode.offset() >= 1
+            || collectNode.limit() == 0) {
             result.set(EMPTY_RESULT);
             return result;
         }
@@ -180,7 +184,8 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
         String localNodeId = clusterService.localNode().id();
 
         Optional<Function> whereClause = collectNode.whereClause();
-        if (whereClause.isPresent() && NormalizationHelper.evaluatesToFalse(whereClause.get(), this.normalizer)) {
+        if (whereClause.isPresent() && NormalizationHelper.evaluatesToFalse(whereClause.get(), this.normalizer)
+            || collectNode.limit() == 0) {
             result.set(EMPTY_RESULT);
             return result;
         }
@@ -209,9 +214,23 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
                 break;
         }
 
+        // get final collector to handle collected rows (e.g. for sorting and stuff)
+        final CollectExpression<Object[]> resultRowExpression = new PassThroughExpression();
+        final RowCollector<Object[][]> resultCollector;
+        if (collectNode.isOrdered()||collectNode.isLimited()||collectNode.hasOffset()) {
+            resultCollector = new SortingRangeCollector(
+                    collectNode.offset(),
+                    collectNode.limit() < numShards ? collectNode.limit() : numShards, // maximum numShards rows expected
+                    collectNode.orderBy(),
+                    collectNode.reverseFlags(),
+                    resultRowExpression
+            );
+        } else {
+            resultCollector = new SimpleCollector(resultRowExpression, numShards);
+        }
+
         // get shardCollectors from single shards
         Map<String, Set<Integer>> shardIdMap = collectNode.routing().locations().get(localNodeId);
-        final List<Object[]> results = new ArrayList<>();
 
         for (Map.Entry<String, Set<Integer>> entry : shardIdMap.entrySet()) {
             IndexService indexService;
@@ -242,6 +261,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
         }
 
         // startCollect
+        resultCollector.startCollect();
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.startCollect();
         }
@@ -281,7 +301,9 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
                             for (int i = 0, length = inputs.length; i < length; i++) {
                                 processedShardResult[i] = inputs[i].value();
                             }
-                            results.add(processedShardResult);
+                            resultRowExpression.setNextRow(processedShardResult);
+                            resultCollector.processRow();
+
                         }
                     } catch (InterruptedException e) {
                         logger.debug("interrupted while collecting from shards", e);
@@ -290,7 +312,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
                 if (shardsToGo>0) {
                     result.setException(new TimeoutException("Collect operation timed out."));
                 } else {
-                    result.set(results.toArray(new Object[results.size()][]));
+                    result.set(resultCollector.finishCollect());
                 }
             }
         });
