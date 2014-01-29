@@ -28,9 +28,8 @@ import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * A collector which returns a range given range of a collected inputs
+ * A collector which returns a given range of collected inputs
  */
-
 public class SimpleRangeCollector implements RowCollector<Object[][]> {
 
     private final AtomicInteger collected = new AtomicInteger();

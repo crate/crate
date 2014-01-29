@@ -30,7 +30,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import javax.annotation.Nullable;
 import java.io.IOException;
 
-public class CollectNode extends PlanNode {
+public class CollectNode extends TopNNode {
 
     private Routing routing;
     private Optional<Function> whereClause;
@@ -44,7 +44,21 @@ public class CollectNode extends PlanNode {
     }
 
     public CollectNode(String id, Routing routing, @Nullable Function whereClause) {
-        super(id);
+        super(id, NO_LIMIT, NO_OFFSET, new int[0], new boolean[0]);
+        this.routing = routing;
+        this.whereClause = Optional.fromNullable(whereClause);
+    }
+
+    public CollectNode(String id, Routing routing, @Nullable Function whereClause,
+                       int limit, int offset) {
+        super(id, limit, offset, new int[0], new boolean[0]);
+        this.routing = routing;
+        this.whereClause = Optional.fromNullable(whereClause);
+    }
+
+    public CollectNode(String id, Routing routing, @Nullable Function whereClause,
+                       int limit, int offset, int[] orderByIndices, boolean[] reverseFlags) {
+        super(id, limit, offset, orderByIndices, reverseFlags);
         this.routing = routing;
         this.whereClause = Optional.fromNullable(whereClause);
     }

@@ -21,23 +21,43 @@
 
 package io.crate.operator.collector;
 
-import io.crate.operator.aggregation.CollectExpression;
+import io.crate.operator.Input;
+import io.crate.operator.RowCollector;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * A collector expression which simply returns the whole row
+ * collect all rows it receives
  */
-public class PassThroughExpression extends CollectExpression<Object[]> {
+public class SimpleCollector implements RowCollector<Object[][]> {
 
-    private Object[] value;
+    private final Input<Object[]> rowInput;
+    private final List<Object[]> rows;
+
+    public SimpleCollector(Input<Object[]> rowInput) {
+        this.rowInput = rowInput;
+        rows = new ArrayList<>();
+    }
+
+    public SimpleCollector(Input<Object[]> rowInput, int capacity) {
+        this.rowInput = rowInput;
+        rows = new ArrayList<>(capacity);
+    }
 
     @Override
-    public boolean setNextRow(Object... args) {
-        this.value = args;
+    public boolean startCollect() {
         return true;
     }
 
     @Override
-    public Object[] value() {
-        return value;
+    public boolean processRow() {
+        rows.add(rowInput.value());
+        return true;
+    }
+
+    @Override
+    public Object[][] finishCollect() {
+        return rows.toArray(new Object[rows.size()][]);
     }
 }
