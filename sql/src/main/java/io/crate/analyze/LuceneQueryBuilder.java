@@ -87,6 +87,21 @@ public class LuceneQueryBuilder {
             }
         }
 
+        class NotQuery extends FunctionToQuery {
+
+            @Override
+            public Query apply(Function input) {
+                Preconditions.checkNotNull(input);
+                Preconditions.checkArgument(input.arguments().size() == 1);
+                BooleanQuery query = new BooleanQuery();
+
+                query.add(process(input.arguments().get(0), null), BooleanClause.Occur.MUST_NOT);
+                query.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
+
+                return query;
+            }
+        }
+
         class EqQuery extends CmpQuery {
             @Override
             public Query apply(Function input) {
@@ -192,6 +207,7 @@ public class LuceneQueryBuilder {
                     .put(GteOperator.NAME, new GteQuery())
                     .put(GtOperator.NAME, new GtQuery())
                     .put(LikeOperator.NAME, new LikeQuery())
+                    .put(NotOperator.NAME, new NotQuery())
                 .build();
 
         @Override
