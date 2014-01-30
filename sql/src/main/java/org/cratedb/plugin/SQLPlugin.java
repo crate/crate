@@ -108,7 +108,7 @@ public class SQLPlugin extends AbstractPlugin {
     public Collection<Class<? extends Module>> shardModules() {
         Collection<Class<? extends Module>> modules = newArrayList();
         if (!settings.getAsBoolean("node.client", false)) {
-            modules.add(SysShardExpressionModule.class);
+            // modules.add(SysShardExpressionModule.class);
         }
         return modules;
     }
