@@ -19,55 +19,61 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.symbol;
+package io.crate.planner.projection;
 
-import org.cratedb.DataType;
+import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-public class Value extends ValueSymbol {
+public class ColumnProjection extends Projection {
 
-    public static final SymbolFactory<Value> FACTORY = new SymbolFactory<Value>() {
+    List<Symbol> outputs;
+
+    public static final ProjectionFactory<ColumnProjection> FACTORY = new ProjectionFactory<ColumnProjection>() {
         @Override
-        public Value newInstance() {
-            return new Value();
+        public ColumnProjection newInstance() {
+            return new ColumnProjection();
         }
     };
 
-    private DataType type;
 
-    public Value(DataType type) {
-        this.type = type;
+    public List<Symbol> outputs() {
+        return outputs;
     }
 
-    public Value() {
-
-    }
-
-    public DataType valueType() {
-        return type;
+    public void outputs(List<Symbol> outputs) {
+        this.outputs = outputs;
     }
 
     @Override
-    public SymbolType symbolType() {
-        return SymbolType.VALUE;
+    public ProjectionType projectionType() {
+        return ProjectionType.COLUMN;
     }
 
     @Override
-    public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
-        return visitor.visitValue(this, context);
+    public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
+        return visitor.visitColumnProjection(this, context);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        type = DataType.fromStream(in);
+        int size = in.readVInt();
+        outputs = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            outputs.add(Symbol.fromStream(in));
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        DataType.toStream(type, out);
+        out.writeVInt(outputs.size());
+        for (Symbol symbol : outputs) {
+            Symbol.toStream(symbol, out);
+        }
     }
 
     @Override
@@ -75,22 +81,17 @@ public class Value extends ValueSymbol {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        Value value = (Value) o;
+        ColumnProjection that = (ColumnProjection) o;
 
-        if (type != value.type) return false;
+        if (!outputs.equals(that.outputs)) return false;
 
         return true;
     }
 
     @Override
-    public int hashCode() {
-        return type != null ? type.hashCode() : 0;
-    }
-
-    @Override
     public String toString() {
-        return "Value{" +
-                "type=" + type +
+        return "ColumnProjection{" +
+                "outputs=" + outputs +
                 '}';
     }
 }
