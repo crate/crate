@@ -19,20 +19,43 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package org.cratedb;
+package io.crate.planner.plan;
 
-public class Constants {
-    /**
-     * Mapping Type that contains table definitions
-     */
-    public static final String DEFAULT_MAPPING_TYPE = "default";
-    public static final Integer GROUP_BY_TIMEOUT = 120;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-    // port rangess for HTTP and Transport
-    public static final String HTTP_PORT_RANGE = "4200-4300";
-    public static final String TRANSPORT_PORT_RANGE = "4300-4400";
-    public static final String THRIFT_PORT_RANGE = "4500-4600";
-    public static final Integer DEFAULT_SELECT_LIMIT = 10000;
+import java.io.IOException;
 
-    public static final Object[][] EMPTY_RESULT = new Object[0][];
+public class ESGetNode extends PlanNode {
+
+    private String index;
+    private String id;
+
+    // TODO: change interface to whatever the planner can provide
+    public ESGetNode(String index, String id) {
+        this.index = index;
+        this.id = id;
+    }
+
+    public String index() {
+        return index;
+    }
+
+    public String id() {
+        return id;
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        id = in.readString();
+        index = in.readString();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeString(id);
+        out.writeString(index);
+    }
 }

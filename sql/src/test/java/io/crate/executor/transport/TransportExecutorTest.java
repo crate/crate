@@ -24,12 +24,14 @@ package io.crate.executor.transport;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.Job;
 import io.crate.executor.transport.task.RemoteCollectTask;
+import io.crate.executor.transport.task.elasticsearch.ESGetTask;
 import io.crate.executor.transport.task.elasticsearch.ESSearchTask;
 import io.crate.metadata.*;
 import io.crate.operator.operator.EqOperator;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.plan.CollectNode;
+import io.crate.planner.plan.ESGetNode;
 import io.crate.planner.plan.ESSearchNode;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
@@ -38,6 +40,7 @@ import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.test.integration.CrateIntegrationTest;
+import org.elasticsearch.action.get.TransportGetAction;
 import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -56,15 +59,32 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     private ClusterService clusterService;
 
     private TransportExecutor executor;
+    private TransportGetAction transportGetAction;
+
+    TableIdent table = new TableIdent(null, "characters");
+    Reference id_ref = new Reference(new ReferenceInfo(
+            new ReferenceIdent(table, "id"), RowGranularity.DOC, DataType.INTEGER));
+    Reference name_ref = new Reference(new ReferenceInfo(
+            new ReferenceIdent(table, "name"), RowGranularity.DOC, DataType.STRING));
+
 
     @Before
     public void transportSetUp() {
         transportCollectNodeAction = cluster().getInstance(TransportCollectNodeAction.class);
+        transportGetAction = cluster().getInstance(TransportGetAction.class);
         clusterService = cluster().getInstance(ClusterService.class);
 
         Functions functions = cluster().getInstance(Functions.class);
         TransportSearchAction transportSearchAction = cluster().getInstance(TransportSearchAction.class);
         executor = new TransportExecutor(transportSearchAction, functions, null);
+    }
+
+    private void insertCharacters() {
+        execute("create table characters (id int primary key, name string)");
+        execute("insert into characters (id, name) values (1, 'Arthur')");
+        execute("insert into characters (id, name) values (2, 'Ford')");
+        execute("insert into characters (id, name) values (3, 'Trillian')");
+        refresh();
     }
 
     @Test
@@ -92,23 +112,27 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         for (ListenableFuture<Object[][]> nodeResult : result) {
             assertEquals(1, nodeResult.get().length);
             assertThat((Double) nodeResult.get()[0][0], is(greaterThan(0.0)));
-
         }
     }
 
     @Test
-    public void testESSearchTask() throws Exception {
-        execute("create table t1 (id int primary key, name string)");
-        execute("insert into t1 (id, name) values (1, 'Arthur')");
-        execute("insert into t1 (id, name) values (2, 'Ford')");
-        execute("insert into t1 (id, name) values (3, 'Trillian')");
-        refresh();
+    public void testESGetTask() throws Exception {
+        insertCharacters();
 
-        TableIdent table = new TableIdent(null, "t1");
-        Reference id_ref = new Reference(new ReferenceInfo(
-                new ReferenceIdent(table, "id"), RowGranularity.DOC, DataType.INTEGER));
-        Reference name_ref = new Reference(new ReferenceInfo(
-                new ReferenceIdent(table, "name"), RowGranularity.DOC, DataType.STRING));
+        ESGetNode node = new ESGetNode("characters", "2");
+        node.outputs(id_ref, name_ref);
+        ESGetTask task = new ESGetTask(transportGetAction, node);
+        task.start();
+        Object[][] objects = task.result().get(0).get();
+
+        assertThat(objects.length, is(1));
+        assertThat((Integer)objects[0][0], is(2));
+        assertThat((String)objects[0][1], is("Ford"));
+    }
+
+    @Test
+    public void testESSearchTask() throws Exception {
+        insertCharacters();
 
         ESSearchNode node = new ESSearchNode(
                 Arrays.<Symbol>asList(id_ref, name_ref),
@@ -135,17 +159,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESSearchTaskWithFilter() throws Exception {
-        execute("create table t1 (id int primary key, name string)");
-        execute("insert into t1 (id, name) values (1, 'Arthur')");
-        execute("insert into t1 (id, name) values (2, 'Ford')");
-        execute("insert into t1 (id, name) values (3, 'Trillian')");
-        refresh();
-
-        TableIdent table = new TableIdent(null, "t1");
-        Reference id_ref = new Reference(new ReferenceInfo(
-                new ReferenceIdent(table, "id"), RowGranularity.DOC, DataType.INTEGER));
-        Reference name_ref = new Reference(new ReferenceInfo(
-                new ReferenceIdent(table, "name"), RowGranularity.DOC, DataType.STRING));
+        insertCharacters();
 
         Function whereClause = new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME, Arrays.asList(DataType.STRING, DataType.STRING)),
