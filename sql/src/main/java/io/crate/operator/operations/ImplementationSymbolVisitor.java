@@ -26,7 +26,7 @@ import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.aggregation.FunctionExpression;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.plan.PlanNode;
+import io.crate.planner.plan.CollectNode;
 import io.crate.planner.symbol.*;
 import org.cratedb.sql.CrateException;
 
@@ -82,10 +82,10 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
         return new Context();
     }
 
-    public Context process(PlanNode node) {
+    public Context process(CollectNode node) {
         Context context = getContext();
-        if (node.outputs() != null) {
-            for (Symbol symbol : node.outputs()) {
+        if (node.toCollect() != null) {
+            for (Symbol symbol : node.toCollect()) {
                 context.add(process(symbol, context));
             }
         }

@@ -21,25 +21,28 @@
 
 package io.crate.operator.operations.collect;
 
+import io.crate.operator.AbstractRowCollector;
 import io.crate.operator.Input;
-import io.crate.operator.RowCollector;
 import io.crate.operator.aggregation.CollectExpression;
+import io.crate.operator.projectors.Projector;
 
 import java.util.Set;
 
 /**
  * Simple Collector that only collects one row and does not support any query or aggregation
  */
-public class SimpleOneRowCollector implements RowCollector<Object[][]> {
+public class SimpleOneRowCollector extends AbstractRowCollector<Object[]> {
 
     private final Input<?>[] inputs;
     private final Set<CollectExpression<?>> collectExpressions;
     private final Object[] result;
+    private final Projector downStreamProjector;
 
-    public SimpleOneRowCollector(Input<?>[] inputs, Set<CollectExpression<?>> collectExpressions) {
+    public SimpleOneRowCollector(Input<?>[] inputs, Set<CollectExpression<?>> collectExpressions, Projector downStreamProjector) {
         this.inputs = inputs;
         this.result = new Object[inputs.length];
         this.collectExpressions = collectExpressions;
+        this.downStreamProjector = downStreamProjector;
     }
 
     @Override
@@ -47,24 +50,24 @@ public class SimpleOneRowCollector implements RowCollector<Object[][]> {
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.startCollect();
         }
-        return false;
+        return true;
     }
 
     @Override
     public boolean processRow() {
+        int i = 0;
+        if (inputs != null) {
+            for (Input<?> input : inputs) {
+                result[i++] = input.value();
+            }
+        }
+        downStreamProjector.setNextRow(result);
         return false;
     }
 
     @Override
-    public Object[][] finishCollect() {
-        int i = 0;
-        if (inputs == null || inputs.length == 0) {
-            return new Object[0][];
-        } else {
-            for (Input<?> input : inputs) {
-                result[i++] = input.value();
-            }
-            return new Object[][]{ result };
-        }
+    public Object[] finishCollect() {
+        downStreamProjector.finishProjection();
+        return result;
     }
 }

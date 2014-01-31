@@ -26,40 +26,40 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.NormalizationHelper;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
+import io.crate.operator.AbstractRowCollector;
 import io.crate.operator.Input;
-import io.crate.operator.RowCollector;
-import io.crate.operator.operations.LenientImplementationSymbolVisitor;
+import io.crate.operator.operations.ImplementationSymbolVisitor;
+import io.crate.operator.projectors.Projector;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.*;
+import io.crate.planner.plan.CollectNode;
+import io.crate.planner.symbol.Function;
 
 import java.util.Arrays;
-import java.util.concurrent.BlockingQueue;
 
-public class SimpleShardCollector implements RowCollector<Object[][]>, Runnable {
+public class SimpleShardCollector extends AbstractRowCollector<Object[][]> implements Runnable {
 
     public static final Object[] EMPTY_ROW = new Object[0];
-    private final Functions functions;
-    private final ReferenceResolver referenceResolver;
-    private final BlockingQueue<Object[]> resultQueue;
     private Input<?>[] inputs;
     private Object[] result;
-    private final EvaluatingNormalizer normalizer;
+    private final Projector downStreamProjector;
+    private final LocalDataCollectOperation.ShardCollectFuture shardCollectFuture;
 
     private boolean doCollect = true;
 
     public SimpleShardCollector(Functions functions,
                                 ReferenceResolver referenceResolver,
-                                Reference[] shardOrDocLevelReferences,
-                                Optional<Function> whereClause,
-                                BlockingQueue<Object[]> resultQueue) {
-        this.functions = functions;
-        this.referenceResolver = referenceResolver;
-        this.resultQueue = resultQueue;
-        this.normalizer = new EvaluatingNormalizer(this.functions, RowGranularity.SHARD, this.referenceResolver);
+                                CollectNode collectNode,
+                                Projector downStreamProjector,
+                                LocalDataCollectOperation.ShardCollectFuture shardCollectFuture) {
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.SHARD, referenceResolver);
+        this.downStreamProjector = downStreamProjector;
+        this.shardCollectFuture = shardCollectFuture;
+
         // normalize on shard level
+        Optional<Function> whereClause = collectNode.whereClause();
         if (whereClause.isPresent()) {
 
-            if (whereClause.isPresent() && NormalizationHelper.evaluatesToFalse(whereClause.get(), this.normalizer)) {
+            if (whereClause.isPresent() && NormalizationHelper.evaluatesToFalse(whereClause.get(), normalizer)) {
                 inputs = new Input<?>[0];
                 result = EMPTY_ROW;
                 doCollect = false;
@@ -68,14 +68,13 @@ public class SimpleShardCollector implements RowCollector<Object[][]>, Runnable 
         }
         if (doCollect) {
             // get Inputs
-            LenientImplementationSymbolVisitor visitor = new LenientImplementationSymbolVisitor(
-                    this.referenceResolver,
-                    this.functions,
+            ImplementationSymbolVisitor visitor = new ImplementationSymbolVisitor(
+                    referenceResolver,
+                    functions,
                     RowGranularity.SHARD // TODO: doc level?
             );
-            LenientImplementationSymbolVisitor.Context ctx = visitor.process(shardOrDocLevelReferences);
-            // TODO: when also collecting on doc level, resolve/normalize shard level expression and store them
-            // for easy access
+            ImplementationSymbolVisitor.Context ctx = visitor.process(collectNode.toCollect());
+            // assume we got only resolvable inputs without the need to collect anything
             inputs = ctx.topLevelInputs();
             result = new Object[inputs.length];
         }
@@ -95,21 +94,13 @@ public class SimpleShardCollector implements RowCollector<Object[][]>, Runnable 
         for (int i=0, length=inputs.length; i<length; i++) {
             result[i] = inputs[i].value();
         }
-        try {
-            resultQueue.put(result);
-        } catch(InterruptedException e) {
-            // TODO: handle or ignore
-        }
+        downStreamProjector.setNextRow(result);
         return false; // only one row will be processed on shard level, stop here
     }
 
     @Override
     public Object[][] finishCollect() {
-        try {
-            resultQueue.put(EMPTY_ROW); // signal termination
-        } catch(InterruptedException e) {
-            // TODO: handle or ignore.
-        }
+        shardCollectFuture.shardFinished();
         return null;
     }
 

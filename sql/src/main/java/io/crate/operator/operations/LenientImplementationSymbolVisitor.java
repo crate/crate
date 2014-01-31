@@ -27,7 +27,7 @@ import io.crate.operator.Input;
 import io.crate.operator.InputCollectExpression;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.plan.PlanNode;
+import io.crate.planner.plan.CollectNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.inject.Inject;
@@ -62,7 +62,7 @@ public class LenientImplementationSymbolVisitor extends ImplementationSymbolVisi
     }
 
     @Override
-    public Context process(PlanNode node) {
+    public Context process(CollectNode node) {
         return (Context)super.process(node);
     }
 
