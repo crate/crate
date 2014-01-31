@@ -35,7 +35,7 @@ public abstract class PlanNode implements Streamable {
 
     private String id;
     private List<Projection> projections;
-
+    private List<DataType> outputTypes;
 
     protected PlanNode() {
 
@@ -49,13 +49,27 @@ public abstract class PlanNode implements Streamable {
         return id;
     }
 
-    public abstract List<DataType> outputTypes();
+    public void outputTypes(List<DataType> outputTypes) {
+        this.outputTypes = outputTypes;
+    }
+
+    public List<DataType> outputTypes() {
+        return outputTypes;
+    }
 
     public abstract <C, R> R accept(PlanVisitor<C, R> visitor, C context);
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         id = in.readString();
+
+        int numCols = in.readVInt();
+        if (numCols > 0) {
+            outputTypes = new ArrayList<>(numCols);
+            for (int i = 0; i < numCols; i++) {
+                outputTypes.add(DataType.values()[in.readVInt()]);
+            }
+        }
 
         int numProjections = in.readVInt();
         if (numProjections > 0) {
@@ -70,6 +84,12 @@ public abstract class PlanNode implements Streamable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(id);
+
+        int numCols = outputTypes.size();
+        out.writeVInt(numCols);
+        for (int i = 0; i < numCols; i++) {
+            out.writeVInt(outputTypes.get(i).ordinal());
+        }
 
         if (hasProjections()) {
             out.writeVInt(projections.size());

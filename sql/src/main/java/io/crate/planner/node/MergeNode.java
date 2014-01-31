@@ -48,12 +48,6 @@ public class MergeNode extends PlanNode {
     }
 
     @Override
-    public List<DataType> outputTypes() {
-        // TODO: impl
-        return null;
-    }
-
-    @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitMergeNode(this, context);
     }

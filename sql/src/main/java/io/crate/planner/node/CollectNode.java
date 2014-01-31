@@ -21,8 +21,10 @@
 
 package io.crate.planner.node;
 
+import com.google.common.base.Optional;
+import io.crate.metadata.Routing;
+import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
-import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -35,9 +37,28 @@ import java.util.List;
  */
 public class CollectNode extends PlanNode {
 
+    private Routing routing;
     private List<Symbol> toCollect;
+    private Optional<Function> whereClause;
+
 
     protected CollectNode() {
+    }
+
+    public Optional<Function> whereClause() {
+        return whereClause;
+    }
+
+    public void whereClause(Optional<Function> whereClause) {
+        this.whereClause = whereClause;
+    }
+
+    public Routing routing() {
+        return routing;
+    }
+
+    public void routing(Routing routing) {
+        this.routing = routing;
     }
 
     public List<Symbol> toCollect() {
@@ -48,10 +69,8 @@ public class CollectNode extends PlanNode {
         this.toCollect = toCollect;
     }
 
-    @Override
-    public List<DataType> outputTypes() {
-        // TODO: impl
-        return null;
+    public boolean isRouted() {
+        return routing != null && routing.hasLocations();
     }
 
     @Override
@@ -71,6 +90,19 @@ public class CollectNode extends PlanNode {
             }
         }
 
+        if (in.readBoolean()) {
+            routing = new Routing();
+            routing.readFrom(in);
+        }
+        if (in.readBoolean()) {
+            Function f = new Function();
+            f.readFrom(in);
+            whereClause = Optional.of(f);
+        } else {
+            whereClause = Optional.absent();
+        }
+
+
     }
 
     @Override
@@ -81,6 +113,19 @@ public class CollectNode extends PlanNode {
         out.writeVInt(numCols);
         for (int i = 0; i < numCols; i++) {
             Symbol.toStream(toCollect.get(i), out);
+        }
+
+        if (routing != null) {
+            out.writeBoolean(true);
+            routing.writeTo(out);
+        } else {
+            out.writeBoolean(false);
+        }
+        if (whereClause.isPresent()) {
+            out.writeBoolean(true);
+            whereClause.get().writeTo(out);
+        } else {
+            out.writeBoolean(false);
         }
     }
 
