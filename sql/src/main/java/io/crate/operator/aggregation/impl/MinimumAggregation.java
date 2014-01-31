@@ -34,23 +34,180 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class MinimumAggregation<T extends Comparable<T>> extends AggregationFunction<MinimumAggregation.MinimumAggState<T>> {
+public abstract class MinimumAggregation<T extends Comparable<T>> extends AggregationFunction<MinimumAggregation.MinimumAggState<T>> {
 
     public static final String NAME = "min";
 
     private final FunctionInfo info;
 
     public static void register(AggregationImplModule mod) {
-        for (DataType t : DataType.PRIMITIVE_TYPES) {
-            // Exclude Boolean
-            if (t.equals(DataType.BOOLEAN)) {
-                continue;
-            }
+        for (DataType dataType : new DataType[]{DataType.STRING, DataType.IP}) {
             mod.registerAggregateFunction(
-                    new MinimumAggregation(
-                            new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), t, true))
+                    new MinimumAggregation<BytesRef>(
+                            new FunctionInfo(new FunctionIdent(NAME,
+                                    ImmutableList.of(dataType)),
+                                    dataType, true)) {
+                        @Override
+                        public MinimumAggState<BytesRef> newState() {
+                            return new MinimumAggState<BytesRef>() {
+                                @Override
+                                public void readFrom(StreamInput in) throws IOException {
+                                    if (!in.readBoolean()) {
+                                        setValue((BytesRef) DataType.STRING.streamer().readFrom(in));
+                                    }
+                                }
+
+                                @Override
+                                public void writeTo(StreamOutput out) throws IOException {
+                                    BytesRef value = (BytesRef) value();
+                                    out.writeBoolean(value == null);
+                                    if (value != null) {
+                                        DataType.STRING.streamer().writeTo(out, value);
+                                    }
+                                }
+                            };
+                        }
+                    }
             );
         }
+        mod.registerAggregateFunction(
+                new MinimumAggregation<Double>(
+                        new FunctionInfo(new FunctionIdent(NAME,
+                                ImmutableList.of(DataType.DOUBLE)),
+                                DataType.DOUBLE, true)) {
+                    @Override
+                    public MinimumAggState<Double> newState() {
+                        return new MinimumAggState<Double>() {
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    setValue((Double)DataType.DOUBLE.streamer().readFrom(in));
+                                }
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                Object value = value();
+                                out.writeBoolean(value == null);
+                                if (value != null) {
+                                    DataType.DOUBLE.streamer().writeTo(out, value);
+                                }
+                            }
+                        };
+                    }
+                }
+        );
+        mod.registerAggregateFunction(
+                new MinimumAggregation<Float>(
+                        new FunctionInfo(new FunctionIdent(NAME,
+                                ImmutableList.of(DataType.FLOAT)),
+                                DataType.FLOAT, true)) {
+                    @Override
+                    public MinimumAggState<Float> newState() {
+                        return new MinimumAggState<Float>() {
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    setValue((Float)DataType.FLOAT.streamer().readFrom(in));
+                                }
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                Object value = value();
+                                out.writeBoolean(value == null);
+                                if (value != null) {
+                                    DataType.FLOAT.streamer().writeTo(out, value);
+                                }
+                            }
+                        };
+                    }
+                }
+        );
+        for (final DataType dataType : new DataType[]{DataType.LONG, DataType.TIMESTAMP}) {
+            mod.registerAggregateFunction(
+                    new MinimumAggregation<Long>(
+                            new FunctionInfo(new FunctionIdent(NAME,
+                                    ImmutableList.of(dataType)),
+                                    dataType, true)) {
+                        @Override
+                        public MinimumAggState<Long> newState() {
+                            return new MinimumAggState<Long>() {
+                                @Override
+                                public void readFrom(StreamInput in) throws IOException {
+                                    if (!in.readBoolean()) {
+                                        setValue((Long)dataType.streamer().readFrom(in));
+                                    }
+                                }
+
+                                @Override
+                                public void writeTo(StreamOutput out) throws IOException {
+                                    Object value = value();
+                                    out.writeBoolean(value == null);
+                                    if (value != null) {
+                                        dataType.streamer().writeTo(out, value);
+                                    }
+                                }
+                            };
+                        }
+                    }
+            );
+        }
+        mod.registerAggregateFunction(
+                new MinimumAggregation<Short>(
+                        new FunctionInfo(new FunctionIdent(NAME,
+                                ImmutableList.of(DataType.SHORT)),
+                                DataType.SHORT, true)) {
+                    @Override
+                    public MinimumAggState<Short> newState() {
+                        return new MinimumAggState<Short>() {
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    setValue((Short)DataType.SHORT.streamer().readFrom(in));
+                                }
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                Object value = value();
+                                out.writeBoolean(value == null);
+                                if (value != null) {
+                                    DataType.SHORT.streamer().writeTo(out, value);
+                                }
+                            }
+                        };
+                    }
+                }
+        );
+        mod.registerAggregateFunction(
+                new MinimumAggregation<Integer>(
+                        new FunctionInfo(new FunctionIdent(NAME,
+                                ImmutableList.of(DataType.INTEGER)),
+                                DataType.INTEGER, true)) {
+                    @Override
+                    public MinimumAggState<Integer> newState() {
+                        return new MinimumAggState<Integer>() {
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    setValue((Integer)DataType.INTEGER.streamer().readFrom(in));
+                                }
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                Object value = value();
+                                out.writeBoolean(value == null);
+                                if (value != null) {
+                                    DataType.INTEGER.streamer().writeTo(out, value);
+                                }
+                            }
+                        };
+                    }
+                }
+        );
+
     }
 
     MinimumAggregation(FunctionInfo info) {
@@ -67,127 +224,6 @@ public class MinimumAggregation<T extends Comparable<T>> extends AggregationFunc
         state.add((T) args[0].value());
         return true;
     }
-
-    @Override
-    public MinimumAggState newState() {
-        switch (info.ident().argumentTypes().get(0)) {
-            case STRING:
-            case IP:
-                return new MinimumAggState<BytesRef>() {
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public void readFrom(StreamInput in) throws IOException {
-                        if (!in.readBoolean()) {
-                            setValue(in.readBytesRef());
-                        }
-                    }
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        BytesRef value = (BytesRef) value();
-                        out.writeBoolean(value == null);
-                        out.writeBytesRef(value);
-                    }
-                };
-            case DOUBLE:
-                return new MinimumAggState<Double>() {
-
-                    @Override
-                    public void readFrom(StreamInput in) throws IOException {
-                        if (!in.readBoolean()) {
-                            setValue(in.readDouble());
-                        }
-                    }
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        Double value = (Double) value();
-                        out.writeBoolean(value == null);
-                        if (value != null) {
-                            out.writeDouble(value);
-                        }
-                    }
-                };
-            case FLOAT:
-                return new MinimumAggState<Float>() {
-
-                    @Override
-                    public void readFrom(StreamInput in) throws IOException {
-                        if (!in.readBoolean()) {
-                            setValue(in.readFloat());
-                        }
-                    }
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        Float value = (Float) value();
-                        out.writeBoolean(value == null);
-                        if (value != null) {
-                            out.writeFloat(value);
-                        }
-                    }
-                    };
-            case LONG:
-            case TIMESTAMP:
-                return new MinimumAggState<Long>() {
-                    @Override
-                    public void readFrom(StreamInput in) throws IOException {
-                        if (!in.readBoolean()) {
-                            setValue(in.readLong());
-                        }
-                    }
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        Long value = (Long) value();
-                        out.writeBoolean(value == null);
-                        if (value != null) {
-                            out.writeLong(value);
-                        }
-                    }
-                };
-            case SHORT:
-                return new MinimumAggState<Short>() {
-                    @Override
-                    public void readFrom(StreamInput in) throws IOException {
-                        if (!in.readBoolean()) {
-                            setValue(in.readShort());
-                        }
-                    }
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        Short value = (Short) value();
-                        out.writeBoolean(value == null);
-                        if (value != null) {
-                            out.writeShort(value);
-                        }
-                    }
-                };
-            case INTEGER:
-                return new MinimumAggState<Integer>() {
-                    @Override
-                    public void readFrom(StreamInput in) throws IOException {
-                        if (!in.readBoolean()) {
-                            setValue(in.readInt());
-                        }
-                    }
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        Integer value = (Integer) value();
-                        out.writeBoolean(value == null);
-                        if (value != null) {
-                            out.writeInt(value);
-                        }
-                    }
-                };
-            default:
-                throw new IllegalArgumentException("Illegal ParameterInfo for MIN");
-        }
-    }
-
 
     public static abstract class MinimumAggState<T extends Comparable<T>> extends AggregationState<MinimumAggState<T>> {
 

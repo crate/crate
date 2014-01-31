@@ -34,24 +34,180 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class MaximumAggregation<T extends Comparable<T>> extends AggregationFunction<MaximumAggregation.MaximumAggState<T>> {
+public abstract class MaximumAggregation<T extends Comparable<T>> extends AggregationFunction<MaximumAggregation.MaximumAggState<T>> {
 
     public static final String NAME = "max";
 
     private final FunctionInfo info;
 
     public static void register(AggregationImplModule mod) {
-        for (DataType t : DataType.PRIMITIVE_TYPES) {
-            // Exclude Boolean
-            if (t.equals(DataType.BOOLEAN)) {
-                continue;
-            }
+        for (DataType dataType : new DataType[]{DataType.STRING, DataType.IP}) {
             mod.registerAggregateFunction(
-                    new MaximumAggregation(
-                            new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), t, true))
+                    new MaximumAggregation<BytesRef>(
+                            new FunctionInfo(new FunctionIdent(NAME,
+                                    ImmutableList.of(dataType)),
+                                    dataType, true)) {
+                        @Override
+                        public MaximumAggState<BytesRef> newState() {
+                            return new MaximumAggState<BytesRef>() {
+                                @Override
+                                public void readFrom(StreamInput in) throws IOException {
+                                    if (!in.readBoolean()) {
+                                        setValue((BytesRef) DataType.STRING.streamer().readFrom(in));
+                                    }
+                                }
+
+                                @Override
+                                public void writeTo(StreamOutput out) throws IOException {
+                                    BytesRef value = (BytesRef) value();
+                                    out.writeBoolean(value == null);
+                                    if (value != null) {
+                                        DataType.STRING.streamer().writeTo(out, value);
+                                    }
+                                }
+                            };
+                        }
+                    }
             );
         }
+        mod.registerAggregateFunction(
+                new MaximumAggregation<Double>(
+                        new FunctionInfo(new FunctionIdent(NAME,
+                                ImmutableList.of(DataType.DOUBLE)),
+                                DataType.DOUBLE, true)) {
+                    @Override
+                    public MaximumAggState<Double> newState() {
+                        return new MaximumAggState<Double>() {
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    setValue((Double)DataType.DOUBLE.streamer().readFrom(in));
+                                }
+                            }
 
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                Object value = value();
+                                out.writeBoolean(value == null);
+                                if (value != null) {
+                                    DataType.DOUBLE.streamer().writeTo(out, value);
+                                }
+                            }
+                        };
+                    }
+                }
+        );
+        mod.registerAggregateFunction(
+                new MaximumAggregation<Float>(
+                        new FunctionInfo(new FunctionIdent(NAME,
+                                ImmutableList.of(DataType.FLOAT)),
+                                DataType.FLOAT, true)) {
+                    @Override
+                    public MaximumAggState<Float> newState() {
+                        return new MaximumAggState<Float>() {
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    setValue((Float)DataType.FLOAT.streamer().readFrom(in));
+                                }
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                Object value = value();
+                                out.writeBoolean(value == null);
+                                if (value != null) {
+                                    DataType.FLOAT.streamer().writeTo(out, value);
+                                }
+                            }
+                        };
+                    }
+                }
+        );
+        for (final DataType dataType : new DataType[]{DataType.LONG, DataType.TIMESTAMP}) {
+            mod.registerAggregateFunction(
+                    new MaximumAggregation<Long>(
+                            new FunctionInfo(new FunctionIdent(NAME,
+                                    ImmutableList.of(dataType)),
+                                    dataType, true)) {
+                        @Override
+                        public MaximumAggState<Long> newState() {
+                            return new MaximumAggState<Long>() {
+                                @Override
+                                public void readFrom(StreamInput in) throws IOException {
+                                    if (!in.readBoolean()) {
+                                        setValue((Long)dataType.streamer().readFrom(in));
+                                    }
+                                }
+
+                                @Override
+                                public void writeTo(StreamOutput out) throws IOException {
+                                    Object value = value();
+                                    out.writeBoolean(value == null);
+                                    if (value != null) {
+                                        dataType.streamer().writeTo(out, value);
+                                    }
+                                }
+                            };
+                        }
+                    }
+            );
+        }
+        mod.registerAggregateFunction(
+                new MaximumAggregation<Short>(
+                        new FunctionInfo(new FunctionIdent(NAME,
+                                ImmutableList.of(DataType.SHORT)),
+                                DataType.SHORT, true)) {
+                    @Override
+                    public MaximumAggState<Short> newState() {
+                        return new MaximumAggState<Short>() {
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    setValue((Short)DataType.SHORT.streamer().readFrom(in));
+                                }
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                Object value = value();
+                                out.writeBoolean(value == null);
+                                if (value != null) {
+                                    DataType.SHORT.streamer().writeTo(out, value);
+                                }
+                            }
+                        };
+                    }
+                }
+        );
+        mod.registerAggregateFunction(
+                new MaximumAggregation<Integer>(
+                        new FunctionInfo(new FunctionIdent(NAME,
+                                ImmutableList.of(DataType.INTEGER)),
+                                DataType.INTEGER, true)) {
+                    @Override
+                    public MaximumAggState<Integer> newState() {
+                        return new MaximumAggState<Integer>() {
+                            @Override
+                            public void readFrom(StreamInput in) throws IOException {
+                                if (!in.readBoolean()) {
+                                    setValue((Integer)DataType.INTEGER.streamer().readFrom(in));
+                                }
+                            }
+
+                            @Override
+                            public void writeTo(StreamOutput out) throws IOException {
+                                Object value = value();
+                                out.writeBoolean(value == null);
+                                if (value != null) {
+                                    DataType.INTEGER.streamer().writeTo(out, value);
+                                }
+                            }
+                        };
+                    }
+                }
+        );
+        
     }
 
     MaximumAggregation(FunctionInfo info) {
@@ -68,127 +224,6 @@ public class MaximumAggregation<T extends Comparable<T>> extends AggregationFunc
         state.add((T) args[0].value());
         return true;
     }
-
-    @Override
-    public MaximumAggState newState() {
-        switch (info.ident().argumentTypes().get(0)) {
-            case STRING:
-            case IP:
-                return new MaximumAggState<BytesRef>() {
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public void readFrom(StreamInput in) throws IOException {
-                        if (!in.readBoolean()) {
-                            setValue(in.readBytesRef());
-                        }
-                    }
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        BytesRef value = (BytesRef) value();
-                        out.writeBoolean(value == null);
-                        out.writeBytesRef(value);
-                    }
-                };
-            case DOUBLE:
-                return new MaximumAggState<Double>() {
-
-                    @Override
-                    public void readFrom(StreamInput in) throws IOException {
-                        if (!in.readBoolean()) {
-                            setValue(in.readDouble());
-                        }
-                    }
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        Double value = (Double) value();
-                        out.writeBoolean(value == null);
-                        if (value != null) {
-                            out.writeDouble(value);
-                        }
-                    }
-                };
-            case FLOAT:
-                return new MaximumAggState<Float>() {
-
-                    @Override
-                    public void readFrom(StreamInput in) throws IOException {
-                        if (!in.readBoolean()) {
-                            setValue(in.readFloat());
-                        }
-                    }
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        Float value = (Float) value();
-                        out.writeBoolean(value == null);
-                        if (value != null) {
-                            out.writeFloat(value);
-                        }
-                    }
-                };
-            case LONG:
-            case TIMESTAMP:
-                return new MaximumAggState<Long>() {
-                    @Override
-                    public void readFrom(StreamInput in) throws IOException {
-                        if (!in.readBoolean()) {
-                            setValue(in.readLong());
-                        }
-                    }
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        Long value = (Long) value();
-                        out.writeBoolean(value == null);
-                        if (value != null) {
-                            out.writeLong(value);
-                        }
-                    }
-                };
-            case SHORT:
-                return new MaximumAggState<Short>() {
-                    @Override
-                    public void readFrom(StreamInput in) throws IOException {
-                        if (!in.readBoolean()) {
-                            setValue(in.readShort());
-                        }
-                    }
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        Short value = (Short) value();
-                        out.writeBoolean(value == null);
-                        if (value != null) {
-                            out.writeShort(value);
-                        }
-                    }
-                };
-            case INTEGER:
-                return new MaximumAggState<Integer>() {
-                    @Override
-                    public void readFrom(StreamInput in) throws IOException {
-                        if (!in.readBoolean()) {
-                            setValue(in.readInt());
-                        }
-                    }
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        Integer value = (Integer) value();
-                        out.writeBoolean(value == null);
-                        if (value != null) {
-                            out.writeInt(value);
-                        }
-                    }
-                };
-            default:
-                throw new IllegalArgumentException("Illegal ParameterInfo for MAX");
-        }
-    }
-
 
     public static abstract class MaximumAggState<T extends Comparable<T>> extends AggregationState<MaximumAggState<T>> {
 
