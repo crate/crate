@@ -30,6 +30,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import javax.annotation.Nullable;
 import java.io.IOException;
 
+@Deprecated
 public class CollectNode extends TopNNode {
 
     private Routing routing;

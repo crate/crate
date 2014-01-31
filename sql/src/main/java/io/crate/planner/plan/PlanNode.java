@@ -33,7 +33,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
+@Deprecated
 public abstract class PlanNode implements Streamable {
 
     private String id;

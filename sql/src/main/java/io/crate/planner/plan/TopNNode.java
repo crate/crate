@@ -28,6 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
+@Deprecated
 public class TopNNode extends PlanNode {
 
     public static int NO_LIMIT = -1;

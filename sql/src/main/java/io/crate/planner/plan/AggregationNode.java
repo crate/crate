@@ -22,7 +22,7 @@
 package io.crate.planner.plan;
 
 // PRESTOBORROW
-
+@Deprecated
 public class AggregationNode extends PlanNode {
 
     public AggregationNode(String id) {
