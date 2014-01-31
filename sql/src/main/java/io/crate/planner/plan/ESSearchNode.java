@@ -83,5 +83,10 @@ public class ESSearchNode extends PlanNode {
     public Optional<Function> whereClause() {
         return whereClause;
     }
+
+    @Override
+    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+        return visitor.visitESSearchNode(this, context);
+    }
 }
 
