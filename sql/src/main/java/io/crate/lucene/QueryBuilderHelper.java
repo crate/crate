@@ -143,19 +143,7 @@ public abstract class QueryBuilderHelper {
 
         @Override
         public Query like(String columnName, Object value) {
-            String like = (String)value;
-
-            // lucene uses * and ? as wildcard characters
-            // but via SQL they are used as % and _
-            // here they are converted back.
-            like = like.replaceAll("(?<!\\\\)\\*", "\\\\*");
-            like = like.replaceAll("(?<!\\\\)%", "*");
-            like = like.replaceAll("\\\\%", "%");
-
-            like = like.replaceAll("(?<!\\\\)\\?", "\\\\?");
-            like = like.replaceAll("(?<!\\\\)_", "?");
-            like = like.replaceAll("\\\\_", "_");
-
+            String like = SQLToLuceneHelper.convertWildcard((String)value);
             return new WildcardQuery(new Term(columnName, like));
         }
     }
