@@ -19,19 +19,19 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.plan;
+package io.crate.planner.node;
 
-// PRESTOBORROW
-@Deprecated
-public class AggregationNode extends PlanNode {
+public class PlanVisitor<C, R> {
 
-    public AggregationNode(String id) {
-        super(id);
+    protected R visitPlan(PlanNode node, C context) {
+        return null;
     }
 
-    @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitAggregation(this, context);
+    public R visitMergeNode(MergeNode node, C context) {
+        return visitPlan(node, context);
     }
 
+    public R visitCollectNode(CollectNode node, C context) {
+        return visitPlan(node, context);
+    }
 }

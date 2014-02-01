@@ -23,7 +23,7 @@ package io.crate.planner.plan;
 
 // PRESTOBORROW
 
-
+@Deprecated
 public class PlanVisitor<C, R> {
 
     protected void visitSources(PlanNode node, C context){

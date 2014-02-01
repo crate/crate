@@ -19,71 +19,77 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.plan;
+package io.crate.planner.node;
 
 import com.google.common.base.Optional;
 import io.crate.metadata.Routing;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-@Deprecated
-public class CollectNode extends TopNNode {
+/**
+ * A plan node which collects data.
+ */
+public class CollectNode extends PlanNode {
 
     private Routing routing;
+    private List<Symbol> toCollect;
     private Optional<Function> whereClause;
 
-    public CollectNode() {
-        super();
-    }
 
-    public CollectNode(String id, Routing routing) {
-        this(id, routing, null);
-    }
-
-    public CollectNode(String id, Routing routing, @Nullable Function whereClause) {
-        super(id, NO_LIMIT, NO_OFFSET, new int[0], new boolean[0]);
-        this.routing = routing;
-        this.whereClause = Optional.fromNullable(whereClause);
-    }
-
-    public CollectNode(String id, Routing routing, @Nullable Function whereClause,
-                       int limit, int offset) {
-        super(id, limit, offset, new int[0], new boolean[0]);
-        this.routing = routing;
-        this.whereClause = Optional.fromNullable(whereClause);
-    }
-
-    public CollectNode(String id, Routing routing, @Nullable Function whereClause,
-                       int limit, int offset, int[] orderByIndices, boolean[] reverseFlags) {
-        super(id, limit, offset, orderByIndices, reverseFlags);
-        this.routing = routing;
-        this.whereClause = Optional.fromNullable(whereClause);
-    }
-
-    public Routing routing() {
-        return routing;
-    }
-
-    public boolean isRouted() {
-        return routing != null && routing.hasLocations();
+    protected CollectNode() {
     }
 
     public Optional<Function> whereClause() {
         return whereClause;
     }
 
+    public void whereClause(Optional<Function> whereClause) {
+        this.whereClause = whereClause;
+    }
+
+    public Routing routing() {
+        return routing;
+    }
+
+    public void routing(Routing routing) {
+        this.routing = routing;
+    }
+
+    public List<Symbol> toCollect() {
+        return toCollect;
+    }
+
+    public void toCollect(List<Symbol> toCollect) {
+        this.toCollect = toCollect;
+    }
+
+    public boolean isRouted() {
+        return routing != null && routing.hasLocations();
+    }
+
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitCollect(this, context);
+        return visitor.visitCollectNode(this, context);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
+
+        int numCols = in.readVInt();
+        if (numCols > 0) {
+            toCollect = new ArrayList<>(numCols);
+            for (int i = 0; i < numCols; i++) {
+                toCollect.add(Symbol.fromStream(in));
+            }
+        }
+
         if (in.readBoolean()) {
             routing = new Routing();
             routing.readFrom(in);
@@ -96,11 +102,19 @@ public class CollectNode extends TopNNode {
             whereClause = Optional.absent();
         }
 
+
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+
+        int numCols = toCollect.size();
+        out.writeVInt(numCols);
+        for (int i = 0; i < numCols; i++) {
+            Symbol.toStream(toCollect.get(i), out);
+        }
+
         if (routing != null) {
             out.writeBoolean(true);
             routing.writeTo(out);
@@ -115,7 +129,4 @@ public class CollectNode extends TopNNode {
         }
     }
 
-    public void routing(Routing routing) {
-        this.routing = routing;
-    }
 }
