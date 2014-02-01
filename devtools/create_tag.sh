@@ -20,6 +20,10 @@
 # with Crate these terms will supersede the license and you may use the
 # software solely pursuant to the terms of the relevant commercial agreement.
 
+# Info: Be aware from where you are invoking this script due to relative paths.
+#       For example, 'gradlew' has to be in the same directory as where you are
+#       invoking this script from.
+#       E.g.: ../crate>./devtools/create_tag.sh
 
 # check if everything is committed
 CLEAN=`git status -s`

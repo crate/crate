@@ -34,6 +34,7 @@ import org.cratedb.service.InformationSchemaService;
 import org.cratedb.service.SQLService;
 import org.cratedb.service.StatsService;
 import org.cratedb.sql.facet.SQLFacetParser;
+import org.elasticsearch.cluster.settings.ClusterDynamicSettingsModule;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -119,6 +120,11 @@ public class SQLPlugin extends AbstractPlugin {
 
     public void onModule(FacetModule facetModule) {
         facetModule.addFacetProcessor(SQLFacetParser.class);
+    }
+
+    public void onModule(ClusterDynamicSettingsModule clusterDynamicSettingsModule) {
+        // add our dynamic cluster settings
+        clusterDynamicSettingsModule.addDynamicSettings(SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX + "*");
     }
 
 }
