@@ -19,39 +19,25 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.reference.sys.shard;
+package io.crate.metadata.shard;
 
-import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.shard.sys.SysShardExpression;
-import io.crate.metadata.sys.SystemReferences;
-import org.cratedb.DataType;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.index.shard.service.IndexShard;
+import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.inject.multibindings.MapBinder;
 
-public class ShardRelocatingNodeExpression extends SysShardExpression<String> {
+public class MetaDataShardModule extends AbstractModule {
 
-    public static final String COLNAME = "relocating_node";
-
-
-    public static final ReferenceInfo INFO_RELOCATING_NODE = SystemReferences.registerShardReference(
-            COLNAME, DataType.STRING);
-
-
-    private final IndexShard indexShard;
-
-    @Inject
-    public ShardRelocatingNodeExpression(IndexShard indexShard) {
-        this.indexShard = indexShard;
-    }
+    protected MapBinder<ReferenceIdent, ShardReferenceImplementation> referenceBinder;
 
     @Override
-    public String value() {
-        return indexShard.routingEntry().relocatingNodeId();
+    protected void configure() {
+        bindShardReferences();
     }
 
-    @Override
-    public ReferenceInfo info() {
-        return INFO_RELOCATING_NODE;
+    protected void bindShardReferences() {
+        referenceBinder = MapBinder.newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
+        bind(ShardReferenceResolver.class).asEagerSingleton();
     }
 
 }

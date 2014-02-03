@@ -21,9 +21,9 @@
 
 package io.crate.operator.reference.sys;
 
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceResolver;
+import io.crate.metadata.*;
+import io.crate.metadata.shard.MetaDataShardModule;
+import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SystemReferences;
 import io.crate.operator.reference.sys.cluster.ClusterNameExpression;
@@ -97,9 +97,10 @@ public class SysShardsExpressionsTest {
                 new TestModule(),
                 new MetaDataModule(),
                 new SysClusterExpressionModule(),
+                new MetaDataShardModule(),
                 new SysShardExpressionModule()
         ).createInjector();
-        resolver = injector.getInstance(ReferenceResolver.class);
+        resolver = injector.getInstance(ShardReferenceResolver.class);
     }
 
     @Test

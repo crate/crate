@@ -22,13 +22,13 @@
 package io.crate.operator.reference.sys.shard;
 
 import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.sys.SysExpression;
+import io.crate.metadata.shard.sys.SysShardExpression;
 import io.crate.metadata.sys.SystemReferences;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.service.IndexShard;
 
-public class ShardSizeExpression extends SysExpression<Long> {
+public class ShardSizeExpression extends SysShardExpression<Long> {
 
     public static final String COLNAME = "size";
 

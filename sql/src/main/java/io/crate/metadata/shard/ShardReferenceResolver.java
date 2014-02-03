@@ -19,39 +19,33 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.reference.sys.shard;
+package io.crate.metadata.shard;
 
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.shard.sys.SysShardExpression;
-import io.crate.metadata.sys.SystemReferences;
-import org.cratedb.DataType;
+import com.google.common.collect.ImmutableMap;
+import io.crate.metadata.AbstractReferenceResolver;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceImplementation;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.index.shard.service.IndexShard;
 
-public class ShardRelocatingNodeExpression extends SysShardExpression<String> {
+import java.util.HashMap;
+import java.util.Map;
 
-    public static final String COLNAME = "relocating_node";
+public class ShardReferenceResolver extends AbstractReferenceResolver {
 
-
-    public static final ReferenceInfo INFO_RELOCATING_NODE = SystemReferences.registerShardReference(
-            COLNAME, DataType.STRING);
-
-
-    private final IndexShard indexShard;
+    private final Map<ReferenceIdent, ReferenceImplementation> implementations;
 
     @Inject
-    public ShardRelocatingNodeExpression(IndexShard indexShard) {
-        this.indexShard = indexShard;
+    public ShardReferenceResolver(final Map<ReferenceIdent, ReferenceImplementation> globalImplementations,
+                                  final Map<ReferenceIdent, ShardReferenceImplementation> shardImplementations) {
+        Map<ReferenceIdent, ReferenceImplementation> implementations = new HashMap<>(globalImplementations.size()+shardImplementations.size());
+        implementations.putAll(globalImplementations);
+        implementations.putAll(shardImplementations);
+        this.implementations = ImmutableMap.copyOf(implementations);
     }
 
     @Override
-    public String value() {
-        return indexShard.routingEntry().relocatingNodeId();
-    }
-
-    @Override
-    public ReferenceInfo info() {
-        return INFO_RELOCATING_NODE;
+    protected Map<ReferenceIdent, ReferenceImplementation> implementations() {
+        return implementations;
     }
 
 }

@@ -19,39 +19,10 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.reference.sys.shard;
+package io.crate.metadata.shard.sys;
 
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.shard.sys.SysShardExpression;
-import io.crate.metadata.sys.SystemReferences;
-import org.cratedb.DataType;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.index.shard.service.IndexShard;
+import io.crate.metadata.shard.ShardReferenceImplementation;
+import io.crate.metadata.sys.SysExpression;
 
-public class ShardRelocatingNodeExpression extends SysShardExpression<String> {
-
-    public static final String COLNAME = "relocating_node";
-
-
-    public static final ReferenceInfo INFO_RELOCATING_NODE = SystemReferences.registerShardReference(
-            COLNAME, DataType.STRING);
-
-
-    private final IndexShard indexShard;
-
-    @Inject
-    public ShardRelocatingNodeExpression(IndexShard indexShard) {
-        this.indexShard = indexShard;
-    }
-
-    @Override
-    public String value() {
-        return indexShard.routingEntry().relocatingNodeId();
-    }
-
-    @Override
-    public ReferenceInfo info() {
-        return INFO_RELOCATING_NODE;
-    }
-
+public abstract class SysShardExpression<T> extends SysExpression<T> implements ShardReferenceImplementation {
 }
