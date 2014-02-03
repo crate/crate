@@ -37,8 +37,6 @@ import io.crate.planner.symbol.StringLiteral;
 import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 import org.cratedb.SQLTransportIntegrationTest;
-import org.cratedb.action.sql.SQLAction;
-import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.cluster.ClusterService;
@@ -55,18 +53,18 @@ import static org.hamcrest.number.OrderingComparison.greaterThan;
 public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     private TransportCollectNodeAction transportCollectNodeAction;
-    private TransportSearchAction transportSearchAction;
     private ClusterService clusterService;
-    private Functions functions;
 
-    TransportExecutor executor = new TransportExecutor();
+    private TransportExecutor executor;
 
     @Before
     public void transportSetUp() {
         transportCollectNodeAction = cluster().getInstance(TransportCollectNodeAction.class);
-        transportSearchAction = cluster().getInstance(TransportSearchAction.class);
         clusterService = cluster().getInstance(ClusterService.class);
-        functions = cluster().getInstance(Functions.class);
+
+        Functions functions = cluster().getInstance(Functions.class);
+        TransportSearchAction transportSearchAction = cluster().getInstance(TransportSearchAction.class);
+        executor = new TransportExecutor(transportSearchAction, functions, null);
     }
 
     @Test
@@ -118,7 +116,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 new boolean[] { false },
                 null, null, null
         );
-        ESSearchTask task = new ESSearchTask(node, transportSearchAction, functions, null);
+        Job job = executor.newJob(node);
+        ESSearchTask task = (ESSearchTask)job.tasks().get(0);
 
         task.start();
         Object[][] rows = task.result().get(0).get();
@@ -160,7 +159,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 null, null,
                 whereClause
         );
-        ESSearchTask task = new ESSearchTask(node, transportSearchAction, functions, null);
+        Job job = executor.newJob(node);
+        ESSearchTask task = (ESSearchTask)job.tasks().get(0);
 
         task.start();
         Object[][] rows = task.result().get(0).get();
