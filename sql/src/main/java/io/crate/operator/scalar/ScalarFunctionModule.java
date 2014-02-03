@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,15 +19,24 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata;
+package io.crate.operator.scalar;
 
-import io.crate.operator.Input;
-import io.crate.planner.symbol.Function;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.inject.multibindings.MapBinder;
 
-/**
- * evaluatable function implementation
- * @param <T> the class of the returned value
- */
-public interface Scalar<T> extends FunctionImplementation<Function> {
-    public T evaluate(Input<?>... args);
+public class ScalarFunctionModule extends AbstractModule {
+
+    private MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
+
+    public void registerScalarFunction(FunctionImplementation impl) {
+        functionBinder.addBinding(impl.info().ident()).toInstance(impl);
+    }
+
+    @Override
+    protected void configure() {
+        functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
+        functionBinder.addBinding(MatchFunction.INFO.ident()).to(MatchFunction.class);
+    }
 }

@@ -107,7 +107,7 @@ public class LocalDataCollectorTest {
         }
 
         @Override
-        public Symbol normalizeSymbol(Symbol symbol) {
+        public Symbol normalizeSymbol(Function symbol) {
             return symbol;
         }
     }
