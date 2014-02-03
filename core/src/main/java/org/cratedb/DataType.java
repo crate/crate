@@ -332,6 +332,15 @@ public enum DataType {
             OBJECT_SET
     );
 
+    public static final ImmutableSet<DataType> SET_NUMERIC_TYPES = ImmutableSet.of(
+            BYTE_SET,
+            SHORT_SET,
+            INTEGER_SET,
+            LONG_SET,
+            FLOAT_SET,
+            DOUBLE_SET
+    );
+
     public static final ImmutableSet<DataType> INTEGER_TYPES = ImmutableSet.of(
             BYTE,
             SHORT,
