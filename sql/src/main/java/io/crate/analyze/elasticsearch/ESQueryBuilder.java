@@ -31,6 +31,7 @@ import io.crate.lucene.SQLToLuceneHelper;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operator.operator.*;
+import io.crate.operator.scalar.MatchFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.plan.ESSearchNode;
 import io.crate.planner.symbol.*;
@@ -305,6 +306,15 @@ public class ESQueryBuilder {
             }
         }
 
+        class MatchConverter extends CmpConverter {
+
+            @Override
+            public void convert(Function function, Context context) throws IOException {
+                Tuple<String, Object> tuple = super.prepare(function);
+                context.builder.startObject("match").field(tuple.v1(), tuple.v2()).endObject();
+            }
+        }
+
         private ImmutableMap<String, Converter> functions =
                 ImmutableMap.<String, Converter>builder()
                         .put(AndOperator.NAME, new AndConverter())
@@ -318,6 +328,7 @@ public class ESQueryBuilder {
                         .put(LikeOperator.NAME, new LikeConverter())
                         .put(IsNullOperator.NAME, new IsNullConverter())
                         .put(NotOperator.NAME, new NotConverter())
+                        .put(MatchFunction.NAME, new MatchConverter())
                         .build();
 
         @Override

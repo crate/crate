@@ -24,6 +24,8 @@ package io.crate.analyze.elasticsearch;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.operator.operator.*;
+import io.crate.operator.scalar.MatchFunction;
+import io.crate.operator.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.plan.ESSearchNode;
 import io.crate.planner.symbol.*;
@@ -70,6 +72,7 @@ public class ESQueryBuilderTest {
     public void setUp() throws Exception {
         functions = new ModulesBuilder()
                 .add(new OperatorModule())
+                .add(new ScalarFunctionModule())
                 .createInjector().getInstance(Functions.class);
         generator = new ESQueryBuilder(functions, null);
     }
@@ -199,6 +202,15 @@ public class ESQueryBuilderTest {
 
         Function isNull = new Function(isNullImpl.info(), Arrays.<Symbol>asList(extrafield));
         xcontetAssert(isNull, "{\"query\":{\"filtered\":{\"filter\":{\"missing\":{\"field\":\"extrafield\",\"existence\":true,\"null_value\":true}}}}}");
+    }
+
+    @Test
+    public void testWhereReferenceMatchString() throws Exception {
+        FunctionImplementation matchImpl = functions.get(MatchFunction.INFO.ident());
+        Function match = new Function(matchImpl.info(),
+                Arrays.<Symbol>asList(name_ref, new StringLiteral("arthur")));
+
+        xcontetAssert(match, "{\"query\":{\"match\":{\"name\":\"arthur\"}}}");
     }
 
     @Test
