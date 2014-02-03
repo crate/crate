@@ -29,6 +29,7 @@ import io.crate.analyze.NormalizationHelper;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.Routing;
+import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.operator.Input;
 import io.crate.operator.RowCollector;
 import io.crate.operator.aggregation.CollectExpression;
@@ -252,7 +253,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
                 shardCollectors.add(
                         new SimpleShardCollector(
                             shardInjector.getInstance(Functions.class),
-                            shardInjector.getInstance(ReferenceResolver.class),
+                            shardInjector.getInstance(ShardReferenceResolver.class),
                             higherGranularityReferences,
                             collectNode.whereClause(),
                             collectResultQueue)

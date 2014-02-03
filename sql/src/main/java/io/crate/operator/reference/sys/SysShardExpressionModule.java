@@ -22,7 +22,7 @@
 package io.crate.operator.reference.sys;
 
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.operator.reference.sys.shard.*;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
@@ -30,8 +30,8 @@ import org.elasticsearch.common.inject.multibindings.MapBinder;
 public class SysShardExpressionModule extends AbstractModule {
     @Override
     protected void configure() {
-        MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
-                .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
+        MapBinder<ReferenceIdent, ShardReferenceImplementation> b = MapBinder
+                .newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
 
         b.addBinding(ShardIdExpression.INFO_ID.ident()).to(ShardIdExpression.class).asEagerSingleton();
         b.addBinding(ShardSizeExpression.INFO_SIZE.ident()).to(ShardSizeExpression.class).asEagerSingleton();

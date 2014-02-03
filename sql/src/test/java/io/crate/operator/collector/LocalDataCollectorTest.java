@@ -25,6 +25,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.crate.metadata.*;
+import io.crate.metadata.shard.ShardReferenceImplementation;
+import io.crate.metadata.shard.ShardReferenceResolver;
+import io.crate.metadata.shard.sys.SysShardExpression;
 import io.crate.operator.Input;
 import io.crate.operator.operations.collect.LocalDataCollectOperation;
 import io.crate.operator.operator.AndOperator;
@@ -112,7 +115,7 @@ public class LocalDataCollectorTest {
         }
     }
 
-    static class ShardIdExpression implements ReferenceImplementation, Input<Integer> {
+    static class ShardIdExpression extends SysShardExpression<Integer> {
         public static final ReferenceIdent ident = new ReferenceIdent(new TableIdent("sys", "shards"), "id");
         public static final ReferenceInfo info = new ReferenceInfo(ident, RowGranularity.SHARD, DataType.INTEGER);
 
@@ -176,9 +179,17 @@ public class LocalDataCollectorTest {
         @Override
         protected void configure() {
             bind(ShardId.class).toInstance(shardId);
-            bind(ReferenceResolver.class).toInstance(new GlobalReferenceResolver(new HashMap<ReferenceIdent, ReferenceImplementation>(){{
-               put(ShardIdExpression.ident, shardIdExpression);
-            }}));
+
+            // global reference map
+            MapBinder<ReferenceIdent, ReferenceImplementation> g = MapBinder
+                    .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
+
+            // shard reference map
+            MapBinder<ReferenceIdent, ShardReferenceImplementation> b = MapBinder
+                    .newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
+            b.addBinding(ShardIdExpression.ident).toInstance(shardIdExpression);
+
+            bind(ShardReferenceResolver.class);
         }
     }
 

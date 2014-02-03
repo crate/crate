@@ -19,39 +19,37 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.reference.sys.shard;
+package io.crate.metadata;
 
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.shard.sys.SysShardExpression;
+import com.google.common.base.Preconditions;
 import io.crate.metadata.sys.SystemReferences;
-import org.cratedb.DataType;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.index.shard.service.IndexShard;
 
-public class ShardRelocatingNodeExpression extends SysShardExpression<String> {
+import java.util.Map;
 
-    public static final String COLNAME = "relocating_node";
+public abstract class AbstractReferenceResolver implements ReferenceResolver {
 
-
-    public static final ReferenceInfo INFO_RELOCATING_NODE = SystemReferences.registerShardReference(
-            COLNAME, DataType.STRING);
-
-
-    private final IndexShard indexShard;
-
-    @Inject
-    public ShardRelocatingNodeExpression(IndexShard indexShard) {
-        this.indexShard = indexShard;
+    @Override
+    public ReferenceInfo getInfo(ReferenceIdent ident) {
+        // TODO: register a resolver for each schema?
+        String schema = ident.tableIdent().schema();
+        Preconditions.checkArgument(SystemReferences.SCHEMA.equals(schema),
+                "Table schema not supported", schema);
+        return SystemReferences.get(ident);
     }
 
     @Override
-    public String value() {
-        return indexShard.routingEntry().relocatingNodeId();
+    public ReferenceImplementation getImplementation(ReferenceIdent ident) {
+        if (ident.isColumn()) {
+            return implementations().get(ident);
+        }
+        ReferenceImplementation impl = implementations().get(ident.columnIdent());
+        if (impl != null) {
+            for (String part : ident.path()) {
+                impl = impl.getChildImplementation(part);
+            }
+        }
+        return impl;
     }
 
-    @Override
-    public ReferenceInfo info() {
-        return INFO_RELOCATING_NODE;
-    }
-
+    protected abstract Map<ReferenceIdent, ReferenceImplementation> implementations();
 }
