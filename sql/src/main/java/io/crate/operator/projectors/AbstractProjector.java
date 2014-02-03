@@ -30,7 +30,7 @@ import javax.annotation.Nullable;
 
 public abstract class AbstractProjector implements Projector {
 
-    private Optional<Projector> downStream;
+    private Optional<Projector> upStream;
     private final Input<?>[] inputs;
     private final CollectExpression<?>[] collectExpressions;
 
@@ -38,16 +38,16 @@ public abstract class AbstractProjector implements Projector {
         this(inputs, collectExpressions, null);
     }
 
-    public AbstractProjector(Input<?>[] inputs, CollectExpression<?>[] collectExpressions, @Nullable Projector downStream) {
+    public AbstractProjector(Input<?>[] inputs, CollectExpression<?>[] collectExpressions, @Nullable Projector upStream) {
         Preconditions.checkArgument(inputs != null);
         Preconditions.checkArgument(collectExpressions != null);
         this.inputs = inputs;
         this.collectExpressions = collectExpressions;
-        this.downStream = Optional.fromNullable(downStream);
+        this.upStream = Optional.fromNullable(upStream);
     }
 
     @Override
-    public void setDownStream(Projector downStream) {
-        this.downStream = Optional.of(downStream);
+    public void setUpStream(Projector upStream) {
+        this.upStream = Optional.of(upStream);
     }
 }

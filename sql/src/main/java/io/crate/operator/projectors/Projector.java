@@ -28,11 +28,18 @@ public interface Projector {
 
     /**
      * set the Projector to hand over the projected rows.
-     * If no downstram Projector was set, rows are simply gathered.
+     * If no upstream Projector was set, rows are simply gathered.
      *
-     * @param downStream the Projector to hand over projected rows
+     * @param upStream the Projector to hand over projected rows
      */
-    public void setDownStream(Projector downStream);
+    public void setUpStream(Projector upStream);
+
+
+    /**
+     * initialize anything needed for proper projecting the projection
+     */
+    public void startProjection();
+
 
     /**
      * feed this Projector with the next input row.

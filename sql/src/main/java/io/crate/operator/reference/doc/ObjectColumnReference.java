@@ -19,37 +19,28 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.projectors;
+package io.crate.operator.reference.doc;
 
-import io.crate.operator.Input;
-import io.crate.operator.aggregation.CollectExpression;
+import org.cratedb.DataType;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
 
-public class NoopProjector extends AbstractProjector {
+public class ObjectColumnReference<ReturnType> extends ColumnReferenceCollectorExpression<Map<String, Object>> {
 
-    public List<Object[]> rows = new ArrayList<>();
-
-    public NoopProjector() {
-        super(new Input<?>[0], new CollectExpression<?>[0]);
+    public ObjectColumnReference(String columnName) {
+        super(columnName);
     }
 
     @Override
-    public void startProjection() {}
-
-    @Override
-    public synchronized boolean setNextRow(Object... row) {
-        rows.add(row);
-        return true;
+    public Map<String, Object> value() {
+        //TODO: this returns null since we are called in aggregation collectors onnly vor now,
+        // once this gets called from result columns it should be implemented
+        return null;
     }
 
     @Override
-    public void finishProjection() {}
-
-    @Override
-    public Object[][] getRows() throws IllegalStateException {
-        return rows.toArray(new Object[rows.size()][]);
+    public DataType returnType() {
+        return DataType.OBJECT;
     }
 
 }

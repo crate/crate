@@ -19,23 +19,26 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.projections;
+package io.crate.operator.reference.doc;
 
-import io.crate.operator.operations.ImplementationSymbolVisitor;
-import io.crate.operator.projectors.Projector;
-import io.crate.planner.symbol.Symbol;
-import org.elasticsearch.common.io.stream.Streamable;
-
+import io.crate.operator.Input;
+import org.apache.lucene.index.AtomicReaderContext;
+import org.cratedb.DataType;
 
 /**
- * transforms rows (<code>Object[]</code> instances).
- * you can iterate through it to get the result columns of this projection.
+ * An expression which gets evaluated in the collect phase
  */
-public interface Projection extends Streamable {
+public abstract class CollectorExpression<ReturnType> implements Input<ReturnType> {
 
+    public void startCollect(CollectorContext context){
 
-    public abstract Symbol[] symbols();
+    }
 
-    public abstract Projector getProjector(ImplementationSymbolVisitor symbolVisitor);
+    public void setNextDocId(int doc){
+    }
 
+    public void setNextReader(AtomicReaderContext context){
+    }
+
+    public abstract DataType returnType();
 }

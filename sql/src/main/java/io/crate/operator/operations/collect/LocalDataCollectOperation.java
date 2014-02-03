@@ -25,7 +25,6 @@ import com.google.common.base.Optional;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import com.sun.org.apache.xalan.internal.xsltc.compiler.sym;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.NormalizationHelper;
 import io.crate.metadata.Functions;
@@ -34,16 +33,15 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
+import io.crate.operator.collector.CrateCollector;
+import io.crate.operator.collector.SimpleOneRowCollector;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.operator.projectors.NoopProjector;
+import io.crate.operator.projectors.ProjectionToProjectorVisitor;
 import io.crate.operator.projectors.Projector;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.plan.CollectNode;
-import io.crate.planner.projections.Projection;
+import io.crate.planner.node.CollectNode;
 import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.TableUnknownException;
 import org.elasticsearch.cluster.ClusterService;
@@ -59,10 +57,7 @@ import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -73,7 +68,6 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
 
     public static final Object[][] EMPTY_RESULT = new Object[0][];
     public static final TimeValue timeout = new TimeValue(2, TimeUnit.MINUTES);
-
 
     /**
      * future that is set after configured number of shards signal
@@ -144,14 +138,14 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
 
     /**
      * collect data on node level only - one row per node expected
-     * @param collectNode {@link io.crate.planner.plan.CollectNode} instance containing routing information and symbols to collect
+     * @param collectNode {@link io.crate.planner.node.CollectNode} instance containing routing information and symbols to collect
      * @return the collect result from this node, one row only so return value is <code>Object[1][]</code>
      */
     private ListenableFuture<Object[][]> handleNodeCollect(CollectNode collectNode) {
         SettableFuture<Object[][]> result = SettableFuture.create();
         Optional<Function> whereClause = collectNode.whereClause();
         if (whereClause.isPresent() && NormalizationHelper.evaluatesToFalse(whereClause.get(), this.normalizer)
-                || collectNode.toCollect() == null || collectNode.toCollect().length == 0) {
+                || collectNode.toCollect() == null || collectNode.toCollect().size() == 0) {
             result.set(EMPTY_RESULT);
             return result;
         }
@@ -168,15 +162,22 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
         assert ctx.maxGranularity().ordinal() <= RowGranularity.NODE.ordinal() : "wrong RowGranularity";
 
         List<Projector> projectors = extractProjectors(collectNode);
+
         new SimpleOneRowCollector(inputs, collectExpressions, projectors.get(0)).collect();
-        result.set(projectors.get(projectors.size() - 1).getRows());
+        projectors.get(0).finishProjection();
+
+        Object[][] collected = projectors.get(projectors.size() - 1).getRows();
+        if (logger.isTraceEnabled()) {
+            logger.trace("collected {} from node {}", Objects.toString(Arrays.asList(collected[0])), clusterService.localNode().id());
+        }
+        result.set(collected);
         return result;
     }
 
     /**
-     * collect data on shard level only - one row per shard expected
+     * collect data on shard or doc level
      *
-     * collects data from each shard in a seperate thread,
+     * collects data from each shard in a separate thread,
      * collecting the data into a single state through an {@link java.util.concurrent.ArrayBlockingQueue}.
      *
      * @param collectNode {@link io.crate.planner.plan.CollectNode} containing routing information and symbols to collect
@@ -184,21 +185,17 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
      */
     private ListenableFuture<Object[][]> handleShardCollect(CollectNode collectNode) {
 
-        String localNodeId = clusterService.localNode().id();
-
         Optional<Function> whereClause = collectNode.whereClause();
         if (whereClause.isPresent() && NormalizationHelper.evaluatesToFalse(whereClause.get(), this.normalizer)) {
             SettableFuture<Object[][]> result = SettableFuture.create();
             result.set(EMPTY_RESULT);
             return result;
         }
+
+        String localNodeId = clusterService.localNode().id();
         final int numShards = collectNode.routing().numShards(localNodeId);
-        List<Runnable> shardCollectors = new ArrayList<>(numShards);
-
-
+        List<CrateCollector> shardCollectors = new ArrayList<>(numShards);
         List<Projector> projectors = extractProjectors(collectNode);
-        RowGranularity maxRowgranularity = getMaxGranularity(collectNode);
-
         final ShardCollectFuture result = new ShardCollectFuture(numShards, projectors);
 
         // get shardCollectors from single shards
@@ -215,33 +212,32 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
                 Injector shardInjector;
                 try {
                     shardInjector = indexService.shardInjectorSafe(shardId);
+                    ShardCollectService shardCollectService = shardInjector.getInstance(ShardCollectService.class);
+                    CrateCollector crateCollector = shardCollectService.getCollector(collectNode, projectors.get(0));
+                    shardCollectors.add(crateCollector);
                 } catch(IndexShardMissingException e) {
                     throw new CrateException(
                             String.format("unknown shard id %d on index '%s'",
                                     shardId, entry.getKey()));
+                } catch (Exception e) {
+                    logger.error("Error while getting collector", e);
+                    throw new CrateException(e);
                 }
-                switch(maxRowgranularity) {
-                    case SHARD:
-                        shardCollectors.add(
-                                new SimpleShardCollector(
-                                        shardInjector.getInstance(Functions.class),
-                                        shardInjector.getInstance(ReferenceResolver.class),
-                                        collectNode,
-                                        projectors.get(0),
-                                        result)
-                        );
-                        break;
-                    case DOC:
-                    default:
-                        throw new CrateException("unsupported row granularity");
-                }
-
             }
         }
 
         // start shardCollectors
-        for (Runnable shardCollector : shardCollectors ) {
-            threadPool.executor(ThreadPool.Names.SEARCH).execute(shardCollector);
+        for (final CrateCollector shardCollector : shardCollectors ) {
+            threadPool.executor(ThreadPool.Names.SEARCH).execute(new Runnable() {
+                @Override
+                public void run() {
+                    shardCollector.doCollect();
+                    result.shardFinished();
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("shard finished collect, {} to go", result.numShards.get());
+                    }
+                }
+            });
         }
         if (logger.isTraceEnabled()) {
             logger.trace("started {} shardCollectors", numShards);
@@ -256,35 +252,14 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
                 this.functions,
                 RowGranularity.NODE
         );
+        ProjectionToProjectorVisitor projectorVisitor = new ProjectionToProjectorVisitor(visitor);
         List<Projector> projectors = new ArrayList<>(collectNode.projections().size());
         if (projectors.size() == 0) {
             projectors.add(new NoopProjector());
         } else {
-            Projector lastProjector = null;
-            for (Projection projection : collectNode.projections()) {
-                Projector p = projection.getProjector(visitor);
-                if (lastProjector != null) {
-                    lastProjector.setDownStream(p);
-                }
-                projectors.add(p);
-                lastProjector = p;
-            }
+            projectors = projectorVisitor.process(collectNode.projections());
         }
         assert projectors.size() >= 1 : "no projectors";
         return projectors;
-    }
-
-    private RowGranularity getMaxGranularity(CollectNode collectNode) {
-        RowGranularity maxRowGranularity = RowGranularity.CLUSTER;
-        for (Symbol symbol : collectNode.toCollect()) {
-            if (symbol.symbolType() == SymbolType.REFERENCE) {
-                RowGranularity symbolGranularity = ((Reference)symbol).info().granularity();
-                if (symbolGranularity.compareTo(maxRowGranularity) > 0) {
-                    maxRowGranularity = symbolGranularity;
-
-                }
-            }
-        }
-        return maxRowGranularity;
     }
 }

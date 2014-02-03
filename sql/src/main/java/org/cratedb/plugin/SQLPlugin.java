@@ -26,6 +26,7 @@ import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.shard.MetaDataShardModule;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.operations.collect.CollectOperationModule;
+import io.crate.operator.operations.collect.CollectShardModule;
 import io.crate.operator.operator.OperatorModule;
 import io.crate.operator.reference.sys.SysClusterExpressionModule;
 import io.crate.operator.reference.sys.SysNodeExpressionModule;
@@ -101,10 +102,10 @@ public class SQLPlugin extends AbstractPlugin {
             modules.add(TransportExecutorModule.class);
             modules.add(CollectOperationModule.class);
             modules.add(MetaDataModule.class);
+            modules.add(OperatorModule.class);
             modules.add(SysClusterExpressionModule.class);
             modules.add(SysNodeExpressionModule.class);
             modules.add(AggregationImplModule.class);
-            modules.add(OperatorModule.class);
             modules.add(ScalarFunctionModule.class);
         }
         return modules;
@@ -116,6 +117,7 @@ public class SQLPlugin extends AbstractPlugin {
         if (!settings.getAsBoolean("node.client", false)) {
             modules.add(MetaDataShardModule.class);
             modules.add(SysShardExpressionModule.class);
+            modules.add(CollectShardModule.class);
         }
         return modules;
     }

@@ -22,7 +22,6 @@
 package io.crate.metadata.shard;
 
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.shard.sys.SysShardExpression;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 

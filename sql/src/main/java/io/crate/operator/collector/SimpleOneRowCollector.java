@@ -19,11 +19,12 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.operations.collect;
+package io.crate.operator.collector;
 
 import io.crate.operator.AbstractRowCollector;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
+import io.crate.operator.collector.CrateCollector;
 import io.crate.operator.projectors.Projector;
 
 import java.util.Set;
@@ -31,7 +32,7 @@ import java.util.Set;
 /**
  * Simple Collector that only collects one row and does not support any query or aggregation
  */
-public class SimpleOneRowCollector extends AbstractRowCollector<Object[]> {
+public class SimpleOneRowCollector extends AbstractRowCollector<Object[]> implements CrateCollector {
 
     private final Input<?>[] inputs;
     private final Set<CollectExpression<?>> collectExpressions;
@@ -67,7 +68,11 @@ public class SimpleOneRowCollector extends AbstractRowCollector<Object[]> {
 
     @Override
     public Object[] finishCollect() {
-        downStreamProjector.finishProjection();
         return result;
+    }
+
+    @Override
+    public void doCollect() {
+        collect();
     }
 }
