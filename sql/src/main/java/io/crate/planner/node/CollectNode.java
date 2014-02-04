@@ -21,8 +21,8 @@
 
 package io.crate.planner.node;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.Routing;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.projection.Projection;
@@ -34,6 +34,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A plan node which collects data.
@@ -42,11 +43,20 @@ public class CollectNode extends PlanNode {
 
     private Routing routing;
     private List<Symbol> toCollect;
-    private Optional<Function> whereClause;
+    private Function whereClause;
     private RowGranularity maxRowgranularity = RowGranularity.NODE;
 
     public CollectNode() {
         super();
+    }
+
+    @Override
+    public Set<String> executionNodes() {
+        if (routing.hasLocations()) {
+            return routing.locations().keySet();
+        } else {
+            return ImmutableSet.of();
+        }
     }
 
     public CollectNode(String id, Routing routing) {
@@ -58,14 +68,13 @@ public class CollectNode extends PlanNode {
         this.routing = routing;
         this.toCollect = toCollect;
         this.projections = projections;
-        this.whereClause = Optional.absent();
     }
 
-    public Optional<Function> whereClause() {
+    public Function whereClause() {
         return whereClause;
     }
 
-    public void whereClause(Optional<Function> whereClause) {
+    public void whereClause(Function whereClause) {
         this.whereClause = whereClause;
     }
 
@@ -121,14 +130,9 @@ public class CollectNode extends PlanNode {
             routing.readFrom(in);
         }
         if (in.readBoolean()) {
-            Function f = new Function();
-            f.readFrom(in);
-            whereClause = Optional.of(f);
-        } else {
-            whereClause = Optional.absent();
+            whereClause = new Function();
+            whereClause.readFrom(in);
         }
-
-
     }
 
     @Override
@@ -147,9 +151,9 @@ public class CollectNode extends PlanNode {
         } else {
             out.writeBoolean(false);
         }
-        if (whereClause.isPresent()) {
+        if (whereClause != null) {
             out.writeBoolean(true);
-            whereClause.get().writeTo(out);
+            whereClause.writeTo(out);
         } else {
             out.writeBoolean(false);
         }

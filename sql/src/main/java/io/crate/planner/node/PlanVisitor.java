@@ -50,6 +50,10 @@ public class PlanVisitor<C, R> {
         return visitPlanNode(node, context);
     }
 
+    public R visitESSearchNode(ESSearchNode node, C context) {
+        return visitPlanNode(node, context);
+    }
+
     public R visitAggregationProjection(AggregationProjection projection, C context) {
         return visitProjection(projection, context);
     }

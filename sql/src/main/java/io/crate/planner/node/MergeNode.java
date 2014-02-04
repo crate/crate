@@ -21,13 +21,16 @@
 
 package io.crate.planner.node;
 
+import com.google.common.collect.ImmutableSet;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A plan node which merges results from upstreams
@@ -35,8 +38,36 @@ import java.util.List;
 public class MergeNode extends PlanNode {
 
     private List<DataType> inputTypes;
+    private int numUpstreams;
+    private Set<String> executionNodes;
 
     public MergeNode() {
+    }
+
+    @Override
+    public Set<String> executionNodes() {
+        if (executionNodes == null) {
+            return ImmutableSet.of();
+        } else {
+            return executionNodes;
+        }
+    }
+
+    public void executionNodes(Set<String> executionNodes) {
+        this.executionNodes = executionNodes;
+    }
+
+    public MergeNode(String id, int numUpstreams) {
+        super(id);
+        this.numUpstreams = numUpstreams;
+    }
+
+    public int numUpstreams() {
+        return numUpstreams;
+    }
+
+    public void numUpstreams(int numUpstreams) {
+        this.numUpstreams = numUpstreams;
     }
 
     public List<DataType> inputTypes() {
@@ -63,7 +94,14 @@ public class MergeNode extends PlanNode {
                 inputTypes.add(DataType.values()[in.readVInt()]);
             }
         }
+        int numExecutionNodes = in.readVInt();
 
+        if (numExecutionNodes > 0) {
+            executionNodes = new HashSet<>(numExecutionNodes);
+            for (int i = 0; i < numExecutionNodes; i++) {
+                executionNodes.add(in.readString());
+            }
+        }
     }
 
     @Override
@@ -75,6 +113,17 @@ public class MergeNode extends PlanNode {
         for (int i = 0; i < numCols; i++) {
             out.writeVInt(inputTypes.get(i).ordinal());
         }
+
+        if (executionNodes == null) {
+            out.writeVInt(0);
+        } else {
+            out.writeVInt(executionNodes.size());
+            for (String node : executionNodes) {
+                out.writeString(node);
+            }
+        }
+
+
     }
 
 }

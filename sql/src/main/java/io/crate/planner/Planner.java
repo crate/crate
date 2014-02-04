@@ -21,12 +21,16 @@
 
 package io.crate.planner;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import io.crate.analyze.Analysis;
 import io.crate.planner.node.CollectNode;
+import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.node.MergeNode;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import org.elasticsearch.common.inject.Singleton;
@@ -61,6 +65,17 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             return ic;
         }
 
+
+        public Symbol allocateAggregation(Aggregation aggregation) {
+            InputColumn ic = aggregations.get(aggregation);
+            if (ic == null) {
+                ic = new InputColumn(aggregations.size());
+                aggregations.put(aggregation, ic);
+            }
+            return ic;
+
+        }
+
         public Symbol allocateAggregation(Function function) {
             if (toAggStep == null) {
                 return function;
@@ -68,13 +83,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             Aggregation agg = new Aggregation(function.info().ident(), function.arguments(),
                     Aggregation.Step.ITER, toAggStep);
 
-            InputColumn ic = aggregations.get(agg);
-            if (ic == null) {
-                ic = new InputColumn(aggregations.size());
-                aggregations.put(agg, ic);
-            }
-
-
+            Symbol ic = allocateAggregation(agg);
             // split the aggregation if we are not final
             if (toAggStep == Aggregation.Step.FINAL) {
                 return ic;
@@ -110,13 +119,28 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             return context.allocateSymbol(symbol);
         }
 
+        @Override
+        public Symbol visitInputColumn(InputColumn inputColumn, Context context) {
+            // override to make sure we do not replace a symbol twice
+            return inputColumn;
+        }
 
         public void process(List<Symbol> symbols, Context context) {
             if (symbols != null) {
-                for (Symbol symbol : symbols) {
-                    process(symbol, context);
+                for (int i = 0; i < symbols.size(); i++) {
+                    symbols.set(i, process(symbols.get(i), context));
                 }
             }
+        }
+
+        @Override
+        public Symbol visitReference(Reference symbol, Context context) {
+            return super.visitReference(symbol, context);
+        }
+
+        @Override
+        public Symbol visitAggregation(Aggregation symbol, Context context) {
+            return context.allocateAggregation(symbol);
         }
 
         @Override
@@ -124,12 +148,11 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             if (function.info().isAggregate()) {
                 // split off below aggregates
                 for (int i = 0; i < function.arguments().size(); i++) {
-                    InputColumn ic = context.allocateSymbol(function.arguments().get(i));
+                    Symbol ic = process(function.arguments().get(i), context);
                     // note, that this modifies the tree
                     function.arguments().set(i, ic);
                 }
-                context.allocateAggregation(function);
-                return function;
+                return context.allocateAggregation(function);
             } else {
                 return context.allocateSymbol(function);
             }
@@ -143,38 +166,102 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
 
         Plan plan = new Plan();
 
-        if (analysis.hasAggregates() && !analysis.hasGroupBy()) {
-            // global aggregate: collect and partial aggregate on C and final agg on H
-            Context context = new Context(Aggregation.Step.PARTIAL, analysis.hasGroupBy());
-            nodeVisitor.process(analysis.outputSymbols(), context);
-            nodeVisitor.process(analysis.groupBy(), context);
-            nodeVisitor.process(analysis.sortSymbols(), context);
+        if (analysis.hasAggregates()) {
+            if (analysis.hasGroupBy()) {
+                throw new UnsupportedOperationException("groupd aggregates query plan not implemented");
+            } else {
+                // global aggregate: collect and partial aggregate on C and final agg on H
+                Context context = new Context(Aggregation.Step.PARTIAL, analysis.hasGroupBy());
+                nodeVisitor.process(analysis.outputSymbols(), context);
+                nodeVisitor.process(analysis.groupBy(), context);
+                nodeVisitor.process(analysis.sortSymbols(), context);
 
-            CollectNode collectNode = new CollectNode();
-            collectNode.routing(analysis.routing());
-            collectNode.toCollect(context.symbolList());
+                CollectNode collectNode = new CollectNode();
+                collectNode.routing(analysis.routing());
+                collectNode.whereClause(analysis.whereClause());
+                collectNode.toCollect(context.symbolList());
 
-            AggregationProjection ap = new AggregationProjection();
-            ap.aggregations(context.aggregationList());
-            collectNode.projections(ImmutableList.<Projection>of(ap));
+                AggregationProjection ap = new AggregationProjection();
+                ap.aggregations(context.aggregationList());
+                collectNode.projections(ImmutableList.<Projection>of(ap));
 
-            plan.add(collectNode);
+                plan.add(collectNode);
 
-            // the hander stuff
-            Context mergeContext = new Context(Aggregation.Step.FINAL, analysis.hasGroupBy());
-            nodeVisitor.process(analysis.outputSymbols(), mergeContext);
-            nodeVisitor.process(analysis.groupBy(), mergeContext);
-            nodeVisitor.process(analysis.sortSymbols(), mergeContext);
+                // the hander stuff
+                Context mergeContext = new Context(Aggregation.Step.FINAL, analysis.hasGroupBy());
+                nodeVisitor.process(analysis.outputSymbols(), mergeContext);
+                nodeVisitor.process(analysis.groupBy(), mergeContext);
+                nodeVisitor.process(analysis.sortSymbols(), mergeContext);
 
-            MergeNode mergeNode = new MergeNode();
-            ap = new AggregationProjection();
-            ap.aggregations(mergeContext.aggregationList());
-            mergeNode.projections(ImmutableList.<Projection>of(ap));
-            plan.add(mergeNode);
+                MergeNode mergeNode = new MergeNode();
+                ap = new AggregationProjection();
+                ap.aggregations(mergeContext.aggregationList());
+                mergeNode.projections(ImmutableList.<Projection>of(ap));
+                plan.add(mergeNode);
+            }
         } else {
-            throw new UnsupportedOperationException("query plan not implemented");
-        }
+            if (analysis.hasGroupBy()) {
+                throw new UnsupportedOperationException("groups without aggregates query plan not implemented");
+            } else {
+                if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal()) {
+                    // this is an es query
+                    // this only supports references as order by
+                    List<Reference> orderBy;
+                    if (analysis.isSorted()) {
+                        orderBy = Lists.transform(analysis.sortSymbols(), new com.google.common.base.Function<Symbol, Reference>() {
+                            @Override
+                            public Reference apply(Symbol input) {
+                                Preconditions.checkArgument(input.symbolType() == SymbolType.REFERENCE,
+                                        "Unsupported order symbol for ESPlan", input);
+                                return (Reference) input;
+                            }
+                        });
 
+                    } else {
+                        orderBy = null;
+                    }
+                    ESSearchNode node = new ESSearchNode(
+                            analysis.outputSymbols(),
+                            orderBy,
+                            analysis.reverseFlags(),
+                            analysis.limit(),
+                            analysis.offset(),
+                            analysis.whereClause()
+                    );
+                    plan.add(node);
+                } else {
+                    // node or shard level normal select
+                    Context context = new Context(null, false);
+                    nodeVisitor.process(analysis.outputSymbols(), context);
+                    nodeVisitor.process(analysis.sortSymbols(), context);
+
+                    CollectNode collectNode = new CollectNode();
+                    collectNode.routing(analysis.routing());
+                    collectNode.whereClause(analysis.whereClause());
+                    collectNode.toCollect(context.symbolList());
+
+                    plan.add(collectNode);
+
+                    if (analysis.limit() != null) {
+                        TopNProjection tnp = new TopNProjection(
+                                analysis.limit(), analysis.offset(), analysis.sortSymbols(), analysis.reverseFlags());
+                        tnp.outputs(analysis.outputSymbols());
+                        collectNode.projections(ImmutableList.<Projection>of(tnp));
+                    }
+
+                    // TODO: nodes() for merge node to tell where to run
+                    // TODO: num upstreams
+                    nodeVisitor.process(analysis.outputSymbols(), context);
+                    nodeVisitor.process(analysis.sortSymbols(), context);
+                    MergeNode mergeNode = new MergeNode();
+                    TopNProjection tnp = new TopNProjection(
+                            analysis.limit(), analysis.offset(), analysis.sortSymbols(), analysis.reverseFlags());
+                    tnp.outputs(analysis.outputSymbols());
+                    mergeNode.projections(ImmutableList.<Projection>of(tnp));
+                    plan.add(mergeNode);
+                }
+            }
+        }
         return plan;
     }
 }

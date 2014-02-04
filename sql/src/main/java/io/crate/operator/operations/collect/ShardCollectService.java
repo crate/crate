@@ -93,8 +93,8 @@ public class ShardCollectService {
         CrateCollector result;
         RowGranularity granularity = collectNode.maxRowGranularity();
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, granularity, referenceResolver);
-        Optional<Function> whereClause = collectNode.whereClause();
-        if (whereClause.isPresent() && NormalizationHelper.evaluatesToFalse(whereClause.get(), normalizer)) {
+        Function whereClause = collectNode.whereClause();
+        if (whereClause != null  && NormalizationHelper.evaluatesToFalse(whereClause, normalizer)) {
             result = NOOP_COLLECTOR;
         } else {
             ImplementationSymbolVisitor visitor = new ImplementationSymbolVisitor(referenceResolver, functions, granularity);
