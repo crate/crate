@@ -16,7 +16,6 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   quick-guide
    hello
    installation
    configuration
