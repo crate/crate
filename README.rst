@@ -139,7 +139,7 @@ Once that is done, we suggest to continue as follows:
 3. Add your contributions (``git commit -am "Added feature"``)
 
 4. Commit and publish your feature branch to your own fork
-   (``git push -u origin my_markup``).
+   (``git push -u origin my_feature``).
 
 5. Create a `pull requests <https://help.github.com/articles/using-pull-requests>`_
    specifying the Crate repository as the destination.
