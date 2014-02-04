@@ -22,14 +22,16 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.Routing;
-import io.crate.metadata.Routings;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.sys.SystemReferences;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.aggregation.impl.AverageAggregation;
+import io.crate.operator.operator.EqOperator;
+import io.crate.operator.operator.LteOperator;
+import io.crate.operator.operator.OperatorModule;
+import io.crate.operator.operator.OrOperator;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
+import io.crate.planner.symbol.DoubleLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.sql.parser.SqlParser;
@@ -41,6 +43,7 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
+import org.hamcrest.core.IsInstanceOf;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -109,6 +112,7 @@ public class AnalyzerTest {
                 .add(new TestModule())
                 .add(new TestMetaDataModule())
                 .add(new AggregationImplModule())
+                .add(new OperatorModule())
                 .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
     }
@@ -184,6 +188,29 @@ public class AnalyzerTest {
         assertTrue(col1.info().isAggregate());
         assertEquals(AverageAggregation.NAME, col1.info().ident().name());
 
+    }
+
+    @Test
+    public void testWhereSelect() throws Exception {
+        Statement statement = SqlParser.createStatement("select load from sys.nodes " +
+                "where load['1'] = 1.2 or load['5'] <= 1.0 ");
+        Analysis analysis = analyzer.analyze(statement);
+        assertTrue(analysis.routing().hasLocations());
+        assertFalse(analysis.hasGroupBy());
+
+        Function whereClause = analysis.whereClause();
+        assertEquals(OrOperator.NAME, whereClause.info().ident().name());
+        assertFalse(whereClause.info().isAggregate());
+
+        Function left = (Function)whereClause.arguments().get(0);
+        assertEquals(EqOperator.NAME, left.info().ident().name());
+        assertThat(left.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(left.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
+
+        Function right = (Function)whereClause.arguments().get(1);
+        assertEquals(LteOperator.NAME, right.info().ident().name());
+        assertThat(left.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(left.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
     }
 
 

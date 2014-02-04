@@ -1,10 +1,15 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import io.crate.metadata.*;
-import io.crate.planner.symbol.*;
+import com.google.common.collect.ImmutableList;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.TableIdent;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.ValueSymbol;
 import io.crate.sql.tree.*;
-import io.crate.sql.tree.StringLiteral;
 import org.cratedb.DataType;
 
 import java.util.ArrayList;
@@ -29,10 +34,9 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
         process(node.getSelect(), context);
         if (node.getWhere().isPresent()) {
-            // TODO: create a function out of this
-            throw new UnsupportedOperationException("where clause not implemented in analyzer");
+            Function function = (Function)node.getWhere().get().accept(this, context);
+            context.whereClause(function);
         }
-
 
 
         if (node.getGroupBy().size()>0){
@@ -129,6 +133,18 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
         return new io.crate.planner.symbol.StringLiteral(node.getValue());
     }
 
+    @Override
+    protected Symbol visitDoubleLiteral(DoubleLiteral node, Analysis context) {
+        context.putType(node, DataType.DOUBLE);
+        return new io.crate.planner.symbol.DoubleLiteral(node.getValue());
+    }
+
+    @Override
+    protected Symbol visitLongLiteral(LongLiteral node, Analysis context) {
+        context.putType(node, DataType.LONG);
+        return new io.crate.planner.symbol.LongLiteral(node.getValue());
+    }
+
     // TODO: implement for every expression that can be used as an argument to a functionCall
 
     @Override
@@ -144,4 +160,57 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
                 context.table(), subscriptContext.column(), subscriptContext.parts());
         return context.allocateReference(ident);
     }
+
+    @Override
+    protected Function visitLogicalBinaryExpression(LogicalBinaryExpression node, Analysis context) {
+        List<Symbol> arguments = new ArrayList<>(2);
+        arguments.add(process(node.getLeft(), context));
+        arguments.add(process(node.getRight(), context));
+
+        FunctionIdent functionIdent = new FunctionIdent("op_"+node.getType().name().toLowerCase(),
+                ImmutableList.of(DataType.BOOLEAN, DataType.BOOLEAN));
+        FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
+
+        return context.allocateFunction(functionInfo, arguments);
+    }
+
+    @Override
+    protected Function visitComparisonExpression(ComparisonExpression node, Analysis context) {
+        List<Symbol> arguments = new ArrayList<>(2);
+        arguments.add(process(node.getLeft(), context));
+        arguments.add(process(node.getRight(), context));
+
+        // TODO: swap arguments if left is not a reference
+
+        // resolve argument types
+        List<DataType> argumentTypes = new ArrayList<>(arguments.size());
+        for(Symbol argument : arguments) {
+            switch (argument.symbolType()) {
+                case STRING_LITERAL:
+                case BOOLEAN_LITERAL:
+                case LONG_LITERAL:
+                case INTEGER_LITERAL:
+                case DOUBLE_LITERAL:
+                case FLOAT_LITERAL:
+                case VALUE:
+                case FUNCTION:
+                case REFERENCE:
+                    argumentTypes.add(((ValueSymbol)argument).valueType());
+                    break;
+                case NULL_LITERAL:
+                    argumentTypes.add(DataType.NULL);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("unsupported symbol type " + argument.symbolType().toString());
+            }
+        }
+
+        // TODO: register comparison operators for all numeric type permutations
+
+        FunctionIdent functionIdent = new FunctionIdent("op_" + node.getType().getValue(), argumentTypes);
+        FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
+
+        return context.allocateFunction(functionInfo, arguments);
+    }
+
 }

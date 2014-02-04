@@ -3,11 +3,11 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.Query;
-import io.crate.sql.tree.SubscriptExpression;
 import org.cratedb.DataType;
 
 import java.util.*;
@@ -40,6 +40,7 @@ public class Analysis {
     private List<Symbol> sortSymbols;
     private RowGranularity rowGranularity;
     private boolean hasAggregates = false;
+    private Function whereClause;
 
     public Analysis(ReferenceResolver referenceResolver, Functions functions, Routings routings) {
         this.referenceResolver = referenceResolver;
@@ -214,8 +215,11 @@ public class Analysis {
         return function;
     }
 
+    public void whereClause(Function whereClause) {
+        this.whereClause = whereClause;
+    }
+
     public Function whereClause() {
-        // TODO: where clause as function
-        return null;
+        return whereClause;
     }
 }
