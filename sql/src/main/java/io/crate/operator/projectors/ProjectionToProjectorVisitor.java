@@ -21,10 +21,13 @@
 
 package io.crate.operator.projectors;
 
+import io.crate.operator.Input;
+import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.planner.projection.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -72,7 +75,45 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
 
     @Override
     public Projector visitTopNProjection(TopNProjection projection, Context context) {
-        return super.visitTopNProjection(projection, context);
+        Projector projector;
+        List<Input<?>> inputs = new ArrayList<>();
+        List<CollectExpression<?>> collectExpressions = new ArrayList<>();
+
+        ImplementationSymbolVisitor.Context ctx = symbolVisitor.process(projection.outputs());
+        inputs.addAll(Arrays.asList(ctx.topLevelInputs()));
+        collectExpressions.addAll(ctx.collectExpressions());
+
+        if (projection.isOrdered()) {
+            int numOutputs = inputs.size();
+            ImplementationSymbolVisitor.Context orderByCtx = symbolVisitor.process(projection.orderBy());
+
+            // append orderby inputs to row, needed for sorting on them
+            inputs.addAll(Arrays.asList(orderByCtx.topLevelInputs()));
+            collectExpressions.addAll(orderByCtx.collectExpressions());
+
+            int[] orderByIndices = new int[inputs.size()-numOutputs];
+            int idx = 0;
+            for (int i=numOutputs; i<inputs.size(); i++) {
+                orderByIndices[idx++] = i;
+            }
+
+            projector = new SortingTopNProjector(
+                    inputs.toArray(new Input<?>[inputs.size()]),
+                    collectExpressions.toArray(new CollectExpression[collectExpressions.size()]),
+                    numOutputs,
+                    orderByIndices,
+                    projection.reverseFlags(),
+                    projection.limit(),
+                    projection.offset());
+        } else {
+            projector = new SimpleTopNProjector(
+                    inputs.toArray(new Input<?>[inputs.size()]),
+                    collectExpressions.toArray(new CollectExpression[collectExpressions.size()]),
+                    projection.limit(),
+                    projection.offset());
+        }
+        context.add(projector);
+        return projector;
     }
 
     @Override
