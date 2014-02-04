@@ -21,6 +21,7 @@
 
 package io.crate.planner.symbol;
 
+import com.google.common.base.Objects;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -29,7 +30,7 @@ import java.io.IOException;
 /**
  * A symbol which represents a column of a result array
  */
-public class InputColumn extends Symbol {
+public class InputColumn extends Symbol implements Comparable<InputColumn> {
 
     public static final SymbolFactory<InputColumn> FACTORY = new SymbolFactory<InputColumn>() {
         @Override
@@ -72,4 +73,18 @@ public class InputColumn extends Symbol {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(index);
     }
+
+    @Override
+    public int compareTo(InputColumn o) {
+        return Integer.compare(index, o.index);
+    }
+
+    @Override
+    public String toString() {
+        return Objects.toStringHelper(this)
+                .add("index", index)
+                .toString();
+    }
+
+
 }
