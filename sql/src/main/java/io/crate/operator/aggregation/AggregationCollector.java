@@ -28,35 +28,111 @@ import io.crate.planner.symbol.Aggregation;
 public class AggregationCollector implements RowCollector {
 
     private final Input[] inputs;
-    private final Aggregation aggregation;
+    private final AggregationFunction aggregationFunction;
+    private final FromImpl fromImpl;
+    private final ToImpl toImpl;
+
     private AggregationState aggregationState;
-    private AggregationFunction aggregationFunction;
 
     public AggregationCollector(Aggregation a, AggregationFunction aggregationFunction, Input... inputs) {
-        // TODO: implement othe start end steps
-        assert (a.fromStep() == Aggregation.Step.ITER);
-        assert (a.toStep() == Aggregation.Step.FINAL);
+        if (a.fromStep() == Aggregation.Step.PARTIAL && inputs.length > 1) {
+            throw new UnsupportedOperationException("Aggregation from PARTIAL is only allowed with one input.");
+        }
+
+        switch (a.fromStep()) {
+            case ITER:
+                fromImpl = new FromIter();
+                break;
+            case PARTIAL:
+                fromImpl = new FromPartial();
+                break;
+            case FINAL:
+                throw new UnsupportedOperationException("Can't start from FINAL");
+            default:
+                throw new UnsupportedOperationException();
+        }
+
+        switch (a.toStep()) {
+            case ITER:
+                throw new UnsupportedOperationException("Can't aggregate to ITER");
+            case PARTIAL:
+                toImpl = new ToPartial();
+                break;
+            case FINAL:
+                toImpl = new ToFinal();
+                break;
+            default:
+                throw new UnsupportedOperationException();
+        }
+
         this.inputs = inputs;
         this.aggregationFunction = aggregationFunction;
-        this.aggregation = a;
     }
 
     public boolean startCollect() {
-        aggregationState = aggregationFunction.newState();
+        aggregationState = fromImpl.startCollect();
         return true;
     }
 
     public boolean processRow() {
-        return aggregationFunction.iterate(aggregationState, inputs);
+        return fromImpl.processRow();
     }
 
 
     public Object finishCollect() {
-        aggregationState.terminatePartial();
-        return aggregationState.value();
+        return toImpl.finishCollect();
     }
 
     public AggregationState state() {
         return aggregationState;
+    }
+
+
+
+    abstract class FromImpl {
+
+        public AggregationState startCollect() {
+            return aggregationFunction.newState();
+        }
+
+        public abstract boolean processRow();
+    }
+
+    class FromIter extends FromImpl {
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public boolean processRow() {
+            return aggregationFunction.iterate(aggregationState, inputs);
+        }
+    }
+
+    class FromPartial extends FromImpl {
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public boolean processRow() {
+            aggregationState.reduce((AggregationState)inputs[0].value());
+            return true;
+        }
+    }
+
+    static abstract class ToImpl {
+        public abstract Object finishCollect();
+    }
+
+    class ToPartial extends ToImpl {
+        @Override
+        public Object finishCollect() {
+            return aggregationState;
+        }
+    }
+
+    class ToFinal extends ToImpl {
+        @Override
+        public Object finishCollect() {
+            aggregationState.terminatePartial();
+            return aggregationState.value();
+        }
     }
 }
