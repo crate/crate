@@ -82,7 +82,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
     @Override
     public String toString() {
         return Objects.toStringHelper(this)
-                .add("granularity", type)
+                .add("granularity", granularity)
                 .add("ident", ident)
                 .add("type", type)
                 .toString();
