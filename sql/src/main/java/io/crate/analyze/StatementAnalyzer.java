@@ -29,8 +29,11 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
         process(node.getSelect(), context);
         if (node.getWhere().isPresent()) {
-            process(node.getWhere().get(), context);
+            // TODO: create a function out of this
+            throw new UnsupportedOperationException("where clause not implemented in analyzer");
         }
+
+
 
         if (node.getGroupBy().size()>0){
             List<Symbol> groupBy = new ArrayList<>(node.getGroupBy().size());

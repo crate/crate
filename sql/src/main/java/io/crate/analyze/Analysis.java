@@ -134,6 +134,11 @@ public class Analysis {
         return limit;
     }
 
+    public Integer offset() {
+        // TODO: implement offset
+        return 0;
+    }
+
     public void groupBy(List<Symbol> groupBy) {
         this.groupBy = groupBy;
     }
@@ -207,5 +212,10 @@ public class Analysis {
             functionSymbols.put(function, function);
         }
         return function;
+    }
+
+    public Function whereClause() {
+        // TODO: where clause as function
+        return null;
     }
 }
