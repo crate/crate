@@ -26,9 +26,9 @@ package io.crate.planner.plan;
 @Deprecated
 public class PlanVisitor<C, R> {
 
-    protected void visitSources(PlanNode node, C context){
-        if (node.sources() != null){
-            for (PlanNode source: node.sources()){
+    protected void visitSources(PlanNode node, C context) {
+        if (node.sources() != null) {
+            for (PlanNode source : node.sources()) {
                 source.accept(this, context);
             }
         }

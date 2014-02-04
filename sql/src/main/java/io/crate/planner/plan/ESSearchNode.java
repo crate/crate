@@ -30,7 +30,6 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.cratedb.Constants;
-import org.cratedb.service.SQLParseService;
 import org.elasticsearch.common.Nullable;
 
 import java.util.List;

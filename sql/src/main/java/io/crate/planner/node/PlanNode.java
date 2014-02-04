@@ -37,7 +37,7 @@ public abstract class PlanNode implements Streamable {
     private List<Projection> projections;
     private List<DataType> outputTypes;
 
-    protected PlanNode() {
+    public PlanNode() {
 
     }
 
@@ -47,6 +47,18 @@ public abstract class PlanNode implements Streamable {
 
     public String id() {
         return id;
+    }
+
+    public boolean hasProjections() {
+        return projections != null && projections.size() > 0;
+    }
+
+    public List<Projection> projections() {
+        return projections;
+    }
+
+    public void projections(List<Projection> projections) {
+        this.projections = projections;
     }
 
     public void outputTypes(List<DataType> outputTypes) {
@@ -97,10 +109,6 @@ public abstract class PlanNode implements Streamable {
                 Projection.toStream(p, out);
             }
         }
-    }
-
-    private boolean hasProjections() {
-        return projections != null && projections.size() > 0;
     }
 
     @Override
