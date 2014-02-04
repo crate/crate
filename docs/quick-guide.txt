@@ -4,8 +4,8 @@ Quick Guide
 
 Our quick guide tries to get you started within minutes.
 
-Installation
-------------
+A Crate instance in 5 minutes
+-----------------------------
 
 - Download_ the latest release and unzip the archive.
 

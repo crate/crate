@@ -27,8 +27,8 @@ Crate...
 Getting Started
 ===============
 
-Installation
-------------
+A Crate instance in 5 minutes
+-----------------------------
 
 - Download_ the latest release and unzip the archive.
 
