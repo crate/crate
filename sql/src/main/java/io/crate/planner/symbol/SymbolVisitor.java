@@ -32,7 +32,6 @@ public class SymbolVisitor<C, R> {
         return symbol.accept(this, context);
     }
 
-
     protected R visitSymbol(Symbol symbol, C context) {
         return null;
     }

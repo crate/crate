@@ -25,13 +25,11 @@ import io.crate.metadata.*;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
+import io.crate.operator.aggregation.impl.CountAggregation;
 import io.crate.operator.scalar.MatchFunction;
 import io.crate.operator.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.LongLiteral;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
@@ -123,5 +121,53 @@ public class ImplementationSymbolVisitorTest {
         assertThat(inputs.length, is(2));
         assertThat((Long)inputs[0].value(), is(1L));
         assertThat((Long) inputs[1].value(), is(4L));  // multiplied value
+    }
+
+    @Test
+    public void testProcessGroupByProjectionSymbolsAggregation() throws Exception {
+        // select count(x), x, y * 2 ... group by x, y * 2
+
+        // keys: [ in(0), multiply(in(1)) ]
+        Function multiply = new Function(
+                MultiplyFunction.INFO, Arrays.<Symbol>asList(new InputColumn(1))
+        );
+        List<Symbol> keys = Arrays.asList(new InputColumn(0), multiply);
+
+
+        // values: [ count(in(0)) ]
+        List<Aggregation> values = Arrays.asList(new Aggregation(
+                new FunctionIdent(CountAggregation.NAME, Arrays.asList(DataType.LONG)),
+                Arrays.<Symbol>asList(new InputColumn(0)),
+                Aggregation.Step.ITER,
+                Aggregation.Step.PARTIAL
+        ));
+
+        ImplementationSymbolVisitor.Context context = visitor.process(keys);
+        // inputs: [ x, multiply ]
+        Input<?>[] keyInputs = context.topLevelInputs();
+
+        for (Aggregation value : values) {
+            visitor.process(value, context);
+        }
+
+        ImplementationSymbolVisitor.AggregationContext[] aggregations = context.aggregations();
+        assertThat(aggregations.length, is(1));
+
+        // collectExpressions: [ in0, in1 ]
+        assertThat(context.collectExpressions().size(), is(2));
+
+        Input<?>[] allInputs = context.topLevelInputs();
+        assertThat(allInputs.length, is(2)); // only 2 because count is no input
+
+        CollectExpression[] collectExpressions = context.collectExpressions().toArray(new CollectExpression[2]);
+        collectExpressions[0].setNextRow(1L, 2L);
+        collectExpressions[1].setNextRow(1L, 2L);
+        assertThat((Long) collectExpressions[0].value(), is(1L));
+        assertThat((Long) collectExpressions[1].value(), is(2L)); // raw input value
+
+
+        assertThat(keyInputs.length, is(2));
+        assertThat((Long)keyInputs[0].value(), is(1L));
+        assertThat((Long) keyInputs[1].value(), is(4L));  // multiplied value
     }
 }

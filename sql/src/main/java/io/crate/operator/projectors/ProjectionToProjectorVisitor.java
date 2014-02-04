@@ -25,6 +25,8 @@ import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.planner.projection.*;
+import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.Symbol;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -118,6 +120,17 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
 
     @Override
     public Projector visitGroupProjection(GroupProjection projection, Context context) {
-        return super.visitGroupProjection(projection, context);
+        ImplementationSymbolVisitor.Context symbolContext = symbolVisitor.process(projection.keys());
+        Input<?>[] keyInputs = symbolContext.topLevelInputs();
+
+        for (Aggregation aggregation : projection.values()) {
+            symbolVisitor.process(aggregation, symbolContext);
+        }
+
+        return new GroupingProjector(
+                keyInputs,
+                symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
+                symbolContext.aggregations()
+        );
     }
 }
