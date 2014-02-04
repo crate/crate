@@ -24,7 +24,6 @@ package io.crate.operator.collector;
 import io.crate.operator.AbstractRowCollector;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
-import io.crate.operator.collector.CrateCollector;
 import io.crate.operator.projectors.Projector;
 
 import java.util.Set;
@@ -37,13 +36,13 @@ public class SimpleOneRowCollector extends AbstractRowCollector<Object[]> implem
     private final Input<?>[] inputs;
     private final Set<CollectExpression<?>> collectExpressions;
     private final Object[] result;
-    private final Projector downStreamProjector;
+    private final Projector upStreamProjector;
 
-    public SimpleOneRowCollector(Input<?>[] inputs, Set<CollectExpression<?>> collectExpressions, Projector downStreamProjector) {
+    public SimpleOneRowCollector(Input<?>[] inputs, Set<CollectExpression<?>> collectExpressions, Projector upStream) {
         this.inputs = inputs;
         this.result = new Object[inputs.length];
         this.collectExpressions = collectExpressions;
-        this.downStreamProjector = downStreamProjector;
+        this.upStreamProjector = upStream;
     }
 
     @Override
@@ -62,7 +61,7 @@ public class SimpleOneRowCollector extends AbstractRowCollector<Object[]> implem
                 result[i++] = input.value();
             }
         }
-        downStreamProjector.setNextRow(result);
+        upStreamProjector.setNextRow(result);
         return false;
     }
 

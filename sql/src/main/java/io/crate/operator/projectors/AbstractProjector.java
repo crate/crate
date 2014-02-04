@@ -30,9 +30,14 @@ import javax.annotation.Nullable;
 
 public abstract class AbstractProjector implements Projector {
 
-    private Optional<Projector> upStream;
-    private final Input<?>[] inputs;
-    private final CollectExpression<?>[] collectExpressions;
+    protected Optional<Projector> upStream;
+    protected final Input<?>[] inputs;
+    protected final CollectExpression<?>[] collectExpressions;
+
+    public AbstractProjector() {
+        inputs = new Input[0];
+        collectExpressions = new CollectExpression[0];
+    }
 
     public AbstractProjector(Input<?>[] inputs, CollectExpression<?>[] collectExpressions) {
         this(inputs, collectExpressions, null);
