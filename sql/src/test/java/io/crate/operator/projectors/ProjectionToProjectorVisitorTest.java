@@ -29,6 +29,16 @@ import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.StringLiteral;
 import io.crate.planner.symbol.Symbol;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.Functions;
+import io.crate.operator.aggregation.impl.AggregationImplModule;
+import io.crate.operator.aggregation.impl.AverageAggregation;
+import io.crate.operator.aggregation.impl.CountAggregation;
+import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.symbol.Aggregation;
+import org.cratedb.DataType;
+import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,21 +46,28 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
+import static org.junit.Assert.assertThat;
+
 
 public class ProjectionToProjectorVisitorTest {
 
     private ProjectionToProjectorVisitor visitor;
+    private FunctionIdent countIdent;
+    private FunctionIdent avgIdent;
 
     @Before
     public void prepare() {
         ReferenceResolver referenceResolver = new GlobalReferenceResolver(new HashMap<ReferenceIdent, ReferenceImplementation>());
-        Functions functions = new Functions(new HashMap<FunctionIdent, FunctionImplementation>());
+        Injector injector = new ModulesBuilder().add(new AggregationImplModule()).createInjector();
+        Functions functions = injector.getInstance(Functions.class);
         ImplementationSymbolVisitor symbolvisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.NODE);
         visitor = new ProjectionToProjectorVisitor(symbolvisitor);
+
+        countIdent = new FunctionIdent(CountAggregation.NAME, Arrays.asList(DataType.STRING));
+        avgIdent = new FunctionIdent(AverageAggregation.NAME, Arrays.asList(DataType.INTEGER));
     }
 
 
@@ -116,5 +133,45 @@ public class ProjectionToProjectorVisitorTest {
         }
 
 
+    }
+
+    @Test
+    public void testGroupProjector() {
+        //         in(0)  in(1)      in(0),      in(2)
+        // select  race, avg(age), count(race), gender  ... group by race, gender
+        GroupProjection projection = new GroupProjection();
+        projection.keys(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(2)));
+        projection.values(Arrays.asList(
+                new Aggregation(avgIdent, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
+                new Aggregation(countIdent, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL)
+        ));
+
+        Projector projector = visitor.process(projection, null);
+        assertThat(projector, instanceOf(GroupingProjector.class));
+
+        projector.startProjection();
+        projector.setNextRow("human", 34, "male");
+        projector.setNextRow("human", 22, "female");
+        projector.setNextRow("vogon", 40, "male");
+        projector.setNextRow("vogon", 48, "male");
+        projector.setNextRow("human", 34, "male");
+        projector.finishProjection();
+
+        Object[][] rows = projector.getRows();
+        assertThat(rows.length, is(3));
+        assertThat((String)rows[0][0], is("human"));
+        assertThat((String)rows[0][1], is("female"));
+        assertThat((Double)rows[0][2], is(22.0));
+        assertThat((Long)rows[0][3], is(1L));
+
+        assertThat((String)rows[1][0], is("human"));
+        assertThat((String)rows[1][1], is("male"));
+        assertThat((Double)rows[1][2], is(34.0));
+        assertThat((Long)rows[1][3], is(2L));
+
+        assertThat((String)rows[2][0], is("vogon"));
+        assertThat((String)rows[2][1], is("male"));
+        assertThat((Double)rows[2][2], is(44.0));
+        assertThat((Long)rows[2][3], is(2L));
     }
 }

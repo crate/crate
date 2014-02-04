@@ -19,14 +19,14 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.collector;
+package io.crate.operator.projectors;
 
-import com.google.common.base.Preconditions;
 import io.crate.operator.Input;
-import io.crate.operator.RowCollector;
 import io.crate.operator.aggregation.AggregationCollector;
 import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.AggregationState;
+import io.crate.operator.aggregation.CollectExpression;
+import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.planner.symbol.Aggregation;
 
 import java.util.ArrayList;
@@ -34,32 +34,29 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class GroupingCollector implements RowCollector<Object[][]> {
+public class GroupingProjector implements Projector {
 
-    private final Input[] groupKeys;
-    private final Aggregation[] aggregations;
+    private final Input[] keyInputs;
+    private final CollectExpression[] collectExpressions;
 
     private final Map<List<Object>, AggregationState[]> result;
     private final AggregationCollector[] aggregationCollectors;
 
-    public GroupingCollector(Input[] groupKeys,
-                             Input[] aggregationInput,
-                             Aggregation[] aggregations,
-                             AggregationFunction[] functions) {
-        Preconditions.checkArgument(aggregationInput.length == aggregations.length);
-        Preconditions.checkArgument(aggregations.length == functions.length);
+    private Object[][] rows;
+    private Projector upStream = null;
 
-        this.groupKeys = groupKeys;
-        this.aggregations = aggregations;
+    public GroupingProjector(Input[] keyInputs,
+                             CollectExpression[] collectExpressions,
+                             ImplementationSymbolVisitor.AggregationContext[] aggregations) {
+        this.keyInputs = keyInputs;
+        this.collectExpressions = collectExpressions;
 
-        aggregationCollectors = new AggregationCollector[aggregations.length];
+        this.aggregationCollectors = new AggregationCollector[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
-            // TODO: check Steps in aggregation
-
             aggregationCollectors[i] = new AggregationCollector(
-                    aggregations[i],
-                    functions[i],
-                    aggregationInput[i]
+                    aggregations[i].symbol(),
+                    aggregations[i].function(),
+                    aggregations[i].inputs()
             );
         }
 
@@ -67,22 +64,32 @@ public class GroupingCollector implements RowCollector<Object[][]> {
     }
 
     @Override
-    public boolean startCollect() {
-        return true;
+    public void setUpStream(Projector upStream) {
+        this.upStream = upStream;
     }
 
     @Override
-    public boolean processRow() {
+    public void startProjection() {
+        for (CollectExpression collectExpression : collectExpressions) {
+            collectExpression.startCollect();
+        }
+    }
+
+    @Override
+    public synchronized boolean setNextRow(final Object... row) {
+        for (CollectExpression collectExpression : collectExpressions) {
+            collectExpression.setNextRow(row);
+        }
 
         // TODO: use something with better equals() performance for the keys
-        List<Object> key = new ArrayList<>(groupKeys.length);
-        for (Input groupKey : groupKeys) {
-            key.add(groupKey.value());
+        List<Object> key = new ArrayList<>(keyInputs.length);
+        for (Input keyInput : keyInputs) {
+            key.add(keyInput.value());
         }
 
         AggregationState[] states = result.get(key);
         if (states == null) {
-            states = new AggregationState[aggregations.length];
+            states = new AggregationState[aggregationCollectors.length];
             for (int i = 0; i < aggregationCollectors.length; i++) {
                 aggregationCollectors[i].startCollect();
                 aggregationCollectors[i].processRow();
@@ -90,8 +97,9 @@ public class GroupingCollector implements RowCollector<Object[][]> {
             }
             result.put(key, states);
         } else {
-            for (AggregationCollector aggregationCollector : aggregationCollectors) {
-                aggregationCollector.processRow();
+            for (int i = 0; i < aggregationCollectors.length; i++) {
+                aggregationCollectors[i].state(states[i]);
+                aggregationCollectors[i].processRow();
             }
         }
 
@@ -99,8 +107,9 @@ public class GroupingCollector implements RowCollector<Object[][]> {
     }
 
     @Override
-    public Object[][] finishCollect() {
-        Object[][] rows = new Object[result.size()][groupKeys.length + aggregations.length];
+    public void finishProjection() {
+        rows = new Object[result.size()][keyInputs.length + aggregationCollectors.length];
+        boolean sendToUpstream = upStream != null;
 
         int r = 0;
         for (Map.Entry<List<Object>, AggregationState[]> entry : result.entrySet()) {
@@ -114,9 +123,20 @@ public class GroupingCollector implements RowCollector<Object[][]> {
                 rows[r][c] = aggregationState.value();
                 c++;
             }
+
+            if (sendToUpstream) {
+                sendToUpstream = upStream.setNextRow(rows[r]);
+            }
             r++;
         }
 
+        if (upStream != null) {
+            upStream.finishProjection();
+        }
+    }
+
+    @Override
+    public Object[][] getRows() throws IllegalStateException {
         return rows;
     }
 }

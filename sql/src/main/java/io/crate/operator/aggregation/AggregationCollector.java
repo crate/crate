@@ -69,6 +69,7 @@ public class AggregationCollector implements RowCollector {
         this.aggregationFunction = aggregationFunction;
     }
 
+
     public boolean startCollect() {
         aggregationState = fromImpl.startCollect();
         return true;
@@ -87,7 +88,9 @@ public class AggregationCollector implements RowCollector {
         return aggregationState;
     }
 
-
+    public void state(AggregationState state) {
+        aggregationState = state;
+    }
 
     abstract class FromImpl {
 

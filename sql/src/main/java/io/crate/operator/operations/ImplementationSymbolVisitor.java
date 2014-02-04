@@ -24,6 +24,7 @@ package io.crate.operator.operations;
 import io.crate.metadata.*;
 import io.crate.operator.Input;
 import io.crate.operator.InputCollectExpression;
+import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.aggregation.FunctionExpression;
 import io.crate.operator.reference.doc.CollectorExpression;
@@ -45,6 +46,7 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
         protected List<Input<?>> topLevelInputs = new ArrayList<>();
         protected List<CollectorExpression<?>> docLevelExpressions = new ArrayList<>();
         protected RowGranularity maxGranularity = RowGranularity.CLUSTER;
+        protected List<AggregationContext> aggregations = new ArrayList<>();
 
         public RowGranularity maxGranularity() {
             return maxGranularity;
@@ -68,10 +70,36 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
             return collectExpressions;
         }
 
+        // note: some implementations using this method expect a copy of the data
+        // so that if the context / backing list is manipulated the output from this doesn't change
         public Input<?>[] topLevelInputs() {
             return topLevelInputs.toArray(new Input<?>[topLevelInputs.size()]);
         }
+
+        public AggregationContext[] aggregations() {
+            return aggregations.toArray(new AggregationContext[aggregations.size()]);
+        }
     }
+
+    // TODO: move somewhere else ?
+    public class AggregationContext {
+        AggregationFunction impl;
+        Aggregation symbol;
+        List<Input<?>> inputs = new ArrayList<>();
+
+        public AggregationFunction function() {
+            return impl;
+        }
+
+        public Aggregation symbol() {
+            return symbol;
+        }
+
+        public Input<?>[] inputs () {
+            return inputs.toArray(new Input[inputs.size()]);
+        }
+    }
+
     protected final ReferenceResolver referenceResolver;
     protected final Functions functions;
     protected final RowGranularity rowGranularity;
@@ -82,6 +110,7 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
         this.functions = functions;
         this.rowGranularity = rowGranularity;
     }
+
 
     public Context process(CollectNode node) {
         Context context = new Context();
@@ -160,6 +189,28 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
             throw new CrateException(String.format("Cannot handle Reference %s", symbol.toString()));
         }
         return result;
+    }
+
+    @Override
+    public Input<?> visitAggregation(Aggregation symbol, Context context) {
+        FunctionImplementation impl = functions.get(symbol.functionIdent());
+        if (impl == null) {
+            throw new UnsupportedOperationException(
+                    String.format("Can't load aggregation impl for symbol %s", symbol));
+        }
+
+        AggregationContext aggregationContext = new AggregationContext();
+        for (Symbol aggInput : symbol.inputs()) {
+            aggregationContext.inputs.add(process(aggInput, context));
+        }
+
+        aggregationContext.impl = (AggregationFunction)impl;
+        aggregationContext.symbol = symbol;
+        context.aggregations.add(aggregationContext);
+
+        // can't generate an input from an aggregation.
+        // since they cannot/shouldn't be nested this should be okay.
+        return null;
     }
 
     @Override

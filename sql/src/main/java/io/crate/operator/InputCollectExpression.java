@@ -42,4 +42,24 @@ public class InputCollectExpression<ReturnType> extends CollectExpression<Return
     public ReturnType value() {
         return value;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        InputCollectExpression that = (InputCollectExpression) o;
+
+        if (position != that.position) return false;
+        if (value != null ? !value.equals(that.value) : that.value != null) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = position;
+        result = 31 * result + (value != null ? value.hashCode() : 0);
+        return result;
+    }
 }
