@@ -91,23 +91,7 @@ public class AnalyzerTest {
 
         @Override
         protected void configure() {
-
-
             bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
-
-//            ClusterService cs = mock(ClusterService.class);
-//            ClusterState clusterState = mock(ClusterState.class);
-//            bind(ClusterService.class).toInstance(cs);
-//            when(cs.state()).thenReturn(clusterState);
-            //bind(RoutingsService.class).toInstance(routings);
-
-            //DiscoveryNodes dn = mock(DiscoveryNodes.class);
-
-            //when(clusterState.nodes()).thenReturn(dn);
-
-            //when(dn.iterator()).theReturn(Iterators.)
-
-
             OsService osService = mock(OsService.class);
             OsStats osStats = mock(OsStats.class);
             when(osService.stats()).thenReturn(osStats);
