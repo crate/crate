@@ -46,7 +46,7 @@ public class TableIdent implements Comparable<TableIdent>, Streamable {
         if (parts.size() == 2) {
             return new TableIdent(parts.get(0), parts.get(1));
         }
-        return new TableIdent(null, parts.get(1));
+        return new TableIdent(null, parts.get(0));
     }
 
     public TableIdent() {
