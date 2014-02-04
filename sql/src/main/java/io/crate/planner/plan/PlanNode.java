@@ -25,6 +25,7 @@ package io.crate.planner.plan;
 
 
 import com.google.common.collect.ImmutableList;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -40,6 +41,7 @@ public abstract class PlanNode implements Streamable {
     private String id;
     private List<PlanNode> sources;
     private List<Symbol> outputs;
+    private List<Projection> projections = new ArrayList<>();
 
     protected PlanNode() {
 
@@ -84,6 +86,10 @@ public abstract class PlanNode implements Streamable {
 
     public List<Symbol> outputs() {
         return outputs;
+    }
+
+    public List<Projection> projections() {
+        return projections;
     }
 
     @Override

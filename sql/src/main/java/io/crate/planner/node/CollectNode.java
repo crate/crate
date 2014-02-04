@@ -22,7 +22,10 @@
 package io.crate.planner.node;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.Routing;
+import io.crate.planner.RowGranularity;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -40,9 +43,22 @@ public class CollectNode extends PlanNode {
     private Routing routing;
     private List<Symbol> toCollect;
     private Optional<Function> whereClause;
-
+    private RowGranularity maxRowgranularity = RowGranularity.NODE;
 
     public CollectNode() {
+        super();
+    }
+
+    public CollectNode(String id, Routing routing) {
+        this(id, routing, ImmutableList.<Symbol>of(), ImmutableList.<Projection>of());
+    }
+
+    public CollectNode(String id, Routing routing, List<Symbol> toCollect, List<Projection> projections) {
+        super(id);
+        this.routing = routing;
+        this.toCollect = toCollect;
+        this.projections = projections;
+        this.whereClause = Optional.absent();
     }
 
     public Optional<Function> whereClause() {
@@ -71,6 +87,16 @@ public class CollectNode extends PlanNode {
 
     public boolean isRouted() {
         return routing != null && routing.hasLocations();
+    }
+
+    public RowGranularity maxRowGranularity() {
+        return maxRowgranularity;
+    }
+
+    public void setMaxRowGranularity(RowGranularity newRowGranularity) {
+        if (maxRowgranularity.compareTo(newRowGranularity) < 0) {
+            maxRowgranularity = newRowGranularity;
+        }
     }
 
     @Override

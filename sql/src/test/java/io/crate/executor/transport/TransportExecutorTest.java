@@ -30,8 +30,8 @@ import io.crate.metadata.*;
 import io.crate.operator.operator.EqOperator;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.plan.CollectNode;
 import io.crate.planner.plan.ESGetNode;
+import io.crate.planner.node.CollectNode;
 import io.crate.planner.plan.ESSearchNode;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
@@ -99,7 +99,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_1);
 
         CollectNode collectNode = new CollectNode("collect", routing);
-        collectNode.outputs(reference);
+        collectNode.toCollect(Arrays.<Symbol>asList(reference));
+        collectNode.outputTypes(Arrays.asList(NodeLoadExpression.INFO_LOAD_1.type()));
 
         // later created inside executor.newJob
         RemoteCollectTask task = new RemoteCollectTask(collectNode, transportCollectNodeAction);
@@ -112,6 +113,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         for (ListenableFuture<Object[][]> nodeResult : result) {
             assertEquals(1, nodeResult.get().length);
             assertThat((Double) nodeResult.get()[0][0], is(greaterThan(0.0)));
+
         }
     }
 

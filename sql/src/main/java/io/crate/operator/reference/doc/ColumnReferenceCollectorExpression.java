@@ -19,40 +19,26 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.operator.reference.doc;
 
-import io.crate.planner.node.CollectNode;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportRequest;
 
-import java.io.IOException;
+import org.cratedb.core.StringUtils;
 
-public class NodeCollectRequest extends TransportRequest {
+public abstract class ColumnReferenceCollectorExpression<ReturnType> extends
+        CollectorExpression<ReturnType> implements ColumnReferenceExpression {
 
-    private CollectNode collectNode;
+    protected final String columnName;
 
-    public NodeCollectRequest() {
+    public ColumnReferenceCollectorExpression(String columnName) {
+        this.columnName = columnName;
     }
 
-    public NodeCollectRequest(CollectNode collectNode) {
-        this.collectNode = collectNode;
-    }
-
-    public CollectNode collectNode() {
-        return collectNode;
+    public String columnName() {
+        return columnName;
     }
 
     @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        collectNode = new CollectNode();
-        collectNode.readFrom(in);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        collectNode.writeTo(out);
+    public String toString() {
+        return columnName().contains(".") ? StringUtils.dottedToSqlPath(columnName()) : columnName();
     }
 }

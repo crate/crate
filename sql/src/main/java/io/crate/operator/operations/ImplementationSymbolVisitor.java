@@ -25,8 +25,10 @@ import io.crate.metadata.*;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.aggregation.FunctionExpression;
+import io.crate.operator.reference.doc.CollectorExpression;
+import io.crate.operator.reference.doc.DocLevelExpressions;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.plan.PlanNode;
+import io.crate.planner.node.CollectNode;
 import io.crate.planner.symbol.*;
 import org.cratedb.sql.CrateException;
 
@@ -43,6 +45,7 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
     public static class Context {
         protected Set<CollectExpression<?>> collectExpressions = new LinkedHashSet<>(); // to keep insertion order
         protected List<Input<?>> topLevelInputs = new ArrayList<>();
+        protected List<CollectorExpression<?>> docLevelExpressions = new ArrayList<>();
         protected RowGranularity maxGranularity = RowGranularity.CLUSTER;
 
         public RowGranularity maxGranularity() {
@@ -57,6 +60,10 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
 
         public void add(Input<?> input) {
             topLevelInputs.add(input);
+        }
+
+        public CollectorExpression<?>[] docLevelExpressions() {
+            return docLevelExpressions.toArray(new CollectorExpression<?>[docLevelExpressions.size()]);
         }
 
         public Set<CollectExpression<?>> collectExpressions() {
@@ -78,14 +85,10 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
         this.rowGranularity = rowGranularity;
     }
 
-    protected Context getContext() {
-        return new Context();
-    }
-
-    public Context process(PlanNode node) {
-        Context context = getContext();
-        if (node.outputs() != null) {
-            for (Symbol symbol : node.outputs()) {
+    public Context process(CollectNode node) {
+        Context context = new Context();
+        if (node.toCollect() != null) {
+            for (Symbol symbol : node.toCollect()) {
                 context.add(process(symbol, context));
             }
         }
@@ -93,7 +96,15 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
     }
 
     public Context process(Symbol... symbols) {
-        Context context = getContext();
+        Context context = new Context();
+        for (Symbol symbol : symbols) {
+            context.add(process(symbol, context));
+        }
+        return context;
+    }
+
+    public Context process(List<Symbol> symbols) {
+        Context context = new Context();
         for (Symbol symbol : symbols) {
             context.add(process(symbol, context));
         }
@@ -121,35 +132,30 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
     public Input<?> visitReference(Reference symbol, Context context) {
         Input<?> result;
 
-        if (rowGranularity.compareTo(symbol.info().granularity()) >= 0) {
-            ReferenceImplementation impl = referenceResolver.getImplementation(symbol.info().ident());
-            if (impl != null && impl instanceof Input<?>) {
-                context.setMaxGranularity(symbol.info().granularity());
-                // collect collectExpressions separately
-                if (impl instanceof CollectExpression<?>) {
-                    context.collectExpressions.add((CollectExpression<?>) impl);
-                }
-                result = (Input<?>)impl;
+        if (symbol.info().granularity().ordinal() <= rowGranularity.ordinal()) {
+            if (symbol.info().granularity() == RowGranularity.DOC) {
+                CollectorExpression<?> docLevelExpression = DocLevelExpressions.getExpression(symbol.info());
+                context.docLevelExpressions.add(docLevelExpression);
+                result = docLevelExpression;
             } else {
-                // same or lower granularity and not found means unknown
-                throw new CrateException("Unknown Reference");
+                ReferenceImplementation impl = referenceResolver.getImplementation(symbol.info().ident());
+                if (impl != null && impl instanceof Input<?>) {
+                    // collect collectExpressions separately
+                    if (impl instanceof CollectExpression<?>) {
+                        context.collectExpressions.add((CollectExpression<?>) impl);
+                    }
+                    result = (Input<?>)impl;
+                } else {
+                    // same or lower granularity and not found means unknown
+                    throw new CrateException("Unknown Reference");
+                }
             }
+            context.setMaxGranularity(symbol.info().granularity());
         } else {
-            result = visitHigherGranularityReference(symbol, context);
+            throw new CrateException(String.format("Cannot handle Reference %s", symbol.toString()));
         }
         return result;
     }
-
-    /**
-     * handle References of higher granularity
-     * @param reference
-     * @param context
-     * @return
-     */
-    protected Input<?> visitHigherGranularityReference(Reference reference, Context context) {
-        throw new CrateException(String.format("Cannot handle Reference %s", reference.toString()));
-    }
-
 
     @Override
     protected Input<?> visitSymbol(Symbol symbol, Context context) {

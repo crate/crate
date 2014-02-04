@@ -24,6 +24,7 @@ package io.crate.planner.plan;
 import com.google.common.base.Optional;
 import io.crate.metadata.Routing;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -31,10 +32,12 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 
 @Deprecated
-public class CollectNode extends TopNNode {
+public class CollectNode extends PlanNode {
 
     private Routing routing;
     private Optional<Function> whereClause;
+
+    private Symbol[] toCollect;
 
     public CollectNode() {
         super();
@@ -45,21 +48,7 @@ public class CollectNode extends TopNNode {
     }
 
     public CollectNode(String id, Routing routing, @Nullable Function whereClause) {
-        super(id, NO_LIMIT, NO_OFFSET, new int[0], new boolean[0]);
-        this.routing = routing;
-        this.whereClause = Optional.fromNullable(whereClause);
-    }
-
-    public CollectNode(String id, Routing routing, @Nullable Function whereClause,
-                       int limit, int offset) {
-        super(id, limit, offset, new int[0], new boolean[0]);
-        this.routing = routing;
-        this.whereClause = Optional.fromNullable(whereClause);
-    }
-
-    public CollectNode(String id, Routing routing, @Nullable Function whereClause,
-                       int limit, int offset, int[] orderByIndices, boolean[] reverseFlags) {
-        super(id, limit, offset, orderByIndices, reverseFlags);
+        super(id);
         this.routing = routing;
         this.whereClause = Optional.fromNullable(whereClause);
     }
@@ -74,6 +63,14 @@ public class CollectNode extends TopNNode {
 
     public Optional<Function> whereClause() {
         return whereClause;
+    }
+
+    public Symbol[] toCollect() {
+        return toCollect;
+    }
+
+    public void toCollect(Symbol ... symbols) {
+        this.toCollect = symbols;
     }
 
     @Override

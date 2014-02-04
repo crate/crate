@@ -19,40 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.operator;
 
-import io.crate.planner.node.CollectNode;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportRequest;
-
-import java.io.IOException;
-
-public class NodeCollectRequest extends TransportRequest {
-
-    private CollectNode collectNode;
-
-    public NodeCollectRequest() {
-    }
-
-    public NodeCollectRequest(CollectNode collectNode) {
-        this.collectNode = collectNode;
-    }
-
-    public CollectNode collectNode() {
-        return collectNode;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        collectNode = new CollectNode();
-        collectNode.readFrom(in);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        collectNode.writeTo(out);
+public abstract class AbstractRowCollector<T> implements RowCollector<T> {
+    public T collect() {
+        if (startCollect()) {
+            boolean carryOn;
+            do {
+                carryOn = processRow();
+            } while(carryOn);
+        }
+        return finishCollect();
     }
 }

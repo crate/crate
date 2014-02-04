@@ -19,40 +19,41 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.operator.reference.doc;
 
-import io.crate.planner.node.CollectNode;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportRequest;
+import org.apache.lucene.index.AtomicReaderContext;
+import org.cratedb.Constants;
+import org.elasticsearch.index.fielddata.IndexFieldData;
+import org.elasticsearch.index.mapper.FieldMapper;
 
-import java.io.IOException;
 
-public class NodeCollectRequest extends TransportRequest {
+public abstract class FieldCacheExpression<IFD extends IndexFieldData, ReturnType> extends
+        ColumnReferenceCollectorExpression<ReturnType> {
 
-    private CollectNode collectNode;
+    private final static String[] DEFAULT_MAPPING_TYPES = new String[]{
+            Constants.DEFAULT_MAPPING_TYPE};
 
-    public NodeCollectRequest() {
+    protected IFD indexFieldData;
+    protected int docId;
+
+    public FieldCacheExpression(String columnName) {
+        super(columnName);
     }
 
-    public NodeCollectRequest(CollectNode collectNode) {
-        this.collectNode = collectNode;
-    }
-
-    public CollectNode collectNode() {
-        return collectNode;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        collectNode = new CollectNode();
-        collectNode.readFrom(in);
+    public void startCollect(CollectorContext context){
+        FieldMapper mapper = context.searchContext().mapperService().smartNameFieldMapper
+                (columnName, DEFAULT_MAPPING_TYPES);
+        indexFieldData = (IFD) context.searchContext().fieldData().getForField(mapper);
     }
 
     @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        collectNode.writeTo(out);
+    public void setNextReader(AtomicReaderContext context) {
+        this.docId = -1;
     }
+
+    @Override
+    public void setNextDocId(int docId) {
+        this.docId = docId;
+    }
+
 }
