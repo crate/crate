@@ -21,6 +21,7 @@
 
 package io.crate.planner.node;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.planner.projection.Projection;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -34,8 +35,8 @@ import java.util.List;
 public abstract class PlanNode implements Streamable {
 
     private String id;
-    private List<Projection> projections;
-    private List<DataType> outputTypes;
+    protected List<Projection> projections = ImmutableList.of();
+    protected List<DataType> outputTypes = ImmutableList.of();
 
     public PlanNode() {
 
@@ -108,6 +109,8 @@ public abstract class PlanNode implements Streamable {
             for (Projection p : projections) {
                 Projection.toStream(p, out);
             }
+        } else {
+            out.writeVInt(0);
         }
     }
 

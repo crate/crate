@@ -22,7 +22,7 @@
 package io.crate.operator.operations.collect;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.planner.plan.CollectNode;
+import io.crate.planner.node.CollectNode;
 
 public interface CollectOperation<T> {
     public ListenableFuture<T> collect(CollectNode collectNode);

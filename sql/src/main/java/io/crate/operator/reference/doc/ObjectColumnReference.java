@@ -19,40 +19,28 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.operator.reference.doc;
 
-import io.crate.planner.node.CollectNode;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportRequest;
+import org.cratedb.DataType;
 
-import java.io.IOException;
+import java.util.Map;
 
-public class NodeCollectRequest extends TransportRequest {
+public class ObjectColumnReference<ReturnType> extends ColumnReferenceCollectorExpression<Map<String, Object>> {
 
-    private CollectNode collectNode;
-
-    public NodeCollectRequest() {
-    }
-
-    public NodeCollectRequest(CollectNode collectNode) {
-        this.collectNode = collectNode;
-    }
-
-    public CollectNode collectNode() {
-        return collectNode;
+    public ObjectColumnReference(String columnName) {
+        super(columnName);
     }
 
     @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        collectNode = new CollectNode();
-        collectNode.readFrom(in);
+    public Map<String, Object> value() {
+        //TODO: this returns null since we are called in aggregation collectors onnly vor now,
+        // once this gets called from result columns it should be implemented
+        return null;
     }
 
     @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        collectNode.writeTo(out);
+    public DataType returnType() {
+        return DataType.OBJECT;
     }
+
 }

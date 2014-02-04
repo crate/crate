@@ -19,40 +19,26 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.operator.reference.doc;
 
-import io.crate.planner.node.CollectNode;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportRequest;
+import io.crate.operator.Input;
+import org.apache.lucene.index.AtomicReaderContext;
+import org.cratedb.DataType;
 
-import java.io.IOException;
+/**
+ * An expression which gets evaluated in the collect phase
+ */
+public abstract class CollectorExpression<ReturnType> implements Input<ReturnType> {
 
-public class NodeCollectRequest extends TransportRequest {
+    public void startCollect(CollectorContext context){
 
-    private CollectNode collectNode;
-
-    public NodeCollectRequest() {
     }
 
-    public NodeCollectRequest(CollectNode collectNode) {
-        this.collectNode = collectNode;
+    public void setNextDocId(int doc){
     }
 
-    public CollectNode collectNode() {
-        return collectNode;
+    public void setNextReader(AtomicReaderContext context){
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        collectNode = new CollectNode();
-        collectNode.readFrom(in);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        collectNode.writeTo(out);
-    }
+    public abstract DataType returnType();
 }

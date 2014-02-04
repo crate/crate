@@ -28,7 +28,7 @@ import io.crate.executor.Task;
 import io.crate.executor.transport.NodeCollectRequest;
 import io.crate.executor.transport.NodeCollectResponse;
 import io.crate.executor.transport.TransportCollectNodeAction;
-import io.crate.planner.plan.CollectNode;
+import io.crate.planner.node.CollectNode;
 import org.elasticsearch.action.ActionListener;
 
 import java.util.ArrayList;

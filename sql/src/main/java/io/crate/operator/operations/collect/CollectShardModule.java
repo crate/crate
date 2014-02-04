@@ -19,40 +19,14 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.operator.operations.collect;
 
-import io.crate.planner.node.CollectNode;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportRequest;
+import org.elasticsearch.common.inject.AbstractModule;
 
-import java.io.IOException;
-
-public class NodeCollectRequest extends TransportRequest {
-
-    private CollectNode collectNode;
-
-    public NodeCollectRequest() {
-    }
-
-    public NodeCollectRequest(CollectNode collectNode) {
-        this.collectNode = collectNode;
-    }
-
-    public CollectNode collectNode() {
-        return collectNode;
-    }
+public class CollectShardModule extends AbstractModule {
 
     @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        collectNode = new CollectNode();
-        collectNode.readFrom(in);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        collectNode.writeTo(out);
+    protected void configure() {
+        bind(ShardCollectService.class).asEagerSingleton();
     }
 }

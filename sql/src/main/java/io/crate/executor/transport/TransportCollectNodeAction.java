@@ -24,8 +24,7 @@ package io.crate.executor.transport;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.operator.operations.collect.LocalDataCollectOperation;
-import io.crate.planner.plan.CollectNode;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.node.CollectNode;
 import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.action.ActionListener;
@@ -48,7 +47,6 @@ public class TransportCollectNodeAction {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
 
-    private final StreamerVisitor streamerVisitor;
     private final String transportAction = "crate/sql/node/collect";
     private final TransportService transportService;
     private final ThreadPool threadPool;
@@ -66,7 +64,6 @@ public class TransportCollectNodeAction {
         this.clusterService = clusterService;
         this.localDataCollector = localDataCollector;
 
-        streamerVisitor = new StreamerVisitor();
         transportService.registerHandler(transportAction, new TransportHandler());
     }
 
@@ -81,12 +78,13 @@ public class TransportCollectNodeAction {
         return ThreadPool.Names.SEARCH;
     }
 
-    private DataType.Streamer[] extractStreamers(List<Symbol> outputs) {
+    private DataType.Streamer[] extractStreamers(List<DataType> outputs) {
+        if (outputs == null) { return new DataType.Streamer[0]; }
         DataType.Streamer[] streamers = new DataType.Streamer[outputs.size()];
 
         int i = 0;
-        for (Symbol symbol : outputs) {
-            streamers[i] = symbol.accept(streamerVisitor, null);
+        for (DataType outputType : outputs) {
+            streamers[i] = outputType.streamer();
             i++;
         }
 
@@ -102,7 +100,7 @@ public class TransportCollectNodeAction {
             public void run() {
                 if (collectResult.isDone()) {
                     try {
-                        NodeCollectResponse response = new NodeCollectResponse(extractStreamers(request.collectNode().outputs()));
+                        NodeCollectResponse response = new NodeCollectResponse(extractStreamers(request.collectNode().outputTypes()));
                         response.rows(collectResult.get());
                         collectResponse.onResponse(response);
                     } catch (ExecutionException | InterruptedException e) {
@@ -111,9 +109,6 @@ public class TransportCollectNodeAction {
                 }
             }
         }, threadPool.generic());
-
-        // TODO:
-        // node.routing  -> node operation / index operation / shard operation?
         return collectResponse;
     }
 
@@ -135,7 +130,7 @@ public class TransportCollectNodeAction {
             this.nodeId = nodeId;
             this.request = request;
             this.listener = listener;
-            this.streamers = extractStreamers(request.collectNode().outputs());
+            this.streamers = extractStreamers(request.collectNode().outputTypes());
         }
 
         private void start() {

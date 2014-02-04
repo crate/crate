@@ -19,40 +19,37 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.operator.projectors;
 
-import io.crate.planner.node.CollectNode;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportRequest;
+import io.crate.operator.Input;
+import io.crate.operator.aggregation.CollectExpression;
 
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-public class NodeCollectRequest extends TransportRequest {
+public class NoopProjector extends AbstractProjector {
 
-    private CollectNode collectNode;
+    public List<Object[]> rows = new ArrayList<>();
 
-    public NodeCollectRequest() {
-    }
-
-    public NodeCollectRequest(CollectNode collectNode) {
-        this.collectNode = collectNode;
-    }
-
-    public CollectNode collectNode() {
-        return collectNode;
+    public NoopProjector() {
+        super(new Input<?>[0], new CollectExpression<?>[0]);
     }
 
     @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        collectNode = new CollectNode();
-        collectNode.readFrom(in);
+    public void startProjection() {}
+
+    @Override
+    public synchronized boolean setNextRow(Object... row) {
+        rows.add(row);
+        return true;
     }
 
     @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        collectNode.writeTo(out);
+    public void finishProjection() {}
+
+    @Override
+    public Object[][] getRows() throws IllegalStateException {
+        return rows.toArray(new Object[rows.size()][]);
     }
+
 }
