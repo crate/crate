@@ -44,6 +44,7 @@ public class TopNProjection extends Projection {
     private int limit;
     private int offset;
 
+    List<Symbol> outputs;
 
     List<Symbol> orderBy;
     boolean[] reverseFlags;
@@ -63,6 +64,14 @@ public class TopNProjection extends Projection {
                 "reverse flags length does not match orderBy items count");
         this.orderBy = orderBy;
         this.reverseFlags = reverseFlags;
+    }
+
+    public List<Symbol> outputs() {
+        return outputs;
+    }
+
+    public void outputs(List<Symbol> outputs) {
+        this.outputs = outputs;
     }
 
     public int limit() {
@@ -102,6 +111,12 @@ public class TopNProjection extends Projection {
         offset = in.readVInt();
         limit = in.readVInt();
 
+        int numOutputs = in.readVInt();
+        outputs = new ArrayList(numOutputs);
+        for (int i = 0; i < numOutputs; i++) {
+            outputs.add(Symbol.fromStream(in));
+        }
+
         int numOrderBy = in.readVInt();
 
         if (numOrderBy > 0) {
@@ -123,6 +138,10 @@ public class TopNProjection extends Projection {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(offset);
         out.writeVInt(limit);
+        out.writeVInt(outputs.size());
+        for (Symbol symbol : outputs) {
+            Symbol.toStream(symbol, out);
+        }
         if (isOrdered()) {
             out.writeVInt(reverseFlags.length);
             for (boolean reverseFlag : reverseFlags) {
@@ -146,15 +165,27 @@ public class TopNProjection extends Projection {
         if (limit != that.limit) return false;
         if (offset != that.offset) return false;
         if (orderBy != null ? !orderBy.equals(that.orderBy) : that.orderBy != null) return false;
+        if (outputs != null ? !outputs.equals(that.outputs) : that.outputs != null) return false;
         if (!Arrays.equals(reverseFlags, that.reverseFlags)) return false;
 
         return true;
     }
 
     @Override
+    public int hashCode() {
+        int result = limit;
+        result = 31 * result + offset;
+        result = 31 * result + (outputs != null ? outputs.hashCode() : 0);
+        result = 31 * result + (orderBy != null ? orderBy.hashCode() : 0);
+        result = 31 * result + (reverseFlags != null ? Arrays.hashCode(reverseFlags) : 0);
+        return result;
+    }
+
+    @Override
     public String toString() {
         return "TopNProjection{" +
-                "limit=" + limit +
+                "outputs=" + outputs +
+                ", limit=" + limit +
                 ", offset=" + offset +
                 ", orderBy=" + orderBy +
                 ", reverseFlags=" + Arrays.toString(reverseFlags) +

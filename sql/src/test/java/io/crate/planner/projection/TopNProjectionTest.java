@@ -38,6 +38,9 @@ public class TopNProjectionTest {
 
         TopNProjection p = new TopNProjection(5, 10,
                 ImmutableList.<Symbol>of(new Value(DataType.BOOLEAN)), new boolean[]{true});
+
+        p.outputs(ImmutableList.<Symbol>of(new Value(DataType.BOOLEAN), new Value(DataType.INTEGER)));
+
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);
 
