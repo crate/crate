@@ -25,8 +25,8 @@ public enum ProjectionType {
 
     TOPN(TopNProjection.FACTORY),
     GROUP(GroupProjection.FACTORY),
-    COLUMN(ColumnProjection.FACTORY);
-    ;
+    COLUMN(ColumnProjection.FACTORY),
+    AGGREGATION(AggregationProjection.FACTORY);
 
     private final Projection.ProjectionFactory factory;
 

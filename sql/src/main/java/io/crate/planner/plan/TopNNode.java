@@ -32,7 +32,7 @@ import java.io.IOException;
 public class TopNNode extends PlanNode {
 
     public static int NO_LIMIT = -1;
-    public static int NO_OFFSET  = 0;
+    public static int NO_OFFSET = 0;
     int[] orderBy;
     boolean[] reverseFlags;
     private int limit = NO_LIMIT;

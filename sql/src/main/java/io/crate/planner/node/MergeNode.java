@@ -36,7 +36,7 @@ public class MergeNode extends PlanNode {
 
     private List<DataType> inputTypes;
 
-    protected MergeNode() {
+    public MergeNode() {
     }
 
     public List<DataType> inputTypes() {

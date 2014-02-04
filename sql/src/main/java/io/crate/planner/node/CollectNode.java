@@ -42,7 +42,7 @@ public class CollectNode extends PlanNode {
     private Optional<Function> whereClause;
 
 
-    protected CollectNode() {
+    public CollectNode() {
     }
 
     public Optional<Function> whereClause() {

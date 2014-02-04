@@ -21,7 +21,21 @@
 
 package io.crate.planner;
 
-public class Plan {
+import io.crate.planner.node.PlanNode;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 
+public class Plan implements Iterable<PlanNode> {
+
+    private ArrayList<PlanNode> nodes = new ArrayList<>();
+
+    public void add(PlanNode node) {
+        nodes.add(node);
+    }
+
+    @Override
+    public Iterator<PlanNode> iterator() {
+        return nodes.iterator();
+    }
 }

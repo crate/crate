@@ -21,6 +21,7 @@
 
 package io.crate.planner.projection;
 
+import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -29,49 +30,51 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ColumnProjection extends Projection {
+/**
+ * A projection which aggregates all inputs to a single row
+ */
+public class AggregationProjection extends Projection {
 
-    List<Symbol> outputs;
+    List<Aggregation> aggregations;
 
-    public static final ProjectionFactory<ColumnProjection> FACTORY = new ProjectionFactory<ColumnProjection>() {
+    public static final ProjectionFactory<AggregationProjection> FACTORY = new ProjectionFactory<AggregationProjection>() {
         @Override
-        public ColumnProjection newInstance() {
-            return new ColumnProjection();
+        public AggregationProjection newInstance() {
+            return new AggregationProjection();
         }
     };
 
-
-    public List<Symbol> outputs() {
-        return outputs;
+    public List<Aggregation> aggregations() {
+        return aggregations;
     }
 
-    public void outputs(List<Symbol> outputs) {
-        this.outputs = outputs;
+    public void aggregations(List<Aggregation> aggregations) {
+        this.aggregations = aggregations;
     }
 
     @Override
     public ProjectionType projectionType() {
-        return ProjectionType.COLUMN;
+        return ProjectionType.AGGREGATION;
     }
 
     @Override
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
-        return visitor.visitColumnProjection(this, context);
+        return visitor.visitAggregationProjection(this, context);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         int size = in.readVInt();
-        outputs = new ArrayList<>(size);
+        aggregations = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            outputs.add(Symbol.fromStream(in));
+            aggregations.add((Aggregation) Symbol.fromStream(in));
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeVInt(outputs.size());
-        for (Symbol symbol : outputs) {
+        out.writeVInt(aggregations.size());
+        for (Symbol symbol : aggregations) {
             Symbol.toStream(symbol, out);
         }
     }
@@ -81,18 +84,10 @@ public class ColumnProjection extends Projection {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        ColumnProjection that = (ColumnProjection) o;
-
-        if (!outputs.equals(that.outputs)) return false;
+        AggregationProjection that = (AggregationProjection) o;
+        if (aggregations != null ? !aggregations.equals(that.aggregations) : that.aggregations != null) return false;
 
         return true;
-    }
-
-    @Override
-    public String toString() {
-        return "ColumnProjection{" +
-                "outputs=" + outputs +
-                '}';
     }
 
 }
