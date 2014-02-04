@@ -1,31 +1,8 @@
-========
-Crate DB
-========
+===========
+Quick Guide
+===========
 
-``"Crate is a shared nothing, fully searchable, document oriented
-cluster database."``
-
-Crate...
-
-- is a document oriented data base.
-
-- has the ability to scale horizontally extremely well.
-
-- forms a cluster and handles replicas for you.
-
-- offers SQL to query and manage documents.
-
-- lets you specify a schema
-
-  - to define tables
-
-  - and data types.
-
-- offers support to manage BLOBs.
-
-
-Getting Started
-===============
+Our quick guide tries to get you started within minutes.
 
 A Crate instance in 5 minutes
 -----------------------------
@@ -41,18 +18,18 @@ A Crate instance in 5 minutes
 .. _Download: https://download.crate.io/
 
 Get Crate
-=========
+---------
 
 Crate isn't only easy to use, it's also easy to get. Use the one method which
 works best for you.
 
 Binary Archive
----------------
+^^^^^^^^^^^^^^
 
 - Download_ the latest release and unzip the archive.
 
 Debian Package
---------------
+^^^^^^^^^^^^^^
 
 Crate Launchpad_ Page. A package is available for the Ubuntu versions Lucid
 Lync, Saucy Salamander and Precise Pangolin.
@@ -66,7 +43,7 @@ Lync, Saucy Salamander and Precise Pangolin.
 
 
 RPM: CentOS, Scientific Linux
------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Add the following config for the repository to ``/etc/yum.repos.d/crate.repo``:
 
@@ -93,7 +70,7 @@ Then install Crate:
 .. _Launchpad: https://launchpad.net/~crate
 
 Where to go from here?
-======================
+----------------------
 
 That is certainly not all Crate offers to you. Take a look at the
 documentation found under the ``docs`` directory or visit
@@ -102,7 +79,7 @@ Crate you can also use the documentation it was shipped with available via
 `http://localhost:4200/_plugin/docs/ <http://localhost:4200/_plugin/docs/>`_.
 
 Managing data
--------------
+^^^^^^^^^^^^^
 
 There are several different ways to manage data in Crate.
 
@@ -121,13 +98,13 @@ There are several different ways to manage data in Crate.
 .. _Java client: https://docs.crate.io/current/clients.html#crate-java-client
 
 Are you a Developer?
-====================
+--------------------
 
 You can build Crate on your own with the latest version hosted on GitHub.
 To do so, please refer to ``DEVELOP.rst``.
 
 Contributing
--------------
+^^^^^^^^^^^^
 
 If you intend to contribute to Crate we need you to agree to our CLA_.
 Once that is done, we suggest to continue as follows:
@@ -149,7 +126,7 @@ Once that is done, we suggest to continue as follows:
 .. _CLA: https://crate.io/contributing-to-crate/
 
 Help & Contact
-==============
+--------------
 
 Do you have any questions? Or suggestions? We would be very happy
 to help you. So, feel free to swing by our IRC channel #crate on Freenode_.
