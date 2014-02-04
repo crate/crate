@@ -98,4 +98,8 @@ public class Reference extends ValueSymbol {
         return Objects.equal(info.ident(), o.info.ident());
     }
 
+    @Override
+    public int hashCode() {
+        return info.hashCode();
+    }
 }
