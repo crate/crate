@@ -19,13 +19,14 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.plan;
+package io.crate.planner.node;
 
 
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
@@ -33,8 +34,8 @@ import org.cratedb.Constants;
 import org.elasticsearch.common.Nullable;
 
 import java.util.List;
+import java.util.Set;
 
-@Deprecated
 public class ESSearchNode extends PlanNode {
 
     private final List<Reference> orderBy;
@@ -42,6 +43,7 @@ public class ESSearchNode extends PlanNode {
     private final int offset;
     private final boolean[] reverseFlags;
     private final Optional<Function> whereClause;
+    private List<Symbol> outputs;
 
     public ESSearchNode(List<Symbol> outputs,
                         @Nullable List<Reference> orderBy,
@@ -56,12 +58,19 @@ public class ESSearchNode extends PlanNode {
                 "orderBy size doesn't match with reverseFlag length");
 
         this.whereClause = Optional.fromNullable(whereClause);
-
-        outputs(outputs.toArray(new Symbol[outputs.size()]));
+        this.outputs = outputs;
 
         // TODO: move constant to some other location?
         this.limit = Objects.firstNonNull(limit, Constants.DEFAULT_SELECT_LIMIT);
         this.offset = Objects.firstNonNull(offset, 0);
+    }
+
+    public List<Symbol> outputs() {
+        return outputs;
+    }
+
+    public void outputs(List<Symbol> outputs) {
+        this.outputs = outputs;
     }
 
     public int limit() {
@@ -82,6 +91,12 @@ public class ESSearchNode extends PlanNode {
 
     public Optional<Function> whereClause() {
         return whereClause;
+    }
+
+    @Override
+    public Set<String> executionNodes() {
+        // always runs on mapper since it uses its own routing internally
+        return ImmutableSet.of();
     }
 
     @Override

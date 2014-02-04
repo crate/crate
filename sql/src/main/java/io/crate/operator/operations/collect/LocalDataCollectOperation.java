@@ -143,8 +143,8 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
      */
     private ListenableFuture<Object[][]> handleNodeCollect(CollectNode collectNode) {
         SettableFuture<Object[][]> result = SettableFuture.create();
-        Optional<Function> whereClause = collectNode.whereClause();
-        if (whereClause.isPresent() && NormalizationHelper.evaluatesToFalse(whereClause.get(), this.normalizer)
+        Function whereClause = collectNode.whereClause();
+        if (whereClause != null && NormalizationHelper.evaluatesToFalse(whereClause, this.normalizer)
                 || collectNode.toCollect() == null || collectNode.toCollect().size() == 0) {
             result.set(EMPTY_RESULT);
             return result;
@@ -185,8 +185,8 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
      */
     private ListenableFuture<Object[][]> handleShardCollect(CollectNode collectNode) {
 
-        Optional<Function> whereClause = collectNode.whereClause();
-        if (whereClause.isPresent() && NormalizationHelper.evaluatesToFalse(whereClause.get(), this.normalizer)) {
+        Function whereClause = collectNode.whereClause();
+        if (whereClause != null && NormalizationHelper.evaluatesToFalse(whereClause, this.normalizer)) {
             SettableFuture<Object[][]> result = SettableFuture.create();
             result.set(EMPTY_RESULT);
             return result;

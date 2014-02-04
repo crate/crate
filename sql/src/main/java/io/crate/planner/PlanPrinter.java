@@ -23,16 +23,15 @@ package io.crate.planner;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
-import io.crate.planner.node.CollectNode;
-import io.crate.planner.node.MergeNode;
-import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.PlanVisitor;
+import io.crate.planner.node.*;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.ProjectionVisitor;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolVisitor;
+
+import java.util.Arrays;
 
 import static java.lang.String.format;
 
@@ -134,6 +133,27 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
     public Void visitMergeNode(MergeNode node, PrintContext context) {
         context.print("Merge");
         context.indent();
+        context.print("executionNodes: %s", node.executionNodes());
+        processProjections(node, context);
+        context.dedent();
+        return null;
+    }
+
+    @Override
+    public Void visitESSearchNode(ESSearchNode node, PrintContext context) {
+        context.print(Objects.toStringHelper(node)
+                .add("offset", node.offset())
+                .add("limit", node.limit())
+                .add("orderBy", node.orderBy())
+                .add("reverseFlags", Arrays.toString(node.reverseFlags()))
+                .add("whereClause", node.whereClause())
+                .toString());
+        context.indent();
+        context.print("outputs:");
+        for (Symbol symbol : node.outputs()) {
+            symbolPrinter.process(symbol, context);
+        }
+
         processProjections(node, context);
         context.dedent();
         return null;
@@ -143,6 +163,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
     public Void visitCollectNode(CollectNode node, PrintContext context) {
         context.print("Collect");
         context.indent();
+        context.print("routing: %s", node.routing());
         context.print("toCollect:");
         for (Symbol symbol : node.toCollect()) {
             symbolPrinter.process(symbol, context);

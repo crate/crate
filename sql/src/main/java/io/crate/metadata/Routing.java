@@ -73,6 +73,13 @@ public class Routing implements Streamable {
     }
 
     @Override
+    public String toString() {
+        return "Routing{" +
+                "locations=" + locations +
+                '}';
+    }
+
+    @Override
     public void readFrom(StreamInput in) throws IOException {
         int numLocations = in.readVInt();
         locations = new HashMap<>(numLocations);

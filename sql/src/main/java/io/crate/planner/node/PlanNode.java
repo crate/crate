@@ -31,6 +31,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public abstract class PlanNode implements Streamable {
 
@@ -41,6 +42,8 @@ public abstract class PlanNode implements Streamable {
     public PlanNode() {
 
     }
+
+    public abstract Set<String> executionNodes();
 
     protected PlanNode(String id) {
         this.id = id;

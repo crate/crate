@@ -21,7 +21,6 @@
 
 package io.crate.operator.operations.collect;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -367,10 +366,10 @@ public class LocalDataCollectTest {
     public void testCollectWithFalseWhereClause() throws Exception {
         CollectNode collectNode = new CollectNode("whereClause", testRouting);
         collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
-        collectNode.whereClause(Optional.of(new Function(
+        collectNode.whereClause(new Function(
                 AndOperator.INFO,
                 Arrays.<Symbol>asList(new BooleanLiteral(false), new BooleanLiteral(false))
-        )));
+        ));
         Object[][] result = operation.collect(collectNode).get();
         assertArrayEquals(new Object[0][], result);
     }
@@ -379,10 +378,10 @@ public class LocalDataCollectTest {
     public void testCollectWithTrueWhereClause() throws Exception {
         CollectNode collectNode = new CollectNode("whereClause", testRouting);
         collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
-        collectNode.whereClause(Optional.of(new Function(
+        collectNode.whereClause(new Function(
                 AndOperator.INFO,
                 Arrays.<Symbol>asList(new BooleanLiteral(true), new BooleanLiteral(true))
-        )));
+        ));
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, equalTo(1));
         assertThat((Integer)result[0][0], equalTo(42));
@@ -394,10 +393,10 @@ public class LocalDataCollectTest {
         EqOperator op = (EqOperator)functions.get(new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)));
         CollectNode collectNode = new CollectNode("whereClause", testRouting);
         collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
-        collectNode.whereClause(Optional.of(new Function(
+        collectNode.whereClause(new Function(
                 op.info(),
                 Arrays.<Symbol>asList(Null.INSTANCE, Null.INSTANCE)
-        )));
+        ));
         Object[][] result = operation.collect(collectNode).get();
         assertArrayEquals(new Object[0][], result);
     }
@@ -420,7 +419,7 @@ public class LocalDataCollectTest {
 
         CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0,1));
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
-        collectNode.whereClause(Optional.of(new Function(op.info(), Arrays.<Symbol>asList(testShardIdReference, new IntegerLiteral(0)))));
+        collectNode.whereClause(new Function(op.info(), Arrays.<Symbol>asList(testShardIdReference, new IntegerLiteral(0))));
         collectNode.setMaxRowGranularity(RowGranularity.SHARD);
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(equalTo(1)));

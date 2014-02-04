@@ -70,6 +70,8 @@ public class PlannerTest {
             TestReferenceResolver rr = new TestReferenceResolver();
             rr.register(null, "users", "name", DataType.STRING, RowGranularity.DOC);
             rr.register(null, "users", "id", DataType.LONG, RowGranularity.DOC);
+            rr.register("sys", "shards", "id", DataType.INTEGER, RowGranularity.SHARD);
+
             bind(ReferenceResolver.class).toInstance(rr);
         }
     }
@@ -95,5 +97,30 @@ public class PlannerTest {
         System.out.println(pp.print(plan));
 
     }
+
+    @Test
+    public void testShardPlan() throws Exception {
+        Statement statement = SqlParser.createStatement("select id from sys.shards order by id limit 10");
+        // TODO: add where clause
+        Analysis analysis = analyzer.analyze(statement);
+        Planner planner = new Planner();
+        Plan plan = planner.plan(analysis);
+        PlanPrinter pp = new PlanPrinter();
+        System.out.println(pp.print(plan));
+    }
+
+    @Test
+    public void testESSearchPlan() throws Exception {
+        Statement statement = SqlParser.createStatement("select name from users order by id limit 10");
+        // TODO: add where clause
+        Analysis analysis = analyzer.analyze(statement);
+        Planner planner = new Planner();
+        Plan plan = planner.plan(analysis);
+        PlanPrinter pp = new PlanPrinter();
+        System.out.println(pp.print(plan));
+    }
+
+
+
 
 }

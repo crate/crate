@@ -117,10 +117,10 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         CollectNode collectNode = new CollectNode("docCollect", routing());
         collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference));
         collectNode.setMaxRowGranularity(RowGranularity.DOC);
-        collectNode.whereClause(Optional.of(new Function(
+        collectNode.whereClause(new Function(
                 op.info(),
                 Arrays.<Symbol>asList(testDocLevelReference, new IntegerLiteral(2))
-        )));
+        ));
 
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(1));
