@@ -23,6 +23,7 @@ package io.crate.operator.operations;
 
 import io.crate.metadata.*;
 import io.crate.operator.Input;
+import io.crate.operator.InputCollectExpression;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.aggregation.FunctionExpression;
 import io.crate.operator.reference.doc.CollectorExpression;
@@ -32,10 +33,7 @@ import io.crate.planner.node.CollectNode;
 import io.crate.planner.symbol.*;
 import org.cratedb.sql.CrateException;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * convert Symbols into Inputs for evaluation and CollectExpressions
@@ -52,13 +50,13 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
             return maxGranularity;
         }
 
-        protected void setMaxGranularity(RowGranularity granularity) {
+        private void setMaxGranularity(RowGranularity granularity) {
             if (granularity.ordinal() > this.maxGranularity.ordinal()) {
                 this.maxGranularity = granularity;
             }
         }
 
-        public void add(Input<?> input) {
+        private void add(Input<?> input) {
             topLevelInputs.add(input);
         }
 
@@ -129,6 +127,13 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
     }
 
     @Override
+    public Input<?> visitInputColumn(InputColumn inputColumn, Context context) {
+        InputCollectExpression<?> input = new InputCollectExpression<>(inputColumn.index());
+        context.collectExpressions.add(input);
+        return input;
+    }
+
+    @Override
     public Input<?> visitReference(Reference symbol, Context context) {
         Input<?> result;
 
@@ -158,10 +163,42 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
     }
 
     @Override
+    public Input<?> visitStringLiteral(StringLiteral symbol, Context context) {
+        return symbol;
+    }
+
+    @Override
+    public Input<?> visitDoubleLiteral(DoubleLiteral symbol, Context context) {
+        return symbol;
+    }
+
+    @Override
+    public Input<?> visitBooleanLiteral(BooleanLiteral symbol, Context context) {
+        return symbol;
+    }
+
+    @Override
+    public Input<?> visitIntegerLiteral(IntegerLiteral symbol, Context context) {
+        return symbol;
+    }
+
+    @Override
+    public Input<?> visitNullLiteral(Null symbol, Context context) {
+        return symbol;
+    }
+
+    @Override
+    public Input<?> visitLongLiteral(LongLiteral symbol, Context context) {
+        return symbol;
+    }
+
+    @Override
+    public Input<?> visitFloatLiteral(FloatLiteral symbol, Context context) {
+        return symbol;
+    }
+
+    @Override
     protected Input<?> visitSymbol(Symbol symbol, Context context) {
-        if (symbol instanceof Literal<?, ?>) {
-            return (Literal<?, ?>)symbol;
-        }
-        return super.visitSymbol(symbol, context);
+        throw new UnsupportedOperationException(String.format("Can't handle Symbol %s", symbol));
     }
 }
