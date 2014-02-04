@@ -5,12 +5,7 @@ Changes for Crate
 Unreleased
 ==========
 
- - removed 'docs overview' (see below).
-
- - introduced 'docs overview'. the generated doc_overview.html will be
-   release as index.html at https://docs.crate.io/
-   RELEASE management: make sure to extend the list in ./docs/old-versions.rst
-   as well.
+ - updated .gitignore and renamed heading README.rst
 
 2014/01/29 0.22.2
 =================
