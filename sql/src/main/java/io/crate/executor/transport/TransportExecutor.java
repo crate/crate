@@ -31,6 +31,7 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanVisitor;
+import org.elasticsearch.action.count.TransportCountAction;
 import org.elasticsearch.action.search.TransportSearchAction;
 
 import java.util.List;
@@ -38,14 +39,17 @@ import java.util.List;
 public class TransportExecutor implements Executor {
 
     private final TransportSearchAction transportSearchAction;
+    private final TransportCountAction transportCountAction;
     private final Functions functions;
     private final ReferenceResolver referenceResolver;
     private final Visitor visitor;
 
     public TransportExecutor(TransportSearchAction transportSearchAction,
+                             TransportCountAction transportCountAction,
                              Functions functions,
                              ReferenceResolver referenceResolver) {
         this.transportSearchAction = transportSearchAction;
+        this.transportCountAction = transportCountAction;
         this.functions = functions;
         this.referenceResolver = referenceResolver;
         this.visitor = new Visitor();
@@ -76,7 +80,8 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Void visitESSearchNode(ESSearchNode node, Job context) {
-            context.addTask(new ESSearchTask(node, transportSearchAction, functions, referenceResolver));
+            context.addTask(new ESSearchTask(node, transportSearchAction, transportCountAction,
+                    functions, referenceResolver));
             return null;
         }
 

@@ -28,19 +28,18 @@ import io.crate.executor.transport.task.RemoteCollectTask;
 import io.crate.executor.transport.task.elasticsearch.ESGetTask;
 import io.crate.executor.transport.task.elasticsearch.ESSearchTask;
 import io.crate.metadata.*;
+import io.crate.operator.aggregation.impl.CountAggregation;
 import io.crate.operator.operator.EqOperator;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.node.ESGetNode;
 import io.crate.planner.node.ESSearchNode;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.StringLiteral;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.test.integration.CrateIntegrationTest;
+import org.elasticsearch.action.count.TransportCountAction;
 import org.elasticsearch.action.get.TransportGetAction;
 import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.cluster.ClusterService;
@@ -67,7 +66,12 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
             new ReferenceIdent(table, "id"), RowGranularity.DOC, DataType.INTEGER));
     Reference name_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(table, "name"), RowGranularity.DOC, DataType.STRING));
-
+    Aggregation countAgg = new Aggregation(
+            new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()),
+            ImmutableList.<Symbol>of(),
+            Aggregation.Step.ITER,
+            Aggregation.Step.FINAL
+    );
 
     @Before
     public void transportSetUp() {
@@ -77,7 +81,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         Functions functions = cluster().getInstance(Functions.class);
         TransportSearchAction transportSearchAction = cluster().getInstance(TransportSearchAction.class);
-        executor = new TransportExecutor(transportSearchAction, functions, null);
+        TransportCountAction transportCountAction = cluster().getInstance(TransportCountAction.class);
+        executor = new TransportExecutor(transportSearchAction, transportCountAction, functions, null);
     }
 
     private void insertCharacters() {
@@ -114,7 +119,6 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         for (ListenableFuture<Object[][]> nodeResult : result) {
             assertEquals(1, nodeResult.get().length);
             assertThat((Double) nodeResult.get()[0][0], is(greaterThan(0.0)));
-
         }
     }
 
@@ -158,6 +162,26 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         assertThat((Integer) rows[2][0], is(3));
         assertThat((String) rows[2][1], is("Trillian"));
+    }
+
+    @Test
+    public void testESSearchTaskCount() throws Exception {
+        insertCharacters();
+        ESSearchNode node = new ESSearchNode(
+                Arrays.<Symbol>asList(countAgg),
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+        Job job = executor.newJob(node);
+        ESSearchTask task = (ESSearchTask) job.tasks().get(0);
+
+        task.start();
+        Object[][] rows = task.result().get(0).get();
+        assertThat(rows.length, is(1));
+        assertThat((Long)rows[0][0], is(3L));
     }
 
     @Test
