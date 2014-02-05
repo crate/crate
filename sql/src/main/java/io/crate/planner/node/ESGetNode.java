@@ -42,12 +42,6 @@ public class ESGetNode extends AbstractESNode {
     public String index() {
         return index;
     }
-
-    @Override
-    public Set<String> executionNodes() {
-        return ImmutableSet.of();
-    }
-
     public String id() {
         return id;
     }

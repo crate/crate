@@ -85,12 +85,6 @@ public class ESSearchNode extends AbstractESNode {
     }
 
     @Override
-    public Set<String> executionNodes() {
-        // always runs on mapper since it uses its own routing internally
-        return ImmutableSet.of();
-    }
-
-    @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitESSearchNode(this, context);
     }

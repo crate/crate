@@ -45,6 +45,7 @@ public abstract class AbstractESNode extends PlanNode {
 
     @Override
     public Set<String> executionNodes() {
+        // always runs local (aka handler) since it uses its own routing internally
         return ImmutableSet.of();
     }
 
