@@ -21,6 +21,7 @@
 
 package io.crate.planner.node;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.projection.Projection;
 import org.cratedb.DataType;
@@ -59,6 +60,14 @@ public abstract class PlanNode implements Streamable {
 
     public List<Projection> projections() {
         return projections;
+    }
+
+    public Optional<Projection> finalProjection() {
+        if (projections.size() == 0) {
+            return Optional.absent();
+        } else {
+            return Optional.of(projections.get(projections.size()-1));
+        }
     }
 
     public void projections(List<Projection> projections) {
