@@ -26,16 +26,12 @@ import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.Symbol;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-/**
- * TODO: implement
- */
 public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> {
 
     public static class Context {
@@ -132,5 +128,15 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                 symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
                 symbolContext.aggregations()
         );
+    }
+
+    @Override
+    public Projector visitAggregationProjection(AggregationProjection projection, Context context) {
+        ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
+        for (Aggregation aggregation : projection.aggregations()) {
+            symbolVisitor.process(aggregation, symbolContext);
+        }
+
+        return new AggregationProjector(symbolContext.collectExpressions(), symbolContext.aggregations());
     }
 }
