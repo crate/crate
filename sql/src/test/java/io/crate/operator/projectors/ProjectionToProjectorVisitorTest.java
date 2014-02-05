@@ -24,6 +24,7 @@ package io.crate.operator.projectors;
 import io.crate.metadata.*;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.InputColumn;
@@ -133,6 +134,26 @@ public class ProjectionToProjectorVisitorTest {
         }
 
 
+    }
+
+    @Test
+    public void testAggregationProjector() {
+        AggregationProjection projection = new AggregationProjection();
+        projection.aggregations(Arrays.asList(
+                new Aggregation(avgIdent, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
+                new Aggregation(countIdent, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL)
+        ));
+        Projector projector = visitor.process(projection, null);
+        assertThat(projector, instanceOf(AggregationProjector.class));
+
+        projector.startProjection();
+        projector.setNextRow("foo", 10);
+        projector.setNextRow("bar", 20);
+        projector.finishProjection();
+        Object[][] rows = projector.getRows();
+        assertThat(rows.length, is(1));
+        assertThat((Double)rows[0][0], is(15.0));   // avg
+        assertThat((Long)rows[0][1], is(2L));       // count
     }
 
     @Test
