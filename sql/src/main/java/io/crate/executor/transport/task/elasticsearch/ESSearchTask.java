@@ -42,6 +42,7 @@ import org.elasticsearch.action.count.TransportCountAction;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.TransportSearchAction;
+import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.search.SearchHit;
 
@@ -128,6 +129,7 @@ public class ESSearchTask implements Task<Object[][]> {
     }
 
     private void doCountRequest(final Context ctx) {
+        Preconditions.checkArgument(ctx.outputs.isEmpty()); // ESSearchTask supports only global count
         CountRequest request = new CountRequest(ctx.indices());
 
         transportCountAction.execute(request, new ActionListener<CountResponse>() {
@@ -185,6 +187,7 @@ public class ESSearchTask implements Task<Object[][]> {
         @Override
         public Void visitAggregation(Aggregation symbol, Context context) {
             if (symbol.functionIdent().name().equals(CountAggregation.NAME)) {
+                Preconditions.checkArgument(symbol.inputs().isEmpty()); // only global count works.
                 context.isCountRequest = true;
                 return null;
             }

@@ -67,8 +67,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     Reference name_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(table, "name"), RowGranularity.DOC, DataType.STRING));
     Aggregation countAgg = new Aggregation(
-            new FunctionIdent(CountAggregation.NAME, Arrays.asList(DataType.STRING)),
-            Arrays.<Symbol>asList(name_ref),
+            new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()),
+            ImmutableList.<Symbol>of(),
             Aggregation.Step.ITER,
             Aggregation.Step.FINAL
     );
@@ -119,7 +119,6 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         for (ListenableFuture<Object[][]> nodeResult : result) {
             assertEquals(1, nodeResult.get().length);
             assertThat((Double) nodeResult.get()[0][0], is(greaterThan(0.0)));
-
         }
     }
 
