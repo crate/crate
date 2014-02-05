@@ -31,9 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Created by bd on 5.2.14.
- */
 public abstract class AbstractESNode extends PlanNode {
 
     protected List<Symbol> outputs;
