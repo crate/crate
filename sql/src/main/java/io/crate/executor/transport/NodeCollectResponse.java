@@ -31,10 +31,10 @@ import java.io.IOException;
 public class NodeCollectResponse extends TransportResponse {
 
     private Object[][] rows;
-    private final DataType.Streamer[] streamers;
+    private final DataType.Streamer<?>[] streamers;
 
 
-    public NodeCollectResponse(DataType.Streamer[] streamers) {
+    public NodeCollectResponse(DataType.Streamer<?>[] streamers) {
         this.streamers = streamers;
     }
 
