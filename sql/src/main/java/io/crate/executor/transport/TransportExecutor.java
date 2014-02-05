@@ -28,9 +28,9 @@ import io.crate.executor.Task;
 import io.crate.executor.transport.task.elasticsearch.ESSearchTask;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.planner.plan.ESSearchNode;
-import io.crate.planner.plan.PlanNode;
-import io.crate.planner.plan.PlanVisitor;
+import io.crate.planner.node.ESSearchNode;
+import io.crate.planner.node.PlanNode;
+import io.crate.planner.node.PlanVisitor;
 import org.elasticsearch.action.search.TransportSearchAction;
 
 import java.util.List;
@@ -81,7 +81,7 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        protected Void visitPlan(PlanNode node, Job context) {
+        protected Void visitPlanNode(PlanNode node, Job context) {
             throw new UnsupportedOperationException(
                     String.format("Can't generate job/task for planNode %s", node));
         }

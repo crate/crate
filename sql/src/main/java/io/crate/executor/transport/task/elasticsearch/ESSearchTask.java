@@ -27,7 +27,7 @@ import io.crate.analyze.elasticsearch.ESQueryBuilder;
 import io.crate.executor.Task;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.planner.plan.ESSearchNode;
+import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolVisitor;

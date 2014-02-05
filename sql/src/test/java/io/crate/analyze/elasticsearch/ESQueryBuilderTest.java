@@ -27,7 +27,7 @@ import io.crate.operator.operator.*;
 import io.crate.operator.scalar.MatchFunction;
 import io.crate.operator.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.plan.ESSearchNode;
+import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 import org.elasticsearch.common.bytes.BytesReference;

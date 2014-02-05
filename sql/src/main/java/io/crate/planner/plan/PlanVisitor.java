@@ -49,8 +49,4 @@ public class PlanVisitor<C, R> {
     public R visitTopNNode(TopNNode node, C context) {
         return visitPlan(node, context);
     }
-
-    public R visitESSearchNode(ESSearchNode node, C context) {
-        return visitPlan(node, context);
-    }
 }

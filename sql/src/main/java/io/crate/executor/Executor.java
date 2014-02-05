@@ -22,7 +22,7 @@
 package io.crate.executor;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.planner.plan.PlanNode;
+import io.crate.planner.node.PlanNode;
 
 import java.util.List;
 
