@@ -25,6 +25,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.operator.operations.collect.LocalDataCollectOperation;
 import io.crate.planner.node.CollectNode;
+import io.crate.planner.node.PlanNodeStreamerVisitor;
 import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.action.ActionListener;
@@ -40,7 +41,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 public class TransportCollectNodeAction {
@@ -52,17 +52,20 @@ public class TransportCollectNodeAction {
     private final ThreadPool threadPool;
     private final ClusterService clusterService;
     private final LocalDataCollectOperation localDataCollector;
+    private final PlanNodeStreamerVisitor planNodeStreamerVisitor;
     private final String executor = ThreadPool.Names.SEARCH;
 
     @Inject
     public TransportCollectNodeAction(ThreadPool threadPool,
                                       ClusterService clusterService,
                                       TransportService transportService,
-                                      LocalDataCollectOperation localDataCollector) {
+                                      LocalDataCollectOperation localDataCollector,
+                                      PlanNodeStreamerVisitor planNodeStreamerVisitor) {
         this.threadPool = threadPool;
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.localDataCollector = localDataCollector;
+        this.planNodeStreamerVisitor = planNodeStreamerVisitor;
 
         transportService.registerHandler(transportAction, new TransportHandler());
     }
@@ -78,21 +81,8 @@ public class TransportCollectNodeAction {
         return ThreadPool.Names.SEARCH;
     }
 
-    private DataType.Streamer[] extractStreamers(List<DataType> outputs) {
-        if (outputs == null) { return new DataType.Streamer[0]; }
-        DataType.Streamer[] streamers = new DataType.Streamer[outputs.size()];
-
-        int i = 0;
-        for (DataType outputType : outputs) {
-            streamers[i] = outputType.streamer();
-            i++;
-        }
-
-        return streamers;
-    }
-
     private ListenableActionFuture<NodeCollectResponse> nodeOperation(final NodeCollectRequest request) throws CrateException {
-        CollectNode node = request.collectNode();
+        final CollectNode node = request.collectNode();
         final ListenableFuture<Object[][]> collectResult = localDataCollector.collect(node);
         final PlainListenableActionFuture<NodeCollectResponse> collectResponse = new PlainListenableActionFuture<>(false, threadPool);
         collectResult.addListener(new Runnable() {
@@ -100,7 +90,8 @@ public class TransportCollectNodeAction {
             public void run() {
                 if (collectResult.isDone()) {
                     try {
-                        NodeCollectResponse response = new NodeCollectResponse(extractStreamers(request.collectNode().outputTypes()));
+                        PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(node);
+                        NodeCollectResponse response = new NodeCollectResponse(streamerContext.outputStreamers());
                         response.rows(collectResult.get());
                         collectResponse.onResponse(response);
                     } catch (ExecutionException | InterruptedException e) {
@@ -116,7 +107,7 @@ public class TransportCollectNodeAction {
 
         private final NodeCollectRequest request;
         private final ActionListener<NodeCollectResponse> listener;
-        private final DataType.Streamer[] streamers;
+        private final DataType.Streamer<?>[] streamers;
         private final DiscoveryNode node;
         private final String nodeId;
         private final ClusterState clusterState;
@@ -130,7 +121,8 @@ public class TransportCollectNodeAction {
             this.nodeId = nodeId;
             this.request = request;
             this.listener = listener;
-            this.streamers = extractStreamers(request.collectNode().outputTypes());
+            PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(request.collectNode());
+            this.streamers = streamerContext.outputStreamers();
         }
 
         private void start() {
