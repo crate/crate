@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.Job;
 import io.crate.executor.transport.task.RemoteCollectTask;
@@ -30,9 +31,9 @@ import io.crate.metadata.*;
 import io.crate.operator.operator.EqOperator;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.plan.ESGetNode;
 import io.crate.planner.node.CollectNode;
-import io.crate.planner.plan.ESSearchNode;
+import io.crate.planner.node.ESGetNode;
+import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.StringLiteral;
@@ -122,14 +123,14 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         insertCharacters();
 
         ESGetNode node = new ESGetNode("characters", "2");
-        node.outputs(id_ref, name_ref);
+        node.outputs(ImmutableList.<Symbol>of(id_ref, name_ref));
         ESGetTask task = new ESGetTask(transportGetAction, node);
         task.start();
         Object[][] objects = task.result().get(0).get();
 
         assertThat(objects.length, is(1));
-        assertThat((Integer)objects[0][0], is(2));
-        assertThat((String)objects[0][1], is("Ford"));
+        assertThat((Integer) objects[0][0], is(2));
+        assertThat((String) objects[0][1], is("Ford"));
     }
 
     @Test
@@ -139,24 +140,24 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ESSearchNode node = new ESSearchNode(
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Reference>asList(name_ref),
-                new boolean[] { false },
+                new boolean[]{false},
                 null, null, null
         );
         Job job = executor.newJob(node);
-        ESSearchTask task = (ESSearchTask)job.tasks().get(0);
+        ESSearchTask task = (ESSearchTask) job.tasks().get(0);
 
         task.start();
         Object[][] rows = task.result().get(0).get();
         assertThat(rows.length, is(3));
 
-        assertThat((Integer)rows[0][0], is(1));
-        assertThat((String)rows[0][1], is("Arthur"));
+        assertThat((Integer) rows[0][0], is(1));
+        assertThat((String) rows[0][1], is("Arthur"));
 
-        assertThat((Integer)rows[1][0], is(2));
-        assertThat((String)rows[1][1], is("Ford"));
+        assertThat((Integer) rows[1][0], is(2));
+        assertThat((String) rows[1][1], is("Ford"));
 
-        assertThat((Integer)rows[2][0], is(3));
-        assertThat((String)rows[2][1], is("Trillian"));
+        assertThat((Integer) rows[2][0], is(3));
+        assertThat((String) rows[2][1], is("Trillian"));
     }
 
     @Test
@@ -171,18 +172,18 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         ESSearchNode node = new ESSearchNode(
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Reference>asList(name_ref),
-                new boolean[] { false },
+                new boolean[]{false},
                 null, null,
                 whereClause
         );
         Job job = executor.newJob(node);
-        ESSearchTask task = (ESSearchTask)job.tasks().get(0);
+        ESSearchTask task = (ESSearchTask) job.tasks().get(0);
 
         task.start();
         Object[][] rows = task.result().get(0).get();
         assertThat(rows.length, is(1));
 
-        assertThat((Integer)rows[0][0], is(2));
-        assertThat((String)rows[0][1], is("Ford"));
+        assertThat((Integer) rows[0][0], is(2));
+        assertThat((String) rows[0][1], is("Ford"));
     }
 }

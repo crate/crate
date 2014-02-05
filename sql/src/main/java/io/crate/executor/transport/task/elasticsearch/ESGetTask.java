@@ -25,7 +25,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
-import io.crate.planner.plan.ESGetNode;
+import io.crate.planner.node.ESGetNode;
 import io.crate.planner.symbol.*;
 import org.cratedb.Constants;
 import org.elasticsearch.action.ActionListener;

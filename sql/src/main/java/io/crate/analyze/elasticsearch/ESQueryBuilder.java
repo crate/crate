@@ -33,7 +33,7 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.operator.operator.*;
 import io.crate.operator.scalar.MatchFunction;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.plan.ESSearchNode;
+import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.symbol.*;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;

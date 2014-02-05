@@ -54,6 +54,10 @@ public class PlanVisitor<C, R> {
         return visitPlanNode(node, context);
     }
 
+    public R visitESGetNode(ESGetNode node, C context) {
+        return visitPlanNode(node, context);
+    }
+
     public R visitAggregationProjection(AggregationProjection projection, C context) {
         return visitProjection(projection, context);
     }
@@ -65,6 +69,5 @@ public class PlanVisitor<C, R> {
     public R visitTopNProjection(TopNProjection projection, C context) {
         return visitProjection(projection, context);
     }
-
 
 }

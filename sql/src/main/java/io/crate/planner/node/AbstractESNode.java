@@ -19,43 +19,52 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.plan;
+package io.crate.planner.node;
 
+import com.google.common.collect.ImmutableSet;
+import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
-public class ESGetNode extends PlanNode {
+public abstract class AbstractESNode extends PlanNode {
 
-    private String index;
-    private String id;
+    protected List<Symbol> outputs;
 
-    // TODO: change interface to whatever the planner can provide
-    public ESGetNode(String index, String id) {
-        this.index = index;
-        this.id = id;
+    public List<Symbol> outputs() {
+        return outputs;
     }
 
-    public String index() {
-        return index;
+    public void outputs(List<Symbol> outputs) {
+        this.outputs = outputs;
     }
 
-    public String id() {
-        return id;
+    @Override
+    public Set<String> executionNodes() {
+        // always runs local (aka handler) since it uses its own routing internally
+        return ImmutableSet.of();
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        id = in.readString();
-        index = in.readString();
+        int numOutputs = in.readVInt();
+        outputs = new ArrayList<>(numOutputs);
+        for (int i = 0; i < numOutputs; i++) {
+            outputs.add(Symbol.fromStream(in));
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeString(id);
-        out.writeString(index);
+        out.writeVInt(outputs.size());
+        for (Symbol output : outputs) {
+            Symbol.toStream(output, out);
+        }
     }
 }

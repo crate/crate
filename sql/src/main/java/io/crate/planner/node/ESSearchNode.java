@@ -36,14 +36,13 @@ import org.elasticsearch.common.Nullable;
 import java.util.List;
 import java.util.Set;
 
-public class ESSearchNode extends PlanNode {
+public class ESSearchNode extends AbstractESNode {
 
     private final List<Reference> orderBy;
     private final int limit;
     private final int offset;
     private final boolean[] reverseFlags;
     private final Optional<Function> whereClause;
-    private List<Symbol> outputs;
 
     public ESSearchNode(List<Symbol> outputs,
                         @Nullable List<Reference> orderBy,
@@ -65,14 +64,6 @@ public class ESSearchNode extends PlanNode {
         this.offset = Objects.firstNonNull(offset, 0);
     }
 
-    public List<Symbol> outputs() {
-        return outputs;
-    }
-
-    public void outputs(List<Symbol> outputs) {
-        this.outputs = outputs;
-    }
-
     public int limit() {
         return limit;
     }
@@ -91,12 +82,6 @@ public class ESSearchNode extends PlanNode {
 
     public Optional<Function> whereClause() {
         return whereClause;
-    }
-
-    @Override
-    public Set<String> executionNodes() {
-        // always runs on mapper since it uses its own routing internally
-        return ImmutableSet.of();
     }
 
     @Override
