@@ -27,13 +27,18 @@ import io.crate.analyze.elasticsearch.ESQueryBuilder;
 import io.crate.executor.Task;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
+import io.crate.operator.aggregation.impl.CountAggregation;
 import io.crate.planner.node.ESSearchNode;
+import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolVisitor;
 import org.cratedb.action.sql.SQLFields;
 import org.cratedb.sql.ExceptionHelper;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.count.CountRequest;
+import org.elasticsearch.action.count.CountResponse;
+import org.elasticsearch.action.count.TransportCountAction;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.TransportSearchAction;
@@ -51,13 +56,16 @@ public class ESSearchTask implements Task<Object[][]> {
     private final List<ListenableFuture<Object[][]>> results;
     private final ESQueryBuilder queryBuilder;
     private final Visitor visitor = new Visitor();
+    private final TransportCountAction transportCountAction;
 
     public ESSearchTask(ESSearchNode searchNode,
                         TransportSearchAction transportSearchAction,
+                        TransportCountAction transportCountAction,
                         Functions functions,
                         ReferenceResolver referenceResolver) {
         this.searchNode = searchNode;
         this.transportSearchAction = transportSearchAction;
+        this.transportCountAction = transportCountAction;
         this.queryBuilder = new ESQueryBuilder(functions, referenceResolver);
 
         result = SettableFuture.create();
@@ -67,12 +75,19 @@ public class ESSearchTask implements Task<Object[][]> {
     @Override
     public void start() {
         final Context ctx = new Context();
-        final SearchRequest request = new SearchRequest();
-
         for (Symbol symbol : searchNode.outputs()) {
             visitor.process(symbol, ctx);
         }
 
+        if (ctx.isCountRequest) {
+            doCountRequest(ctx);
+        } else {
+            doSearchRequest(ctx);
+        }
+    }
+
+    private void doSearchRequest(final Context ctx) {
+        final SearchRequest request = new SearchRequest();
         final SQLFields fields = new SQLFields(ctx.fields);
 
         try {
@@ -109,6 +124,25 @@ public class ESSearchTask implements Task<Object[][]> {
         } catch (IOException e) {
             result.setException(e);
         }
+
+    }
+
+    private void doCountRequest(final Context ctx) {
+        CountRequest request = new CountRequest(ctx.indices());
+
+        transportCountAction.execute(request, new ActionListener<CountResponse>() {
+            @Override
+            public void onResponse(CountResponse countResponse) {
+                final Object[][] rows = new Object[1][1];
+                rows[0][0] = countResponse.getCount();
+                result.set(rows);
+            }
+
+            @Override
+            public void onFailure(Throwable e) {
+                result.setException(e);
+            }
+        });
     }
 
     @Override
@@ -122,6 +156,8 @@ public class ESSearchTask implements Task<Object[][]> {
     }
 
     class Context {
+        public boolean isCountRequest = false;
+
         final public List<Reference> outputs = new ArrayList<>();
         final public Set<String> indices = new HashSet<>();
 
@@ -129,6 +165,10 @@ public class ESSearchTask implements Task<Object[][]> {
         // to generate the Object[][] result from the SearchResponse
         // remove and adjust SQLFields once the akiban stuff is removed.
         final public List<Tuple<String, String>> fields = new ArrayList<>();
+
+        public String[] indices() {
+            return indices.toArray(new String[indices.size()]);
+        }
     }
 
     static class Visitor extends SymbolVisitor<Context, Void> {
@@ -140,6 +180,15 @@ public class ESSearchTask implements Task<Object[][]> {
             context.outputs.add(symbol);
             context.indices.add(symbol.info().ident().tableIdent().name());
             return null;
+        }
+
+        @Override
+        public Void visitAggregation(Aggregation symbol, Context context) {
+            if (symbol.functionIdent().name().equals(CountAggregation.NAME)) {
+                context.isCountRequest = true;
+                return null;
+            }
+            throw new UnsupportedOperationException(String.format("Symbol %s not supported", symbol));
         }
 
         @Override
