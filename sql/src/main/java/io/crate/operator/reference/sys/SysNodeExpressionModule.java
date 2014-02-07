@@ -35,11 +35,11 @@ public class SysNodeExpressionModule extends AbstractModule {
                 .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
 
         b.addBinding(NodeLoadExpression.INFO_LOAD.ident()).to(NodeLoadExpression.class).asEagerSingleton();
+        b.addBinding(NodeIdExpression.INFO_ID.ident()).to(NodeIdExpression.class).asEagerSingleton();
         b.addBinding(NodeNameExpression.INFO_NAME.ident()).to(NodeNameExpression.class).asEagerSingleton();
         b.addBinding(NodeHostnameExpression.INFO_HOSTNAME.ident()).to(NodeHostnameExpression.class).asEagerSingleton();
         b.addBinding(NodePortExpression.INFO_PORT.ident()).to(NodePortExpression.class).asEagerSingleton();
         b.addBinding(NodeMemoryExpression.INFO_MEM.ident()).to(NodeMemoryExpression.class).asEagerSingleton();
         b.addBinding(NodeFsExpression.INFO_FS.ident()).to(NodeFsExpression.class).asEagerSingleton();
-
     }
 }

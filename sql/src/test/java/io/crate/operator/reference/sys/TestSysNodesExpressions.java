@@ -94,6 +94,7 @@ public class TestSysNodesExpressions {
             TransportAddress transportAddress = new InetSocketTransportAddress("localhost", 44300);
 
             when(nodeStats.getNode()).thenReturn(node);
+            when(node.getId()).thenReturn("node-id-1");
             when(node.getName()).thenReturn("node 1");
             when(node.address()).thenReturn(transportAddress);
 
@@ -172,6 +173,14 @@ public class TestSysNodesExpressions {
         SysExpression<String> name = (SysExpression<String>) resolver.getImplementation(ident);
 
         assertEquals("node 1", name.value());
+    }
+
+    @Test
+    public void testId() throws Exception {
+        ReferenceIdent ident = new ReferenceIdent(SystemReferences.NODES_IDENT, "id");
+        SysExpression<String> id = (SysExpression<String>) resolver.getImplementation(ident);
+
+        assertEquals("node-id-1", id.value());
     }
 
     @Test
