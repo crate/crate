@@ -21,13 +21,16 @@
 
 package io.crate.operator.reference.sys;
 
-import io.crate.metadata.*;
+import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.shard.MetaDataShardModule;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SystemReferences;
 import io.crate.operator.reference.sys.cluster.ClusterNameExpression;
 import io.crate.operator.reference.sys.shard.*;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -68,6 +71,7 @@ public class SysShardsExpressionsTest {
 
             ShardId shardId = mock(ShardId.class);
             when(shardId.getId()).thenReturn(1);
+            when(shardId.getIndex()).thenReturn("wikipedia_de");
             bind(ShardId.class).toInstance(shardId);
 
             IndexShard indexShard = mock(IndexShard.class);
@@ -173,6 +177,15 @@ public class SysShardsExpressionsTest {
         assertEquals(ShardRelocatingNodeExpression.INFO_RELOCATING_NODE, shardExpression.info());
 
         assertEquals("node_X", shardExpression.value());
+    }
+
+    @Test
+    public void testTableName() throws Exception {
+        ReferenceIdent ident = new ReferenceIdent(SystemReferences.SHARDS_IDENT, ShardTableNameExpression.COLNAME);
+        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        assertEquals(ShardTableNameExpression.INFO_TABLE_NAME, shardExpression.info());
+
+        assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());
     }
 
 }
