@@ -44,10 +44,31 @@ public class CollectNode extends PlanNode {
     private Routing routing;
     private List<Symbol> toCollect;
     private Function whereClause;
-    private RowGranularity maxRowgranularity = RowGranularity.NODE;
+    private RowGranularity maxRowgranularity = RowGranularity.CLUSTER;
+    private List<String> downStreamNodes;
+
+    public CollectNode(String id) {
+        super(id);
+    }
 
     public CollectNode() {
         super();
+    }
+
+    /**
+     * This method returns true if downstreams are defined, which means that results of this collect
+     * operation should be sent to other nodes instead of being returned directly.
+     */
+    public boolean hasDownstreams() {
+        return downStreamNodes != null && downStreamNodes.size() > 0;
+    }
+
+    public List<String> downStreamNodes() {
+        return downStreamNodes;
+    }
+
+    public void downStreamNodes(List<String> downStreamNodes) {
+        this.downStreamNodes = downStreamNodes;
     }
 
     @Override
@@ -102,7 +123,7 @@ public class CollectNode extends PlanNode {
         return maxRowgranularity;
     }
 
-    public void setMaxRowGranularity(RowGranularity newRowGranularity) {
+    public void maxRowGranularity(RowGranularity newRowGranularity) {
         if (maxRowgranularity.compareTo(newRowGranularity) < 0) {
             maxRowgranularity = newRowGranularity;
         }
@@ -133,6 +154,12 @@ public class CollectNode extends PlanNode {
             whereClause = new Function();
             whereClause.readFrom(in);
         }
+        int numDownStreams = in.readVInt();
+        downStreamNodes = new ArrayList<>(numDownStreams);
+        for (int i = 0; i < numDownStreams; i++) {
+            downStreamNodes.add(in.readString());
+        }
+
     }
 
     @Override
@@ -156,6 +183,13 @@ public class CollectNode extends PlanNode {
             whereClause.writeTo(out);
         } else {
             out.writeBoolean(false);
+        }
+
+        if (hasDownstreams()) {
+            out.writeVInt(downStreamNodes.size());
+            for (String node : downStreamNodes) {
+                out.writeString(node);
+            }
         }
     }
 

@@ -26,7 +26,6 @@ import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
@@ -34,7 +33,6 @@ import org.cratedb.Constants;
 import org.elasticsearch.common.Nullable;
 
 import java.util.List;
-import java.util.Set;
 
 public class ESSearchNode extends AbstractESNode {
 
