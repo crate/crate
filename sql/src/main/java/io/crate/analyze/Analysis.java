@@ -1,14 +1,11 @@
 package io.crate.analyze;
 
-import com.google.common.base.Preconditions;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Query;
-import org.cratedb.DataType;
 
 import java.util.*;
 
@@ -30,7 +27,6 @@ public class Analysis {
     //private Map<Aggregation, Aggregation> aggregationSymbols = new HashMap<>();
     private Map<ReferenceIdent, Reference> referenceSymbols = new IdentityHashMap<>();
 
-    private Map<Expression, DataType> types = new IdentityHashMap<>();
     private Routing routing;
     private List<String> outputNames;
     private List<Symbol> outputSymbols;
@@ -96,16 +92,6 @@ public class Analysis {
         return implementation.info();
     }
 
-
-    public void putType(Expression expression, DataType type) {
-        types.put(expression, type);
-    }
-
-
-    public DataType getType(Expression expression) {
-        Preconditions.checkArgument(types.containsKey(expression), "Expression not analyzed: %s", expression);
-        return types.get(expression);
-    }
 
     public void addOutputName(String s) {
         this.outputNames.add(s);

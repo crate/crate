@@ -42,9 +42,9 @@ public abstract class CmpOperator extends Operator {
             return Null.INSTANCE;
         }
 
-        if (left.symbolType().isLiteral() && right.symbolType().isLiteral()) {
-            // TODO: implicit cast numeric literals
+        // TODO: implicit cast numeric literals
 
+        if (left.symbolType().isLiteral() && right.symbolType().isLiteral()) {
             // must be true due to the function registration (argument DataType signature)
             assert left.getClass() == right.getClass();
             return new BooleanLiteral(compare(((Literal) left).compareTo(right)));
