@@ -38,6 +38,7 @@ import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.http.HttpInfo;
 import org.elasticsearch.http.HttpServer;
 import org.elasticsearch.monitor.fs.FsStats;
@@ -95,6 +96,10 @@ public class TestSysNodesExpressions {
             TransportAddress transportAddress = new InetSocketTransportAddress("localhost", 44300);
 
             when(nodeStats.getNode()).thenReturn(node);
+
+            Discovery discovery = mock(Discovery.class);
+            bind(Discovery.class).toInstance(discovery);
+            when(discovery.localNode()).thenReturn(node);
             when(node.getId()).thenReturn("node-id-1");
             when(node.getName()).thenReturn("node 1");
             when(node.address()).thenReturn(transportAddress);
@@ -173,7 +178,7 @@ public class TestSysNodesExpressions {
         ReferenceIdent ident = new ReferenceIdent(SystemReferences.NODES_IDENT, "name");
         SysExpression<String> name = (SysExpression<String>) resolver.getImplementation(ident);
 
-        assertEquals("node 1", name.value());
+        assertEquals(new BytesRef("node 1"), name.value());
     }
 
     @Test
