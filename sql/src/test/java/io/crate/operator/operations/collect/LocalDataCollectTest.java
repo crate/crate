@@ -255,7 +255,7 @@ public class LocalDataCollectTest {
     @Test
     public void testCollectExpressions() throws Exception {
         CollectNode collectNode = new CollectNode("collect", testRouting);
-        collectNode.setMaxRowGranularity(RowGranularity.NODE);
+        collectNode.maxRowGranularity(RowGranularity.NODE);
         collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
 
         Object[][] result = operation.collect(collectNode).get();
@@ -277,7 +277,7 @@ public class LocalDataCollectTest {
                 put("my_index", Sets.newHashSet(1));
             }});
         }}));
-        collectNode.setMaxRowGranularity(RowGranularity.DOC);
+        collectNode.maxRowGranularity(RowGranularity.DOC);
         operation.collect(collectNode);
     }
 
@@ -405,7 +405,7 @@ public class LocalDataCollectTest {
     public void testCollectShardExpressions() throws Exception {
         CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0,1));
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
-        collectNode.setMaxRowGranularity(RowGranularity.SHARD);
+        collectNode.maxRowGranularity(RowGranularity.SHARD);
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(equalTo(2)));
         assertThat((Integer)result[0][0], isOneOf(0, 1));
@@ -420,7 +420,7 @@ public class LocalDataCollectTest {
         CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0,1));
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
         collectNode.whereClause(new Function(op.info(), Arrays.<Symbol>asList(testShardIdReference, new IntegerLiteral(0))));
-        collectNode.setMaxRowGranularity(RowGranularity.SHARD);
+        collectNode.maxRowGranularity(RowGranularity.SHARD);
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(equalTo(1)));
         assertThat((Integer)result[0][0], is(0));
@@ -430,7 +430,7 @@ public class LocalDataCollectTest {
     public void testCollectShardExpressionsLiteralsAndNodeExpressions() throws Exception {
         CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0,1));
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference, new BooleanLiteral(true), testNodeReference));
-        collectNode.setMaxRowGranularity(RowGranularity.SHARD);
+        collectNode.maxRowGranularity(RowGranularity.SHARD);
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(equalTo(2)));
         assertThat(result[0].length, is(equalTo(3)));

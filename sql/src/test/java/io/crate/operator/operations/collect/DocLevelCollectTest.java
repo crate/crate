@@ -21,7 +21,6 @@
 
 package io.crate.operator.operations.collect;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.operator.operator.EqOperator;
@@ -103,7 +102,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     public void testCollectDocLevel() throws Exception {
         CollectNode collectNode = new CollectNode("docCollect", routing());
         collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference));
-        collectNode.setMaxRowGranularity(RowGranularity.DOC);
+        collectNode.maxRowGranularity(RowGranularity.DOC);
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(2));
         assertThat(result[0].length, is(1));
@@ -116,7 +115,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         EqOperator op = (EqOperator)functions.get(new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)));
         CollectNode collectNode = new CollectNode("docCollect", routing());
         collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference));
-        collectNode.setMaxRowGranularity(RowGranularity.DOC);
+        collectNode.maxRowGranularity(RowGranularity.DOC);
         collectNode.whereClause(new Function(
                 op.info(),
                 Arrays.<Symbol>asList(testDocLevelReference, new IntegerLiteral(2))
@@ -140,7 +139,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                 new Reference(ShardIdExpression.INFO_ID),
                 new Reference(ClusterNameExpression.INFO_NAME))
         );
-        collectNode.setMaxRowGranularity(RowGranularity.DOC);
+        collectNode.maxRowGranularity(RowGranularity.DOC);
 
         Object[][] result = operation.collect(collectNode).get();
 
