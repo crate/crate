@@ -33,12 +33,14 @@ import io.crate.operator.reference.sys.shard.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.index.shard.DocsStats;
 import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ShardId;
@@ -91,6 +93,13 @@ public class SysShardsExpressionsTest {
             when(shardRouting.relocatingNodeId()).thenReturn("node_X");
 
             when(indexShard.state()).thenReturn(IndexShardState.STARTED);
+
+            Discovery discovery = mock(Discovery.class);
+            bind(Discovery.class).toInstance(discovery);
+            DiscoveryNode node = mock(DiscoveryNode.class);
+            when(discovery.localNode()).thenReturn(node);
+            when(node.getId()).thenReturn("node-id-1");
+            when(node.getName()).thenReturn("node 1");
         }
     }
 
@@ -181,11 +190,20 @@ public class SysShardsExpressionsTest {
 
     @Test
     public void testTableName() throws Exception {
-        ReferenceIdent ident = new ReferenceIdent(SystemReferences.SHARDS_IDENT, ShardTableNameExpression.COLNAME);
+        ReferenceIdent ident = new ReferenceIdent(SystemReferences.SHARDS_IDENT, "table_name");
         SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(ShardTableNameExpression.INFO_TABLE_NAME, shardExpression.info());
 
         assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());
+    }
+
+    @Test
+    public void testNodeId() throws Exception {
+        ReferenceIdent ident = new ReferenceIdent(SystemReferences.SHARDS_IDENT, "node_id");
+        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        assertEquals(ShardNodeIdExpression.INFO_NODE_ID, shardExpression.info());
+
+        assertEquals(new BytesRef("node-id-1"), shardExpression.value());
     }
 
 }

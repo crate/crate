@@ -40,6 +40,7 @@ public class SysShardExpressionModule extends AbstractModule {
         b.addBinding(ShardStateExpression.INFO_STATE.ident()).to(ShardStateExpression.class).asEagerSingleton();
         b.addBinding(ShardRelocatingNodeExpression.INFO_RELOCATING_NODE.ident()).to(ShardRelocatingNodeExpression.class).asEagerSingleton();
         b.addBinding(ShardTableNameExpression.INFO_TABLE_NAME.ident()).to(ShardTableNameExpression.class).asEagerSingleton();
+        b.addBinding(ShardNodeIdExpression.INFO_NODE_ID.ident()).to(ShardNodeIdExpression.class).asEagerSingleton();
     }
 
 }
