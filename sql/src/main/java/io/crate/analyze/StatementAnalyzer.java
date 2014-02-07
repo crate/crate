@@ -18,8 +18,8 @@ import java.util.List;
 
 class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
-    SubscriptVisitor visitor = new SubscriptVisitor();
-    SymbolDataTypeVisitor symbolDataTypeVisitor = new SymbolDataTypeVisitor();
+    protected static SubscriptVisitor visitor = new SubscriptVisitor();
+    protected static SymbolDataTypeVisitor symbolDataTypeVisitor = new SymbolDataTypeVisitor();
 
     @Override
     protected Symbol visitQuerySpecification(QuerySpecification node, Analysis context) {
