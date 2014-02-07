@@ -69,12 +69,7 @@ public class RoutingsServiceTest extends SQLTransportIntegrationTest {
     @Test
     public void testClusterRouting() throws Exception {
         Routing routing = routingsService.getRouting(SystemReferences.CLUSTER_IDENT);
-        assertThat(routing.nodes().size(), is(1));
-
-        String localNode = clusterService.localNode().id();
-        Map<String, Set<Integer>> indexMap = routing.locations().get(localNode);
-        assertNotNull(indexMap);
-        assertThat(indexMap.size(), is(0));
+        assertFalse(routing.hasLocations());
     }
 
     @Test
