@@ -26,6 +26,7 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SystemReferences;
 import io.crate.operator.Input;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -178,9 +179,9 @@ public class TestSysNodesExpressions {
     @Test
     public void testId() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SystemReferences.NODES_IDENT, "id");
-        SysExpression<String> id = (SysExpression<String>) resolver.getImplementation(ident);
+        SysExpression<BytesRef> id = (SysExpression<BytesRef>) resolver.getImplementation(ident);
 
-        assertEquals("node-id-1", id.value());
+        assertEquals(new BytesRef("node-id-1"), id.value());
     }
 
     @Test

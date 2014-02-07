@@ -24,12 +24,13 @@ package io.crate.operator.reference.sys.node;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SystemReferences;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.node.service.NodeService;
 
 
-public class NodeIdExpression extends SysExpression<String> {
+public class NodeIdExpression extends SysExpression<BytesRef> {
 
     public static final String COLNAME = "id";
 
@@ -44,8 +45,8 @@ public class NodeIdExpression extends SysExpression<String> {
     }
 
     @Override
-    public String value() {
-        return nodeService.stats().getNode().getId();
+    public BytesRef value() {
+        return new BytesRef(nodeService.stats().getNode().getId());
     }
 
     @Override
