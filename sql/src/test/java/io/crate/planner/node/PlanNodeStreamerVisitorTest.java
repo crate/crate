@@ -95,7 +95,7 @@ public class PlanNodeStreamerVisitorTest {
         assertThat(streamers.length, is(4));
         assertThat(streamers[0], instanceOf(DataType.BOOLEAN.streamer().getClass()));
         assertThat(streamers[1], instanceOf(DataType.INTEGER.streamer().getClass()));
-        assertThat(streamers[2], instanceOf(PlanNodeStreamerVisitor.AggStateStreamer.class));
+        assertThat(streamers[2], instanceOf(AggStateStreamer.class));
         assertThat(streamers[3], instanceOf(DataType.DOUBLE.streamer().getClass()));
     }
 
@@ -133,7 +133,7 @@ public class PlanNodeStreamerVisitorTest {
         assertThat(streamers.length, is(4));
         assertThat(streamers[0], instanceOf(DataType.BOOLEAN.streamer().getClass()));
         assertThat(streamers[1], instanceOf(DataType.INTEGER.streamer().getClass()));
-        assertThat(streamers[2], instanceOf(PlanNodeStreamerVisitor.AggStateStreamer.class));
+        assertThat(streamers[2], instanceOf(AggStateStreamer.class));
         assertThat(streamers[3], instanceOf(DataType.TIMESTAMP.streamer().getClass()));
     }
 }

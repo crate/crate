@@ -21,6 +21,7 @@
 
 package io.crate.planner.projection;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -41,8 +42,9 @@ public class ColumnProjection extends Projection {
     };
 
 
-    public List<Symbol> outputs() {
-        return outputs;
+    @Override
+    public ImmutableList<Symbol> outputs() {
+        return ImmutableList.copyOf(outputs);
     }
 
     public void outputs(List<Symbol> outputs) {

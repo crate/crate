@@ -19,43 +19,36 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.projection;
+package io.crate.planner.node;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.planner.symbol.Symbol;
+import io.crate.operator.aggregation.AggregationFunction;
+import io.crate.operator.aggregation.AggregationState;
+import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
-import java.util.Collection;
 
-public abstract class Projection implements Streamable {
+/**
+ * Streamer used for {@link io.crate.operator.aggregation.AggregationState}s
+ */
+public class AggStateStreamer implements DataType.Streamer<AggregationState>{
 
-    public interface ProjectionFactory<T extends Projection> {
-        public T newInstance();
+    private final AggregationFunction aggregationFunction;
+
+    public AggStateStreamer(AggregationFunction aggregationFunction) {
+        this.aggregationFunction = aggregationFunction;
     }
 
-    public abstract ProjectionType projectionType();
-
-    public abstract <C, R> R accept(ProjectionVisitor<C, R> visitor, C context);
-
-    public abstract ImmutableList<Symbol> outputs();
-
-    public static void toStream(Projection projection, StreamOutput out) throws IOException {
-        out.writeVInt(projection.projectionType().ordinal());
-        projection.writeTo(out);
-    }
-
-    public static Projection fromStream(StreamInput in) throws IOException {
-        Projection projection = ProjectionType.values()[in.readVInt()].newInstance();
-        projection.readFrom(in);
-
-        return projection;
-    }
-
-    // force subclasses to implement equality
     @Override
-    public abstract boolean equals(Object obj);
+    public AggregationState<?> readFrom(StreamInput in) throws IOException {
+        AggregationState<?> aggState = this.aggregationFunction.newState();
+        aggState.readFrom(in);
+        return aggState;
+    }
 
+    @Override
+    public void writeTo(StreamOutput out, Object v) throws IOException {
+        ((AggregationState<?>)v).writeTo(out);
+    }
 }

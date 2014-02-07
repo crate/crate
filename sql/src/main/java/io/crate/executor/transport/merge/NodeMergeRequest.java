@@ -19,43 +19,40 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.projection;
+package io.crate.executor.transport.merge;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.node.MergeNode;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.transport.TransportRequest;
 
 import java.io.IOException;
-import java.util.Collection;
 
-public abstract class Projection implements Streamable {
+public class NodeMergeRequest extends TransportRequest {
 
-    public interface ProjectionFactory<T extends Projection> {
-        public T newInstance();
+    private MergeNode mergeNode;
+
+    public NodeMergeRequest() {
     }
 
-    public abstract ProjectionType projectionType();
-
-    public abstract <C, R> R accept(ProjectionVisitor<C, R> visitor, C context);
-
-    public abstract ImmutableList<Symbol> outputs();
-
-    public static void toStream(Projection projection, StreamOutput out) throws IOException {
-        out.writeVInt(projection.projectionType().ordinal());
-        projection.writeTo(out);
+    public NodeMergeRequest(MergeNode mergeNode) {
+        this.mergeNode = mergeNode;
     }
 
-    public static Projection fromStream(StreamInput in) throws IOException {
-        Projection projection = ProjectionType.values()[in.readVInt()].newInstance();
-        projection.readFrom(in);
-
-        return projection;
+    public MergeNode mergeNode() {
+        return mergeNode;
     }
 
-    // force subclasses to implement equality
     @Override
-    public abstract boolean equals(Object obj);
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        mergeNode = new MergeNode();
+        mergeNode.readFrom(in);
+    }
 
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        mergeNode.writeTo(out);
+    }
 }

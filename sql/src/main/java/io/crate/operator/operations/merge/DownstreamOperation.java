@@ -19,16 +19,15 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.operator.operations.merge;
 
-import io.crate.executor.transport.merge.TransportMergeNodeAction;
-import org.elasticsearch.common.inject.AbstractModule;
 
-public class TransportExecutorModule extends AbstractModule {
+public interface DownstreamOperation {
 
-    @Override
-    protected void configure() {
-        bind(TransportCollectNodeAction.class).asEagerSingleton();
-        bind(TransportMergeNodeAction.class).asEagerSingleton();
-    }
+    /**
+     * add more rows to merge
+     * implementation needs to make sure that this operation is thread-safe
+     */
+    public boolean addRows(Object[][] rows);
+    public Object[][] result();
 }

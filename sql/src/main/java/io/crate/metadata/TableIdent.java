@@ -104,13 +104,20 @@ public class TableIdent implements Comparable<TableIdent>, Streamable {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        schema = in.readString();
+        if (in.readBoolean()) {
+            schema = in.readString();
+        }
         name = in.readString();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(schema);
+        final boolean hasSchema = schema != null;
+        out.writeBoolean(hasSchema);
+
+        if (hasSchema) {
+            out.writeString(schema);
+        }
         out.writeString(name);
     }
 }

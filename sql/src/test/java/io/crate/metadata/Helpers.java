@@ -19,16 +19,23 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.metadata;
 
-import io.crate.executor.transport.merge.TransportMergeNodeAction;
-import org.elasticsearch.common.inject.AbstractModule;
+import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.Reference;
+import org.cratedb.DataType;
 
-public class TransportExecutorModule extends AbstractModule {
+public class Helpers {
 
-    @Override
-    protected void configure() {
-        bind(TransportCollectNodeAction.class).asEagerSingleton();
-        bind(TransportMergeNodeAction.class).asEagerSingleton();
+    public static Reference createReference(String columnName, DataType dataType) {
+        return createReference("dummyTable", columnName, dataType);
+    }
+
+    public static Reference createReference(String tableName, String columnName, DataType dataType) {
+        return new Reference(new ReferenceInfo(
+                new ReferenceIdent(new TableIdent(null, tableName), columnName),
+                RowGranularity.DOC,
+                dataType
+        ));
     }
 }
