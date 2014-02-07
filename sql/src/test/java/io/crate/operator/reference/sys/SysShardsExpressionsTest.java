@@ -181,7 +181,7 @@ public class SysShardsExpressionsTest {
 
     @Test
     public void testTableName() throws Exception {
-        ReferenceIdent ident = new ReferenceIdent(SystemReferences.SHARDS_IDENT, "table_name");
+        ReferenceIdent ident = new ReferenceIdent(SystemReferences.SHARDS_IDENT, ShardTableNameExpression.COLNAME);
         SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(ShardTableNameExpression.INFO_TABLE_NAME, shardExpression.info());
 
