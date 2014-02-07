@@ -27,7 +27,7 @@ import org.cratedb.DataType;
 
 public class EqOperator extends CmpOperator {
 
-    public static final String NAME = "op_eq";
+    public static final String NAME = "op_=";
 
     public static void register(OperatorModule module) {
         for (DataType type : DataType.ALL_TYPES) {

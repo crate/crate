@@ -21,10 +21,10 @@
 
 package io.crate.operator.operator;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.BooleanLiteral;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 
 public class AndOperator extends Operator {
@@ -39,10 +39,6 @@ public class AndOperator extends Operator {
 
     public static void register(OperatorModule module) {
         module.registerOperatorFunction(new AndOperator());
-    }
-
-    public static FunctionInfo info(DataType type) {
-        return new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(type, type)), DataType.BOOLEAN);
     }
 
     @Override

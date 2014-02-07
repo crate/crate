@@ -30,7 +30,7 @@ import java.util.Objects;
 
 public class NotEqOperator extends Operator {
 
-    public static final String NAME = "op_neq";
+    public static final String NAME = "op_<>";
     private final FunctionInfo info;
 
     public static void register(OperatorModule module) {
