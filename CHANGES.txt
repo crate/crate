@@ -5,8 +5,6 @@ Changes for Crate
 Unreleased
 ==========
 
- - implemented sys.shards.table_name expression
-
 2014/01/29 0.22.2
 =================
 
