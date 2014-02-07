@@ -64,6 +64,10 @@ public class TransportExecutor implements Executor {
 
         Task lastTask = null;
         for (Task task : job.tasks()) {
+            // chaining tasks
+            if (lastTask != null) {
+                task.upstreamResult(lastTask.result());
+            }
             task.start();
             lastTask = task;
         }
