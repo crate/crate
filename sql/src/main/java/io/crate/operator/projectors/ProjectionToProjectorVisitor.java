@@ -122,12 +122,14 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         for (Aggregation aggregation : projection.values()) {
             symbolVisitor.process(aggregation, symbolContext);
         }
-
-        return new GroupingProjector(
+        Projector groupProjector = new GroupingProjector(
                 keyInputs,
-                symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
+                symbolContext.collectExpressions().toArray(
+                        new CollectExpression[symbolContext.collectExpressions().size()]),
                 symbolContext.aggregations()
         );
+        context.add(groupProjector);
+        return groupProjector;
     }
 
     @Override
@@ -136,7 +138,10 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         for (Aggregation aggregation : projection.aggregations()) {
             symbolVisitor.process(aggregation, symbolContext);
         }
-
-        return new AggregationProjector(symbolContext.collectExpressions(), symbolContext.aggregations());
+        Projector aggregationProjector = new AggregationProjector(
+                symbolContext.collectExpressions(),
+                symbolContext.aggregations());
+        context.add(aggregationProjector);
+        return aggregationProjector;
     }
 }

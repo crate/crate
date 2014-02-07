@@ -23,11 +23,9 @@ package io.crate.operator.projectors;
 
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.AggregationCollector;
-import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.AggregationState;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
-import io.crate.planner.symbol.Aggregation;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -110,6 +108,9 @@ public class GroupingProjector implements Projector {
     public void finishProjection() {
         rows = new Object[result.size()][keyInputs.length + aggregationCollectors.length];
         boolean sendToUpstream = upStream != null;
+        if (sendToUpstream) {
+            upStream.startProjection();
+        }
 
         int r = 0;
         for (Map.Entry<List<Object>, AggregationState[]> entry : result.entrySet()) {
