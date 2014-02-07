@@ -166,19 +166,18 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
         arguments.add(process(node.getLeft(), context));
         arguments.add(process(node.getRight(), context));
 
-        FunctionIdent functionIdent;
+        FunctionInfo functionInfo;
         switch (node.getType()) {
             case AND:
-                functionIdent = AndOperator.INFO.ident();
+                functionInfo = AndOperator.INFO;
                 break;
             case OR:
-                functionIdent = OrOperator.INFO.ident();
+                functionInfo = OrOperator.INFO;
                 break;
             default:
                 throw new UnsupportedOperationException("Unsupported logical binary expression " + node.getType().name());
         }
 
-        FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
         return context.allocateFunction(functionInfo, arguments);
     }
 
