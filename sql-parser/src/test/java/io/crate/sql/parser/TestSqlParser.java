@@ -94,8 +94,10 @@ public class TestSqlParser
                                 ImmutableList.<Expression>of(),
                                 Optional.<Expression>absent(),
                                 ImmutableList.<SortItem>of(),
+                                Optional.<String>absent(),
                                 Optional.<String>absent()),
                         ImmutableList.<SortItem>of(),
+                        Optional.<String>absent(),
                         Optional.<String>absent()));
     }
 
@@ -193,6 +195,24 @@ public class TestSqlParser
     public void testParseErrorReverseOrderByLimit()
     {
         SqlParser.createStatement("select fuu from dual limit 10 order by fuu");
+    }
+
+    @Test(expectedExceptions =  ParsingException.class, expectedExceptionsMessageRegExp = "line 1:41: mismatched input 'order' expecting EOF")
+    public void testParseErrorReverseOrderByLimitOffset()
+    {
+        SqlParser.createStatement("select fuu from dual limit 10 offset 20 order by fuu");
+    }
+
+    @Test(expectedExceptions =  ParsingException.class, expectedExceptionsMessageRegExp = "line 1:32: mismatched input 'order' expecting EOF")
+    public void testParseErrorReverseOrderByOffset()
+    {
+        SqlParser.createStatement("select fuu from dual offset 20 order by fuu");
+    }
+
+    @Test(expectedExceptions =  ParsingException.class, expectedExceptionsMessageRegExp = "line 1:32: mismatched input 'limit' expecting EOF")
+    public void testParseErrorReverseLimitOffset()
+    {
+        SqlParser.createStatement("select fuu from dual offset 20 limit 10");
     }
 
     @Test

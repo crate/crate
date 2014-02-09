@@ -40,6 +40,7 @@ public class QuerySpecification
     private final Optional<Expression> having;
     private final List<SortItem> orderBy;
     private final Optional<String> limit;
+    private final Optional<String> offset;
 
     public QuerySpecification(
             Select select,
@@ -48,7 +49,8 @@ public class QuerySpecification
             List<Expression> groupBy,
             Optional<Expression> having,
             List<SortItem> orderBy,
-            Optional<String> limit)
+            Optional<String> limit,
+            Optional<String> offset)
     {
         checkNotNull(select, "select is null");
         checkNotNull(where, "where is null");
@@ -56,6 +58,7 @@ public class QuerySpecification
         checkNotNull(having, "having is null");
         checkNotNull(orderBy, "orderBy is null");
         checkNotNull(limit, "limit is null");
+        checkNotNull(offset, "offset is null");
 
         this.select = select;
         this.from = from;
@@ -64,6 +67,7 @@ public class QuerySpecification
         this.having = having;
         this.orderBy = orderBy;
         this.limit = limit;
+        this.offset = offset;
     }
 
     public Select getSelect()
@@ -101,6 +105,11 @@ public class QuerySpecification
         return limit;
     }
 
+    public Optional<String> getOffset()
+    {
+        return offset;
+    }
+
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context)
     {
@@ -118,6 +127,7 @@ public class QuerySpecification
                 .add("having", having.orNull())
                 .add("orderBy", orderBy)
                 .add("limit", limit.orNull())
+                .add("offset", offset.orNull())
                 .toString();
     }
 
@@ -137,12 +147,13 @@ public class QuerySpecification
                 Objects.equal(groupBy, o.groupBy) &&
                 Objects.equal(having, o.having) &&
                 Objects.equal(orderBy, o.orderBy) &&
-                Objects.equal(limit, o.limit);
+                Objects.equal(limit, o.limit) &&
+                Objects.equal(offset, o.offset);
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hashCode(select, from, where, groupBy, having, orderBy, limit);
+        return Objects.hashCode(select, from, where, groupBy, having, orderBy, limit, offset);
     }
 }
