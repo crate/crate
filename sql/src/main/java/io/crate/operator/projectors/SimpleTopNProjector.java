@@ -26,10 +26,11 @@ import com.google.common.base.Preconditions;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
 import org.cratedb.Constants;
+import org.cratedb.core.collections.ArrayIterator;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -110,23 +111,11 @@ public class SimpleTopNProjector implements Projector {
 
         @Override
         public Iterator<Object[]> iterator() {
-            resultIdx = 0;
-            return this;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return resultIdx <= endPos;
-        }
-
-        @Override
-        public Object[] next() {
-            return new Object[resultIdx++];
-        }
-
-        @Override
-        public void remove() {
-            throw new UnsupportedOperationException("remove not supported");
+            if (endPos == 0) {
+                return Collections.emptyIterator();
+            } else {
+                return new ArrayIterator(result, 0, endPos+1);
+            }
         }
     }
 
@@ -179,22 +168,8 @@ public class SimpleTopNProjector implements Projector {
 
         @Override
         public Iterator<Object[]> iterator() {
-            return this;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return false;
-        }
-
-        @Override
-        public Object[] next() {
-            throw new NoSuchElementException();
-        }
-
-        @Override
-        public void remove() {
-            throw new UnsupportedOperationException("remove not supported");
+            // Iteration not supported
+            return Collections.emptyIterator();
         }
     }
 
@@ -255,21 +230,6 @@ public class SimpleTopNProjector implements Projector {
 
     @Override
     public Iterator<Object[]> iterator() {
-        return this;
-    }
-
-    @Override
-    public boolean hasNext() {
-        return wrappedProjector.hasNext();
-    }
-
-    @Override
-    public Object[] next() {
-        return wrappedProjector.next();
-    }
-
-    @Override
-    public void remove() {
-        throw new UnsupportedOperationException("remove not supported");
+        return wrappedProjector.iterator();
     }
 }

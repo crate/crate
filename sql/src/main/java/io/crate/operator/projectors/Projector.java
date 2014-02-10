@@ -26,7 +26,7 @@ import java.util.Iterator;
 /**
  * executing a Projection
  */
-public interface Projector extends Iterator<Object[]>, Iterable<Object[]> {
+public interface Projector extends Iterable<Object[]> {
 
     /**
      * set the Projector to hand over the projected rows.

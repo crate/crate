@@ -73,6 +73,10 @@ public class NamedNodeWithOptionalProperties extends QueryTreeNode {
     @Override
     void acceptChildren(Visitor v) throws StandardException {
         super.acceptChildren(v);
-        properties.accept(v);
+        if (properties != null) {
+            properties.accept(v);
+        } else {
+            debugPrint("null");
+        }
     }
 }

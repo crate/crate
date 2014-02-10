@@ -141,33 +141,44 @@ public class GroupingProjector implements Projector {
 
     @Override
     public Iterator<Object[]> iterator() {
-        iter = result.entrySet().iterator();
-        return this;
+        return new EntryToRowIterator(result.entrySet().iterator(), keyInputs.length + aggregationCollectors.length);
     }
 
-    @Override
-    public boolean hasNext() {
-        return iter.hasNext();
-    }
+    private static class EntryToRowIterator implements Iterator<Object[]> {
 
-    @Override
-    public Object[] next() {
-        Map.Entry<List<Object>, AggregationState[]> entry = iter.next();
-        Object[] row = new Object[keyInputs.length + aggregationCollectors.length];
-        int c = 0;
-        for (Object o : entry.getKey()) {
-            row[c] = o;
-            c++;
+        private final Iterator<Map.Entry<List<Object>, AggregationState[]>> iter;
+        private final int rowLength;
+
+        private EntryToRowIterator(Iterator<Map.Entry<List<Object>, AggregationState[]>> iter,
+                                   int rowLength) {
+            this.iter = iter;
+            this.rowLength = rowLength;
         }
-        for (AggregationState aggregationState : entry.getValue()) {
-            row[c] = aggregationState.value();
-            c++;
-        }
-        return row;
-    }
 
-    @Override
-    public void remove() {
-        throw new UnsupportedOperationException("remove not supported");
+        @Override
+        public boolean hasNext() {
+            return iter.hasNext();
+        }
+
+        @Override
+        public Object[] next() {
+            Map.Entry<List<Object>, AggregationState[]> entry = iter.next();
+            Object[] row = new Object[rowLength];
+            int c = 0;
+            for (Object o : entry.getKey()) {
+                row[c] = o;
+                c++;
+            }
+            for (AggregationState aggregationState : entry.getValue()) {
+                row[c] = aggregationState.value();
+                c++;
+            }
+            return row;
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("remove not supported");
+        }
     }
 }

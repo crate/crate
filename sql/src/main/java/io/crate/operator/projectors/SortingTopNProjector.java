@@ -27,6 +27,7 @@ import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
 import org.apache.lucene.util.PriorityQueue;
 import org.cratedb.Constants;
+import org.cratedb.core.collections.ArrayIterator;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -97,7 +98,6 @@ public class SortingTopNProjector extends AbstractProjector {
     private final AtomicInteger collected = new AtomicInteger(0);
     private final Comparator[] comparators;
     private Object[][] result = Constants.EMPTY_RESULT;
-    private int resultIdx = 0;
 
     /**
      *
@@ -187,22 +187,7 @@ public class SortingTopNProjector extends AbstractProjector {
 
     @Override
     public Iterator<Object[]> iterator() {
-        resultIdx = 0;
-        return this;
+        return new ArrayIterator(result, 0, result.length);
     }
 
-    @Override
-    public boolean hasNext() {
-        return !upStream.isPresent() && resultIdx < result.length;
-    }
-
-    @Override
-    public Object[] next() {
-        return result[resultIdx++];
-    }
-
-    @Override
-    public void remove() {
-        throw new UnsupportedOperationException("remove not supported");
-    }
 }
