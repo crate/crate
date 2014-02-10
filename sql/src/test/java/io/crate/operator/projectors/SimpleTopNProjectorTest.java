@@ -39,6 +39,7 @@ import java.util.Arrays;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertFalse;
 
 public class SimpleTopNProjectorTest {
 
@@ -92,6 +93,12 @@ public class SimpleTopNProjectorTest {
         Object[][] projected = projector.getRows();
         assertThat(projected.length, is(10));
 
+        int iterateLength = 0;
+        for (Object[] row : projector) {
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(10));
+
     }
 
     @Test
@@ -109,6 +116,12 @@ public class SimpleTopNProjectorTest {
         projector.finishProjection();
         Object[][] projected = projector.getRows();
         assertThat(projected.length, is(5));
+
+        int iterateLength = 0;
+        for (Object[] row : projector) {
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(5));
 
     }
 
@@ -128,6 +141,12 @@ public class SimpleTopNProjectorTest {
         Object[][] projected = projector.getRows();
         assertThat(projected.length, is(10));
 
+        int iterateLength = 0;
+        for (Object[] row : projector) {
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(10));
+
     }
 
     @Test
@@ -138,6 +157,12 @@ public class SimpleTopNProjectorTest {
         projector.finishProjection();
         Object[][] projected = projector.getRows();
         assertArrayEquals(Constants.EMPTY_RESULT, projected);
+
+        int iterateLength = 0;
+        for (Object[] row : projector) {
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(0));
     }
 
     @Test
@@ -153,6 +178,12 @@ public class SimpleTopNProjectorTest {
         projector.finishProjection();
         Object[][] projected = projector.getRows();
         assertThat(projected.length, is(90));
+
+        int iterateLength = 0;
+        for (Object[] row : projector) {
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(90));
     }
 
     @Test
@@ -170,6 +201,12 @@ public class SimpleTopNProjectorTest {
         assertThat(i, is(Constants.DEFAULT_SELECT_LIMIT+1));
         projector.finishProjection();
         assertThat(projector.getRows().length, is(Constants.DEFAULT_SELECT_LIMIT));
+
+        int iterateLength = 0;
+        for (Object[] row : projector) {
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(Constants.DEFAULT_SELECT_LIMIT));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -200,6 +237,13 @@ public class SimpleTopNProjectorTest {
         Object[][] rows = projector.getRows();
         assertThat(rows.length, is(10));
         assertThat((Integer)rows[0][0], is(1));
+
+        int iterateLength = 0;
+        for (Object[] row : projector) {
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(10));
+
     }
 
     @Test
@@ -219,6 +263,14 @@ public class SimpleTopNProjectorTest {
         projector.finishProjection();
         Object[][] projected = noop.getRows();
         assertThat(projected.length, is(10));
+
+        assertFalse(projector.iterator().hasNext());
+
+        int iterateLength = 0;
+        for (Object[] row : noop) {
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(10));
     }
 
     @Test
@@ -238,6 +290,14 @@ public class SimpleTopNProjectorTest {
         projector.finishProjection();
         Object[][] projected = noop.getRows();
         assertThat(projected.length, is(5));
+
+        assertFalse(projector.iterator().hasNext());
+
+        int iterateLength = 0;
+        for (Object[] row : noop) {
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(5));
     }
 
     @Test
@@ -250,6 +310,14 @@ public class SimpleTopNProjectorTest {
         projector.finishProjection();
         Object[][] projected = noop.getRows();
         assertArrayEquals(Constants.EMPTY_RESULT, projected);
+
+        assertFalse(projector.iterator().hasNext());
+
+        int iterateLength = 0;
+        for (Object[] row : noop) {
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(0));
     }
 
     @Test
@@ -267,6 +335,14 @@ public class SimpleTopNProjectorTest {
         projector.finishProjection();
         Object[][] projected = noop.getRows();
         assertThat(projected.length, is(90));
+
+        assertFalse(projector.iterator().hasNext());
+
+        int iterateLength = 0;
+        for (Object[] row : noop) {
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(90));
     }
 
     @Test
@@ -286,6 +362,14 @@ public class SimpleTopNProjectorTest {
         assertThat(i, is(Constants.DEFAULT_SELECT_LIMIT+1));
         projector.finishProjection();
         assertThat(noop.getRows().length, is(Constants.DEFAULT_SELECT_LIMIT));
+
+        assertFalse(projector.iterator().hasNext());
+
+        int iterateLength = 0;
+        for (Object[] row : noop) {
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(Constants.DEFAULT_SELECT_LIMIT));
     }
 
 }
