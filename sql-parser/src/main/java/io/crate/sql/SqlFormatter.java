@@ -128,6 +128,11 @@ public final class SqlFormatter
                         .append('\n');
             }
 
+            if (node.getOffset().isPresent()) {
+                append(indent, "OFFSET " + node.getOffset().get())
+                        .append('\n');
+            }
+
             return null;
         }
 
@@ -180,6 +185,11 @@ public final class SqlFormatter
 
             if (node.getLimit().isPresent()) {
                 append(indent, "LIMIT " + node.getLimit().get())
+                        .append('\n');
+            }
+
+            if (node.getOffset().isPresent()) {
+                append(indent, "OFFSET " + node.getOffset().get())
                         .append('\n');
             }
             return null;

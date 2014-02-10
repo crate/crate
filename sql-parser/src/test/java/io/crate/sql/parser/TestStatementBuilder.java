@@ -87,7 +87,11 @@ public class TestStatementBuilder
         printStatement("show partitions from foo where name = 'foo'");
         printStatement("show partitions from foo order by x");
         printStatement("show partitions from foo limit 10");
+        printStatement("show partitions from foo limit 10 offset 20");
+        printStatement("show partitions from foo offset 20");
         printStatement("show partitions from foo order by x desc limit 10");
+        printStatement("show partitions from foo order by x desc limit 10 offset 20");
+        printStatement("show partitions from foo order by x desc offset 20");
 
         printStatement("select * from a.b.c@d");
 
@@ -97,6 +101,9 @@ public class TestStatementBuilder
         printStatement("select * from foo tablesample system (10) join bar tablesample bernoulli (30) on a.id = b.id");
         printStatement("select * from foo tablesample bernoulli (10) stratify on (id)");
         printStatement("select * from foo tablesample system (50) stratify on (id, name)");
+
+        printStatement("select * from foo limit 100 offset 20");
+        printStatement("select * from foo offset 20");
 
         printStatement("create table foo as select * from abc");
     }
