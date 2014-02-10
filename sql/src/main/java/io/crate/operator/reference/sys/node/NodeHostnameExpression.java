@@ -24,11 +24,12 @@ package io.crate.operator.reference.sys.node;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SystemReferences;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.node.service.NodeService;
 
-public class NodeHostnameExpression extends SysExpression<String> {
+public class NodeHostnameExpression extends SysExpression<BytesRef> {
 
     public static final String COLNAME = "hostname";
 
@@ -45,8 +46,8 @@ public class NodeHostnameExpression extends SysExpression<String> {
     }
 
     @Override
-    public String value() {
-        return nodeService.stats().getHostname();
+    public BytesRef value() {
+        return new BytesRef(nodeService.stats().getHostname());
     }
 
     @Override

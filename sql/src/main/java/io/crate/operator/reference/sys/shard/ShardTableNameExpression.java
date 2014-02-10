@@ -37,16 +37,16 @@ public class ShardTableNameExpression extends SysShardExpression<BytesRef> {
             COLNAME, DataType.STRING);
 
 
-    private final ShardId shardId;
+    private final BytesRef value;
 
     @Inject
     public ShardTableNameExpression(ShardId shardId) {
-        this.shardId = shardId;
+        this.value = new BytesRef(shardId.getIndex());
     }
 
     @Override
     public BytesRef value() {
-        return new BytesRef(shardId.getIndex());
+        return value;
     }
 
     @Override
