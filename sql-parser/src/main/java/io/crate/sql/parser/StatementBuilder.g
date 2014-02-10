@@ -1,15 +1,22 @@
 /*
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
 tree grammar StatementBuilder;
@@ -83,11 +90,13 @@ queryExpr returns [Query value]
       queryBody
       orderClause?
       limitClause?
+      offsetClause?
         { $value = new Query(
             Optional.fromNullable($withClause.value),
             $queryBody.value,
             Objects.firstNonNull($orderClause.value, ImmutableList.<SortItem>of()),
-            Optional.fromNullable($limitClause.value));
+            Optional.fromNullable($limitClause.value),
+            Optional.fromNullable($offsetClause.value));
         }
     ;
 
@@ -106,7 +115,8 @@ querySpec returns [QuerySpecification value]
         groupClause?
         havingClause?
         orderClause?
-        limitClause?)
+        limitClause?
+        offsetClause?)
         { $value = new QuerySpecification(
             $selectClause.value,
             $fromClause.value,
@@ -114,7 +124,8 @@ querySpec returns [QuerySpecification value]
             Objects.firstNonNull($groupClause.value, ImmutableList.<Expression>of()),
             Optional.fromNullable($havingClause.value),
             Objects.firstNonNull($orderClause.value, ImmutableList.<SortItem>of()),
-            Optional.fromNullable($limitClause.value));
+            Optional.fromNullable($limitClause.value),
+            Optional.fromNullable($offsetClause.value));
         }
     ;
 
@@ -135,8 +146,10 @@ restrictedSelectStmt returns [Query value]
                 ImmutableList.<Expression>of(),
                 Optional.<Expression>absent(),
                 ImmutableList.<SortItem>of(),
+                Optional.<String>absent(),
                 Optional.<String>absent()),
             ImmutableList.<SortItem>of(),
+            Optional.<String>absent(),
             Optional.<String>absent());
         }
     ;
@@ -216,6 +229,10 @@ nullOrdering returns [SortItem.NullOrdering value]
 
 limitClause returns [String value]
     : ^(LIMIT integer) { $value = $integer.value; }
+    ;
+
+offsetClause returns [String value]
+    : ^(OFFSET integer) { $value = $integer.value; }
     ;
 
 sampleType returns [SampledRelation.Type value]
@@ -517,12 +534,13 @@ showColumns returns [Statement value]
     ;
 
 showPartitions returns [Statement value]
-    : ^(SHOW_PARTITIONS qname whereClause? orderClause? limitClause?)
+    : ^(SHOW_PARTITIONS qname whereClause? orderClause? limitClause? offsetClause?)
         { $value = new ShowPartitions(
             $qname.value,
             Optional.fromNullable($whereClause.value),
             Objects.firstNonNull($orderClause.value, ImmutableList.<SortItem>of()),
-            Optional.fromNullable($limitClause.value));
+            Optional.fromNullable($limitClause.value),
+            Optional.fromNullable($offsetClause.value));
         }
     ;
 

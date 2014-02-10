@@ -1,7 +1,8 @@
-Crate
-Copyright 2013-2014 Crate Technology GmbH
+CRATE
+Copyright 2013-2014 Crate Technology GmbH ("Crate")
 
-This product includes:
+
+Third party dependencies:
 
 =========================================================================
 
@@ -33,33 +34,157 @@ License: Apache License v2 (http://www.apache.org/licenses)
 
 =========================================================================
 
+Meyer CSS reset
+http://meyerweb.com/eric/tools/css/reset/
+License: none (public domain)
+
+=========================================================================
+
+normalize.css
+http://github.com/necolas/normalize.css
+Copyright (c) Nicolas Gallagher and Jonathan Neal
+License: https://github.com/necolas/normalize.css/blob/master/LICENSE.md
+
+=========================================================================
+
+CssGrid
+http://cssgrid.net
+Copyright (c) Andy Taylor
+License: http://creativecommons.org/licenses/by/3.0/au/
+
+=========================================================================
+
+D3.js
+http://d3js.org
+Copyright (c) 2012, Michael Bostock
+License: http://opensource.org/licenses/BSD-3-Clause
+
+=========================================================================
+
+Backbone.js
+http://backbonejs.org
+Copyright (c) 2010-2012 Jeremy Ashkenas, DocumentCloud
+License: MIT License, https://github.com/documentcloud/backbone/blob/master/LICENSE
+
+=========================================================================
+
+CSS3-mediaqueries.js
+http://code.google.com/p/css3-mediaqueries-js/
+License: MIT License, http://www.opensource.org/licenses/mit-license.php
+
+=========================================================================
+
+jQuery
+Copyright 2012 jQuery Foundation and other contributors
+http://jquery.com
+License: MIT License, http://jquery.org/license/
+
+=========================================================================
+
+Mustache.js
+Copyright (c) 2009 Chris Wanstrath (Ruby)
+Copyright (c) 2010 Jan Lehnardt (JavaScript)
+http://mustache.github.com
+License: MIT License
+
+=========================================================================
+
+Tinysort.js
+http://code.google.com/p/tinysort/
+http://tinysort.sjeiti.com/
+License: MIT License
+
+=========================================================================
+
+Underscore.js
+http://underscorejs.org
+Copyright (c) 2009-2012 Jeremy Ashkenas, DocumentCloud
+License: MIT License, https://github.com/documentcloud/underscore/blob/master/LICENSE
+
+=========================================================================
+
 Segmentspy
 https://github.com/polyfractal/elasticsearch-segmentspy
 developed by Zachary Tong (http://www.euphonious-intuition.com/)
 License: MIT (https://raw.github.com/polyfractal/elasticsearch-segmentspy/master/LICENSE)
 
 =========================================================================
-SQL-Parser (Presto)
-https://github.com/facebook/presto
-License: Apache License v2 (http://www.apache.org/licenses)
+
+Raphael
+http://raphaeljs.com, from fork at git@github.com:mobz/g.raphael.git
+Copyright (c) 2010 Dmitry Baranovskiy
+License: MIT (http://raphaeljs.com/license.htm
+
 =========================================================================
 
-SQL-Parser (FoundationDB)
-Copyright 2011-2013 FoundationDB, LLC
+date-range-parser
+https://github.com/mobz/date-range-parser
+Contributed to the Apache Software Foundation by Ben Birch - Aconex
+License: Apache License v2 (http://www.apache.org/licenses)
+
+=========================================================================
+
+Bootstrap
+https://getbootstrap.com
+Copyright 2012 Twitter, Inc.
+License: Apache License v2 (http://www.apache.org/licenses)
+
+=========================================================================
+
+'SB Admin' HTML Template
+http://startbootstrap.com
+Copyright 2013 Iron Summit Media Strategies
+License: Apache License v2 (http://www.apache.org/licenses)
+
+=========================================================================
+
+AngularJS
+http://angularjs.org
+Copyright 2010-2014 Google, Inc
+License: MIT (https://github.com/angular/angular.js/blob/master/LICENSE)
+
+=========================================================================
+
+Handlebars
+http://github.com/danharper
+Copyright Dan Harper
+License: Do What The Fuck You Want To Public License, Version 2 (http://sam.zoy.org/wtfpl/COPYING)
+
+=========================================================================
+
+Sammy.js
+http://sammyjs.org
+Copyright (c) 2008 Aaron Quint, Quirkey NYC, LLC
+License: MIT (https://github.com/quirkey/sammy/blob/master/LICENSE)
+
+=========================================================================
+
+Various Components of Lovely Systems GmbH
+http://www.lovelysystems.com
+Copyright Lovely Systems GmbH
+License: Apache 2.0 (http://www.apache.org/licenses)
+
+=========================================================================
+
+SQL-Parser (Presto)
+https://github.com/facebook/presto
+developed by Facebook (http://www.facebook.com)
+License: Apache License v2 (http://www.apache.org/licenses)
+
+=========================================================================
+
+SQL-Parser (FoundationDB), aka Akiban
 https://github.com/FoundationDB/sql-parser
 developed by FoundationDB (http://www.foundationdb.com/)
+Copyright 2011-2013 Akiban Technologies, Inc.
 License: Apache License v2 (http://www.apache.org/licenses)
 
 =========================================================================
 
 Apache Derby
 Copyright 2004-2011 The Apache Software Foundation
-
 This product includes software developed by
 The Apache Software Foundation (http://www.apache.org/).
-
-
-=========================================================================
 
 Portions of Derby were originally developed by
 International Business Machines Corporation and are
@@ -74,21 +199,12 @@ and are placed here unaltered.
 
 (C) Copyright IBM Corp. 2003.
 
-
-=========================================================================
-
-
 The portion of the functionTests under 'nist' was originally
 developed by the National Institute of Standards and Technology (NIST),
 an agency of the United States Department of Commerce, and adapted by
 International Business Machines Corporation in accordance with the NIST
 Software Acknowledgment and Redistribution document at
 http://www.itl.nist.gov/div897/ctg/sql_form.htm
-
-
-
-=========================================================================
-
 
 The JDBC apis for small devices and JDBC3 (under java/stubs/jsr169 and
 java/stubs/jdbc3) were produced by trimming sources supplied by the
@@ -101,15 +217,11 @@ Foundation under the "Software Grant and Corporate Contribution
 License Agreement", informally known as the "Intel Harmony CLA".
 
 
-=========================================================================
-
-
 The Derby build relies on source files supplied by the Apache Felix
 project. The following notice covers the Felix files:
 
   Apache Felix Main
   Copyright 2008 The Apache Software Foundation
-
 
   I. Included Software
 
@@ -137,9 +249,6 @@ project. The following notice covers the Felix files:
   III. License Summary
   - Apache License 2.0
   - BSD License
-
-
-=========================================================================
 
 
 The Derby build relies on jar files supplied by the Apache Xalan

@@ -1,16 +1,24 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
  */
+
 package io.crate.sql.parser;
 
 import io.crate.sql.tree.CurrentTime;
@@ -86,8 +94,10 @@ public class TestSqlParser
                                 ImmutableList.<Expression>of(),
                                 Optional.<Expression>absent(),
                                 ImmutableList.<SortItem>of(),
+                                Optional.<String>absent(),
                                 Optional.<String>absent()),
                         ImmutableList.<SortItem>of(),
+                        Optional.<String>absent(),
                         Optional.<String>absent()));
     }
 
@@ -185,6 +195,24 @@ public class TestSqlParser
     public void testParseErrorReverseOrderByLimit()
     {
         SqlParser.createStatement("select fuu from dual limit 10 order by fuu");
+    }
+
+    @Test(expectedExceptions =  ParsingException.class, expectedExceptionsMessageRegExp = "line 1:41: mismatched input 'order' expecting EOF")
+    public void testParseErrorReverseOrderByLimitOffset()
+    {
+        SqlParser.createStatement("select fuu from dual limit 10 offset 20 order by fuu");
+    }
+
+    @Test(expectedExceptions =  ParsingException.class, expectedExceptionsMessageRegExp = "line 1:32: mismatched input 'order' expecting EOF")
+    public void testParseErrorReverseOrderByOffset()
+    {
+        SqlParser.createStatement("select fuu from dual offset 20 order by fuu");
+    }
+
+    @Test(expectedExceptions =  ParsingException.class, expectedExceptionsMessageRegExp = "line 1:32: mismatched input 'limit' expecting EOF")
+    public void testParseErrorReverseLimitOffset()
+    {
+        SqlParser.createStatement("select fuu from dual offset 20 limit 10");
     }
 
     @Test
