@@ -27,10 +27,7 @@ import io.crate.operator.aggregation.AggregationState;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class GroupingProjector implements Projector {
 
@@ -114,19 +111,10 @@ public class GroupingProjector implements Projector {
 
         int r = 0;
         for (Map.Entry<List<Object>, AggregationState[]> entry : result.entrySet()) {
-            int c = 0;
-
-            for (Object o : entry.getKey()) {
-                rows[r][c] = o;
-                c++;
-            }
-            for (AggregationState aggregationState : entry.getValue()) {
-                rows[r][c] = aggregationState.value();
-                c++;
-            }
-
+            Object[] row = rows[r];
+            transformToRow(entry, row);
             if (sendToUpstream) {
-                sendToUpstream = upStream.setNextRow(rows[r]);
+                sendToUpstream = upStream.setNextRow(row);
             }
             r++;
         }
@@ -136,8 +124,61 @@ public class GroupingProjector implements Projector {
         }
     }
 
+    /**
+     * transform map entry into pre-allocated object array.
+     * @param entry
+     * @param row
+     */
+    private static void transformToRow(Map.Entry<List<Object>, AggregationState[]> entry, Object[] row) {
+        int c = 0;
+
+        for (Object o : entry.getKey()) {
+            row[c] = o;
+            c++;
+        }
+        for (AggregationState aggregationState : entry.getValue()) {
+            row[c] = aggregationState.value();
+            c++;
+        }
+    }
+
     @Override
     public Object[][] getRows() throws IllegalStateException {
         return rows;
+    }
+
+    @Override
+    public Iterator<Object[]> iterator() {
+        return new EntryToRowIterator(result.entrySet().iterator(), keyInputs.length + aggregationCollectors.length);
+    }
+
+    private static class EntryToRowIterator implements Iterator<Object[]> {
+
+        private final Iterator<Map.Entry<List<Object>, AggregationState[]>> iter;
+        private final int rowLength;
+
+        private EntryToRowIterator(Iterator<Map.Entry<List<Object>, AggregationState[]>> iter,
+                                   int rowLength) {
+            this.iter = iter;
+            this.rowLength = rowLength;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return iter.hasNext();
+        }
+
+        @Override
+        public Object[] next() {
+            Map.Entry<List<Object>, AggregationState[]> entry = iter.next();
+            Object[] row = new Object[rowLength];
+            transformToRow(entry, row);
+            return row;
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("remove not supported");
+        }
     }
 }

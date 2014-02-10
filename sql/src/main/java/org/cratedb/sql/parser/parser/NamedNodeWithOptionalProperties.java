@@ -75,6 +75,8 @@ public class NamedNodeWithOptionalProperties extends QueryTreeNode {
         super.acceptChildren(v);
         if (properties != null) {
             properties.accept(v);
+        } else {
+            debugPrint("null");
         }
     }
 }
