@@ -98,21 +98,21 @@ public class CmpOperatorTest {
 
     @Test
     public void testNormalizeSymbolNonLiteral() throws Exception {
-        Symbol symbol = normalize(op_gt_string, new StringLiteral("a"), new Reference(null));
+        Symbol symbol = normalize(op_gt_string, new StringLiteral("a"), new Value(DataType.STRING));
         assertThat(symbol, instanceOf(Function.class));
     }
 
     @Test
     public void testNormalizeLikeLiteral() throws Exception {
-        Symbol symbol = normalize(op_like_string, new StringLiteral("a"), new Reference(null));
+        Symbol symbol = normalize(op_like_string, new StringLiteral("a"), new Value(DataType.STRING));
         assertThat(symbol, instanceOf(Function.class));
 
         symbol = normalize(op_like_string, new StringLiteral("a"), new StringLiteral("a"));
         assertThat(symbol, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral)symbol).value(), is(true));
+        assertThat(((BooleanLiteral) symbol).value(), is(true));
 
         symbol = normalize(op_like_string, new StringLiteral("a"), new StringLiteral("b"));
         assertThat(symbol, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral)symbol).value(), is(false));
+        assertThat(((BooleanLiteral) symbol).value(), is(false));
     }
 }
