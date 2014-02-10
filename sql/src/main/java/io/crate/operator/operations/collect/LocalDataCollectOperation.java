@@ -21,7 +21,6 @@
 
 package io.crate.operator.operations.collect;
 
-import com.google.common.base.Optional;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -30,7 +29,6 @@ import io.crate.analyze.NormalizationHelper;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.Routing;
-import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.collector.CrateCollector;
@@ -42,6 +40,7 @@ import io.crate.operator.projectors.Projector;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.symbol.Function;
+import org.cratedb.Constants;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.TableUnknownException;
 import org.elasticsearch.cluster.ClusterService;
@@ -66,7 +65,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
 
-    public static final Object[][] EMPTY_RESULT = new Object[0][];
     public static final TimeValue timeout = new TimeValue(2, TimeUnit.MINUTES);
 
     /**
@@ -141,12 +139,12 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
      * @param collectNode {@link io.crate.planner.node.CollectNode} instance containing routing information and symbols to collect
      * @return the collect result from this node, one row only so return value is <code>Object[1][]</code>
      */
-    private ListenableFuture<Object[][]> handleNodeCollect(CollectNode collectNode) {
+    protected ListenableFuture<Object[][]> handleNodeCollect(CollectNode collectNode) {
         SettableFuture<Object[][]> result = SettableFuture.create();
         Function whereClause = collectNode.whereClause();
         if (whereClause != null && NormalizationHelper.evaluatesToFalse(whereClause, this.normalizer)
                 || collectNode.toCollect() == null || collectNode.toCollect().size() == 0) {
-            result.set(EMPTY_RESULT);
+            result.set(Constants.EMPTY_RESULT);
             return result;
         }
 
@@ -183,12 +181,12 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
      * @param collectNode {@link io.crate.planner.plan.CollectNode} containing routing information and symbols to collect
      * @return the collect results from all shards on this node that were given in {@link io.crate.planner.plan.CollectNode#routing}
      */
-    private ListenableFuture<Object[][]> handleShardCollect(CollectNode collectNode) {
+    protected ListenableFuture<Object[][]> handleShardCollect(CollectNode collectNode) {
 
         Function whereClause = collectNode.whereClause();
         if (whereClause != null && NormalizationHelper.evaluatesToFalse(whereClause, this.normalizer)) {
             SettableFuture<Object[][]> result = SettableFuture.create();
-            result.set(EMPTY_RESULT);
+            result.set(Constants.EMPTY_RESULT);
             return result;
         }
 
@@ -246,7 +244,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
         return result;
     }
 
-    private List<Projector> extractProjectors(CollectNode collectNode) {
+    protected List<Projector> extractProjectors(CollectNode collectNode) {
         ImplementationSymbolVisitor visitor = new ImplementationSymbolVisitor(
                 this.referenceResolver,
                 this.functions,

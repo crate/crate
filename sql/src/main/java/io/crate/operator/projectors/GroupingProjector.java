@@ -27,10 +27,7 @@ import io.crate.operator.aggregation.AggregationState;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class GroupingProjector implements Projector {
 
@@ -38,6 +35,7 @@ public class GroupingProjector implements Projector {
     private final CollectExpression[] collectExpressions;
 
     private final Map<List<Object>, AggregationState[]> result;
+    private Iterator<Map.Entry<List<Object>, AggregationState[]>> iter;
     private final AggregationCollector[] aggregationCollectors;
 
     private Object[][] rows;
@@ -139,5 +137,37 @@ public class GroupingProjector implements Projector {
     @Override
     public Object[][] getRows() throws IllegalStateException {
         return rows;
+    }
+
+    @Override
+    public Iterator<Object[]> iterator() {
+        iter = result.entrySet().iterator();
+        return this;
+    }
+
+    @Override
+    public boolean hasNext() {
+        return iter.hasNext();
+    }
+
+    @Override
+    public Object[] next() {
+        Map.Entry<List<Object>, AggregationState[]> entry = iter.next();
+        Object[] row = new Object[keyInputs.length + aggregationCollectors.length];
+        int c = 0;
+        for (Object o : entry.getKey()) {
+            row[c] = o;
+            c++;
+        }
+        for (AggregationState aggregationState : entry.getValue()) {
+            row[c] = aggregationState.value();
+            c++;
+        }
+        return row;
+    }
+
+    @Override
+    public void remove() {
+        throw new UnsupportedOperationException("remove not supported");
     }
 }

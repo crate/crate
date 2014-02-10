@@ -21,10 +21,12 @@
 
 package io.crate.operator.projectors;
 
+import java.util.Iterator;
+
 /**
  * executing a Projection
  */
-public interface Projector {
+public interface Projector extends Iterator<Object[]>, Iterable<Object[]> {
 
     /**
      * set the Projector to hand over the projected rows.

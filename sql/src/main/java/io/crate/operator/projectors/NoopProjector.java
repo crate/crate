@@ -25,11 +25,13 @@ import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 public class NoopProjector extends AbstractProjector {
 
     public List<Object[]> rows = new ArrayList<>();
+    private Iterator<Object[]> iter;
 
     public NoopProjector() {
         super(new Input<?>[0], new CollectExpression<?>[0]);
@@ -52,4 +54,24 @@ public class NoopProjector extends AbstractProjector {
         return rows.toArray(new Object[rows.size()][]);
     }
 
+    @Override
+    public Iterator<Object[]> iterator() {
+        iter = rows.iterator();
+        return this;
+    }
+
+    @Override
+    public boolean hasNext() {
+        return iter.hasNext();
+    }
+
+    @Override
+    public Object[] next() {
+        return iter.next();
+    }
+
+    @Override
+    public void remove() {
+        throw new UnsupportedOperationException("remove not supported");
+    }
 }

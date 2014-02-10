@@ -31,6 +31,7 @@ import org.cratedb.Constants;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -96,6 +97,7 @@ public class SortingTopNProjector extends AbstractProjector {
     private final AtomicInteger collected = new AtomicInteger(0);
     private final Comparator[] comparators;
     private Object[][] result = Constants.EMPTY_RESULT;
+    private int resultIdx = 0;
 
     /**
      *
@@ -179,5 +181,28 @@ public class SortingTopNProjector extends AbstractProjector {
     @Override
     public Object[][] getRows() throws IllegalStateException {
         return result;
+    }
+
+    // ITERATOR STUFF
+
+    @Override
+    public Iterator<Object[]> iterator() {
+        resultIdx = 0;
+        return this;
+    }
+
+    @Override
+    public boolean hasNext() {
+        return !upStream.isPresent() && resultIdx < result.length;
+    }
+
+    @Override
+    public Object[] next() {
+        return result[resultIdx++];
+    }
+
+    @Override
+    public void remove() {
+        throw new UnsupportedOperationException("remove not supported");
     }
 }
