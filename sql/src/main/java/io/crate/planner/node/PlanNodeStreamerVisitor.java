@@ -21,7 +21,6 @@
 
 package io.crate.planner.node;
 
-import com.carrotsearch.hppc.IntOpenHashSet;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.Functions;
@@ -32,10 +31,7 @@ import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.common.inject.Inject;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.ListIterator;
+import java.util.*;
 
 /**
  * get input and output {@link org.cratedb.DataType.Streamer}s for {@link io.crate.planner.node.PlanNode}s
@@ -162,6 +158,9 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
         Collections.addAll(context.outputStreamers, streamers);
     }
 
+    /**
+     * traverse the projections backward until a output type/streamer is found for each symbol in the last projection
+     */
     private void resolveStreamer(DataType.Streamer<?>[] streamers,
                                  List<Projection> projections,
                                  int columnIdx,

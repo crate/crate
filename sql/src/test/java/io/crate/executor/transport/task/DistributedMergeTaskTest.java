@@ -9,7 +9,6 @@ import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.impl.CountAggregation;
 import io.crate.planner.node.AggStateStreamer;
 import io.crate.planner.node.MergeNode;
-import io.crate.planner.node.PlanNodeStreamerVisitor;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
@@ -20,54 +19,17 @@ import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
 import java.util.*;
 
-import static io.crate.metadata.Helpers.createReference;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDistributedMergeTask() throws Exception {
-        // ThreadPool threadPool = new ThreadPool();
-        // DiscoveryNodes discoveryNodes = mock(DiscoveryNodes.class);
-
-        // NetworkService networkService1 = new NetworkService(ImmutableSettings.EMPTY);
-        // NettyTransport node1Transport = new NettyTransport(ImmutableSettings.EMPTY, threadPool, networkService1, Version.CURRENT);
-        // node1Transport.start();
-
-        // NetworkService networkService2 = new NetworkService(ImmutableSettings.EMPTY);
-        // NettyTransport node2Transport = new NettyTransport(ImmutableSettings.EMPTY, threadPool, networkService2, Version.CURRENT);
-        // node2Transport.start();
-
-        // DiscoveryNode node1 = new DiscoveryNode(
-        //         "node1", "node1", node1Transport.boundAddress().publishAddress(),
-        //         ImmutableMap.<String, String>of(), Version.CURRENT);
-        // DiscoveryNode node2 = new DiscoveryNode(
-        //         "node1", "node1", node2Transport.boundAddress().publishAddress(),
-        //         ImmutableMap.<String, String>of(), Version.CURRENT);
-
-        // when(discoveryNodes.get("node1")).thenReturn(node1);
-        // when(discoveryNodes.get("node2")).thenReturn(node2);
-
-        // ClusterState clusterState = mock(ClusterState.class);
-        // when(clusterState.nodes()).thenReturn(discoveryNodes);
-
-        // ClusterService clusterService = mock(ClusterService.class);
-        // when(clusterService.state()).thenReturn(clusterState);
-
-
-        // TransportService transportService = new TransportService(node1Transport, threadPool);
-        // transportService.start();
-        // transportService.connectToNode(node1);
-        // transportService.connectToNode(node2);
-
-        TransportService transportService = cluster().getInstance(TransportService.class);
         ClusterService clusterService = cluster().getInstance(ClusterService.class);
         Functions functions = cluster().getInstance(Functions.class);
         AggregationFunction countAggregation =
@@ -75,18 +37,12 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
 
         TransportMergeNodeAction transportMergeNodeAction = cluster().getInstance(TransportMergeNodeAction.class);
 
-        // TransportMergeNodeAction transportMergeNodeAction = new TransportMergeNodeAction(
-        //         transportService,
-        //         clusterService
-        // );
-
         Set<String> nodes = new HashSet<>();
         for (DiscoveryNode discoveryNode : clusterService.state().nodes()) {
             nodes.add(discoveryNode.getId());
         }
 
         // select count(*), user ... group by user
-
         MergeNode mergeNode = new MergeNode("merge1", 2);
         mergeNode.contextId(UUID.randomUUID());
         mergeNode.executionNodes(nodes);
@@ -102,7 +58,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
                         Aggregation.Step.FINAL
                 )
         ));
-        TopNProjection topNProjection = new TopNProjection(10, 0);
+        TopNProjection topNProjection = new TopNProjection(10, 0, Arrays.<Symbol>asList(new InputColumn(1)), new boolean[] { false });
         topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
         mergeNode.projections(Arrays.asList(groupProjection, topNProjection));
@@ -142,6 +98,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         DistributedResultRequest request4 = new DistributedResultRequest(mergeNode.contextId(), mapperOutputStreamer);
         request4.rows(new Object[][] {
                 new Object[] { new CountAggregation.CountAggState() {{ value = 10; }}, new BytesRef("foo") },
+                new Object[] { new CountAggregation.CountAggState() {{ value = 14; }}, new BytesRef("test") },
         });
 
         String secondNode = iterator.next();
@@ -150,11 +107,27 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
 
         assertThat(task.result().size(), is(2)); // 2 reducer nodes
 
+        // results from first node
         Object[][] rows = task.result().get(0).get();
         assertThat(rows.length, is(2));
 
+        assertThat((BytesRef)rows[0][0], is(new BytesRef("foobar")));
+        assertThat((Long)rows[0][1], is(3L));
+
+        assertThat((BytesRef)rows[1][0], is(new BytesRef("bar")));
+        assertThat((Long)rows[1][1], is(5L));
+
+
+
+
+        // results from second node
         rows = task.result().get(1).get();
-        assertThat(rows.length, is(1));
+        assertThat(rows.length, is(2));
+        assertThat((BytesRef)rows[0][0], is(new BytesRef("test")));
+        assertThat((Long)rows[0][1], is(14L));
+
+        assertThat((BytesRef)rows[1][0], is(new BytesRef("foo")));
+        assertThat((Long)rows[1][1], is(40L));
     }
 
     class NoopListener implements ActionListener<DistributedResultResponse> {

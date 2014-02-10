@@ -216,6 +216,7 @@ public class TransportMergeNodeAction {
         }
     }
 
+    // TODO: extract handler and make contextManager injectable so that the handler can be re-used
     private class MergeRowsHandler extends BaseTransportRequestHandler<DistributedResultRequest> {
         @Override
         public DistributedResultRequest newInstance() {
