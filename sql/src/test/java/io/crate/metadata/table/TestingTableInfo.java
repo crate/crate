@@ -32,7 +32,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-public class ImmutableTableInfo implements TableInfo {
+public class TestingTableInfo implements TableInfo {
 
     public static Builder builder(TableIdent ident, RowGranularity granularity) {
         return new Builder(ident, granularity);
@@ -61,7 +61,7 @@ public class ImmutableTableInfo implements TableInfo {
         }
 
         public TableInfo build() {
-            return new ImmutableTableInfo(columns.build(), references.build(), ident, granularity);
+            return new TestingTableInfo(columns.build(), references.build(), ident, granularity);
         }
     }
 
@@ -71,8 +71,8 @@ public class ImmutableTableInfo implements TableInfo {
     private final TableIdent ident;
     private final RowGranularity granularity;
 
-    public ImmutableTableInfo(List<ReferenceInfo> columns, Map<ColumnIdent, ReferenceInfo> references,
-                              TableIdent ident, RowGranularity granularity) {
+    public TestingTableInfo(List<ReferenceInfo> columns, Map<ColumnIdent, ReferenceInfo> references,
+                            TableIdent ident, RowGranularity granularity) {
         this.columns = columns;
         this.references = references;
         this.ident = ident;

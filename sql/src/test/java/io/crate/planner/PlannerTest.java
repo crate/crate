@@ -7,10 +7,8 @@ import io.crate.analyze.Analyzer;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
-import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
-import io.crate.metadata.sys.SysTableInfo;
-import io.crate.metadata.table.ImmutableTableInfo;
+import io.crate.metadata.table.TestingTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
@@ -18,15 +16,12 @@ import io.crate.planner.symbol.Function;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import org.cratedb.DataType;
-import org.cratedb.test.integration.NodeSettingsSource;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -83,7 +78,7 @@ public class PlannerTest {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             TableIdent userTableIdent = new TableIdent(null, "users");
-            TableInfo userTableInfo = ImmutableTableInfo.builder(userTableIdent, RowGranularity.DOC)
+            TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, RowGranularity.DOC)
                     .add("name", DataType.STRING, null)
                     .add("id", DataType.LONG, null)
                     .build();
