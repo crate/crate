@@ -57,7 +57,10 @@ dependencies {
     compile project(':blob')
     compile project(':udc')
 
-    testCompile 'com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.0.15'
+    testCompile ('com.carrotsearch.randomizedtesting:randomizedtesting-runner:2.0.15') {
+        exclude group: 'junit', module: 'junit'
+    }
+    testCompile 'junit:junit:4.11'
 }
 
 installDist.dependsOn(jar, ":docs:sphinx")
