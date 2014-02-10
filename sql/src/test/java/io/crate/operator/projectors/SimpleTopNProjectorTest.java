@@ -166,6 +166,29 @@ public class SimpleTopNProjectorTest {
     }
 
     @Test
+    public void testProjectLimitOnly1() {
+        SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
+                new CollectExpression[]{(CollectExpression)input}, 1, TopN.NO_OFFSET);
+        projector.startProjection();
+        int i;
+        for (i = 0; i<10; i++) {
+            if (!projector.setNextRow(row)) {
+                break;
+            }
+        }
+        assertThat(i, is(1));
+        projector.finishProjection();
+        Object[][] projected = projector.getRows();
+        assertThat(projected.length, is(1));
+
+        int iterateLength = 0;
+        for (Object[] row : projector) {
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(1));
+    }
+
+    @Test
     public void testProjectOffsetBigger0() {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input}, 100, 10);
