@@ -37,15 +37,20 @@ public class NodeIdExpression extends SysExpression<BytesRef> {
     public static final ReferenceInfo INFO_ID = SystemReferences.registerNodeReference(
             COLNAME, DataType.STRING);
 
-    private final BytesRef value;
+    private final Discovery discovery;
+    private BytesRef value;
 
     @Inject
     public NodeIdExpression(Discovery discovery) {
-        this.value = new BytesRef(discovery.localNode().getId());
+        this.discovery = discovery;
     }
 
     @Override
     public BytesRef value() {
+        // value could not be ready on node start-up, but is static once set
+        if (value == null && discovery.localNode() != null) {
+            value = new BytesRef(discovery.localNode().getId());
+        }
         return value;
     }
 
