@@ -26,8 +26,11 @@ import com.google.common.base.Preconditions;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
 import org.cratedb.Constants;
+import org.cratedb.core.collections.ArrayIterator;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -45,6 +48,7 @@ public class SimpleTopNProjector implements Projector {
         private final Object endPosMutex = new Object();
 
         private final Object[][] result;
+        private int resultIdx = 0;
         private final int start;
         private final int end;
 
@@ -104,6 +108,15 @@ public class SimpleTopNProjector implements Projector {
             }
             return Arrays.copyOf(result, endPos + 1);
         }
+
+        @Override
+        public Iterator<Object[]> iterator() {
+            if (endPos == 0) {
+                return Collections.emptyIterator();
+            } else {
+                return new ArrayIterator(result, 0, endPos+1);
+            }
+        }
     }
 
 
@@ -151,6 +164,12 @@ public class SimpleTopNProjector implements Projector {
         @Override
         public Object[][] getRows() throws IllegalStateException {
             return new Object[0][];
+        }
+
+        @Override
+        public Iterator<Object[]> iterator() {
+            // Iteration not supported
+            return Collections.emptyIterator();
         }
     }
 
@@ -205,5 +224,12 @@ public class SimpleTopNProjector implements Projector {
     @Override
     public Object[][] getRows() {
         return wrappedProjector.getRows();
+    }
+
+    // ITERATOR/ITERABLE
+
+    @Override
+    public Iterator<Object[]> iterator() {
+        return wrappedProjector.iterator();
     }
 }

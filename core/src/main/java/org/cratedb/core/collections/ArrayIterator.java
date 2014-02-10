@@ -19,43 +19,37 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.projectors;
+package org.cratedb.core.collections;
 
-import io.crate.operator.Input;
-import io.crate.operator.aggregation.CollectExpression;
-
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 
-public class NoopProjector extends AbstractProjector {
+/**
+ * read-only array iterator
+ */
+public class ArrayIterator implements Iterator<Object[]> {
 
-    public List<Object[]> rows = new ArrayList<>();
-    private Iterator<Object[]> iter;
+    private final Object[][] array;
+    private final int end;
+    private int idx;
 
-    public NoopProjector() {
-        super(new Input<?>[0], new CollectExpression<?>[0]);
+    public ArrayIterator(Object[][] array, int start, int end) {
+        this.array = array;
+        this.end = end;
+        this.idx = start;
     }
 
     @Override
-    public void startProjection() {}
-
-    @Override
-    public synchronized boolean setNextRow(Object... row) {
-        rows.add(row);
-        return true;
+    public boolean hasNext() {
+        return idx < end;
     }
 
     @Override
-    public void finishProjection() {}
-
-    @Override
-    public Object[][] getRows() throws IllegalStateException {
-        return rows.toArray(new Object[rows.size()][]);
+    public Object[] next() {
+        return array[idx++];
     }
 
     @Override
-    public Iterator<Object[]> iterator() {
-        return rows.iterator();
+    public void remove() {
+        throw new UnsupportedOperationException("remove not supported");
     }
 }

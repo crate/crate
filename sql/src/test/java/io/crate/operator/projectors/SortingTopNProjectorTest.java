@@ -61,6 +61,13 @@ public class SortingTopNProjectorTest {
             // 1 --> 10
             assertThat((Integer)rows[j][0], is(j+1));
         }
+
+        int iterateLength = 0;
+        for (Object[] row : projector) {
+            assertThat((Integer)row[0], is(iterateLength+1));
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(10));
     }
 
     @Test
@@ -87,6 +94,13 @@ public class SortingTopNProjectorTest {
         for (int j = 0; j<5; j++) {
             assertThat((Integer)rows[j][0], is(j+6));
         }
+
+        int iterateLength = 0;
+        for (Object[] row : projector) {
+            assertThat((Integer)row[0], is(iterateLength+6));
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(5));
     }
 
     @Test
@@ -111,6 +125,13 @@ public class SortingTopNProjectorTest {
         for (int j = 0; j<3; j++) {
             assertThat((Integer)rows[j][0], is(j+6));
         }
+
+        int iterateLength = 0;
+        for (Object[] row : projector) {
+            assertThat((Integer)row[0], is(iterateLength+6));
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(3));
     }
 
     @Test
@@ -136,6 +157,14 @@ public class SortingTopNProjectorTest {
         assertThat((Integer)rows[0][0], is(4));
         assertThat((Integer)rows[1][0], is(3));
         assertThat((Integer)rows[2][0], is(2));
+
+        int iterateLength = 0;
+        int value = 4;
+        for (Object[] row : projector) {
+            assertThat((Integer)row[0], is(value--));
+            iterateLength++;
+        }
+        assertThat(iterateLength, is(3));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -181,6 +210,19 @@ public class SortingTopNProjectorTest {
             }
             formerRow = row;
         }
+
+        int iterateLength = 0;
+        formerRow = null;
+        for (Object[] row : projector) {
+            iterateLength++;
+            if (formerRow==null) { formerRow = row; continue; }
+            assertThat((Integer)formerRow[0], lessThanOrEqualTo((Integer)row[0]));
+            if ((formerRow[0]).equals(row[0])) {
+                assertThat((Integer)formerRow[1], lessThanOrEqualTo((Integer)row[1]));
+            }
+            formerRow = row;
+        }
+        assertThat(iterateLength, is(20));
 
     }
 }

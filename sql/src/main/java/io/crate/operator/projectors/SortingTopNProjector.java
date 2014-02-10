@@ -27,10 +27,12 @@ import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
 import org.apache.lucene.util.PriorityQueue;
 import org.cratedb.Constants;
+import org.cratedb.core.collections.ArrayIterator;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -180,4 +182,12 @@ public class SortingTopNProjector extends AbstractProjector {
     public Object[][] getRows() throws IllegalStateException {
         return result;
     }
+
+    // ITERATOR STUFF
+
+    @Override
+    public Iterator<Object[]> iterator() {
+        return new ArrayIterator(result, 0, result.length);
+    }
+
 }
