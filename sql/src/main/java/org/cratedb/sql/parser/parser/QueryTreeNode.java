@@ -367,7 +367,7 @@ public abstract class QueryTreeNode implements Visitable
      * Each sub-class of QueryTreeNode should implement its own toString()
      * method.  In each case, toString() should format the class members
      * that are not sub-types of QueryTreeNode (printSubNodes() takes care
-     * of following the references to sub-nodes, and toString() takes care
+     * of following the INFOS to sub-nodes, and toString() takes care
      * of all members that are not sub-nodes).  Newlines should be used
      * liberally - one good way to do this is to have a newline at the
      * end of each formatted member.    It's also a good idea to put the

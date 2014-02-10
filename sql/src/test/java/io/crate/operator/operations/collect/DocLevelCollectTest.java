@@ -23,10 +23,10 @@ package io.crate.operator.operations.collect;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
+import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operator.operator.EqOperator;
 import io.crate.operator.reference.sys.cluster.ClusterNameExpression;
 import io.crate.operator.reference.sys.node.NodeNameExpression;
-import io.crate.operator.reference.sys.shard.ShardIdExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.symbol.Function;
@@ -112,7 +112,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCollectDocLevelWhereClause() throws Exception {
-        EqOperator op = (EqOperator)functions.get(new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)));
+        EqOperator op = (EqOperator) functions.get(new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)));
         CollectNode collectNode = new CollectNode("docCollect", routing());
         collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference));
         collectNode.maxRowGranularity(RowGranularity.DOC);
@@ -124,7 +124,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(1));
         assertThat(result[0].length, is(1));
-        assertThat((Integer)result[0][0], is(2));
+        assertThat((Integer) result[0][0], is(2));
     }
 
     @Test
@@ -136,7 +136,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         collectNode.toCollect(Arrays.<Symbol>asList(
                 testDocLevelReference,
                 new Reference(NodeNameExpression.INFO_NAME),
-                new Reference(ShardIdExpression.INFO_ID),
+                new Reference(SysShardsTableInfo.INFOS.get("id")),
                 new Reference(ClusterNameExpression.INFO_NAME))
         );
         collectNode.maxRowGranularity(RowGranularity.DOC);
@@ -145,15 +145,15 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
         assertThat(result.length, is(2));
         assertThat(result[0].length, is(4));
-        assertThat((Integer)result[0][0], isOneOf(2, 4));
-        assertThat((String)result[0][1], is(clusterService().localNode().name()));
+        assertThat((Integer) result[0][0], isOneOf(2, 4));
+        assertThat((String) result[0][1], is(clusterService().localNode().name()));
         assertThat(result[0][2], isIn(shardIds));
-        assertThat((String)result[0][3], is(cluster().clusterName()));
+        assertThat((String) result[0][3], is(cluster().clusterName()));
 
-        assertThat((Integer)result[1][0], isOneOf(2, 4));
-        assertThat((String)result[1][1], is(clusterService().localNode().name()));
+        assertThat((Integer) result[1][0], isOneOf(2, 4));
+        assertThat((String) result[1][1], is(clusterService().localNode().name()));
         assertThat(result[1][2], isIn(shardIds));
 
-        assertThat((String)result[1][3], is(cluster().clusterName()));
+        assertThat((String) result[1][3], is(cluster().clusterName()));
     }
 }

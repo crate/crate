@@ -28,6 +28,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.sys.SysShardExpression;
+import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operator.Input;
 import io.crate.operator.operator.AndOperator;
 import io.crate.operator.operator.EqOperator;
@@ -121,24 +122,20 @@ public class LocalDataCollectTest {
     }
 
     static class ShardIdExpression extends SysShardExpression<Integer> {
-        public static final ReferenceIdent ident = new ReferenceIdent(new TableIdent("sys", "shards"), "id");
-        public static final ReferenceInfo info = new ReferenceInfo(ident, RowGranularity.SHARD, DataType.INTEGER);
+//        public static final ReferenceIdent ident = new ReferenceIdent(new TableIdent("sys", "shards"), "id");
+//        public static final ReferenceInfo info = new ReferenceInfo(ident, RowGranularity.SHARD, DataType.INTEGER);
 
         private final ShardId shardId;
 
         @Inject
         public ShardIdExpression(ShardId shardId) {
+            super("id");
             this.shardId = shardId;
         }
 
         @Override
         public Integer value() {
             return shardId.id();
-        }
-
-        @Override
-        public ReferenceInfo info() {
-            return info;
         }
 
         @Override
@@ -160,7 +157,7 @@ public class LocalDataCollectTest {
     private final static String TEST_TABLE_NAME = "test_table";
 
     private static Reference testNodeReference = new Reference(TestExpression.info);
-    private static Reference testShardIdReference = new Reference(ShardIdExpression.info);
+    private static Reference testShardIdReference = new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("id")));
 
     class TestModule extends AbstractModule {
         protected MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
@@ -210,7 +207,7 @@ public class LocalDataCollectTest {
             bind(ShardId.class).toInstance(shardId);
             MapBinder<ReferenceIdent, ShardReferenceImplementation> binder = MapBinder
                     .newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
-            binder.addBinding(ShardIdExpression.ident).toInstance(shardIdExpression);
+            binder.addBinding(SysShardsTableInfo.INFOS.get(new ColumnIdent("id")).ident()).toInstance(shardIdExpression);
             bind(ShardReferenceResolver.class).asEagerSingleton();
             bind(ScriptService.class).toInstance(mock(ScriptService.class));
             bind(ShardCollectService.class).asEagerSingleton();

@@ -22,8 +22,8 @@
 package io.crate.operator.reference.sys.cluster;
 
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysExpression;
-import io.crate.metadata.sys.SystemReferences;
 import org.cratedb.ClusterIdService;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
@@ -31,11 +31,7 @@ import org.elasticsearch.common.inject.Inject;
 public class ClusterIdExpression extends SysExpression<String> {
 
     public static final String COLNAME = "id";
-
-
-    public static final ReferenceInfo INFO_ID = SystemReferences.registerClusterReference(
-            COLNAME, DataType.STRING);
-
+    public static final ReferenceInfo INFO_ID = SysClusterTableInfo.register(COLNAME, DataType.STRING, null);
 
     private final ClusterIdService clusterIdService;
 

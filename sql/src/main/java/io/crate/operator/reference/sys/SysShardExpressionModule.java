@@ -21,11 +21,16 @@
 
 package io.crate.operator.reference.sys;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.shard.ShardReferenceImplementation;
+import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operator.reference.sys.shard.*;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
+
+import java.util.Map;
 
 public class SysShardExpressionModule extends AbstractModule {
     @Override
@@ -33,13 +38,14 @@ public class SysShardExpressionModule extends AbstractModule {
         MapBinder<ReferenceIdent, ShardReferenceImplementation> b = MapBinder
                 .newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
 
-        b.addBinding(ShardIdExpression.INFO_ID.ident()).to(ShardIdExpression.class).asEagerSingleton();
-        b.addBinding(ShardSizeExpression.INFO_SIZE.ident()).to(ShardSizeExpression.class).asEagerSingleton();
-        b.addBinding(ShardNumDocsExpression.INFO_NUM_DOCS.ident()).to(ShardNumDocsExpression.class).asEagerSingleton();
-        b.addBinding(ShardPrimaryExpression.INFO_PRIMARY.ident()).to(ShardPrimaryExpression.class).asEagerSingleton();
-        b.addBinding(ShardStateExpression.INFO_STATE.ident()).to(ShardStateExpression.class).asEagerSingleton();
-        b.addBinding(ShardRelocatingNodeExpression.INFO_RELOCATING_NODE.ident()).to(ShardRelocatingNodeExpression.class).asEagerSingleton();
-        b.addBinding(ShardTableNameExpression.INFO_TABLE_NAME.ident()).to(ShardTableNameExpression.class).asEagerSingleton();
+        Map<ColumnIdent, ReferenceInfo> infos = SysShardsTableInfo.INFOS;
+        b.addBinding(infos.get(new ColumnIdent(ShardIdExpression.NAME)).ident()).to(ShardIdExpression.class).asEagerSingleton();
+        b.addBinding(infos.get(new ColumnIdent(ShardSizeExpression.NAME)).ident()).to(ShardSizeExpression.class).asEagerSingleton();
+        b.addBinding(infos.get(new ColumnIdent(ShardNumDocsExpression.NAME)).ident()).to(ShardNumDocsExpression.class).asEagerSingleton();
+        b.addBinding(infos.get(new ColumnIdent(ShardPrimaryExpression.NAME)).ident()).to(ShardPrimaryExpression.class).asEagerSingleton();
+        b.addBinding(infos.get(new ColumnIdent(ShardStateExpression.NAME)).ident()).to(ShardStateExpression.class).asEagerSingleton();
+        b.addBinding(infos.get(new ColumnIdent(ShardRelocatingNodeExpression.NAME)).ident()).to(ShardRelocatingNodeExpression.class).asEagerSingleton();
+        b.addBinding(infos.get(new ColumnIdent(ShardTableNameExpression.NAME)).ident()).to(ShardTableNameExpression.class).asEagerSingleton();
     }
 
 }

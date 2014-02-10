@@ -23,8 +23,10 @@ package io.crate.operator.reference.sys;
 
 
 import io.crate.metadata.*;
+import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysExpression;
-import io.crate.metadata.sys.SystemReferences;
+import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.operator.Input;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import org.elasticsearch.cluster.ClusterService;
@@ -41,6 +43,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -48,6 +51,7 @@ public class TestGlobalSysExpressions {
 
     private Injector injector;
     private ReferenceResolver resolver;
+    private ReferenceInfos referenceInfos;
 
     class TestModule extends AbstractModule {
 
@@ -74,21 +78,22 @@ public class TestGlobalSysExpressions {
     }
 
 
-
     @Before
     public void setUp() throws Exception {
         injector = new ModulesBuilder().add(
                 new TestModule(),
-                new MetaDataModule()
+                new MetaDataModule(),
+                new MetaDataSysModule()
         ).createInjector();
         resolver = injector.getInstance(ReferenceResolver.class);
+        referenceInfos = injector.getInstance(ReferenceInfos.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testWrongSchema() throws Exception {
         // unsupported schema
         ReferenceIdent ident = new ReferenceIdent(new TableIdent("something", "sometable"), "somecolumn");
-        resolver.getInfo(ident);
+        assertNull(referenceInfos.getReferenceInfo(ident));
 
     }
 
@@ -97,16 +102,16 @@ public class TestGlobalSysExpressions {
     public void testInfoLookup() throws Exception {
 
         ReferenceIdent ident = NodeLoadExpression.INFO_LOAD.ident();
-        assertEquals(resolver.getInfo(ident), NodeLoadExpression.INFO_LOAD);
+        assertEquals(NodeLoadExpression.INFO_LOAD, referenceInfos.getReferenceInfo(ident));
 
         ident = NodeLoadExpression.INFO_LOAD_1.ident();
-        assertEquals(resolver.getInfo(ident), NodeLoadExpression.INFO_LOAD_1);
+        assertEquals(referenceInfos.getReferenceInfo(ident), NodeLoadExpression.INFO_LOAD_1);
 
     }
 
     @Test
     public void testChildImplementationLookup() throws Exception {
-        ReferenceIdent ident = new ReferenceIdent(SystemReferences.NODES_IDENT, "load");
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "load");
         SysObjectReference<Double> load = (SysObjectReference<Double>) resolver.getImplementation(ident);
         assertEquals(NodeLoadExpression.INFO_LOAD, load.info());
 

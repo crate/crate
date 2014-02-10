@@ -32,7 +32,7 @@ import org.cratedb.sql.parser.types.DataTypeDescriptor;
  * be in a base table,  view (which could expand into a complex
  * expression), subquery in the FROM clause, temp table, expression result, etc.    
  * By the time we get to code generation, all VirtualColumnNodes should stand only 
- * for references to columns in a base table within a FromBaseTable.
+ * for INFOS to columns in a base table within a FromBaseTable.
  *
  */
 

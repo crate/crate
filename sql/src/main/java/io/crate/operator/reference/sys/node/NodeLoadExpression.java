@@ -24,7 +24,7 @@ package io.crate.operator.reference.sys.node;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysExpression;
-import io.crate.metadata.sys.SystemReferences;
+import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operator.reference.sys.SysObjectReference;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
@@ -34,18 +34,16 @@ public class NodeLoadExpression extends SysObjectReference<Double> {
 
     public static final String COLNAME = "load";
 
-
     public static final String ONE = "1";
     public static final String FIVE = "5";
     public static final String FIFTEEN = "15";
 
-    public static final ReferenceInfo INFO_LOAD = SystemReferences.registerNodeReference(
-            COLNAME, DataType.OBJECT);
-    public static final ReferenceInfo INFO_LOAD_1 = SystemReferences.registerNodeReference(
+    public static final ReferenceInfo INFO_LOAD = SysNodesTableInfo.register(COLNAME, DataType.OBJECT, null);
+    public static final ReferenceInfo INFO_LOAD_1 = SysNodesTableInfo.register(
             COLNAME, DataType.DOUBLE, ImmutableList.of(ONE));
-    public static final ReferenceInfo INFO_LOAD_5 = SystemReferences.registerNodeReference(
+    public static final ReferenceInfo INFO_LOAD_5 = SysNodesTableInfo.register(
             COLNAME, DataType.DOUBLE, ImmutableList.of(FIVE));
-    public static final ReferenceInfo INFO_LOAD_15 = SystemReferences.registerNodeReference(
+    public static final ReferenceInfo INFO_LOAD_15 = SysNodesTableInfo.register(
             COLNAME, DataType.DOUBLE, ImmutableList.of(FIFTEEN));
 
 

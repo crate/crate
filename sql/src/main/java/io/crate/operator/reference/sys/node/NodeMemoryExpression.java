@@ -24,7 +24,7 @@ package io.crate.operator.reference.sys.node;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysExpression;
-import io.crate.metadata.sys.SystemReferences;
+import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operator.reference.sys.SysObjectReference;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
@@ -54,15 +54,14 @@ public class NodeMemoryExpression extends SysObjectReference<Object> {
     public static final String FREE_PERCENT = "free_percent";
     public static final String USED_PERCENT = "used_percent";
 
-    public static final ReferenceInfo INFO_MEM = SystemReferences.registerNodeReference(
-            COLNAME, DataType.OBJECT);
-    public static final ReferenceInfo INFO_MEM_FREE = SystemReferences.registerNodeReference(
+    public static final ReferenceInfo INFO_MEM = SysNodesTableInfo.register(COLNAME, DataType.OBJECT, null);
+    public static final ReferenceInfo INFO_MEM_FREE = SysNodesTableInfo.register(
             COLNAME, DataType.LONG, ImmutableList.of(FREE));
-    public static final ReferenceInfo INFO_MEM_USED = SystemReferences.registerNodeReference(
+    public static final ReferenceInfo INFO_MEM_USED = SysNodesTableInfo.register(
             COLNAME, DataType.LONG, ImmutableList.of(USED));
-    public static final ReferenceInfo INFO_MEM_FREE_PERCENT = SystemReferences.registerNodeReference(
+    public static final ReferenceInfo INFO_MEM_FREE_PERCENT = SysNodesTableInfo.register(
             COLNAME, DataType.SHORT, ImmutableList.of(FREE_PERCENT));
-    public static final ReferenceInfo INFO_MEM_USED_PERCENT = SystemReferences.registerNodeReference(
+    public static final ReferenceInfo INFO_MEM_USED_PERCENT = SysNodesTableInfo.register(
             COLNAME, DataType.SHORT, ImmutableList.of(USED_PERCENT));
 
 

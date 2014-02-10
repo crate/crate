@@ -24,7 +24,7 @@ package io.crate.operator.reference.sys.node;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysExpression;
-import io.crate.metadata.sys.SystemReferences;
+import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operator.reference.sys.SysObjectReference;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
@@ -55,17 +55,16 @@ public class NodeFsExpression extends SysObjectReference<Object> {
     public static final String FREE_PERCENT = "free_percent";
     public static final String USED_PERCENT = "used_percent";
 
-    public static final ReferenceInfo INFO_FS = SystemReferences.registerNodeReference(
-            COLNAME, DataType.OBJECT);
-    public static final ReferenceInfo INFO_FS_TOTAL = SystemReferences.registerNodeReference(
+    public static final ReferenceInfo INFO_FS = SysNodesTableInfo.register(COLNAME, DataType.OBJECT, null);
+    public static final ReferenceInfo INFO_FS_TOTAL = SysNodesTableInfo.register(
             COLNAME, DataType.LONG, ImmutableList.of(TOTAL));
-    public static final ReferenceInfo INFO_FS_FREE = SystemReferences.registerNodeReference(
+    public static final ReferenceInfo INFO_FS_FREE = SysNodesTableInfo.register(
             COLNAME, DataType.LONG, ImmutableList.of(FREE));
-    public static final ReferenceInfo INFO_FS_USED = SystemReferences.registerNodeReference(
+    public static final ReferenceInfo INFO_FS_USED = SysNodesTableInfo.register(
             COLNAME, DataType.LONG, ImmutableList.of(USED));
-    public static final ReferenceInfo INFO_FS_FREE_PERCENT = SystemReferences.registerNodeReference(
+    public static final ReferenceInfo INFO_FS_FREE_PERCENT = SysNodesTableInfo.register(
             COLNAME, DataType.DOUBLE, ImmutableList.of(FREE_PERCENT));
-    public static final ReferenceInfo INFO_FS_USED_PERCENT = SystemReferences.registerNodeReference(
+    public static final ReferenceInfo INFO_FS_USED_PERCENT = SysNodesTableInfo.register(
             COLNAME, DataType.DOUBLE, ImmutableList.of(USED_PERCENT));
 
     private final NodeService nodeService;
@@ -103,7 +102,7 @@ public class NodeFsExpression extends SysObjectReference<Object> {
         childImplementations.put(FREE_PERCENT, new FsExpression(INFO_FS_FREE_PERCENT) {
             @Override
             public Double value() {
-                return new Double((getFreeBytesFromAllDisks() / (double) getTotalBytesFromAllDisks())*100);
+                return new Double((getFreeBytesFromAllDisks() / (double) getTotalBytesFromAllDisks()) * 100);
             }
         });
         childImplementations.put(USED_PERCENT, new FsExpression(INFO_FS_USED_PERCENT) {
@@ -111,7 +110,7 @@ public class NodeFsExpression extends SysObjectReference<Object> {
             public Double value() {
                 Long total_bytes = getTotalBytesFromAllDisks();
                 Long used_bytes = total_bytes - getFreeBytesFromAllDisks();
-                return new Double((used_bytes / (double) total_bytes)*100);
+                return new Double((used_bytes / (double) total_bytes) * 100);
             }
         });
     }

@@ -21,30 +21,18 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.Preconditions;
-import io.crate.metadata.sys.SystemReferences;
-
 import java.util.Map;
 
 public abstract class AbstractReferenceResolver implements ReferenceResolver {
-
-    @Override
-    public ReferenceInfo getInfo(ReferenceIdent ident) {
-        // TODO: register a resolver for each schema?
-        String schema = ident.tableIdent().schema();
-        Preconditions.checkArgument(SystemReferences.SCHEMA.equals(schema),
-                "Table schema not supported", schema);
-        return SystemReferences.get(ident);
-    }
 
     @Override
     public ReferenceImplementation getImplementation(ReferenceIdent ident) {
         if (ident.isColumn()) {
             return implementations().get(ident);
         }
-        ReferenceImplementation impl = implementations().get(ident.columnIdent());
+        ReferenceImplementation impl = implementations().get(ident.columnReferenceIdent());
         if (impl != null) {
-            for (String part : ident.path()) {
+            for (String part : ident.columnIdent().path()) {
                 impl = impl.getChildImplementation(part);
             }
         }

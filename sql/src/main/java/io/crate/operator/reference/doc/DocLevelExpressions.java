@@ -34,7 +34,7 @@ public class DocLevelExpressions {
      * @return
      */
     public static CollectorExpression getExpression(ReferenceInfo referenceInfo) {
-        String colName = referenceInfo.ident().fqDottedColumnName();
+        String colName = referenceInfo.ident().columnIdent().fqn();
         assert referenceInfo.granularity() == RowGranularity.DOC;
 
         switch(referenceInfo.type()) {

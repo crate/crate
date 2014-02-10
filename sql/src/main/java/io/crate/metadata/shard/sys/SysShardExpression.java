@@ -21,8 +21,22 @@
 
 package io.crate.metadata.shard.sys;
 
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.sys.SysExpression;
+import io.crate.metadata.sys.SysShardsTableInfo;
 
 public abstract class SysShardExpression<T> extends SysExpression<T> implements ShardReferenceImplementation {
+
+    private final ReferenceInfo info;
+
+    protected SysShardExpression(String name) {
+        info = SysShardsTableInfo.INFOS.get(name);
+    }
+
+    @Override
+    public ReferenceInfo info() {
+        return info;
+    }
+
 }

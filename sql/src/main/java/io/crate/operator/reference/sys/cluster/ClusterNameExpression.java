@@ -22,8 +22,8 @@
 package io.crate.operator.reference.sys.cluster;
 
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysExpression;
-import io.crate.metadata.sys.SystemReferences;
 import org.cratedb.DataType;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.inject.Inject;
@@ -31,10 +31,7 @@ import org.elasticsearch.common.inject.Inject;
 public class ClusterNameExpression extends SysExpression<String> {
 
     public static final String COLNAME = "name";
-
-
-    public static final ReferenceInfo INFO_NAME = SystemReferences.registerClusterReference(
-            COLNAME, DataType.STRING);
+    public static final ReferenceInfo INFO_NAME = SysClusterTableInfo.register(COLNAME, DataType.STRING, null);
 
 
     private final ClusterName clusterName;

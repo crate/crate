@@ -21,67 +21,54 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.Ordering;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 public class ReferenceIdent implements Comparable<ReferenceIdent>, Streamable {
 
     private TableIdent tableIdent;
-    private String column;
-    private List<String> path;
+    private ColumnIdent columnIdent;
 
     public ReferenceIdent() {
 
     }
 
-    public ReferenceIdent(TableIdent tableIdent, String column) {
+    public ReferenceIdent(TableIdent tableIdent, ColumnIdent columnIdent) {
         this.tableIdent = tableIdent;
-        this.column = column;
-        this.path = new ArrayList<>(0);
+        this.columnIdent = columnIdent;
+    }
+
+    public ReferenceIdent(TableIdent tableIdent, String column) {
+        this(tableIdent, new ColumnIdent(column));
     }
 
     public ReferenceIdent(TableIdent tableIdent, String column, List<String> path) {
-        this(tableIdent, column);
-        this.path = path;
+        this(tableIdent, new ColumnIdent(column, path));
     }
 
     public TableIdent tableIdent() {
         return tableIdent;
     }
 
-    public String column() {
-        return column;
-    }
-
-    public String fqDottedColumnName() {
-        if (path.size() > 0) {
-            return Joiner.on(".").join(column, path.toArray(new String[path.size()]));
-        }
-        return column();
-    }
-
-    public List<String> path() {
-        return path;
-    }
-
     public boolean isColumn() {
-        return path.size() == 0;
+        return columnIdent.isColumn();
     }
 
-    public ReferenceIdent columnIdent(){
-        if (isColumn()){
+    public ColumnIdent columnIdent(){
+        return columnIdent;
+    }
+
+    public ReferenceIdent columnReferenceIdent() {
+        if (isColumn()) {
             return this;
         }
-        return new ReferenceIdent(tableIdent, column);
+        return new ReferenceIdent(tableIdent, columnIdent.name());
     }
 
     @Override
@@ -93,22 +80,20 @@ public class ReferenceIdent implements Comparable<ReferenceIdent>, Streamable {
             return false;
         }
         ReferenceIdent o = (ReferenceIdent) obj;
-        return Objects.equal(column, o.column) &&
-                Objects.equal(tableIdent, o.tableIdent) &&
-                Objects.equal(path, o.path);
+        return Objects.equal(columnIdent, o.columnIdent) &&
+                Objects.equal(tableIdent, o.tableIdent);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(tableIdent, column, path);
+        return Objects.hashCode(tableIdent, columnIdent);
     }
 
     @Override
     public String toString() {
         return Objects.toStringHelper(this)
                 .add("table", tableIdent)
-                .add("column", column)
-                .add("path", path)
+                .add("columnIdent", columnIdent)
                 .toString();
     }
 
@@ -116,32 +101,22 @@ public class ReferenceIdent implements Comparable<ReferenceIdent>, Streamable {
     public int compareTo(ReferenceIdent o) {
         return ComparisonChain.start()
                 .compare(tableIdent, o.tableIdent)
-                .compare(column, o.column)
-                .compare(path, o.path, Ordering.<String>natural().lexicographical())
+                .compare(columnIdent, o.columnIdent)
                 .result();
     }
 
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        column = in.readString();
-        int numParts = in.readVInt();
-        path = new ArrayList<>(numParts);
-        for (int i = 0; i < numParts; i++) {
-            path.add(in.readString());
-        }
-
+        columnIdent = new ColumnIdent();
+        columnIdent.readFrom(in);
         tableIdent = new TableIdent();
         tableIdent.readFrom(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(column);
-        out.writeVInt(path.size());
-        for (String s : path) {
-            out.writeString(s);
-        }
+        columnIdent.writeTo(out);
         tableIdent.writeTo(out);
     }
 }

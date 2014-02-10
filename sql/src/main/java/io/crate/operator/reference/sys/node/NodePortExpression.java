@@ -24,7 +24,7 @@ package io.crate.operator.reference.sys.node;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysExpression;
-import io.crate.metadata.sys.SystemReferences;
+import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operator.reference.sys.SysObjectReference;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
@@ -55,11 +55,10 @@ public class NodePortExpression extends SysObjectReference<Integer> {
     public static final String HTTP = "http";
     public static final String TRANSPORT = "transport";
 
-    public static final ReferenceInfo INFO_PORT = SystemReferences.registerNodeReference(
-            COLNAME, DataType.OBJECT);
-    public static final ReferenceInfo INFO_PORT_HTTP = SystemReferences.registerNodeReference(
+    public static final ReferenceInfo INFO_PORT = SysNodesTableInfo.register(COLNAME, DataType.OBJECT, null);
+    public static final ReferenceInfo INFO_PORT_HTTP = SysNodesTableInfo.register(
             COLNAME, DataType.INTEGER, ImmutableList.of(HTTP));
-    public static final ReferenceInfo INFO_PORT_TRANSPORT = SystemReferences.registerNodeReference(
+    public static final ReferenceInfo INFO_PORT_TRANSPORT = SysNodesTableInfo.register(
             COLNAME, DataType.INTEGER, ImmutableList.of(TRANSPORT));
 
 

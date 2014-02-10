@@ -23,7 +23,9 @@ package org.cratedb.plugin;
 
 import io.crate.executor.transport.TransportExecutorModule;
 import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.doc.MetaDataDocModule;
 import io.crate.metadata.shard.MetaDataShardModule;
+import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.operations.collect.CollectOperationModule;
 import io.crate.operator.operations.collect.CollectShardModule;
@@ -103,6 +105,8 @@ public class SQLPlugin extends AbstractPlugin {
             modules.add(TransportExecutorModule.class);
             modules.add(CollectOperationModule.class);
             modules.add(MetaDataModule.class);
+            modules.add(MetaDataSysModule.class);
+            modules.add(MetaDataDocModule.class);
             modules.add(OperatorModule.class);
             modules.add(SysClusterExpressionModule.class);
             modules.add(SysNodeExpressionModule.class);

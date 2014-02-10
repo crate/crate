@@ -21,37 +21,25 @@
 
 package io.crate.operator.reference.sys.shard;
 
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.shard.sys.SysShardExpression;
-import io.crate.metadata.sys.SystemReferences;
-import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.service.IndexShard;
 
 public class ShardSizeExpression extends SysShardExpression<Long> {
 
-    public static final String COLNAME = "size";
-
-
-    public static final ReferenceInfo INFO_SIZE = SystemReferences.registerShardReference(
-            COLNAME, DataType.LONG);
-
+    public static final String NAME = "size";
 
     private final IndexShard indexShard;
 
     @Inject
     public ShardSizeExpression(IndexShard indexShard) {
+        super(NAME);
         this.indexShard = indexShard;
     }
 
     @Override
     public Long value() {
         return indexShard.storeStats().getSizeInBytes();
-    }
-
-    @Override
-    public ReferenceInfo info() {
-        return INFO_SIZE;
     }
 
 }

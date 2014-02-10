@@ -23,7 +23,7 @@ package io.crate.operator.reference.sys.node;
 
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysExpression;
-import io.crate.metadata.sys.SystemReferences;
+import io.crate.metadata.sys.SysNodesTableInfo;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.node.service.NodeService;
@@ -33,8 +33,7 @@ public class NodeIdExpression extends SysExpression<String> {
 
     public static final String COLNAME = "id";
 
-    public static final ReferenceInfo INFO_ID = SystemReferences.registerNodeReference(
-            COLNAME, DataType.STRING);
+    public static final ReferenceInfo INFO_ID = SysNodesTableInfo.register(COLNAME, DataType.STRING, null);
 
     private final NodeService nodeService;
 

@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import io.crate.metadata.table.SchemaInfo;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
@@ -28,18 +29,14 @@ public class MetaDataModule extends AbstractModule {
 
     protected MapBinder<ReferenceIdent, ReferenceImplementation> referenceBinder;
     protected MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
+    protected MapBinder<String, SchemaInfo> schemaBinder;
 
     @Override
     protected void configure() {
-        bindRoutings();
         bindReferences();
         bindFunctions();
+        bindSchemas();
     }
-
-    protected void bindRoutings() {
-        bind(Routings.class).to(RoutingsService.class).asEagerSingleton();
-    }
-
 
     protected void bindReferences() {
         referenceBinder = MapBinder.newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
@@ -51,5 +48,9 @@ public class MetaDataModule extends AbstractModule {
         bind(Functions.class).asEagerSingleton();
     }
 
+    protected void bindSchemas() {
+        schemaBinder = MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
+        bind(ReferenceInfos.class).asEagerSingleton();
+    }
 
 }

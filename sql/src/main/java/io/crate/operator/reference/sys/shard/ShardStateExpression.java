@@ -21,37 +21,25 @@
 
 package io.crate.operator.reference.sys.shard;
 
-import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.shard.sys.SysShardExpression;
-import io.crate.metadata.sys.SystemReferences;
-import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.service.IndexShard;
 
 public class ShardStateExpression extends SysShardExpression<String> {
 
-    public static final String COLNAME = "state";
-
-
-    public static final ReferenceInfo INFO_STATE = SystemReferences.registerShardReference(
-            COLNAME, DataType.STRING);
-
+    public static final String NAME = "state";
 
     private final IndexShard indexShard;
 
     @Inject
     public ShardStateExpression(IndexShard indexShard) {
+        super(NAME);
         this.indexShard = indexShard;
     }
 
     @Override
     public String value() {
         return indexShard.state().toString();
-    }
-
-    @Override
-    public ReferenceInfo info() {
-        return INFO_STATE;
     }
 
 }
