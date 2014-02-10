@@ -26,6 +26,7 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operator.Input;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -37,6 +38,7 @@ import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.http.HttpInfo;
 import org.elasticsearch.http.HttpServer;
 import org.elasticsearch.monitor.fs.FsStats;
@@ -94,6 +96,10 @@ public class TestSysNodesExpressions {
             TransportAddress transportAddress = new InetSocketTransportAddress("localhost", 44300);
 
             when(nodeStats.getNode()).thenReturn(node);
+
+            Discovery discovery = mock(Discovery.class);
+            bind(Discovery.class).toInstance(discovery);
+            when(discovery.localNode()).thenReturn(node);
             when(node.getId()).thenReturn("node-id-1");
             when(node.getName()).thenReturn("node 1");
             when(node.address()).thenReturn(transportAddress);
@@ -172,15 +178,14 @@ public class TestSysNodesExpressions {
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "name");
         SysExpression<String> name = (SysExpression<String>) resolver.getImplementation(ident);
 
-        assertEquals("node 1", name.value());
+        assertEquals(new BytesRef("node 1"), name.value());
     }
 
     @Test
     public void testId() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "id");
-        SysExpression<String> id = (SysExpression<String>) resolver.getImplementation(ident);
-
-        assertEquals("node-id-1", id.value());
+        SysExpression<BytesRef> id = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        assertEquals(new BytesRef("node-id-1"), id.value());
     }
 
     @Test

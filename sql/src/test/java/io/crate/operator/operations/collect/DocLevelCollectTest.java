@@ -33,6 +33,7 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.IntegerLiteral;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.test.integration.CrateIntegrationTest;
@@ -136,7 +137,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         collectNode.toCollect(Arrays.<Symbol>asList(
                 testDocLevelReference,
                 new Reference(NodeNameExpression.INFO_NAME),
-                new Reference(SysShardsTableInfo.INFOS.get("id")),
+                new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("id"))),
                 new Reference(ClusterNameExpression.INFO_NAME))
         );
         collectNode.maxRowGranularity(RowGranularity.DOC);
@@ -145,13 +146,13 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
         assertThat(result.length, is(2));
         assertThat(result[0].length, is(4));
-        assertThat((Integer) result[0][0], isOneOf(2, 4));
-        assertThat((String) result[0][1], is(clusterService().localNode().name()));
+        assertThat((Integer)result[0][0], isOneOf(2, 4));
+        assertThat(((BytesRef)result[0][1]).utf8ToString(), is(clusterService().localNode().name()));
         assertThat(result[0][2], isIn(shardIds));
         assertThat((String) result[0][3], is(cluster().clusterName()));
 
-        assertThat((Integer) result[1][0], isOneOf(2, 4));
-        assertThat((String) result[1][1], is(clusterService().localNode().name()));
+        assertThat((Integer)result[1][0], isOneOf(2, 4));
+        assertThat(((BytesRef)result[1][1]).utf8ToString(), is(clusterService().localNode().name()));
         assertThat(result[1][2], isIn(shardIds));
 
         assertThat((String) result[1][3], is(cluster().clusterName()));

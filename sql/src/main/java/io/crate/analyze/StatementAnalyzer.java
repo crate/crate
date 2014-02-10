@@ -1,25 +1,36 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.TableIdent;
-import io.crate.operator.operator.AndOperator;
-import io.crate.operator.operator.OrOperator;
+import io.crate.operator.operator.*;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolType;
 import io.crate.planner.symbol.ValueSymbol;
 import io.crate.sql.tree.*;
 import org.cratedb.DataType;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     protected static SubscriptVisitor visitor = new SubscriptVisitor();
     protected static SymbolDataTypeVisitor symbolDataTypeVisitor = new SymbolDataTypeVisitor();
+    private final Map<String, String> swapOperatorTable = ImmutableMap.<String, String>builder()
+            .put(GtOperator.NAME, LtOperator.NAME)
+            .put(GteOperator.NAME, LteOperator.NAME)
+            .put(LtOperator.NAME, GtOperator.NAME)
+            .put(LteOperator.NAME, GteOperator.NAME)
+            .build();
+
 
     @Override
     protected Symbol visitQuerySpecification(QuerySpecification node, Analysis context) {
@@ -187,8 +198,6 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
         arguments.add(process(node.getLeft(), context));
         arguments.add(process(node.getRight(), context));
 
-        // TODO: swap arguments if left is not a reference
-
         // resolve argument types
         List<DataType> argumentTypes = new ArrayList<>(arguments.size());
         for (Symbol argument : arguments) {
@@ -199,8 +208,35 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
         FunctionIdent functionIdent = new FunctionIdent("op_" + node.getType().getValue(), argumentTypes);
         FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
+        Function function = context.allocateFunction(functionInfo, arguments);
 
-        return context.allocateFunction(functionInfo, arguments);
+        // swap statements like  eq(2, name) to eq(name, 2)
+        Symbol left = arguments.get(0);
+        Symbol right = arguments.get(1);
+
+        if (left.symbolType().isLiteral() && right.symbolType() == SymbolType.REFERENCE) {
+            function = swapOperatorFunction(function, left, right, context);
+        }
+
+        return function;
     }
+
+    private Function swapOperatorFunction(Function function, Symbol left, Symbol right, Analysis context) {
+        String swappedName = swapOperatorTable.get(function.info().ident().name());
+        DataType leftType = function.info().ident().argumentTypes().get(0);
+        DataType rightType = function.info().ident().argumentTypes().get(1);
+        FunctionInfo newInfo;
+
+        if (swappedName == null && leftType == rightType) {
+            newInfo = function.info();
+        } else {
+            swappedName = swappedName == null ? function.info().ident().name() : swappedName;
+            newInfo = context.getFunctionInfo(
+                    new FunctionIdent(swappedName, Lists.reverse(function.info().ident().argumentTypes())));
+        }
+
+        return new Function(newInfo, Arrays.asList(right, left));
+    }
+
 
 }

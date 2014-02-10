@@ -90,11 +90,13 @@ queryExpr returns [Query value]
       queryBody
       orderClause?
       limitClause?
+      offsetClause?
         { $value = new Query(
             Optional.fromNullable($withClause.value),
             $queryBody.value,
             Objects.firstNonNull($orderClause.value, ImmutableList.<SortItem>of()),
-            Optional.fromNullable($limitClause.value));
+            Optional.fromNullable($limitClause.value),
+            Optional.fromNullable($offsetClause.value));
         }
     ;
 
@@ -113,7 +115,8 @@ querySpec returns [QuerySpecification value]
         groupClause?
         havingClause?
         orderClause?
-        limitClause?)
+        limitClause?
+        offsetClause?)
         { $value = new QuerySpecification(
             $selectClause.value,
             $fromClause.value,
@@ -121,7 +124,8 @@ querySpec returns [QuerySpecification value]
             Objects.firstNonNull($groupClause.value, ImmutableList.<Expression>of()),
             Optional.fromNullable($havingClause.value),
             Objects.firstNonNull($orderClause.value, ImmutableList.<SortItem>of()),
-            Optional.fromNullable($limitClause.value));
+            Optional.fromNullable($limitClause.value),
+            Optional.fromNullable($offsetClause.value));
         }
     ;
 
@@ -142,8 +146,10 @@ restrictedSelectStmt returns [Query value]
                 ImmutableList.<Expression>of(),
                 Optional.<Expression>absent(),
                 ImmutableList.<SortItem>of(),
+                Optional.<String>absent(),
                 Optional.<String>absent()),
             ImmutableList.<SortItem>of(),
+            Optional.<String>absent(),
             Optional.<String>absent());
         }
     ;
@@ -223,6 +229,10 @@ nullOrdering returns [SortItem.NullOrdering value]
 
 limitClause returns [String value]
     : ^(LIMIT integer) { $value = $integer.value; }
+    ;
+
+offsetClause returns [String value]
+    : ^(OFFSET integer) { $value = $integer.value; }
     ;
 
 sampleType returns [SampledRelation.Type value]
@@ -524,12 +534,13 @@ showColumns returns [Statement value]
     ;
 
 showPartitions returns [Statement value]
-    : ^(SHOW_PARTITIONS qname whereClause? orderClause? limitClause?)
+    : ^(SHOW_PARTITIONS qname whereClause? orderClause? limitClause? offsetClause?)
         { $value = new ShowPartitions(
             $qname.value,
             Optional.fromNullable($whereClause.value),
             Objects.firstNonNull($orderClause.value, ImmutableList.<SortItem>of()),
-            Optional.fromNullable($limitClause.value));
+            Optional.fromNullable($limitClause.value),
+            Optional.fromNullable($offsetClause.value));
         }
     ;
 
