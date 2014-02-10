@@ -120,16 +120,6 @@ public class PlannerTest {
         System.out.println(pp.print(plan));
     }
 
-    @Test
-    public void testGroupPlan() throws Exception {
-        Statement statement = SqlParser.createStatement("select count(*), name from users group by name limit 10");
-        // TODO: add where clause
-        Analysis analysis = analyzer.analyze(statement);
-        Planner planner = new Planner();
-        Plan plan = planner.plan(analysis);
-        PlanPrinter pp = new PlanPrinter();
-        System.out.println(pp.print(plan));
-    }
 
 
 
