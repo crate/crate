@@ -24,11 +24,12 @@ package io.crate.operator.reference.sys.cluster;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SystemReferences;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.inject.Inject;
 
-public class ClusterNameExpression extends SysExpression<String> {
+public class ClusterNameExpression extends SysExpression<BytesRef> {
 
     public static final String COLNAME = "name";
 
@@ -37,16 +38,16 @@ public class ClusterNameExpression extends SysExpression<String> {
             COLNAME, DataType.STRING);
 
 
-    private final ClusterName clusterName;
+    private final BytesRef value;
 
     @Inject
     public ClusterNameExpression(ClusterName clusterName) {
-        this.clusterName = clusterName;
+        this.value = new BytesRef(clusterName.value());
     }
 
     @Override
-    public String value() {
-        return clusterName.value();
+    public BytesRef value() {
+        return value;
     }
 
     @Override

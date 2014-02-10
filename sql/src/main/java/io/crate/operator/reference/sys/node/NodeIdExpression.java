@@ -28,7 +28,6 @@ import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.Discovery;
-import org.elasticsearch.node.service.NodeService;
 
 
 public class NodeIdExpression extends SysExpression<BytesRef> {
@@ -38,16 +37,16 @@ public class NodeIdExpression extends SysExpression<BytesRef> {
     public static final ReferenceInfo INFO_ID = SystemReferences.registerNodeReference(
             COLNAME, DataType.STRING);
 
-    private final Discovery discovery;
+    private final BytesRef value;
 
     @Inject
     public NodeIdExpression(Discovery discovery) {
-        this.discovery = discovery;
+        this.value = new BytesRef(discovery.localNode().getId());
     }
 
     @Override
     public BytesRef value() {
-        return new BytesRef(discovery.localNode().getId());
+        return value;
     }
 
     @Override

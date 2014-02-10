@@ -38,16 +38,16 @@ public class NodeNameExpression extends SysExpression<BytesRef> {
             COLNAME, DataType.STRING);
 
 
-    private final Discovery discovery;
+    private final BytesRef value;
 
     @Inject
     public NodeNameExpression(Discovery discovery) {
-        this.discovery = discovery;
+        this.value = new BytesRef(discovery.localNode().getName());
     }
 
     @Override
     public BytesRef value() {
-        return new BytesRef(discovery.localNode().getName());
+        return value;
     }
 
     @Override

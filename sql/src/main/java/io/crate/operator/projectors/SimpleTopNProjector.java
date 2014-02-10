@@ -99,7 +99,7 @@ public class SimpleTopNProjector implements Projector {
 
         @Override
         public Object[][] getRows() throws IllegalStateException {
-            if (endPos == 0) {
+            if (collected.get() == 0) {
                 return Constants.EMPTY_RESULT;
             }
             if (result.length == endPos + 1) {
@@ -110,7 +110,7 @@ public class SimpleTopNProjector implements Projector {
 
         @Override
         public Iterator<Object[]> iterator() {
-            if (endPos == 0) {
+            if (collected.get() == 0) {
                 return Collections.emptyIterator();
             } else {
                 return new ArrayIterator(result, 0, endPos+1);
