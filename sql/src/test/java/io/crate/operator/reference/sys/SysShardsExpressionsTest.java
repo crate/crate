@@ -120,9 +120,9 @@ public class SysShardsExpressionsTest {
         assertEquals(resolver.getInfo(ident), ClusterNameExpression.INFO_NAME);
 
         ident = new ReferenceIdent(SystemReferences.CLUSTER_IDENT, "name");
-        SysExpression<String> name = (SysExpression<String>) resolver.getImplementation(ident);
+        SysExpression<BytesRef> name = (SysExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(ClusterNameExpression.INFO_NAME, name.info());
-        assertEquals("crate", name.value());
+        assertEquals(new BytesRef("crate"), name.value());
     }
 
     @Test
@@ -155,16 +155,16 @@ public class SysShardsExpressionsTest {
     @Test
     public void testState() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SystemReferences.SHARDS_IDENT, "state");
-        SysExpression<String> shardExpression = (SysExpression<String>) resolver.getImplementation(ident);
+        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(ShardStateExpression.INFO_STATE, shardExpression.info());
 
-        assertEquals("STARTED", shardExpression.value());
+        assertEquals(new BytesRef("STARTED"), shardExpression.value());
     }
 
     @Test
     public void testPrimary() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SystemReferences.SHARDS_IDENT, "primary");
-        SysExpression<String> shardExpression = (SysExpression<String>) resolver.getImplementation(ident);
+        SysExpression<Boolean> shardExpression = (SysExpression<Boolean>) resolver.getImplementation(ident);
         assertEquals(ShardPrimaryExpression.INFO_PRIMARY, shardExpression.info());
 
         assertEquals(true, shardExpression.value());
@@ -173,10 +173,10 @@ public class SysShardsExpressionsTest {
     @Test
     public void testRelocatingNode() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SystemReferences.SHARDS_IDENT, "relocating_node");
-        SysExpression<String> shardExpression = (SysExpression<String>) resolver.getImplementation(ident);
+        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(ShardRelocatingNodeExpression.INFO_RELOCATING_NODE, shardExpression.info());
 
-        assertEquals("node_X", shardExpression.value());
+        assertEquals(new BytesRef("node_X"), shardExpression.value());
     }
 
     @Test

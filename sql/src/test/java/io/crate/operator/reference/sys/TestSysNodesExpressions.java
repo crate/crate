@@ -193,9 +193,9 @@ public class TestSysNodesExpressions {
     public void testHostname() throws Exception {
 
         ReferenceIdent ident = new ReferenceIdent(SystemReferences.NODES_IDENT, "hostname");
-        SysExpression<String> hostname = (SysExpression<String>) resolver.getImplementation(ident);
+        SysExpression<BytesRef> hostname = (SysExpression<BytesRef>) resolver.getImplementation(ident);
 
-        assertEquals("localhost", hostname.value());
+        assertEquals(new BytesRef("localhost"), hostname.value());
     }
 
     @Test
