@@ -190,6 +190,8 @@ public class CollectNode extends PlanNode {
             for (String node : downStreamNodes) {
                 out.writeString(node);
             }
+        } else {
+            out.writeVInt(0);
         }
     }
 
