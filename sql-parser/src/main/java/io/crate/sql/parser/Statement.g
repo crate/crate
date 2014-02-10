@@ -594,7 +594,7 @@ showColumnsStmt
     ;
 
 showPartitionsStmt
-    : SHOW PARTITIONS (FROM | IN) qname w=whereClause? o=orderClause? l=limitClause? os=offsetClause? -> ^(SHOW_PARTITIONS qname $w? $o? $l? $os?)
+    : SHOW PARTITIONS (FROM | IN) qname w=whereClause? o=orderClause? l=limitClause? oc=offsetClause? -> ^(SHOW_PARTITIONS qname $w? $o? $l? $oc?)
     ;
 
 showFunctionsStmt
