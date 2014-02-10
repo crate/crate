@@ -22,21 +22,19 @@
 package io.crate.operator.projectors;
 
 import io.crate.metadata.*;
-import io.crate.operator.operations.ImplementationSymbolVisitor;
-import io.crate.planner.RowGranularity;
-import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.TopNProjection;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.StringLiteral;
-import io.crate.planner.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.Functions;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.aggregation.impl.AverageAggregation;
 import io.crate.operator.aggregation.impl.CountAggregation;
+import io.crate.operator.operations.ImplementationSymbolVisitor;
+import io.crate.planner.RowGranularity;
+import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.StringLiteral;
+import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -143,7 +141,7 @@ public class ProjectionToProjectorVisitorTest {
                 new Aggregation(avgIdent, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
                 new Aggregation(countIdent, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL)
         ));
-        Projector projector = visitor.process(projection, null);
+        Projector projector = visitor.process(projection, new ProjectionToProjectorVisitor.Context());
         assertThat(projector, instanceOf(AggregationProjector.class));
 
         projector.startProjection();
@@ -167,7 +165,7 @@ public class ProjectionToProjectorVisitorTest {
                 new Aggregation(countIdent, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL)
         ));
 
-        Projector projector = visitor.process(projection, null);
+        Projector projector = visitor.process(projection, new ProjectionToProjectorVisitor.Context());
         assertThat(projector, instanceOf(GroupingProjector.class));
 
         projector.startProjection();
