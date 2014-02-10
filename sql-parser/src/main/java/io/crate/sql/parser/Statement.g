@@ -175,13 +175,13 @@ query
 
 queryExpr
     : withClause?
-      ( (orderOrLimitQuerySpec) => orderOrLimitQuerySpec
-      | queryExprBody orderClause? limitClause?
+      ( (orderOrLimitOrOffsetQuerySpec) => orderOrLimitOrOffsetQuerySpec
+      | queryExprBody orderClause? limitClause? offsetClause?
       )
     ;
 
-orderOrLimitQuerySpec
-    : simpleQuery (orderClause limitClause? | limitClause) -> ^(QUERY_SPEC simpleQuery orderClause? limitClause?)
+orderOrLimitOrOffsetQuerySpec
+    : simpleQuery (orderClause limitClause? offsetClause? | limitClause offsetClause? | offsetClause) -> ^(QUERY_SPEC simpleQuery orderClause? limitClause? offsetClause?)
     ;
 
 queryExprBody
@@ -249,6 +249,10 @@ orderClause
 
 limitClause
     : LIMIT integer -> ^(LIMIT integer)
+    ;
+
+offsetClause
+    : OFFSET integer -> ^(OFFSET integer)
     ;
 
 withList
@@ -590,7 +594,7 @@ showColumnsStmt
     ;
 
 showPartitionsStmt
-    : SHOW PARTITIONS (FROM | IN) qname w=whereClause? o=orderClause? l=limitClause? -> ^(SHOW_PARTITIONS qname $w? $o? $l?)
+    : SHOW PARTITIONS (FROM | IN) qname w=whereClause? o=orderClause? l=limitClause? oc=offsetClause? -> ^(SHOW_PARTITIONS qname $w? $o? $l? $oc?)
     ;
 
 showFunctionsStmt
@@ -728,6 +732,7 @@ BY: 'BY';
 ORDER: 'ORDER';
 HAVING: 'HAVING';
 LIMIT: 'LIMIT';
+OFFSET: 'OFFSET';
 OR: 'OR';
 AND: 'AND';
 IN: 'IN';
