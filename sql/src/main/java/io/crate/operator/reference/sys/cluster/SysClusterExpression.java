@@ -19,24 +19,30 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.shard.sys;
+package io.crate.operator.reference.sys.cluster;
 
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.shard.ShardReferenceImplementation;
+import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysExpression;
-import io.crate.metadata.sys.SysShardsTableInfo;
+import org.elasticsearch.common.Preconditions;
 
-public abstract class SysShardExpression<T> extends SysExpression<T> implements ShardReferenceImplementation {
+public abstract class SysClusterExpression<T> extends SysExpression<T> implements ReferenceImplementation {
 
     private final ReferenceInfo info;
 
-    protected SysShardExpression(String name) {
-        info = SysShardsTableInfo.INFOS.get(name);
+    protected SysClusterExpression(String name) {
+        this(new ColumnIdent(name));
+    }
+
+    protected SysClusterExpression(ColumnIdent ident) {
+        info = SysClusterTableInfo.INFOS.get(ident);
+        Preconditions.checkNotNull(info, "info");
     }
 
     @Override
     public ReferenceInfo info() {
         return info;
     }
-
 }

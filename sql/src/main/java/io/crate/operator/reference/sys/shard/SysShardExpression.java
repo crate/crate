@@ -19,25 +19,31 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.reference.sys.cluster;
+package io.crate.operator.reference.sys.shard;
 
-import org.cratedb.ClusterIdService;
-import org.elasticsearch.common.inject.Inject;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.shard.ShardReferenceImplementation;
+import io.crate.metadata.sys.SysExpression;
+import io.crate.metadata.sys.SysShardsTableInfo;
+import org.elasticsearch.common.Preconditions;
 
-public class ClusterIdExpression extends SysClusterExpression<String> {
+public abstract class SysShardExpression<T> extends SysExpression<T> implements ShardReferenceImplementation {
 
-    public static final String NAME = "id";
-    private final ClusterIdService clusterIdService;
+    private final ReferenceInfo info;
 
-    @Inject
-    public ClusterIdExpression(ClusterIdService clusterIdService) {
-        super(NAME);
-        this.clusterIdService = clusterIdService;
+    protected SysShardExpression(String name) {
+        this(new ColumnIdent(name));
+    }
+
+    protected SysShardExpression(ColumnIdent ident) {
+        info = SysShardsTableInfo.INFOS.get(ident);
+        Preconditions.checkNotNull(info, "info");
     }
 
     @Override
-    public String value() {
-        return clusterIdService.clusterId().value().toString();
+    public ReferenceInfo info() {
+        return info;
     }
 
 }

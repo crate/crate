@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.reference.sys;
+package io.crate.operator.reference.sys.node;
 
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceImplementation;

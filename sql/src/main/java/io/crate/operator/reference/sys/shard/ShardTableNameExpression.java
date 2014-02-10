@@ -20,7 +20,6 @@
  */
 package io.crate.operator.reference.sys.shard;
 
-import io.crate.metadata.shard.sys.SysShardExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;

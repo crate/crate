@@ -21,34 +21,23 @@
 
 package io.crate.operator.reference.sys.cluster;
 
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.sys.SysClusterTableInfo;
-import io.crate.metadata.sys.SysExpression;
-import org.cratedb.DataType;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.inject.Inject;
 
-public class ClusterNameExpression extends SysExpression<String> {
+public class ClusterNameExpression extends SysClusterExpression<String> {
 
-    public static final String COLNAME = "name";
-    public static final ReferenceInfo INFO_NAME = SysClusterTableInfo.register(COLNAME, DataType.STRING, null);
-
-
+    public static final String NAME = "name";
     private final ClusterName clusterName;
 
     @Inject
     public ClusterNameExpression(ClusterName clusterName) {
+        super(NAME);
         this.clusterName = clusterName;
     }
 
     @Override
     public String value() {
         return clusterName.value();
-    }
-
-    @Override
-    public ReferenceInfo info() {
-        return INFO_NAME;
     }
 
 }

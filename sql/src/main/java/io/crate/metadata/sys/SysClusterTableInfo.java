@@ -32,21 +32,27 @@ public class SysClusterTableInfo extends SysTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "cluster");
 
-    private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
-    private static final Map<ColumnIdent, ReferenceInfo> references = new HashMap<>();
 
-    public static synchronized ReferenceInfo register(String column, DataType type, List<String> path) {
+    public static final Map<ColumnIdent, ReferenceInfo> INFOS = new HashMap<>();
+    private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
+
+    static {
+        register("id", DataType.STRING, null);
+        register("name", DataType.STRING, null);
+    }
+
+    private static ReferenceInfo register(String column, DataType type, List<String> path) {
         ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column, path), RowGranularity.CLUSTER, type);
         if (info.ident().isColumn()) {
             columns.add(info);
         }
-        references.put(info.ident().columnIdent(), info);
+        INFOS.put(info.ident().columnIdent(), info);
         return info;
     }
 
     @Override
     public ReferenceInfo getColumnInfo(ColumnIdent columnIdent) {
-        return references.get(columnIdent);
+        return INFOS.get(columnIdent);
     }
 
     @Override

@@ -28,8 +28,9 @@ import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SysShardsTableInfo;
-import io.crate.operator.reference.sys.cluster.ClusterNameExpression;
+import io.crate.operator.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operator.reference.sys.shard.ShardTableNameExpression;
+import io.crate.operator.reference.sys.shard.SysShardExpressionModule;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
@@ -119,12 +120,9 @@ public class SysShardsExpressionsTest {
     @Test
     public void testClusterExpression() throws Exception {
         // Looking up cluster wide expressions must work too
-        ReferenceIdent ident = ClusterNameExpression.INFO_NAME.ident();
-        assertEquals(referenceInfos.getReferenceInfo(ident), ClusterNameExpression.INFO_NAME);
-
-        ident = new ReferenceIdent(SysClusterTableInfo.IDENT, "name");
+        ReferenceIdent ident = new ReferenceIdent(SysClusterTableInfo.IDENT, "name");
         SysExpression<String> name = (SysExpression<String>) resolver.getImplementation(ident);
-        assertEquals(ClusterNameExpression.INFO_NAME, name.info());
+        assertEquals(new ColumnIdent("name"), name.info().ident().columnIdent());
         assertEquals("crate", name.value());
     }
 

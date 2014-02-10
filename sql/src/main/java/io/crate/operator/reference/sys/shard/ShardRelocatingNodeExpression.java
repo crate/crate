@@ -21,7 +21,6 @@
 
 package io.crate.operator.reference.sys.shard;
 
-import io.crate.metadata.shard.sys.SysShardExpression;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.service.IndexShard;
 

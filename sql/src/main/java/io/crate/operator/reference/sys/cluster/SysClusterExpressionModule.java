@@ -19,14 +19,19 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.reference.sys;
+package io.crate.operator.reference.sys.cluster;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.operator.reference.sys.cluster.ClusterIdExpression;
 import io.crate.operator.reference.sys.cluster.ClusterNameExpression;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
+
+import java.util.Map;
 
 public class SysClusterExpressionModule extends AbstractModule {
 
@@ -35,7 +40,10 @@ public class SysClusterExpressionModule extends AbstractModule {
         MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
                 .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
 
-        b.addBinding(ClusterNameExpression.INFO_NAME.ident()).to(ClusterNameExpression.class).asEagerSingleton();
-        b.addBinding(ClusterIdExpression.INFO_ID.ident()).to(ClusterIdExpression.class).asEagerSingleton();
+        Map<ColumnIdent, ReferenceInfo> infos = SysClusterTableInfo.INFOS;
+        b.addBinding(infos.get(new ColumnIdent(ClusterIdExpression.NAME)).ident()).to(
+                ClusterIdExpression.class).asEagerSingleton();
+        b.addBinding(infos.get(new ColumnIdent(ClusterNameExpression.NAME)).ident()).to(
+                ClusterNameExpression.class).asEagerSingleton();
     }
 }

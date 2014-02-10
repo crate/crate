@@ -26,6 +26,7 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operator.Input;
+import io.crate.operator.reference.sys.node.SysNodeExpressionModule;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
 import org.elasticsearch.cluster.node.DiscoveryNode;
