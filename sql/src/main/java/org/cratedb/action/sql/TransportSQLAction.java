@@ -21,13 +21,6 @@
 
 package org.cratedb.action.sql;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
-import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.DefaultTraversalVisitor;
-import io.crate.sql.tree.QualifiedName;
-import io.crate.sql.tree.Statement;
-import io.crate.sql.tree.Table;
 import org.cratedb.action.DistributedSQLRequest;
 import org.cratedb.action.TransportDistributedSQLAction;
 import org.cratedb.action.import_.ImportRequest;
@@ -37,8 +30,9 @@ import org.cratedb.action.parser.ESRequestBuilder;
 import org.cratedb.action.parser.SQLResponseBuilder;
 import org.cratedb.service.InformationSchemaService;
 import org.cratedb.service.SQLParseService;
+import org.cratedb.sql.CrateException;
 import org.cratedb.sql.ExceptionHelper;
-import org.cratedb.sql.TableUnknownException;
+import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
 import org.elasticsearch.action.ActionListener;
@@ -372,7 +366,14 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private StatementNode getAkibanNode(String stmt) throws StandardException {
 
         SQLParser parser = new SQLParser();
-        StatementNode node = parser.parseStatement(stmt);
+        StatementNode node;
+        try {
+            node = parser.parseStatement(stmt);
+        } catch (CrateException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new SQLParseException(ex.getMessage(), ex);
+        }
         final AtomicReference<Boolean> isPresto = new AtomicReference<>(false);
 
         Visitor visitor = new Visitor() {

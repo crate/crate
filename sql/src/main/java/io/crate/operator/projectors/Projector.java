@@ -24,7 +24,7 @@ package io.crate.operator.projectors;
 /**
  * executing a Projection
  */
-public interface Projector {
+public interface Projector extends Iterable<Object[]> {
 
     /**
      * set the Projector to hand over the projected rows.

@@ -66,13 +66,17 @@ public class NamedNodeWithOptionalProperties extends QueryTreeNode {
         if (properties != null) {
             properties.treePrint(depth+1);
         } else {
-            debugPrint(formatNodeString("null", depth+1));
+            debugPrint(formatNodeString("null", depth+1) + "\n");
         }
     }
 
     @Override
     void acceptChildren(Visitor v) throws StandardException {
         super.acceptChildren(v);
-        properties.accept(v);
+        if (properties != null) {
+            properties.accept(v);
+        } else {
+            debugPrint("null");
+        }
     }
 }
