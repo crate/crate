@@ -21,14 +21,14 @@
 
 package org.cratedb;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 public enum DataType {
 
@@ -169,6 +169,42 @@ public enum DataType {
     OBJECT_SET("object_set", new SetStreamer<Object>(OBJECT.streamer())),
     NULL_SET("null_set", new SetStreamer<Void>(NULL.streamer()));
 
+    /**
+     * Keep the order of the following to Lists (ALL_TYPES, SET_TYPES) in sync
+     * with the above 'enum' ordering.
+     *
+     * This gives you the advantage to get e.g. SET_TYPES more easily:
+     *
+     *      DataType.SET_TYPES.get(DataType.LONG.ordinal());
+     */
+    public static final ImmutableList<DataType> ALL_TYPES = ImmutableList.of(
+            BYTE,
+            SHORT,
+            INTEGER,
+            LONG,
+            FLOAT,
+            DOUBLE,
+            BOOLEAN,
+            STRING,
+            TIMESTAMP,
+            OBJECT,
+            IP
+    );
+
+    public static final ImmutableList<DataType> SET_TYPES = ImmutableList.of(
+            BYTE_SET,
+            SHORT_SET,
+            INTEGER_SET,
+            LONG_SET,
+            FLOAT_SET,
+            DOUBLE_SET,
+            BOOLEAN_SET,
+            STRING_SET,
+            TIMESTAMP_SET,
+            OBJECT_SET,
+            IP_SET
+    );
+
     private final Streamer streamer;
 
     private String name;
@@ -291,20 +327,6 @@ public enum DataType {
             DOUBLE
     );
 
-    public static final ImmutableSet<DataType> ALL_TYPES = ImmutableSet.of(
-            BYTE,
-            SHORT,
-            INTEGER,
-            LONG,
-            FLOAT,
-            DOUBLE,
-            BOOLEAN,
-            STRING,
-            TIMESTAMP,
-            OBJECT,
-            IP
-    );
-
     public static final ImmutableSet<DataType> PRIMITIVE_TYPES = ImmutableSet.of(
             BYTE,
             SHORT,
@@ -316,20 +338,6 @@ public enum DataType {
             STRING,
             TIMESTAMP,
             IP
-    );
-
-    public static final ImmutableSet<DataType> SET_TYPES = ImmutableSet.of(
-            BYTE_SET,
-            SHORT_SET,
-            INTEGER_SET,
-            LONG_SET,
-            FLOAT_SET,
-            DOUBLE_SET,
-            BOOLEAN_SET,
-            STRING_SET,
-            TIMESTAMP_SET,
-            IP_SET,
-            OBJECT_SET
     );
 
     public static final ImmutableSet<DataType> SET_NUMERIC_TYPES = ImmutableSet.of(
