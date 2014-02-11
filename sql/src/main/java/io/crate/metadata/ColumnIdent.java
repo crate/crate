@@ -45,6 +45,7 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
 
     public ColumnIdent(String name) {
         this.name = name;
+        this.path = ImmutableList.of();
     }
 
     public ColumnIdent(String name, String childName) {
@@ -53,7 +54,7 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
 
     public ColumnIdent(String name, @Nullable List<String> path) {
         this(name);
-        this.path = path;
+        this.path = Objects.firstNonNull(path, ImmutableList.<String>of());
     }
 
     public String name() {
@@ -67,13 +68,12 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
         return Joiner.on(".").join(name, path.toArray(new String[path.size()]));
     }
 
-    @Nullable
     public List<String> path() {
         return path;
     }
 
     public boolean isColumn() {
-        return path == null || path.size() == 0;
+        return path.isEmpty();
     }
 
     @Override
