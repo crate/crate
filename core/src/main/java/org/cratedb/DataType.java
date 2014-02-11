@@ -192,22 +192,11 @@ public enum DataType {
     }
 
     public static DataType fromStream(StreamInput in) throws IOException {
-        if (in.readBoolean()) {
-            return DataType.values()[in.readVInt()];
-        }
-        return null;
+        return DataType.values()[in.readVInt()];
     }
 
-    // TODO: currently null is used in some places to indicate a aggregateState
-    // once we have a custom dataType class for aggregation states we can remove the null
-    // handling here
     public static void toStream(DataType type, StreamOutput out) throws IOException {
-        if (type == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            out.writeVInt(type.ordinal());
-        }
+        out.writeVInt(type.ordinal());
     }
 
     public interface Streamer<T> {

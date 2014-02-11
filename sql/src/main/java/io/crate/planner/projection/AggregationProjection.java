@@ -29,8 +29,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -66,8 +64,8 @@ public class AggregationProjection extends Projection {
     }
 
     @Override
-    public ImmutableList<Symbol> outputs() {
-        return ImmutableList.<Symbol>copyOf(aggregations());
+    public List<? extends Symbol> outputs() {
+        return aggregations;
     }
 
     @Override

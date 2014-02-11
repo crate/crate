@@ -21,7 +21,6 @@
 
 package io.crate.planner.projection;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -29,13 +28,13 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 public class GroupProjection extends Projection {
 
     List<Symbol> keys;
     List<Aggregation> values;
+    List<Symbol> outputs;
 
     public static final ProjectionFactory<GroupProjection> FACTORY = new ProjectionFactory<GroupProjection>() {
         @Override
@@ -43,7 +42,6 @@ public class GroupProjection extends Projection {
             return new GroupProjection();
         }
     };
-
 
     public List<Symbol> keys() {
         return keys;
@@ -72,8 +70,12 @@ public class GroupProjection extends Projection {
     }
 
     @Override
-    public ImmutableList<Symbol> outputs() {
-        return ImmutableList.<Symbol>builder().addAll(keys()).addAll(values()).build();
+    public List<? extends Symbol> outputs() {
+        if (outputs == null) {
+            outputs = new ArrayList<>(keys);
+            outputs.addAll(values);
+        }
+        return outputs;
     }
 
     @Override

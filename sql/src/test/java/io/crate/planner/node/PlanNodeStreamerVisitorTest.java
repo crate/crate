@@ -95,7 +95,7 @@ public class PlanNodeStreamerVisitorTest {
         assertThat(streamers.length, is(4));
         assertThat(streamers[0], instanceOf(DataType.BOOLEAN.streamer().getClass()));
         assertThat(streamers[1], instanceOf(DataType.INTEGER.streamer().getClass()));
-        assertThat(streamers[2], instanceOf(AggStateStreamer.class));
+        assertThat(streamers[2], instanceOf(AggregationStateStreamer.class));
         assertThat(streamers[3], instanceOf(DataType.DOUBLE.streamer().getClass()));
     }
 
@@ -111,7 +111,7 @@ public class PlanNodeStreamerVisitorTest {
         assertThat(streamers[2], instanceOf(DataType.TIMESTAMP.streamer().getClass()));
     }
 
-    @Test(expected= CrateException.class)
+    @Test(expected= IllegalStateException.class)
     public void testGetInputStreamersForMergeNodeWithWrongNull() throws Exception {
         MergeNode mergeNode = new MergeNode("mörtsch", 2);
         mergeNode.inputTypes(Arrays.asList(DataType.BOOLEAN, null, DataType.TIMESTAMP));
@@ -121,19 +121,16 @@ public class PlanNodeStreamerVisitorTest {
     @Test
     public void testGetInputStreamersForMergeNodeWithAggregations() throws Exception {
         MergeNode mergeNode = new MergeNode("mörtsch", 2);
-        mergeNode.inputTypes(Arrays.asList(DataType.BOOLEAN, null, null, DataType.TIMESTAMP));
+        mergeNode.inputTypes(Arrays.asList(DataType.NULL, DataType.TIMESTAMP));
         AggregationProjection aggregationProjection = new AggregationProjection();
         aggregationProjection.aggregations(Arrays.asList(
-                new Aggregation(maxIdent, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
-                new Aggregation(maxIdent, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.PARTIAL)
+                new Aggregation(maxIdent, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
         ));
         mergeNode.projections(Arrays.<Projection>asList(aggregationProjection));
         PlanNodeStreamerVisitor.Context ctx = visitor.process(mergeNode);
         DataType.Streamer<?>[] streamers = ctx.inputStreamers();
-        assertThat(streamers.length, is(4));
-        assertThat(streamers[0], instanceOf(DataType.BOOLEAN.streamer().getClass()));
-        assertThat(streamers[1], instanceOf(DataType.INTEGER.streamer().getClass()));
-        assertThat(streamers[2], instanceOf(AggStateStreamer.class));
-        assertThat(streamers[3], instanceOf(DataType.TIMESTAMP.streamer().getClass()));
+        assertThat(streamers.length, is(2));
+        assertThat(streamers[0], instanceOf(AggregationStateStreamer.class));
+        assertThat(streamers[1], instanceOf(DataType.TIMESTAMP.streamer().getClass()));
     }
 }

@@ -19,36 +19,23 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node;
+package io.crate.metadata;
 
-import io.crate.operator.aggregation.AggregationFunction;
-import io.crate.operator.aggregation.AggregationState;
+import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.Reference;
 import org.cratedb.DataType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
+public class TestingHelpers {
 
-/**
- * Streamer used for {@link io.crate.operator.aggregation.AggregationState}s
- */
-public class AggStateStreamer implements DataType.Streamer<AggregationState>{
-
-    private final AggregationFunction aggregationFunction;
-
-    public AggStateStreamer(AggregationFunction aggregationFunction) {
-        this.aggregationFunction = aggregationFunction;
+    public static Reference createReference(String columnName, DataType dataType) {
+        return createReference("dummyTable", columnName, dataType);
     }
 
-    @Override
-    public AggregationState<?> readFrom(StreamInput in) throws IOException {
-        AggregationState<?> aggState = this.aggregationFunction.newState();
-        aggState.readFrom(in);
-        return aggState;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out, Object v) throws IOException {
-        ((AggregationState<?>)v).writeTo(out);
+    public static Reference createReference(String tableName, String columnName, DataType dataType) {
+        return new Reference(new ReferenceInfo(
+                new ReferenceIdent(new TableIdent(null, tableName), columnName),
+                RowGranularity.DOC,
+                dataType
+        ));
     }
 }

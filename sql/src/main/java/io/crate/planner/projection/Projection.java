@@ -29,6 +29,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 
 public abstract class Projection implements Streamable {
 
@@ -40,7 +41,7 @@ public abstract class Projection implements Streamable {
 
     public abstract <C, R> R accept(ProjectionVisitor<C, R> visitor, C context);
 
-    public abstract ImmutableList<Symbol> outputs();
+    public abstract List<? extends Symbol> outputs();
 
     public static void toStream(Projection projection, StreamOutput out) throws IOException {
         out.writeVInt(projection.projectionType().ordinal());

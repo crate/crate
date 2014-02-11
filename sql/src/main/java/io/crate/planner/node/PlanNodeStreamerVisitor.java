@@ -58,8 +58,8 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
         this.functions = functions;
     }
 
-    private AggStateStreamer getStreamer(AggregationFunction aggregationFunction) {
-        return new AggStateStreamer(aggregationFunction);
+    private AggregationStateStreamer getStreamer(AggregationFunction aggregationFunction) {
+        return new AggregationStateStreamer(aggregationFunction);
     }
 
     private DataType.Streamer<?> resolveStreamer(Aggregation aggregation, Aggregation.Step step) {
@@ -129,6 +129,13 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
     @Override
     public Void visitMergeNode(MergeNode node, Context context) {
         if (node.projections().isEmpty()) {
+            for (DataType dataType : node.inputTypes()) {
+                if (dataType != null && dataType != DataType.NULL) {
+                    context.inputStreamers.add(dataType.streamer());
+                } else {
+                    throw new IllegalStateException("Can't resolve Streamer from null dataType");
+                }
+            }
             return null;
         }
 
@@ -205,7 +212,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
 
         int idx = 0;
         for (DataType inputType : inputTypes) {
-            if (inputType != null) {
+            if (inputType != null && inputType != DataType.NULL) {
                 context.inputStreamers.add(inputType.streamer());
             } else {
                 Aggregation aggregation = aggregations.get(idx);

@@ -23,7 +23,7 @@ package io.crate.planner.projection;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.Helpers;
+import io.crate.metadata.TestingHelpers;
 import io.crate.operator.aggregation.impl.CountAggregation;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Reference;
@@ -67,7 +67,7 @@ public class GroupProjectionTest {
 
     @Test
     public void testStreaming2() throws Exception {
-        Reference nameRef = Helpers.createReference("name", DataType.STRING);
+        Reference nameRef = TestingHelpers.createReference("name", DataType.STRING);
         GroupProjection groupProjection = new GroupProjection();
         groupProjection.keys(Arrays.<Symbol>asList(nameRef));
         groupProjection.values(Arrays.asList(

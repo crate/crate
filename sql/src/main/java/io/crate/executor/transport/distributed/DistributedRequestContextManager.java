@@ -28,6 +28,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.transport.merge.NodeMergeResponse;
 import io.crate.metadata.Functions;
 import io.crate.operator.operations.DownstreamOperationFactory;
+import io.crate.operator.operations.merge.DownstreamOperation;
 import io.crate.planner.node.MergeNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import org.cratedb.DataType;
@@ -72,19 +73,24 @@ public class DistributedRequestContextManager {
     /**
      * called to create a new DownstreamOperationContext
      *
-     * may only be called once per DistributedMergeTask
      */
-
-    // TODO: need to become a generic "PlanNode" with Upstream
+    // TODO: add outputTypes to the downstreamOperation and remove the mergeNode dependency here.
+    // the downstreamOperationFactory can then be removed and the downstreamOperation can be passed into
+    // createContext directly.
     public void createContext(final MergeNode mergeNode,
                               final ActionListener<NodeMergeResponse> listener) throws IOException {
         PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(mergeNode);
         SettableFuture<Object[][]> settableFuture = wrapActionListener(streamerContext.outputStreamers(), listener);
         DownstreamOperationContext downstreamOperationContext = new DownstreamOperationContext(
                 downstreamOperationFactory.create(mergeNode),
-                mergeNode.numUpstreams(),
                 settableFuture,
-                streamerContext.inputStreamers()
+                streamerContext.inputStreamers(),
+                new DoneCallback() {
+                    @Override
+                    public void finished() {
+                        activeMergeOperations.remove(mergeNode.contextId());
+                    }
+                }
         );
 
         put(mergeNode.contextId(), downstreamOperationContext);
@@ -170,5 +176,9 @@ public class DistributedRequestContextManager {
         HandlesStreamInput wrappedStream = new HandlesStreamInput(new BytesStreamInput(bytesReference));
         mergeOperationCtx.add(
                 DistributedResultRequest.readRemaining(mergeOperationCtx.streamers(), wrappedStream));
+    }
+
+    public interface DoneCallback {
+        public void finished();
     }
 }

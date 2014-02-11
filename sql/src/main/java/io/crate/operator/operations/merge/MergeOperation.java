@@ -36,6 +36,7 @@ public class MergeOperation implements DownstreamOperation {
 
     private final List<Projector> projectors;
     private final Projector firstProjector;
+    private final int numUpstreams;
 
     private AtomicBoolean wantMore = new AtomicBoolean(true);
 
@@ -45,6 +46,7 @@ public class MergeOperation implements DownstreamOperation {
         assert this.projectors.size() > 0;
         this.firstProjector = this.projectors.get(0);
         this.firstProjector.startProjection();
+        this.numUpstreams = mergeNode.numUpstreams();
     }
 
     public boolean addRows(Object[][] rows) {
@@ -58,6 +60,11 @@ public class MergeOperation implements DownstreamOperation {
             i--;
         }
         return wantMore.get();
+    }
+
+    @Override
+    public int numUpstreams() {
+        return numUpstreams;
     }
 
     public Object[][] result()  {

@@ -30,6 +30,10 @@ import io.crate.metadata.Functions;
 import io.crate.operator.operations.DownstreamOperationFactory;
 import io.crate.operator.operations.merge.DownstreamOperation;
 import io.crate.planner.node.MergeNode;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.elasticsearch.action.ActionListener;
@@ -139,6 +143,9 @@ public class DistributedResultRequestTest {
         MergeNode dummyMergeNode = new MergeNode();
         dummyMergeNode.contextId(contextId);
         dummyMergeNode.inputTypes(Arrays.asList(DataType.INTEGER, DataType.STRING));
+        TopNProjection topNProjection = new TopNProjection(10, 0);
+        topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
+        dummyMergeNode.projections(Arrays.<Projection>asList(topNProjection));
 
         DistributedRequestContextManager contextManager =
                 new DistributedRequestContextManager(new DummyDownstreamOperationFactory(rows), functions);
@@ -187,11 +194,16 @@ public class DistributedResultRequestTest {
         }
 
         @Override
-        public DownstreamOperation create(MergeNode node) {
+        public DownstreamOperation create(final MergeNode node) {
             return new DownstreamOperation() {
                 @Override
                 public boolean addRows(Object[][] rows) {
                     return true;
+                }
+
+                @Override
+                public int numUpstreams() {
+                    return node.numUpstreams();
                 }
 
                 @Override

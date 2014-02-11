@@ -29,5 +29,8 @@ public interface DownstreamOperation {
      * implementation needs to make sure that this operation is thread-safe
      */
     public boolean addRows(Object[][] rows);
+    public int numUpstreams();
+
+    // TODO: make result a future
     public Object[][] result();
 }

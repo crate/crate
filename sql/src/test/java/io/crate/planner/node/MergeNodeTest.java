@@ -36,6 +36,7 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -46,10 +47,11 @@ public class MergeNodeTest {
     @Test
     public void testSerialization() throws Exception {
         MergeNode node = new MergeNode("merge", 2);
+        node.contextId(UUID.randomUUID());
         node.executionNodes(Sets.newHashSet("node1", "node2"));
-        node.inputTypes(Arrays.asList(null, DataType.STRING));
+        node.inputTypes(Arrays.asList(DataType.NULL, DataType.STRING));
 
-        Reference nameRef = Helpers.createReference("name", DataType.STRING);
+        Reference nameRef = TestingHelpers.createReference("name", DataType.STRING);
         GroupProjection groupProjection = new GroupProjection();
         groupProjection.keys(Arrays.<Symbol>asList(nameRef));
         groupProjection.values(Arrays.asList(

@@ -7,7 +7,7 @@ import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.metadata.*;
 import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.impl.CountAggregation;
-import io.crate.planner.node.AggStateStreamer;
+import io.crate.planner.node.AggregationStateStreamer;
 import io.crate.planner.node.MergeNode;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.TopNProjection;
@@ -46,7 +46,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         MergeNode mergeNode = new MergeNode("merge1", 2);
         mergeNode.contextId(UUID.randomUUID());
         mergeNode.executionNodes(nodes);
-        mergeNode.inputTypes(Arrays.asList(null, DataType.STRING));
+        mergeNode.inputTypes(Arrays.asList(DataType.NULL, DataType.STRING));
 
         GroupProjection groupProjection = new GroupProjection();
         groupProjection.keys(Arrays.<Symbol>asList(new InputColumn(1)));
@@ -64,7 +64,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         mergeNode.projections(Arrays.asList(groupProjection, topNProjection));
 
         DataType.Streamer<?>[] mapperOutputStreamer = new DataType.Streamer[] {
-                new AggStateStreamer(countAggregation),
+                new AggregationStateStreamer(countAggregation),
                 DataType.STRING.streamer()
         };
 
