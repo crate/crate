@@ -34,6 +34,7 @@ public class Analysis {
     private List<String> outputNames;
     private List<Symbol> outputSymbols;
     private Integer limit;
+    private int offset = 0;
     private List<Symbol> groupBy;
     private boolean[] reverseFlags;
     private List<Symbol> sortSymbols;
@@ -119,9 +120,8 @@ public class Analysis {
         return limit;
     }
 
-    public Integer offset() {
-        // TODO: implement offset
-        return 0;
+    public int offset() {
+        return offset;
     }
 
     public void groupBy(List<Symbol> groupBy) {
@@ -223,5 +223,9 @@ public class Analysis {
         }
 
         return symbols.iterator().next();
+    }
+
+    public void offset(int offset) {
+        this.offset = offset;
     }
 }

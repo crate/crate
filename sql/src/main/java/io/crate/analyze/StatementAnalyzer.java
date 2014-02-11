@@ -56,8 +56,13 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
             }
         }
 
+        // the parsers sql grammer makes sure that only a integer matches after limit/offset so
+        // parseInt can't fail here.
         if (node.getLimit().isPresent()) {
             context.limit(Integer.parseInt(node.getLimit().get()));
+        }
+        if (node.getOffset().isPresent()) {
+            context.offset(Integer.parseInt(node.getOffset().get()));
         }
 
         // the whereClause shouldn't resolve the aliases so this is done before resolving
