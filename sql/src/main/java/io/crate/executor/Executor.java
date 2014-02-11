@@ -22,14 +22,14 @@
 package io.crate.executor;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.planner.Plan;
 import io.crate.planner.node.PlanNode;
 
 import java.util.List;
 
 public interface Executor {
 
-    public Job newJob(PlanNode node);
+    public Job newJob(Plan node);
 
     public List<ListenableFuture<Object[][]>> execute(Job job);
-
 }

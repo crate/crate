@@ -32,6 +32,7 @@ import io.crate.executor.task.LocalAggregationTask;
 import io.crate.metadata.*;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
+import io.crate.planner.Plan;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.PlanVisitor;
@@ -178,9 +179,11 @@ public class JobExecutorTest {
         }
 
         @Override
-        public Job newJob(PlanNode node) {
+        public Job newJob(Plan plan) {
             Context context = new Context(functions);
-            node.accept(new ExectorPlanVisitor(), context);
+            for (PlanNode planNode : plan) {
+                planNode.accept(new ExectorPlanVisitor(), context);
+            }
             return context.job;
         }
 
