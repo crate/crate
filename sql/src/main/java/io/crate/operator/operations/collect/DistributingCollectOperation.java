@@ -28,7 +28,6 @@ import io.crate.executor.transport.distributed.DistributedResultResponse;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.operator.aggregation.AggregationState;
 import io.crate.operator.projectors.Projector;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
@@ -65,7 +64,6 @@ public class DistributingCollectOperation extends LocalDataCollectOperation {
         private final int numDownStreams;
         private final UUID jobId;
 
-        private final List<List<Object[]>> buckets;
 
         public DistributingShardCollectFuture(UUID jobId,
                                               int numShards,
@@ -80,12 +78,9 @@ public class DistributingCollectOperation extends LocalDataCollectOperation {
             this.transportService = transportService;
             this.downStreams = downStreams;
             this.numDownStreams = this.downStreams.size();
-            this.buckets = new ArrayList<>(this.numDownStreams);
+
             this.requests = new DistributedResultRequest[numDownStreams];
             for (int i=0, length = this.downStreams.size(); i<length; i++) {
-                this.buckets.add(
-                        new ArrayList<Object[]>()
-                );
                 this.requests[i] = new DistributedResultRequest(jobId, streamers);
             }
             // this is a pseudo result, immediately set
@@ -96,16 +91,13 @@ public class DistributingCollectOperation extends LocalDataCollectOperation {
         protected void onAllShardsFinished() {
             projectorChain.get(0).finishProjection();
 
-            // iterate over results and fill buckets
-            for (Object[] row : projectorChain.get(projectorChain.size()-1)) {
-                // distribute to buckets by first row-item, assumed a group key
-                assert !(row[0] instanceof AggregationState<?>) : "no group key as first row item";
-
-                this.buckets.get(row[0].hashCode() % this.numDownStreams).add(row);
-            }
+            BucketingIterator bucketingIterator = new ModuloBucketingIterator(
+                    this.numDownStreams,
+                    projectorChain.get(projectorChain.size()-1)
+            );
             // send requests
             int i = 0;
-            for (List<Object[]> bucket : this.buckets) {
+            for (List<Object[]> bucket : bucketingIterator) {
                 DistributedResultRequest request = this.requests[i];
                 request.rows(bucket.toArray(new Object[bucket.size()][]));
                 final DiscoveryNode node = downStreams.get(i);
@@ -116,7 +108,7 @@ public class DistributingCollectOperation extends LocalDataCollectOperation {
                 }
                 transportService.submitRequest(
                     node,
-                    TransportMergeNodeAction.mergeRowsAction,
+                    TransportMergeNodeAction.mergeRowsAction, // NOTICE: hard coded transport action, should be delivered by collectNode
                     request,
                     new BaseTransportResponseHandler<DistributedResultResponse>() {
                         @Override

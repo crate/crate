@@ -27,10 +27,11 @@ import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
-import io.crate.operator.reference.sys.node.NodeIdExpression;
+import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operator.reference.sys.shard.ShardIdExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.CollectNode;
+import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.cratedb.Constants;
@@ -74,7 +75,6 @@ import static org.mockito.Mockito.when;
 
 public class DistributingCollectTest {
 
-    private Functions functions;
     private IndexService indexService = mock(IndexService.class);
     private DistributingCollectOperation operation;
 
@@ -84,10 +84,8 @@ public class DistributingCollectTest {
     private final static String OTHER_NODE_ID = "other_node";
     private final static String TEST_TABLE_NAME = "dcollect_table";
 
-    private ImmutableOpenMap<String, DiscoveryNode> nodeMap;
-
     private final Map<String, Object[][]> buckets = new HashMap<>();
-    private static Reference testShardIdReference = new Reference(ShardIdExpression.INFO_ID);
+    private Reference testShardIdReference = new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("id")));
 
     class TestModule extends AbstractModule {
         @Override
@@ -105,7 +103,7 @@ public class DistributingCollectTest {
 
             DiscoveryNode otherNode = mock(DiscoveryNode.class);
             when(otherNode.id()).thenReturn(OTHER_NODE_ID);
-            nodeMap = ImmutableOpenMap.<String, DiscoveryNode>builder()
+            ImmutableOpenMap<String, DiscoveryNode> nodeMap = ImmutableOpenMap.<String, DiscoveryNode>builder()
                     .fPut(TEST_NODE_ID, testNode)
                     .fPut(OTHER_NODE_ID, otherNode)
                     .build();
@@ -168,7 +166,7 @@ public class DistributingCollectTest {
             bind(ShardId.class).toInstance(shardId);
             MapBinder<ReferenceIdent, ShardReferenceImplementation> binder = MapBinder
                     .newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
-            binder.addBinding(ShardIdExpression.INFO_ID.ident()).toInstance(shardIdExpression);
+            binder.addBinding(this.shardIdExpression.info().ident()).toInstance(this.shardIdExpression);
             bind(ShardReferenceResolver.class).asEagerSingleton();
             bind(ScriptService.class).toInstance(mock(ScriptService.class));
             bind(ShardCollectService.class).asEagerSingleton();
@@ -231,7 +229,7 @@ public class DistributingCollectTest {
         collectNode.downStreamNodes(Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID));
         collectNode.jobId(jobId);
         collectNode.maxRowGranularity(RowGranularity.NODE);
-        collectNode.toCollect(Arrays.<Symbol>asList(new Reference(NodeIdExpression.INFO_ID)));
+        collectNode.toCollect(Arrays.<Symbol>asList(new BooleanLiteral(true)));
         operation.collect(collectNode).get();
     }
 }
