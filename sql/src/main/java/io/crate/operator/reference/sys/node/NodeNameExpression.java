@@ -38,15 +38,20 @@ public class NodeNameExpression extends SysExpression<BytesRef> {
             COLNAME, DataType.STRING);
 
 
-    private final BytesRef value;
+    private final Discovery discovery;
+    private BytesRef value = null;
 
     @Inject
     public NodeNameExpression(Discovery discovery) {
-        this.value = new BytesRef(discovery.localNode().getName());
+        this.discovery = discovery;
     }
 
     @Override
     public BytesRef value() {
+        // value could not be ready on node start-up, but is static once set
+        if (value == null && discovery.localNode() != null) {
+            value = new BytesRef(discovery.localNode().getName());
+        }
         return value;
     }
 

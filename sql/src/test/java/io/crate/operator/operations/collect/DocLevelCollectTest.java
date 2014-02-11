@@ -149,12 +149,12 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         assertThat((Integer)result[0][0], isOneOf(2, 4));
         assertThat(((BytesRef)result[0][1]).utf8ToString(), is(clusterService().localNode().name()));
         assertThat(result[0][2], isIn(shardIds));
-        assertThat((String)result[0][3], is(cluster().clusterName()));
+        assertThat(((BytesRef)result[0][3]).utf8ToString(), is(cluster().clusterName()));
 
         assertThat((Integer)result[1][0], isOneOf(2, 4));
         assertThat(((BytesRef)result[1][1]).utf8ToString(), is(clusterService().localNode().name()));
         assertThat(result[1][2], isIn(shardIds));
 
-        assertThat((String)result[1][3], is(cluster().clusterName()));
+        assertThat(((BytesRef)result[1][3]).utf8ToString(), is(cluster().clusterName()));
     }
 }

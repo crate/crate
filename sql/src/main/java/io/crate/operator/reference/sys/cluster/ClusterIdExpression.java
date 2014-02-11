@@ -48,7 +48,7 @@ public class ClusterIdExpression extends SysExpression<BytesRef> {
 
     @Override
     public BytesRef value() {
-        // value could not be ready on node start-up, but it is static once set
+        // value could not be ready on node start-up, but is static once set
         if (value == null && clusterIdService.clusterId() != null) {
             value = new BytesRef(clusterIdService.clusterId().value().toString());
         }
