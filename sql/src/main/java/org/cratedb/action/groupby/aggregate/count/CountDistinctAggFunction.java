@@ -25,7 +25,6 @@ import org.cratedb.DataType;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 
 import java.util.Collection;
-import java.util.Set;
 
 public class CountDistinctAggFunction extends AggFunction<CountDistinctAggState> {
 

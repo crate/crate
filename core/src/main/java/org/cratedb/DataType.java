@@ -224,7 +224,6 @@ public enum DataType {
 
     @Override
     public String toString() {
-
         return name;
     }
 
