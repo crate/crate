@@ -169,18 +169,17 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
      */
     protected ListenableFuture<Object[][]> handleShardCollect(CollectNode collectNode) {
 
-        Function whereClause = collectNode.whereClause();
-        if (whereClause != null && NormalizationHelper.evaluatesToFalse(whereClause, this.normalizer)) {
-            SettableFuture<Object[][]> result = SettableFuture.create();
-            result.set(Constants.EMPTY_RESULT);
-            return result;
-        }
-
         String localNodeId = clusterService.localNode().id();
         final int numShards = collectNode.routing().numShards(localNodeId);
         List<CrateCollector> shardCollectors = new ArrayList<>(numShards);
         List<Projector> projectors = extractProjectors(collectNode);
         final ShardCollectFuture result = getShardCollectFuture(numShards, projectors, collectNode);
+
+        Function whereClause = collectNode.whereClause();
+        if (whereClause != null && NormalizationHelper.evaluatesToFalse(whereClause, this.normalizer)) {
+            result.onAllShardsFinished();
+            return result;
+        }
 
         // get shardCollectors from single shards
         Map<String, Set<Integer>> shardIdMap = collectNode.routing().locations().get(localNodeId);
