@@ -21,6 +21,7 @@
 
 package io.crate.planner;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -33,6 +34,7 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.DefaultTraversalVisitor;
+import org.cratedb.Constants;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
@@ -255,7 +257,11 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                     nodeVisitor.process(analysis.sortSymbols(), context);
                     MergeNode mergeNode = new MergeNode();
                     TopNProjection tnp = new TopNProjection(
-                            analysis.limit(), analysis.offset(), analysis.sortSymbols(), analysis.reverseFlags());
+                            Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                            analysis.offset(),
+                            analysis.sortSymbols(),
+                            analysis.reverseFlags()
+                    );
                     tnp.outputs(analysis.outputSymbols());
                     mergeNode.projections(ImmutableList.<Projection>of(tnp));
                     plan.add(mergeNode);
