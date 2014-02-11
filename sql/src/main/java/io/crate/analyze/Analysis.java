@@ -1,5 +1,7 @@
 package io.crate.analyze;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
@@ -7,9 +9,9 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Query;
+import org.cratedb.sql.AmbiguousAliasException;
 import org.elasticsearch.common.Preconditions;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 
@@ -28,6 +30,7 @@ public class Analysis {
 
     private Map<ReferenceIdent, Reference> referenceSymbols = new IdentityHashMap<>();
 
+    private Multimap<String, Symbol> aliasMap = ArrayListMultimap.create();
     private List<String> outputNames;
     private List<Symbol> outputSymbols;
     private Integer limit;
@@ -205,4 +208,20 @@ public class Analysis {
         return whereClause;
     }
 
+    public void addAlias(String alias, Symbol symbol) {
+        outputNames().add(alias);
+        aliasMap.put(alias, symbol);
+    }
+
+    public Symbol symbolFromAlias(String alias) {
+        Collection<Symbol> symbols = aliasMap.get(alias);
+        if (symbols.size() > 1) {
+            throw new AmbiguousAliasException(alias);
+        }
+        if (symbols.isEmpty()) {
+            return null;
+        }
+
+        return symbols.iterator().next();
+    }
 }

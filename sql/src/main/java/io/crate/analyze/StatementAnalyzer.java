@@ -1,5 +1,6 @@
 package io.crate.analyze;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.FunctionIdent;
@@ -7,11 +8,12 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.TableIdent;
 import io.crate.operator.operator.*;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
-import io.crate.planner.symbol.ValueSymbol;
+import io.crate.planner.symbol.*;
+import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.*;
+import io.crate.sql.tree.DoubleLiteral;
+import io.crate.sql.tree.LongLiteral;
+import io.crate.sql.tree.StringLiteral;
 import org.cratedb.DataType;
 
 import java.util.ArrayList;
@@ -21,6 +23,7 @@ import java.util.Map;
 
 class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
+    private static OutputNameFormatter outputNameFormatter = new OutputNameFormatter();
     protected static SubscriptVisitor visitor = new SubscriptVisitor();
     protected static SymbolDataTypeVisitor symbolDataTypeVisitor = new SymbolDataTypeVisitor();
     private final Map<String, String> swapOperatorTable = ImmutableMap.<String, String>builder()
@@ -30,6 +33,22 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
             .put(LteOperator.NAME, GteOperator.NAME)
             .build();
 
+    static class OutputNameFormatter extends ExpressionFormatter.Formatter {
+        @Override
+        protected String visitQualifiedNameReference(QualifiedNameReference node, Void context) {
+
+            List<String> parts = new ArrayList<>();
+            for (String part : node.getName().getParts()) {
+                parts.add(part);
+            }
+            return Joiner.on('.').join(parts);
+        }
+
+        @Override
+        protected String visitSubscriptExpression(SubscriptExpression node, Void context) {
+            return String.format("%s[%s]", process(node.name(), null), process(node.index(), null));
+        }
+    }
 
     @Override
     protected Symbol visitQuerySpecification(QuerySpecification node, Analysis context) {
@@ -44,12 +63,14 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
             context.limit(Integer.parseInt(node.getLimit().get()));
         }
 
-        process(node.getSelect(), context);
+        // the whereClause shouldn't resolve the aliases so this is done before resolving
+        // the result columns to make sure the alias map is empty.
         if (node.getWhere().isPresent()) {
             Function function = (Function) process(node.getWhere().get(), context);
             context.whereClause(function);
         }
 
+        process(node.getSelect(), context);
 
         if (node.getGroupBy().size() > 0) {
             List<Symbol> groupBy = new ArrayList<>(node.getGroupBy().size());
@@ -71,6 +92,7 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
             context.reverseFlags(new boolean[node.getOrderBy().size()]);
             int i = 0;
             for (SortItem sortItem : node.getOrderBy()) {
+
                 sortSymbols.add(process(sortItem, context));
                 context.reverseFlags()[i++] = sortItem.getOrdering() == SortItem.Ordering.DESCENDING;
             }
@@ -101,7 +123,6 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
     protected Symbol visitSelect(Select node, Analysis context) {
         List<Symbol> outputSymbols = new ArrayList<>(node.getSelectItems().size());
 
-        // TODO: better output names
         context.outputNames(new ArrayList<String>(node.getSelectItems().size()));
         for (SelectItem item : node.getSelectItems()) {
             outputSymbols.add(process(item, context));
@@ -112,8 +133,14 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     @Override
     protected Symbol visitSingleColumn(SingleColumn node, Analysis context) {
-        context.addOutputName(node.toString());
-        return process(node.getExpression(), context);
+        Symbol symbol = process(node.getExpression(), context);
+        if (node.getAlias().isPresent()) {
+            context.addAlias(node.getAlias().get(), symbol);
+        } else {
+            context.addAlias(outputNameFormatter.process(node.getExpression(), null), symbol);
+        }
+
+        return symbol;
     }
 
     @Override
@@ -158,6 +185,10 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     @Override
     protected Symbol visitQualifiedNameReference(QualifiedNameReference node, Analysis context) {
+        Symbol symbol = context.symbolFromAlias(node.getSuffix().getSuffix());
+        if (symbol != null) {
+            return symbol;
+        }
         return context.allocateReference(new ReferenceIdent(context.table().ident(), node.getSuffix().getSuffix()));
     }
 
