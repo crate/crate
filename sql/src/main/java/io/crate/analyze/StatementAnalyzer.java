@@ -7,17 +7,14 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.TableIdent;
 import io.crate.operator.operator.*;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
-import io.crate.planner.symbol.ValueSymbol;
+import io.crate.planner.symbol.*;
 import io.crate.sql.tree.*;
+import io.crate.sql.tree.DoubleLiteral;
+import io.crate.sql.tree.LongLiteral;
+import io.crate.sql.tree.StringLiteral;
 import org.cratedb.DataType;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
@@ -137,6 +134,47 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
         FunctionInfo functionInfo = context.getFunctionInfo(ident);
 
         return context.allocateFunction(functionInfo, arguments);
+    }
+
+    @Override
+    protected Symbol visitInPredicate(InPredicate node, Analysis context) {
+        List<Symbol> arguments = new ArrayList<>(2);
+        List<DataType> argumentTypes = new ArrayList<>(arguments.size());
+
+        Symbol value = process(node.getValue(), context);
+
+        arguments.add(value);
+        arguments.add(process(node.getValueList(), context));
+
+        DataType valueDataType = symbolDataTypeVisitor.process(value, context);
+        argumentTypes.add(valueDataType);
+        argumentTypes.add(DataType.SET_TYPES.get(valueDataType.ordinal()));
+
+        FunctionIdent functionIdent = new FunctionIdent(InOperator.NAME, argumentTypes);
+        FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
+        return context.allocateFunction(functionInfo, arguments);
+    }
+
+    @Override
+    protected Symbol visitInListExpression(InListExpression node, Analysis context) {
+        Set<io.crate.planner.symbol.Literal> symbols = new HashSet<>();
+        DataType dataType = null;
+        for (Expression expression : node.getValues()) {
+            Symbol s = process(expression, context);
+            if (s.symbolType().isLiteral()) {
+                io.crate.planner.symbol.Literal l = (io.crate.planner.symbol.Literal) s;
+                if (dataType == null) {
+                    dataType = DataType.SET_TYPES.get(l.valueType().ordinal());
+                } else if (dataType != DataType.SET_TYPES.get(l.valueType().ordinal())) {
+                    throw new IllegalArgumentException("Data types do not match.");
+                }
+                symbols.add(l);
+            } else {
+                return s;
+            }
+        }
+
+        return SetLiteral.forType(dataType, symbols);
     }
 
     @Override

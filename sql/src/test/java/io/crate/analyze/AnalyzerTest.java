@@ -29,14 +29,12 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.aggregation.impl.AverageAggregation;
-import io.crate.operator.operator.EqOperator;
-import io.crate.operator.operator.LteOperator;
-import io.crate.operator.operator.OperatorModule;
-import io.crate.operator.operator.OrOperator;
+import io.crate.operator.operator.*;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DoubleLiteral;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.LongSetLiteral;
 import io.crate.planner.symbol.Reference;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
@@ -105,8 +103,6 @@ public class AnalyzerTest {
 
     @Before
     public void setUp() throws Exception {
-
-
         injector = new ModulesBuilder()
                 .add(new TestModule())
                 .add(new TestMetaDataModule())
@@ -220,4 +216,18 @@ public class AnalyzerTest {
         assertThat(left.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
         assertThat(left.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
     }
+
+    @Test
+    public void testWhereInSelect() throws Exception {
+        Statement statement = SqlParser.createStatement("select load from sys.nodes where load['1'] in (1, 2, 4, 8, 16)");
+        Analysis analysis = analyzer.analyze(statement);
+        assertFalse(analysis.hasGroupBy());
+        assertFalse(analysis.hasAggregates());
+
+        Function whereClause = analysis.whereClause();
+        assertEquals(InOperator.NAME, whereClause.info().ident().name());
+        assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(LongSetLiteral.class));
+    }
+
 }

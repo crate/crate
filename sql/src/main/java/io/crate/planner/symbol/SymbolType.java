@@ -23,7 +23,6 @@ package io.crate.planner.symbol;
 
 public enum SymbolType {
 
-
     AGGREGATION(Aggregation.FACTORY),
     REFERENCE(Reference.FACTORY),
     VALUE(Value.FACTORY),
@@ -35,7 +34,14 @@ public enum SymbolType {
     INTEGER_LITERAL(IntegerLiteral.FACTORY),
     LONG_LITERAL(LongLiteral.FACTORY),
     NULL_LITERAL(Null.FACTORY),
-    INPUT_COLUMN(InputColumn.FACTORY);
+    INPUT_COLUMN(InputColumn.FACTORY),
+//    STRING_SET_LITERAL(StringSetLiteral.FACTORY),
+//    DOUBLE_SET_LITERAL(DoubleSetLiteral.FACTORY),
+//    FLOAT_SET_LITERAL(FloatSetLiteral.FACTORY),
+//    BOOLEAN_SET_LITERAL(BooleanSetLiteral.FACTORY),
+    INTEGER_SET_LITERAL(IntegerSetLiteral.FACTORY),
+    LONG_SET_LITERAL(LongSetLiteral.FACTORY),
+    ;
 
     private final Symbol.SymbolFactory factory;
 
@@ -49,5 +55,9 @@ public enum SymbolType {
 
     public boolean isLiteral() {
         return ordinal() > FUNCTION.ordinal() && ordinal() < INPUT_COLUMN.ordinal();
+    }
+
+    public boolean isSetLiteral() {
+        return ordinal() > INPUT_COLUMN.ordinal() && ordinal() < SymbolType.values().length;
     }
 }
