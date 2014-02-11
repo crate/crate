@@ -21,7 +21,9 @@
 
 package io.crate.analyze;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.SchemaInfo;
@@ -58,12 +60,17 @@ public class AnalyzerTest {
     private Injector injector;
     private Analyzer analyzer;
 
+    private static final ReferenceInfo LOAD_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load"));
+    private static final ReferenceInfo LOAD1_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "1"));
+    private static final ReferenceInfo LOAD5_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "5"));
+
+
     class TestMetaDataModule extends MetaDataModule {
 
         @Override
         protected void bindReferences() {
             super.bindReferences();
-            referenceBinder.addBinding(NodeLoadExpression.INFO_LOAD.ident()).to(NodeLoadExpression.class).asEagerSingleton();
+            referenceBinder.addBinding(LOAD_INFO.ident()).to(NodeLoadExpression.class).asEagerSingleton();
         }
 
         @Override
@@ -131,7 +138,7 @@ public class AnalyzerTest {
         assertEquals(1, analysis.sortSymbols().size());
         assertEquals(1, analysis.reverseFlags().length);
 
-        assertEquals(NodeLoadExpression.INFO_LOAD_5, ((Reference) analysis.sortSymbols().get(0)).info());
+        assertEquals(LOAD5_INFO, ((Reference) analysis.sortSymbols().get(0)).info());
 
     }
 
@@ -146,7 +153,7 @@ public class AnalyzerTest {
         assertTrue(analysis.hasGroupBy());
         assertEquals(2, analysis.outputSymbols().size());
         assertEquals(1, analysis.groupBy().size());
-        assertEquals(NodeLoadExpression.INFO_LOAD_1, ((Reference) analysis.groupBy().get(0)).info());
+        assertEquals(LOAD1_INFO, ((Reference) analysis.groupBy().get(0)).info());
 
     }
 
@@ -164,7 +171,7 @@ public class AnalyzerTest {
         assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
         assertEquals(1, analysis.outputSymbols().size());
         Reference col1 = (Reference) analysis.outputSymbols().get(0);
-        assertEquals(NodeLoadExpression.INFO_LOAD_5, col1.info());
+        assertEquals(LOAD5_INFO, col1.info());
 
     }
 

@@ -22,82 +22,55 @@
 package io.crate.operator.reference.sys.node;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.sys.SysExpression;
-import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.operator.reference.sys.SysObjectReference;
-import org.cratedb.DataType;
+import io.crate.metadata.ColumnIdent;
+import io.crate.operator.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.monitor.os.OsService;
 
-public class NodeMemoryExpression extends SysObjectReference<Object> {
+public class NodeMemoryExpression extends SysNodeObjectReference<Object> {
 
-    abstract class MemoryExpression extends SysExpression<Object> {
-
-        private final ReferenceInfo info;
-
-        MemoryExpression(ReferenceInfo info) {
-            this.info = info;
+    abstract class MemoryExpression extends SysNodeExpression<Object> {
+        MemoryExpression(String name) {
+            super(new ColumnIdent(NAME, ImmutableList.of(name)));
         }
-
-        @Override
-        public ReferenceInfo info() {
-            return info;
-        }
-
     }
 
-    public static final String COLNAME = "mem";
+    public static final String NAME = "mem";
 
     public static final String FREE = "free";
     public static final String USED = "used";
     public static final String FREE_PERCENT = "free_percent";
     public static final String USED_PERCENT = "used_percent";
 
-    public static final ReferenceInfo INFO_MEM = SysNodesTableInfo.register(COLNAME, DataType.OBJECT, null);
-    public static final ReferenceInfo INFO_MEM_FREE = SysNodesTableInfo.register(
-            COLNAME, DataType.LONG, ImmutableList.of(FREE));
-    public static final ReferenceInfo INFO_MEM_USED = SysNodesTableInfo.register(
-            COLNAME, DataType.LONG, ImmutableList.of(USED));
-    public static final ReferenceInfo INFO_MEM_FREE_PERCENT = SysNodesTableInfo.register(
-            COLNAME, DataType.SHORT, ImmutableList.of(FREE_PERCENT));
-    public static final ReferenceInfo INFO_MEM_USED_PERCENT = SysNodesTableInfo.register(
-            COLNAME, DataType.SHORT, ImmutableList.of(USED_PERCENT));
-
-
     private final OsService osService;
 
     @Inject
     public NodeMemoryExpression(OsService osService) {
+        super(NAME);
         this.osService = osService;
         addChildImplementations();
     }
 
-    @Override
-    public ReferenceInfo info() {
-        return INFO_MEM;
-    }
-
     private void addChildImplementations() {
-        childImplementations.put(FREE, new MemoryExpression(INFO_MEM_FREE) {
+        childImplementations.put(FREE, new MemoryExpression(FREE) {
             @Override
             public Long value() {
                 return osService.stats().mem().free().bytes();
             }
         });
-        childImplementations.put(USED, new MemoryExpression(INFO_MEM_USED) {
+        childImplementations.put(USED, new MemoryExpression(USED) {
             @Override
             public Long value() {
                 return osService.stats().mem().used().bytes();
             }
         });
-        childImplementations.put(FREE_PERCENT, new MemoryExpression(INFO_MEM_FREE_PERCENT) {
+        childImplementations.put(FREE_PERCENT, new MemoryExpression(FREE_PERCENT) {
             @Override
             public Short value() {
                 return osService.stats().mem().freePercent();
             }
         });
-        childImplementations.put(USED_PERCENT, new MemoryExpression(INFO_MEM_USED_PERCENT) {
+        childImplementations.put(USED_PERCENT, new MemoryExpression(USED_PERCENT) {
             @Override
             public Short value() {
                 return osService.stats().mem().usedPercent();

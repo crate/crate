@@ -21,6 +21,7 @@
 
 package io.crate.metadata.sys;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
@@ -37,8 +38,33 @@ public class SysNodesTableInfo extends SysTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "nodes");
 
+    public static final Map<ColumnIdent, ReferenceInfo> INFOS = new HashMap<>();
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
-    private static final Map<ColumnIdent, ReferenceInfo> references = new HashMap<>();
+
+    static {
+        register("id", DataType.STRING, null);
+        register("name", DataType.STRING, null);
+        register("hostname", DataType.STRING, null);
+        register("port", DataType.OBJECT, null);
+        register("port", DataType.INTEGER, ImmutableList.of("http"));
+        register("port", DataType.INTEGER, ImmutableList.of("transport"));
+        register("load", DataType.OBJECT, null);
+        register("load", DataType.DOUBLE, ImmutableList.of("1"));
+        register("load", DataType.DOUBLE, ImmutableList.of("5"));
+        register("load", DataType.DOUBLE, ImmutableList.of("15"));
+        register("mem", DataType.OBJECT, null);
+        register("mem", DataType.LONG, ImmutableList.of("free"));
+        register("mem", DataType.LONG, ImmutableList.of("used"));
+        register("mem", DataType.SHORT, ImmutableList.of("free_percent"));
+        register("mem", DataType.SHORT, ImmutableList.of("used_percent"));
+        register("fs", DataType.OBJECT, null);
+        register("fs", DataType.LONG, ImmutableList.of("total"));
+        register("fs", DataType.LONG, ImmutableList.of("free"));
+        register("fs", DataType.LONG, ImmutableList.of("used"));
+        register("fs", DataType.LONG, ImmutableList.of("free_percent"));
+        register("fs", DataType.LONG, ImmutableList.of("used_percent"));
+    }
+
     private final ClusterService clusterService;
 
     @Inject
@@ -46,18 +72,18 @@ public class SysNodesTableInfo extends SysTableInfo {
         clusterService = service;
     }
 
-    public static synchronized ReferenceInfo register(String column, DataType type, List<String> path) {
+    private static ReferenceInfo register(String column, DataType type, List<String> path) {
         ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column, path), RowGranularity.NODE, type);
         if (info.ident().isColumn()) {
             columns.add(info);
         }
-        references.put(info.ident().columnIdent(), info);
+        INFOS.put(info.ident().columnIdent(), info);
         return info;
     }
 
     @Override
     public ReferenceInfo getColumnInfo(ColumnIdent columnIdent) {
-        return references.get(columnIdent);
+        return INFOS.get(columnIdent);
     }
 
     @Override

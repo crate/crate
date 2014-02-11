@@ -26,7 +26,6 @@ import io.crate.metadata.*;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.operator.Input;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import org.elasticsearch.cluster.ClusterService;
@@ -53,6 +52,9 @@ public class TestGlobalSysExpressions {
     private ReferenceResolver resolver;
     private ReferenceInfos referenceInfos;
 
+    private static final ReferenceInfo LOAD_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load"));
+    private static final ReferenceInfo LOAD1_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "1"));
+
     class TestModule extends AbstractModule {
 
         @Override
@@ -73,7 +75,8 @@ public class TestGlobalSysExpressions {
 
             MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
                     .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
-            b.addBinding(NodeLoadExpression.INFO_LOAD.ident()).to(NodeLoadExpression.class).asEagerSingleton();
+            b.addBinding(SysNodesTableInfo.INFOS.get(new ColumnIdent("load")).ident()).to(
+                    NodeLoadExpression.class).asEagerSingleton();
         }
     }
 
@@ -101,11 +104,11 @@ public class TestGlobalSysExpressions {
     @Test
     public void testInfoLookup() throws Exception {
 
-        ReferenceIdent ident = NodeLoadExpression.INFO_LOAD.ident();
-        assertEquals(NodeLoadExpression.INFO_LOAD, referenceInfos.getReferenceInfo(ident));
+        ReferenceIdent ident = LOAD_INFO.ident();
+        assertEquals(LOAD_INFO, referenceInfos.getReferenceInfo(ident));
 
-        ident = NodeLoadExpression.INFO_LOAD_1.ident();
-        assertEquals(referenceInfos.getReferenceInfo(ident), NodeLoadExpression.INFO_LOAD_1);
+        ident = LOAD1_INFO.ident();
+        assertEquals(referenceInfos.getReferenceInfo(ident), LOAD1_INFO);
 
     }
 
@@ -113,14 +116,14 @@ public class TestGlobalSysExpressions {
     public void testChildImplementationLookup() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "load");
         SysObjectReference<Double> load = (SysObjectReference<Double>) resolver.getImplementation(ident);
-        assertEquals(NodeLoadExpression.INFO_LOAD, load.info());
+        assertEquals(LOAD_INFO, load.info());
 
         Input<Double> ci = load.getChildImplementation("1");
         assertEquals(new Double(1), ci.value());
 
-        ident = NodeLoadExpression.INFO_LOAD_1.ident();
+        ident = LOAD1_INFO.ident();
         SysExpression<Double> l1 = (SysExpression<Double>) resolver.getImplementation(ident);
-        assertEquals(NodeLoadExpression.INFO_LOAD_1, l1.info());
+        assertEquals(LOAD1_INFO, l1.info());
     }
 
 }

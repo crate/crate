@@ -21,25 +21,36 @@
 
 package io.crate.operator.reference.sys.node;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.operator.reference.sys.node.*;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.sys.SysNodesTableInfo;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
+import java.util.Map;
+
 public class SysNodeExpressionModule extends AbstractModule {
+
+    private Map<ColumnIdent, ReferenceInfo> infos;
+    private MapBinder<ReferenceIdent, ReferenceImplementation> refBinder;
+
+    private void bindExpr(String name, Class clazz) {
+        refBinder.addBinding(infos.get(new ColumnIdent(name)).ident()).to(clazz).asEagerSingleton();
+    }
 
     @Override
     protected void configure() {
-        MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
-                .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
+        refBinder = MapBinder.newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
+        infos = SysNodesTableInfo.INFOS;
 
-        b.addBinding(NodeLoadExpression.INFO_LOAD.ident()).to(NodeLoadExpression.class).asEagerSingleton();
-        b.addBinding(NodeIdExpression.INFO_ID.ident()).to(NodeIdExpression.class).asEagerSingleton();
-        b.addBinding(NodeNameExpression.INFO_NAME.ident()).to(NodeNameExpression.class).asEagerSingleton();
-        b.addBinding(NodeHostnameExpression.INFO_HOSTNAME.ident()).to(NodeHostnameExpression.class).asEagerSingleton();
-        b.addBinding(NodePortExpression.INFO_PORT.ident()).to(NodePortExpression.class).asEagerSingleton();
-        b.addBinding(NodeMemoryExpression.INFO_MEM.ident()).to(NodeMemoryExpression.class).asEagerSingleton();
-        b.addBinding(NodeFsExpression.INFO_FS.ident()).to(NodeFsExpression.class).asEagerSingleton();
+        bindExpr(NodeFsExpression.NAME, NodeFsExpression.class);
+        bindExpr(NodeHostnameExpression.NAME, NodeHostnameExpression.class);
+        bindExpr(NodeIdExpression.NAME, NodeIdExpression.class);
+        bindExpr(NodeLoadExpression.NAME, NodeLoadExpression.class);
+        bindExpr(NodeMemoryExpression.NAME, NodeMemoryExpression.class);
+        bindExpr(NodeNameExpression.NAME, NodeNameExpression.class);
+        bindExpr(NodePortExpression.NAME, NodePortExpression.class);
     }
 }

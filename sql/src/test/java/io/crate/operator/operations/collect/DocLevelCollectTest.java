@@ -24,6 +24,7 @@ package io.crate.operator.operations.collect;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysClusterTableInfo;
+import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operator.operator.EqOperator;
 import io.crate.operator.reference.sys.node.NodeNameExpression;
@@ -136,7 +137,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         CollectNode collectNode = new CollectNode("docCollect", routing);
         collectNode.toCollect(Arrays.<Symbol>asList(
                 testDocLevelReference,
-                new Reference(NodeNameExpression.INFO_NAME),
+                new Reference(SysNodesTableInfo.INFOS.get(new ColumnIdent("name"))),
                 new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("id"))),
                 new Reference(SysClusterTableInfo.INFOS.get(new ColumnIdent("name")))
         ));

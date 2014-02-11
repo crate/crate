@@ -24,6 +24,7 @@ package io.crate.metadata;
 import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.collect.ComparisonChain;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -44,6 +45,10 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
 
     public ColumnIdent(String name) {
         this.name = name;
+    }
+
+    public ColumnIdent(String name, String childName) {
+        this(name, ImmutableList.of(childName));
     }
 
     public ColumnIdent(String name, @Nullable List<String> path) {

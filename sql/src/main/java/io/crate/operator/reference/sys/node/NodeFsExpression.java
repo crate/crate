@@ -22,32 +22,21 @@
 package io.crate.operator.reference.sys.node;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.sys.SysExpression;
-import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.operator.reference.sys.SysObjectReference;
-import org.cratedb.DataType;
+import io.crate.metadata.ColumnIdent;
+import io.crate.operator.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.monitor.fs.FsStats;
 import org.elasticsearch.node.service.NodeService;
 
-public class NodeFsExpression extends SysObjectReference<Object> {
+public class NodeFsExpression extends SysNodeObjectReference<Object> {
 
-    abstract class FsExpression extends SysExpression<Object> {
+    public static final String NAME = "fs";
 
-        private final ReferenceInfo info;
-
-        FsExpression(ReferenceInfo info) {
-            this.info = info;
-        }
-
-        @Override
-        public ReferenceInfo info() {
-            return info;
+    abstract class FsExpression extends SysNodeExpression<Object> {
+        FsExpression(String name) {
+            super(new ColumnIdent(NAME, ImmutableList.of(name)));
         }
     }
-
-    public static final String COLNAME = "fs";
 
     public static final String TOTAL = "total";
     public static final String FREE = "free";
@@ -55,57 +44,41 @@ public class NodeFsExpression extends SysObjectReference<Object> {
     public static final String FREE_PERCENT = "free_percent";
     public static final String USED_PERCENT = "used_percent";
 
-    public static final ReferenceInfo INFO_FS = SysNodesTableInfo.register(COLNAME, DataType.OBJECT, null);
-    public static final ReferenceInfo INFO_FS_TOTAL = SysNodesTableInfo.register(
-            COLNAME, DataType.LONG, ImmutableList.of(TOTAL));
-    public static final ReferenceInfo INFO_FS_FREE = SysNodesTableInfo.register(
-            COLNAME, DataType.LONG, ImmutableList.of(FREE));
-    public static final ReferenceInfo INFO_FS_USED = SysNodesTableInfo.register(
-            COLNAME, DataType.LONG, ImmutableList.of(USED));
-    public static final ReferenceInfo INFO_FS_FREE_PERCENT = SysNodesTableInfo.register(
-            COLNAME, DataType.DOUBLE, ImmutableList.of(FREE_PERCENT));
-    public static final ReferenceInfo INFO_FS_USED_PERCENT = SysNodesTableInfo.register(
-            COLNAME, DataType.DOUBLE, ImmutableList.of(USED_PERCENT));
-
     private final NodeService nodeService;
 
     @Inject
     public NodeFsExpression(NodeService nodeService) {
+        super(NAME);
         this.nodeService = nodeService;
         addChildImplementations();
     }
 
-    @Override
-    public ReferenceInfo info() {
-        return INFO_FS;
-    }
-
     private void addChildImplementations() {
-        childImplementations.put(TOTAL, new FsExpression(INFO_FS_TOTAL) {
+        childImplementations.put(TOTAL, new FsExpression(TOTAL) {
             @Override
             public Long value() {
                 return getTotalBytesFromAllDisks();
             }
         });
-        childImplementations.put(FREE, new FsExpression(INFO_FS_FREE) {
+        childImplementations.put(FREE, new FsExpression(FREE) {
             @Override
             public Long value() {
                 return getFreeBytesFromAllDisks();
             }
         });
-        childImplementations.put(USED, new FsExpression(INFO_FS_USED) {
+        childImplementations.put(USED, new FsExpression(USED) {
             @Override
             public Long value() {
                 return getTotalBytesFromAllDisks() - getFreeBytesFromAllDisks();
             }
         });
-        childImplementations.put(FREE_PERCENT, new FsExpression(INFO_FS_FREE_PERCENT) {
+        childImplementations.put(FREE_PERCENT, new FsExpression(FREE_PERCENT) {
             @Override
             public Double value() {
                 return new Double((getFreeBytesFromAllDisks() / (double) getTotalBytesFromAllDisks()) * 100);
             }
         });
-        childImplementations.put(USED_PERCENT, new FsExpression(INFO_FS_USED_PERCENT) {
+        childImplementations.put(USED_PERCENT, new FsExpression(USED_PERCENT) {
             @Override
             public Double value() {
                 Long total_bytes = getTotalBytesFromAllDisks();

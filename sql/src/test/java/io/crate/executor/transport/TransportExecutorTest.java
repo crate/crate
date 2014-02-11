@@ -28,6 +28,7 @@ import io.crate.executor.transport.task.RemoteCollectTask;
 import io.crate.executor.transport.task.elasticsearch.ESGetTask;
 import io.crate.executor.transport.task.elasticsearch.ESSearchTask;
 import io.crate.metadata.*;
+import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operator.operator.EqOperator;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import io.crate.planner.RowGranularity;
@@ -97,11 +98,12 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         }
 
         Routing routing = new Routing(locations);
-        Symbol reference = new Reference(NodeLoadExpression.INFO_LOAD_1);
+        ReferenceInfo load1 = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "1"));
+        Symbol reference = new Reference(load1);
 
         CollectNode collectNode = new CollectNode("collect", routing);
         collectNode.toCollect(Arrays.<Symbol>asList(reference));
-        collectNode.outputTypes(Arrays.asList(NodeLoadExpression.INFO_LOAD_1.type()));
+        collectNode.outputTypes(Arrays.asList(load1.type()));
 
         // later created inside executor.newJob
         RemoteCollectTask task = new RemoteCollectTask(collectNode, transportCollectNodeAction);

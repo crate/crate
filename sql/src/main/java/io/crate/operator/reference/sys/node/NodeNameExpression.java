@@ -21,37 +21,24 @@
 
 package io.crate.operator.reference.sys.node;
 
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.sys.SysExpression;
-import io.crate.metadata.sys.SysNodesTableInfo;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.Discovery;
 
-public class NodeNameExpression extends SysExpression<BytesRef> {
+public class NodeNameExpression extends SysNodeExpression<BytesRef> {
 
-    public static final String COLNAME = "name";
-
-
-    public static final ReferenceInfo INFO_NAME = SysNodesTableInfo.register(COLNAME, DataType.STRING, null);
-
-
+    public static final String NAME = "name";
     private final Discovery discovery;
 
     @Inject
     public NodeNameExpression(Discovery discovery) {
+        super(NAME);
         this.discovery = discovery;
     }
 
     @Override
     public BytesRef value() {
         return new BytesRef(discovery.localNode().getName());
-    }
-
-    @Override
-    public ReferenceInfo info() {
-        return INFO_NAME;
     }
 
 }
