@@ -40,6 +40,7 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import org.cratedb.sql.AmbiguousAliasException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
@@ -102,6 +103,9 @@ public class AnalyzerTest {
         }
     }
 
+    private Analysis analyze(String statement) {
+        return analyzer.analyze(SqlParser.createStatement(statement));
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -219,5 +223,40 @@ public class AnalyzerTest {
         assertEquals(LteOperator.NAME, right.info().ident().name());
         assertThat(left.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
         assertThat(left.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
+    }
+
+    @Test
+    public void testOutputNames() throws Exception {
+        Analysis analyze = analyze("select load as l, id, load['1'] from sys.nodes");
+        assertThat(analyze.outputNames().size(), is(3));
+        assertThat(analyze.outputNames().get(0), is("l"));
+        assertThat(analyze.outputNames().get(1), is("id"));
+        assertThat(analyze.outputNames().get(2), is("load['1']"));
+    }
+
+    @Test
+    public void testDuplicateOutputNames() throws Exception {
+        Analysis analyze = analyze("select load as l, load['1'] as l from sys.nodes");
+        assertThat(analyze.outputNames().size(), is(2));
+        assertThat(analyze.outputNames().get(0), is("l"));
+        assertThat(analyze.outputNames().get(1), is("l"));
+    }
+
+
+
+    @Test
+    public void testOrderByOnAlias() throws Exception {
+        Analysis analyze = analyze("select load as l from sys.nodes order by l");
+        assertThat(analyze.outputNames().size(), is(1));
+        assertThat(analyze.outputNames().get(0), is("l"));
+
+        assertTrue(analyze.isSorted());
+        assertThat(analyze.sortSymbols().size(), is(1));
+        assertThat(analyze.sortSymbols().get(0), is(analyze.outputSymbols().get(0)));
+    }
+
+    @Test (expected = AmbiguousAliasException.class)
+    public void testAmbiguousOrderByOnAlias() throws Exception {
+        analyze("select id as load, load from sys.nodes order by load");
     }
 }

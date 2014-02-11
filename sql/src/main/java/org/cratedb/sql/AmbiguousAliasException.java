@@ -21,12 +21,12 @@
 
 package org.cratedb.sql;
 
-public class OrderByAmbiguousException extends CrateException {
+public class AmbiguousAliasException extends CrateException {
 
-    private final String orderByName;
+    private final String alias;
 
-    public OrderByAmbiguousException(String orderByName) {
-        super(String.format("ORDER BY \"%s\" is ambiguous", orderByName));
-        this.orderByName = orderByName;
+    public AmbiguousAliasException(String alias) {
+        super(String.format("alias \"%s\" is ambiguous", alias));
+        this.alias = alias;
     }
 }
