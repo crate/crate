@@ -22,6 +22,7 @@
 package io.crate.planner.projection;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -44,7 +45,7 @@ public class TopNProjection extends Projection {
     private int limit;
     private int offset;
 
-    List<Symbol> outputs;
+    List<Symbol> outputs = ImmutableList.of();
 
     List<Symbol> orderBy;
     boolean[] reverseFlags;
@@ -66,8 +67,9 @@ public class TopNProjection extends Projection {
         this.reverseFlags = reverseFlags;
     }
 
-    public List<Symbol> outputs() {
-        return outputs;
+    @Override
+    public ImmutableList<Symbol> outputs() {
+        return ImmutableList.copyOf(outputs);
     }
 
     public void outputs(List<Symbol> outputs) {

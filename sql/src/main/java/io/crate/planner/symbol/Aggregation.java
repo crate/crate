@@ -106,7 +106,7 @@ public class Aggregation extends Symbol {
         int numInputs = in.readVInt();
         inputs = new ArrayList<>(numInputs);
         for (int i = 0; i < numInputs; i++) {
-            inputs.add((ValueSymbol)Symbol.fromStream(in));
+            inputs.add(Symbol.fromStream(in));
         }
     }
 

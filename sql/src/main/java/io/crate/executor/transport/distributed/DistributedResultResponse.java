@@ -19,16 +19,9 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.executor.transport.distributed;
 
-import io.crate.executor.transport.merge.TransportMergeNodeAction;
-import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.transport.TransportResponse;
 
-public class TransportExecutorModule extends AbstractModule {
-
-    @Override
-    protected void configure() {
-        bind(TransportCollectNodeAction.class).asEagerSingleton();
-        bind(TransportMergeNodeAction.class).asEagerSingleton();
-    }
+public class DistributedResultResponse extends TransportResponse {
 }

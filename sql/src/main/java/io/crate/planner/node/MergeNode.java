@@ -27,10 +27,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * A plan node which merges results from upstreams
@@ -40,8 +37,10 @@ public class MergeNode extends PlanNode {
     private List<DataType> inputTypes;
     private int numUpstreams;
     private Set<String> executionNodes;
+    private UUID contextId;
 
     public MergeNode() {
+        numUpstreams = 0;
     }
 
     @Override
@@ -66,6 +65,14 @@ public class MergeNode extends PlanNode {
         return numUpstreams;
     }
 
+    public UUID contextId() {
+        return contextId;
+    }
+
+    public void contextId(UUID contextId) {
+        this.contextId = contextId;
+    }
+
     public void numUpstreams(int numUpstreams) {
         this.numUpstreams = numUpstreams;
     }
@@ -87,11 +94,14 @@ public class MergeNode extends PlanNode {
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
 
+        numUpstreams = in.readVInt();
+        contextId = new UUID(in.readLong(), in.readLong());
+
         int numCols = in.readVInt();
         if (numCols > 0) {
             inputTypes = new ArrayList<>(numCols);
             for (int i = 0; i < numCols; i++) {
-                inputTypes.add(DataType.values()[in.readVInt()]);
+                inputTypes.add(DataType.fromStream(in));
             }
         }
         int numExecutionNodes = in.readVInt();
@@ -108,10 +118,14 @@ public class MergeNode extends PlanNode {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
 
+        out.writeVInt(numUpstreams);
+        out.writeLong(contextId.getMostSignificantBits());
+        out.writeLong(contextId.getLeastSignificantBits());
+
         int numCols = inputTypes.size();
         out.writeVInt(numCols);
-        for (int i = 0; i < numCols; i++) {
-            out.writeVInt(inputTypes.get(i).ordinal());
+        for (DataType inputType : inputTypes) {
+            DataType.toStream(inputType, out);
         }
 
         if (executionNodes == null) {
@@ -122,8 +136,5 @@ public class MergeNode extends PlanNode {
                 out.writeString(node);
             }
         }
-
-
     }
-
 }

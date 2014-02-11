@@ -24,6 +24,7 @@ package io.crate.executor.transport;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.Job;
+import io.crate.executor.Task;
 import io.crate.executor.transport.task.RemoteCollectTask;
 import io.crate.executor.transport.task.elasticsearch.ESGetTask;
 import io.crate.executor.transport.task.elasticsearch.ESSearchTask;

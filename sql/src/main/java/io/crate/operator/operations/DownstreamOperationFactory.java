@@ -19,16 +19,12 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package io.crate.operator.operations;
 
-import io.crate.executor.transport.merge.TransportMergeNodeAction;
-import org.elasticsearch.common.inject.AbstractModule;
+import io.crate.operator.operations.merge.DownstreamOperation;
+import io.crate.planner.node.PlanNode;
 
-public class TransportExecutorModule extends AbstractModule {
+public interface DownstreamOperationFactory<TPlanNode extends PlanNode> {
 
-    @Override
-    protected void configure() {
-        bind(TransportCollectNodeAction.class).asEagerSingleton();
-        bind(TransportMergeNodeAction.class).asEagerSingleton();
-    }
+    public DownstreamOperation create(TPlanNode node);
 }

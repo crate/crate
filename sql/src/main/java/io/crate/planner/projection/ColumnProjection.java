@@ -41,6 +41,7 @@ public class ColumnProjection extends Projection {
     };
 
 
+    @Override
     public List<Symbol> outputs() {
         return outputs;
     }

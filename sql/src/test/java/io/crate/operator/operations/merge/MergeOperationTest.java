@@ -83,7 +83,7 @@ public class MergeOperationTest {
                 topNProjection
         ));
 
-        MergeOperationImpl mergeOperation = new MergeOperationImpl(symbolVisitor, mergeNode);
+        MergeOperation mergeOperation = new MergeOperation(symbolVisitor, mergeNode);
 
         Object[][] rows = new Object[20][];
         for (int i=0; i<rows.length; i++) {
@@ -111,7 +111,7 @@ public class MergeOperationTest {
         mergeNode.projections(Arrays.<Projection>asList(
                 groupProjection
         ));
-        MergeOperationImpl mergeOperation = new MergeOperationImpl(symbolVisitor, mergeNode);
+        MergeOperation mergeOperation = new MergeOperation(symbolVisitor, mergeNode);
         Object[][] rows = new Object[1][];
         MinimumAggregation.MinimumAggState<Double> aggState = minAggFunction.newState();
         aggState.setValue(100.0d);
