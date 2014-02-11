@@ -27,7 +27,6 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.NormalizationHelper;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.metadata.Routing;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.collector.CrateCollector;
@@ -43,7 +42,6 @@ import org.cratedb.Constants;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.TableUnknownException;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.logging.ESLogger;
@@ -98,25 +96,35 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
     }
 
 
-
+    /**
+     * dispatch by the following criteria:
+     *
+     *  * if local node id is contained in routing:
+     *    * if no shards are given:
+     *      -> run node level collect
+     *    * if shards are given:
+     *      -> run shard or doc level collect
+     *  * else if we got cluster RowGranularity:
+     *    -> run node level collect (cluster level)
+     */
     @Override
     public ListenableFuture<Object[][]> collect(CollectNode collectNode) {
-        assert collectNode.routing().hasLocations();
         String localNodeId = clusterService.localNode().id();
-        Routing routing = collectNode.routing();
-        // assert we have at least a node routing to this node
-        Preconditions.checkState(
-                routing.nodes().contains(localNodeId),
-                "unsupported routing"
-        );
 
-        if (collectNode.routing().locations().get(localNodeId).size() == 0) {
-            // node collect
+        if (collectNode.executionNodes().contains(localNodeId)) {
+            if (collectNode.routing().locations().get(localNodeId).size() == 0) {
+                // node collect
+                return handleNodeCollect(collectNode);
+            } else {
+                // shard or doc level
+                return handleShardCollect(collectNode);
+            }
+        } else if (collectNode.maxRowGranularity() == RowGranularity.CLUSTER) {
+            // cluster level collect on handler
             return handleNodeCollect(collectNode);
-        } else {
-            // shard or doc level
-            return handleShardCollect(collectNode);
         }
+
+        throw new CrateException("unsupported routing");
     }
 
 
@@ -138,7 +146,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
         ImplementationSymbolVisitor.Context ctx = new ImplementationSymbolVisitor(
                 this.referenceResolver,
                 this.functions,
-                RowGranularity.NODE
+                collectNode.maxRowGranularity() // could be CLUSTER or NODE
         ).process(collectNode);
         Input<?>[] inputs = ctx.topLevelInputs();
         Set<CollectExpression<?>> collectExpressions = ctx.collectExpressions();
@@ -152,7 +160,10 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
 
         Object[][] collected = projectors.get(projectors.size() - 1).getRows();
         if (logger.isTraceEnabled()) {
-            logger.trace("collected {} from node {}", Objects.toString(Arrays.asList(collected[0])), clusterService.localNode().id());
+            logger.trace("collected {} on {}-level from node {}",
+                    Objects.toString(Arrays.asList(collected[0])),
+                    collectNode.maxRowGranularity().name().toLowerCase(),
+                    clusterService.localNode().id());
         }
         result.set(collected);
         return result;
@@ -165,22 +176,21 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
      * collecting the data into a single state through an {@link java.util.concurrent.ArrayBlockingQueue}.
      *
      * @param collectNode {@link io.crate.planner.node.CollectNode} containing routing information and symbols to collect
-     * @return the collect results from all shards on this node that were given in {@link io.crate.planner.plan.CollectNode#routing}
+     * @return the collect results from all shards on this node that were given in {@link io.crate.planner.node.CollectNode#routing}
      */
     protected ListenableFuture<Object[][]> handleShardCollect(CollectNode collectNode) {
-
-        Function whereClause = collectNode.whereClause();
-        if (whereClause != null && NormalizationHelper.evaluatesToFalse(whereClause, this.normalizer)) {
-            SettableFuture<Object[][]> result = SettableFuture.create();
-            result.set(Constants.EMPTY_RESULT);
-            return result;
-        }
 
         String localNodeId = clusterService.localNode().id();
         final int numShards = collectNode.routing().numShards(localNodeId);
         List<CrateCollector> shardCollectors = new ArrayList<>(numShards);
         List<Projector> projectors = extractProjectors(collectNode);
         final ShardCollectFuture result = getShardCollectFuture(numShards, projectors, collectNode);
+
+        Function whereClause = collectNode.whereClause();
+        if (whereClause != null && NormalizationHelper.evaluatesToFalse(whereClause, this.normalizer)) {
+            result.onAllShardsFinished();
+            return result;
+        }
 
         // get shardCollectors from single shards
         Map<String, Set<Integer>> shardIdMap = collectNode.routing().locations().get(localNodeId);

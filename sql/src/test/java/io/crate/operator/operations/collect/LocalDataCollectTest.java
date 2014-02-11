@@ -39,7 +39,6 @@ import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 import org.cratedb.action.SQLXContentQueryParser;
 import org.cratedb.sql.CrateException;
-import org.elasticsearch.ElasticSearchIllegalStateException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -266,7 +265,7 @@ public class LocalDataCollectTest {
     @Test
     public void testWrongRouting() throws Exception {
 
-        expectedException.expect(ElasticSearchIllegalStateException.class);
+        expectedException.expect(CrateException.class);
         expectedException.expectMessage("unsupported routing");
 
         CollectNode collectNode = new CollectNode("wrong", new Routing(new HashMap<String, Map<String, Set<Integer>>>() {{
@@ -304,6 +303,7 @@ public class LocalDataCollectTest {
                 )
         );
         collectNode.toCollect(Arrays.<Symbol>asList(unknownReference));
+        collectNode.maxRowGranularity(RowGranularity.NODE);
         operation.collect(collectNode);
     }
 
@@ -315,6 +315,7 @@ public class LocalDataCollectTest {
                 Arrays.<Symbol>asList(testNodeReference)
         );
         collectNode.toCollect(Arrays.<Symbol>asList(twoTimesTruthFunction, testNodeReference));
+        collectNode.maxRowGranularity(RowGranularity.NODE);
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, equalTo(1));
         assertThat(result[0].length, equalTo(2));
@@ -380,6 +381,7 @@ public class LocalDataCollectTest {
                 AndOperator.INFO,
                 Arrays.<Symbol>asList(new BooleanLiteral(true), new BooleanLiteral(true))
         ));
+        collectNode.maxRowGranularity(RowGranularity.NODE);
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, equalTo(1));
         assertThat((Integer) result[0][0], equalTo(42));
@@ -432,13 +434,21 @@ public class LocalDataCollectTest {
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(equalTo(2)));
         assertThat(result[0].length, is(equalTo(3)));
-        assertThat((Integer) result[0][0], is(0));
-        assertThat((Boolean) result[0][1], is(true));
-        assertThat((Integer) result[0][2], is(42));
+        int i, j;
+        if (result[0][0] == 0) {
+            i = 0;
+            j=1;
+        } else {
+            i = 1;
+            j=0;
+        }
+        assertThat((Integer) result[i][0], is(0));
+        assertThat((Boolean) result[i][1], is(true));
+        assertThat((Integer) result[i][2], is(42));
 
-        assertThat((Integer) result[1][0], is(1));
-        assertThat((Boolean) result[1][1], is(true));
-        assertThat((Integer) result[1][2], is(42));
+        assertThat((Integer) result[j][0], is(1));
+        assertThat((Boolean) result[j][1], is(true));
+        assertThat((Integer) result[j][2], is(42));
     }
 
     /**
