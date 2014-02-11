@@ -198,7 +198,7 @@ public class AnalyzerTest {
     @Test
     public void testWhereSelect() throws Exception {
         Statement statement = SqlParser.createStatement("select load from sys.nodes " +
-                "where load['1'] = 1.2 or 1.0 >= load['5']");
+                "where load['1'] = 1.2 or 1 >= load['5']");
         Analysis analysis = analyzer.analyze(statement);
         assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
 

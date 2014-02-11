@@ -7,7 +7,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class DoubleLiteral extends Literal<Double, DoubleLiteral> {
+public class DoubleLiteral extends NumberLiteral<Double, DoubleLiteral> {
 
     public static final SymbolFactory<DoubleLiteral> FACTORY = new SymbolFactory<DoubleLiteral>() {
         @Override

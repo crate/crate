@@ -7,7 +7,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class IntegerLiteral extends Literal<Integer, IntegerLiteral> {
+public class IntegerLiteral extends NumberLiteral<Integer, IntegerLiteral> {
 
     private int value;
 

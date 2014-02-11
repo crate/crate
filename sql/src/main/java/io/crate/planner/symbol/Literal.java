@@ -38,4 +38,11 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
 
         return null;
     }
+
+    public Literal convertTo(DataType type) {
+        if (valueType() == type) {
+            return this;
+        }
+        throw new UnsupportedOperationException("Invalid input for type " + type.getName() + ": " + value().toString());
+    }
 }
