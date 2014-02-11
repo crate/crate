@@ -21,23 +21,25 @@
 
 package io.crate.operator.reference.sys.cluster;
 
+
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.inject.Inject;
 
-public class ClusterNameExpression extends SysClusterExpression<String> {
+public class ClusterNameExpression extends SysClusterExpression<BytesRef> {
 
     public static final String NAME = "name";
-    private final ClusterName clusterName;
+    private final BytesRef value;
 
     @Inject
     public ClusterNameExpression(ClusterName clusterName) {
         super(NAME);
-        this.clusterName = clusterName;
+        this.value = new BytesRef(clusterName.value());
     }
 
     @Override
-    public String value() {
-        return clusterName.value();
+    public BytesRef value() {
+        return value;
     }
 
 }

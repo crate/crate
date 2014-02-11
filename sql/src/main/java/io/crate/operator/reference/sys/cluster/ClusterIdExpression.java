@@ -21,13 +21,17 @@
 
 package io.crate.operator.reference.sys.cluster;
 
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.ClusterIdService;
 import org.elasticsearch.common.inject.Inject;
 
-public class ClusterIdExpression extends SysClusterExpression<String> {
+public class ClusterIdExpression extends SysClusterExpression<BytesRef> {
+
+    public static final String COLNAME = "id";
 
     public static final String NAME = "id";
     private final ClusterIdService clusterIdService;
+    private BytesRef value = null;
 
     @Inject
     public ClusterIdExpression(ClusterIdService clusterIdService) {
@@ -36,8 +40,13 @@ public class ClusterIdExpression extends SysClusterExpression<String> {
     }
 
     @Override
-    public String value() {
-        return clusterIdService.clusterId().value().toString();
+    public BytesRef value() {
+        // value could not be ready on node start-up, but is static once set
+        if (value == null && clusterIdService.clusterId() != null) {
+            value = new BytesRef(clusterIdService.clusterId().value().toString());
+        }
+
+        return value;
     }
 
 }

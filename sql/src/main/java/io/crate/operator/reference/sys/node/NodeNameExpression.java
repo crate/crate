@@ -29,6 +29,7 @@ public class NodeNameExpression extends SysNodeExpression<BytesRef> {
 
     public static final String NAME = "name";
     private final Discovery discovery;
+    private BytesRef value = null;
 
     @Inject
     public NodeNameExpression(Discovery discovery) {
@@ -38,7 +39,11 @@ public class NodeNameExpression extends SysNodeExpression<BytesRef> {
 
     @Override
     public BytesRef value() {
-        return new BytesRef(discovery.localNode().getName());
+        // value could not be ready on node start-up, but is static once set
+        if (value == null && discovery.localNode() != null) {
+            value = new BytesRef(discovery.localNode().getName());
+        }
+        return value;
     }
 
 }

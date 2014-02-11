@@ -27,17 +27,17 @@ import org.elasticsearch.index.shard.ShardId;
 public class ShardTableNameExpression extends SysShardExpression<BytesRef> {
 
     public static final String NAME = "table_name";
-    private final ShardId shardId;
+    private final BytesRef value;
 
     @Inject
     public ShardTableNameExpression(ShardId shardId) {
         super(NAME);
-        this.shardId = shardId;
+        this.value = new BytesRef(shardId.getIndex());
     }
 
     @Override
     public BytesRef value() {
-        return new BytesRef(shardId.getIndex());
+        return value;
     }
 
 }

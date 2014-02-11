@@ -191,11 +191,9 @@ public class TestSysNodesExpressions {
 
     @Test
     public void testHostname() throws Exception {
-
         ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "hostname");
-        SysExpression<String> hostname = (SysExpression<String>) resolver.getImplementation(ident);
-
-        assertEquals("localhost", hostname.value());
+        SysExpression<BytesRef> hostname = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        assertEquals(new BytesRef("localhost"), hostname.value());
     }
 
     @Test

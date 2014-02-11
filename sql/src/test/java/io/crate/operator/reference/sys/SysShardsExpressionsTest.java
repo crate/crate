@@ -121,9 +121,11 @@ public class SysShardsExpressionsTest {
     public void testClusterExpression() throws Exception {
         // Looking up cluster wide expressions must work too
         ReferenceIdent ident = new ReferenceIdent(SysClusterTableInfo.IDENT, "name");
-        SysExpression<String> name = (SysExpression<String>) resolver.getImplementation(ident);
+        SysExpression<BytesRef> name = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+
         assertEquals(new ColumnIdent("name"), name.info().ident().columnIdent());
-        assertEquals("crate", name.value());
+        assertEquals(new BytesRef("crate"), name.value());
+
     }
 
     @Test
@@ -150,22 +152,22 @@ public class SysShardsExpressionsTest {
     @Test
     public void testState() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, "state");
-        SysExpression<String> shardExpression = (SysExpression<String>) resolver.getImplementation(ident);
-        assertEquals("STARTED", shardExpression.value());
+        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        assertEquals(new BytesRef("STARTED"), shardExpression.value());
     }
 
     @Test
     public void testPrimary() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, "primary");
-        SysExpression<String> shardExpression = (SysExpression<String>) resolver.getImplementation(ident);
+        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
         assertEquals(true, shardExpression.value());
     }
 
     @Test
     public void testRelocatingNode() throws Exception {
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, "relocating_node");
-        SysExpression<String> shardExpression = (SysExpression<String>) resolver.getImplementation(ident);
-        assertEquals("node_X", shardExpression.value());
+        SysExpression<BytesRef> shardExpression = (SysExpression<BytesRef>) resolver.getImplementation(ident);
+        assertEquals(new BytesRef("node_X"), shardExpression.value());
     }
 
     @Test

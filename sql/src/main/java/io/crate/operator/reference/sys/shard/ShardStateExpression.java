@@ -21,13 +21,13 @@
 
 package io.crate.operator.reference.sys.shard;
 
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.service.IndexShard;
 
-public class ShardStateExpression extends SysShardExpression<String> {
+public class ShardStateExpression extends SysShardExpression<BytesRef> {
 
     public static final String NAME = "state";
-
     private final IndexShard indexShard;
 
     @Inject
@@ -37,8 +37,8 @@ public class ShardStateExpression extends SysShardExpression<String> {
     }
 
     @Override
-    public String value() {
-        return indexShard.state().toString();
+    public BytesRef value() {
+        return new BytesRef(indexShard.state().toString());
     }
 
 }
