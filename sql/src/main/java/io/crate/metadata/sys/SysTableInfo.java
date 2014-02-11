@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,25 +19,12 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata;
+package io.crate.metadata.sys;
 
-import java.util.Map;
+import io.crate.metadata.table.TableInfo;
 
-public abstract class AbstractReferenceResolver implements ReferenceResolver {
+public abstract class SysTableInfo implements TableInfo {
 
-    @Override
-    public ReferenceImplementation getImplementation(ReferenceIdent ident) {
-        if (ident.isColumn()) {
-            return implementations().get(ident);
-        }
-        ReferenceImplementation impl = implementations().get(ident.columnReferenceIdent());
-        if (impl != null) {
-            for (String part : ident.columnIdent().path()) {
-                impl = impl.getChildImplementation(part);
-            }
-        }
-        return impl;
-    }
+    public static final String SCHEMA = "sys";
 
-    protected abstract Map<ReferenceIdent, ReferenceImplementation> implementations();
 }

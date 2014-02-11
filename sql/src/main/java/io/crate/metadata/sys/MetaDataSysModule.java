@@ -19,27 +19,29 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.reference.sys;
+package io.crate.metadata.sys;
 
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.ReferenceImplementation;
-import io.crate.operator.reference.sys.node.*;
+import io.crate.metadata.table.SchemaInfo;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
-public class SysNodeExpressionModule extends AbstractModule {
+public class MetaDataSysModule extends AbstractModule {
+
+    protected MapBinder<String, SysTableInfo> tableInfoBinder;
+    protected MapBinder<String, SchemaInfo> schemaBinder;
 
     @Override
     protected void configure() {
-        MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
-                .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
-
-        b.addBinding(NodeLoadExpression.INFO_LOAD.ident()).to(NodeLoadExpression.class).asEagerSingleton();
-        b.addBinding(NodeIdExpression.INFO_ID.ident()).to(NodeIdExpression.class).asEagerSingleton();
-        b.addBinding(NodeNameExpression.INFO_NAME.ident()).to(NodeNameExpression.class).asEagerSingleton();
-        b.addBinding(NodeHostnameExpression.INFO_HOSTNAME.ident()).to(NodeHostnameExpression.class).asEagerSingleton();
-        b.addBinding(NodePortExpression.INFO_PORT.ident()).to(NodePortExpression.class).asEagerSingleton();
-        b.addBinding(NodeMemoryExpression.INFO_MEM.ident()).to(NodeMemoryExpression.class).asEagerSingleton();
-        b.addBinding(NodeFsExpression.INFO_FS.ident()).to(NodeFsExpression.class).asEagerSingleton();
+        schemaBinder = MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
+        tableInfoBinder = MapBinder.newMapBinder(binder(), String.class, SysTableInfo.class);
+        schemaBinder.addBinding(SysSchemaInfo.NAME).to(SysSchemaInfo.class).asEagerSingleton();
+        bindTableInfos();
     }
+
+    protected void bindTableInfos() {
+        tableInfoBinder.addBinding(SysClusterTableInfo.IDENT.name()).to(SysClusterTableInfo.class).asEagerSingleton();
+        tableInfoBinder.addBinding(SysNodesTableInfo.IDENT.name()).to(SysNodesTableInfo.class).asEagerSingleton();
+        tableInfoBinder.addBinding(SysShardsTableInfo.IDENT.name()).to(SysShardsTableInfo.class).asEagerSingleton();
+    }
+
 }

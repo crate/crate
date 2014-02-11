@@ -21,28 +21,21 @@
 
 package io.crate.operator.reference.sys.cluster;
 
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.sys.SysExpression;
-import io.crate.metadata.sys.SystemReferences;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.ClusterIdService;
-import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
 
-public class ClusterIdExpression extends SysExpression<BytesRef> {
+public class ClusterIdExpression extends SysClusterExpression<BytesRef> {
 
     public static final String COLNAME = "id";
 
-
-    public static final ReferenceInfo INFO_ID = SystemReferences.registerClusterReference(
-            COLNAME, DataType.STRING);
-
-
+    public static final String NAME = "id";
     private final ClusterIdService clusterIdService;
     private BytesRef value = null;
 
     @Inject
     public ClusterIdExpression(ClusterIdService clusterIdService) {
+        super(NAME);
         this.clusterIdService = clusterIdService;
     }
 
@@ -54,11 +47,6 @@ public class ClusterIdExpression extends SysExpression<BytesRef> {
         }
 
         return value;
-    }
-
-    @Override
-    public ReferenceInfo info() {
-        return INFO_ID;
     }
 
 }

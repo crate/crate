@@ -22,6 +22,7 @@
 package io.crate.planner.symbol;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
 import io.crate.metadata.ReferenceInfo;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -41,6 +42,7 @@ public class Reference extends ValueSymbol {
     private ReferenceInfo info;
 
     public Reference(ReferenceInfo info) {
+        Preconditions.checkArgument(info!=null, "Info is null");
         this.info = info;
     }
 

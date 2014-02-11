@@ -37,7 +37,7 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
     @Inject
     public ShardReferenceResolver(final Map<ReferenceIdent, ReferenceImplementation> globalImplementations,
                                   final Map<ReferenceIdent, ShardReferenceImplementation> shardImplementations) {
-        Map<ReferenceIdent, ReferenceImplementation> implementations = new HashMap<>(globalImplementations.size()+shardImplementations.size());
+        Map<ReferenceIdent, ReferenceImplementation> implementations = new HashMap<>(globalImplementations.size() + shardImplementations.size());
         implementations.putAll(globalImplementations);
         implementations.putAll(shardImplementations);
         this.implementations = ImmutableMap.copyOf(implementations);

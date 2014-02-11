@@ -1,16 +1,13 @@
 package io.crate.metadata;
 
-import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.sys.SystemReferences;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.action.support.IgnoreIndices;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.shard.ShardId;
@@ -30,21 +27,12 @@ public class RoutingsService implements Routings {
 
     @Override
     public Routing getRouting(TableIdent tableIdent) {
-        if (SystemReferences.NODES_IDENT.equals(tableIdent)) {
-            return allNodes();
-        }
-        if (SystemReferences.CLUSTER_IDENT.equals(tableIdent)) {
-            return new Routing(null);
-        }
-
-        if (SystemReferences.SHARDS_IDENT.equals(tableIdent)) {
-            return allShards();
-        }
+        Preconditions.checkArgument(tableIdent.schema() == null, "Only null schema is supported");
 
         Map<String, Map<String, Set<Integer>>> routing = new HashMap<>();
 
         final ClusterState state = clusterService.state();
-        final String[] indices = new String[] { tableIdent.name() };
+        final String[] indices = new String[]{tableIdent.name()};
         GroupShardsIterator shardIterators = clusterService.operationRouting().searchShards(
                 state,
                 indices,
@@ -86,23 +74,4 @@ public class RoutingsService implements Routings {
         shards.add(shardRouting.id());
     }
 
-    private Routing allShards() {
-        Map<String, Map<String, Set<Integer>>> routing = new HashMap<>();
-        for (ShardRouting shardRouting : clusterService.state().routingTable().allShards()) {
-            processShardRouting(routing, shardRouting, null);
-        }
-
-        return new Routing(routing);
-    }
-
-    private Routing allNodes() {
-        DiscoveryNodes nodes = clusterService.state().nodes();
-        ImmutableMap.Builder<String, Map<String, Set<Integer>>> builder = ImmutableMap.builder();
-
-        for (DiscoveryNode node : nodes) {
-            builder.put(node.id(), ImmutableMap.<String, Set<Integer>>of());
-        }
-
-        return new Routing(builder.build());
-    }
 }

@@ -21,13 +21,13 @@
 
 package io.crate.metadata;
 
-import io.crate.metadata.sys.SystemReferences;
+import com.google.common.collect.Sets;
+import io.crate.metadata.table.TableInfo;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.cluster.ClusterService;
 import org.junit.Before;
 import org.junit.Test;
-import org.python.google.common.collect.Sets;
 
 import java.util.HashSet;
 import java.util.Map;
@@ -40,15 +40,17 @@ public class RoutingsServiceTest extends SQLTransportIntegrationTest {
 
     private RoutingsService routingsService;
     private ClusterService clusterService;
+    private ReferenceInfos referenceInfos;
 
     @Before
     public void setUpService() {
         clusterService = cluster().getInstance(ClusterService.class);
         routingsService = new RoutingsService(clusterService);
+        referenceInfos = cluster().getInstance(ReferenceInfos.class);
     }
 
     @Test
-    public void testGetRouting() throws Exception {
+    public void testDocRouting() throws Exception {
         execute("create table t1 (id int primary key) clustered into 10 shards replicas 1");
         ensureGreen();
 
@@ -67,9 +69,14 @@ public class RoutingsServiceTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testClusterRouting() throws Exception {
-        Routing routing = routingsService.getRouting(SystemReferences.CLUSTER_IDENT);
-        assertFalse(routing.hasLocations());
+    public void testNodesRouting() throws Exception {
+        TableInfo ti = referenceInfos.getTableInfo(new TableIdent("sys", "nodes"));
+        Routing routing = ti.getRouting(null);
+        assertTrue(routing.hasLocations());
+        assertEquals(2, routing.nodes().size());
+        for (Map<String, Set<Integer>> indices : routing.locations().values()) {
+            assertEquals(0, indices.size());
+        }
     }
 
     @Test
@@ -78,10 +85,11 @@ public class RoutingsServiceTest extends SQLTransportIntegrationTest {
         execute("create table t3 (id int primary key) clustered into 8 shards replicas 0");
         ensureGreen();
 
-        Routing routing = routingsService.getRouting(SystemReferences.SHARDS_IDENT);
+        TableInfo ti = referenceInfos.getTableInfo(new TableIdent("sys", "shards"));
+        Routing routing = ti.getRouting(null);
+
         Set<String> tables = new HashSet<>();
         Set<String> expectedTables = Sets.newHashSet("t2", "t3");
-
         int numShards = 0;
         for (Map.Entry<String, Map<String, Set<Integer>>> nodeEntry : routing.locations().entrySet()) {
             for (Map.Entry<String, Set<Integer>> indexEntry : nodeEntry.getValue().entrySet()) {
@@ -91,5 +99,11 @@ public class RoutingsServiceTest extends SQLTransportIntegrationTest {
         }
         assertThat(numShards, is(12));
         assertThat(tables, is(expectedTables));
+    }
+
+    @Test
+    public void testClusterRouting() throws Exception {
+        TableInfo ti = referenceInfos.getTableInfo(new TableIdent("sys", "cluster"));
+        assertNull(ti.getRouting(null));
     }
 }

@@ -22,67 +22,43 @@
 package io.crate.operator.reference.sys.node;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.sys.SysExpression;
-import io.crate.metadata.sys.SystemReferences;
-import io.crate.operator.reference.sys.SysObjectReference;
-import org.cratedb.DataType;
+import io.crate.metadata.ColumnIdent;
+import io.crate.operator.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.monitor.os.OsService;
 
-public class NodeLoadExpression extends SysObjectReference<Double> {
+public class NodeLoadExpression extends SysNodeObjectReference<Double> {
 
-    public static final String COLNAME = "load";
-
+    public static final String NAME = "load";
 
     public static final String ONE = "1";
     public static final String FIVE = "5";
     public static final String FIFTEEN = "15";
 
-    public static final ReferenceInfo INFO_LOAD = SystemReferences.registerNodeReference(
-            COLNAME, DataType.OBJECT);
-    public static final ReferenceInfo INFO_LOAD_1 = SystemReferences.registerNodeReference(
-            COLNAME, DataType.DOUBLE, ImmutableList.of(ONE));
-    public static final ReferenceInfo INFO_LOAD_5 = SystemReferences.registerNodeReference(
-            COLNAME, DataType.DOUBLE, ImmutableList.of(FIVE));
-    public static final ReferenceInfo INFO_LOAD_15 = SystemReferences.registerNodeReference(
-            COLNAME, DataType.DOUBLE, ImmutableList.of(FIFTEEN));
-
-
     private final OsService osService;
 
     @Inject
     public NodeLoadExpression(OsService osService) {
+        super(NAME);
         this.osService = osService;
-        childImplementations.put(ONE, new LoadExpression(0, INFO_LOAD_1));
-        childImplementations.put(FIVE, new LoadExpression(1, INFO_LOAD_5));
-        childImplementations.put(FIFTEEN, new LoadExpression(2, INFO_LOAD_15));
+        childImplementations.put(ONE, new LoadExpression(0, ONE));
+        childImplementations.put(FIVE, new LoadExpression(1, FIVE));
+        childImplementations.put(FIFTEEN, new LoadExpression(2, FIFTEEN));
     }
 
-    class LoadExpression extends SysExpression<Double> {
+    class LoadExpression extends SysNodeExpression<Double> {
 
         private final int idx;
-        private final ReferenceInfo info;
 
-        LoadExpression(int idx, ReferenceInfo info) {
+        LoadExpression(int idx, String name) {
+            super(new ColumnIdent(NAME, ImmutableList.of(name)));
             this.idx = idx;
-            this.info = info;
-        }
-
-        @Override
-        public ReferenceInfo info() {
-            return info;
         }
 
         @Override
         public Double value() {
             return osService.stats().loadAverage()[idx];
         }
-    }
-
-    @Override
-    public ReferenceInfo info() {
-        return INFO_LOAD;
     }
 
 }

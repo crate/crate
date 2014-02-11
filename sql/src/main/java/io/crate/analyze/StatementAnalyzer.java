@@ -41,39 +41,39 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
             }
         }
 
-        if (node.getLimit().isPresent()){
+        if (node.getLimit().isPresent()) {
             context.limit(Integer.parseInt(node.getLimit().get()));
         }
 
         process(node.getSelect(), context);
         if (node.getWhere().isPresent()) {
-            Function function = (Function)process(node.getWhere().get(), context);
+            Function function = (Function) process(node.getWhere().get(), context);
             context.whereClause(function);
         }
 
 
-        if (node.getGroupBy().size()>0){
+        if (node.getGroupBy().size() > 0) {
             List<Symbol> groupBy = new ArrayList<>(node.getGroupBy().size());
             for (Expression expression : node.getGroupBy()) {
                 Symbol s = process(expression, context);
                 // TODO: support column names and ordinals
                 int idx = context.outputSymbols().indexOf(s);
-                Preconditions.checkArgument(idx>=0,
+                Preconditions.checkArgument(idx >= 0,
                         "group by expression is not in output columns", s);
                 groupBy.add(context.outputSymbols().get(idx));
             }
             context.groupBy(groupBy);
         }
 
-        Preconditions.checkArgument(node.getHaving().isPresent()==false, "having clause is not yet supported");
+        Preconditions.checkArgument(node.getHaving().isPresent() == false, "having clause is not yet supported");
 
-        if (node.getOrderBy().size()>0){
+        if (node.getOrderBy().size() > 0) {
             List<Symbol> sortSymbols = new ArrayList<>(node.getOrderBy().size());
             context.reverseFlags(new boolean[node.getOrderBy().size()]);
-            int i=0;
+            int i = 0;
             for (SortItem sortItem : node.getOrderBy()) {
                 sortSymbols.add(process(sortItem, context));
-                context.reverseFlags()[i++] = sortItem.getOrdering()== SortItem.Ordering.DESCENDING;
+                context.reverseFlags()[i++] = sortItem.getOrdering() == SortItem.Ordering.DESCENDING;
             }
             context.sortSymbols(sortSymbols);
         }
@@ -159,7 +159,7 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     @Override
     protected Symbol visitQualifiedNameReference(QualifiedNameReference node, Analysis context) {
-        return context.allocateReference(new ReferenceIdent(context.table(), node.getSuffix().getSuffix()));
+        return context.allocateReference(new ReferenceIdent(context.table().ident(), node.getSuffix().getSuffix()));
     }
 
     @Override
@@ -167,7 +167,7 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
         SubscriptContext subscriptContext = new SubscriptContext();
         node.accept(visitor, subscriptContext);
         ReferenceIdent ident = new ReferenceIdent(
-                context.table(), subscriptContext.column(), subscriptContext.parts());
+                context.table().ident(), subscriptContext.column(), subscriptContext.parts());
         return context.allocateReference(ident);
     }
 
@@ -200,8 +200,8 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
         // resolve argument types
         List<DataType> argumentTypes = new ArrayList<>(arguments.size());
-        for(Symbol argument : arguments) {
-                argumentTypes.add(symbolDataTypeVisitor.process(argument, context));
+        for (Symbol argument : arguments) {
+            argumentTypes.add(symbolDataTypeVisitor.process(argument, context));
         }
 
         // TODO: register comparison operators for all numeric type permutations

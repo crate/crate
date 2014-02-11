@@ -177,7 +177,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 nodeVisitor.process(analysis.sortSymbols(), context);
 
                 CollectNode collectNode = new CollectNode();
-                collectNode.routing(analysis.routing());
+                collectNode.routing(analysis.table().getRouting(analysis.whereClause()));
                 collectNode.whereClause(analysis.whereClause());
                 collectNode.toCollect(context.symbolList());
 
@@ -205,7 +205,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             } else {
                 if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal()) {
                     // this is an es query
-                    // this only supports references as order by
+                    // this only supports INFOS as order by
                     List<Reference> orderBy;
                     if (analysis.isSorted()) {
                         orderBy = Lists.transform(analysis.sortSymbols(), new com.google.common.base.Function<Symbol, Reference>() {
@@ -236,7 +236,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                     nodeVisitor.process(analysis.sortSymbols(), context);
 
                     CollectNode collectNode = new CollectNode();
-                    collectNode.routing(analysis.routing());
+                    collectNode.routing(analysis.table().getRouting(analysis.whereClause()));
                     collectNode.whereClause(analysis.whereClause());
                     collectNode.toCollect(context.symbolList());
 

@@ -20,27 +20,18 @@
  */
 package io.crate.operator.reference.sys.shard;
 
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.shard.sys.SysShardExpression;
-import io.crate.metadata.sys.SystemReferences;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
 
 public class ShardTableNameExpression extends SysShardExpression<BytesRef> {
 
-    public static final String COLNAME = "table_name";
-
-
-    public static final ReferenceInfo INFO_TABLE_NAME = SystemReferences.registerShardReference(
-            COLNAME, DataType.STRING);
-
-
+    public static final String NAME = "table_name";
     private final BytesRef value;
 
     @Inject
     public ShardTableNameExpression(ShardId shardId) {
+        super(NAME);
         this.value = new BytesRef(shardId.getIndex());
     }
 
@@ -49,8 +40,4 @@ public class ShardTableNameExpression extends SysShardExpression<BytesRef> {
         return value;
     }
 
-    @Override
-    public ReferenceInfo info() {
-        return INFO_TABLE_NAME;
-    }
 }

@@ -21,37 +21,24 @@
 
 package io.crate.operator.reference.sys.shard;
 
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.shard.sys.SysShardExpression;
-import io.crate.metadata.sys.SystemReferences;
-import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.service.IndexShard;
 
 public class ShardPrimaryExpression extends SysShardExpression<Boolean> {
 
-    public static final String COLNAME = "primary";
-
-
-    public static final ReferenceInfo INFO_PRIMARY = SystemReferences.registerShardReference(
-            COLNAME, DataType.BOOLEAN);
-
+    public static final String NAME = "primary";
 
     private final IndexShard indexShard;
 
     @Inject
     public ShardPrimaryExpression(IndexShard indexShard) {
+        super(NAME);
         this.indexShard = indexShard;
     }
 
     @Override
     public Boolean value() {
         return indexShard.routingEntry().primary();
-    }
-
-    @Override
-    public ReferenceInfo info() {
-        return INFO_PRIMARY;
     }
 
 }

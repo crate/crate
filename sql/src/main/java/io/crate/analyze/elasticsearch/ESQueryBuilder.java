@@ -55,11 +55,12 @@ public class ESQueryBuilder {
      */
     private final static Set<String> filteredFields = Sets.newHashSet("_score");
 
-    /***
+    /**
      * Create a ESQueryBuilder to convert a whereClause to XContent or a ESSearchNode to XContent
-     * @param functions needs to contain at least the Operator functions
+     *
+     * @param functions         needs to contain at least the Operator functions
      * @param referenceResolver is only required if the outputs() of the ESSearchNode contains
-     *                          references with CLUSTER RowGranularity.
+     *                          INFOS with CLUSTER RowGranularity.
      */
     public ESQueryBuilder(Functions functions, ReferenceResolver referenceResolver) {
         normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
@@ -117,7 +118,7 @@ public class ESQueryBuilder {
 
         Set<String> fields = new HashSet<>();
         for (Reference output : outputs) {
-            fields.add(output.info().ident().fqDottedColumnName());
+            fields.add(output.info().ident().columnIdent().fqn());
         }
         builder.field("fields", fields);
 
@@ -149,7 +150,7 @@ public class ESQueryBuilder {
         int i = 0;
         for (Reference reference : orderBy) {
             builder.startObject()
-                    .startObject(reference.info().ident().fqDottedColumnName())
+                    .startObject(reference.info().ident().columnIdent().fqn())
                     .field("order", reverseFlags[i] ? "desc" : "asc")
                     .field("ignore_unmapped", true)
                     .endObject()
@@ -219,8 +220,8 @@ public class ESQueryBuilder {
                 assert right.symbolType().isLiteral();
 
                 return new Tuple<>(
-                        ((Reference) left).info().ident().fqDottedColumnName(),
-                        ((Literal)right).value()
+                        ((Reference) left).info().ident().columnIdent().fqn(),
+                        ((Literal) right).value()
                 );
             }
         }
@@ -254,8 +255,8 @@ public class ESQueryBuilder {
                 Symbol arg = function.arguments().get(0);
                 Preconditions.checkArgument(arg.symbolType() == SymbolType.REFERENCE);
 
-                Reference reference = (Reference)arg;
-                String columnName = reference.info().ident().fqDottedColumnName();
+                Reference reference = (Reference) arg;
+                String columnName = reference.info().ident().columnIdent().fqn();
 
                 context.builder.startObject("filtered").startObject("filter").startObject("missing")
                         .field("field", columnName)
@@ -360,9 +361,9 @@ public class ESQueryBuilder {
                 Symbol right = function.arguments().get(1);
 
                 if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isLiteral()) {
-                    String columnName = ((Reference)left).info().ident().column();
+                    String columnName = ((Reference) left).info().ident().columnIdent().name();
                     if (filteredFields.contains(columnName)) {
-                        context.ignoredFields.put(columnName, ((Literal)right).value());
+                        context.ignoredFields.put(columnName, ((Literal) right).value());
                         return true;
                     }
                 }

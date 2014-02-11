@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,25 +19,27 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata;
+package io.crate.metadata.sys;
+
+import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
+import org.elasticsearch.common.inject.Inject;
 
 import java.util.Map;
 
-public abstract class AbstractReferenceResolver implements ReferenceResolver {
+public class SysSchemaInfo implements SchemaInfo {
 
-    @Override
-    public ReferenceImplementation getImplementation(ReferenceIdent ident) {
-        if (ident.isColumn()) {
-            return implementations().get(ident);
-        }
-        ReferenceImplementation impl = implementations().get(ident.columnReferenceIdent());
-        if (impl != null) {
-            for (String part : ident.columnIdent().path()) {
-                impl = impl.getChildImplementation(part);
-            }
-        }
-        return impl;
+    public static final String NAME = "sys";
+    private final Map<String, SysTableInfo> tableInfos;
+
+    @Inject
+    public SysSchemaInfo(Map<String, SysTableInfo> infos) {
+        tableInfos = infos;
     }
 
-    protected abstract Map<ReferenceIdent, ReferenceImplementation> implementations();
+    @Override
+    public TableInfo getTableInfo(String name) {
+        return tableInfos.get(name);
+    }
+
 }

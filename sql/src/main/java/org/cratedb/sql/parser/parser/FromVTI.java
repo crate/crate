@@ -165,7 +165,7 @@ public class FromVTI extends FromTable
     }
 
     /**
-     * @return the table name used for matching with column references.
+     * @return the table name used for matching with column INFOS.
      *
      */
     public TableName getExposedTableName() {
@@ -180,7 +180,7 @@ public class FromVTI extends FromTable
     }
 
     /**
-     * Search to see if a query references the specifed table name.
+     * Search to see if a query INFOS the specifed table name.
      *
      * @param name Table name (String) to search for.
      * @param baseTable Whether or not name is for a base table

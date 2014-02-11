@@ -69,23 +69,24 @@ public class JobExecutorTest {
     }
 
     class TestMetaDataModule extends MetaDataModule {
-        @Override
-        protected void bindRoutings() {
-            Map<String, Map<String, Set<Integer>>> locations = ImmutableMap.<String, Map<String, Set<Integer>>>builder()
-                    .put("nodeOne", ImmutableMap.<String, Set<Integer>>of())
-                    .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
-                    .build();
-            final Routing routing = new Routing(locations);
 
-            Routings routings = new Routings() {
-
-                @Override
-                public Routing getRouting(TableIdent tableIdent) {
-                    return routing;
-                }
-            };
-            bind(Routings.class).toInstance(routings);
-        }
+//        @Override
+//        protected void bindRoutings() {
+//            Map<String, Map<String, Set<Integer>>> locations = ImmutableMap.<String, Map<String, Set<Integer>>>builder()
+//                    .put("nodeOne", ImmutableMap.<String, Set<Integer>>of())
+//                    .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
+//                    .build();
+//            final Routing routing = new Routing(locations);
+//
+//            Routings routings = new Routings() {
+//
+//                @Override
+//                public Routing getRouting(TableIdent tableIdent) {
+//                    return routing;
+//                }
+//            };
+//            bind(Routings.class).toInstance(routings);
+//        }
     }
 
     @Before

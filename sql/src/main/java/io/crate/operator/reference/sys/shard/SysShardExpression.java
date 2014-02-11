@@ -19,25 +19,31 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata;
+package io.crate.operator.reference.sys.shard;
 
-import java.util.Map;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.shard.ShardReferenceImplementation;
+import io.crate.metadata.sys.SysExpression;
+import io.crate.metadata.sys.SysShardsTableInfo;
+import org.elasticsearch.common.Preconditions;
 
-public abstract class AbstractReferenceResolver implements ReferenceResolver {
+public abstract class SysShardExpression<T> extends SysExpression<T> implements ShardReferenceImplementation {
 
-    @Override
-    public ReferenceImplementation getImplementation(ReferenceIdent ident) {
-        if (ident.isColumn()) {
-            return implementations().get(ident);
-        }
-        ReferenceImplementation impl = implementations().get(ident.columnReferenceIdent());
-        if (impl != null) {
-            for (String part : ident.columnIdent().path()) {
-                impl = impl.getChildImplementation(part);
-            }
-        }
-        return impl;
+    private final ReferenceInfo info;
+
+    protected SysShardExpression(String name) {
+        this(new ColumnIdent(name));
     }
 
-    protected abstract Map<ReferenceIdent, ReferenceImplementation> implementations();
+    protected SysShardExpression(ColumnIdent ident) {
+        info = SysShardsTableInfo.INFOS.get(ident);
+        Preconditions.checkNotNull(info, "info");
+    }
+
+    @Override
+    public ReferenceInfo info() {
+        return info;
+    }
+
 }

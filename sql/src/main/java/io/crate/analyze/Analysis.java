@@ -1,12 +1,15 @@
 package io.crate.analyze;
 
 import io.crate.metadata.*;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Query;
+import org.elasticsearch.common.Preconditions;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 
@@ -15,19 +18,16 @@ import java.util.*;
  */
 public class Analysis {
 
-    private final Routings routings;
     private Query query;
 
-    private final ReferenceResolver referenceResolver;
+    private final ReferenceInfos referenceInfos;
     private final Functions functions;
-    private TableIdent table;
+    private TableInfo table;
 
     private Map<Function, Function> functionSymbols = new HashMap<>();
 
-    //private Map<Aggregation, Aggregation> aggregationSymbols = new HashMap<>();
     private Map<ReferenceIdent, Reference> referenceSymbols = new IdentityHashMap<>();
 
-    private Routing routing;
     private List<String> outputNames;
     private List<Symbol> outputSymbols;
     private Integer limit;
@@ -38,22 +38,17 @@ public class Analysis {
     private boolean hasAggregates = false;
     private Function whereClause;
 
-    public Analysis(ReferenceResolver referenceResolver, Functions functions, Routings routings) {
-        this.referenceResolver = referenceResolver;
+    public Analysis(ReferenceInfos referenceInfos, Functions functions) {
+        this.referenceInfos = referenceInfos;
         this.functions = functions;
-        this.routings = routings;
     }
 
     public void table(TableIdent tableIdent) {
-        this.routing = routings.getRouting(tableIdent);
-        this.table = tableIdent;
+        table = referenceInfos.getTableInfo(tableIdent);
+        Preconditions.checkNotNull(table, "Table not found", tableIdent);
     }
 
-    public Routing routing() {
-        return routing;
-    }
-
-    public TableIdent table() {
+    public TableInfo table() {
         return this.table;
     }
 
@@ -65,9 +60,9 @@ public class Analysis {
         this.query = query;
     }
 
-    public Reference allocateReference(ReferenceIdent ident){
+    public Reference allocateReference(ReferenceIdent ident) {
         Reference reference = referenceSymbols.get(ident);
-        if (reference==null){
+        if (reference == null) {
             ReferenceInfo info = getReferenceInfo(ident);
             reference = new Reference(info);
             referenceSymbols.put(info.ident(), reference);
@@ -77,7 +72,7 @@ public class Analysis {
     }
 
     public ReferenceInfo getReferenceInfo(ReferenceIdent ident) {
-        ReferenceInfo info = referenceResolver.getInfo(ident);
+        ReferenceInfo info = referenceInfos.getReferenceInfo(ident);
         if (info == null) {
             throw new UnsupportedOperationException("TODO: unknown column reference: " + ident);
         }
@@ -160,12 +155,13 @@ public class Analysis {
 
     /**
      * Updates the row granularity of this query if it is higher than the current row granularity.
+     *
      * @param granularity the row granularity as seen by a reference
      * @return
      */
-    private RowGranularity updateRowGranularity(RowGranularity granularity){
-        if (rowGranularity==null || rowGranularity.ordinal()<granularity.ordinal()){
-            rowGranularity=granularity;
+    private RowGranularity updateRowGranularity(RowGranularity granularity) {
+        if (rowGranularity == null || rowGranularity.ordinal() < granularity.ordinal()) {
+            rowGranularity = granularity;
         }
         return rowGranularity;
     }
@@ -188,12 +184,12 @@ public class Analysis {
     }
 
     public Function allocateFunction(FunctionInfo info, List<Symbol> arguments) {
-        if (info.isAggregate()){
+        if (info.isAggregate()) {
             hasAggregates = true;
         }
         Function function = new Function(info, arguments);
         Function existing = functionSymbols.get(function);
-        if (existing != null){
+        if (existing != null) {
             return existing;
         } else {
             functionSymbols.put(function, function);
@@ -208,4 +204,5 @@ public class Analysis {
     public Function whereClause() {
         return whereClause;
     }
+
 }

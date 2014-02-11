@@ -81,7 +81,7 @@ public class LuceneQueryBuilder {
             public Query apply(Function input) {
                 Tuple<Reference, Literal> tuple = super.prepare(input);
 
-                String columnName = tuple.v1().info().ident().fqDottedColumnName();
+                String columnName = tuple.v1().info().ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
                 return builder.like(columnName, tuple.v2().value());
             }
@@ -113,7 +113,7 @@ public class LuceneQueryBuilder {
 
                 Reference reference = (Reference)arg;
 
-                String columnName = reference.info().ident().fqDottedColumnName();
+                String columnName = reference.info().ident().columnIdent().fqn();
                 QueryBuilderHelper builderHelper = QueryBuilderHelper.forType(reference.valueType());
                 return new FilteredQuery(
                         new MatchAllDocsQuery(),
@@ -126,7 +126,7 @@ public class LuceneQueryBuilder {
             public Query apply(Function input) {
                 Tuple<Reference, Literal> tuple = super.prepare(input);
 
-                String columnName = tuple.v1().info().ident().fqDottedColumnName();
+                String columnName = tuple.v1().info().ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
                 return builder.eq(columnName, tuple.v2().value());
             }
@@ -175,7 +175,7 @@ public class LuceneQueryBuilder {
             public Query apply(Function input) {
                 Tuple<Reference, Literal> tuple = super.prepare(input);
 
-                String columnName = tuple.v1().info().ident().fqDottedColumnName();
+                String columnName = tuple.v1().info().ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
                 return builder.rangeQuery(columnName, null, tuple.v2().value(), false, false);
             }
@@ -187,7 +187,7 @@ public class LuceneQueryBuilder {
             public Query apply(Function input) {
                 Tuple<Reference, Literal> tuple = super.prepare(input);
 
-                String columnName = tuple.v1().info().ident().fqDottedColumnName();
+                String columnName = tuple.v1().info().ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
                 return builder.rangeQuery(columnName, null, tuple.v2().value(), false, true);
             }
@@ -199,7 +199,7 @@ public class LuceneQueryBuilder {
             public Query apply(Function input) {
                 Tuple<Reference, Literal> tuple = super.prepare(input);
 
-                String columnName = tuple.v1().info().ident().fqDottedColumnName();
+                String columnName = tuple.v1().info().ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
                 return builder.rangeQuery(columnName, tuple.v2().value(), null, false, false);
             }
@@ -211,7 +211,7 @@ public class LuceneQueryBuilder {
             public Query apply(Function input) {
                 Tuple<Reference, Literal> tuple = super.prepare(input);
 
-                String columnName = tuple.v1().info().ident().fqDottedColumnName();
+                String columnName = tuple.v1().info().ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
                 return builder.rangeQuery(columnName, tuple.v2().value(), null, true, false);
             }

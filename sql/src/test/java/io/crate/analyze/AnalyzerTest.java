@@ -21,9 +21,12 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.*;
-import io.crate.metadata.sys.SystemReferences;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.sys.MetaDataSysModule;
+import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.metadata.table.SchemaInfo;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.aggregation.impl.AverageAggregation;
 import io.crate.operator.operator.EqOperator;
@@ -36,6 +39,7 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -47,9 +51,6 @@ import org.hamcrest.core.IsInstanceOf;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Map;
-import java.util.Set;
-
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -59,30 +60,24 @@ public class AnalyzerTest {
     private Injector injector;
     private Analyzer analyzer;
 
+    private static final ReferenceInfo LOAD_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load"));
+    private static final ReferenceInfo LOAD1_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "1"));
+    private static final ReferenceInfo LOAD5_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "5"));
+
+
     class TestMetaDataModule extends MetaDataModule {
-
-        @Override
-        protected void bindRoutings() {
-            Map<String, Map<String, Set<Integer>>> locations = ImmutableMap.<String, Map<String, Set<Integer>>>builder()
-                    .put("nodeOne", ImmutableMap.<String, Set<Integer>>of())
-                    .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
-                    .build();
-            final Routing routing = new Routing(locations);
-
-            Routings routings = new Routings() {
-
-                @Override
-                public Routing getRouting(TableIdent tableIdent) {
-                    return routing;
-                }
-            };
-            bind(Routings.class).toInstance(routings);
-        }
 
         @Override
         protected void bindReferences() {
             super.bindReferences();
-            referenceBinder.addBinding(NodeLoadExpression.INFO_LOAD.ident()).to(NodeLoadExpression.class).asEagerSingleton();
+            referenceBinder.addBinding(LOAD_INFO.ident()).to(NodeLoadExpression.class).asEagerSingleton();
+        }
+
+        @Override
+        protected void bindSchemas() {
+            super.bindSchemas();
+            SchemaInfo schemaInfo = mock(SchemaInfo.class);
+            bind(SchemaInfo.class).toInstance(schemaInfo);
         }
     }
 
@@ -94,6 +89,8 @@ public class AnalyzerTest {
 
         @Override
         protected void configure() {
+            ClusterService clusterService = mock(ClusterService.class);
+            bind(ClusterService.class).toInstance(clusterService);
             bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
             OsService osService = mock(OsService.class);
             OsStats osStats = mock(OsStats.class);
@@ -111,6 +108,7 @@ public class AnalyzerTest {
         injector = new ModulesBuilder()
                 .add(new TestModule())
                 .add(new TestMetaDataModule())
+                .add(new MetaDataSysModule())
                 .add(new AggregationImplModule())
                 .add(new OperatorModule())
                 .createInjector();
@@ -129,7 +127,7 @@ public class AnalyzerTest {
     public void testOrderedSelect() throws Exception {
         Statement statement = SqlParser.createStatement("select load['1'] from sys.nodes order by load['5'] desc");
         Analysis analysis = analyzer.analyze(statement);
-        assertTrue(analysis.routing().hasLocations());
+        assertEquals(analysis.table().ident(), SysNodesTableInfo.IDENT);
         assertNull(analysis.limit());
 
         assertFalse(analysis.hasGroupBy());
@@ -140,7 +138,7 @@ public class AnalyzerTest {
         assertEquals(1, analysis.sortSymbols().size());
         assertEquals(1, analysis.reverseFlags().length);
 
-        assertEquals(NodeLoadExpression.INFO_LOAD_5, ((Reference) analysis.sortSymbols().get(0)).info());
+        assertEquals(LOAD5_INFO, ((Reference) analysis.sortSymbols().get(0)).info());
 
     }
 
@@ -149,13 +147,13 @@ public class AnalyzerTest {
     public void testGroupedSelect() throws Exception {
         Statement statement = SqlParser.createStatement("select load['1'],load['5'] from sys.nodes group by load['1']");
         Analysis analysis = analyzer.analyze(statement);
-        assertTrue(analysis.routing().hasLocations());
+        assertEquals(analysis.table().ident(), SysNodesTableInfo.IDENT);
         assertNull(analysis.limit());
 
         assertTrue(analysis.hasGroupBy());
         assertEquals(2, analysis.outputSymbols().size());
         assertEquals(1, analysis.groupBy().size());
-        assertEquals(NodeLoadExpression.INFO_LOAD_1, ((Reference) analysis.groupBy().get(0)).info());
+        assertEquals(LOAD1_INFO, ((Reference) analysis.groupBy().get(0)).info());
 
     }
 
@@ -164,16 +162,16 @@ public class AnalyzerTest {
     public void testSimpleSelect() throws Exception {
         Statement statement = SqlParser.createStatement("select load['5'] from sys.nodes limit 2");
         Analysis analysis = analyzer.analyze(statement);
-        assertTrue(analysis.routing().hasLocations());
+        assertEquals(analysis.table().ident(), SysNodesTableInfo.IDENT);
         assertEquals(new Integer(2), analysis.limit());
 
         assertFalse(analysis.hasGroupBy());
 
 
-        assertEquals(SystemReferences.NODES_IDENT, analysis.table());
+        assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
         assertEquals(1, analysis.outputSymbols().size());
         Reference col1 = (Reference) analysis.outputSymbols().get(0);
-        assertEquals(NodeLoadExpression.INFO_LOAD_5, col1.info());
+        assertEquals(LOAD5_INFO, col1.info());
 
     }
 
@@ -181,7 +179,8 @@ public class AnalyzerTest {
     public void testAggregationSelect() throws Exception {
         Statement statement = SqlParser.createStatement("select avg(load['5']) from sys.nodes");
         Analysis analysis = analyzer.analyze(statement);
-        assertTrue(analysis.routing().hasLocations());
+        assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
+
         assertFalse(analysis.hasGroupBy());
         assertEquals(1, analysis.outputSymbols().size());
         Function col1 = (Function) analysis.outputSymbols().get(0);
@@ -195,19 +194,20 @@ public class AnalyzerTest {
         Statement statement = SqlParser.createStatement("select load from sys.nodes " +
                 "where load['1'] = 1.2 or 1.0 >= load['5']");
         Analysis analysis = analyzer.analyze(statement);
-        assertTrue(analysis.routing().hasLocations());
+        assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
+
         assertFalse(analysis.hasGroupBy());
 
         Function whereClause = analysis.whereClause();
         assertEquals(OrOperator.NAME, whereClause.info().ident().name());
         assertFalse(whereClause.info().isAggregate());
 
-        Function left = (Function)whereClause.arguments().get(0);
+        Function left = (Function) whereClause.arguments().get(0);
         assertEquals(EqOperator.NAME, left.info().ident().name());
         assertThat(left.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
         assertThat(left.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
 
-        Function right = (Function)whereClause.arguments().get(1);
+        Function right = (Function) whereClause.arguments().get(1);
         assertEquals(LteOperator.NAME, right.info().ident().name());
         assertThat(left.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
         assertThat(left.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));

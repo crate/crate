@@ -27,7 +27,7 @@ import org.cratedb.sql.parser.StandardException;
 
 /**
  * A StaticClassFieldReferenceNode represents a Java static field reference from 
- * a Class (as opposed to an Object).    Field references can be 
+ * a Class (as opposed to an Object).    Field INFOS can be
  * made in DML (as expressions).
  *
  */

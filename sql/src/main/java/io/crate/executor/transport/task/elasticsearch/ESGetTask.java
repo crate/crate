@@ -141,7 +141,7 @@ public class ESGetTask implements Task<Object[][]> {
 
         @Override
         public Void visitReference(Reference symbol, Context context) {
-            context.add(symbol.info().ident().fqDottedColumnName());
+            context.add(symbol.info().ident().columnIdent().fqn());
             return null;
         }
 

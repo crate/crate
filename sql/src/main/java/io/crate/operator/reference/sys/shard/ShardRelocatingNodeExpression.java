@@ -21,27 +21,19 @@
 
 package io.crate.operator.reference.sys.shard;
 
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.shard.sys.SysShardExpression;
-import io.crate.metadata.sys.SystemReferences;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.service.IndexShard;
 
 public class ShardRelocatingNodeExpression extends SysShardExpression<BytesRef> {
 
-    public static final String COLNAME = "relocating_node";
-
-
-    public static final ReferenceInfo INFO_RELOCATING_NODE = SystemReferences.registerShardReference(
-            COLNAME, DataType.STRING);
-
+    public static final String NAME = "relocating_node";
 
     private final IndexShard indexShard;
 
     @Inject
     public ShardRelocatingNodeExpression(IndexShard indexShard) {
+        super(NAME);
         this.indexShard = indexShard;
     }
 
@@ -49,10 +41,4 @@ public class ShardRelocatingNodeExpression extends SysShardExpression<BytesRef> 
     public BytesRef value() {
         return new BytesRef(indexShard.routingEntry().relocatingNodeId());
     }
-
-    @Override
-    public ReferenceInfo info() {
-        return INFO_RELOCATING_NODE;
-    }
-
 }

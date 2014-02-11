@@ -24,8 +24,9 @@ import io.crate.metadata.GlobalReferenceResolver;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.sys.SysExpression;
-import io.crate.metadata.sys.SystemReferences;
+import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operator.Input;
+import io.crate.operator.reference.sys.node.SysNodeExpressionModule;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -82,8 +83,8 @@ public class TestSysNodesExpressions {
             when(osStats.mem()).thenReturn(mem);
             when(mem.free()).thenReturn(byteSizeValue);
             when(mem.used()).thenReturn(byteSizeValue);
-            when(mem.usedPercent()).thenReturn((short)22);
-            when(mem.freePercent()).thenReturn((short)78);
+            when(mem.usedPercent()).thenReturn((short) 22);
+            when(mem.freePercent()).thenReturn((short) 78);
 
             bind(OsService.class).toInstance(osService);
 
@@ -154,7 +155,7 @@ public class TestSysNodesExpressions {
     @Test
     public void testLoad() throws Exception {
 
-        ReferenceIdent ident = new ReferenceIdent(SystemReferences.NODES_IDENT, "load");
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "load");
         SysObjectReference<Double> load = (SysObjectReference<Double>) resolver.getImplementation(ident);
 
         Map<String, Double> v = load.value();
@@ -175,7 +176,7 @@ public class TestSysNodesExpressions {
     @Test
     public void testName() throws Exception {
 
-        ReferenceIdent ident = new ReferenceIdent(SystemReferences.NODES_IDENT, "name");
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "name");
         SysExpression<String> name = (SysExpression<String>) resolver.getImplementation(ident);
 
         assertEquals(new BytesRef("node 1"), name.value());
@@ -183,25 +184,22 @@ public class TestSysNodesExpressions {
 
     @Test
     public void testId() throws Exception {
-        ReferenceIdent ident = new ReferenceIdent(SystemReferences.NODES_IDENT, "id");
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "id");
         SysExpression<BytesRef> id = (SysExpression<BytesRef>) resolver.getImplementation(ident);
-
         assertEquals(new BytesRef("node-id-1"), id.value());
     }
 
     @Test
     public void testHostname() throws Exception {
-
-        ReferenceIdent ident = new ReferenceIdent(SystemReferences.NODES_IDENT, "hostname");
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "hostname");
         SysExpression<BytesRef> hostname = (SysExpression<BytesRef>) resolver.getImplementation(ident);
-
         assertEquals(new BytesRef("localhost"), hostname.value());
     }
 
     @Test
     public void testPorts() throws Exception {
 
-        ReferenceIdent ident = new ReferenceIdent(SystemReferences.NODES_IDENT, "port");
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "port");
         SysObjectReference<Integer> port = (SysObjectReference<Integer>) resolver.getImplementation(ident);
 
         Map<String, Integer> v = port.value();
@@ -212,7 +210,7 @@ public class TestSysNodesExpressions {
     @Test
     public void testMemory() throws Exception {
 
-        ReferenceIdent ident = new ReferenceIdent(SystemReferences.NODES_IDENT, "mem");
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "mem");
         SysObjectReference<Object> mem = (SysObjectReference<Object>) resolver.getImplementation(ident);
 
         Map<String, Object> v = mem.value();
@@ -227,7 +225,7 @@ public class TestSysNodesExpressions {
     @Test
     public void testFs() throws Exception {
 
-        ReferenceIdent ident = new ReferenceIdent(SystemReferences.NODES_IDENT, "fs");
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "fs");
         SysObjectReference<Object> fs = (SysObjectReference<Object>) resolver.getImplementation(ident);
 
         Map<String, Object> v = fs.value();

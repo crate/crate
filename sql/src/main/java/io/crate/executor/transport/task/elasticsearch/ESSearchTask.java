@@ -135,7 +135,7 @@ public class ESSearchTask implements Task<Object[][]> {
 
         @Override
         public Void visitReference(Reference symbol, Context context) {
-            final String columnName = symbol.info().ident().fqDottedColumnName();
+            final String columnName = symbol.info().ident().columnIdent().fqn();
             context.fields.add(new Tuple<>(columnName, columnName));
             context.outputs.add(symbol);
             context.indices.add(symbol.info().ident().tableIdent().name());

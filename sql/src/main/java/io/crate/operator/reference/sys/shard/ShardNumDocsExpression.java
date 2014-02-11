@@ -21,26 +21,18 @@
 
 package io.crate.operator.reference.sys.shard;
 
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.shard.sys.SysShardExpression;
-import io.crate.metadata.sys.SystemReferences;
-import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.service.IndexShard;
 
 public class ShardNumDocsExpression extends SysShardExpression<Long> {
 
-    public static final String COLNAME = "num_docs";
-
-
-    public static final ReferenceInfo INFO_NUM_DOCS = SystemReferences.registerShardReference(
-            COLNAME, DataType.LONG);
-
+    public static final String NAME = "num_docs";
 
     private final IndexShard indexShard;
 
     @Inject
     public ShardNumDocsExpression(IndexShard indexShard) {
+        super(NAME);
         this.indexShard = indexShard;
     }
 
@@ -48,10 +40,4 @@ public class ShardNumDocsExpression extends SysShardExpression<Long> {
     public Long value() {
         return indexShard.docStats().getCount();
     }
-
-    @Override
-    public ReferenceInfo info() {
-        return INFO_NUM_DOCS;
-    }
-
 }

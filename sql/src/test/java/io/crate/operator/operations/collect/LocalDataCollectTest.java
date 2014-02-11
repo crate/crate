@@ -27,11 +27,12 @@ import com.google.common.collect.Sets;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
-import io.crate.metadata.shard.sys.SysShardExpression;
+import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operator.Input;
 import io.crate.operator.operator.AndOperator;
 import io.crate.operator.operator.EqOperator;
 import io.crate.operator.operator.OperatorModule;
+import io.crate.operator.reference.sys.shard.SysShardExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.symbol.*;
@@ -104,9 +105,11 @@ public class LocalDataCollectTest {
 
         @Override
         public Integer evaluate(Input<?>... args) {
-            if (args.length == 0) { return 0; }
-            Integer value = (Integer)args[0].value();
-            return (value)*2;
+            if (args.length == 0) {
+                return 0;
+            }
+            Integer value = (Integer) args[0].value();
+            return (value) * 2;
         }
 
         @Override
@@ -121,24 +124,18 @@ public class LocalDataCollectTest {
     }
 
     static class ShardIdExpression extends SysShardExpression<Integer> {
-        public static final ReferenceIdent ident = new ReferenceIdent(new TableIdent("sys", "shards"), "id");
-        public static final ReferenceInfo info = new ReferenceInfo(ident, RowGranularity.SHARD, DataType.INTEGER);
 
         private final ShardId shardId;
 
         @Inject
         public ShardIdExpression(ShardId shardId) {
+            super("id");
             this.shardId = shardId;
         }
 
         @Override
         public Integer value() {
             return shardId.id();
-        }
-
-        @Override
-        public ReferenceInfo info() {
-            return info;
         }
 
         @Override
@@ -150,7 +147,7 @@ public class LocalDataCollectTest {
     private Functions functions;
     private IndexService indexService = mock(IndexService.class);
     private LocalDataCollectOperation operation;
-    private Routing testRouting = new Routing(new HashMap<String, Map<String, Set<Integer>>>(1){{
+    private Routing testRouting = new Routing(new HashMap<String, Map<String, Set<Integer>>>(1) {{
         put(TEST_NODE_ID, new HashMap<String, Set<Integer>>());
     }});
 
@@ -160,10 +157,11 @@ public class LocalDataCollectTest {
     private final static String TEST_TABLE_NAME = "test_table";
 
     private static Reference testNodeReference = new Reference(TestExpression.info);
-    private static Reference testShardIdReference = new Reference(ShardIdExpression.info);
+    private static Reference testShardIdReference = new Reference(SysShardsTableInfo.INFOS.get(new ColumnIdent("id")));
 
     class TestModule extends AbstractModule {
         protected MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
+
         @Override
         protected void configure() {
             functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
@@ -210,7 +208,7 @@ public class LocalDataCollectTest {
             bind(ShardId.class).toInstance(shardId);
             MapBinder<ReferenceIdent, ShardReferenceImplementation> binder = MapBinder
                     .newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
-            binder.addBinding(ShardIdExpression.ident).toInstance(shardIdExpression);
+            binder.addBinding(SysShardsTableInfo.INFOS.get(new ColumnIdent("id")).ident()).toInstance(shardIdExpression);
             bind(ShardReferenceResolver.class).asEagerSingleton();
             bind(ScriptService.class).toInstance(mock(ScriptService.class));
             bind(ShardCollectService.class).asEagerSingleton();
@@ -244,9 +242,9 @@ public class LocalDataCollectTest {
                 functions, injector.getInstance(ReferenceResolver.class), indicesService, testThreadPool);
     }
 
-    private Routing shardRouting(final Integer ... shardIds) {
-        return new Routing(new HashMap<String, Map<String, Set<Integer>>>(){{
-            put(TEST_NODE_ID, new HashMap<String, Set<Integer>>(){{
+    private Routing shardRouting(final Integer... shardIds) {
+        return new Routing(new HashMap<String, Map<String, Set<Integer>>>() {{
+            put(TEST_NODE_ID, new HashMap<String, Set<Integer>>() {{
                 put(TEST_TABLE_NAME, ImmutableSet.copyOf(shardIds));
             }});
         }});
@@ -271,8 +269,8 @@ public class LocalDataCollectTest {
         expectedException.expect(ElasticSearchIllegalStateException.class);
         expectedException.expectMessage("unsupported routing");
 
-        CollectNode collectNode = new CollectNode("wrong", new Routing(new HashMap<String, Map<String, Set<Integer>>>(){{
-            put("bla", new HashMap<String, Set<Integer>>(){{
+        CollectNode collectNode = new CollectNode("wrong", new Routing(new HashMap<String, Map<String, Set<Integer>>>() {{
+            put("bla", new HashMap<String, Set<Integer>>() {{
                 put("my_index", Sets.newHashSet(1));
                 put("my_index", Sets.newHashSet(1));
             }});
@@ -320,8 +318,8 @@ public class LocalDataCollectTest {
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, equalTo(1));
         assertThat(result[0].length, equalTo(2));
-        assertThat((Integer)result[0][0], equalTo(84));
-        assertThat((Integer)result[0][1], equalTo(42));
+        assertThat((Integer) result[0][0], equalTo(84));
+        assertThat((Integer) result[0][1], equalTo(42));
     }
 
 
@@ -357,8 +355,8 @@ public class LocalDataCollectTest {
         assertThat(result.length, equalTo(1));
         assertThat((String) result[0][0], equalTo("foobar"));
         assertThat((Boolean) result[0][1], equalTo(true));
-        assertThat((Integer)result[0][2], equalTo(1));
-        assertThat((Double)result[0][3], equalTo(4.2));
+        assertThat((Integer) result[0][2], equalTo(1));
+        assertThat((Double) result[0][3], equalTo(4.2));
 
     }
 
@@ -384,13 +382,13 @@ public class LocalDataCollectTest {
         ));
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, equalTo(1));
-        assertThat((Integer)result[0][0], equalTo(42));
+        assertThat((Integer) result[0][0], equalTo(42));
 
     }
 
     @Test
     public void testCollectWithNullWhereClause() throws Exception {
-        EqOperator op = (EqOperator)functions.get(new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)));
+        EqOperator op = (EqOperator) functions.get(new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)));
         CollectNode collectNode = new CollectNode("whereClause", testRouting);
         collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
         collectNode.whereClause(new Function(
@@ -403,108 +401,101 @@ public class LocalDataCollectTest {
 
     @Test
     public void testCollectShardExpressions() throws Exception {
-        CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0,1));
+        CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0, 1));
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
         collectNode.maxRowGranularity(RowGranularity.SHARD);
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(equalTo(2)));
-        assertThat((Integer)result[0][0], isOneOf(0, 1));
-        assertThat((Integer)result[1][0], isOneOf(0, 1));
+        assertThat((Integer) result[0][0], isOneOf(0, 1));
+        assertThat((Integer) result[1][0], isOneOf(0, 1));
 
     }
 
     @Test
     public void testCollectShardExpressionsWhereShardIdIs0() throws Exception {
-        EqOperator op = (EqOperator)functions.get(new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)));
+        EqOperator op = (EqOperator) functions.get(new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)));
 
-        CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0,1));
+        CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0, 1));
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
         collectNode.whereClause(new Function(op.info(), Arrays.<Symbol>asList(testShardIdReference, new IntegerLiteral(0))));
         collectNode.maxRowGranularity(RowGranularity.SHARD);
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(equalTo(1)));
-        assertThat((Integer)result[0][0], is(0));
+        assertThat((Integer) result[0][0], is(0));
     }
 
     @Test
     public void testCollectShardExpressionsLiteralsAndNodeExpressions() throws Exception {
-        CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0,1));
+        CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0, 1));
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference, new BooleanLiteral(true), testNodeReference));
         collectNode.maxRowGranularity(RowGranularity.SHARD);
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(equalTo(2)));
         assertThat(result[0].length, is(equalTo(3)));
-        assertThat((Integer)result[0][0], is(0));
-        assertThat((Boolean)result[0][1], is(true));
-        assertThat((Integer)result[0][2], is(42));
+        assertThat((Integer) result[0][0], is(0));
+        assertThat((Boolean) result[0][1], is(true));
+        assertThat((Integer) result[0][2], is(42));
 
-        assertThat((Integer)result[1][0], is(1));
+        assertThat((Integer) result[1][0], is(1));
         assertThat((Boolean) result[1][1], is(true));
         assertThat((Integer) result[1][2], is(42));
     }
 
     /**
-    @Test
-    public void testCollectShardExpressionsLimit1() throws Exception {
-        CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0,1), null, 1, CollectNode.NO_OFFSET);
-        collectNode.toCollect(testShardIdReference, testNodeReference);
-        Object result[][] = operation.collect(collectNode).get();
-        assertThat(result.length, is(1));
-        assertThat(result[0].length, is(2));
-        assertThat((Integer)result[0][0], isOneOf(0,1));
-        assertThat((Integer)result[0][1], is(42));
-    }
+     @Test public void testCollectShardExpressionsLimit1() throws Exception {
+     CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0,1), null, 1, CollectNode.NO_OFFSET);
+     collectNode.toCollect(testShardIdReference, testNodeReference);
+     Object result[][] = operation.collect(collectNode).get();
+     assertThat(result.length, is(1));
+     assertThat(result[0].length, is(2));
+     assertThat((Integer)result[0][0], isOneOf(0,1));
+     assertThat((Integer)result[0][1], is(42));
+     }
 
-    @Test
-    public void testCollectShardExpressionsNoLimitOffset2() throws Exception {
-        CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0,1), null, CollectNode.NO_LIMIT, 2);
-        collectNode.toCollect(testShardIdReference, testNodeReference);
-        Object result[][] = operation.collect(collectNode).get();
-        assertThat(result.length, is(0));
-    }
+     @Test public void testCollectShardExpressionsNoLimitOffset2() throws Exception {
+     CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0,1), null, CollectNode.NO_LIMIT, 2);
+     collectNode.toCollect(testShardIdReference, testNodeReference);
+     Object result[][] = operation.collect(collectNode).get();
+     assertThat(result.length, is(0));
+     }
 
-    @Test
-    public void testCollectShardExpressionsLimit0() throws Exception {
-        CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0,1), null, 0, CollectNode.NO_OFFSET);
-        collectNode.toCollect(testShardIdReference, testNodeReference);
-        Object result[][] = operation.collect(collectNode).get();
-        assertThat(result.length, is(0));
-    }
+     @Test public void testCollectShardExpressionsLimit0() throws Exception {
+     CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0,1), null, 0, CollectNode.NO_OFFSET);
+     collectNode.toCollect(testShardIdReference, testNodeReference);
+     Object result[][] = operation.collect(collectNode).get();
+     assertThat(result.length, is(0));
+     }
 
-    @Test
-    public void testCollectNodeExpressionsLimit0() throws Exception {
-        CollectNode collectNode = new CollectNode("nodeCollect", testRouting, null, 0, CollectNode.NO_OFFSET);
-        collectNode.toCollect(testNodeReference);
-        Object result[][] = operation.collect(collectNode).get();
-        assertThat(result.length, is(0));
-    }
+     @Test public void testCollectNodeExpressionsLimit0() throws Exception {
+     CollectNode collectNode = new CollectNode("nodeCollect", testRouting, null, 0, CollectNode.NO_OFFSET);
+     collectNode.toCollect(testNodeReference);
+     Object result[][] = operation.collect(collectNode).get();
+     assertThat(result.length, is(0));
+     }
 
-    @Test
-    public void testCollectNodeExpressionsOffset1() throws Exception {
-        CollectNode collectNode = new CollectNode("nodeCollect", testRouting, null, CollectNode.NO_LIMIT, 1);
-        collectNode.toCollect(testNodeReference);
-        Object result[][] = operation.collect(collectNode).get();
-        assertThat(result.length, is(0));
-    }
+     @Test public void testCollectNodeExpressionsOffset1() throws Exception {
+     CollectNode collectNode = new CollectNode("nodeCollect", testRouting, null, CollectNode.NO_LIMIT, 1);
+     collectNode.toCollect(testNodeReference);
+     Object result[][] = operation.collect(collectNode).get();
+     assertThat(result.length, is(0));
+     }
 
-    @Test
-    public void testCollectShardExpressionsOrderByAsc() throws Exception {
-        CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0,1), null, CollectNode.NO_LIMIT, CollectNode.NO_OFFSET, new int[]{0}, new boolean[]{false});
-        collectNode.toCollect(testShardIdReference, testNodeReference);
-        Object result[][] = operation.collect(collectNode).get();
-        assertThat(result.length, is(2));
-        assertThat((Integer)result[0][0], is(0));
-        assertThat((Integer)result[1][0], is(1));
-    }
+     @Test public void testCollectShardExpressionsOrderByAsc() throws Exception {
+     CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0,1), null, CollectNode.NO_LIMIT, CollectNode.NO_OFFSET, new int[]{0}, new boolean[]{false});
+     collectNode.toCollect(testShardIdReference, testNodeReference);
+     Object result[][] = operation.collect(collectNode).get();
+     assertThat(result.length, is(2));
+     assertThat((Integer)result[0][0], is(0));
+     assertThat((Integer)result[1][0], is(1));
+     }
 
-    @Test
-    public void testCollectShardExpressionsOrderByDesc() throws Exception {
-        CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0,1), null, CollectNode.NO_LIMIT, CollectNode.NO_OFFSET, new int[]{0}, new boolean[]{true});
-        collectNode.toCollect(testShardIdReference, testNodeReference);
-        Object result[][] = operation.collect(collectNode).get();
-        assertThat(result.length, is(2));
-        assertThat((Integer)result[0][0], is(1));
-        assertThat((Integer)result[1][0], is(0));
-    }
-    */
+     @Test public void testCollectShardExpressionsOrderByDesc() throws Exception {
+     CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0,1), null, CollectNode.NO_LIMIT, CollectNode.NO_OFFSET, new int[]{0}, new boolean[]{true});
+     collectNode.toCollect(testShardIdReference, testNodeReference);
+     Object result[][] = operation.collect(collectNode).get();
+     assertThat(result.length, is(2));
+     assertThat((Integer)result[0][0], is(1));
+     assertThat((Integer)result[1][0], is(0));
+     }
+     */
 }

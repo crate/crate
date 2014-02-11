@@ -22,11 +22,8 @@
 package io.crate.operator.reference.sys.node;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.sys.SysExpression;
-import io.crate.metadata.sys.SystemReferences;
-import io.crate.operator.reference.sys.SysObjectReference;
-import org.cratedb.DataType;
+import io.crate.metadata.ColumnIdent;
+import io.crate.operator.reference.sys.SysNodeObjectReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -34,59 +31,40 @@ import org.elasticsearch.http.HttpServer;
 import org.elasticsearch.node.service.NodeService;
 
 
-public class NodePortExpression extends SysObjectReference<Integer> {
+public class NodePortExpression extends SysNodeObjectReference<Integer> {
 
-    abstract class PortExpression extends SysExpression<Integer> {
+    public static final String NAME = "port";
 
-        private final ReferenceInfo info;
+    abstract class PortExpression extends SysNodeExpression<Integer> {
 
-        PortExpression(ReferenceInfo info) {
-            this.info = info;
-        }
-
-        @Override
-        public ReferenceInfo info() {
-            return info;
+        PortExpression(String name) {
+            super(new ColumnIdent(NAME, ImmutableList.of(name)));
         }
     }
 
-    public static final String COLNAME = "port";
-
     public static final String HTTP = "http";
     public static final String TRANSPORT = "transport";
-
-    public static final ReferenceInfo INFO_PORT = SystemReferences.registerNodeReference(
-            COLNAME, DataType.OBJECT);
-    public static final ReferenceInfo INFO_PORT_HTTP = SystemReferences.registerNodeReference(
-            COLNAME, DataType.INTEGER, ImmutableList.of(HTTP));
-    public static final ReferenceInfo INFO_PORT_TRANSPORT = SystemReferences.registerNodeReference(
-            COLNAME, DataType.INTEGER, ImmutableList.of(TRANSPORT));
-
 
     private final NodeService nodeService;
     private final HttpServer httpServer;
 
     @Inject
     public NodePortExpression(NodeService nodeService, HttpServer httpServer) {
+        super(NAME);
         this.nodeService = nodeService;
         this.httpServer = httpServer;
         addChildImplementations();
     }
 
-    @Override
-    public ReferenceInfo info() {
-        return INFO_PORT;
-    }
-
     private void addChildImplementations() {
-        childImplementations.put(HTTP, new PortExpression(INFO_PORT_HTTP) {
+        childImplementations.put(HTTP, new PortExpression(HTTP) {
             @Override
             public Integer value() {
 
                 return portFromAddress(httpServer.info().address().publishAddress()); //nodeService.stats().getNode().attributes().get("http_address"));
             }
         });
-        childImplementations.put(TRANSPORT, new PortExpression(INFO_PORT_TRANSPORT) {
+        childImplementations.put(TRANSPORT, new PortExpression(TRANSPORT) {
             @Override
             public Integer value() {
                 return portFromAddress(nodeService.stats().getNode().address());

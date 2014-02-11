@@ -19,27 +19,31 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.reference.sys;
+package io.crate.operator.reference.sys.cluster;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.shard.ShardReferenceImplementation;
-import io.crate.operator.reference.sys.shard.*;
+import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.sys.SysClusterTableInfo;
+import io.crate.operator.reference.sys.cluster.ClusterIdExpression;
+import io.crate.operator.reference.sys.cluster.ClusterNameExpression;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
-public class SysShardExpressionModule extends AbstractModule {
+import java.util.Map;
+
+public class SysClusterExpressionModule extends AbstractModule {
+
     @Override
     protected void configure() {
-        MapBinder<ReferenceIdent, ShardReferenceImplementation> b = MapBinder
-                .newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
+        MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
+                .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
 
-        b.addBinding(ShardIdExpression.INFO_ID.ident()).to(ShardIdExpression.class).asEagerSingleton();
-        b.addBinding(ShardSizeExpression.INFO_SIZE.ident()).to(ShardSizeExpression.class).asEagerSingleton();
-        b.addBinding(ShardNumDocsExpression.INFO_NUM_DOCS.ident()).to(ShardNumDocsExpression.class).asEagerSingleton();
-        b.addBinding(ShardPrimaryExpression.INFO_PRIMARY.ident()).to(ShardPrimaryExpression.class).asEagerSingleton();
-        b.addBinding(ShardStateExpression.INFO_STATE.ident()).to(ShardStateExpression.class).asEagerSingleton();
-        b.addBinding(ShardRelocatingNodeExpression.INFO_RELOCATING_NODE.ident()).to(ShardRelocatingNodeExpression.class).asEagerSingleton();
-        b.addBinding(ShardTableNameExpression.INFO_TABLE_NAME.ident()).to(ShardTableNameExpression.class).asEagerSingleton();
+        Map<ColumnIdent, ReferenceInfo> infos = SysClusterTableInfo.INFOS;
+        b.addBinding(infos.get(new ColumnIdent(ClusterIdExpression.NAME)).ident()).to(
+                ClusterIdExpression.class).asEagerSingleton();
+        b.addBinding(infos.get(new ColumnIdent(ClusterNameExpression.NAME)).ident()).to(
+                ClusterNameExpression.class).asEagerSingleton();
     }
-
 }

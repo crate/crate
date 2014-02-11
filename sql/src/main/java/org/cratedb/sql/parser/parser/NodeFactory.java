@@ -561,7 +561,7 @@ public abstract class NodeFactory
      *
      * Default implementation just does a pointer copy.
      * Binding implementation needs to provide one that deals with any
-     * references it has.
+     * INFOS it has.
      */
     public Object copyUserData(QueryTreeNode node, Object userData)
             throws StandardException {

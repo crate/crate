@@ -21,37 +21,25 @@
 
 package io.crate.operator.reference.sys.shard;
 
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.shard.sys.SysShardExpression;
-import io.crate.metadata.sys.SystemReferences;
-import org.cratedb.DataType;
+import io.crate.metadata.ColumnIdent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
 
 public class ShardIdExpression extends SysShardExpression<Integer> {
 
-    public static final String COLNAME = "id";
-
-
-    public static final ReferenceInfo INFO_ID = SystemReferences.registerShardReference(
-            COLNAME, DataType.INTEGER);
-
+    public static final String NAME = "id";
 
     private final ShardId shardId;
 
     @Inject
     public ShardIdExpression(ShardId shardId) {
+        super(NAME);
         this.shardId = shardId;
     }
 
     @Override
     public Integer value() {
         return shardId.getId();
-    }
-
-    @Override
-    public ReferenceInfo info() {
-        return INFO_ID;
     }
 
 }

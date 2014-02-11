@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,25 +19,20 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata;
+package io.crate.metadata.doc;
 
-import java.util.Map;
+import io.crate.metadata.table.SchemaInfo;
+import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.inject.multibindings.MapBinder;
 
-public abstract class AbstractReferenceResolver implements ReferenceResolver {
+public class MetaDataDocModule extends AbstractModule {
+
+    protected MapBinder<String, SchemaInfo> schemaBinder;
 
     @Override
-    public ReferenceImplementation getImplementation(ReferenceIdent ident) {
-        if (ident.isColumn()) {
-            return implementations().get(ident);
-        }
-        ReferenceImplementation impl = implementations().get(ident.columnReferenceIdent());
-        if (impl != null) {
-            for (String part : ident.columnIdent().path()) {
-                impl = impl.getChildImplementation(part);
-            }
-        }
-        return impl;
+    protected void configure() {
+        schemaBinder = MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
+        schemaBinder.addBinding(DocSchemaInfo.NAME).to(DocSchemaInfo.class).asEagerSingleton();
     }
 
-    protected abstract Map<ReferenceIdent, ReferenceImplementation> implementations();
 }
