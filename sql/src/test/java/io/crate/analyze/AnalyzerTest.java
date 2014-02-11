@@ -275,4 +275,10 @@ public class AnalyzerTest {
     public void testAmbiguousOrderByOnAlias() throws Exception {
         analyze("select id as load, load from sys.nodes order by load");
     }
+
+    @Test
+    public void testOffsetSupportInAnalyzer() throws Exception {
+        Analysis analyze = analyze("select * from sys.nodes limit 1 offset 3");
+        assertThat(analyze.offset(), is(3));
+    }
 }
