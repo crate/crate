@@ -34,6 +34,7 @@ import io.crate.operator.operator.LteOperator;
 import io.crate.operator.operator.OperatorModule;
 import io.crate.operator.operator.OrOperator;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
+import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DoubleLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
@@ -51,6 +52,7 @@ import org.hamcrest.core.IsInstanceOf;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -132,7 +134,7 @@ public class AnalyzerTest {
 
         assertFalse(analysis.hasGroupBy());
         assertTrue(analysis.isSorted());
-
+        assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
 
         assertEquals(1, analysis.outputSymbols().size());
         assertEquals(1, analysis.sortSymbols().size());
@@ -150,6 +152,7 @@ public class AnalyzerTest {
         assertEquals(analysis.table().ident(), SysNodesTableInfo.IDENT);
         assertNull(analysis.limit());
 
+        assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
         assertTrue(analysis.hasGroupBy());
         assertEquals(2, analysis.outputSymbols().size());
         assertEquals(1, analysis.groupBy().size());
@@ -167,6 +170,7 @@ public class AnalyzerTest {
 
         assertFalse(analysis.hasGroupBy());
 
+        assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
 
         assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
         assertEquals(1, analysis.outputSymbols().size());
@@ -180,6 +184,8 @@ public class AnalyzerTest {
         Statement statement = SqlParser.createStatement("select avg(load['5']) from sys.nodes");
         Analysis analysis = analyzer.analyze(statement);
         assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
+
+        assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
 
         assertFalse(analysis.hasGroupBy());
         assertEquals(1, analysis.outputSymbols().size());
@@ -195,6 +201,8 @@ public class AnalyzerTest {
                 "where load['1'] = 1.2 or 1.0 >= load['5']");
         Analysis analysis = analyzer.analyze(statement);
         assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
+
+        assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
 
         assertFalse(analysis.hasGroupBy());
 
@@ -212,6 +220,4 @@ public class AnalyzerTest {
         assertThat(left.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
         assertThat(left.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
     }
-
-
 }
