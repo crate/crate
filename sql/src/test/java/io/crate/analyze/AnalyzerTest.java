@@ -196,7 +196,25 @@ public class AnalyzerTest {
         Function col1 = (Function) analysis.outputSymbols().get(0);
         assertTrue(col1.info().isAggregate());
         assertEquals(AverageAggregation.NAME, col1.info().ident().name());
+    }
 
+    @Test
+    public void testAllColumnCluster() throws Exception {
+        Analysis analyze = analyze("select * from sys.cluster");
+        assertThat(analyze.outputNames().size(), is(2));
+        assertThat(analyze.outputNames().get(0), is("id"));
+        assertThat(analyze.outputNames().get(1), is("name"));
+
+        assertThat(analyze.outputSymbols().size(), is(2));
+    }
+
+    @Test
+    public void testAllColumnNodes() throws Exception {
+        Analysis analyze = analyze("select id, * from sys.nodes");
+        assertThat(analyze.outputNames().get(0), is("id"));
+        assertThat(analyze.outputNames().get(1), is("id"));
+        assertThat(analyze.outputNames().size(), is(8));
+        assertEquals(analyze.outputNames().size(), analyze.outputSymbols().size());
     }
 
     @Test
@@ -241,8 +259,6 @@ public class AnalyzerTest {
         assertThat(analyze.outputNames().get(0), is("l"));
         assertThat(analyze.outputNames().get(1), is("l"));
     }
-
-
 
     @Test
     public void testOrderByOnAlias() throws Exception {

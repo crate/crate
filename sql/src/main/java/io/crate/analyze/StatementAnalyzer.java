@@ -3,10 +3,7 @@ package io.crate.analyze;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.operator.operator.*;
 import io.crate.planner.symbol.*;
 import io.crate.sql.ExpressionFormatter;
@@ -121,26 +118,40 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     @Override
     protected Symbol visitSelect(Select node, Analysis context) {
-        List<Symbol> outputSymbols = new ArrayList<>(node.getSelectItems().size());
-
+        context.outputSymbols(new ArrayList<Symbol>(node.getSelectItems().size()));
         context.outputNames(new ArrayList<String>(node.getSelectItems().size()));
+
         for (SelectItem item : node.getSelectItems()) {
-            outputSymbols.add(process(item, context));
+            process(item, context);
         }
-        context.outputSymbols(outputSymbols);
+
         return null;
     }
 
     @Override
     protected Symbol visitSingleColumn(SingleColumn node, Analysis context) {
         Symbol symbol = process(node.getExpression(), context);
+        context.outputSymbols().add(symbol);
+
         if (node.getAlias().isPresent()) {
             context.addAlias(node.getAlias().get(), symbol);
         } else {
             context.addAlias(outputNameFormatter.process(node.getExpression(), null), symbol);
         }
 
-        return symbol;
+        return null;
+    }
+
+    @Override
+    protected Symbol visitAllColumns(AllColumns node, Analysis context) {
+        Symbol symbol;
+        for (ReferenceInfo referenceInfo : context.table().columns()) {
+            symbol = context.allocateReference(referenceInfo.ident());
+            context.outputSymbols().add(symbol);
+            context.addAlias(referenceInfo.ident().columnIdent().name(), symbol);
+        }
+
+        return null;
     }
 
     @Override
