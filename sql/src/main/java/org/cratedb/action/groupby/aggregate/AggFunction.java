@@ -23,6 +23,7 @@ package org.cratedb.action.groupby.aggregate;
 
 import org.cratedb.DataType;
 
+import java.util.Collection;
 import java.util.Set;
 
 public abstract class AggFunction<T extends AggState> {
@@ -37,7 +38,7 @@ public abstract class AggFunction<T extends AggState> {
      * @return false if we do not need any further iteration for this state
      */
     public abstract boolean iterate(T state, Object columnValue);
-    public abstract Set<DataType> supportedColumnTypes();
+    public abstract Collection<DataType> supportedColumnTypes();
     public boolean supportsDistinct() {
         return false;
     }
