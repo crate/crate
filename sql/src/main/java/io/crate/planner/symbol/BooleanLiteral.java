@@ -77,4 +77,18 @@ public class BooleanLiteral extends Literal<Boolean, BooleanLiteral> {
         Preconditions.checkNotNull(o);
         return Integer.signum(Boolean.compare(value, o.value));
     }
+
+    @Override
+    public Literal convertTo(DataType type) {
+        Object convertedValue;
+        switch (type) {
+            case STRING:
+                convertedValue = value().toString();
+                break;
+            default:
+                return super.convertTo(type);
+        }
+        return Literal.forType(type, convertedValue);
+    }
+
 }

@@ -6,7 +6,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class LongLiteral extends Literal<Long, LongLiteral> {
+public class LongLiteral extends NumberLiteral<Long, LongLiteral> {
 
     private long value;
 
