@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.Job;
 import io.crate.executor.transport.task.elasticsearch.ESSearchTask;
 import io.crate.metadata.*;
+import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operator.operator.EqOperator;
 import io.crate.planner.Plan;
@@ -33,13 +34,12 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.node.ESGetNode;
 import io.crate.planner.node.ESSearchNode;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.StringLiteral;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.test.integration.CrateIntegrationTest;
+import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.junit.Before;
@@ -54,7 +54,7 @@ import static org.hamcrest.number.OrderingComparison.greaterThan;
 public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     private ClusterService clusterService;
-
+    private ClusterName clusterName;
     private TransportExecutor executor;
 
     TableIdent table = new TableIdent(null, "characters");
@@ -67,6 +67,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     @Before
     public void transportSetUp() {
         clusterService = cluster().getInstance(ClusterService.class);
+        clusterName = cluster().getInstance(ClusterName.class);
         executor = cluster().getInstance(TransportExecutor.class);
     }
 
@@ -93,7 +94,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         CollectNode collectNode = new CollectNode("collect", routing);
         collectNode.toCollect(Arrays.<Symbol>asList(reference));
         collectNode.outputTypes(Arrays.asList(load1.type()));
-
+        collectNode.maxRowGranularity(RowGranularity.NODE);
 
         Plan plan = new Plan();
         plan.add(collectNode);
@@ -107,6 +108,30 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
             assertThat((Double) nodeResult.get()[0][0], is(greaterThan(0.0)));
 
         }
+    }
+
+    @Test
+    public void testLocalCollectTask() throws Exception {
+        ReferenceInfo clusterNameInfo = SysClusterTableInfo.INFOS.get(new ColumnIdent("name"));
+        Symbol reference = new Reference(clusterNameInfo);
+
+        CollectNode collectNode = new CollectNode("lcollect", new Routing());
+        collectNode.toCollect(Arrays.asList(reference, new FloatLiteral(2.3f)));
+        collectNode.outputTypes(Arrays.asList(clusterNameInfo.type()));
+        collectNode.maxRowGranularity(RowGranularity.CLUSTER);
+
+        Plan plan = new Plan();
+        plan.add(collectNode);
+        Job job = executor.newJob(plan);
+
+        List<ListenableFuture<Object[][]>> results = executor.execute(job);
+        assertThat(results.size(), is(1));
+        Object[][] result = results.get(0).get();
+        assertThat(result.length, is(1));
+        assertThat(result[0].length, is(2));
+
+        assertThat(((BytesRef)result[0][0]).utf8ToString(), is(clusterName.value()));
+        assertThat((Float)result[0][1], is(2.3f));
     }
 
     @Test

@@ -159,7 +159,7 @@ public class CollectNode extends PlanNode {
             }
         }
 
-        maxRowgranularity = RowGranularity.values()[in.readVInt()];
+        maxRowgranularity = RowGranularity.fromStream(in);
 
         if (in.readBoolean()) {
             routing = new Routing();
@@ -190,7 +190,7 @@ public class CollectNode extends PlanNode {
             Symbol.toStream(toCollect.get(i), out);
         }
 
-        out.writeVInt(maxRowgranularity.ordinal());
+        RowGranularity.toStream(maxRowgranularity, out);
 
         if (routing != null) {
             out.writeBoolean(true);
