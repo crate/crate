@@ -21,6 +21,7 @@
 
 package org.cratedb;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -176,7 +177,7 @@ public enum DataType {
      *
      *      DataType.SET_TYPES.get(DataType.LONG.ordinal());
      */
-    public static final List<DataType> ALL_TYPES = new ArrayList<>(Arrays.asList(
+    public static final ImmutableList<DataType> ALL_TYPES = ImmutableList.of(
             BYTE,
             SHORT,
             INTEGER,
@@ -188,9 +189,9 @@ public enum DataType {
             TIMESTAMP,
             OBJECT,
             IP
-    ));
+    );
 
-    public static final List<DataType> SET_TYPES = new ArrayList<>(Arrays.asList(
+    public static final ImmutableList<DataType> SET_TYPES = ImmutableList.of(
             BYTE_SET,
             SHORT_SET,
             INTEGER_SET,
@@ -202,7 +203,7 @@ public enum DataType {
             TIMESTAMP_SET,
             OBJECT_SET,
             IP_SET
-    ));
+    );
 
     private final Streamer streamer;
 
@@ -223,6 +224,7 @@ public enum DataType {
 
     @Override
     public String toString() {
+
         return name;
     }
 
