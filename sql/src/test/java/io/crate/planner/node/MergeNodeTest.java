@@ -19,54 +19,38 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.projection;
+package io.crate.planner.node;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.TestingHelpers;
+import com.google.common.collect.Sets;
+import io.crate.metadata.*;
 import io.crate.operator.aggregation.impl.CountAggregation;
+import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.Value;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-public class GroupProjectionTest {
+public class MergeNodeTest {
 
 
     @Test
-    public void testStreaming() throws Exception {
+    public void testSerialization() throws Exception {
+        MergeNode node = new MergeNode("merge", 2);
+        node.contextId(UUID.randomUUID());
+        node.executionNodes(Sets.newHashSet("node1", "node2"));
+        node.inputTypes(Arrays.asList(DataType.NULL, DataType.STRING));
 
-        GroupProjection p = new GroupProjection();
-        p.keys(
-                ImmutableList.<Symbol>of(
-                        new Value(DataType.STRING),
-                        new Value(DataType.SHORT)
-                ));
-
-        p.values(ImmutableList.<Aggregation>of());
-
-        BytesStreamOutput out = new BytesStreamOutput();
-        Projection.toStream(p, out);
-
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
-        GroupProjection p2 = (GroupProjection) Projection.fromStream(in);
-
-        assertEquals(p, p2);
-
-    }
-
-    @Test
-    public void testStreaming2() throws Exception {
         Reference nameRef = TestingHelpers.createReference("name", DataType.STRING);
         GroupProjection groupProjection = new GroupProjection();
         groupProjection.keys(Arrays.<Symbol>asList(nameRef));
@@ -78,15 +62,21 @@ public class GroupProjectionTest {
                         Aggregation.Step.FINAL
                 )
         ));
+        TopNProjection topNProjection = new TopNProjection(10, 0);
 
-        BytesStreamOutput out = new BytesStreamOutput();
-        Projection.toStream(groupProjection, out);
+        node.projections(Arrays.asList(groupProjection, topNProjection));
+
+        BytesStreamOutput output = new BytesStreamOutput();
+        node.writeTo(output);
 
 
-        BytesStreamInput in = new BytesStreamInput(out.bytes());
-        GroupProjection p2 = (GroupProjection) Projection.fromStream(in);
+        BytesStreamInput input = new BytesStreamInput(output.bytes());
+        MergeNode node2 = new MergeNode();
+        node2.readFrom(input);
 
-        assertThat(p2.keys.size(), is(1));
-        assertThat(p2.values().size(), is(1));
+        assertThat(node.numUpstreams(), is(node2.numUpstreams()));
+        assertThat(node.executionNodes(), is(node2.executionNodes()));
+        assertThat(node.contextId(), is(node2.contextId()));
+        assertThat(node.inputTypes(), is(node2.inputTypes()));
     }
 }

@@ -34,6 +34,7 @@ public class GroupProjection extends Projection {
 
     List<Symbol> keys;
     List<Aggregation> values;
+    List<Symbol> outputs;
 
     public static final ProjectionFactory<GroupProjection> FACTORY = new ProjectionFactory<GroupProjection>() {
         @Override
@@ -41,7 +42,6 @@ public class GroupProjection extends Projection {
             return new GroupProjection();
         }
     };
-
 
     public List<Symbol> keys() {
         return keys;
@@ -67,6 +67,15 @@ public class GroupProjection extends Projection {
     @Override
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
         return visitor.visitGroupProjection(this, context);
+    }
+
+    @Override
+    public List<? extends Symbol> outputs() {
+        if (outputs == null) {
+            outputs = new ArrayList<>(keys);
+            outputs.addAll(values);
+        }
+        return outputs;
     }
 
     @Override

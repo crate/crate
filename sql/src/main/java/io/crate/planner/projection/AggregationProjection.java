@@ -64,6 +64,11 @@ public class AggregationProjection extends Projection {
     }
 
     @Override
+    public List<? extends Symbol> outputs() {
+        return aggregations;
+    }
+
+    @Override
     public void readFrom(StreamInput in) throws IOException {
         int size = in.readVInt();
         aggregations = new ArrayList<>(size);

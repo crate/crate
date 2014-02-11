@@ -26,7 +26,6 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.operator.operations.merge.MergeOperation;
-import io.crate.operator.operations.merge.MergeOperationImpl;
 import io.crate.planner.node.MergeNode;
 import org.cratedb.Constants;
 import org.cratedb.sql.CrateException;
@@ -72,7 +71,7 @@ public class LocalMergeTask implements Task<Object[][]> {
     @Override
     public void start() {
         if (upstreamResults != null) {
-            final MergeOperation mergeOperation = new MergeOperationImpl(symbolVisitor, mergeNode);
+            final MergeOperation mergeOperation = new MergeOperation(symbolVisitor, mergeNode);
             final AtomicInteger countDown = new AtomicInteger(upstreamResults.size());
             for (final ListenableFuture<Object[][]> upStreamResult : upstreamResults) {
                 upStreamResult.addListener(new Runnable() {

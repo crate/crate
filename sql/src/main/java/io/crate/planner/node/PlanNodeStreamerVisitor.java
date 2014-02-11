@@ -25,21 +25,13 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.Functions;
 import io.crate.operator.aggregation.AggregationFunction;
-import io.crate.operator.aggregation.AggregationState;
-import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.GroupProjection;
-import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.ProjectionType;
-import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.projection.*;
+import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * get input and output {@link org.cratedb.DataType.Streamer}s for {@link io.crate.planner.node.PlanNode}s
@@ -66,41 +58,21 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
         this.functions = functions;
     }
 
-    /**
-     * Streamer used for {@link io.crate.operator.aggregation.AggregationState}s
-     */
-    public class AggStateStreamer implements DataType.Streamer<AggregationState>{
-
-        private final AggregationFunction aggregationFunction;
-
-        public AggStateStreamer(AggregationFunction aggregationFunction) {
-            this.aggregationFunction = aggregationFunction;
-        }
-
-        @Override
-        public AggregationState<?> readFrom(StreamInput in) throws IOException {
-            AggregationState<?> aggState = this.aggregationFunction.newState();
-            aggState.readFrom(in);
-            return aggState;
-        }
-
-        @Override
-        public void writeTo(StreamOutput out, Object v) throws IOException {
-            ((AggregationState<?>)v).writeTo(out);
-        }
+    private AggregationStateStreamer getStreamer(AggregationFunction aggregationFunction) {
+        return new AggregationStateStreamer(aggregationFunction);
     }
 
-    private AggStateStreamer getStreamer(AggregationFunction aggregationFunction) {
-        return new AggStateStreamer(aggregationFunction);
-    }
-
-    private DataType.Streamer<?> resolveStreamer(Aggregation aggregation) {
+    private DataType.Streamer<?> resolveStreamer(Aggregation aggregation, Aggregation.Step step) {
         DataType.Streamer<?> streamer;
         AggregationFunction<?> aggFunction = (AggregationFunction<?>)functions.get(aggregation.functionIdent());
         if (aggFunction == null) {
             throw new CrateException("unknown aggregation function");
         }
-        switch(aggregation.toStep()) {
+        switch (step) {
+            case ITER:
+                assert aggFunction.info().ident().argumentTypes().size() == 1;
+                streamer = aggFunction.info().ident().argumentTypes().get(0).streamer();
+                break;
             case PARTIAL:
                 streamer = getStreamer(aggFunction);
                 break;
@@ -108,7 +80,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
                 streamer = aggFunction.info().returnType().streamer();
                 break;
             default:
-                throw new CrateException(String.format("not supported aggregation step %s", aggregation.toStep().name()));
+                throw new UnsupportedOperationException("step not supported");
         }
         return streamer;
     }
@@ -143,7 +115,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
                     throw new CrateException("invalid output types on CollectNode");
                 }
                 if (aggregation != null) {
-                    context.outputStreamers.add(resolveStreamer(aggregation));
+                    context.outputStreamers.add(resolveStreamer(aggregation, aggregation.toStep()));
                 }
                 aggIdx++;
             } else {
@@ -156,36 +128,97 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
 
     @Override
     public Void visitMergeNode(MergeNode node, Context context) {
-        Optional<Projection> projection = Optional.absent();
-        if (node.projections().size() > 0) {
-            projection = Optional.of(node.projections().get(0));
-        }
-        List<Aggregation> aggregations = ImmutableList.of();
-        if (projection.isPresent()) {
-            if (projection.get().projectionType() == ProjectionType.AGGREGATION) {
-                aggregations = ((AggregationProjection)projection.get()).aggregations();
-            } else if (projection.get().projectionType() == ProjectionType.GROUP) {
-                aggregations = ((GroupProjection)projection.get()).values();
-            }
-        }
-        // switch on first projection
-        int aggIdx = 0;
-        Aggregation aggregation;
-        for (DataType inputType : node.inputTypes()) {
-            if (inputType == null) {
-                try {
-                    aggregation = aggregations.get(aggIdx);
-                } catch(IndexOutOfBoundsException e) {
-                    throw new CrateException("invalid input types on MergeNode");
+        if (node.projections().isEmpty()) {
+            for (DataType dataType : node.inputTypes()) {
+                if (dataType != null && dataType != DataType.NULL) {
+                    context.inputStreamers.add(dataType.streamer());
+                } else {
+                    throw new IllegalStateException("Can't resolve Streamer from null dataType");
                 }
-                if (aggregation != null) {
-                    context.inputStreamers.add(resolveStreamer(aggregation));
-                }
-                aggIdx++;
-            } else {
-                context.inputStreamers.add(inputType.streamer());
             }
+            return null;
         }
+
+        Projection firstProjection = node.projections().get(0);
+        setInputStreamers(node.inputTypes(), firstProjection, context);
+        setOutputStreamers(node.inputTypes(), node.projections(), context);
+
         return null;
+    }
+
+    private void setOutputStreamers(List<DataType> inputTypes, List<Projection> projections, Context context) {
+
+        Projection projection;
+        projection = projections.get(projections.size() - 1);
+        final DataType.Streamer<?>[] streamers = new DataType.Streamer[projection.outputs().size()];
+
+        for (int colIdx = 0; colIdx < streamers.length; colIdx++) {
+            resolveStreamer(streamers, projections, colIdx, projections.size() - 1, inputTypes);
+        }
+
+        for (DataType.Streamer<?> streamer : streamers) {
+            if (streamer == null) {
+                throw new IllegalStateException("Could not resolve all output streamers");
+            }
+        }
+
+        Collections.addAll(context.outputStreamers, streamers);
+    }
+
+    /**
+     * traverse the projections backward until a output type/streamer is found for each symbol in the last projection
+     */
+    private void resolveStreamer(DataType.Streamer<?>[] streamers,
+                                 List<Projection> projections,
+                                 int columnIdx,
+                                 int projectionIdx,
+                                 List<DataType> inputTypes) {
+        final Projection projection = projections.get(projectionIdx);
+        final Symbol symbol = projection.outputs().get(columnIdx);
+
+        if (symbol instanceof ValueSymbol) {
+            streamers[columnIdx] = ((ValueSymbol) symbol).valueType().streamer();
+        } else if (symbol.symbolType() == SymbolType.AGGREGATION) {
+            Aggregation aggregation = (Aggregation)symbol;
+            streamers[columnIdx] = resolveStreamer(aggregation, aggregation.toStep());
+        } else if (symbol.symbolType() == SymbolType.INPUT_COLUMN) {
+            if (projectionIdx > 0) {
+                projectionIdx--;
+                resolveStreamer(streamers, projections, columnIdx, projectionIdx, inputTypes);
+            } else {
+                streamers[columnIdx] = inputTypes.get(((InputColumn)symbol).index()).streamer();
+            }
+        }
+    }
+
+    private void setInputStreamers(List<DataType> inputTypes, Projection projection, Context context) {
+        List<Aggregation> aggregations;
+        switch (projection.projectionType()) {
+            case TOPN:
+                aggregations = ImmutableList.of();
+                break;
+            case GROUP:
+                aggregations = ((GroupProjection)projection).values();
+                break;
+            case COLUMN:
+                aggregations = ImmutableList.of();
+                break;
+            case AGGREGATION:
+                aggregations = ((AggregationProjection)projection).aggregations();
+                break;
+            default:
+                throw new UnsupportedOperationException("projectionType not supported");
+        }
+
+        int idx = 0;
+        for (DataType inputType : inputTypes) {
+            if (inputType != null && inputType != DataType.NULL) {
+                context.inputStreamers.add(inputType.streamer());
+            } else {
+                Aggregation aggregation = aggregations.get(idx);
+                context.inputStreamers.add(resolveStreamer(aggregation, aggregation.fromStep()));
+                idx++;
+            }
+        }
     }
 }

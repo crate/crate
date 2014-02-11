@@ -21,16 +21,54 @@
 
 package io.crate.operator.operations.merge;
 
+import io.crate.operator.operations.ImplementationSymbolVisitor;
+import io.crate.operator.projectors.ProjectionToProjectorVisitor;
+import io.crate.operator.projectors.Projector;
+import io.crate.planner.node.MergeNode;
+
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * merge rows - that's it
  */
-public interface MergeOperation {
+public class MergeOperation implements DownstreamOperation {
 
-    /**
-     * add more rows to merge
-     * implementation needs to make sure that this operation is thread-safe
-     */
-    public boolean addRows(Object[][] rows);
-    public Object[][] result();
+    private final List<Projector> projectors;
+    private final Projector firstProjector;
+    private final int numUpstreams;
+
+    private AtomicBoolean wantMore = new AtomicBoolean(true);
+
+    public MergeOperation(ImplementationSymbolVisitor symbolVisitor, MergeNode mergeNode) {
+        ProjectionToProjectorVisitor projectorVisitor = new ProjectionToProjectorVisitor(symbolVisitor);
+        this.projectors = projectorVisitor.process(mergeNode.projections());
+        assert this.projectors.size() > 0;
+        this.firstProjector = this.projectors.get(0);
+        this.firstProjector.startProjection();
+        this.numUpstreams = mergeNode.numUpstreams();
+    }
+
+    public boolean addRows(Object[][] rows) {
+        int i = rows.length-1;
+        while (wantMore.get() && i>=0) {
+
+            // assume that all projectors .setNextRow(...) methods are threadsafe
+            if(!firstProjector.setNextRow(rows[i])) {
+                wantMore.set(false);
+            }
+            i--;
+        }
+        return wantMore.get();
+    }
+
+    @Override
+    public int numUpstreams() {
+        return numUpstreams;
+    }
+
+    public Object[][] result()  {
+        firstProjector.finishProjection();
+        return projectors.get(projectors.size()-1).getRows();
+    }
 }
