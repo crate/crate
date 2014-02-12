@@ -112,7 +112,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testSysCluster() throws Exception {
         execute("select id from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat(((BytesRef)response.rows()[0][0]).utf8ToString().length(), is(36)); // looks like a uuid
+        assertThat(((String)response.rows()[0][0]).length(), is(36)); // looks like a uuid
     }
 
     @Test
