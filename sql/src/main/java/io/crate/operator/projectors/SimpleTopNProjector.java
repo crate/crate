@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class SimpleTopNProjector implements Projector {
 
     /**
-     * used when no upstream is set
+     * used when no downStream is set
      */
     static class GatheringTopNRowCollector extends AbstractProjector {
 
@@ -120,7 +120,7 @@ public class SimpleTopNProjector implements Projector {
 
 
     /**
-     * used with upstream - pass rows to upstream if inside <code>start</code> and <code>end</code>
+     * used with downStream - pass rows to downStream if inside <code>start</code> and <code>end</code>
      */
     static class PassThroughTopNRowCollector extends AbstractProjector {
         private final AtomicInteger collected = new AtomicInteger();
@@ -129,16 +129,16 @@ public class SimpleTopNProjector implements Projector {
 
         public PassThroughTopNRowCollector(Input<?>[] inputs,
                                            CollectExpression<?>[] collectExpressions,
-                                           Projector upStream,
+                                           Projector downStream,
                                            int offset, int limit) {
-            super(inputs, collectExpressions, upStream);
+            super(inputs, collectExpressions, downStream);
             this.start = offset;
             this.end = start + limit;
         }
 
         @Override
         public void startProjection() {
-            upStream.get().startProjection();
+            downStream.get().startProjection();
             collected.set(0);
         }
 
@@ -151,13 +151,13 @@ public class SimpleTopNProjector implements Projector {
                 // do not collect, still in offset
                 return true;
             }else {
-                return upStream.get().setNextRow(row);
+                return downStream.get().setNextRow(row);
             }
         }
 
         @Override
         public void finishProjection() {
-            upStream.get().finishProjection();
+            downStream.get().finishProjection();
         }
 
         @Override
@@ -177,7 +177,7 @@ public class SimpleTopNProjector implements Projector {
     private final CollectExpression<?>[] collectExpressions;
     private final int limit;
     private final int offset;
-    private Optional<Projector> upStream;
+    private Optional<Projector> downStream;
 
     public SimpleTopNProjector(Input<?>[] inputs,
                                CollectExpression<?>[] collectExpressions,
@@ -192,18 +192,18 @@ public class SimpleTopNProjector implements Projector {
         }
         this.limit = limit;
         this.offset = offset;
-        this.upStream = Optional.absent();
+        this.downStream = Optional.absent();
     }
 
     @Override
-    public void setUpStream(Projector upStream) {
-        this.upStream = Optional.of(upStream);
+    public void setDownStream(Projector downStream) {
+        this.downStream = Optional.of(downStream);
     }
 
     @Override
     public void startProjection() {
-        if (upStream.isPresent()) {
-            wrappedProjector = new PassThroughTopNRowCollector(inputs, collectExpressions, upStream.get(), offset, limit);
+        if (downStream.isPresent()) {
+            wrappedProjector = new PassThroughTopNRowCollector(inputs, collectExpressions, downStream.get(), offset, limit);
         } else {
             wrappedProjector = new GatheringTopNRowCollector(inputs, collectExpressions, offset, limit);
         }
