@@ -21,6 +21,26 @@
 
 package org.cratedb.action.sql;
 
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.cursors.IntCursor;
+import com.carrotsearch.hppc.predicates.IntPredicate;
+import com.google.common.base.Preconditions;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.analyze.Analysis;
+import io.crate.analyze.Analyzer;
+import io.crate.executor.Job;
+import io.crate.executor.transport.TransportExecutor;
+import io.crate.planner.Plan;
+import io.crate.planner.Planner;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.ValueSymbol;
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.Statement;
+import org.apache.lucene.util.BytesRef;
+import org.cratedb.Constants;
+import org.cratedb.DataType;
 import org.cratedb.action.DistributedSQLRequest;
 import org.cratedb.action.TransportDistributedSQLAction;
 import org.cratedb.action.import_.ImportRequest;
@@ -77,6 +97,10 @@ import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 
@@ -99,10 +123,15 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction;
     private final TransportImportAction transportImportAction;
 
+    private final Analyzer analyzer;
+    private final TransportExecutor transportExecutor;
+    private final static Planner planner = new Planner();
 
     @Inject
     protected TransportSQLAction(Settings settings, ThreadPool threadPool,
             SQLParseService sqlParseService,
+            Analyzer analyzer,
+            TransportExecutor transportExecutor,
             TransportService transportService,
             TransportSearchAction transportSearchAction,
             TransportDeleteByQueryAction transportDeleteByQueryAction,
@@ -121,6 +150,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             InformationSchemaService informationSchemaService) {
         super(settings, threadPool);
         this.sqlParseService = sqlParseService;
+        this.analyzer = analyzer;
+        this.transportExecutor = transportExecutor;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
         this.transportSearchAction = transportSearchAction;
         this.transportIndexAction = transportIndexAction;
@@ -341,19 +372,62 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
     }
 
-    private void usePresto(SQLRequest request, ActionListener<SQLResponse> listener) {
-        // TODO: implement
+    private void usePresto(final SQLRequest request, final ActionListener<SQLResponse> listener) {
+        final Statement statement = SqlParser.createStatement(request.stmt());
+        final Analysis analysis = analyzer.analyze(statement);
+        final Plan plan = planner.plan(analysis);
+        final Job job = transportExecutor.newJob(plan);
+        final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(transportExecutor.execute(job));
 
-        // tree = parser.parse(request.stmt());
-        // boundTree = binder.bind(tree).
-        // normalizedTree = analyzer.analyze(boundTree)
-        // job = planner.plan(analyzedTree)
+        Futures.addCallback(resultFuture, new FutureCallback<List<Object[][]>>() {
+            @Override
+            public void onSuccess(@Nullable List<Object[][]> result) {
+                Object[][] rows;
+                if (result == null) {
+                    rows = Constants.EMPTY_RESULT;
+                } else {
+                    Preconditions.checkArgument(result.size() == 1);
+                    rows = result.get(0);
 
+                    // TODO: only do conversion if the client requests it
+                    // ( add flag to SQLRequest to indicate if conversion is necessary )
+                    convertBytesRef(rows);
+                }
 
-        // executor.execute(job)
+                listener.onResponse(new SQLResponse(
+                        analysis.outputNames().toArray(new String[analysis.outputNames().size()]),
+                        rows,
+                        rows.length,
+                        request.creationTime()
+                ));
+            }
 
-        listener.onFailure(new UnsupportedOperationException());
+            @Override
+            public void onFailure(Throwable t) {
+                listener.onFailure(t);
+            }
+        });
     }
+
+    private void convertBytesRef(Object[][] rows) {
+        if (rows.length == 0) {
+            return;
+        }
+
+        final IntArrayList stringColumns = new IntArrayList();
+        for (int c = 0; c < rows[0].length; c++) {
+            if (rows[0][c] instanceof BytesRef) { // TODO: once the analyzer sets the output types this can be optimized
+                stringColumns.add(c);
+            }
+        }
+
+        for (int r = 0; r < rows.length; r++) {
+            for (IntCursor stringColumn : stringColumns) {
+                rows[r][stringColumn.value] = ((BytesRef)rows[r][stringColumn.value]).utf8ToString();
+            }
+        }
+    }
+
 
     /**
      * for the migration from akiban to the presto based sql-parser
@@ -382,8 +456,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                 if (((QueryTreeNode)node).getNodeType() == NodeType.FROM_BASE_TABLE) {
                     TableName tableName = ((FromBaseTable) node).getTableName();
                     if (tableName.getSchemaName() != null
-                            && tableName.getSchemaName().equalsIgnoreCase("sys")
-                            && tableName.getTableName().equalsIgnoreCase("nodes")) {
+                            && tableName.getSchemaName().equalsIgnoreCase("sys")) {
 
                         isPresto.set(true);
                         return null;

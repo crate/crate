@@ -19,40 +19,49 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.projectors;
+package io.crate.sql.tree;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import io.crate.operator.Input;
-import io.crate.operator.aggregation.CollectExpression;
 
 import javax.annotation.Nullable;
 
-public abstract class AbstractProjector implements Projector {
+public class Delete extends Statement {
 
-    protected Optional<Projector> downStream;
-    protected final Input<?>[] inputs;
-    protected final CollectExpression<?>[] collectExpressions;
+    private final Table table;
+    private final Optional<Expression> where;
 
-    public AbstractProjector() {
-        inputs = new Input[0];
-        collectExpressions = new CollectExpression[0];
-    }
-
-    public AbstractProjector(Input<?>[] inputs, CollectExpression<?>[] collectExpressions) {
-        this(inputs, collectExpressions, null);
-    }
-
-    public AbstractProjector(Input<?>[] inputs, CollectExpression<?>[] collectExpressions, @Nullable Projector downStream) {
-        Preconditions.checkArgument(inputs != null);
-        Preconditions.checkArgument(collectExpressions != null);
-        this.inputs = inputs;
-        this.collectExpressions = collectExpressions;
-        this.downStream = Optional.fromNullable(downStream);
+    public Delete(Table table, @Nullable Expression where) {
+        Preconditions.checkNotNull(table, "table is null");
+        this.table = table;
+        this.where = Optional.fromNullable(where);
     }
 
     @Override
-    public void setDownStream(Projector downStream) {
-        this.downStream = Optional.of(downStream);
+    public int hashCode() {
+        return Objects.hashCode(table, where);
+    }
+
+
+    @Override
+    public String toString() {
+        return Objects.toStringHelper(this)
+                .add("table", table)
+                .add("where", where.orNull())
+                .toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        Delete delete = (Delete) o;
+
+        if (table != null ? !table.equals(delete.table) : delete.table != null) return false;
+        if (where != null ? !where.equals(delete.where) : delete.where != null) return false;
+
+        return true;
     }
 }

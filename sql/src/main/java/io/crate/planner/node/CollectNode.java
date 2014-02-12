@@ -77,7 +77,7 @@ public class CollectNode extends PlanNode {
 
     @Override
     public Set<String> executionNodes() {
-        if (routing.hasLocations()) {
+        if (routing != null && routing.hasLocations()) {
             return routing.locations().keySet();
         } else {
             return ImmutableSet.of();
@@ -159,6 +159,8 @@ public class CollectNode extends PlanNode {
             }
         }
 
+        maxRowgranularity = RowGranularity.fromStream(in);
+
         if (in.readBoolean()) {
             routing = new Routing();
             routing.readFrom(in);
@@ -187,6 +189,8 @@ public class CollectNode extends PlanNode {
         for (int i = 0; i < numCols; i++) {
             Symbol.toStream(toCollect.get(i), out);
         }
+
+        RowGranularity.toStream(maxRowgranularity, out);
 
         if (routing != null) {
             out.writeBoolean(true);

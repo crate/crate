@@ -41,8 +41,8 @@ import org.cratedb.action.sql.OrderByColumnName;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.index.ColumnDefinition;
 import org.cratedb.lucene.fields.LuceneField;
+import org.cratedb.sql.AmbiguousAliasException;
 import org.cratedb.sql.GroupByOnArrayUnsupportedException;
-import org.cratedb.sql.OrderByAmbiguousException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
@@ -276,7 +276,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             idxNames = columnNames.indexOf(columnName);
             idxAliases = aliases.indexOf(columnName);
             if (idxNames > -1 && idxAliases > -1) {
-                throw new OrderByAmbiguousException(columnName);
+                throw new AmbiguousAliasException(columnName);
             } else if (idxAliases > -1 && idxNames < 0) {
                 columnName = stmt.outputFields().get(idxAliases).v2();
             }
@@ -322,7 +322,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             idxAliases = aliases.indexOf(columnName);
 
             if (idxNames > -1 && idxAliases > -1) {
-                throw new OrderByAmbiguousException(columnName);
+                throw new AmbiguousAliasException(columnName);
             } else if (idxNames < 0 && idxAliases < 0) {
                 throw new SQLParseException(
                     "column in order by is also required in the result column list"

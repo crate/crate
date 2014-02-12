@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.Executor;
 import io.crate.executor.Job;
 import io.crate.executor.Task;
+import io.crate.executor.task.LocalCollectTask;
 import io.crate.executor.task.LocalMergeTask;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.executor.transport.task.DistributedMergeTask;
@@ -34,6 +35,7 @@ import io.crate.executor.transport.task.elasticsearch.ESSearchTask;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
+import io.crate.operator.operations.collect.LocalDataCollectOperation;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.*;
@@ -56,6 +58,8 @@ public class TransportExecutor implements Executor {
     private final TransportMergeNodeAction transportMergeNodeAction;
     private final TransportGetAction transportGetAction;
 
+    private final LocalDataCollectOperation localDataCollectOperation;
+
     @Inject
     public TransportExecutor(TransportSearchAction transportSearchAction,
                              TransportCollectNodeAction transportCollectNodeAction,
@@ -63,11 +67,14 @@ public class TransportExecutor implements Executor {
                              TransportGetAction transportGetAction,
                              ThreadPool threadPool,
                              Functions functions,
-                             ReferenceResolver referenceResolver) {
+                             ReferenceResolver referenceResolver,
+                             LocalDataCollectOperation localCollectOperation) {
         this.transportGetAction = transportGetAction;
         this.transportCollectNodeAction = transportCollectNodeAction;
         this.transportMergeNodeAction = transportMergeNodeAction;
         this.transportSearchAction = transportSearchAction;
+
+        this.localDataCollectOperation = localCollectOperation;
 
         this.threadPool = threadPool;
         this.functions = functions;
@@ -106,13 +113,12 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Void visitCollectNode(CollectNode node, Job context) {
+            node.jobId(context.id()); // add jobId to collectNode
             if (node.isRouted()) {
-                // TODO: add contextId to task/node
                 context.addTask(new RemoteCollectTask(node, transportCollectNodeAction));
             } else {
-                throw new UnsupportedOperationException("LocalCollectTask is not implemented yet");
+                context.addTask(new LocalCollectTask(localDataCollectOperation, node));
             }
-
             return null;
         }
 

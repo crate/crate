@@ -21,6 +21,7 @@
 
 package io.crate.planner.projection;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.symbol.Symbol;
@@ -61,15 +62,16 @@ public class TopNProjection extends Projection {
 
     public TopNProjection(int limit, int offset, List<Symbol> orderBy, boolean[] reverseFlags) {
         this(limit, offset);
-        Preconditions.checkArgument(orderBy.size() == reverseFlags.length,
+        this.orderBy = Objects.firstNonNull(orderBy, ImmutableList.<Symbol>of());
+        this.reverseFlags = Objects.firstNonNull(reverseFlags, new boolean[0]);
+
+        Preconditions.checkArgument(this.orderBy.size() == this.reverseFlags.length,
                 "reverse flags length does not match orderBy items count");
-        this.orderBy = orderBy;
-        this.reverseFlags = reverseFlags;
     }
 
     @Override
-    public ImmutableList<Symbol> outputs() {
-        return ImmutableList.copyOf(outputs);
+    public List<Symbol> outputs() {
+        return outputs;
     }
 
     public void outputs(List<Symbol> outputs) {
@@ -166,8 +168,8 @@ public class TopNProjection extends Projection {
 
         if (limit != that.limit) return false;
         if (offset != that.offset) return false;
-        if (orderBy != null ? !orderBy.equals(that.orderBy) : that.orderBy != null) return false;
-        if (outputs != null ? !outputs.equals(that.outputs) : that.outputs != null) return false;
+        if (!orderBy.equals(that.orderBy)) return false;
+        if (!outputs.equals(that.outputs)) return false;
         if (!Arrays.equals(reverseFlags, that.reverseFlags)) return false;
 
         return true;
@@ -177,9 +179,9 @@ public class TopNProjection extends Projection {
     public int hashCode() {
         int result = limit;
         result = 31 * result + offset;
-        result = 31 * result + (outputs != null ? outputs.hashCode() : 0);
-        result = 31 * result + (orderBy != null ? orderBy.hashCode() : 0);
-        result = 31 * result + (reverseFlags != null ? Arrays.hashCode(reverseFlags) : 0);
+        result = 31 * result + outputs.hashCode();
+        result = 31 * result + orderBy.hashCode();
+        result = 31 * result + Arrays.hashCode(reverseFlags);
         return result;
     }
 

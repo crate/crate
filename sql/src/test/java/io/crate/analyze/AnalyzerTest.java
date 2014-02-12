@@ -35,12 +35,15 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import org.cratedb.sql.AmbiguousAliasException;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
 import org.hamcrest.core.IsInstanceOf;
@@ -94,9 +97,18 @@ public class AnalyzerTest {
             when(osService.stats()).thenReturn(osStats);
             when(osStats.loadAverage()).thenReturn(new double[]{1, 5, 15});
             bind(OsService.class).toInstance(osService);
+            Discovery discovery = mock(Discovery.class);
+            bind(Discovery.class).toInstance(discovery);
+            DiscoveryNode node = mock(DiscoveryNode.class);
+            when(discovery.localNode()).thenReturn(node);
+            when(node.getId()).thenReturn("node-id-1");
+            when(node.getName()).thenReturn("node 1");
         }
     }
 
+    private Analysis analyze(String statement) {
+        return analyzer.analyze(SqlParser.createStatement(statement));
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -185,7 +197,25 @@ public class AnalyzerTest {
         Function col1 = (Function) analysis.outputSymbols().get(0);
         assertTrue(col1.info().isAggregate());
         assertEquals(AverageAggregation.NAME, col1.info().ident().name());
+    }
 
+    @Test
+    public void testAllColumnCluster() throws Exception {
+        Analysis analyze = analyze("select * from sys.cluster");
+        assertThat(analyze.outputNames().size(), is(2));
+        assertThat(analyze.outputNames().get(0), is("id"));
+        assertThat(analyze.outputNames().get(1), is("name"));
+
+        assertThat(analyze.outputSymbols().size(), is(2));
+    }
+
+    @Test
+    public void testAllColumnNodes() throws Exception {
+        Analysis analyze = analyze("select id, * from sys.nodes");
+        assertThat(analyze.outputNames().get(0), is("id"));
+        assertThat(analyze.outputNames().get(1), is("id"));
+        assertThat(analyze.outputNames().size(), is(8));
+        assertEquals(analyze.outputNames().size(), analyze.outputSymbols().size());
     }
 
     @Test
@@ -210,8 +240,77 @@ public class AnalyzerTest {
 
         Function right = (Function) whereClause.arguments().get(1);
         assertEquals(LteOperator.NAME, right.info().ident().name());
-        assertThat(left.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
-        assertThat(left.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
+        assertThat(right.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(right.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
+    }
+
+    @Test
+    public void testSelectWithParameters() throws Exception {
+        Statement statement = SqlParser.createStatement("select load from sys.nodes " +
+                "where load['1'] = ? or load['5'] <= ? or load['15'] >= ? or load['1'] = ? " +
+                "or load['1'] = ? or name = ?");
+        Analysis analysis = analyzer.analyze(statement, new Object[]{
+                1.2d,
+                2.4f,
+                2L,
+                3,
+                new Short("1"),
+                "node 1"
+        });
+        Function whereClause = analysis.whereClause();
+        assertEquals(OrOperator.NAME, whereClause.info().ident().name());
+        assertFalse(whereClause.info().isAggregate());
+
+        Function function = (Function) whereClause.arguments().get(0);
+        assertEquals(OrOperator.NAME, function.info().ident().name());
+        function = (Function) function.arguments().get(1);
+        assertEquals(EqOperator.NAME, function.info().ident().name());
+        assertThat(function.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
+
+        function = (Function) whereClause.arguments().get(1);
+        assertEquals(EqOperator.NAME, function.info().ident().name());
+        assertThat(function.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
+    }
+
+    @Test
+    public void testOutputNames() throws Exception {
+        Analysis analyze = analyze("select load as l, id, load['1'] from sys.nodes");
+        assertThat(analyze.outputNames().size(), is(3));
+        assertThat(analyze.outputNames().get(0), is("l"));
+        assertThat(analyze.outputNames().get(1), is("id"));
+        assertThat(analyze.outputNames().get(2), is("load['1']"));
+    }
+
+    @Test
+    public void testDuplicateOutputNames() throws Exception {
+        Analysis analyze = analyze("select load as l, load['1'] as l from sys.nodes");
+        assertThat(analyze.outputNames().size(), is(2));
+        assertThat(analyze.outputNames().get(0), is("l"));
+        assertThat(analyze.outputNames().get(1), is("l"));
+    }
+
+    @Test
+    public void testOrderByOnAlias() throws Exception {
+        Analysis analyze = analyze("select load as l from sys.nodes order by l");
+        assertThat(analyze.outputNames().size(), is(1));
+        assertThat(analyze.outputNames().get(0), is("l"));
+
+        assertTrue(analyze.isSorted());
+        assertThat(analyze.sortSymbols().size(), is(1));
+        assertThat(analyze.sortSymbols().get(0), is(analyze.outputSymbols().get(0)));
+    }
+
+    @Test (expected = AmbiguousAliasException.class)
+    public void testAmbiguousOrderByOnAlias() throws Exception {
+        analyze("select id as load, load from sys.nodes order by load");
+    }
+
+    @Test
+    public void testOffsetSupportInAnalyzer() throws Exception {
+        Analysis analyze = analyze("select * from sys.nodes limit 1 offset 3");
+        assertThat(analyze.offset(), is(3));
     }
 
     @Test

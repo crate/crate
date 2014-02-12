@@ -28,10 +28,13 @@ import io.crate.metadata.*;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.sys.SysShardsTableInfo;
+import io.crate.operator.operator.AndOperator;
+import io.crate.operator.operator.OperatorModule;
 import io.crate.operator.reference.sys.shard.ShardIdExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.symbol.BooleanLiteral;
+import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.cratedb.Constants;
@@ -176,6 +179,7 @@ public class DistributingCollectTest {
     @Before
     public void prepare() {
         Injector injector = new ModulesBuilder()
+                .add(new OperatorModule())
                 .add(new TestModule())
                 .createInjector();
         Injector shard0Injector = injector.createChildInjector(
@@ -231,5 +235,26 @@ public class DistributingCollectTest {
         collectNode.maxRowGranularity(RowGranularity.NODE);
         collectNode.toCollect(Arrays.<Symbol>asList(new BooleanLiteral(true)));
         operation.collect(collectNode).get();
+    }
+
+    @Test
+    public void testCollectWithFalseWhereClause() throws Exception {
+        CollectNode collectNode = new CollectNode("collect all the things", shardRouting(0, 1));
+        collectNode.downStreamNodes(Arrays.asList(TEST_NODE_ID, OTHER_NODE_ID));
+        collectNode.jobId(jobId);
+        collectNode.maxRowGranularity(RowGranularity.SHARD);
+        collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
+
+        collectNode.whereClause(new Function(
+                AndOperator.INFO,
+                Arrays.<Symbol>asList(new BooleanLiteral(false), new BooleanLiteral(false))
+        ));
+
+        Object[][] pseudoResult = operation.collect(collectNode).get();
+        assertThat(pseudoResult, is(Constants.EMPTY_RESULT));
+        Thread.sleep(20);
+        assertThat(buckets.size(), is(2));
+        assertThat(buckets.get(TEST_NODE_ID), is(Constants.EMPTY_RESULT));
+        assertThat(buckets.get(OTHER_NODE_ID), is(Constants.EMPTY_RESULT));
     }
 }
