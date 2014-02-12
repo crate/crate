@@ -24,6 +24,7 @@ public class Analysis {
 
     private final ReferenceInfos referenceInfos;
     private final Functions functions;
+    private final Object[] parameters;
     private TableInfo table;
 
     private Map<Function, Function> functionSymbols = new HashMap<>();
@@ -42,9 +43,10 @@ public class Analysis {
     private boolean hasAggregates = false;
     private Function whereClause;
 
-    public Analysis(ReferenceInfos referenceInfos, Functions functions) {
+    public Analysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters) {
         this.referenceInfos = referenceInfos;
         this.functions = functions;
+        this.parameters = parameters;
     }
 
     public void table(TableIdent tableIdent) {
@@ -228,4 +230,10 @@ public class Analysis {
     public void offset(int offset) {
         this.offset = offset;
     }
+
+    public Object parameterAt(int idx) {
+        Preconditions.checkElementIndex(idx, parameters.length);
+        return parameters[idx];
+    }
+
 }
