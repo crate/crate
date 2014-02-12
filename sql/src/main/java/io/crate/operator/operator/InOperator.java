@@ -53,32 +53,17 @@ public class InOperator extends Operator {
     public Symbol normalizeSymbol(Function function) {
         // ... where id in (1,2,3,4,...)
         // arguments.get(0) ... id
-        // arguments.get(1) ... SetLiteral<> (1,2,3,4,...)
-
+        // arguments.get(1) ... SetLiteral<Literal> (1,2,3,4,...)
         Symbol left = function.arguments().get(0);
-        Symbol rightList = function.arguments().get(1);
-
-        if (!left.symbolType().isLiteral() || !rightList.symbolType().isSetLiteral()) {
+        if (!left.symbolType().isLiteral()) {
             return function;
         }
-
         Literal leftLiteral = (Literal) left;
-        SetLiteral<Object, Literal> literals = (SetLiteral<Object, Literal>) rightList;
+        SetLiteral literals = (SetLiteral) function.arguments().get(1);
 
-        boolean foundNonLiteral = false;
-        for (Literal rightLiteral : literals.literals()) {
-            if (!(rightLiteral.symbolType().isLiteral())) {
-                foundNonLiteral = true;
-            } else if (leftLiteral.equals(rightLiteral)) {
-                assert left.getClass() == rightList.getClass();
-                return new BooleanLiteral(true);
-            }
+        if (literals.contains(leftLiteral)) {
+            return new BooleanLiteral(true);
         }
-
-        if (foundNonLiteral) {
-            return function;
-        }
-        // only literals found but 'leftLiteral' didn't match any 'rightLiteral'.
         return new BooleanLiteral(false);
     }
 

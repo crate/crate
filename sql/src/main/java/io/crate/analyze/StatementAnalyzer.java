@@ -8,6 +8,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.TableIdent;
 import io.crate.operator.operator.*;
 import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.LongLiteral;
@@ -139,7 +140,7 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
     @Override
     protected Symbol visitInPredicate(InPredicate node, Analysis context) {
         List<Symbol> arguments = new ArrayList<>(2);
-        List<DataType> argumentTypes = new ArrayList<>(arguments.size());
+        List<DataType> argumentTypes = new ArrayList<>(2);
 
         Symbol value = process(node.getValue(), context);
 
@@ -157,24 +158,24 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     @Override
     protected Symbol visitInListExpression(InListExpression node, Analysis context) {
-        Set<io.crate.planner.symbol.Literal> symbols = new HashSet<>();
+        Set<Literal> symbols = new HashSet<>();
         DataType dataType = null;
         for (Expression expression : node.getValues()) {
             Symbol s = process(expression, context);
-            if (s.symbolType().isLiteral()) {
-                io.crate.planner.symbol.Literal l = (io.crate.planner.symbol.Literal) s;
-                if (dataType == null) {
-                    dataType = DataType.SET_TYPES.get(l.valueType().ordinal());
-                } else if (dataType != DataType.SET_TYPES.get(l.valueType().ordinal())) {
-                    throw new IllegalArgumentException("Data types do not match.");
-                }
-                symbols.add(l);
+            Preconditions.checkArgument(s.symbolType().isLiteral());
+            Literal l = (Literal) s;
+            // check dataTypes to be of the same dataType
+            if (dataType == null) {
+                // first loop run
+                dataType = l.valueType();
             } else {
-                return s;
+                Preconditions.checkArgument(dataType == l.valueType());
             }
+            symbols.add(l);
         }
 
-        return SetLiteral.forType(dataType, symbols);
+        dataType = DataType.SET_TYPES.get(dataType.ordinal());
+        return new SetLiteral(dataType, symbols);
     }
 
     @Override

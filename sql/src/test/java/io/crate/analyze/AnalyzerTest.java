@@ -32,10 +32,7 @@ import io.crate.operator.aggregation.impl.AverageAggregation;
 import io.crate.operator.operator.*;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.DoubleLiteral;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.LongSetLiteral;
-import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import org.elasticsearch.cluster.ClusterService;
@@ -227,7 +224,30 @@ public class AnalyzerTest {
         Function whereClause = analysis.whereClause();
         assertEquals(InOperator.NAME, whereClause.info().ident().name());
         assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
-        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(LongSetLiteral.class));
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(SetLiteral.class));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testWhereInSelectDifferentDataTypeList() throws Exception {
+        Statement statement = SqlParser.createStatement("select 'found' where 1 in (1.2, 2)");
+        analyzer.analyze(statement);
+    }
+
+    @Test
+    public void testWhereInSelectDifferentDataTypeValue() throws Exception {
+        Statement statement = SqlParser.createStatement("select 'found' where 1.2 in (1, 2)");
+        Analysis analysis = analyzer.analyze(statement);
+
+        Function whereClause = analysis.whereClause();
+        assertEquals(InOperator.NAME, whereClause.info().ident().name());
+        assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(DoubleLiteral.class));
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(SetLiteral.class));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testWhereInSelectDifferentDataTypeValueUncompatibleDataTypes() throws Exception {
+        Statement statement = SqlParser.createStatement("select 'found' where 1 in (1, 'foo', 2)");
+        analyzer.analyze(statement);
     }
 
 }

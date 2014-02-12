@@ -29,86 +29,114 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
-public abstract class SetLiteral<ValueType, LiteralType extends Literal> extends Literal<Set<ValueType>, Set<LiteralType>> {
+public class SetLiteral extends Literal<Set<Object>, Set<Literal>> {
 
-    protected Set<ValueType> values;
-    protected Set<LiteralType> literals;
+    private Set<Object> values;
+    private Set<Literal> literals;
 
-    public SetLiteral(Set<LiteralType> literals) {
-        Preconditions.checkNotNull(literals);
-        this.literals = literals;
-        values = new HashSet<>(literals.size());
-        for (Literal l : literals) {
-            values.add((ValueType)l.value());
+    private DataType valueType;
+
+    public static final SymbolFactory<SetLiteral> FACTORY = new SymbolFactory<SetLiteral>() {
+        @Override
+        public SetLiteral newInstance() {
+            return new SetLiteral();
         }
+    };
+
+    public SetLiteral(DataType valueType, Set<Literal> literals) {
+        setLiterals(valueType, literals);
     }
 
+    /**
+     * Initialize an empty SetLiteral.
+     * @see SetLiteral#setLiterals Use <code>setLiterals</code> to set values.
+     */
     public SetLiteral() {}
 
+    public void setLiterals(DataType valueType, Set<Literal> literals) {
+        Preconditions.checkNotNull(valueType);
+        Preconditions.checkNotNull(literals);
+        this.valueType = valueType;
+        this.literals = literals;
+        // clear value() in case it has been used already.
+        values = null;
+    }
+
+    public boolean contains(Literal literal) {
+        return literals.contains(literal);
+    }
+
     @Override
-    public Set<ValueType> value() {
+    public Set<Object> value() {
+        if (values == null) {
+            values = new HashSet<>(literals.size());
+            for (Literal l : literals) {
+                values.add(l.value());
+            }
+        }
         return values;
     }
 
-    public Set<LiteralType> literals() {
+    public Set<Literal> literals() {
         return literals;
     }
 
     @Override
-    public int compareTo(Set<LiteralType> o) {
-        return 0;
+    public int compareTo(Set<Literal> o) {
+        if (literals() == null && o == null) {
+            return 0;
+        } else if (literals() == null && o != null) {
+            return -1;
+        } else if (literals() != null && o == null) {
+            return 1;
+        }
+
+        Integer s1 = new Integer(literals().size());
+        Integer s2 = new Integer(o.size());
+        return s1.compareTo(s2);
+    }
+
+    @Override
+    public DataType valueType() {
+        return valueType;
+    }
+
+    @Override
+    public SymbolType symbolType() {
+        return SymbolType.SET_LITERAL;
     }
 
     @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
-        return null;
+        return visitor.visitSetLiteral(this, context);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        literals = (Set<LiteralType>) in.readGenericValue();
+        DataType dataType = DataType.fromStream(in);
+        int numLiterals = in.readVInt();
+        if (numLiterals > 0) {
+            Set<Literal> literals = new HashSet<>(numLiterals);
+            for (int i = 0; i < numLiterals; i++) {
+                literals.add((Literal) Literal.fromStream(in));
+            }
+            setLiterals(dataType, literals);
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeGenericValue(literals);
-    }
+        if (literals != null) {
+            DataType.toStream(valueType(), out);
 
-    public static SetLiteral forType(DataType type, Set<Literal> literals) {
-        switch (type) {
-            case BYTE:
-            case BYTE_SET:
-                return new IntegerSetLiteral((Set)literals);
-            case SHORT:
-            case SHORT_SET:
-                return new IntegerSetLiteral((Set)literals);
-            case INTEGER:
-            case INTEGER_SET:
-                return new IntegerSetLiteral((Set)literals);
-//            case TIMESTAMP:
-//            case TIMESTAMP_SET:
-            case LONG:
-            case LONG_SET:
-                return new LongSetLiteral((Set)literals);
-//            case FLOAT:
-//            case FLOAT_SET:
-//                return new FloatSetLiteral((Set)literals);
-//            case DOUBLE:
-//            case DOUBLE_SET:
-//                return new DoubleSetLiteral((Set)literals);
-//            case BOOLEAN:
-//            case BOOLEAN_SET:
-//                return new BooleanSetLiteral((Set)literals);
-//            case IP:
-//            case STRING:
-//                return new StringSetLiteral((Set)literals);
-//            case OBJECT:
-//                break;
-            case NOT_SUPPORTED:
-                throw new UnsupportedOperationException();
+            int numLiterals = literals().size();
+            out.writeVInt(numLiterals);
+            for (Literal literal : literals()) {
+                Literal.toStream(literal, out);
+            }
+        } else {
+            out.writeVInt(0);
         }
-
-        return null;
     }
 
 }
