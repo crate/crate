@@ -81,6 +81,7 @@ statement returns [Statement value]
     | dropTable                 { $value = $dropTable.value; }
     | insert                    { $value = $insert.value; }
     | delete                    { $value = $delete.value; }
+    | update                    { $value = $update.value; }
     ;
 
 query returns [Query value]
@@ -616,4 +617,21 @@ delete returns [Statement value]
         {
             $value = new Delete($namedTable.value, $where.value);
         }
+    ;
+
+update returns [Statement value]
+    : ^(UPDATE namedTable assignments=assignmentList where=whereClause?)
+        {
+            $value = new Update($namedTable.value,
+                                $assignments.value,
+                                $where.value);
+        }
+    ;
+
+assignmentList returns [List<Assignment> value = new ArrayList<>()]
+    : ^(ASSIGNMENT_LIST (assignment { $value.add($assignment.value); })+ )
+    ;
+
+assignment returns [Assignment value]
+    : ^(ASSIGNMENT qname expr) { $value = new Assignment($qname.value, $expr.value); }
     ;

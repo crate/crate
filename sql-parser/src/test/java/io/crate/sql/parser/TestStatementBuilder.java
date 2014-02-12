@@ -114,6 +114,11 @@ public class TestStatementBuilder
 
         printStatement("delete from foo");
         printStatement("delete from schemah.foo where foo.a=foo.b and a is not null");
+
+        printStatement("update foo set a=b");
+        printStatement("update schemah.foo set foo.a='b', foo.b=foo.a");
+        printStatement("update schemah.foo set foo.a=abs(-6.3334), x=true where x=false");
+
     }
 
     @Test
