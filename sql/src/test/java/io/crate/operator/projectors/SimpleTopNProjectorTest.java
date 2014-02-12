@@ -274,7 +274,7 @@ public class SimpleTopNProjectorTest {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         NoopProjector noop = new NoopProjector();
-        projector.setUpStream(noop);
+        projector.setDownStream(noop);
         projector.startProjection();
         int i;
         for (i = 0; i<12; i++) {
@@ -301,7 +301,7 @@ public class SimpleTopNProjectorTest {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         NoopProjector noop = new NoopProjector();
-        projector.setUpStream(noop);
+        projector.setDownStream(noop);
         projector.startProjection();
         int i;
         for (i = 0; i<5; i++) {
@@ -328,7 +328,7 @@ public class SimpleTopNProjectorTest {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         NoopProjector noop = new NoopProjector();
-        projector.setUpStream(noop);
+        projector.setDownStream(noop);
         projector.startProjection();
         projector.finishProjection();
         Object[][] projected = noop.getRows();
@@ -348,7 +348,7 @@ public class SimpleTopNProjectorTest {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input}, 100, 10);
         NoopProjector noop = new NoopProjector();
-        projector.setUpStream(noop);
+        projector.setDownStream(noop);
         projector.startProjection();
         int i;
         for (i = 0; i<100;i++) {
@@ -374,7 +374,7 @@ public class SimpleTopNProjectorTest {
                 new CollectExpression[]{(CollectExpression)input},
                 TopN.NO_LIMIT, TopN.NO_OFFSET);
         NoopProjector noop = new NoopProjector();
-        projector.setUpStream(noop);
+        projector.setDownStream(noop);
         projector.startProjection();
         int i = 0;
         boolean carryOn;
