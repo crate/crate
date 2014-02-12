@@ -107,7 +107,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
         int aggIdx = 0;
         Aggregation aggregation;
         for (DataType outputType : node.outputTypes()) {
-            if (outputType == null) {
+            if (outputType == null || outputType == DataType.NULL) {
                 // get streamer for aggregation result
                 try {
                     aggregation = aggregations.get(aggIdx);

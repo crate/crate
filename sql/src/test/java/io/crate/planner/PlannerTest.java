@@ -16,6 +16,7 @@ import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.node.MergeNode;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.CollectNode;
+import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.symbol.Function;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
@@ -23,7 +24,6 @@ import org.cratedb.DataType;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.h2.command.dml.Merge;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,6 +34,7 @@ import java.util.Set;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -42,13 +43,13 @@ public class PlannerTest {
     private Injector injector;
     private Analyzer analyzer;
     private Planner planner = new Planner();
+    Routing routing = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
+            .put("nodeOne", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(1, 2)))
+            .put("nodeTow", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(3, 4)))
+            .build());
 
     class TestShardsTableInfo extends SysShardsTableInfo {
 
-        Routing routing = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
-                .put("nodeOne", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(1, 2)))
-                .put("nodeTow", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(3, 4)))
-                .build());
 
         public TestShardsTableInfo() {
             super(null);
@@ -88,13 +89,12 @@ public class PlannerTest {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             TableIdent userTableIdent = new TableIdent(null, "users");
-            TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, RowGranularity.DOC)
+            TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, RowGranularity.DOC, routing)
                     .add("name", DataType.STRING, null)
                     .add("id", DataType.LONG, null)
                     .build();
             when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
-
         }
     }
 
@@ -125,6 +125,9 @@ public class PlannerTest {
         CollectNode collectNode = (CollectNode)planNode;
 
         assertThat(collectNode.outputTypes().get(0), is(DataType.NULL));
+        assertThat(collectNode.maxRowGranularity(), is(RowGranularity.DOC));
+        assertThat(collectNode.projections().size(), is(1));
+        assertThat(collectNode.projections().get(0), instanceOf(AggregationProjection.class));
 
         planNode = iterator.next();
         assertThat(planNode, instanceOf(MergeNode.class));
@@ -148,6 +151,7 @@ public class PlannerTest {
         CollectNode collectNode = (CollectNode)planNode;
 
         assertThat(collectNode.outputTypes().get(0), is(DataType.INTEGER));
+        assertThat(collectNode.maxRowGranularity(), is(RowGranularity.SHARD));
 
         planNode = iterator.next();
         assertThat(planNode, instanceOf(MergeNode.class));
@@ -157,6 +161,8 @@ public class PlannerTest {
         assertThat(mergeNode.inputTypes().get(0), is(DataType.INTEGER));
         assertThat(mergeNode.outputTypes().size(), is(1));
         assertThat(mergeNode.outputTypes().get(0), is(DataType.INTEGER));
+
+        assertThat(mergeNode.numUpstreams(), is(2));
 
         PlanPrinter pp = new PlanPrinter();
         System.out.println(pp.print(plan));

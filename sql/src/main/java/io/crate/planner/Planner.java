@@ -174,10 +174,11 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 nodeVisitor.process(analysis.groupBy(), context);
                 nodeVisitor.process(analysis.sortSymbols(), context);
 
-                CollectNode collectNode = new CollectNode();
+                CollectNode collectNode = new CollectNode("collect/aggregate");
                 collectNode.routing(analysis.table().getRouting(analysis.whereClause()));
                 collectNode.whereClause(analysis.whereClause());
                 collectNode.toCollect(context.symbolList());
+                collectNode.maxRowGranularity(analysis.rowGranularity());
 
                 AggregationProjection ap = new AggregationProjection();
                 ap.aggregations(context.aggregationList());
@@ -192,7 +193,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 nodeVisitor.process(analysis.groupBy(), mergeContext);
                 nodeVisitor.process(analysis.sortSymbols(), mergeContext);
 
-                MergeNode mergeNode = new MergeNode();
+                MergeNode mergeNode = new MergeNode("localMerge", collectNode.routing().nodes().size());
                 mergeNode.inputTypes(collectNode.outputTypes());
                 ap = new AggregationProjection();
                 ap.aggregations(mergeContext.aggregationList());
@@ -237,11 +238,12 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                     nodeVisitor.process(analysis.outputSymbols(), context);
                     nodeVisitor.process(analysis.sortSymbols(), context);
 
-                    CollectNode collectNode = new CollectNode();
+                    CollectNode collectNode = new CollectNode("collect");
                     collectNode.routing(analysis.table().getRouting(analysis.whereClause()));
                     collectNode.whereClause(analysis.whereClause());
                     collectNode.toCollect(context.symbolList());
                     collectNode.outputTypes(extractDataTypes(context.symbolList()));
+                    collectNode.maxRowGranularity(analysis.rowGranularity());
 
                     plan.add(collectNode);
 
@@ -252,11 +254,9 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                         collectNode.projections(ImmutableList.<Projection>of(tnp));
                     }
 
-                    // TODO: nodes() for merge node to tell where to run
-                    // TODO: num upstreams
                     nodeVisitor.process(analysis.outputSymbols(), context);
                     nodeVisitor.process(analysis.sortSymbols(), context);
-                    MergeNode mergeNode = new MergeNode();
+                    MergeNode mergeNode = new MergeNode("localMerge", collectNode.routing().nodes().size());
                     mergeNode.inputTypes(collectNode.outputTypes());
                     TopNProjection tnp = new TopNProjection(
                             Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
