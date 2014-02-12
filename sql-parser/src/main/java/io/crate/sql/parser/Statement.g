@@ -88,6 +88,11 @@ tokens {
     SAMPLED_RELATION;
     QUERY_SPEC;
     STRATIFY_ON;
+    COLUMN_LIST;
+    INSERT_VALUES;
+    VALUES_LIST;
+    ASSIGNMENT;
+    ASSIGNMENT_LIST;
 }
 
 @header {
@@ -167,6 +172,9 @@ statement
     | refreshMaterializedViewStmt
     | createAliasStmt
     | dropAliasStmt
+    | insertStmt
+    | deleteStmt
+    | updateStmt
     ;
 
 query
@@ -711,6 +719,37 @@ integer
     : INTEGER_VALUE
     ;
 
+insertStmt
+    : INSERT INTO table (columns=columnList)? VALUES values=insertValues -> ^(INSERT table $values $columns?)
+    ;
+
+columnList
+    : '(' qname ( ',' qname )* ')' -> ^(COLUMN_LIST qname+)
+    ;
+insertValues
+    : valuesList ( ',' valuesList )* -> ^(INSERT_VALUES valuesList+)
+    ;
+
+valuesList
+    : '(' expr (',' expr)* ')' -> ^(VALUES_LIST expr+)
+    ;
+
+deleteStmt
+    : DELETE FROM table whereClause? -> ^(DELETE table whereClause?)
+    ;
+
+updateStmt
+    : UPDATE table SET assignmentList whereClause? -> ^(UPDATE table assignmentList whereClause?)
+    ;
+
+assignmentList
+    : assignment ( ',' assignment )* -> ^(ASSIGNMENT_LIST assignment+)
+    ;
+
+assignment
+    : qname EQ expr -> ^(ASSIGNMENT qname expr)
+    ;
+
 nonReserved
     : SHOW | TABLES | COLUMNS | PARTITIONS | FUNCTIONS | SCHEMAS | CATALOGS
     | OVER | PARTITION | RANGE | ROWS | PRECEDING | FOLLOWING | CURRENT | ROW
@@ -839,6 +878,12 @@ SYSTEM: 'SYSTEM';
 BERNOULLI: 'BERNOULLI';
 TABLESAMPLE: 'TABLESAMPLE';
 STRATIFY: 'STRATIFY';
+INSERT: 'INSERT';
+INTO: 'INTO';
+VALUES: 'VALUES';
+DELETE: 'DELETE';
+UPDATE: 'UPDATE';
+SET: 'SET';
 
 EQ  : '=';
 NEQ : '<>' | '!=';

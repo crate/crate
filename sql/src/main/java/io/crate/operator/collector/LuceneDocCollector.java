@@ -22,7 +22,6 @@
 package io.crate.operator.collector;
 
 import io.crate.operator.Input;
-import io.crate.operator.collector.CrateCollector;
 import io.crate.operator.projectors.Projector;
 import io.crate.operator.reference.doc.CollectorContext;
 import io.crate.operator.reference.doc.CollectorExpression;
@@ -49,7 +48,7 @@ import java.io.IOException;
 public class LuceneDocCollector extends Collector implements CrateCollector {
 
     private final SearchContext searchContext;
-    private final Projector upStream;
+    private final Projector downStream;
     private final Input<?>[] topLevelInputs;
     private final CollectorExpression<?>[] collectorExpressions;
 
@@ -62,8 +61,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
                               Input<?>[] inputs,
                               CollectorExpression<?>[] collectorExpressions,
                               BytesReference querySource,
-                              Projector upStreamProjector) throws Exception {
-        this.upStream = upStreamProjector;
+                              Projector downStreamProjector) throws Exception {
+        this.downStream = downStreamProjector;
 
         SearchShardTarget searchShardTarget = new SearchShardTarget(clusterService.localNode().id(), shardId.getIndex(), shardId.id());
 
@@ -98,7 +97,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         for (Input<?> input : topLevelInputs) {
             newRow[i++] = input.value();
         }
-        if (!upStream.setNextRow(newRow)) {
+        if (!downStream.setNextRow(newRow)) {
             // no more rows required, we can stop here
             throw new CollectionTerminatedException();
         }
@@ -123,6 +122,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         for (CollectorExpression<?> collectorExpression : collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }
+        downStream.startProjection(); // finishProjection called in ShardCollectFuture
 
         SearchContext.setCurrent(searchContext);
         Query query = searchContext.query();

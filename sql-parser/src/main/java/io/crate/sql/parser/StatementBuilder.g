@@ -79,6 +79,9 @@ statement returns [Statement value]
     | createAlias               { $value = $createAlias.value; }
     | dropAlias                 { $value = $dropAlias.value; }
     | dropTable                 { $value = $dropTable.value; }
+    | insert                    { $value = $insert.value; }
+    | delete                    { $value = $delete.value; }
+    | update                    { $value = $update.value; }
     ;
 
 query returns [Query value]
@@ -354,6 +357,10 @@ qname returns [QualifiedName value]
     : ^(QNAME i=identList) { $value = new QualifiedName($i.value); }
     ;
 
+qnameList returns [List<QualifiedName> value = new ArrayList<>()]
+    : ( qname { $value.add($qname.value); } )+
+    ;
+
 identList returns [List<String> value = new ArrayList<>()]
     : ( ident { $value.add($ident.value); } )+
     ;
@@ -579,4 +586,52 @@ forRemote returns [QualifiedName value]
 
 dropTable returns [Statement value]
     : ^(DROP_TABLE qname) { $value = new DropTable($qname.value); }
+    ;
+
+
+insert returns [Statement value]
+    : ^(INSERT namedTable values=insertValues cols=columnsList?)
+        {
+            $value = new Insert($namedTable.value,
+                                $values.value,
+                                Objects.firstNonNull($cols.value, ImmutableList.<QualifiedName>of())
+                                );
+        }
+    ;
+
+insertValues returns [List<List<Expression>> value = new ArrayList<>()]
+    : ^(INSERT_VALUES (valuesList { $value.add($valuesList.value); })+)
+    ;
+
+valuesList returns [List<Expression> value]
+    : ^(VALUES_LIST exprList) { $value = $exprList.value; }
+    ;
+
+columnsList returns [List<QualifiedName> value]
+    : ^(COLUMN_LIST qnameList) { $value = $qnameList.value; }
+    ;
+
+
+delete returns [Statement value]
+    : ^(DELETE namedTable where=whereClause?)
+        {
+            $value = new Delete($namedTable.value, $where.value);
+        }
+    ;
+
+update returns [Statement value]
+    : ^(UPDATE namedTable assignments=assignmentList where=whereClause?)
+        {
+            $value = new Update($namedTable.value,
+                                $assignments.value,
+                                $where.value);
+        }
+    ;
+
+assignmentList returns [List<Assignment> value = new ArrayList<>()]
+    : ^(ASSIGNMENT_LIST (assignment { $value.add($assignment.value); })+ )
+    ;
+
+assignment returns [Assignment value]
+    : ^(ASSIGNMENT qname expr) { $value = new Assignment($qname.value, $expr.value); }
     ;

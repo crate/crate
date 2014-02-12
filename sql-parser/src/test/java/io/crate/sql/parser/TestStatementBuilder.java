@@ -106,6 +106,19 @@ public class TestStatementBuilder
         printStatement("select * from foo offset 20");
 
         printStatement("create table foo as select * from abc");
+
+        printStatement("insert into foo (id, name) values ('string', 1.2)");
+        printStatement("insert into foo values ('string', NULL)");
+        printStatement("insert into foo (id, name) values ('string', 1.2), (abs(-4), 4+?)");
+        printStatement("insert into schemah.foo (foo.id, bar.name) values ('string', 1.2)");
+
+        printStatement("delete from foo");
+        printStatement("delete from schemah.foo where foo.a=foo.b and a is not null");
+
+        printStatement("update foo set a=b");
+        printStatement("update schemah.foo set foo.a='b', foo.b=foo.a");
+        printStatement("update schemah.foo set foo.a=abs(-6.3334), x=true where x=false");
+
     }
 
     @Test
