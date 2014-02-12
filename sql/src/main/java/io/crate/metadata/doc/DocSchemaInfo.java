@@ -31,7 +31,6 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 
 import java.util.concurrent.ExecutionException;
 
@@ -52,7 +51,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
             );
 
     @Inject
-    public DocSchemaInfo(Settings settings, ClusterService clusterService) {
+    public DocSchemaInfo(ClusterService clusterService) {
         this.clusterService = clusterService;
         clusterService.add(this);
     }
