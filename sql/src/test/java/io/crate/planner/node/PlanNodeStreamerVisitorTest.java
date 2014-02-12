@@ -22,6 +22,7 @@
 package io.crate.planner.node;
 
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
@@ -50,14 +51,14 @@ import static org.hamcrest.Matchers.is;
 public class PlanNodeStreamerVisitorTest {
 
     private PlanNodeStreamerVisitor visitor;
-    private FunctionIdent maxIdent;
+    private FunctionInfo maxInfo;
 
     @Before
     public void prepare() {
         Injector injector = new ModulesBuilder().add(new AggregationImplModule()).createInjector();
         Functions functions = injector.getInstance(Functions.class);
         visitor = new PlanNodeStreamerVisitor(functions);
-        maxIdent = new FunctionIdent(MaximumAggregation.NAME, Arrays.asList(DataType.INTEGER));
+        maxInfo = new FunctionInfo(new FunctionIdent(MaximumAggregation.NAME, Arrays.asList(DataType.INTEGER)), DataType.INTEGER);
     }
 
     @Test
@@ -86,8 +87,8 @@ public class PlanNodeStreamerVisitorTest {
         collectNode.outputTypes(Arrays.asList(DataType.BOOLEAN, null, null, DataType.DOUBLE));
         AggregationProjection aggregationProjection = new AggregationProjection();
         aggregationProjection.aggregations(Arrays.asList( // not a real use case, only for test convenience, sorry
-                new Aggregation(maxIdent, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
-                new Aggregation(maxIdent, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.PARTIAL)
+                new Aggregation(maxInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
+                new Aggregation(maxInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.PARTIAL)
         ));
         collectNode.projections(Arrays.<Projection>asList(aggregationProjection));
         PlanNodeStreamerVisitor.Context ctx = visitor.process(collectNode);
@@ -124,7 +125,7 @@ public class PlanNodeStreamerVisitorTest {
         mergeNode.inputTypes(Arrays.asList(DataType.NULL, DataType.TIMESTAMP));
         AggregationProjection aggregationProjection = new AggregationProjection();
         aggregationProjection.aggregations(Arrays.asList(
-                new Aggregation(maxIdent, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
+                new Aggregation(maxInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
         ));
         mergeNode.projections(Arrays.<Projection>asList(aggregationProjection));
         PlanNodeStreamerVisitor.Context ctx = visitor.process(mergeNode);

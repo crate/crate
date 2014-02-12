@@ -56,7 +56,7 @@ public class AggregationCollectorTest {
     @Test
     public void testAggregationFromPartial() {
         Aggregation aggregation = new Aggregation(
-                countAggIdent,
+                countImpl.info(),
                 Arrays.<Symbol>asList(new InputColumn(0)),
                 Aggregation.Step.PARTIAL,
                 Aggregation.Step.FINAL
@@ -83,7 +83,7 @@ public class AggregationCollectorTest {
     @Test
     public void testAggregationFromIterToFinal() {
         Aggregation aggregation = new Aggregation(
-                countAggIdent,
+                countImpl.info(),
                 Arrays.<Symbol>asList(new InputColumn(0)),
                 Aggregation.Step.ITER,
                 Aggregation.Step.FINAL

@@ -52,7 +52,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         groupProjection.keys(Arrays.<Symbol>asList(new InputColumn(1)));
         groupProjection.values(Arrays.asList(
                 new Aggregation(
-                        countAggregation.info().ident(),
+                        countAggregation.info(),
                         ImmutableList.<Symbol>of(new InputColumn(0)),
                         Aggregation.Step.PARTIAL,
                         Aggregation.Step.FINAL

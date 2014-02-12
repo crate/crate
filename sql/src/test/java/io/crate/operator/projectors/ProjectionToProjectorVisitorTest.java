@@ -54,8 +54,8 @@ import static org.junit.Assert.assertThat;
 public class ProjectionToProjectorVisitorTest {
 
     private ProjectionToProjectorVisitor visitor;
-    private FunctionIdent countIdent;
-    private FunctionIdent avgIdent;
+    private FunctionInfo countInfo;
+    private FunctionInfo avgInfo;
 
     @Before
     public void prepare() {
@@ -65,8 +65,8 @@ public class ProjectionToProjectorVisitorTest {
         ImplementationSymbolVisitor symbolvisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.NODE);
         visitor = new ProjectionToProjectorVisitor(symbolvisitor);
 
-        countIdent = new FunctionIdent(CountAggregation.NAME, Arrays.asList(DataType.STRING));
-        avgIdent = new FunctionIdent(AverageAggregation.NAME, Arrays.asList(DataType.INTEGER));
+        countInfo = new FunctionInfo(new FunctionIdent(CountAggregation.NAME, Arrays.asList(DataType.STRING)), DataType.LONG);
+        avgInfo = new FunctionInfo(new FunctionIdent(AverageAggregation.NAME, Arrays.asList(DataType.INTEGER)), DataType.DOUBLE);
     }
 
 
@@ -138,8 +138,8 @@ public class ProjectionToProjectorVisitorTest {
     public void testAggregationProjector() {
         AggregationProjection projection = new AggregationProjection();
         projection.aggregations(Arrays.asList(
-                new Aggregation(avgIdent, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
-                new Aggregation(countIdent, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL)
+                new Aggregation(avgInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
+                new Aggregation(countInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL)
         ));
         Projector projector = visitor.process(projection, new ProjectionToProjectorVisitor.Context());
         assertThat(projector, instanceOf(AggregationProjector.class));
@@ -161,8 +161,8 @@ public class ProjectionToProjectorVisitorTest {
         GroupProjection projection = new GroupProjection();
         projection.keys(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(2)));
         projection.values(Arrays.asList(
-                new Aggregation(avgIdent, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
-                new Aggregation(countIdent, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL)
+                new Aggregation(avgInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
+                new Aggregation(countInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL)
         ));
 
         Projector projector = visitor.process(projection, new ProjectionToProjectorVisitor.Context());

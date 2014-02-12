@@ -56,7 +56,7 @@ public class MergeNodeTest {
         groupProjection.keys(Arrays.<Symbol>asList(nameRef));
         groupProjection.values(Arrays.asList(
                 new Aggregation(
-                        new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()),
+                        new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()), DataType.LONG),
                         ImmutableList.<Symbol>of(),
                         Aggregation.Step.PARTIAL,
                         Aggregation.Step.FINAL

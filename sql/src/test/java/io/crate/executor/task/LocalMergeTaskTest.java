@@ -71,7 +71,7 @@ public class LocalMergeTaskTest {
         groupProjection = new GroupProjection();
         groupProjection.keys(Arrays.<Symbol>asList(new InputColumn(0)));
         groupProjection.values(Arrays.asList(
-                new Aggregation(minAggIdent, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
+                new Aggregation(minAggFunction.info(), Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
         ));
     }
 
