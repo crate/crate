@@ -37,6 +37,8 @@ import java.util.List;
 
 public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
 
+    private static final Joiner pathJoiner = Joiner.on(".");
+
     private String name;
     private List<String> path;
 
@@ -63,9 +65,9 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
 
     public String fqn() {
         if (isColumn()) {
-            return name();
+            return name;
         }
-        return Joiner.on(".").join(name, path.toArray(new String[path.size()]));
+        return pathJoiner.join(name, pathJoiner.join(path));
     }
 
     public List<String> path() {
