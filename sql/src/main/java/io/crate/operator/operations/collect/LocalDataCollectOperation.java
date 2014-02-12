@@ -155,7 +155,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
 
         List<Projector> projectors = extractProjectors(collectNode);
 
-        new SimpleOneRowCollector(inputs, collectExpressions, projectors.get(0)).collect();
+        new SimpleOneRowCollector(inputs, collectExpressions, projectors.get(0)).doCollect();
         projectors.get(0).finishProjection();
 
         Object[][] collected = projectors.get(projectors.size() - 1).getRows();
@@ -248,7 +248,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
         );
         ProjectionToProjectorVisitor projectorVisitor = new ProjectionToProjectorVisitor(visitor);
         List<Projector> projectors = new ArrayList<>(collectNode.projections().size());
-        if (projectors.size() == 0) {
+        if (collectNode.projections().size() == 0) {
             projectors.add(new NoopProjector());
         } else {
             projectors = projectorVisitor.process(collectNode.projections());
