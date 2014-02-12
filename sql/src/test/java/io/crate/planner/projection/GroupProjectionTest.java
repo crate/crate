@@ -23,6 +23,7 @@ package io.crate.planner.projection;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TestingHelpers;
 import io.crate.operator.aggregation.impl.CountAggregation;
 import io.crate.planner.symbol.Aggregation;
@@ -72,7 +73,7 @@ public class GroupProjectionTest {
         groupProjection.keys(Arrays.<Symbol>asList(nameRef));
         groupProjection.values(Arrays.asList(
                 new Aggregation(
-                        new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()),
+                        new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()), DataType.LONG),
                         ImmutableList.<Symbol>of(),
                         Aggregation.Step.PARTIAL,
                         Aggregation.Step.FINAL

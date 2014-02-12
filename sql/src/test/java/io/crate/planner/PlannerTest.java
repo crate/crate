@@ -12,6 +12,9 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
+import io.crate.planner.node.MergeNode;
+import io.crate.planner.node.PlanNode;
+import io.crate.planner.node.CollectNode;
 import io.crate.planner.symbol.Function;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
@@ -19,12 +22,17 @@ import org.cratedb.DataType;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.h2.command.dml.Merge;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -105,9 +113,23 @@ public class PlannerTest {
         Analysis analysis = analyzer.analyze(statement);
         Planner planner = new Planner();
         Plan plan = planner.plan(analysis);
+        Iterator<PlanNode> iterator = plan.iterator();
+
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(CollectNode.class));
+        CollectNode collectNode = (CollectNode)planNode;
+
+        assertThat(collectNode.outputTypes().get(0), is(DataType.NULL));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode mergeNode = (MergeNode)planNode;
+
+        assertThat(mergeNode.inputTypes().get(0), is(DataType.NULL));
+        assertThat(mergeNode.outputTypes().get(0), is(DataType.LONG));
+
         PlanPrinter pp = new PlanPrinter();
         System.out.println(pp.print(plan));
-
     }
 
     @Test

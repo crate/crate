@@ -29,18 +29,15 @@ import io.crate.analyze.Analysis;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.node.MergeNode;
-import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import org.cratedb.Constants;
+import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import javax.annotation.Nullable;
+import java.util.*;
 
 @Singleton
 public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
@@ -82,7 +79,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             if (toAggStep == null) {
                 return function;
             }
-            Aggregation agg = new Aggregation(function.info().ident(), function.arguments(),
+            Aggregation agg = new Aggregation(function.info(), function.arguments(),
                     Aggregation.Step.ITER, toAggStep);
 
             Symbol ic = allocateAggregation(agg);
@@ -90,7 +87,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             if (toAggStep == Aggregation.Step.FINAL) {
                 return ic;
             } else {
-                return new Aggregation(function.info().ident(), ImmutableList.<Symbol>of(ic),
+                return new Aggregation(function.info(), ImmutableList.<Symbol>of(ic),
                         toAggStep, Aggregation.Step.FINAL);
             }
         }
@@ -162,10 +159,9 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
     }
 
     private static final SplittingPlanNodeVisitor nodeVisitor = new SplittingPlanNodeVisitor();
+    private static final DataTypeVisitor dataTypeVisitor = new DataTypeVisitor();
 
     public Plan plan(Analysis analysis) {
-        analysis.query();
-
         Plan plan = new Plan();
 
         if (analysis.hasAggregates()) {
@@ -186,6 +182,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 AggregationProjection ap = new AggregationProjection();
                 ap.aggregations(context.aggregationList());
                 collectNode.projections(ImmutableList.<Projection>of(ap));
+                collectNode.outputTypes(extractDataTypes(collectNode.projections(), null));
 
                 plan.add(collectNode);
 
@@ -196,9 +193,11 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 nodeVisitor.process(analysis.sortSymbols(), mergeContext);
 
                 MergeNode mergeNode = new MergeNode();
+                mergeNode.inputTypes(collectNode.outputTypes());
                 ap = new AggregationProjection();
                 ap.aggregations(mergeContext.aggregationList());
                 mergeNode.projections(ImmutableList.<Projection>of(ap));
+                mergeNode.outputTypes(extractDataTypes(mergeNode.projections(), mergeNode.inputTypes()));
                 plan.add(mergeNode);
             }
         } else {
@@ -269,5 +268,106 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             }
         }
         return plan;
+    }
+
+    private List<DataType> extractDataTypes(List<Projection> projections, @Nullable List<DataType> inputTypes) {
+        int projectionIdx = projections.size() - 1;
+        Projection lastProjection = projections.get(projectionIdx);
+        List<DataType> types = new ArrayList<>(lastProjection.outputs().size());
+
+        List<DataType> dataTypes = Objects.firstNonNull(inputTypes, ImmutableList.<DataType>of());
+
+        for (int c = 0; c < lastProjection.outputs().size(); c++) {
+            types.add(resolveType(projections, projectionIdx, c, dataTypes));
+        }
+
+        return types;
+    }
+
+    private DataType resolveType(List<Projection> projections, int projectionIdx, int columnIdx, List<DataType> inputTypes) {
+        Projection projection = projections.get(projectionIdx);
+        Symbol symbol = projection.outputs().get(columnIdx);
+        DataType type = symbol.accept(dataTypeVisitor, null);
+        if (type == null) {
+            if (projectionIdx > 0) {
+                return resolveType(projections, projectionIdx - 1, columnIdx, inputTypes);
+            } else {
+                assert symbol instanceof InputColumn; // otherwise type shouldn't be null
+                return inputTypes.get(((InputColumn) symbol).index());
+            }
+        }
+
+        return type;
+    }
+
+    private static class DataTypeVisitor extends SymbolVisitor<Void, DataType> {
+
+        @Override
+        public DataType visitAggregation(Aggregation symbol, Void context) {
+            if (symbol.toStep() == Aggregation.Step.PARTIAL) {
+                return DataType.NULL; // TODO: change once we have aggregationState types
+            }
+            return symbol.functionInfo().returnType();
+        }
+
+        @Override
+        public DataType visitValue(Value symbol, Void context) {
+            return symbol.valueType();
+        }
+
+        @Override
+        public DataType visitStringLiteral(StringLiteral symbol, Void context) {
+            return symbol.valueType();
+        }
+
+        @Override
+        public DataType visitDoubleLiteral(DoubleLiteral symbol, Void context) {
+            return symbol.valueType();
+        }
+
+        @Override
+        public DataType visitBooleanLiteral(BooleanLiteral symbol, Void context) {
+            return symbol.valueType();
+        }
+
+        @Override
+        public DataType visitIntegerLiteral(IntegerLiteral symbol, Void context) {
+            return symbol.valueType();
+        }
+
+        @Override
+        public DataType visitInputColumn(InputColumn inputColumn, Void context) {
+            return null;
+        }
+
+        @Override
+        public DataType visitNullLiteral(Null symbol, Void context) {
+            return symbol.valueType();
+        }
+
+        @Override
+        public DataType visitLongLiteral(LongLiteral symbol, Void context) {
+            return symbol.valueType();
+        }
+
+        @Override
+        public DataType visitFloatLiteral(FloatLiteral symbol, Void context) {
+            return symbol.valueType();
+        }
+
+        @Override
+        protected DataType visitSymbol(Symbol symbol, Void context) {
+            throw new UnsupportedOperationException("Unsupported Symbol");
+        }
+
+        @Override
+        public DataType visitReference(Reference symbol, Void context) {
+            return symbol.valueType();
+        }
+
+        @Override
+        public DataType visitFunction(Function symbol, Void context) {
+            return symbol.valueType();
+        }
     }
 }
