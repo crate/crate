@@ -229,6 +229,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                             analysis.offset(),
                             analysis.whereClause()
                     );
+                    node.outputTypes(extractDataTypes(analysis.outputSymbols()));
                     plan.add(node);
                 } else {
                     // node or shard level normal select
@@ -240,6 +241,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                     collectNode.routing(analysis.table().getRouting(analysis.whereClause()));
                     collectNode.whereClause(analysis.whereClause());
                     collectNode.toCollect(context.symbolList());
+                    collectNode.outputTypes(extractDataTypes(context.symbolList()));
 
                     plan.add(collectNode);
 
@@ -255,6 +257,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                     nodeVisitor.process(analysis.outputSymbols(), context);
                     nodeVisitor.process(analysis.sortSymbols(), context);
                     MergeNode mergeNode = new MergeNode();
+                    mergeNode.inputTypes(collectNode.outputTypes());
                     TopNProjection tnp = new TopNProjection(
                             Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                             analysis.offset(),
@@ -263,11 +266,20 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                     );
                     tnp.outputs(analysis.outputSymbols());
                     mergeNode.projections(ImmutableList.<Projection>of(tnp));
+                    mergeNode.outputTypes(extractDataTypes(mergeNode.projections(), mergeNode.inputTypes()));
                     plan.add(mergeNode);
                 }
             }
         }
         return plan;
+    }
+
+    private List<DataType> extractDataTypes(List<Symbol> symbols) {
+        List<DataType> types = new ArrayList<>(symbols.size());
+        for (Symbol symbol : symbols) {
+            types.add(symbol.accept(dataTypeVisitor, null));
+        }
+        return types;
     }
 
     private List<DataType> extractDataTypes(List<Projection> projections, @Nullable List<DataType> inputTypes) {
