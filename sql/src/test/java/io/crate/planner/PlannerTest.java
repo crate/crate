@@ -12,6 +12,7 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
+import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.node.MergeNode;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.CollectNode;
@@ -40,6 +41,7 @@ public class PlannerTest {
 
     private Injector injector;
     private Analyzer analyzer;
+    private Planner planner = new Planner();
 
     class TestShardsTableInfo extends SysShardsTableInfo {
 
@@ -106,12 +108,15 @@ public class PlannerTest {
         analyzer = injector.getInstance(Analyzer.class);
     }
 
+    private Plan plan(String statement) {
+        return planner.plan(analyzer.analyze(SqlParser.createStatement(statement)));
+    }
+
     @Test
     public void testGlobalAggregationPlan() throws Exception {
         Statement statement = SqlParser.createStatement("select count(name) from users");
 
         Analysis analysis = analyzer.analyze(statement);
-        Planner planner = new Planner();
         Plan plan = planner.plan(analysis);
         Iterator<PlanNode> iterator = plan.iterator();
 
@@ -134,25 +139,38 @@ public class PlannerTest {
 
     @Test
     public void testShardPlan() throws Exception {
-        Statement statement = SqlParser.createStatement("select id from sys.shards order by id limit 10");
+        Plan plan = plan("select id from sys.shards order by id limit 10");
         // TODO: add where clause
-        Analysis analysis = analyzer.analyze(statement);
-        Planner planner = new Planner();
-        Plan plan = planner.plan(analysis);
+
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(CollectNode.class));
+        CollectNode collectNode = (CollectNode)planNode;
+
+        assertThat(collectNode.outputTypes().get(0), is(DataType.INTEGER));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode mergeNode = (MergeNode)planNode;
+
+        assertThat(mergeNode.inputTypes().size(), is(1));
+        assertThat(mergeNode.inputTypes().get(0), is(DataType.INTEGER));
+        assertThat(mergeNode.outputTypes().size(), is(1));
+        assertThat(mergeNode.outputTypes().get(0), is(DataType.INTEGER));
+
         PlanPrinter pp = new PlanPrinter();
         System.out.println(pp.print(plan));
     }
 
     @Test
     public void testESSearchPlan() throws Exception {
-        Statement statement = SqlParser.createStatement("select name from users order by id limit 10");
         // TODO: add where clause
-        Analysis analysis = analyzer.analyze(statement);
-        Planner planner = new Planner();
-        Plan plan = planner.plan(analysis);
-        PlanPrinter pp = new PlanPrinter();
-        System.out.println(pp.print(plan));
+        Plan plan = plan("select name from users order by id limit 10");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(ESSearchNode.class));
+
+        assertThat(planNode.outputTypes().size(), is(1));
+        assertThat(planNode.outputTypes().get(0), is(DataType.STRING));
     }
-
-
 }
