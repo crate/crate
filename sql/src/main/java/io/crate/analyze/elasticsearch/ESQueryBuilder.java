@@ -74,9 +74,7 @@ public class ESQueryBuilder {
 
         if (whereClause.isPresent()) {
             /**
-             * normalize to make sure that
-             *      left = reference
-             *      right = literal
+             * normalize to optimize queries like eq(1, 1)
              */
             Symbol normalizedClause = normalizer.process(whereClause.get(), null);
             visitor.process(normalizedClause, context);
