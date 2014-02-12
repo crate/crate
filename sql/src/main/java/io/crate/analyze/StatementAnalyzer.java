@@ -197,6 +197,16 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
         return new io.crate.planner.symbol.LongLiteral(node.getValue());
     }
 
+    @Override
+    public Symbol visitParameterExpression(ParameterExpression node, Analysis context) {
+        Object parameter = context.parameterAt(node.position());
+        DataType type = DataType.forClass(parameter.getClass());
+        if (type == null) {
+            throw new UnsupportedOperationException("Unsupported parameter type " + parameter.getClass());
+        }
+        return io.crate.planner.symbol.Literal.forType(type, parameter);
+    }
+
     // TODO: implement for every expression that can be used as an argument to a functionCall
 
     @Override

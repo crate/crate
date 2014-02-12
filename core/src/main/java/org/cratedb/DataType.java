@@ -22,13 +22,17 @@
 package org.cratedb;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 public enum DataType {
 
@@ -360,4 +364,21 @@ public enum DataType {
             FLOAT,
             DOUBLE
     );
+
+    private static final Map<Class<?>, DataType> typesMap = ImmutableMap.<Class<?>, DataType>builder()
+            .put(Double.class, DataType.DOUBLE)
+            .put(Float.class, DataType.FLOAT)
+            .put(Integer.class, DataType.INTEGER)
+            .put(Long.class, DataType.LONG)
+            .put(Short.class, DataType.SHORT)
+            .put(Byte.class, DataType.BYTE)
+            .put(String.class, DataType.STRING)
+            .put(Boolean.class, DataType.BOOLEAN)
+            .put(Object.class, DataType.OBJECT)
+            .build();
+
+    @Nullable
+    public static DataType forClass(Class<?> clazz) {
+        return typesMap.get(clazz);
+    }
 }

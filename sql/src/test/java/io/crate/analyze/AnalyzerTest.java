@@ -35,18 +35,18 @@ import io.crate.operator.operator.OperatorModule;
 import io.crate.operator.operator.OrOperator;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.DoubleLiteral;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import org.cratedb.sql.AmbiguousAliasException;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
 import org.hamcrest.core.IsInstanceOf;
@@ -100,6 +100,12 @@ public class AnalyzerTest {
             when(osService.stats()).thenReturn(osStats);
             when(osStats.loadAverage()).thenReturn(new double[]{1, 5, 15});
             bind(OsService.class).toInstance(osService);
+            Discovery discovery = mock(Discovery.class);
+            bind(Discovery.class).toInstance(discovery);
+            DiscoveryNode node = mock(DiscoveryNode.class);
+            when(discovery.localNode()).thenReturn(node);
+            when(node.getId()).thenReturn("node-id-1");
+            when(node.getName()).thenReturn("node 1");
         }
     }
 
@@ -239,8 +245,38 @@ public class AnalyzerTest {
 
         Function right = (Function) whereClause.arguments().get(1);
         assertEquals(LteOperator.NAME, right.info().ident().name());
-        assertThat(left.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
-        assertThat(left.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
+        assertThat(right.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(right.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
+    }
+
+    @Test
+    public void testSelectWithParameters() throws Exception {
+        Statement statement = SqlParser.createStatement("select load from sys.nodes " +
+                "where load['1'] = ? or load['5'] <= ? or load['15'] >= ? or load['1'] = ? " +
+                "or load['1'] = ? or name = ?");
+        Analysis analysis = analyzer.analyze(statement, new Object[]{
+                1.2d,
+                2.4f,
+                2L,
+                3,
+                new Short("1"),
+                "node 1"
+        });
+        Function whereClause = analysis.whereClause();
+        assertEquals(OrOperator.NAME, whereClause.info().ident().name());
+        assertFalse(whereClause.info().isAggregate());
+
+        Function function = (Function) whereClause.arguments().get(0);
+        assertEquals(OrOperator.NAME, function.info().ident().name());
+        function = (Function) function.arguments().get(1);
+        assertEquals(EqOperator.NAME, function.info().ident().name());
+        assertThat(function.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
+
+        function = (Function) whereClause.arguments().get(1);
+        assertEquals(EqOperator.NAME, function.info().ident().name());
+        assertThat(function.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
     }
 
     @Test

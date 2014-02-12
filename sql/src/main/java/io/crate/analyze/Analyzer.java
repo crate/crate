@@ -18,7 +18,11 @@ public class Analyzer {
     }
 
     public Analysis analyze(Statement statement) {
-        Analysis analysis = new Analysis(referenceInfos, functions);
+        return analyze(statement, new Object[0]);
+    }
+
+    public Analysis analyze(Statement statement, Object[] parameters) {
+        Analysis analysis = new Analysis(referenceInfos, functions, parameters);
         statement.accept(statementAnalyzer, analysis);
         return analysis;
     }
