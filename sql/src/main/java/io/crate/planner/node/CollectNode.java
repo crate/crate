@@ -77,7 +77,7 @@ public class CollectNode extends PlanNode {
 
     @Override
     public Set<String> executionNodes() {
-        if (routing.hasLocations()) {
+        if (routing != null && routing.hasLocations()) {
             return routing.locations().keySet();
         } else {
             return ImmutableSet.of();
