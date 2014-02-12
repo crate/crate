@@ -39,7 +39,6 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     public static final String NAME = "doc";
     private final ClusterService clusterService;
-    private final Settings settings;
 
     private final LoadingCache<String, DocTableInfo> cache = CacheBuilder.newBuilder()
             .maximumSize(10000)
@@ -55,12 +54,11 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     @Inject
     public DocSchemaInfo(Settings settings, ClusterService clusterService) {
         this.clusterService = clusterService;
-        this.settings = settings;
         clusterService.add(this);
     }
 
     private DocTableInfo innerGetTableInfo(String name) {
-        boolean checkAliasSchema = settings.getAsBoolean("crate.table_alias.schema_check", true);
+        boolean checkAliasSchema = clusterService.state().metaData().settings().getAsBoolean("crate.table_alias.schema_check", true);
         DocTableInfoBuilder builder = new DocTableInfoBuilder(
                 new TableIdent(NAME, name), clusterService, checkAliasSchema);
         return builder.build();
