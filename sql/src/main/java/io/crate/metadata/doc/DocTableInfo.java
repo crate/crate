@@ -1,0 +1,122 @@
+package io.crate.metadata.doc;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.Routing;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.table.TableInfo;
+import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.Function;
+import org.elasticsearch.action.NoShardAvailableActionException;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.routing.GroupShardsIterator;
+import org.elasticsearch.cluster.routing.ShardIterator;
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.index.shard.ShardId;
+
+import java.util.*;
+
+public class DocTableInfo implements TableInfo {
+
+    private final ImmutableList<ReferenceInfo> columns;
+    private final ImmutableMap<ColumnIdent, ReferenceInfo> references;
+    private final TableIdent ident;
+    private final List<String> primaryKeys;
+    private final String clusteredBy;
+    private final String[] concreteIndices;
+    private final ClusterService clusterService;
+
+    private final String[] indices;
+
+    public DocTableInfo(TableIdent ident,
+                        ImmutableList<ReferenceInfo> columns,
+                        ImmutableMap<ColumnIdent, ReferenceInfo> references,
+                        List<String> primaryKeys,
+                        String clusteredBy,
+                        String[] concreteIndices, ClusterService clusterService) {
+        this.clusterService = clusterService;
+        this.columns = columns;
+        this.references = references;
+        this.ident = ident;
+        this.primaryKeys = primaryKeys;
+        this.clusteredBy = clusteredBy;
+        this.concreteIndices = concreteIndices;
+        indices = new String[]{ident.name()};
+    }
+
+    @Override
+    public ReferenceInfo getColumnInfo(ColumnIdent columnIdent) {
+        return references.get(columnIdent);
+    }
+
+    @Override
+    public Collection<ReferenceInfo> columns() {
+        return columns;
+    }
+
+    @Override
+    public RowGranularity rowGranularity() {
+        return RowGranularity.DOC;
+    }
+
+    @Override
+    public TableIdent ident() {
+        return ident;
+    }
+
+    private void processShardRouting(Map<String, Map<String, Set<Integer>>> locations, ShardRouting shardRouting, ShardId shardId) {
+        String node;
+        if (shardRouting == null) {
+            throw new NoShardAvailableActionException(shardId);
+        }
+        node = shardRouting.currentNodeId();
+        Map<String, Set<Integer>> nodeMap = locations.get(node);
+        if (nodeMap == null) {
+            nodeMap = new HashMap<>();
+            locations.put(shardRouting.currentNodeId(), nodeMap);
+        }
+
+        Set<Integer> shards = nodeMap.get(shardRouting.getIndex());
+        if (shards == null) {
+            shards = new HashSet<>();
+            nodeMap.put(shardRouting.getIndex(), shards);
+        }
+        shards.add(shardRouting.id());
+    }
+
+
+    @Override
+    public Routing getRouting(Function whereClause) {
+
+        Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
+        GroupShardsIterator shardIterators = clusterService.operationRouting().searchShards(
+                clusterService.state(),
+                indices,
+                concreteIndices,
+                null, // TODO: compute routing from whereClause
+                null // preference
+        );
+        ShardRouting shardRouting;
+        for (ShardIterator shardIterator : shardIterators.iterators()) {
+            shardRouting = shardIterator.firstOrNull();
+            processShardRouting(locations, shardRouting, shardIterator.shardId());
+        }
+
+        return new Routing(locations);
+    }
+
+    Map<ColumnIdent, ReferenceInfo> references() {
+        return references;
+    }
+
+    public List<String> primaryKeys() {
+        return primaryKeys;
+    }
+
+    public String clusteredBy() {
+        return clusteredBy;
+    }
+
+}

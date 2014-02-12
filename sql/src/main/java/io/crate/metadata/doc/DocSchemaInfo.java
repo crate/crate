@@ -21,17 +21,65 @@
 
 package io.crate.metadata.doc;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
+import org.cratedb.sql.CrateException;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.Settings;
 
-public class DocSchemaInfo implements SchemaInfo {
+import java.util.concurrent.ExecutionException;
+
+public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     public static final String NAME = "doc";
+    private final ClusterService clusterService;
+    private final Settings settings;
 
-    @Override
-    public TableInfo getTableInfo(String name) {
-        // TODO: implement index based tables
-        return null;
+    private final LoadingCache<String, DocTableInfo> cache = CacheBuilder.newBuilder()
+            .maximumSize(10000)
+            .build(
+                    new CacheLoader<String, DocTableInfo>() {
+                        @Override
+                        public DocTableInfo load(String key) throws Exception {
+                            return innerGetTableInfo(key);
+                        }
+                    }
+            );
+
+    @Inject
+    public DocSchemaInfo(Settings settings, ClusterService clusterService) {
+        this.clusterService = clusterService;
+        this.settings = settings;
+        clusterService.add(this);
     }
 
+    private DocTableInfo innerGetTableInfo(String name) {
+        boolean checkAliasSchema = settings.getAsBoolean("crate.table_alias.schema_check", true);
+        DocTableInfoBuilder builder = new DocTableInfoBuilder(
+                new TableIdent(NAME, name), clusterService, checkAliasSchema);
+        return builder.build();
+    }
+
+    @Override
+    public DocTableInfo getTableInfo(String name) {
+        // TODO: implement index based tables
+        try {
+            return cache.get(name);
+        } catch (ExecutionException e) {
+            throw new CrateException("Failed to get TableInfo", e.getCause());
+        }
+    }
+
+    @Override
+    public void clusterChanged(ClusterChangedEvent event) {
+        if (event.metaDataChanged()) {
+            cache.invalidateAll();
+        }
+    }
 }
