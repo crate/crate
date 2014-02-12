@@ -23,6 +23,7 @@ package io.crate.executor.transport;
 
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.operator.operations.collect.DistributingCollectOperation;
 import io.crate.operator.operations.collect.LocalDataCollectOperation;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
@@ -54,17 +55,20 @@ public class TransportCollectNodeAction {
     private final LocalDataCollectOperation localDataCollector;
     private final PlanNodeStreamerVisitor planNodeStreamerVisitor;
     private final String executor = ThreadPool.Names.SEARCH;
+    private final DistributingCollectOperation distributingCollectOperation;
 
     @Inject
     public TransportCollectNodeAction(ThreadPool threadPool,
                                       ClusterService clusterService,
                                       TransportService transportService,
                                       LocalDataCollectOperation localDataCollector,
+                                      DistributingCollectOperation distributingCollectOperation,
                                       PlanNodeStreamerVisitor planNodeStreamerVisitor) {
         this.threadPool = threadPool;
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.localDataCollector = localDataCollector;
+        this.distributingCollectOperation = distributingCollectOperation;
         this.planNodeStreamerVisitor = planNodeStreamerVisitor;
 
         transportService.registerHandler(transportAction, new TransportHandler());
@@ -83,7 +87,12 @@ public class TransportCollectNodeAction {
 
     private ListenableActionFuture<NodeCollectResponse> nodeOperation(final NodeCollectRequest request) throws CrateException {
         final CollectNode node = request.collectNode();
-        final ListenableFuture<Object[][]> collectResult = localDataCollector.collect(node);
+        final ListenableFuture<Object[][]> collectResult;
+        if (node.hasDownstreams()) {
+            collectResult = distributingCollectOperation.collect(node);
+        } else {
+            collectResult = localDataCollector.collect(node);
+        }
         final PlainListenableActionFuture<NodeCollectResponse> collectResponse = new PlainListenableActionFuture<>(false, threadPool);
         collectResult.addListener(new Runnable() {
             @Override
