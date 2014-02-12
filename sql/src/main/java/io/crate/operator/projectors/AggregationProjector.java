@@ -59,7 +59,7 @@ public class AggregationProjector implements Projector {
     private final AggregationCollector[] aggregationCollectors;
     private final Set<CollectExpression<?>> collectExpressions;
     private final Object[] row;
-    private Projector upstream;
+    private Projector downStream;
 
     public AggregationProjector(Set<CollectExpression<?>> collectExpressions,
                                 ImplementationSymbolVisitor.AggregationContext[] aggregations) {
@@ -77,8 +77,8 @@ public class AggregationProjector implements Projector {
     }
 
     @Override
-    public void setUpStream(Projector upStream) {
-        this.upstream = upStream;
+    public void setDownStream(Projector downStream) {
+        this.downStream = downStream;
     }
 
     @Override
@@ -111,10 +111,10 @@ public class AggregationProjector implements Projector {
             row[i] = aggregationCollectors[i].finishCollect();
         }
 
-        if (upstream != null) {
-            upstream.startProjection();
-            upstream.setNextRow(row);
-            upstream.finishProjection();
+        if (downStream != null) {
+            downStream.startProjection();
+            downStream.setNextRow(row);
+            downStream.finishProjection();
         }
     }
 

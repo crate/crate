@@ -28,11 +28,11 @@ public interface Projector extends Iterable<Object[]> {
 
     /**
      * set the Projector to hand over the projected rows.
-     * If no upstream Projector was set, rows are simply gathered.
+     * If no downstream Projector was set, rows are simply gathered.
      *
-     * @param upStream the Projector to hand over projected rows
+     * @param downStream the Projector to hand over projected rows
      */
-    public void setUpStream(Projector upStream);
+    public void setDownStream(Projector downStream);
 
 
     /**
