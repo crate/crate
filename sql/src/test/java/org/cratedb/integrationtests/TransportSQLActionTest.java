@@ -24,6 +24,7 @@ package org.cratedb.integrationtests;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Ordering;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.*;
@@ -105,6 +106,13 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select count(*) from test where name = 'Trillian'");
         assertEquals(1, response.rowCount());
         assertEquals(1L, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testSysCluster() throws Exception {
+        execute("select id from sys.cluster");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(((String)response.rows()[0][0]).length(), is(36)); // looks like a uuid
     }
 
     @Test

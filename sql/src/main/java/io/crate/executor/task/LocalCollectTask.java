@@ -19,40 +19,40 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package org.cratedb.action.groupby.aggregate.count;
+package io.crate.executor.task;
 
-import org.cratedb.DataType;
-import org.cratedb.action.groupby.aggregate.AggFunction;
+import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.executor.Task;
+import io.crate.operator.operations.collect.LocalDataCollectOperation;
+import io.crate.planner.node.CollectNode;
 
-import java.util.Collection;
+import java.util.ArrayList;
+import java.util.List;
 
-public class CountDistinctAggFunction extends AggFunction<CountDistinctAggState> {
+public class LocalCollectTask implements Task<Object[][]> {
 
-    public static final String NAME = "COUNT_DISTINCT";
+    private final CollectNode collectNode;
+    private final LocalDataCollectOperation collectOperation;
+    private final List<ListenableFuture<Object[][]>> resultList;
 
-    @Override
-    public String name() {
-        return NAME;
+    public LocalCollectTask(LocalDataCollectOperation collectOperation, CollectNode collectNode) {
+        this.collectNode = collectNode;
+        this.collectOperation = collectOperation;
+        this.resultList = new ArrayList<>(1);
     }
 
     @Override
-    public boolean iterate(CountDistinctAggState state, Object columnValue) {
-        if (columnValue != null) {
-            // to improve readability in the groupingCollector the seenValues.add is done here
-            // if the seenValues is shared across multiple states this means that the add operation
-            // is executed multiple times. TODO: move to collector if performance is too bad.
-            state.seenValues.add(columnValue);
-        }
-        return true;
+    public void start() {
+        resultList.add(collectOperation.collect(collectNode));
     }
 
     @Override
-    public Collection<DataType> supportedColumnTypes() {
-        return DataType.ALL_TYPES;
+    public List<ListenableFuture<Object[][]>> result() {
+        return resultList;
     }
 
     @Override
-    public boolean supportsDistinct() {
-        return true;
+    public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
+        // ignored, comes always first
     }
 }

@@ -21,6 +21,7 @@
 
 package io.crate.planner.node;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.Routing;
@@ -31,16 +32,19 @@ import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * A plan node which collects data.
  */
 public class CollectNode extends PlanNode {
 
+    private Optional<UUID> jobId = Optional.absent();
     private Routing routing;
     private List<Symbol> toCollect;
     private Function whereClause;
@@ -73,7 +77,7 @@ public class CollectNode extends PlanNode {
 
     @Override
     public Set<String> executionNodes() {
-        if (routing.hasLocations()) {
+        if (routing != null && routing.hasLocations()) {
             return routing.locations().keySet();
         } else {
             return ImmutableSet.of();
@@ -129,6 +133,15 @@ public class CollectNode extends PlanNode {
         }
     }
 
+    public Optional<UUID> jobId() {
+        return jobId;
+    }
+
+    public void jobId(@Nullable UUID jobId) {
+        this.jobId = Optional.fromNullable(jobId);
+    }
+
+
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitCollectNode(this, context);
@@ -146,6 +159,8 @@ public class CollectNode extends PlanNode {
             }
         }
 
+        maxRowgranularity = RowGranularity.fromStream(in);
+
         if (in.readBoolean()) {
             routing = new Routing();
             routing.readFrom(in);
@@ -159,6 +174,9 @@ public class CollectNode extends PlanNode {
         for (int i = 0; i < numDownStreams; i++) {
             downStreamNodes.add(in.readString());
         }
+        if (in.readBoolean()) {
+            jobId = Optional.of(new UUID(in.readLong(), in.readLong()));
+        }
 
     }
 
@@ -171,6 +189,8 @@ public class CollectNode extends PlanNode {
         for (int i = 0; i < numCols; i++) {
             Symbol.toStream(toCollect.get(i), out);
         }
+
+        RowGranularity.toStream(maxRowgranularity, out);
 
         if (routing != null) {
             out.writeBoolean(true);
@@ -192,6 +212,11 @@ public class CollectNode extends PlanNode {
             }
         } else {
             out.writeVInt(0);
+        }
+        out.writeBoolean(jobId.isPresent());
+        if (jobId.isPresent()) {
+            out.writeLong(jobId.get().getMostSignificantBits());
+            out.writeLong(jobId.get().getLeastSignificantBits());
         }
     }
 

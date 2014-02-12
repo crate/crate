@@ -1,5 +1,7 @@
 package io.crate.analyze;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
@@ -7,9 +9,9 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Query;
+import org.cratedb.sql.AmbiguousAliasException;
 import org.elasticsearch.common.Preconditions;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 
@@ -22,15 +24,18 @@ public class Analysis {
 
     private final ReferenceInfos referenceInfos;
     private final Functions functions;
+    private final Object[] parameters;
     private TableInfo table;
 
     private Map<Function, Function> functionSymbols = new HashMap<>();
 
     private Map<ReferenceIdent, Reference> referenceSymbols = new IdentityHashMap<>();
 
+    private Multimap<String, Symbol> aliasMap = ArrayListMultimap.create();
     private List<String> outputNames;
     private List<Symbol> outputSymbols;
     private Integer limit;
+    private int offset = 0;
     private List<Symbol> groupBy;
     private boolean[] reverseFlags;
     private List<Symbol> sortSymbols;
@@ -38,9 +43,10 @@ public class Analysis {
     private boolean hasAggregates = false;
     private Function whereClause;
 
-    public Analysis(ReferenceInfos referenceInfos, Functions functions) {
+    public Analysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters) {
         this.referenceInfos = referenceInfos;
         this.functions = functions;
+        this.parameters = parameters;
     }
 
     public void table(TableIdent tableIdent) {
@@ -116,9 +122,8 @@ public class Analysis {
         return limit;
     }
 
-    public Integer offset() {
-        // TODO: implement offset
-        return 0;
+    public int offset() {
+        return offset;
     }
 
     public void groupBy(List<Symbol> groupBy) {
@@ -203,6 +208,32 @@ public class Analysis {
 
     public Function whereClause() {
         return whereClause;
+    }
+
+    public void addAlias(String alias, Symbol symbol) {
+        outputNames().add(alias);
+        aliasMap.put(alias, symbol);
+    }
+
+    public Symbol symbolFromAlias(String alias) {
+        Collection<Symbol> symbols = aliasMap.get(alias);
+        if (symbols.size() > 1) {
+            throw new AmbiguousAliasException(alias);
+        }
+        if (symbols.isEmpty()) {
+            return null;
+        }
+
+        return symbols.iterator().next();
+    }
+
+    public void offset(int offset) {
+        this.offset = offset;
+    }
+
+    public Object parameterAt(int idx) {
+        Preconditions.checkElementIndex(idx, parameters.length);
+        return parameters[idx];
     }
 
 }

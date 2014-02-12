@@ -136,7 +136,7 @@ public class ImplementationSymbolVisitorTest {
 
         // values: [ count(in(0)) ]
         List<Aggregation> values = Arrays.asList(new Aggregation(
-                new FunctionIdent(CountAggregation.NAME, Arrays.asList(DataType.LONG)),
+                new FunctionInfo(new FunctionIdent(CountAggregation.NAME, Arrays.asList(DataType.LONG)), DataType.LONG),
                 Arrays.<Symbol>asList(new InputColumn(0)),
                 Aggregation.Step.ITER,
                 Aggregation.Step.PARTIAL

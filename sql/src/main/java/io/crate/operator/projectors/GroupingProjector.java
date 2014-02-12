@@ -38,7 +38,7 @@ public class GroupingProjector implements Projector {
     private final AggregationCollector[] aggregationCollectors;
 
     private Object[][] rows;
-    private Projector upStream = null;
+    private Projector downStream = null;
 
     public GroupingProjector(Input[] keyInputs,
                              CollectExpression[] collectExpressions,
@@ -59,8 +59,8 @@ public class GroupingProjector implements Projector {
     }
 
     @Override
-    public void setUpStream(Projector upStream) {
-        this.upStream = upStream;
+    public void setDownStream(Projector downStream) {
+        this.downStream = downStream;
     }
 
     @Override
@@ -104,23 +104,23 @@ public class GroupingProjector implements Projector {
     @Override
     public void finishProjection() {
         rows = new Object[result.size()][keyInputs.length + aggregationCollectors.length];
-        boolean sendToUpstream = upStream != null;
-        if (sendToUpstream) {
-            upStream.startProjection();
+        boolean sendToDownStream = downStream != null;
+        if (sendToDownStream) {
+            downStream.startProjection();
         }
 
         int r = 0;
         for (Map.Entry<List<Object>, AggregationState[]> entry : result.entrySet()) {
             Object[] row = rows[r];
             transformToRow(entry, row);
-            if (sendToUpstream) {
-                sendToUpstream = upStream.setNextRow(row);
+            if (sendToDownStream) {
+                sendToDownStream = downStream.setNextRow(row);
             }
             r++;
         }
 
-        if (upStream != null) {
-            upStream.finishProjection();
+        if (downStream != null) {
+            downStream.finishProjection();
         }
     }
 

@@ -19,40 +19,25 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package org.cratedb.action.groupby.aggregate.count;
+package io.crate.operator.operations.collect;
 
-import org.cratedb.DataType;
-import org.cratedb.action.groupby.aggregate.AggFunction;
+import javax.annotation.Nullable;
 
-import java.util.Collection;
+public class ModuloBucketingIterator extends BucketingIterator {
 
-public class CountDistinctAggFunction extends AggFunction<CountDistinctAggState> {
-
-    public static final String NAME = "COUNT_DISTINCT";
-
-    @Override
-    public String name() {
-        return NAME;
+    public ModuloBucketingIterator(int numBuckets, Iterable<Object[]> rowIterable) {
+        super(numBuckets, rowIterable);
     }
 
+    /**
+     * get bucket number by doing modulo hashcode of first row-element
+     */
     @Override
-    public boolean iterate(CountDistinctAggState state, Object columnValue) {
-        if (columnValue != null) {
-            // to improve readability in the groupingCollector the seenValues.add is done here
-            // if the seenValues is shared across multiple states this means that the add operation
-            // is executed multiple times. TODO: move to collector if performance is too bad.
-            state.seenValues.add(columnValue);
+    protected int getBucket(@Nullable Object[] row) {
+        if (row == null || row.length == 0) {
+            return 0;
+        } else {
+            return row[0].hashCode() % this.numBuckets;
         }
-        return true;
-    }
-
-    @Override
-    public Collection<DataType> supportedColumnTypes() {
-        return DataType.ALL_TYPES;
-    }
-
-    @Override
-    public boolean supportsDistinct() {
-        return true;
     }
 }

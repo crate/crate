@@ -33,7 +33,7 @@ import org.cratedb.action.sql.TableExecutionContext;
 import org.cratedb.index.ColumnDefinition;
 import org.cratedb.service.GlobalExpressionService;
 import org.cratedb.service.SQLParseService;
-import org.cratedb.sql.OrderByAmbiguousException;
+import org.cratedb.sql.AmbiguousAliasException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.ValueNode;
@@ -206,13 +206,13 @@ public class QueryVisitorTest {
 
     @Test
     public void testSelectGroupByOrderByAmbiguousColumn() throws Exception {
-        expectedException.expect(OrderByAmbiguousException.class);
+        expectedException.expect(AmbiguousAliasException.class);
         execStatement("select name, kind as name from locations group by name, kind order by name");
     }
 
     @Test
     public void testSelectOrderByAmbiguousColumn() throws Exception {
-        expectedException.expect(OrderByAmbiguousException.class);
+        expectedException.expect(AmbiguousAliasException.class);
         execStatement("select name, kind as name from locations order by name");
     }
 

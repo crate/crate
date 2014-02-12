@@ -63,12 +63,13 @@ public class MergeOperationTest {
         symbolVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.NODE);
 
         FunctionIdent minAggIdent = new FunctionIdent(MinimumAggregation.NAME, Arrays.asList(DataType.DOUBLE));
+        FunctionInfo minAggInfo = new FunctionInfo(minAggIdent, DataType.DOUBLE);
         minAggFunction = (AggregationFunction<MinimumAggregation.MinimumAggState<Double>>) functions.get(minAggIdent);
 
         groupProjection = new GroupProjection();
         groupProjection.keys(Arrays.<Symbol>asList(new InputColumn(0)));
         groupProjection.values(Arrays.asList(
-                new Aggregation(minAggIdent, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
+                new Aggregation(minAggInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.PARTIAL, Aggregation.Step.FINAL)
         ));
     }
 

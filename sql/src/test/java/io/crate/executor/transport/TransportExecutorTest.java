@@ -24,27 +24,22 @@ package io.crate.executor.transport;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.Job;
-import io.crate.executor.Task;
-import io.crate.executor.transport.task.RemoteCollectTask;
-import io.crate.executor.transport.task.elasticsearch.ESGetTask;
 import io.crate.executor.transport.task.elasticsearch.ESSearchTask;
 import io.crate.metadata.*;
+import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operator.operator.EqOperator;
-import io.crate.operator.reference.sys.node.NodeLoadExpression;
+import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.node.ESGetNode;
 import io.crate.planner.node.ESSearchNode;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.StringLiteral;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.test.integration.CrateIntegrationTest;
-import org.elasticsearch.action.get.TransportGetAction;
-import org.elasticsearch.action.search.TransportSearchAction;
+import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.junit.Before;
@@ -58,11 +53,9 @@ import static org.hamcrest.number.OrderingComparison.greaterThan;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
-    private TransportCollectNodeAction transportCollectNodeAction;
     private ClusterService clusterService;
-
+    private ClusterName clusterName;
     private TransportExecutor executor;
-    private TransportGetAction transportGetAction;
 
     TableIdent table = new TableIdent(null, "characters");
     Reference id_ref = new Reference(new ReferenceInfo(
@@ -73,13 +66,9 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Before
     public void transportSetUp() {
-        transportCollectNodeAction = cluster().getInstance(TransportCollectNodeAction.class);
-        transportGetAction = cluster().getInstance(TransportGetAction.class);
         clusterService = cluster().getInstance(ClusterService.class);
-
-        Functions functions = cluster().getInstance(Functions.class);
-        TransportSearchAction transportSearchAction = cluster().getInstance(TransportSearchAction.class);
-        executor = new TransportExecutor(transportSearchAction, functions, null);
+        clusterName = cluster().getInstance(ClusterName.class);
+        executor = cluster().getInstance(TransportExecutor.class);
     }
 
     private void insertCharacters() {
@@ -105,11 +94,11 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         CollectNode collectNode = new CollectNode("collect", routing);
         collectNode.toCollect(Arrays.<Symbol>asList(reference));
         collectNode.outputTypes(Arrays.asList(load1.type()));
+        collectNode.maxRowGranularity(RowGranularity.NODE);
 
-        // later created inside executor.newJob
-        RemoteCollectTask task = new RemoteCollectTask(collectNode, transportCollectNodeAction);
-        Job job = new Job();
-        job.addTask(task);
+        Plan plan = new Plan();
+        plan.add(collectNode);
+        Job job = executor.newJob(plan);
 
         List<ListenableFuture<Object[][]>> result = executor.execute(job);
 
@@ -122,14 +111,40 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testLocalCollectTask() throws Exception {
+        ReferenceInfo clusterNameInfo = SysClusterTableInfo.INFOS.get(new ColumnIdent("name"));
+        Symbol reference = new Reference(clusterNameInfo);
+
+        CollectNode collectNode = new CollectNode("lcollect", new Routing());
+        collectNode.toCollect(Arrays.asList(reference, new FloatLiteral(2.3f)));
+        collectNode.outputTypes(Arrays.asList(clusterNameInfo.type()));
+        collectNode.maxRowGranularity(RowGranularity.CLUSTER);
+
+        Plan plan = new Plan();
+        plan.add(collectNode);
+        Job job = executor.newJob(plan);
+
+        List<ListenableFuture<Object[][]>> results = executor.execute(job);
+        assertThat(results.size(), is(1));
+        Object[][] result = results.get(0).get();
+        assertThat(result.length, is(1));
+        assertThat(result[0].length, is(2));
+
+        assertThat(((BytesRef)result[0][0]).utf8ToString(), is(clusterName.value()));
+        assertThat((Float)result[0][1], is(2.3f));
+    }
+
+    @Test
     public void testESGetTask() throws Exception {
         insertCharacters();
 
         ESGetNode node = new ESGetNode("characters", "2");
         node.outputs(ImmutableList.<Symbol>of(id_ref, name_ref));
-        ESGetTask task = new ESGetTask(transportGetAction, node);
-        task.start();
-        Object[][] objects = task.result().get(0).get();
+        Plan plan = new Plan();
+        plan.add(node);
+        Job job = executor.newJob(plan);
+        List<ListenableFuture<Object[][]>> result = executor.execute(job);
+        Object[][] objects = result.get(0).get();
 
         assertThat(objects.length, is(1));
         assertThat((Integer) objects[0][0], is(2));
@@ -146,7 +161,9 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 new boolean[]{false},
                 null, null, null
         );
-        Job job = executor.newJob(node);
+        Plan plan = new Plan();
+        plan.add(node);
+        Job job = executor.newJob(plan);
         ESSearchTask task = (ESSearchTask) job.tasks().get(0);
 
         task.start();
@@ -179,7 +196,9 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 null, null,
                 whereClause
         );
-        Job job = executor.newJob(node);
+        Plan plan = new Plan();
+        plan.add(node);
+        Job job = executor.newJob(plan);
         ESSearchTask task = (ESSearchTask) job.tasks().get(0);
 
         task.start();

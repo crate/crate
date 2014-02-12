@@ -24,7 +24,7 @@ package org.cratedb.action.groupby.aggregate.count;
 import org.cratedb.DataType;
 import org.cratedb.action.groupby.aggregate.AggFunction;
 
-import java.util.Set;
+import java.util.Collection;
 
 public class CountColumnAggFunction extends AggFunction<CountAggState> {
 
@@ -45,7 +45,7 @@ public class CountColumnAggFunction extends AggFunction<CountAggState> {
     }
 
     @Override
-    public Set<DataType> supportedColumnTypes() {
+    public Collection<DataType> supportedColumnTypes() {
         return DataType.ALL_TYPES;
     }
 }

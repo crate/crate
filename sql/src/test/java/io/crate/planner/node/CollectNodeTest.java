@@ -30,6 +30,8 @@ import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
+import java.util.UUID;
+
 import static org.junit.Assert.assertEquals;
 
 public class CollectNodeTest {
@@ -43,6 +45,30 @@ public class CollectNodeTest {
         cn.downStreamNodes(ImmutableList.of("n1", "n2"));
         cn.toCollect(ImmutableList.<Symbol>of(new Value(DataType.STRING)));
 
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        cn.writeTo(out);
+
+        BytesStreamInput in = new BytesStreamInput(out.bytes());
+        CollectNode cn2 = new CollectNode();
+        cn2.readFrom(in);
+        assertEquals(cn, cn2);
+
+        assertEquals(cn.toCollect(), cn2.toCollect());
+        assertEquals(cn.downStreamNodes(), cn2.downStreamNodes());
+        assertEquals(cn.maxRowGranularity(), cn.maxRowGranularity());
+
+    }
+
+    @Test
+    public void testStreamingWithJobId() throws Exception {
+
+        CollectNode cn = new CollectNode("cn");
+        cn.maxRowGranularity(RowGranularity.DOC);
+
+        cn.downStreamNodes(ImmutableList.of("n1", "n2"));
+        cn.toCollect(ImmutableList.<Symbol>of(new Value(DataType.STRING)));
+        cn.jobId(UUID.randomUUID());
 
         BytesStreamOutput out = new BytesStreamOutput();
         cn.writeTo(out);

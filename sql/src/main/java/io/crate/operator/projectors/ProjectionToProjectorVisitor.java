@@ -44,7 +44,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
          */
         public void add(Projector projector) {
             if (!projectors.isEmpty()) {
-                projectors.get(projectors.size()-1).setUpStream(projector);
+                projectors.get(projectors.size()-1).setDownStream(projector);
             }
             projectors.add(projector);
         }

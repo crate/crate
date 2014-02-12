@@ -23,6 +23,7 @@ package io.crate.planner.symbol;
 
 import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -55,14 +56,14 @@ public class Aggregation extends Symbol {
         }
     }
 
-    private FunctionIdent functionIdent;
+    private FunctionInfo functionInfo;
     private List<Symbol> inputs;
     private Step fromStep;
     private Step toStep;
 
-    public Aggregation(FunctionIdent functionIdent, List<Symbol> inputs, Step fromStep, Step toStep) {
+    public Aggregation(FunctionInfo functionInfo, List<Symbol> inputs, Step fromStep, Step toStep) {
         Preconditions.checkNotNull(inputs);
-        this.functionIdent = functionIdent;
+        this.functionInfo = functionInfo;
         this.inputs = inputs;
         this.fromStep = fromStep;
         this.toStep = toStep;
@@ -79,7 +80,11 @@ public class Aggregation extends Symbol {
     }
 
     public FunctionIdent functionIdent() {
-        return functionIdent;
+        return functionInfo.ident();
+    }
+
+    public FunctionInfo functionInfo() {
+        return functionInfo;
     }
 
     public List<Symbol> inputs() {
@@ -97,8 +102,8 @@ public class Aggregation extends Symbol {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        functionIdent = new FunctionIdent();
-        functionIdent.readFrom(in);
+        functionInfo = new FunctionInfo();
+        functionInfo.readFrom(in);
 
         fromStep = Step.readFrom(in);
         toStep = Step.readFrom(in);
@@ -112,7 +117,7 @@ public class Aggregation extends Symbol {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        functionIdent.writeTo(out);
+        functionInfo.writeTo(out);
 
         Step.writeTo(fromStep, out);
         Step.writeTo(toStep, out);

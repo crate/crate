@@ -7,7 +7,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class FloatLiteral extends Literal<Float, FloatLiteral> {
+public class FloatLiteral extends NumberLiteral<Float, FloatLiteral> {
 
     private float value;
 

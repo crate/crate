@@ -28,6 +28,7 @@ public class TransportExecutorModule extends AbstractModule {
 
     @Override
     protected void configure() {
+        bind(TransportExecutor.class).asEagerSingleton();
         bind(TransportCollectNodeAction.class).asEagerSingleton();
         bind(TransportMergeNodeAction.class).asEagerSingleton();
     }

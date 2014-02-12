@@ -19,40 +19,40 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package org.cratedb.action.groupby.aggregate.count;
+package io.crate.operator.operations.collect;
 
-import org.cratedb.DataType;
-import org.cratedb.action.groupby.aggregate.AggFunction;
+import com.google.common.util.concurrent.AbstractFuture;
+import io.crate.operator.projectors.Projector;
 
-import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public class CountDistinctAggFunction extends AggFunction<CountDistinctAggState> {
+/**
+ * future that is set after configured number of shards signal
+ * that they have finished collecting.
+ */
+public abstract class ShardCollectFuture extends AbstractFuture<Object[][]> {
+    private final AtomicInteger numShards;
+    protected final List<Projector> projectorChain;
 
-    public static final String NAME = "COUNT_DISTINCT";
-
-    @Override
-    public String name() {
-        return NAME;
+    public ShardCollectFuture(int numShards, List<Projector> projectorChain) {
+        this.numShards = new AtomicInteger(numShards);
+        this.projectorChain = projectorChain;
     }
 
-    @Override
-    public boolean iterate(CountDistinctAggState state, Object columnValue) {
-        if (columnValue != null) {
-            // to improve readability in the groupingCollector the seenValues.add is done here
-            // if the seenValues is shared across multiple states this means that the add operation
-            // is executed multiple times. TODO: move to collector if performance is too bad.
-            state.seenValues.add(columnValue);
+    protected void shardFinished() {
+        if (numShards.decrementAndGet() <= 0) {
+            onAllShardsFinished();
         }
-        return true;
     }
 
-    @Override
-    public Collection<DataType> supportedColumnTypes() {
-        return DataType.ALL_TYPES;
+    public int numShards() {
+        return numShards.get();
     }
 
-    @Override
-    public boolean supportsDistinct() {
-        return true;
-    }
+    /**
+     * take action when all shards finished collecting
+     * and all data is completely put into projectors
+     */
+    protected abstract void onAllShardsFinished();
 }

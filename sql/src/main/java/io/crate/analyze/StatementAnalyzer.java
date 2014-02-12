@@ -1,27 +1,26 @@
 package io.crate.analyze;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.operator.operator.*;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
-import io.crate.planner.symbol.ValueSymbol;
+import io.crate.planner.symbol.*;
+import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.*;
+import io.crate.sql.tree.DoubleLiteral;
+import io.crate.sql.tree.LongLiteral;
+import io.crate.sql.tree.StringLiteral;
 import org.cratedb.DataType;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
+    private static OutputNameFormatter outputNameFormatter = new OutputNameFormatter();
     protected static SubscriptVisitor visitor = new SubscriptVisitor();
     protected static SymbolDataTypeVisitor symbolDataTypeVisitor = new SymbolDataTypeVisitor();
     private final Map<String, String> swapOperatorTable = ImmutableMap.<String, String>builder()
@@ -31,6 +30,22 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
             .put(LteOperator.NAME, GteOperator.NAME)
             .build();
 
+    static class OutputNameFormatter extends ExpressionFormatter.Formatter {
+        @Override
+        protected String visitQualifiedNameReference(QualifiedNameReference node, Void context) {
+
+            List<String> parts = new ArrayList<>();
+            for (String part : node.getName().getParts()) {
+                parts.add(part);
+            }
+            return Joiner.on('.').join(parts);
+        }
+
+        @Override
+        protected String visitSubscriptExpression(SubscriptExpression node, Void context) {
+            return String.format("%s[%s]", process(node.name(), null), process(node.index(), null));
+        }
+    }
 
     @Override
     protected Symbol visitQuerySpecification(QuerySpecification node, Analysis context) {
@@ -41,16 +56,23 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
             }
         }
 
+        // the parsers sql grammer makes sure that only a integer matches after limit/offset so
+        // parseInt can't fail here.
         if (node.getLimit().isPresent()) {
             context.limit(Integer.parseInt(node.getLimit().get()));
         }
+        if (node.getOffset().isPresent()) {
+            context.offset(Integer.parseInt(node.getOffset().get()));
+        }
 
-        process(node.getSelect(), context);
+        // the whereClause shouldn't resolve the aliases so this is done before resolving
+        // the result columns to make sure the alias map is empty.
         if (node.getWhere().isPresent()) {
             Function function = (Function) process(node.getWhere().get(), context);
             context.whereClause(function);
         }
 
+        process(node.getSelect(), context);
 
         if (node.getGroupBy().size() > 0) {
             List<Symbol> groupBy = new ArrayList<>(node.getGroupBy().size());
@@ -72,6 +94,7 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
             context.reverseFlags(new boolean[node.getOrderBy().size()]);
             int i = 0;
             for (SortItem sortItem : node.getOrderBy()) {
+
                 sortSymbols.add(process(sortItem, context));
                 context.reverseFlags()[i++] = sortItem.getOrdering() == SortItem.Ordering.DESCENDING;
             }
@@ -100,21 +123,40 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     @Override
     protected Symbol visitSelect(Select node, Analysis context) {
-        List<Symbol> outputSymbols = new ArrayList<>(node.getSelectItems().size());
-
-        // TODO: better output names
+        context.outputSymbols(new ArrayList<Symbol>(node.getSelectItems().size()));
         context.outputNames(new ArrayList<String>(node.getSelectItems().size()));
+
         for (SelectItem item : node.getSelectItems()) {
-            outputSymbols.add(process(item, context));
+            process(item, context);
         }
-        context.outputSymbols(outputSymbols);
+
         return null;
     }
 
     @Override
     protected Symbol visitSingleColumn(SingleColumn node, Analysis context) {
-        context.addOutputName(node.toString());
-        return process(node.getExpression(), context);
+        Symbol symbol = process(node.getExpression(), context);
+        context.outputSymbols().add(symbol);
+
+        if (node.getAlias().isPresent()) {
+            context.addAlias(node.getAlias().get(), symbol);
+        } else {
+            context.addAlias(outputNameFormatter.process(node.getExpression(), null), symbol);
+        }
+
+        return null;
+    }
+
+    @Override
+    protected Symbol visitAllColumns(AllColumns node, Analysis context) {
+        Symbol symbol;
+        for (ReferenceInfo referenceInfo : context.table().columns()) {
+            symbol = context.allocateReference(referenceInfo.ident());
+            context.outputSymbols().add(symbol);
+            context.addAlias(referenceInfo.ident().columnIdent().name(), symbol);
+        }
+
+        return null;
     }
 
     @Override
@@ -155,10 +197,22 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
         return new io.crate.planner.symbol.LongLiteral(node.getValue());
     }
 
-    // TODO: implement for every expression that can be used as an argument to a functionCall
+    @Override
+    public Symbol visitParameterExpression(ParameterExpression node, Analysis context) {
+        Object parameter = context.parameterAt(node.position());
+        DataType type = DataType.forClass(parameter.getClass());
+        if (type == null) {
+            throw new UnsupportedOperationException("Unsupported parameter type " + parameter.getClass());
+        }
+        return io.crate.planner.symbol.Literal.forType(type, parameter);
+    }
 
     @Override
     protected Symbol visitQualifiedNameReference(QualifiedNameReference node, Analysis context) {
+        Symbol symbol = context.symbolFromAlias(node.getSuffix().getSuffix());
+        if (symbol != null) {
+            return symbol;
+        }
         return context.allocateReference(new ReferenceIdent(context.table().ident(), node.getSuffix().getSuffix()));
     }
 
@@ -194,49 +248,38 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     @Override
     protected Symbol visitComparisonExpression(ComparisonExpression node, Analysis context) {
+        String operatorName = "op_" + node.getType().getValue();
+
+        // resolve arguments
         List<Symbol> arguments = new ArrayList<>(2);
         arguments.add(process(node.getLeft(), context));
         arguments.add(process(node.getRight(), context));
 
         // resolve argument types
         List<DataType> argumentTypes = new ArrayList<>(arguments.size());
-        for (Symbol argument : arguments) {
-            argumentTypes.add(symbolDataTypeVisitor.process(argument, context));
-        }
-
-        // TODO: register comparison operators for all numeric type permutations
-
-        FunctionIdent functionIdent = new FunctionIdent("op_" + node.getType().getValue(), argumentTypes);
-        FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
-        Function function = context.allocateFunction(functionInfo, arguments);
+        argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(0), context));
+        argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(1), context));
 
         // swap statements like  eq(2, name) to eq(name, 2)
-        Symbol left = arguments.get(0);
-        Symbol right = arguments.get(1);
-
-        if (left.symbolType().isLiteral() && right.symbolType() == SymbolType.REFERENCE) {
-            function = swapOperatorFunction(function, left, right, context);
+        if (arguments.get(0).symbolType().isLiteral() && arguments.get(1).symbolType() == SymbolType.REFERENCE) {
+            if (swapOperatorTable.containsKey(operatorName)) {
+                operatorName = swapOperatorTable.get(operatorName);
+            }
+            Collections.reverse(arguments);
+            Collections.reverse(argumentTypes);
         }
 
-        return function;
-    }
-
-    private Function swapOperatorFunction(Function function, Symbol left, Symbol right, Analysis context) {
-        String swappedName = swapOperatorTable.get(function.info().ident().name());
-        DataType leftType = function.info().ident().argumentTypes().get(0);
-        DataType rightType = function.info().ident().argumentTypes().get(1);
-        FunctionInfo newInfo;
-
-        if (swappedName == null && leftType == rightType) {
-            newInfo = function.info();
-        } else {
-            swappedName = swappedName == null ? function.info().ident().name() : swappedName;
-            newInfo = context.getFunctionInfo(
-                    new FunctionIdent(swappedName, Lists.reverse(function.info().ident().argumentTypes())));
+        // try implicit type cast (conversion)
+        if (argumentTypes.get(0) != argumentTypes.get(1)) {
+            Symbol convertedSymbol = ((io.crate.planner.symbol.Literal)arguments.get(1)).convertTo(argumentTypes.get(0));
+            arguments.set(1, convertedSymbol);
+            argumentTypes.set(1, argumentTypes.get(0));
         }
 
-        return new Function(newInfo, Arrays.asList(right, left));
-    }
+        FunctionIdent functionIdent = new FunctionIdent(operatorName, argumentTypes);
+        FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
 
+        return context.allocateFunction(functionInfo, arguments);
+    }
 
 }
