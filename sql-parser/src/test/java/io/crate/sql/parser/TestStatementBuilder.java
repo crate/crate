@@ -106,6 +106,10 @@ public class TestStatementBuilder
         printStatement("select * from foo offset 20");
 
         printStatement("create table foo as select * from abc");
+
+        printStatement("insert into foo (id, name) values ('string', 1.2)");
+        printStatement("insert into foo values ('string', 1.2)");
+        printStatement("insert into foo (id, name) values ('string', 1.2), (-4, ?)");
     }
 
     @Test
