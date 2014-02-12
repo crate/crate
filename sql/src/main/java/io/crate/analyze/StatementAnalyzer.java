@@ -207,8 +207,6 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
         return io.crate.planner.symbol.Literal.forType(type, parameter);
     }
 
-    // TODO: implement for every expression that can be used as an argument to a functionCall
-
     @Override
     protected Symbol visitQualifiedNameReference(QualifiedNameReference node, Analysis context) {
         Symbol symbol = context.symbolFromAlias(node.getSuffix().getSuffix());
