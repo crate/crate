@@ -80,6 +80,7 @@ statement returns [Statement value]
     | dropAlias                 { $value = $dropAlias.value; }
     | dropTable                 { $value = $dropTable.value; }
     | insert                    { $value = $insert.value; }
+    | delete                    { $value = $delete.value; }
     ;
 
 query returns [Query value]
@@ -586,6 +587,7 @@ dropTable returns [Statement value]
     : ^(DROP_TABLE qname) { $value = new DropTable($qname.value); }
     ;
 
+
 insert returns [Statement value]
     : ^(INSERT namedTable values=insertValues cols=columnsList?)
         {
@@ -606,4 +608,12 @@ valuesList returns [List<Expression> value]
 
 columnsList returns [List<QualifiedName> value]
     : ^(COLUMN_LIST qnameList) { $value = $qnameList.value; }
+    ;
+
+
+delete returns [Statement value]
+    : ^(DELETE namedTable where=whereClause?)
+        {
+            $value = new Delete($namedTable.value, $where.value);
+        }
     ;

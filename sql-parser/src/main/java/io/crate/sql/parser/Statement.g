@@ -171,6 +171,7 @@ statement
     | createAliasStmt
     | dropAliasStmt
     | insertStmt
+    | deleteStmt
     ;
 
 query
@@ -730,6 +731,10 @@ valuesList
     : '(' expr (',' expr)* ')' -> ^(VALUES_LIST expr+)
     ;
 
+deleteStmt
+    : DELETE FROM table whereClause? -> ^(DELETE table whereClause?)
+    ;
+
 nonReserved
     : SHOW | TABLES | COLUMNS | PARTITIONS | FUNCTIONS | SCHEMAS | CATALOGS
     | OVER | PARTITION | RANGE | ROWS | PRECEDING | FOLLOWING | CURRENT | ROW
@@ -861,6 +866,7 @@ STRATIFY: 'STRATIFY';
 INSERT: 'INSERT';
 INTO: 'INTO';
 VALUES: 'VALUES';
+DELETE: 'DELETE';
 
 EQ  : '=';
 NEQ : '<>' | '!=';
