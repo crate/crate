@@ -43,6 +43,14 @@ public class GroupProjection extends Projection {
         }
     };
 
+    public GroupProjection() {
+    }
+
+    public GroupProjection(List<Symbol> keys, List<Aggregation> values) {
+        this.keys = keys;
+        this.values = values;
+    }
+
     public List<Symbol> keys() {
         return keys;
     }

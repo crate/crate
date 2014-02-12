@@ -12,12 +12,16 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
+import io.crate.operator.operator.OperatorModule;
 import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.node.MergeNode;
 import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.InputColumn;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import org.cratedb.DataType;
@@ -31,8 +35,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
@@ -104,12 +111,101 @@ public class PlannerTest {
                 .add(new TestModule())
                 .add(new TestSysModule())
                 .add(new AggregationImplModule())
+                .add(new OperatorModule())
                 .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
     }
 
     private Plan plan(String statement) {
         return planner.plan(analyzer.analyze(SqlParser.createStatement(statement)));
+    }
+
+    @Test
+    public void testGroupByWithAggregationPlan() throws Exception {
+        Plan plan = plan("select count(*), name from users group by name");
+        PlanPrinter pp = new PlanPrinter();
+        System.out.println(pp.print(plan));
+
+        Iterator<PlanNode> iterator = plan.iterator();
+
+        PlanNode planNode = iterator.next();
+        // distributed collect
+        assertThat(planNode, instanceOf(CollectNode.class));
+        CollectNode collectNode = (CollectNode)planNode;
+        assertThat(collectNode.downStreamNodes().size(), is(2));
+        assertThat(collectNode.maxRowGranularity(), is(RowGranularity.DOC));
+        assertThat(collectNode.executionNodes().size(), is(2));
+        assertThat(collectNode.toCollect().size(), is(1));
+        assertThat(collectNode.projections().size(), is(1));
+        assertThat(collectNode.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(collectNode.outputTypes().size(), is(2));
+        assertThat(collectNode.outputTypes().get(0), is(DataType.STRING));
+        assertThat(collectNode.outputTypes().get(1), is(DataType.NULL));
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+        MergeNode mergeNode = (MergeNode)planNode;
+
+        assertThat(mergeNode.numUpstreams(), is(2));
+        assertThat(mergeNode.executionNodes().size(), is(2));
+        assertEquals(mergeNode.inputTypes(), collectNode.outputTypes());
+        assertThat(mergeNode.projections().size(), is(1));
+        assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
+
+        assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
+        GroupProjection groupProjection = (GroupProjection)mergeNode.projections().get(0);
+        InputColumn inputColumn = (InputColumn)groupProjection.values().get(0).inputs().get(0);
+        assertThat(inputColumn.index(), is(1));
+
+        assertThat(mergeNode.outputTypes().size(), is(2));
+        assertThat(mergeNode.outputTypes().get(0), is(DataType.STRING));
+        assertThat(mergeNode.outputTypes().get(1), is(DataType.LONG));
+
+
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+
+        MergeNode localMerge = (MergeNode)planNode;
+
+        assertThat(localMerge.numUpstreams(), is(2));
+        assertTrue(localMerge.executionNodes().isEmpty());
+        assertEquals(mergeNode.outputTypes(), localMerge.inputTypes());
+
+        assertThat(localMerge.projections().get(0), instanceOf(TopNProjection.class));
+        TopNProjection topN = (TopNProjection)localMerge.projections().get(0);
+        assertThat(topN.outputs().size(), is(2));
+        assertThat(topN.outputs().get(0), instanceOf(InputColumn.class));
+        assertThat(((InputColumn)topN.outputs().get(0)).index(), is(0));
+        assertThat(topN.outputs().get(1), instanceOf(InputColumn.class));
+        assertThat(((InputColumn)topN.outputs().get(1)).index(), is(1));
+    }
+
+    @Test
+    public void testGroupByWithAggregationAndLimit() throws Exception {
+        Plan plan = plan("select count(*), name from users group by name limit 1 offset 1");
+        Iterator<PlanNode> iterator = plan.iterator();
+
+        PlanNode planNode = iterator.next();
+        planNode = iterator.next();
+
+        // distributed merge
+        MergeNode mergeNode = (MergeNode)planNode;
+        assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(mergeNode.projections().get(1), instanceOf(TopNProjection.class));
+
+        // limit must include offset because the real limit can only be applied on the handler
+        // after all rows have been gathered.
+        TopNProjection topN = (TopNProjection)mergeNode.projections().get(1);
+        assertThat(topN.limit(), is(2));
+        assertThat(topN.offset(), is(0));
+
+
+        // local merge
+        planNode = iterator.next();
+        assertThat(planNode.projections().get(0), instanceOf(TopNProjection.class));
+        topN = (TopNProjection)planNode.projections().get(0);
+        assertThat(topN.limit(), is(1));
+        assertThat(topN.offset(), is(1));
     }
 
     @Test
@@ -170,13 +266,14 @@ public class PlannerTest {
 
     @Test
     public void testESSearchPlan() throws Exception {
-        // TODO: add where clause
-        Plan plan = plan("select name from users order by id limit 10");
+        Plan plan = plan("select name from users where name = 'x' order by id limit 10");
         Iterator<PlanNode> iterator = plan.iterator();
         PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(ESSearchNode.class));
+        ESSearchNode searchNode = (ESSearchNode)planNode;
 
-        assertThat(planNode.outputTypes().size(), is(1));
-        assertThat(planNode.outputTypes().get(0), is(DataType.STRING));
+        assertThat(searchNode.outputTypes().size(), is(1));
+        assertThat(searchNode.outputTypes().get(0), is(DataType.STRING));
+        assertTrue(searchNode.whereClause().isPresent());
     }
 }
