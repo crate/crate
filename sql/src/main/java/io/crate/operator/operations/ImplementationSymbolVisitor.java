@@ -81,25 +81,6 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
         }
     }
 
-    // TODO: move somewhere else ?
-    public class AggregationContext {
-        AggregationFunction impl;
-        Aggregation symbol;
-        List<Input<?>> inputs = new ArrayList<>();
-
-        public AggregationFunction function() {
-            return impl;
-        }
-
-        public Aggregation symbol() {
-            return symbol;
-        }
-
-        public Input<?>[] inputs () {
-            return inputs.toArray(new Input[inputs.size()]);
-        }
-    }
-
     protected final ReferenceResolver referenceResolver;
     protected final Functions functions;
     protected final RowGranularity rowGranularity;
@@ -199,13 +180,10 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
                     String.format("Can't load aggregation impl for symbol %s", symbol));
         }
 
-        AggregationContext aggregationContext = new AggregationContext();
+        AggregationContext aggregationContext = new AggregationContext((AggregationFunction)impl, symbol);
         for (Symbol aggInput : symbol.inputs()) {
-            aggregationContext.inputs.add(process(aggInput, context));
+            aggregationContext.addInput(process(aggInput, context));
         }
-
-        aggregationContext.impl = (AggregationFunction)impl;
-        aggregationContext.symbol = symbol;
         context.aggregations.add(aggregationContext);
 
         // can't generate an input from an aggregation.
