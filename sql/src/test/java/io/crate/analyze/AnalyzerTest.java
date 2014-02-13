@@ -148,6 +148,7 @@ public class AnalyzerTest {
                     .add("id", DataType.LONG, null)
                     .add("name", DataType.STRING, null)
                     .add("details", DataType.OBJECT, null)
+                    .add("awesome", DataType.BOOLEAN, null)
                     .build();
             when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
@@ -676,6 +677,19 @@ public class AnalyzerTest {
     @Test(expected = CrateException.class)
     public void testInsertWithWrongParameterType() throws Exception {
         analyze("insert into users (name, id) values (?, ?)", new Object[]{1, true});
+    }
+
+    @Test
+    public void testInsertWithConvertedTypes() throws Exception {
+        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, name, awesome) values (?, 'Trillian', ?)", new Object[]{1.0f, "true"});
+
+        assertThat(analysis.columns().get(0).valueType(), is(DataType.LONG));
+        assertThat(analysis.columns().get(2).valueType(), is(DataType.BOOLEAN));
+
+        List<Symbol> valuesList = analysis.values().get(0);
+        assertThat(valuesList.get(0), instanceOf(LongLiteral.class));
+        assertThat(valuesList.get(2), instanceOf(BooleanLiteral.class));
+
     }
 
     @Test
