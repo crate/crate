@@ -2,6 +2,7 @@ package io.crate.analyze;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
 import io.crate.operator.aggregation.impl.CollectSetAggregation;
@@ -230,14 +231,12 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
             // define the inner function. use the arguments/argumentTypes from above
             FunctionIdent innerIdent = new FunctionIdent(CollectSetAggregation.NAME, argumentTypes);
             FunctionInfo innerInfo = context.getFunctionInfo(innerIdent);
-            Function innerFunction = new Function(innerInfo, arguments);
+            Function innerFunction = context.allocateFunction(innerInfo, arguments);
 
             // define the outer function which contains the inner function as arugment.
             String nodeName = "collection_" + node.getName().toString();
-            List<Symbol> outerArguments = new ArrayList<>();
-            List<DataType> outerArgumentTypes = new ArrayList<>();
-            outerArguments.add(innerFunction);
-            outerArgumentTypes.add(DataType.SET_TYPES.get(argumentTypes.get(0).ordinal()));
+            ImmutableList<Symbol> outerArguments = ImmutableList.<Symbol>of(innerFunction);
+            ImmutableList<DataType> outerArgumentTypes = ImmutableList.of(DataType.SET_TYPES.get(argumentTypes.get(0).ordinal()));
 
             FunctionIdent ident = new FunctionIdent(nodeName, outerArgumentTypes);
             functionInfo = context.getFunctionInfo(ident);

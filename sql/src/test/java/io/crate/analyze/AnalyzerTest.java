@@ -32,7 +32,6 @@ import io.crate.operator.aggregation.impl.AverageAggregation;
 import io.crate.operator.aggregation.impl.CollectSetAggregation;
 import io.crate.operator.operator.*;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
-import io.crate.operator.scalar.CollectionAverageFunction;
 import io.crate.operator.scalar.CollectionCountFunction;
 import io.crate.operator.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
@@ -412,13 +411,15 @@ public class AnalyzerTest {
 
     @Test
     public void testAggregationDistinct() {
-        Statement statement = SqlParser.createStatement("select count(distinct 'alpha') where 'alpha' in ('alpha', 'bravo', 'charlie')");
-        Analysis analysis = analyzer.analyze(statement);
+        Analysis analysis = analyze("select count(distinct load['1']) from sys.nodes");
 
-        assertFalse(analysis.hasAggregates());
+        assertTrue(analysis.hasAggregates());
+        assertEquals(2, analysis.functions().size());
 
         Function collectionCount = getFunctionByName(CollectionCountFunction.NAME, analysis.functions());
+        Function collectSet = getFunctionByName(CollectSetAggregation.NAME, analysis.functions());
         assertNotNull(collectionCount);
+        assertNotNull(collectSet);
 
         List<Symbol> args = collectionCount.arguments();
         assertEquals(1, args.size());
@@ -426,31 +427,16 @@ public class AnalyzerTest {
         assertTrue(innerFunction.info().isAggregate());
         assertEquals(innerFunction.info().ident().name(), CollectSetAggregation.NAME);
         List<Symbol> innerArguments = innerFunction.arguments();
-        assertThat(innerArguments.get(0), IsInstanceOf.instanceOf(StringLiteral.class));
-        assertThat(((StringLiteral)innerArguments.get(0)).value(), is("alpha"));
+        assertThat(innerArguments.get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(((Reference)innerArguments.get(0)).info(), IsInstanceOf.instanceOf(ReferenceInfo.class));
+        ReferenceInfo refInfo = ((Reference)innerArguments.get(0)).info();
+        assertThat(refInfo.ident().columnIdent().name(), is("load"));
+        assertThat(refInfo.ident().columnIdent().path().get(0), is("1"));
+
+        assertSame(collectSet, innerFunction);
     }
 
-    @Test
-    public void testAvgDistinct() {
-        Statement statement = SqlParser.createStatement("select avg(distinct 1) where 1 in (1,2,3,4)");
-        Analysis analysis = analyzer.analyze(statement);
-
-        assertFalse(analysis.hasAggregates());
-
-        Function collectionCount = getFunctionByName(CollectionAverageFunction.NAME, analysis.functions());
-        assertNotNull(collectionCount);
-
-        List<Symbol> args = collectionCount.arguments();
-        assertEquals(1, args.size());
-        Function innerFunction = (Function) args.get(0);
-        assertTrue(innerFunction.info().isAggregate());
-        assertEquals(innerFunction.info().ident().name(), CollectSetAggregation.NAME);
-        List<Symbol> innerArguments = innerFunction.arguments();
-        assertThat(innerArguments.get(0), IsInstanceOf.instanceOf(LongLiteral.class));
-        assertThat(((LongLiteral)innerArguments.get(0)).value(), is(1L));
-    }
-
-    private Function getFunctionByName(String functionName, Collection c) {
+    private static Function getFunctionByName(String functionName, Collection c) {
         Function function = null;
         Iterator<Function> it = c.iterator();
         while (function == null && it.hasNext()) {
