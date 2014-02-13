@@ -29,8 +29,12 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.aggregation.impl.AverageAggregation;
+import io.crate.operator.aggregation.impl.CollectSetAggregation;
 import io.crate.operator.operator.*;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
+import io.crate.operator.scalar.CollectionAverageFunction;
+import io.crate.operator.scalar.CollectionCountFunction;
+import io.crate.operator.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
@@ -51,9 +55,12 @@ import org.hamcrest.core.IsInstanceOf;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -120,6 +127,7 @@ public class AnalyzerTest {
                 .add(new MetaDataSysModule())
                 .add(new AggregationImplModule())
                 .add(new OperatorModule())
+                .add(new ScalarFunctionModule())
                 .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
     }
@@ -355,4 +363,58 @@ public class AnalyzerTest {
         analyzer.analyze(statement);
     }
 
+    @Test
+    public void testAggregationDistinct() {
+        Statement statement = SqlParser.createStatement("select count(distinct 'alpha') where 'alpha' in ('alpha', 'bravo', 'charlie')");
+        Analysis analysis = analyzer.analyze(statement);
+
+        assertFalse(analysis.hasAggregates());
+
+        Function collectionCount = getFunctionByName(CollectionCountFunction.NAME, analysis.functions());
+        assertNotNull(collectionCount);
+
+        List<Symbol> args = collectionCount.arguments();
+        assertEquals(1, args.size());
+        Function innerFunction = (Function) args.get(0);
+        assertTrue(innerFunction.info().isAggregate());
+        assertEquals(innerFunction.info().ident().name(), CollectSetAggregation.NAME);
+        List<Symbol> innerArguments = innerFunction.arguments();
+        assertThat(innerArguments.get(0), IsInstanceOf.instanceOf(StringLiteral.class));
+        assertThat(((StringLiteral)innerArguments.get(0)).value(), is("alpha"));
+    }
+
+    @Test
+    public void testAvgDistinct() {
+        Statement statement = SqlParser.createStatement("select avg(distinct 1) where 1 in (1,2,3,4)");
+        Analysis analysis = analyzer.analyze(statement);
+
+        assertFalse(analysis.hasAggregates());
+
+        Function collectionCount = getFunctionByName(CollectionAverageFunction.NAME, analysis.functions());
+        assertNotNull(collectionCount);
+
+        List<Symbol> args = collectionCount.arguments();
+        assertEquals(1, args.size());
+        Function innerFunction = (Function) args.get(0);
+        assertTrue(innerFunction.info().isAggregate());
+        assertEquals(innerFunction.info().ident().name(), CollectSetAggregation.NAME);
+        List<Symbol> innerArguments = innerFunction.arguments();
+        assertThat(innerArguments.get(0), IsInstanceOf.instanceOf(LongLiteral.class));
+        assertThat(((LongLiteral)innerArguments.get(0)).value(), is(1L));
+    }
+
+    private Function getFunctionByName(String functionName, Collection c) {
+        // analysis.functions() returns a Collection.
+        // deterministic ordering is not guaranteed. therefor, iterate over the collection.
+        Function function = null;
+        Iterator<Function> it = c.iterator();
+        while (function == null && it.hasNext()) {
+            Function f = it.next();
+            if (f.info().ident().name().equals(functionName)) {
+                function = f;
+            }
+
+        }
+        return function;
+    }
 }

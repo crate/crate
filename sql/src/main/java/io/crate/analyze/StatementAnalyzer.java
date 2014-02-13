@@ -4,6 +4,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
+import io.crate.operator.aggregation.impl.CollectSetAggregation;
 import io.crate.operator.operator.*;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
@@ -174,8 +175,31 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
             arguments.add(vs);
             argumentTypes.add(vs.valueType());
         }
-        FunctionIdent ident = new FunctionIdent(node.getName().toString(), argumentTypes);
-        FunctionInfo functionInfo = context.getFunctionInfo(ident);
+
+        FunctionInfo functionInfo = null;
+        if (node.isDistinct()) {
+            if (argumentTypes.size() > 1) {
+                throw new UnsupportedOperationException("Function(DISTINCT x) does not accept more than one argument");
+            }
+            // define the inner function. use the arguments/argumentTypes from above
+            FunctionIdent innerIdent = new FunctionIdent(CollectSetAggregation.NAME, argumentTypes);
+            FunctionInfo innerInfo = context.getFunctionInfo(innerIdent);
+            Function innerFunction = new Function(innerInfo, arguments);
+
+            // define the outer function which contains the inner function as arugment.
+            String nodeName = "collection_" + node.getName().toString();
+            List<Symbol> outerArguments = new ArrayList<>();
+            List<DataType> outerArgumentTypes = new ArrayList<>();
+            outerArguments.add(innerFunction);
+            outerArgumentTypes.add(DataType.SET_TYPES.get(argumentTypes.get(0).ordinal()));
+
+            FunctionIdent ident = new FunctionIdent(nodeName, outerArgumentTypes);
+            functionInfo = context.getFunctionInfo(ident);
+            arguments = outerArguments;
+        } else {
+            FunctionIdent ident = new FunctionIdent(node.getName().toString(), argumentTypes);
+            functionInfo = context.getFunctionInfo(ident);
+        }
 
         return context.allocateFunction(functionInfo, arguments);
     }
