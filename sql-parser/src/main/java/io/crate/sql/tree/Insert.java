@@ -30,18 +30,43 @@ import java.util.List;
 public class Insert extends Statement {
 
     private final Table table;
-    private final List<List<Expression>> valuesList;
-    private final List<QualifiedName> columns;
+    private final List<ValuesList> valuesLists;
+    private final List<QualifiedNameReference> columns;
+    private final int maxValuesLength;
 
-    public Insert(Table table, List<List<Expression>> valuesList, @Nullable List<QualifiedName> columns) {
+    public Insert(Table table, List<ValuesList> valuesLists, @Nullable List<QualifiedNameReference> columns) {
         this.table = table;
-        this.valuesList = valuesList;
-        this.columns = Objects.firstNonNull(columns, ImmutableList.<QualifiedName>of());
+        this.valuesLists = valuesLists;
+        this.columns = Objects.firstNonNull(columns, ImmutableList.<QualifiedNameReference>of());
+        int i = 0;
+        for (ValuesList valuesList : valuesLists) {
+            i = Math.max(i, valuesList.values().size());
+        }
+        maxValuesLength = i;
+    }
+
+    public Table table() {
+        return table;
+    }
+
+    public List<QualifiedNameReference> columns() {
+        return columns;
+    }
+
+    public List<ValuesList> valuesLists() {
+        return valuesLists;
+    }
+
+    /**
+     * returns the length of the longest values List
+     */
+    public int maxValuesLength() {
+        return maxValuesLength;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(table, valuesList, columns);
+        return Objects.hashCode(table, valuesLists, columns);
     }
 
 
@@ -49,7 +74,7 @@ public class Insert extends Statement {
     public String toString() {
         return Objects.toStringHelper(this)
                 .add("table", table)
-                .add("valuesList", valuesList)
+                .add("values", valuesLists)
                 .add("columns", columns)
                 .toString();
     }
@@ -65,8 +90,13 @@ public class Insert extends Statement {
             return false;
         if (table != null ? !table.equals(insert.table) : insert.table != null)
             return false;
-        if (valuesList != null ? !valuesList.equals(insert.valuesList) : insert.valuesList != null) return false;
+        if (valuesLists != null ? !valuesLists.equals(insert.valuesLists) : insert.valuesLists != null) return false;
 
         return true;
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitInsert(this, context);
     }
 }

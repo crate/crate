@@ -65,7 +65,7 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
         }
 
         FunctionIdent o = (FunctionIdent) obj;
-        return Objects.equal(name, o.name) &&
+        return name.equalsIgnoreCase(o.name) &&
                 Objects.equal(argumentTypes, o.argumentTypes);
     }
 

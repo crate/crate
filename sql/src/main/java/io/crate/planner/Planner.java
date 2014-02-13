@@ -30,12 +30,21 @@ import io.crate.analyze.Analysis;
 import io.crate.planner.node.*;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
+import io.crate.analyze.InsertAnalysis;
+import io.crate.analyze.SelectAnalysis;
+import io.crate.planner.node.CollectNode;
+import io.crate.planner.node.ESSearchNode;
+import io.crate.planner.node.MergeNode;
+import io.crate.planner.node.PlanNode;
+import io.crate.planner.projection.*;
+import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import org.cratedb.Constants;
 import org.cratedb.DataType;
+import org.cratedb.sql.CrateException;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
@@ -245,7 +254,27 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         }
     }
 
+    /**
+     * dispatch plan creation based on analysis type
+     * @param analysis analysis to create plan from
+     * @return plan
+     */
     public Plan plan(Analysis analysis) {
+        Plan plan;
+        switch(analysis.type()) {
+            case SELECT:
+                plan = planSelect((SelectAnalysis)analysis);
+                break;
+            case INSERT:
+                plan = planInsert((InsertAnalysis)analysis);
+                break;
+            default:
+                throw new CrateException(String.format("unsupported analysis type '%s'", analysis.type().name()));
+        }
+        return plan;
+    }
+
+    private Plan planSelect(SelectAnalysis analysis) {
         Plan plan = new Plan();
 
         if (analysis.hasGroupBy()) {
@@ -268,7 +297,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         return plan;
     }
 
-    private void normalSelect(Analysis analysis, Plan plan) {
+    private void normalSelect(SelectAnalysis analysis, Plan plan) {
         // node or shard level normal select
         Context context = new Context(null);
         nodeVisitor.process(analysis.outputSymbols(), context);
@@ -302,7 +331,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         plan.add(NodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), collectNode));
     }
 
-    private void ESSearch(Analysis analysis, Plan plan) {
+    private void ESSearch(SelectAnalysis analysis, Plan plan) {
         // this is an es query
         // this only supports INFOS as order by
         List<Reference> orderBy;
@@ -338,7 +367,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         plan.add(node);
     }
 
-    private void globalAggregates(Analysis analysis, Plan plan) {
+    private void globalAggregates(SelectAnalysis analysis, Plan plan) {
         // global aggregate: collect and partial aggregate on C and final agg on H
         Context context = new Context(Aggregation.Step.PARTIAL);
         nodeVisitor.process(analysis.outputSymbols(), context);
@@ -366,7 +395,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         plan.add(NodeBuilder.localMerge(ImmutableList.<Projection>of(ap), collectNode));
     }
 
-    private void groupBy(Analysis analysis, Plan plan) {
+    private void groupBy(SelectAnalysis analysis, Plan plan) {
         if (analysis.rowGranularity().ordinal() < RowGranularity.DOC.ordinal()) {
             nonDistributedGroupBy(analysis, plan);
         } else {
@@ -374,7 +403,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         }
     }
 
-    private void nonDistributedGroupBy(Analysis analysis, Plan plan) {
+    private void nonDistributedGroupBy(SelectAnalysis analysis, Plan plan) {
         Context context = new Context(Aggregation.Step.FINAL, analysis.groupBy().size());
         nodeVisitor.process(analysis.outputSymbols(), context);
         nodeVisitor.process(analysis.sortSymbols(), context);
@@ -403,7 +432,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         plan.add(NodeBuilder.localMerge(ImmutableList.<Projection>of(groupProjection, topN), collectNode));
     }
 
-    private void distributedGroupby(Analysis analysis, Plan plan) {
+    private void distributedGroupby(SelectAnalysis analysis, Plan plan) {
         // distributed collect on mapper nodes
         // merge on reducer to final (has row authority)
         // merge on handler
@@ -464,6 +493,11 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             idx++;
         }
         return outputs;
+    }
+
+    private Plan planInsert(InsertAnalysis analysis) {
+        throw new UnsupportedOperationException("insert plan creation not implemented yet.");
+
     }
 
     private static List<DataType> extractDataTypes(List<Symbol> symbols) {

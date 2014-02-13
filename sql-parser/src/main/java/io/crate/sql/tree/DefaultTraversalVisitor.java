@@ -398,4 +398,24 @@ public abstract class DefaultTraversalVisitor<R, C>
 
         return null;
     }
+
+    @Override
+    public R visitInsert(Insert node, C context) {
+        process(node.table(), context);
+        for (QualifiedNameReference column : node.columns()) {
+            process(column, context);
+        }
+        for (ValuesList valuesList : node.valuesLists()) {
+            process(valuesList, context);
+        }
+        return null;
+    }
+
+    @Override
+    public R visitValuesList(ValuesList node, C context) {
+        for (Expression value : node.values()) {
+            process(value, context);
+        }
+        return null;
+    }
 }
