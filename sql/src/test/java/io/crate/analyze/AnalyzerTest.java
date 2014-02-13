@@ -451,8 +451,6 @@ public class AnalyzerTest {
     }
 
     private Function getFunctionByName(String functionName, Collection c) {
-        // analysis.functions() returns a Collection.
-        // deterministic ordering is not guaranteed. therefor, iterate over the collection.
         Function function = null;
         Iterator<Function> it = c.iterator();
         while (function == null && it.hasNext()) {
