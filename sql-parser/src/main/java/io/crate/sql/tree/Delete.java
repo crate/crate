@@ -38,6 +38,21 @@ public class Delete extends Statement {
         this.where = Optional.fromNullable(where);
     }
 
+    public Table getTable() {
+        return table;
+    }
+
+    public Optional<Expression> getWhere() {
+        return where;
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
+    {
+        return visitor.visitDelete(this, context);
+    }
+
+
     @Override
     public int hashCode() {
         return Objects.hashCode(table, where);

@@ -448,4 +448,23 @@ public class AnalyzerTest {
         }
         return function;
     }
+
+    @Test
+    public void testDeleteWhere() throws Exception {
+        Statement statement = SqlParser.createStatement("delete from sys.nodes where load['1'] = 1");
+        Analysis analysis = analyzer.analyze(statement);
+        assertTrue(analysis.isDelete());
+        assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
+
+        assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
+        assertFalse(analysis.hasGroupBy());
+
+        Function whereClause = analysis.whereClause();
+        assertEquals(EqOperator.NAME, whereClause.info().ident().name());
+        assertFalse(whereClause.info().isAggregate());
+
+        assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
+    }
+
 }

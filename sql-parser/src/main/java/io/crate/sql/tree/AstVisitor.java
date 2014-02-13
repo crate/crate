@@ -408,4 +408,9 @@ public abstract class AstVisitor<R, C>
     public R visitParameterExpression(ParameterExpression node, C context) {
         return visitExpression(node, context);
     }
+
+    protected R visitDelete(Delete node, C context)
+    {
+        return visitNode(node, context);
+    }
 }

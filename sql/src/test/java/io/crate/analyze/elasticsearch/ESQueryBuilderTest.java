@@ -22,11 +22,13 @@
 package io.crate.analyze.elasticsearch;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.*;
 import io.crate.operator.operator.*;
 import io.crate.operator.scalar.MatchFunction;
 import io.crate.operator.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.node.ESDeleteByQueryNode;
 import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
@@ -228,5 +230,37 @@ public class ESQueryBuilderTest {
 
         assertThat(bytesReference.toUtf8(),
                 is("{\"fields\":[],\"query\":{\"match_all\":{}},\"min_score\":0.4,\"from\":0,\"size\":10000}"));
+    }
+
+    @Test
+    public void testConvertESSearchNode() throws Exception {
+        FunctionImplementation eqImpl = functions.get(new FunctionIdent(EqOperator.NAME, typeX2(DataType.STRING)));
+        Function whereClause = new Function(eqImpl.info(), Arrays.<Symbol>asList(name_ref, new StringLiteral("Marvin")));
+
+        ESSearchNode searchNode = new ESSearchNode(ImmutableList.<Symbol>of(name_ref),
+                ImmutableList.<Reference>of(),
+                new boolean[0],
+                null,
+                null,
+                whereClause);
+
+        BytesReference reference = generator.convert(searchNode, ImmutableList.<Reference>of(name_ref));
+        String actual = reference.toUtf8();
+        assertThat(actual, is("{\"fields\":[\"name\"],\"query\":{\"term\":{\"name\":\"Marvin\"}},\"from\":0,\"size\":10000}"));
+    }
+
+    @Test
+    public void testConvertESDeleteByQueryNode() throws Exception {
+        FunctionImplementation eqImpl = functions.get(new FunctionIdent(EqOperator.NAME, typeX2(DataType.STRING)));
+        Function whereClause = new Function(eqImpl.info(), Arrays.<Symbol>asList(name_ref, new StringLiteral("Marvin")));
+
+        ESDeleteByQueryNode deleteByQueryNode = new ESDeleteByQueryNode(
+                ImmutableSet.<String>of(characters.name()),
+                whereClause);
+
+        BytesReference reference = generator.convert(deleteByQueryNode);
+        String actual = reference.toUtf8();
+        assertThat(actual, is("{\"term\":{\"name\":\"Marvin\"}}"));
+
     }
 }

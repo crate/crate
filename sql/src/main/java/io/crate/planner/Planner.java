@@ -24,13 +24,14 @@ package io.crate.planner;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Analysis;
-import io.crate.planner.node.CollectNode;
-import io.crate.planner.node.ESSearchNode;
-import io.crate.planner.node.MergeNode;
-import io.crate.planner.node.PlanNode;
-import io.crate.planner.projection.*;
+import io.crate.planner.node.*;
+import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import org.cratedb.Constants;
@@ -38,7 +39,10 @@ import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @Singleton
 public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
@@ -251,7 +255,11 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 globalAggregates(analysis, plan);
             } else {
                 if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal()) {
-                    ESSearch(analysis, plan);
+                    if (!analysis.isDelete()) {
+                        ESSearch(analysis, plan);
+                    } else {
+                        ESDeleteByQuery(analysis, plan);
+                    }
                 } else {
                     normalSelect(analysis, plan);
                 }
@@ -320,6 +328,13 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 analysis.whereClause()
         );
         node.outputTypes(extractDataTypes(analysis.outputSymbols()));
+        plan.add(node);
+    }
+
+    private void ESDeleteByQuery(Analysis analysis, Plan plan) {
+        ESDeleteByQueryNode node = new ESDeleteByQueryNode(
+                ImmutableSet.<String>of(analysis.table().ident().name()),
+                analysis.whereClause());
         plan.add(node);
     }
 
