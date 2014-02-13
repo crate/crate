@@ -24,10 +24,12 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.ValueSymbol;
 import io.crate.sql.tree.*;
+import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
 
 import java.util.ArrayList;
@@ -97,17 +99,31 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
     @Override
     public Symbol visitValuesList(ValuesList node, InsertAnalysis context) {
         List<Symbol> symbols = new ArrayList<>();
+
         int i = 0;
         for (Expression value : node.values()) {
             Symbol valuesSymbol = process(value, context);
             assert valuesSymbol instanceof ValueSymbol;
 
-            // TODO: how to better check for correct/supported types, literal type casting?
-            if (((ValueSymbol)valuesSymbol).valueType() != context.columns().get(i).valueType()) {
+            // implicit type conversion
+            boolean wrongType = false;
+            DataType expectedType = context.columns().get(i).valueType();
+            if (valuesSymbol instanceof Literal) {
+                try {
+                    valuesSymbol = ((Literal) valuesSymbol).convertTo(expectedType);
+                } catch (Exception e) {  // UnsupportedOperationException, NumberFormatException ...
+                    wrongType = true;
+
+                }
+            } else if (((ValueSymbol)valuesSymbol).valueType() != expectedType) {
+                wrongType = true;
+            }
+
+            if (wrongType) {
                 throw new CrateException(String.format("Invalid type '%s' at value idx %d. expected '%s'",
                         ((ValueSymbol)valuesSymbol).valueType().getName(),
                         i,
-                        context.columns().get(i).valueType().getName()));
+                        expectedType.getName()));
             }
 
             symbols.add(valuesSymbol);

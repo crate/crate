@@ -62,6 +62,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.*;
+
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -121,6 +122,7 @@ public class AnalyzerTest {
                     .add("id", DataType.LONG, null)
                     .add("name", DataType.STRING, null)
                     .add("details", DataType.OBJECT, null)
+                    .add("awesome", DataType.BOOLEAN, null)
                     .build();
             when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
@@ -579,6 +581,27 @@ public class AnalyzerTest {
     }
 
     @Test
+    public void testInsertWithConvertedTypes() throws Exception {
+        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, name, awesome) values (?, 'Trillian', ?)", new Object[]{1.0f, "true"});
+        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
+        assertThat(analysis.columns().size(), is(3));
+
+        assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
+        assertThat(analysis.columns().get(0).valueType(), is(DataType.LONG));
+
+        assertThat(analysis.columns().get(1).info().ident().columnIdent().name(), is("name"));
+        assertThat(analysis.columns().get(1).valueType(), is(DataType.STRING));
+
+        assertThat(analysis.columns().get(2).info().ident().columnIdent().name(), is("awesome"));
+        assertThat(analysis.columns().get(2).valueType(), is(DataType.BOOLEAN));
+
+        List<Symbol> valuesList = analysis.values().get(0);
+        assertThat(valuesList.get(0), instanceOf(LongLiteral.class));
+        assertThat(valuesList.get(2), instanceOf(BooleanLiteral.class));
+
+    }
+
+    @Test
     public void testInsertWithFunction() throws Exception {
         InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users values (ABS(-1), 'Trillian')");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
@@ -647,6 +670,6 @@ public class AnalyzerTest {
                 new Object[]{map});
         Function whereClause = analysis.whereClause();
         assertThat(whereClause.arguments().get(1), instanceOf(ObjectLiteral.class));
-        assertTrue(((ObjectLiteral)whereClause.arguments().get(1)).value().equals(map));
+        assertTrue(((ObjectLiteral) whereClause.arguments().get(1)).value().equals(map));
     }
 }
