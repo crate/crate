@@ -21,6 +21,7 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
     private static OutputNameFormatter outputNameFormatter = new OutputNameFormatter();
     protected static SubscriptVisitor visitor = new SubscriptVisitor();
     protected static SymbolDataTypeVisitor symbolDataTypeVisitor = new SymbolDataTypeVisitor();
+    protected static NegativeLiteralVisitor negativeLiteralVisitor = new NegativeLiteralVisitor();
     private final Map<String, String> swapOperatorTable = ImmutableMap.<String, String>builder()
             .put(GtOperator.NAME, LtOperator.NAME)
             .put(GteOperator.NAME, LteOperator.NAME)
@@ -89,7 +90,6 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
             }
             context.sortSymbols(sortSymbols);
         }
-        // TODO: support offset, needs parser impl
         return null;
     }
 
@@ -100,12 +100,21 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
             int idx;
             if (s.symbolType() == SymbolType.LONG_LITERAL) {
                 idx = ((io.crate.planner.symbol.LongLiteral)s).value().intValue() - 1;
+                if (idx < 1) {
+                    throw new IllegalArgumentException(
+                            String.format("GROUP BY position %s is not in select list", idx));
+                }
             } else {
                 idx = context.outputSymbols().indexOf(s);
             }
 
             if (idx >= 0) {
-                s = context.outputSymbols().get(idx);
+                try {
+                    s = context.outputSymbols().get(idx);
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    throw new IllegalArgumentException(
+                            String.format("GROUP BY position %s is not in select list", idx));
+                }
             }
 
             if (s.symbolType() == SymbolType.FUNCTION && ((Function)s).info().isAggregate()) {
@@ -117,6 +126,11 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
         context.groupBy(groupBy);
 
         ensureOutputSymbolsInGroupBy(context);
+    }
+
+    @Override
+    protected Symbol visitNegativeExpression(NegativeExpression node, Analysis context) {
+        return negativeLiteralVisitor.process(process(node.getValue(), context), null);
     }
 
     private void ensureOutputSymbolsInGroupBy(Analysis context) {

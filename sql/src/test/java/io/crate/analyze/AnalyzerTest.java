@@ -176,6 +176,11 @@ public class AnalyzerTest {
     }
 
     @Test (expected = IllegalArgumentException.class)
+    public void testGroupByOnInvalidOrdinal() throws Exception {
+        analyze("select count(*), name from sys.nodes group by -4");
+    }
+
+    @Test (expected = IllegalArgumentException.class)
     public void testGroupByOnOrdinalAggregation() throws Exception {
         analyze("select count(*), name as n from sys.nodes group by 1");
     }
