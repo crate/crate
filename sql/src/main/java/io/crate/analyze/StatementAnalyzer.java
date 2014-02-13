@@ -72,17 +72,8 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
         process(node.getSelect(), context);
 
-        if (node.getGroupBy().size() > 0) {
-            List<Symbol> groupBy = new ArrayList<>(node.getGroupBy().size());
-            for (Expression expression : node.getGroupBy()) {
-                Symbol s = process(expression, context);
-                // TODO: support column names and ordinals
-                int idx = context.outputSymbols().indexOf(s);
-                Preconditions.checkArgument(idx >= 0,
-                        "group by expression is not in output columns", s);
-                groupBy.add(context.outputSymbols().get(idx));
-            }
-            context.groupBy(groupBy);
+        if (!node.getGroupBy().isEmpty()) {
+            analyzeGroupBy(node.getGroupBy(), context);
         }
 
         Preconditions.checkArgument(node.getHaving().isPresent() == false, "having clause is not yet supported");
@@ -100,6 +91,44 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
         }
         // TODO: support offset, needs parser impl
         return null;
+    }
+
+    private void analyzeGroupBy(List<Expression> groupByExpressions, Analysis context) {
+        List<Symbol> groupBy = new ArrayList<>(groupByExpressions.size());
+        for (Expression expression : groupByExpressions) {
+            Symbol s = process(expression, context);
+            int idx;
+            if (s.symbolType() == SymbolType.LONG_LITERAL) {
+                idx = ((io.crate.planner.symbol.LongLiteral)s).value().intValue() - 1;
+            } else {
+                idx = context.outputSymbols().indexOf(s);
+            }
+
+            if (idx >= 0) {
+                s = context.outputSymbols().get(idx);
+            }
+
+            if (s.symbolType() == SymbolType.FUNCTION && ((Function)s).info().isAggregate()) {
+                throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
+            }
+
+            groupBy.add(s);
+        }
+        context.groupBy(groupBy);
+
+        ensureOutputSymbolsInGroupBy(context);
+    }
+
+    private void ensureOutputSymbolsInGroupBy(Analysis context) {
+        for (Symbol symbol : context.outputSymbols()) {
+            if (symbol.symbolType() == SymbolType.FUNCTION && ((Function)symbol).info().isAggregate()) {
+                continue;
+            }
+            if (!context.groupBy().contains(symbol)) {
+                throw new IllegalArgumentException(
+                        String.format("column %s must appear in the GROUP BY clause or be used in an aggregation function", symbol));
+            }
+        }
     }
 
     @Override
