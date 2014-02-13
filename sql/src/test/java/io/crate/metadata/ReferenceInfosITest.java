@@ -22,10 +22,10 @@
 package io.crate.metadata;
 
 import com.google.common.collect.Sets;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.test.integration.CrateIntegrationTest;
-import org.elasticsearch.cluster.ClusterService;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,25 +36,30 @@ import java.util.Set;
 import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
-public class RoutingsServiceTest extends SQLTransportIntegrationTest {
+public class ReferenceInfosITest extends SQLTransportIntegrationTest {
 
-    private RoutingsService routingsService;
-    private ClusterService clusterService;
     private ReferenceInfos referenceInfos;
 
     @Before
     public void setUpService() {
-        clusterService = cluster().getInstance(ClusterService.class);
-        routingsService = new RoutingsService(clusterService);
         referenceInfos = cluster().getInstance(ReferenceInfos.class);
     }
 
     @Test
-    public void testDocRouting() throws Exception {
-        execute("create table t1 (id int primary key) clustered into 10 shards replicas 1");
+    public void testDocTable() throws Exception {
+        execute("create table t1 (id int primary key, name string) clustered into 10 shards replicas 1");
         ensureGreen();
 
-        Routing routing = routingsService.getRouting(new TableIdent(null, "t1"));
+        DocTableInfo ti = (DocTableInfo) referenceInfos.getTableInfo(new TableIdent(null, "t1"));
+        assertThat(ti.ident().name(), is("t1"));
+
+        assertThat(ti.columns().size(), is(2));
+        assertThat(ti.primaryKeys().size(), is(1));
+        assertThat(ti.primaryKeys().get(0), is("id"));
+        assertThat(ti.clusteredBy(), is("id"));
+
+        Routing routing = ti.getRouting(null);
+
         Set<String> nodes = routing.nodes();
 
         assertThat(nodes.size(), is(2));
@@ -68,8 +73,9 @@ public class RoutingsServiceTest extends SQLTransportIntegrationTest {
         assertThat(numShards, is(10));
     }
 
+
     @Test
-    public void testNodesRouting() throws Exception {
+    public void testNodesTable() throws Exception {
         TableInfo ti = referenceInfos.getTableInfo(new TableIdent("sys", "nodes"));
         Routing routing = ti.getRouting(null);
         assertTrue(routing.hasLocations());
@@ -80,7 +86,7 @@ public class RoutingsServiceTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testShardsRouting() throws Exception {
+    public void testShardsTable() throws Exception {
         execute("create table t2 (id int primary key) clustered into 4 shards replicas 0");
         execute("create table t3 (id int primary key) clustered into 8 shards replicas 0");
         ensureGreen();
@@ -102,7 +108,7 @@ public class RoutingsServiceTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testClusterRouting() throws Exception {
+    public void testClusterTable() throws Exception {
         TableInfo ti = referenceInfos.getTableInfo(new TableIdent("sys", "cluster"));
         assertNull(ti.getRouting(null));
     }

@@ -91,6 +91,8 @@ tokens {
     COLUMN_LIST;
     INSERT_VALUES;
     VALUES_LIST;
+    ASSIGNMENT;
+    ASSIGNMENT_LIST;
 }
 
 @header {
@@ -172,6 +174,7 @@ statement
     | dropAliasStmt
     | insertStmt
     | deleteStmt
+    | updateStmt
     ;
 
 query
@@ -735,6 +738,18 @@ deleteStmt
     : DELETE FROM table whereClause? -> ^(DELETE table whereClause?)
     ;
 
+updateStmt
+    : UPDATE table SET assignmentList whereClause? -> ^(UPDATE table assignmentList whereClause?)
+    ;
+
+assignmentList
+    : assignment ( ',' assignment )* -> ^(ASSIGNMENT_LIST assignment+)
+    ;
+
+assignment
+    : qname EQ expr -> ^(ASSIGNMENT qname expr)
+    ;
+
 nonReserved
     : SHOW | TABLES | COLUMNS | PARTITIONS | FUNCTIONS | SCHEMAS | CATALOGS
     | OVER | PARTITION | RANGE | ROWS | PRECEDING | FOLLOWING | CURRENT | ROW
@@ -867,6 +882,8 @@ INSERT: 'INSERT';
 INTO: 'INTO';
 VALUES: 'VALUES';
 DELETE: 'DELETE';
+UPDATE: 'UPDATE';
+SET: 'SET';
 
 EQ  : '=';
 NEQ : '<>' | '!=';

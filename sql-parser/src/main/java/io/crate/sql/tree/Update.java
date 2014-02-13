@@ -22,35 +22,37 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableList;
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class Insert extends Statement {
+public class Update extends Statement {
 
     private final Table table;
-    private final List<List<Expression>> valuesList;
-    private final List<QualifiedName> columns;
+    private final List<Assignment> assignments;
+    private final Optional<Expression> where;
 
-    public Insert(Table table, List<List<Expression>> valuesList, @Nullable List<QualifiedName> columns) {
+    public Update(Table table, List<Assignment> assignments, @Nullable Expression where) {
+        Preconditions.checkNotNull(table, "table is null");
+        Preconditions.checkNotNull(assignments, "assignments are null");
         this.table = table;
-        this.valuesList = valuesList;
-        this.columns = Objects.firstNonNull(columns, ImmutableList.<QualifiedName>of());
+        this.assignments = assignments;
+        this.where = Optional.fromNullable(where);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(table, valuesList, columns);
+        return Objects.hashCode(table, assignments, where);
     }
-
 
     @Override
     public String toString() {
         return Objects.toStringHelper(this)
                 .add("table", table)
-                .add("valuesList", valuesList)
-                .add("columns", columns)
+                .add("assignments", assignments)
+                .add("where", where.orNull())
                 .toString();
     }
 
@@ -59,13 +61,11 @@ public class Insert extends Statement {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        Insert insert = (Insert) o;
+        Update update = (Update) o;
 
-        if (columns != null ? !columns.equals(insert.columns) : insert.columns != null)
-            return false;
-        if (table != null ? !table.equals(insert.table) : insert.table != null)
-            return false;
-        if (valuesList != null ? !valuesList.equals(insert.valuesList) : insert.valuesList != null) return false;
+        if (!assignments.equals(update.assignments)) return false;
+        if (!table.equals(update.table)) return false;
+        if (where != null ? !where.equals(update.where) : update.where != null) return false;
 
         return true;
     }

@@ -22,35 +22,32 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableList;
+import com.google.common.base.Preconditions;
 
-import javax.annotation.Nullable;
-import java.util.List;
+public class Assignment extends Node {
 
-public class Insert extends Statement {
+    private final QualifiedName columnName;
+    private final Expression expression;
 
-    private final Table table;
-    private final List<List<Expression>> valuesList;
-    private final List<QualifiedName> columns;
 
-    public Insert(Table table, List<List<Expression>> valuesList, @Nullable List<QualifiedName> columns) {
-        this.table = table;
-        this.valuesList = valuesList;
-        this.columns = Objects.firstNonNull(columns, ImmutableList.<QualifiedName>of());
+    public Assignment(QualifiedName columnName, Expression expression) {
+        Preconditions.checkNotNull(columnName, "columnname is null");
+        Preconditions.checkNotNull(expression, "expression is null");
+        this.columnName = columnName;
+        this.expression = expression;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(table, valuesList, columns);
+        return Objects.hashCode(columnName, expression);
     }
 
 
     @Override
     public String toString() {
         return Objects.toStringHelper(this)
-                .add("table", table)
-                .add("valuesList", valuesList)
-                .add("columns", columns)
+                .add("column", columnName)
+                .add("expression", expression)
                 .toString();
     }
 
@@ -59,13 +56,10 @@ public class Insert extends Statement {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        Insert insert = (Insert) o;
+        Assignment that = (Assignment) o;
 
-        if (columns != null ? !columns.equals(insert.columns) : insert.columns != null)
-            return false;
-        if (table != null ? !table.equals(insert.table) : insert.table != null)
-            return false;
-        if (valuesList != null ? !valuesList.equals(insert.valuesList) : insert.valuesList != null) return false;
+        if (!columnName.equals(that.columnName)) return false;
+        if (!expression.equals(that.expression)) return false;
 
         return true;
     }
