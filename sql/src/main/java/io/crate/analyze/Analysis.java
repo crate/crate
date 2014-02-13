@@ -52,6 +52,7 @@ public class Analysis {
     public void table(TableIdent tableIdent) {
         table = referenceInfos.getTableInfo(tableIdent);
         Preconditions.checkNotNull(table, "Table not found", tableIdent);
+        updateRowGranularity(table.rowGranularity());
     }
 
     public TableInfo table() {
