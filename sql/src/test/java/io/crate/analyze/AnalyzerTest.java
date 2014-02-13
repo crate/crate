@@ -186,6 +186,14 @@ public class AnalyzerTest {
     }
 
     @Test
+    public void testNegativeLiteral() throws Exception {
+        Analysis analyze = analyze("select * from sys.nodes where port['http'] = -400");
+        Function whereClause = analyze.whereClause();
+        Symbol symbol = whereClause.arguments().get(1);
+        assertThat(((IntegerLiteral)symbol).value(), is(-400));
+    }
+
+    @Test
     public void testGroupedSelect() throws Exception {
         Statement statement = SqlParser.createStatement("select load['1'], count(*) from sys.nodes group by load['1']");
         Analysis analysis = analyzer.analyze(statement);

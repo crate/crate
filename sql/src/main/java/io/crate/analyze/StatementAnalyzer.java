@@ -130,6 +130,9 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     @Override
     protected Symbol visitNegativeExpression(NegativeExpression node, Analysis context) {
+        // in statements like "where x = -1" the  positive (expression)IntegerLiteral (1)
+        // is just wrapped inside a negativeExpression
+        // the visitor here swaps it to get -1 in a (symbol)LiteralInteger
         return negativeLiteralVisitor.process(process(node.getValue(), context), null);
     }
 
