@@ -471,6 +471,7 @@ public class AnalyzerTest {
         analyze("select * from sys.nodes where name like 'foo' escape 'o'");
     }
 
+    @Test
     public void testDeleteWhere() throws Exception {
         Statement statement = SqlParser.createStatement("delete from sys.nodes where load['1'] = 1");
         Analysis analysis = analyzer.analyze(statement);
