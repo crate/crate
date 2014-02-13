@@ -175,6 +175,10 @@ public class TestStatementBuilder
         expression = SqlParser.createExpression("FIRSTNAME = 'myName'");
         nameRef = (QualifiedNameReference)((ComparisonExpression)expression).getLeft();
         assertThat(nameRef.getName().getSuffix(), is("firstname"));
+
+        expression = SqlParser.createExpression("ABS(1)");
+        QualifiedName functionName = ((FunctionCall)expression).getName();
+        assertThat(functionName.getSuffix(), is("abs"));
     }
 
     @Test

@@ -18,9 +18,9 @@ import org.cratedb.DataType;
 
 import java.util.*;
 
-class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
+abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVisitor<Symbol, T> {
 
-    private static OutputNameFormatter outputNameFormatter = new OutputNameFormatter();
+    protected static OutputNameFormatter outputNameFormatter = new OutputNameFormatter();
     protected static SubscriptVisitor visitor = new SubscriptVisitor();
     protected static SymbolDataTypeVisitor symbolDataTypeVisitor = new SymbolDataTypeVisitor();
     protected static NegativeLiteralVisitor negativeLiteralVisitor = new NegativeLiteralVisitor();
@@ -49,164 +49,14 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
     }
 
     @Override
-    protected Symbol visitQuerySpecification(QuerySpecification node, Analysis context) {
-        // visit the from first, since this qualifies the select
-        if (node.getFrom() != null) {
-            for (Relation relation : node.getFrom()) {
-                process(relation, context);
-            }
-        }
+    protected Symbol visitNode(Node node, T context) {
 
-        // the parsers sql grammer makes sure that only a integer matches after limit/offset so
-        // parseInt can't fail here.
-        if (node.getLimit().isPresent()) {
-            context.limit(Integer.parseInt(node.getLimit().get()));
-        }
-        if (node.getOffset().isPresent()) {
-            context.offset(Integer.parseInt(node.getOffset().get()));
-        }
-
-        // the whereClause shouldn't resolve the aliases so this is done before resolving
-        // the result columns to make sure the alias map is empty.
-        if (node.getWhere().isPresent()) {
-            Function function = (Function) process(node.getWhere().get(), context);
-            context.whereClause(function);
-        }
-
-        process(node.getSelect(), context);
-
-        if (!node.getGroupBy().isEmpty()) {
-            analyzeGroupBy(node.getGroupBy(), context);
-        }
-
-        Preconditions.checkArgument(node.getHaving().isPresent() == false, "having clause is not yet supported");
-
-        if (node.getOrderBy().size() > 0) {
-            List<Symbol> sortSymbols = new ArrayList<>(node.getOrderBy().size());
-            context.reverseFlags(new boolean[node.getOrderBy().size()]);
-            int i = 0;
-            for (SortItem sortItem : node.getOrderBy()) {
-
-                sortSymbols.add(process(sortItem, context));
-                context.reverseFlags()[i++] = sortItem.getOrdering() == SortItem.Ordering.DESCENDING;
-            }
-            context.sortSymbols(sortSymbols);
-        }
-        return null;
-    }
-
-    private void analyzeGroupBy(List<Expression> groupByExpressions, Analysis context) {
-        List<Symbol> groupBy = new ArrayList<>(groupByExpressions.size());
-        for (Expression expression : groupByExpressions) {
-            Symbol s = process(expression, context);
-            int idx;
-            if (s.symbolType() == SymbolType.LONG_LITERAL) {
-                idx = ((io.crate.planner.symbol.LongLiteral)s).value().intValue() - 1;
-                if (idx < 1) {
-                    throw new IllegalArgumentException(
-                            String.format("GROUP BY position %s is not in select list", idx));
-                }
-            } else {
-                idx = context.outputSymbols().indexOf(s);
-            }
-
-            if (idx >= 0) {
-                try {
-                    s = context.outputSymbols().get(idx);
-                } catch (ArrayIndexOutOfBoundsException e) {
-                    throw new IllegalArgumentException(
-                            String.format("GROUP BY position %s is not in select list", idx));
-                }
-            }
-
-            if (s.symbolType() == SymbolType.FUNCTION && ((Function)s).info().isAggregate()) {
-                throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
-            }
-
-            groupBy.add(s);
-        }
-        context.groupBy(groupBy);
-
-        ensureOutputSymbolsInGroupBy(context);
-    }
-
-    @Override
-    protected Symbol visitNegativeExpression(NegativeExpression node, Analysis context) {
-        // in statements like "where x = -1" the  positive (expression)IntegerLiteral (1)
-        // is just wrapped inside a negativeExpression
-        // the visitor here swaps it to get -1 in a (symbol)LiteralInteger
-        return negativeLiteralVisitor.process(process(node.getValue(), context), null);
-    }
-
-    private void ensureOutputSymbolsInGroupBy(Analysis context) {
-        for (Symbol symbol : context.outputSymbols()) {
-            if (symbol.symbolType() == SymbolType.FUNCTION && ((Function)symbol).info().isAggregate()) {
-                continue;
-            }
-            if (!context.groupBy().contains(symbol)) {
-                throw new IllegalArgumentException(
-                        String.format("column %s must appear in the GROUP BY clause or be used in an aggregation function", symbol));
-            }
-        }
-    }
-
-    @Override
-    protected Symbol visitSortItem(SortItem node, Analysis context) {
-        return super.visitSortItem(node, context);
-    }
-
-    @Override
-    protected Symbol visitQuery(Query node, Analysis context) {
-        context.query(node);
-        return super.visitQuery(node, context);
-    }
-
-    @Override
-    protected Symbol visitNode(Node node, Analysis context) {
         System.out.println("Not analyzed node: " + node);
         return super.visitNode(node, context);
     }
 
     @Override
-    protected Symbol visitSelect(Select node, Analysis context) {
-        context.outputSymbols(new ArrayList<Symbol>(node.getSelectItems().size()));
-        context.outputNames(new ArrayList<String>(node.getSelectItems().size()));
-
-        for (SelectItem item : node.getSelectItems()) {
-            process(item, context);
-        }
-
-        return null;
-    }
-
-    @Override
-    protected Symbol visitSingleColumn(SingleColumn node, Analysis context) {
-        Symbol symbol = process(node.getExpression(), context);
-        context.outputSymbols().add(symbol);
-
-        if (node.getAlias().isPresent()) {
-            context.addAlias(node.getAlias().get(), symbol);
-        } else {
-            context.addAlias(outputNameFormatter.process(node.getExpression(), null), symbol);
-        }
-
-        return null;
-    }
-
-    @Override
-    protected Symbol visitAllColumns(AllColumns node, Analysis context) {
-        Symbol symbol;
-        for (ReferenceInfo referenceInfo : context.table().columns()) {
-            symbol = context.allocateReference(referenceInfo.ident());
-            context.outputSymbols().add(symbol);
-            context.addAlias(referenceInfo.ident().columnIdent().name(), symbol);
-        }
-
-        return null;
-    }
-
-    @Override
-    protected Symbol visitTable(Table node, Analysis context) {
+    protected Symbol visitTable(Table node, T context) {
         Preconditions.checkState(context.table() == null, "selecting from multiple tables is not supported");
         context.table(TableIdent.of(node));
         return null;
@@ -214,7 +64,7 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
 
     @Override
-    protected Symbol visitFunctionCall(FunctionCall node, Analysis context) {
+    protected Symbol visitFunctionCall(FunctionCall node, T context) {
         List<Symbol> arguments = new ArrayList<>(node.getArguments().size());
         List<DataType> argumentTypes = new ArrayList<>(node.getArguments().size());
         for (Expression expression : node.getArguments()) {
@@ -250,7 +100,7 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
     }
 
     @Override
-    protected Symbol visitInPredicate(InPredicate node, Analysis context) {
+    protected Symbol visitInPredicate(InPredicate node, T context) {
         List<Symbol> arguments = new ArrayList<>(2);
         List<DataType> argumentTypes = new ArrayList<>(2);
 
@@ -269,7 +119,7 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
     }
 
     @Override
-    protected Symbol visitInListExpression(InListExpression node, Analysis context) {
+    protected Symbol visitInListExpression(InListExpression node, T context) {
         Set<Literal> symbols = new HashSet<>();
         DataType dataType = null;
         for (Expression expression : node.getValues()) {
@@ -291,22 +141,23 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
     }
 
     @Override
-    protected Symbol visitStringLiteral(StringLiteral node, Analysis context) {
+    protected Symbol visitStringLiteral(StringLiteral node, T context) {
+
         return new io.crate.planner.symbol.StringLiteral(node.getValue());
     }
 
     @Override
-    protected Symbol visitDoubleLiteral(DoubleLiteral node, Analysis context) {
+    protected Symbol visitDoubleLiteral(DoubleLiteral node, T context) {
         return new io.crate.planner.symbol.DoubleLiteral(node.getValue());
     }
 
     @Override
-    protected Symbol visitLongLiteral(LongLiteral node, Analysis context) {
+    protected Symbol visitLongLiteral(LongLiteral node, T context) {
         return new io.crate.planner.symbol.LongLiteral(node.getValue());
     }
 
     @Override
-    public Symbol visitParameterExpression(ParameterExpression node, Analysis context) {
+    public Symbol visitParameterExpression(ParameterExpression node, T context) {
         Object parameter = context.parameterAt(node.position());
         DataType type = DataType.forClass(parameter.getClass());
         if (type == null) {
@@ -316,16 +167,7 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
     }
 
     @Override
-    protected Symbol visitQualifiedNameReference(QualifiedNameReference node, Analysis context) {
-        Symbol symbol = context.symbolFromAlias(node.getSuffix().getSuffix());
-        if (symbol != null) {
-            return symbol;
-        }
-        return context.allocateReference(new ReferenceIdent(context.table().ident(), node.getSuffix().getSuffix()));
-    }
-
-    @Override
-    protected Symbol visitSubscriptExpression(SubscriptExpression node, Analysis context) {
+    protected Symbol visitSubscriptExpression(SubscriptExpression node, T context) {
         SubscriptContext subscriptContext = new SubscriptContext();
         node.accept(visitor, subscriptContext);
         ReferenceIdent ident = new ReferenceIdent(
@@ -334,7 +176,7 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
     }
 
     @Override
-    protected Symbol visitLogicalBinaryExpression(LogicalBinaryExpression node, Analysis context) {
+    protected Symbol visitLogicalBinaryExpression(LogicalBinaryExpression node, T context) {
         List<Symbol> arguments = new ArrayList<>(2);
         arguments.add(process(node.getLeft(), context));
         arguments.add(process(node.getRight(), context));
@@ -355,7 +197,7 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
     }
 
     @Override
-    protected Symbol visitComparisonExpression(ComparisonExpression node, Analysis context) {
+    protected Symbol visitComparisonExpression(ComparisonExpression node, T context) {
         String operatorName = "op_" + node.getType().getValue();
 
         // resolve arguments
@@ -391,7 +233,7 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
     }
 
     @Override
-    protected Symbol visitDelete(Delete node, Analysis context) {
+    public Symbol visitDelete(Delete node, T context) {
         context.isDelete(true);
 
         process(node.getTable(), context);

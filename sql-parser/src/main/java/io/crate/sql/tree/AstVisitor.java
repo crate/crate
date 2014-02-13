@@ -409,8 +409,23 @@ public abstract class AstVisitor<R, C>
         return visitExpression(node, context);
     }
 
-    protected R visitDelete(Delete node, C context)
-    {
+    public R visitInsert(Insert node, C context) {
+        return visitStatement(node, context);
+    }
+
+    public R visitValuesList(ValuesList node, C context) {
+        return visitNode(node, context);
+    }
+
+    public R visitDelete(Delete node, C context) {
+        return visitStatement(node, context);
+    }
+
+    public R visitUpdate(Update node, C context) {
+        return visitStatement(node, context);
+    }
+
+    public R visitAssignment(Assignment node, C context) {
         return visitNode(node, context);
     }
 }
