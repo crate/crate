@@ -69,11 +69,6 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
 
 
     @Override
-    public Void visitReference(Reference symbol, Context context) {
-        return super.visitReference(symbol, context);
-    }
-
-    @Override
     public Void visitFunction(Function symbol, Context context) {
         // ignore or
         if (symbol.info().ident().equals(OrOperator.INFO.ident())) {
