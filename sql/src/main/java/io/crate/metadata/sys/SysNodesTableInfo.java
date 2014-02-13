@@ -38,11 +38,13 @@ public class SysNodesTableInfo extends SysTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "nodes");
 
+    private static final ImmutableList<String> primaryKey = ImmutableList.of("id");
+
     public static final Map<ColumnIdent, ReferenceInfo> INFOS = new HashMap<>();
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
 
     static {
-        register("id", DataType.STRING, null);
+        register(primaryKey.get(0), DataType.STRING, null);
         register("name", DataType.STRING, null);
         register("hostname", DataType.STRING, null);
         register("port", DataType.OBJECT, null);
@@ -111,5 +113,15 @@ public class SysNodesTableInfo extends SysTableInfo {
         }
 
         return new Routing(builder.build());
+    }
+
+    @Override
+    public List<String> primaryKey() {
+        return primaryKey;
+    }
+
+    @Override
+    public String clusteredBy() {
+        return null;
     }
 }

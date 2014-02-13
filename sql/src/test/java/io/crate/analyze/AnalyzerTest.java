@@ -21,11 +21,16 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableList;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.ReferenceInfo;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
+import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -35,6 +40,7 @@ import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.aggregation.impl.AverageAggregation;
 import io.crate.operator.aggregation.impl.CollectSetAggregation;
 import io.crate.operator.operator.*;
+import io.crate.operator.reference.sys.cluster.SysClusterExpression;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import io.crate.operator.scalar.CollectionCountFunction;
 import io.crate.operator.scalar.ScalarFunctionModule;
@@ -42,6 +48,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.sql.AmbiguousAliasException;
 import org.cratedb.sql.CrateException;
@@ -62,6 +69,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.*;
+
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -81,6 +89,20 @@ public class AnalyzerTest {
     private static final ReferenceInfo LOAD1_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "1"));
     private static final ReferenceInfo LOAD5_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "5"));
 
+    private static final ReferenceInfo CLUSTER_NAME_INFO = SysClusterTableInfo.INFOS.get(new ColumnIdent("name"));
+
+    class ClusterNameExpression extends SysClusterExpression<BytesRef> {
+
+        protected ClusterNameExpression() {
+            super(CLUSTER_NAME_INFO.ident().columnIdent().name());
+        }
+
+        @Override
+        public BytesRef value() {
+            return new BytesRef("testcluster");
+        }
+    }
+
     Routing shardRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
             .put("nodeOne", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(1, 2)))
             .put("nodeTow", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(3, 4)))
@@ -90,8 +112,10 @@ public class AnalyzerTest {
 
         @Override
         public Long evaluate(Input<?>... args) {
-            if (args == null ||args.length == 0) { return 0l; }
-            return Math.abs(((Number)args[0].value()).longValue());
+            if (args == null || args.length == 0) {
+                return 0l;
+            }
+            return Math.abs(((Number) args[0].value()).longValue());
         }
 
         @Override
@@ -99,17 +123,20 @@ public class AnalyzerTest {
             return ABS_FUNCTION_INFO;
         }
 
+
         @Override
         public Symbol normalizeSymbol(Function symbol) {
             return symbol;
         }
     }
+
     class TestMetaDataModule extends MetaDataModule {
 
         @Override
         protected void bindReferences() {
             super.bindReferences();
             referenceBinder.addBinding(LOAD_INFO.ident()).to(NodeLoadExpression.class).asEagerSingleton();
+            referenceBinder.addBinding(CLUSTER_NAME_INFO.ident()).toInstance(new ClusterNameExpression());
         }
 
         @Override
@@ -195,7 +222,7 @@ public class AnalyzerTest {
     @Test
     public void testOrderedSelect() throws Exception {
         Statement statement = SqlParser.createStatement("select load['1'] from sys.nodes order by load['5'] desc");
-        SelectAnalysis analysis = (SelectAnalysis)analyzer.analyze(statement);
+        SelectAnalysis analysis = (SelectAnalysis) analyzer.analyze(statement);
         assertEquals(analysis.table().ident(), SysNodesTableInfo.IDENT);
         assertNull(analysis.limit());
 
@@ -212,7 +239,7 @@ public class AnalyzerTest {
 
     @Test
     public void testGroupKeyNotInResultColumnList() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)analyze("select count(*) from sys.nodes group by name");
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select count(*) from sys.nodes group by name");
 
         assertThat(analysis.groupBy().size(), is(1));
         assertThat(analysis.outputNames().get(0), is("count(*)"));
@@ -220,7 +247,7 @@ public class AnalyzerTest {
 
     @Test
     public void testGroupByOnAlias() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)analyze("select count(*), name as n from sys.nodes group by n");
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select count(*), name as n from sys.nodes group by n");
         assertThat(analysis.groupBy().size(), is(1));
         assertThat(analysis.outputNames().get(0), is("count(*)"));
         assertThat(analysis.outputNames().get(1), is("n"));
@@ -231,17 +258,17 @@ public class AnalyzerTest {
     @Test
     public void testGroupByOnOrdinal() throws Exception {
         // just like in postgres access by ordinal starts with 1
-        SelectAnalysis analysis = (SelectAnalysis)analyze("select count(*), name as n from sys.nodes group by 2");
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select count(*), name as n from sys.nodes group by 2");
         assertThat(analysis.groupBy().size(), is(1));
         assertEquals(analysis.groupBy().get(0), analysis.outputSymbols().get(1));
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testGroupByOnInvalidOrdinal() throws Exception {
         analyze("select count(*), name from sys.nodes group by -4");
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testGroupByOnOrdinalAggregation() throws Exception {
         analyze("select count(*), name as n from sys.nodes group by 1");
     }
@@ -251,13 +278,13 @@ public class AnalyzerTest {
         Analysis analyze = analyze("select * from sys.nodes where port['http'] = -400");
         Function whereClause = analyze.whereClause();
         Symbol symbol = whereClause.arguments().get(1);
-        assertThat(((IntegerLiteral)symbol).value(), is(-400));
+        assertThat(((IntegerLiteral) symbol).value(), is(-400));
     }
 
     @Test
     public void testGroupedSelect() throws Exception {
         Statement statement = SqlParser.createStatement("select load['1'], count(*) from sys.nodes group by load['1']");
-        SelectAnalysis analysis = (SelectAnalysis)analyzer.analyze(statement);
+        SelectAnalysis analysis = (SelectAnalysis) analyzer.analyze(statement);
         assertEquals(analysis.table().ident(), SysNodesTableInfo.IDENT);
         assertNull(analysis.limit());
 
@@ -273,7 +300,7 @@ public class AnalyzerTest {
     @Test
     public void testSimpleSelect() throws Exception {
         Statement statement = SqlParser.createStatement("select load['5'] from sys.nodes limit 2");
-        SelectAnalysis analysis = (SelectAnalysis)analyzer.analyze(statement);
+        SelectAnalysis analysis = (SelectAnalysis) analyzer.analyze(statement);
         assertEquals(analysis.table().ident(), SysNodesTableInfo.IDENT);
         assertEquals(new Integer(2), analysis.limit());
 
@@ -291,7 +318,7 @@ public class AnalyzerTest {
     @Test
     public void testAggregationSelect() throws Exception {
         Statement statement = SqlParser.createStatement("select avg(load['5']) from sys.nodes");
-        SelectAnalysis analysis = (SelectAnalysis)analyzer.analyze(statement);
+        SelectAnalysis analysis = (SelectAnalysis) analyzer.analyze(statement);
         assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
 
         assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
@@ -326,7 +353,7 @@ public class AnalyzerTest {
     public void testWhereSelect() throws Exception {
         Statement statement = SqlParser.createStatement("select load from sys.nodes " +
                 "where load['1'] = 1.2 or 1 >= load['5']");
-        SelectAnalysis analysis = (SelectAnalysis)analyzer.analyze(statement);
+        SelectAnalysis analysis = (SelectAnalysis) analyzer.analyze(statement);
         assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
 
         assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
@@ -397,7 +424,7 @@ public class AnalyzerTest {
 
     @Test
     public void testOrderByOnAlias() throws Exception {
-        SelectAnalysis analyze = (SelectAnalysis)analyze("select load as l from sys.nodes order by l");
+        SelectAnalysis analyze = (SelectAnalysis) analyze("select load as l from sys.nodes order by l");
         assertThat(analyze.outputNames().size(), is(1));
         assertThat(analyze.outputNames().get(0), is("l"));
 
@@ -406,15 +433,94 @@ public class AnalyzerTest {
         assertThat(analyze.sortSymbols().get(0), is(analyze.outputSymbols().get(0)));
     }
 
-    @Test (expected = AmbiguousAliasException.class)
+    @Test(expected = AmbiguousAliasException.class)
     public void testAmbiguousOrderByOnAlias() throws Exception {
         analyze("select id as load, load from sys.nodes order by load");
     }
 
     @Test
     public void testOffsetSupportInAnalyzer() throws Exception {
-        SelectAnalysis analyze = (SelectAnalysis)analyze("select * from sys.nodes limit 1 offset 3");
+        SelectAnalysis analyze = (SelectAnalysis) analyze("select * from sys.nodes limit 1 offset 3");
         assertThat(analyze.offset(), is(3));
+    }
+
+    @Test
+    public void testNoMatchStatement() throws Exception {
+        for (String stmt : ImmutableList.of(
+                "select id from sys.nodes where false",
+                "select id from sys.nodes where 1=0",
+                "select id from sys.nodes where sys.cluster.name = 'something'"
+        )) {
+            Analysis analysis = analyze(stmt);
+            assertTrue(stmt, analysis.noMatch());
+            assertNull(stmt, analysis.whereClause());
+        }
+    }
+
+    @Test
+    public void testAllMatchStatement() throws Exception {
+        for (String stmt : ImmutableList.of(
+                "select id from sys.nodes where true",
+                "select id from sys.nodes where 1=1",
+                "select id from sys.nodes",
+                "select id from sys.nodes where sys.cluster.name = 'testcluster'"
+        )) {
+            Analysis analysis = analyze(stmt);
+            assertFalse(stmt, analysis.noMatch());
+            assertNull(stmt, analysis.whereClause());
+        }
+    }
+
+    @Test
+    public void test1ColPrimaryKeyLiteral() throws Exception {
+        Analysis analysis = analyze("select name from sys.nodes where id='jalla'");
+        assertEquals(analysis.primaryKeyLiterals(), ImmutableList.<Literal>of(new StringLiteral("jalla")));
+
+        analysis = analyze("select name from sys.nodes where 'jalla'=id");
+        assertEquals(analysis.primaryKeyLiterals(), ImmutableList.<Literal>of(new StringLiteral("jalla")));
+
+
+        analysis = analyze("select name from sys.nodes where id='jalla' and id='jalla'");
+        assertEquals(analysis.primaryKeyLiterals(), ImmutableList.<Literal>of(new StringLiteral("jalla")));
+
+        analysis = analyze("select name from sys.nodes where id='jalla' and (id='jalla' or 1=1)");
+        assertEquals(analysis.primaryKeyLiterals(), ImmutableList.<Literal>of(new StringLiteral("jalla")));
+
+        // a no match results in undefined key literals, since those are ambiguous
+        analysis = analyze("select name from sys.nodes where id='jalla' and id='kelle'");
+        assertNull(analysis.primaryKeyLiterals());
+        assertTrue(analysis.noMatch());
+
+        analysis = analyze("select name from sys.nodes where id='jalla' or name = 'something'");
+        assertNull(analysis.primaryKeyLiterals());
+        assertFalse(analysis.noMatch());
+
+        analysis = analyze("select name from sys.nodes where name = 'something'");
+        assertNull(analysis.primaryKeyLiterals());
+        assertFalse(analysis.noMatch());
+
+    }
+
+    @Test
+    public void test2ColPrimaryKeyLiteral() throws Exception {
+        Analysis analysis = analyze("select id from sys.shards where id=1 and table_name='jalla'");
+        assertEquals(ImmutableList.<Literal>of(new StringLiteral("jalla"), new IntegerLiteral(1)),
+                analysis.primaryKeyLiterals());
+        assertFalse(analysis.noMatch());
+
+        analysis = analyze("select id from sys.shards where id=1 and table_name='jalla' and id=1");
+        assertEquals(ImmutableList.<Literal>of(new StringLiteral("jalla"), new IntegerLiteral(1)),
+                analysis.primaryKeyLiterals());
+        assertFalse(analysis.noMatch());
+
+
+        analysis = analyze("select id from sys.shards where id=1");
+        assertNull(analysis.primaryKeyLiterals());
+        assertFalse(analysis.noMatch());
+
+        analysis = analyze("select id from sys.shards where id=1 and table_name='jalla' and id=2");
+        assertTrue(analysis.noMatch());
+        assertNull(analysis.primaryKeyLiterals());
     }
 
     @Test
@@ -447,14 +553,7 @@ public class AnalyzerTest {
     public void testWhereInSelectDifferentDataTypeValue() throws Exception {
         Statement statement = SqlParser.createStatement("select 'found' where 1.2 in (1, 2)");
         Analysis analysis = analyzer.analyze(statement);
-
-        Function whereClause = analysis.whereClause();
-        assertEquals(InOperator.NAME, whereClause.info().ident().name());
-        assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(DoubleLiteral.class));
-        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(SetLiteral.class));
-        SetLiteral setLiteral = (SetLiteral) whereClause.arguments().get(1);
-        assertEquals(setLiteral.symbolType(), SymbolType.SET_LITERAL);
-        assertEquals(setLiteral.valueType(), DataType.LONG_SET);
+        assertTrue(analysis.noMatch());
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -465,7 +564,7 @@ public class AnalyzerTest {
 
     @Test
     public void testAggregationDistinct() {
-        SelectAnalysis analysis = (SelectAnalysis)analyze("select count(distinct load['1']) from sys.nodes");
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select count(distinct load['1']) from sys.nodes");
 
         assertTrue(analysis.hasAggregates());
         assertEquals(2, analysis.functions().size());
@@ -482,8 +581,8 @@ public class AnalyzerTest {
         assertEquals(innerFunction.info().ident().name(), CollectSetAggregation.NAME);
         List<Symbol> innerArguments = innerFunction.arguments();
         assertThat(innerArguments.get(0), IsInstanceOf.instanceOf(Reference.class));
-        assertThat(((Reference)innerArguments.get(0)).info(), IsInstanceOf.instanceOf(ReferenceInfo.class));
-        ReferenceInfo refInfo = ((Reference)innerArguments.get(0)).info();
+        assertThat(((Reference) innerArguments.get(0)).info(), IsInstanceOf.instanceOf(ReferenceInfo.class));
+        ReferenceInfo refInfo = ((Reference) innerArguments.get(0)).info();
         assertThat(refInfo.ident().columnIdent().name(), is("load"));
         assertThat(refInfo.ident().columnIdent().path().get(0), is("1"));
 
@@ -506,7 +605,7 @@ public class AnalyzerTest {
     @Test
     public void testDeleteWhere() throws Exception {
         Statement statement = SqlParser.createStatement("delete from sys.nodes where load['1'] = 1");
-        SelectAnalysis analysis = (SelectAnalysis)analyzer.analyze(statement);
+        SelectAnalysis analysis = (SelectAnalysis) analyzer.analyze(statement);
         assertTrue(analysis.isDelete());
         assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
 
@@ -519,10 +618,11 @@ public class AnalyzerTest {
 
         assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
         assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
+
     }
 
     public void testInsertWithColumns() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, name) values (1, 'Trillian')");
+        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users (id, name) values (1, 'Trillian')");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
@@ -541,7 +641,7 @@ public class AnalyzerTest {
 
     @Test
     public void testInsertWithTwistedColumns() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (name, id) values ('Trillian', 2)");
+        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users (name, id) values ('Trillian', 2)");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
@@ -580,7 +680,7 @@ public class AnalyzerTest {
 
     @Test
     public void testInsertWithFunction() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users values (ABS(-1), 'Trillian')");
+        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users values (ABS(-1), 'Trillian')");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
@@ -599,7 +699,7 @@ public class AnalyzerTest {
 
     @Test
     public void testInsertWithoutColumns() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users values (1, 'Trillian')");
+        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users values (1, 'Trillian')");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
@@ -618,7 +718,7 @@ public class AnalyzerTest {
 
     @Test
     public void testInsertWithoutColumnsAndOnlyOneColumn() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users values (1)");
+        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users values (1)");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(1));
 
@@ -643,10 +743,10 @@ public class AnalyzerTest {
         map.put("1", 1.0);
         map.put("5", 2.5);
         map.put("15", 8.0);
-        SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.nodes where load=?",
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select id from sys.nodes where load=?",
                 new Object[]{map});
         Function whereClause = analysis.whereClause();
         assertThat(whereClause.arguments().get(1), instanceOf(ObjectLiteral.class));
-        assertTrue(((ObjectLiteral)whereClause.arguments().get(1)).value().equals(map));
+        assertTrue(((ObjectLiteral) whereClause.arguments().get(1)).value().equals(map));
     }
 }

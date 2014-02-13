@@ -3,11 +3,11 @@ package io.crate.analyze;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
+import io.crate.sql.tree.Query;
 import org.elasticsearch.common.Preconditions;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 
@@ -15,6 +15,9 @@ import java.util.*;
  * Holds information the analyzer has gathered about a statement.
  */
 public abstract class Analysis {
+
+    private final EvaluatingNormalizer normalizer;
+    private Query query;
 
     public static enum Type {
         SELECT,
@@ -35,15 +38,28 @@ public abstract class Analysis {
     private List<String> outputNames;
     private List<Symbol> outputSymbols;
 
+    protected boolean noMatch = false;
+    protected List<Literal> primaryKeyLiterals;
+
     private boolean isDelete = false;
     protected Function whereClause;
     protected RowGranularity rowGranularity;
     protected boolean hasAggregates = false;
 
-    public Analysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters) {
+    public List<Literal> primaryKeyLiterals() {
+        return primaryKeyLiterals;
+    }
+
+    public void primaryKeyLiterals(List<Literal> primaryKeyLiterals) {
+        this.primaryKeyLiterals = primaryKeyLiterals;
+    }
+
+    public Analysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters,
+                    ReferenceResolver referenceResolver) {
         this.referenceInfos = referenceInfos;
         this.functions = functions;
         this.parameters = parameters;
+        this.normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
     }
 
     public void table(TableIdent tableIdent) {
@@ -121,6 +137,41 @@ public abstract class Analysis {
     }
 
     /**
+     * Indicates that the statement will not match, so that there is no need to execute it
+     */
+    public boolean noMatch() {
+        return noMatch;
+    }
+
+    public void noMatch(boolean noMatch) {
+        this.noMatch = noMatch;
+    }
+
+    @Nullable
+    public Function whereClause(@Nullable Symbol whereClause) {
+        if (whereClause != null) {
+            Symbol normalizedWhereClause = normalizer.process(whereClause, null);
+            switch (normalizedWhereClause.symbolType()) {
+                case FUNCTION:
+                    this.whereClause = (Function) normalizedWhereClause;
+                    break;
+                case BOOLEAN_LITERAL:
+                    noMatch = !((BooleanLiteral) normalizedWhereClause).value();
+                    break;
+                case NULL_LITERAL:
+                    noMatch = true;
+                default:
+                    throw new UnsupportedOperationException("unsupported whereClause symbol: " + normalizedWhereClause);
+            }
+        }
+        return this.whereClause;
+    }
+
+    public Function whereClause() {
+        return whereClause;
+    }
+
+    /**
      * Updates the row granularity of this query if it is higher than the current row granularity.
      *
      * @param granularity the row granularity as seen by a reference
@@ -135,14 +186,6 @@ public abstract class Analysis {
 
     public RowGranularity rowGranularity() {
         return rowGranularity;
-    }
-
-    public void whereClause(Function whereClause) {
-        this.whereClause = whereClause;
-    }
-
-    public Function whereClause() {
-        return whereClause;
     }
 
     public Object parameterAt(int idx) {

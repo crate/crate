@@ -21,6 +21,7 @@
 
 package io.crate.metadata.sys;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
@@ -31,7 +32,6 @@ import java.util.*;
 public class SysClusterTableInfo extends SysTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "cluster");
-
 
     public static final Map<ColumnIdent, ReferenceInfo> INFOS = new HashMap<>();
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
@@ -63,6 +63,16 @@ public class SysClusterTableInfo extends SysTableInfo {
     @Override
     public Routing getRouting(Function whereClause) {
         // No routing for cluster level
+        return null;
+    }
+
+    @Override
+    public List<String> primaryKey() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public String clusteredBy() {
         return null;
     }
 

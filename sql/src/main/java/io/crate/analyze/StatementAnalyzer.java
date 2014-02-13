@@ -4,12 +4,16 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.*;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.TableIdent;
 import io.crate.operator.aggregation.impl.CollectSetAggregation;
 import io.crate.operator.operator.*;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.ExpressionFormatter;
+import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.*;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.LongLiteral;
@@ -21,6 +25,7 @@ import java.util.*;
 abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVisitor<Symbol, T> {
 
     protected static OutputNameFormatter outputNameFormatter = new OutputNameFormatter();
+
     protected static SubscriptVisitor visitor = new SubscriptVisitor();
     protected static SymbolDataTypeVisitor symbolDataTypeVisitor = new SymbolDataTypeVisitor();
     protected static NegativeLiteralVisitor negativeLiteralVisitor = new NegativeLiteralVisitor();
@@ -50,7 +55,6 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
 
     @Override
     protected Symbol visitNode(Node node, T context) {
-
         System.out.println("Not analyzed node: " + node);
         return super.visitNode(node, context);
     }
@@ -118,6 +122,12 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
         return context.allocateFunction(functionInfo, arguments);
     }
 
+
+    @Override
+    protected Symbol visitBooleanLiteral(BooleanLiteral node, Analysis context) {
+        return new io.crate.planner.symbol.BooleanLiteral(node.getValue());
+    }
+
     @Override
     protected Symbol visitInListExpression(InListExpression node, T context) {
         Set<Literal> symbols = new HashSet<>();
@@ -177,10 +187,6 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
 
     @Override
     protected Symbol visitLogicalBinaryExpression(LogicalBinaryExpression node, T context) {
-        List<Symbol> arguments = new ArrayList<>(2);
-        arguments.add(process(node.getLeft(), context));
-        arguments.add(process(node.getRight(), context));
-
         FunctionInfo functionInfo;
         switch (node.getType()) {
             case AND:
@@ -192,7 +198,9 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
             default:
                 throw new UnsupportedOperationException("Unsupported logical binary expression " + node.getType().name());
         }
-
+        List<Symbol> arguments = new ArrayList<>(2);
+        arguments.add(process(node.getLeft(), context));
+        arguments.add(process(node.getRight(), context));
         return context.allocateFunction(functionInfo, arguments);
     }
 
@@ -221,14 +229,13 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
 
         // try implicit type cast (conversion)
         if (argumentTypes.get(0) != argumentTypes.get(1)) {
-            Symbol convertedSymbol = ((io.crate.planner.symbol.Literal)arguments.get(1)).convertTo(argumentTypes.get(0));
+            Symbol convertedSymbol = ((io.crate.planner.symbol.Literal) arguments.get(1)).convertTo(argumentTypes.get(0));
             arguments.set(1, convertedSymbol);
             argumentTypes.set(1, argumentTypes.get(0));
         }
 
         FunctionIdent functionIdent = new FunctionIdent(operatorName, argumentTypes);
         FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
-
         return context.allocateFunction(functionInfo, arguments);
     }
 

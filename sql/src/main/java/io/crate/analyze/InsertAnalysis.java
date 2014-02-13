@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
@@ -40,8 +41,8 @@ public class InsertAnalysis extends Analysis {
     private List<Reference> columns;
     private boolean visitingValues = false;
 
-    public InsertAnalysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters) {
-        super(referenceInfos, functions, parameters);
+    public InsertAnalysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters, ReferenceResolver referenceResolver) {
+        super(referenceInfos, functions, parameters, referenceResolver);
     }
 
     @Override

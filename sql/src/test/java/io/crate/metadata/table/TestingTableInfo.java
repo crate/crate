@@ -109,4 +109,14 @@ public class TestingTableInfo implements TableInfo {
     public Routing getRouting(Function whereClause) {
         return routing;
     }
+
+    @Override
+    public List<String> primaryKey() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public String clusteredBy() {
+        return null;
+    }
 }

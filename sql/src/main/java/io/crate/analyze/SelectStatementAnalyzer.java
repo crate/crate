@@ -24,6 +24,8 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.PrimaryKeyVisitor;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
@@ -33,6 +35,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
+
+    private static PrimaryKeyVisitor primaryKeyVisitor = new PrimaryKeyVisitor();
 
     @Override
     protected Symbol visitSelect(Select node, SelectAnalysis context) {
@@ -72,14 +76,26 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
         return null;
     }
 
-    @Override
     protected Symbol visitQualifiedNameReference(QualifiedNameReference node, SelectAnalysis context) {
         Symbol symbol = context.symbolFromAlias(node.getSuffix().getSuffix());
         if (symbol != null) {
             return symbol;
         }
-        return context.allocateReference(new ReferenceIdent(context.table().ident(), node.getSuffix().getSuffix()));
+        ReferenceIdent ident;
+        List<String> parts = node.getName().getParts();
+        switch (parts.size()) {
+            case 1:
+                ident = new ReferenceIdent(context.table().ident(), parts.get(0));
+                break;
+            case 3:
+                ident = new ReferenceIdent(new TableIdent(parts.get(0), parts.get(1)), parts.get(2));
+                break;
+            default:
+                throw new UnsupportedOperationException("unsupported name reference: " + node);
+        }
+        return context.allocateReference(ident);
     }
+
 
     protected Symbol visitQuerySpecification(QuerySpecification node, SelectAnalysis context) {
         // visit the from first, since this qualifies the select
@@ -98,11 +114,18 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
             context.offset(Integer.parseInt(node.getOffset().get()));
         }
 
-        // the whereClause shouldn't resolve the aliases so this is done before resolving
-        // the result columns to make sure the alias map is empty.
         if (node.getWhere().isPresent()) {
-            Function function = (Function) process(node.getWhere().get(), context);
-            context.whereClause(function);
+            Function whereClause = context.whereClause(process(node.getWhere().get(), context));
+            if (whereClause != null) {
+                PrimaryKeyVisitor.Context pkc = primaryKeyVisitor.process(context.table(), whereClause);
+                if (pkc != null) {
+                    if (pkc.noMatch()) {
+                        context.noMatch(pkc.noMatch());
+                    } else {
+                        context.primaryKeyLiterals(pkc.keyLiterals());
+                    }
+                }
+            }
         }
 
         process(node.getSelect(), context);
@@ -133,7 +156,7 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
             Symbol s = process(expression, context);
             int idx;
             if (s.symbolType() == SymbolType.LONG_LITERAL) {
-                idx = ((io.crate.planner.symbol.LongLiteral)s).value().intValue() - 1;
+                idx = ((io.crate.planner.symbol.LongLiteral) s).value().intValue() - 1;
                 if (idx < 1) {
                     throw new IllegalArgumentException(
                             String.format("GROUP BY position %s is not in select list", idx));
@@ -151,7 +174,7 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
                 }
             }
 
-            if (s.symbolType() == SymbolType.FUNCTION && ((Function)s).info().isAggregate()) {
+            if (s.symbolType() == SymbolType.FUNCTION && ((Function) s).info().isAggregate()) {
                 throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
             }
 
@@ -172,7 +195,7 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
 
     private void ensureOutputSymbolsInGroupBy(SelectAnalysis context) {
         for (Symbol symbol : context.outputSymbols()) {
-            if (symbol.symbolType() == SymbolType.FUNCTION && ((Function)symbol).info().isAggregate()) {
+            if (symbol.symbolType() == SymbolType.FUNCTION && ((Function) symbol).info().isAggregate()) {
                 continue;
             }
             if (!context.groupBy().contains(symbol)) {

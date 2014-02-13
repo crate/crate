@@ -25,6 +25,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Query;
 import org.cratedb.sql.AmbiguousAliasException;
@@ -44,7 +45,6 @@ public class SelectAnalysis extends Analysis {
 
     private Multimap<String, Symbol> aliasMap = ArrayListMultimap.create();
 
-
     @Override
     public Type type() {
         return Type.SELECT;
@@ -58,8 +58,8 @@ public class SelectAnalysis extends Analysis {
         this.query = query;
     }
 
-    public SelectAnalysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters) {
-        super(referenceInfos, functions, parameters);
+    public SelectAnalysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters, ReferenceResolver referenceResolver) {
+        super(referenceInfos, functions, parameters, referenceResolver);
     }
 
     public void limit(Integer limit) {
