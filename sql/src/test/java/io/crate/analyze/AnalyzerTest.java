@@ -128,7 +128,6 @@ public class AnalyzerTest {
     public void testGroupedSelectMissingOutput() throws Exception {
         Statement statement = SqlParser.createStatement("select load['5'] from sys.nodes group by load['1']");
         analyzer.analyze(statement);
-
     }
 
 
@@ -148,13 +147,55 @@ public class AnalyzerTest {
         assertEquals(1, analysis.reverseFlags().length);
 
         assertEquals(LOAD5_INFO, ((Reference) analysis.sortSymbols().get(0)).info());
-
     }
 
+    @Test
+    public void testGroupKeyNotInResultColumnList() throws Exception {
+        Analysis analysis = analyze("select count(*) from sys.nodes group by name");
+
+        assertThat(analysis.groupBy().size(), is(1));
+        assertThat(analysis.outputNames().get(0), is("count(*)"));
+    }
+
+    @Test
+    public void testGroupByOnAlias() throws Exception {
+        Analysis analysis = analyze("select count(*), name as n from sys.nodes group by n");
+        assertThat(analysis.groupBy().size(), is(1));
+        assertThat(analysis.outputNames().get(0), is("count(*)"));
+        assertThat(analysis.outputNames().get(1), is("n"));
+
+        assertEquals(analysis.groupBy().get(0), analysis.outputSymbols().get(1));
+    }
+
+    @Test
+    public void testGroupByOnOrdinal() throws Exception {
+        // just like in postgres access by ordinal starts with 1
+        Analysis analysis = analyze("select count(*), name as n from sys.nodes group by 2");
+        assertThat(analysis.groupBy().size(), is(1));
+        assertEquals(analysis.groupBy().get(0), analysis.outputSymbols().get(1));
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void testGroupByOnInvalidOrdinal() throws Exception {
+        analyze("select count(*), name from sys.nodes group by -4");
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void testGroupByOnOrdinalAggregation() throws Exception {
+        analyze("select count(*), name as n from sys.nodes group by 1");
+    }
+
+    @Test
+    public void testNegativeLiteral() throws Exception {
+        Analysis analyze = analyze("select * from sys.nodes where port['http'] = -400");
+        Function whereClause = analyze.whereClause();
+        Symbol symbol = whereClause.arguments().get(1);
+        assertThat(((IntegerLiteral)symbol).value(), is(-400));
+    }
 
     @Test
     public void testGroupedSelect() throws Exception {
-        Statement statement = SqlParser.createStatement("select load['1'],load['5'] from sys.nodes group by load['1']");
+        Statement statement = SqlParser.createStatement("select load['1'], count(*) from sys.nodes group by load['1']");
         Analysis analysis = analyzer.analyze(statement);
         assertEquals(analysis.table().ident(), SysNodesTableInfo.IDENT);
         assertNull(analysis.limit());
