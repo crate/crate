@@ -390,4 +390,24 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
         return context.allocateFunction(functionInfo, arguments);
     }
 
+    @Override
+    protected Symbol visitLikePredicate(LikePredicate node, Analysis context) {
+        List<Symbol> arguments = new ArrayList<>(2);
+        arguments.add(process(node.getValue(), context));
+        arguments.add(process(node.getPattern(), context));
+
+        // resolve argument types
+        List<DataType> argumentTypes = new ArrayList<>(arguments.size());
+        argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(0), context));
+        argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(1), context));
+
+        if (node.getEscape() != null) {
+            throw new UnsupportedOperationException("ESCAPE is not supported yet.");
+        }
+
+        FunctionIdent functionIdent = new FunctionIdent(LikeOperator.NAME, argumentTypes);
+        FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
+
+        return context.allocateFunction(functionInfo, arguments);
+    }
 }
