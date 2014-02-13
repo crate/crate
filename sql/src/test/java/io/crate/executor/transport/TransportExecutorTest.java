@@ -33,10 +33,7 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operator.operator.EqOperator;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.CollectNode;
-import io.crate.planner.node.ESDeleteByQueryNode;
-import io.crate.planner.node.ESGetNode;
-import io.crate.planner.node.ESSearchNode;
+import io.crate.planner.node.*;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
@@ -231,8 +228,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Object[][] rows = task.result().get(0).get();
         assertThat(rows.length, is(0));
 
-        refresh();
-
+        // verify deletion
         ESSearchNode searchNode = new ESSearchNode(
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Reference>asList(name_ref),
@@ -249,4 +245,30 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         rows = searchTask.result().get(0).get();
         assertThat(rows.length, is(0));
     }
+
+    @Test
+    public void testESDeleteTask() throws Exception {
+        insertCharacters();
+
+        ESDeleteNode node = new ESDeleteNode("characters", "2");
+        Plan plan = new Plan();
+        plan.add(node);
+        Job job = executor.newJob(plan);
+        List<ListenableFuture<Object[][]>> result = executor.execute(job);
+        Object[][] rows = result.get(0).get();
+        assertThat(rows.length, is(0));
+
+        // verify deletion
+        ESGetNode getNode = new ESGetNode("characters", "2");
+        getNode.outputs(ImmutableList.<Symbol>of(id_ref, name_ref));
+        plan = new Plan();
+        plan.add(getNode);
+        job = executor.newJob(plan);
+        result = executor.execute(job);
+        Object[][] objects = result.get(0).get();
+
+        assertThat(objects.length, is(0));
+
+    }
+
 }

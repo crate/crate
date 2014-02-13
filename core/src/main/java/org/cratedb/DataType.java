@@ -30,6 +30,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -125,10 +126,11 @@ public enum DataType {
             out.writeLong((Long) v);
         }
     }),
-    OBJECT("object", new Streamer<Object>() {
+    OBJECT("object", new Streamer<Map<String, Object>>() {
+        @SuppressWarnings("unchecked")
         @Override
-        public Object readFrom(StreamInput in) throws IOException {
-            return in.readGenericValue();
+        public Map<String, Object> readFrom(StreamInput in) throws IOException {
+            return (Map<String, Object>)in.readGenericValue();
         }
 
         @Override
@@ -170,7 +172,7 @@ public enum DataType {
     STRING_SET("string_set", SetStreamer.BYTES_REF_SET),
     IP_SET("ip_set", SetStreamer.BYTES_REF_SET),
     TIMESTAMP_SET("timestamp_set", new SetStreamer<Long>(TIMESTAMP.streamer())),
-    OBJECT_SET("object_set", new SetStreamer<Object>(OBJECT.streamer())),
+    OBJECT_SET("object_set", new SetStreamer<Map<String, Object>>(OBJECT.streamer())),
     NULL_SET("null_set", new SetStreamer<Void>(NULL.streamer()));
 
     /**
@@ -374,11 +376,15 @@ public enum DataType {
             .put(Byte.class, DataType.BYTE)
             .put(String.class, DataType.STRING)
             .put(Boolean.class, DataType.BOOLEAN)
-            .put(Object.class, DataType.OBJECT)
+            .put(Map.class, DataType.OBJECT)
             .build();
 
     @Nullable
     public static DataType forClass(Class<?> clazz) {
-        return typesMap.get(clazz);
+        DataType type = typesMap.get(clazz);
+        if (type == null && Arrays.asList(clazz.getInterfaces()).contains(Map.class)) {
+            return DataType.OBJECT;
+        }
+        return type;
     }
 }

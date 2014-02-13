@@ -357,8 +357,8 @@ qname returns [QualifiedName value]
     : ^(QNAME i=identList) { $value = new QualifiedName($i.value); }
     ;
 
-qnameList returns [List<QualifiedName> value = new ArrayList<>()]
-    : ( qname { $value.add($qname.value); } )+
+qnameList returns [List<QualifiedNameReference> value = new ArrayList<>()]
+    : ( qname { $value.add(new QualifiedNameReference($qname.value)); } )+
     ;
 
 identList returns [List<String> value = new ArrayList<>()]
@@ -601,20 +601,20 @@ insert returns [Statement value]
         {
             $value = new Insert($namedTable.value,
                                 $values.value,
-                                Objects.firstNonNull($cols.value, ImmutableList.<QualifiedName>of())
+                                Objects.firstNonNull($cols.value, ImmutableList.<QualifiedNameReference>of())
                                 );
         }
     ;
 
-insertValues returns [List<List<Expression>> value = new ArrayList<>()]
+insertValues returns [List<ValuesList> value = new ArrayList<>()]
     : ^(INSERT_VALUES (valuesList { $value.add($valuesList.value); })+)
     ;
 
-valuesList returns [List<Expression> value]
-    : ^(VALUES_LIST exprList) { $value = $exprList.value; }
+valuesList returns [ValuesList value]
+    : ^(VALUES_LIST exprList) { $value = new ValuesList($exprList.value); }
     ;
 
-columnsList returns [List<QualifiedName> value]
+columnsList returns [List<QualifiedNameReference> value]
     : ^(COLUMN_LIST qnameList) { $value = $qnameList.value; }
     ;
 
