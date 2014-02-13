@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.ReferenceInfo;
@@ -469,4 +470,22 @@ public class AnalyzerTest {
     public void testLikeEscapeInWhereQuery() {
         analyze("select * from sys.nodes where name like 'foo' escape 'o'");
     }
+
+    public void testDeleteWhere() throws Exception {
+        Statement statement = SqlParser.createStatement("delete from sys.nodes where load['1'] = 1");
+        Analysis analysis = analyzer.analyze(statement);
+        assertTrue(analysis.isDelete());
+        assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
+
+        assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
+        assertFalse(analysis.hasGroupBy());
+
+        Function whereClause = analysis.whereClause();
+        assertEquals(EqOperator.NAME, whereClause.info().ident().name());
+        assertFalse(whereClause.info().isAggregate());
+
+        assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
+    }
+
 }

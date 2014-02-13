@@ -116,7 +116,7 @@ public final class ExpressionFormatter
 
         @Override
         public String visitParameterExpression(ParameterExpression node, Void context) {
-            return String.format(":%s", node.position());
+            return String.format("$%s", node.position());
         }
 
         @Override

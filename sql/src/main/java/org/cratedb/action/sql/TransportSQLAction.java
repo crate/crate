@@ -23,7 +23,6 @@ package org.cratedb.action.sql;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
-import com.carrotsearch.hppc.predicates.IntPredicate;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -34,13 +33,10 @@ import io.crate.executor.Job;
 import io.crate.executor.transport.TransportExecutor;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.ValueSymbol;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.Constants;
-import org.cratedb.DataType;
 import org.cratedb.action.DistributedSQLRequest;
 import org.cratedb.action.TransportDistributedSQLAction;
 import org.cratedb.action.import_.ImportRequest;
@@ -98,8 +94,6 @@ import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -374,7 +368,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
     private void usePresto(final SQLRequest request, final ActionListener<SQLResponse> listener) {
         final Statement statement = SqlParser.createStatement(request.stmt());
-        final Analysis analysis = analyzer.analyze(statement);
+        final Analysis analysis = analyzer.analyze(statement, request.args());
         final Plan plan = planner.plan(analysis);
         final Job job = transportExecutor.newJob(plan);
         final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(transportExecutor.execute(job));
@@ -449,6 +443,17 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             throw new SQLParseException(ex.getMessage(), ex);
         }
         final AtomicReference<Boolean> isPresto = new AtomicReference<>(false);
+
+        // use presto for DeleteByQuery request (DISABLED)
+        // TODO: enable if all needed system columns (_id + _version) and all needed operators (IN) are implemented
+        /*
+        if (node.getNodeType() == NodeType.DELETE_NODE) {
+            DeleteNode deleteNode = (DeleteNode)node;
+            if (((SelectNode)deleteNode.getResultSetNode()).getWhereClause() != null) {
+                return null;
+            }
+        }
+        */
 
         Visitor visitor = new Visitor() {
             @Override

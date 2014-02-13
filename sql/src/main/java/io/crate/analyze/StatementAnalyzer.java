@@ -410,4 +410,18 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
         return context.allocateFunction(functionInfo, arguments);
     }
+
+    protected Symbol visitDelete(Delete node, Analysis context) {
+        context.isDelete(true);
+
+        process(node.getTable(), context);
+
+        if (node.getWhere().isPresent()) {
+            Function function = (Function) process(node.getWhere().get(), context);
+            context.whereClause(function);
+        }
+
+        return null;
+    }
+
 }

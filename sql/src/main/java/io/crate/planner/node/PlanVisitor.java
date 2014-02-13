@@ -58,6 +58,14 @@ public class PlanVisitor<C, R> {
         return visitPlanNode(node, context);
     }
 
+    public R visitESDeleteByQueryNode(ESDeleteByQueryNode node, C context) {
+        return visitPlanNode(node, context);
+    }
+
+    public R visitESDeleteNode(ESDeleteNode node, C context) {
+        return visitPlanNode(node, context);
+    }
+
     public R visitAggregationProjection(AggregationProjection projection, C context) {
         return visitProjection(projection, context);
     }

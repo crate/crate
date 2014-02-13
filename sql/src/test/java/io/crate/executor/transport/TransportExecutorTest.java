@@ -22,8 +22,10 @@
 package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.Job;
+import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
 import io.crate.executor.transport.task.elasticsearch.ESSearchTask;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysClusterTableInfo;
@@ -31,9 +33,7 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operator.operator.EqOperator;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.CollectNode;
-import io.crate.planner.node.ESGetNode;
-import io.crate.planner.node.ESSearchNode;
+import io.crate.planner.node.*;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
@@ -208,4 +208,67 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat((Integer) rows[0][0], is(2));
         assertThat((String) rows[0][1], is("Ford"));
     }
+
+    @Test
+    public void testESDeleteByQueryTask() throws Exception {
+        insertCharacters();
+
+        Function whereClause = new Function(new FunctionInfo(
+                new FunctionIdent(EqOperator.NAME, Arrays.asList(DataType.STRING, DataType.STRING)),
+                DataType.BOOLEAN),
+                Arrays.<Symbol>asList(id_ref, new IntegerLiteral(2)));
+
+        ESDeleteByQueryNode node = new ESDeleteByQueryNode(ImmutableSet.<String>of("characters"), whereClause);
+        Plan plan = new Plan();
+        plan.add(node);
+        Job job = executor.newJob(plan);
+        ESDeleteByQueryTask task = (ESDeleteByQueryTask) job.tasks().get(0);
+
+        task.start();
+        Object[][] rows = task.result().get(0).get();
+        assertThat(rows.length, is(0));
+
+        // verify deletion
+        ESSearchNode searchNode = new ESSearchNode(
+                Arrays.<Symbol>asList(id_ref, name_ref),
+                Arrays.<Reference>asList(name_ref),
+                new boolean[]{false},
+                null, null,
+                whereClause
+        );
+        plan = new Plan();
+        plan.add(searchNode);
+        job = executor.newJob(plan);
+        ESSearchTask searchTask = (ESSearchTask) job.tasks().get(0);
+
+        searchTask.start();
+        rows = searchTask.result().get(0).get();
+        assertThat(rows.length, is(0));
+    }
+
+    @Test
+    public void testESDeleteTask() throws Exception {
+        insertCharacters();
+
+        ESDeleteNode node = new ESDeleteNode("characters", "2");
+        Plan plan = new Plan();
+        plan.add(node);
+        Job job = executor.newJob(plan);
+        List<ListenableFuture<Object[][]>> result = executor.execute(job);
+        Object[][] rows = result.get(0).get();
+        assertThat(rows.length, is(0));
+
+        // verify deletion
+        ESGetNode getNode = new ESGetNode("characters", "2");
+        getNode.outputs(ImmutableList.<Symbol>of(id_ref, name_ref));
+        plan = new Plan();
+        plan.add(getNode);
+        job = executor.newJob(plan);
+        result = executor.execute(job);
+        Object[][] objects = result.get(0).get();
+
+        assertThat(objects.length, is(0));
+
+    }
+
 }
