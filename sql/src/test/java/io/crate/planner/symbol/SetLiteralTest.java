@@ -21,8 +21,11 @@
 package io.crate.planner.symbol;
 
 import org.cratedb.DataType;
+import org.elasticsearch.common.io.stream.BytesStreamInput;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -142,5 +145,31 @@ public class SetLiteralTest {
         );
 
         assertEquals(0, setLiteral1.compareTo(setLiteral2.literals()));
+    }
+
+    @Test
+    public void testSerialization() throws IOException {
+        BytesStreamOutput outputStream = new BytesStreamOutput();
+
+        SetLiteral setLiteralOut = new SetLiteral(
+                DataType.STRING,
+                new HashSet<Literal>(
+                        Arrays.asList(
+                                new StringLiteral("alpha"),
+                                new StringLiteral("bravo"),
+                                new StringLiteral("charlie"),
+                                new StringLiteral("delta")
+                        )
+                )
+        );
+
+        setLiteralOut.writeTo(outputStream);
+
+        BytesStreamInput inputStream = new BytesStreamInput(outputStream.bytes().copyBytesArray());
+        SetLiteral setLiteralIn = SetLiteral.FACTORY.newInstance();
+        setLiteralIn.readFrom(inputStream);
+
+        assertEquals(setLiteralOut.valueType(), setLiteralIn.valueType());
+        assertEquals(setLiteralOut.literals(), setLiteralIn.literals());
     }
 }

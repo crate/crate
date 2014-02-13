@@ -35,6 +35,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import org.cratedb.DataType;
 import org.cratedb.sql.AmbiguousAliasException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -52,6 +53,7 @@ import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -317,13 +319,14 @@ public class AnalyzerTest {
     public void testWhereInSelect() throws Exception {
         Statement statement = SqlParser.createStatement("select load from sys.nodes where load['1'] in (1, 2, 4, 8, 16)");
         Analysis analysis = analyzer.analyze(statement);
-        assertFalse(analysis.hasGroupBy());
-        assertFalse(analysis.hasAggregates());
 
         Function whereClause = analysis.whereClause();
         assertEquals(InOperator.NAME, whereClause.info().ident().name());
         assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
         assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(SetLiteral.class));
+        SetLiteral setLiteral = (SetLiteral) whereClause.arguments().get(1);
+        assertEquals(setLiteral.symbolType(), SymbolType.SET_LITERAL);
+        assertEquals(setLiteral.valueType(), DataType.LONG_SET);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -341,6 +344,9 @@ public class AnalyzerTest {
         assertEquals(InOperator.NAME, whereClause.info().ident().name());
         assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(DoubleLiteral.class));
         assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(SetLiteral.class));
+        SetLiteral setLiteral = (SetLiteral) whereClause.arguments().get(1);
+        assertEquals(setLiteral.symbolType(), SymbolType.SET_LITERAL);
+        assertEquals(setLiteral.valueType(), DataType.LONG_SET);
     }
 
     @Test(expected = IllegalArgumentException.class)

@@ -52,7 +52,4 @@ public enum SymbolType {
         return ordinal() > FUNCTION.ordinal() && ordinal() < INPUT_COLUMN.ordinal();
     }
 
-    public boolean isSetLiteral() {
-        return ordinal() == SET_LITERAL.ordinal();
-    }
 }

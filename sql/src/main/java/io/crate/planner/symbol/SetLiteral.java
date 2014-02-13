@@ -44,23 +44,13 @@ public class SetLiteral extends Literal<Set<Object>, Set<Literal>> {
     };
 
     public SetLiteral(DataType valueType, Set<Literal> literals) {
-        setLiterals(valueType, literals);
-    }
-
-    /**
-     * Initialize an empty SetLiteral.
-     * @see SetLiteral#setLiterals Use <code>setLiterals</code> to set values.
-     */
-    public SetLiteral() {}
-
-    public void setLiterals(DataType valueType, Set<Literal> literals) {
         Preconditions.checkNotNull(valueType);
         Preconditions.checkNotNull(literals);
         this.valueType = valueType;
         this.literals = literals;
-        // clear value() in case it has been used already.
-        values = null;
     }
+
+    private SetLiteral() {}
 
     public boolean contains(Literal literal) {
         return literals.contains(literal);
@@ -83,6 +73,11 @@ public class SetLiteral extends Literal<Set<Object>, Set<Literal>> {
 
     @Override
     public int compareTo(Set<Literal> o) {
+        // Compare the size of the lists.
+        // We do this because it's quite easy to compare Set's in this case.
+        // A more sophisticated approach would be as follows:
+        // - if the size of set1 and set2 differes, sort both sets ascending
+        // - compare each value (s1[i].compateTo(s2[i]). If they are not equal, return the comparison result.
         if (literals() == null && o == null) {
             return 0;
         } else if (literals() == null && o != null) {
@@ -91,9 +86,7 @@ public class SetLiteral extends Literal<Set<Object>, Set<Literal>> {
             return 1;
         }
 
-        Integer s1 = new Integer(literals().size());
-        Integer s2 = new Integer(o.size());
-        return s1.compareTo(s2);
+        return Integer.compare(literals().size(), o.size());
     }
 
     @Override
@@ -113,29 +106,24 @@ public class SetLiteral extends Literal<Set<Object>, Set<Literal>> {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        DataType dataType = DataType.fromStream(in);
+        valueType = DataType.fromStream(in);
         int numLiterals = in.readVInt();
         if (numLiterals > 0) {
-            Set<Literal> literals = new HashSet<>(numLiterals);
+            literals = new HashSet<>(numLiterals);
             for (int i = 0; i < numLiterals; i++) {
                 literals.add((Literal) Literal.fromStream(in));
             }
-            setLiterals(dataType, literals);
         }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        if (literals != null) {
-            DataType.toStream(valueType(), out);
+        DataType.toStream(valueType(), out);
 
-            int numLiterals = literals().size();
-            out.writeVInt(numLiterals);
-            for (Literal literal : literals()) {
-                Literal.toStream(literal, out);
-            }
-        } else {
-            out.writeVInt(0);
+        int numLiterals = literals().size();
+        out.writeVInt(numLiterals);
+        for (Literal literal : literals()) {
+            Literal.toStream(literal, out);
         }
     }
 
