@@ -72,6 +72,9 @@ public class TestSqlParser
     @Test
     public void testParameter() throws Exception {
         assertExpression("?", new ParameterExpression(0));
+        for (int i=0;i<1000;i++) {
+            assertExpression(String.format("$%d", i), new ParameterExpression(i));
+        }
     }
 
     @Test
