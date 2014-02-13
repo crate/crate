@@ -316,6 +316,12 @@ public class AnalyzerTest {
     }
 
     @Test
+    public void testGranularityWithSingleAggregation() throws Exception {
+        Analysis analyze = analyze("select count(*) from sys.nodes");
+        assertThat(analyze.rowGranularity(), is(RowGranularity.NODE));
+    }
+
+    @Test
     public void testWhereInSelect() throws Exception {
         Statement statement = SqlParser.createStatement("select load from sys.nodes where load['1'] in (1, 2, 4, 8, 16)");
         Analysis analysis = analyzer.analyze(statement);
