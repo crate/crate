@@ -31,6 +31,7 @@ import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.executor.transport.task.DistributedMergeTask;
 import io.crate.executor.transport.task.RemoteCollectTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
+import io.crate.executor.transport.task.elasticsearch.ESDeleteTask;
 import io.crate.executor.transport.task.elasticsearch.ESGetTask;
 import io.crate.executor.transport.task.elasticsearch.ESSearchTask;
 import io.crate.metadata.Functions;
@@ -40,6 +41,7 @@ import io.crate.operator.operations.collect.LocalDataCollectOperation;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.*;
+import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
 import org.elasticsearch.action.get.TransportGetAction;
 import org.elasticsearch.action.search.TransportSearchAction;
@@ -60,6 +62,7 @@ public class TransportExecutor implements Executor {
     private final TransportMergeNodeAction transportMergeNodeAction;
     private final TransportGetAction transportGetAction;
     private final TransportDeleteByQueryAction transportDeleteByQueryAction;
+    private final TransportDeleteAction transportDeleteAction;
 
     private final LocalDataCollectOperation localDataCollectOperation;
 
@@ -69,6 +72,7 @@ public class TransportExecutor implements Executor {
                              TransportMergeNodeAction transportMergeNodeAction,
                              TransportGetAction transportGetAction,
                              TransportDeleteByQueryAction transportDeleteByQueryAction,
+                             TransportDeleteAction transportDeleteAction,
                              ThreadPool threadPool,
                              Functions functions,
                              ReferenceResolver referenceResolver,
@@ -78,6 +82,7 @@ public class TransportExecutor implements Executor {
         this.transportMergeNodeAction = transportMergeNodeAction;
         this.transportSearchAction = transportSearchAction;
         this.transportDeleteByQueryAction = transportDeleteByQueryAction;
+        this.transportDeleteAction = transportDeleteAction;
 
         this.localDataCollectOperation = localCollectOperation;
 
@@ -157,6 +162,12 @@ public class TransportExecutor implements Executor {
         @Override
         public Void visitESDeleteByQueryNode(ESDeleteByQueryNode node, Job context) {
             context.addTask(new ESDeleteByQueryTask(node, transportDeleteByQueryAction, functions, referenceResolver));
+            return null;
+        }
+
+        @Override
+        public Void visitESDeleteNode(ESDeleteNode node, Job context) {
+            context.addTask(new ESDeleteTask(transportDeleteAction, node));
             return null;
         }
 
