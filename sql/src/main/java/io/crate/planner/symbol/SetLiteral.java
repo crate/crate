@@ -120,6 +120,7 @@ public class SetLiteral extends Literal<Set<Object>, Set<Literal>> {
     public void writeTo(StreamOutput out) throws IOException {
         DataType.toStream(valueType(), out);
 
+        // TODO: we could just write the Set<Object> values.
         int numLiterals = literals().size();
         out.writeVInt(numLiterals);
         for (Literal literal : literals()) {
