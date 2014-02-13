@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.ReferenceInfo;
@@ -447,6 +448,27 @@ public class AnalyzerTest {
 
         }
         return function;
+    }
+
+    @Test
+    public void testLikeInWhereQuery() {
+        Analysis analysis = analyze("select * from sys.nodes where name like 'foo'");
+
+        assertNotNull(analysis.whereClause());
+        Function whereClause = analysis.whereClause();
+        assertEquals(LikeOperator.NAME, whereClause.info().ident().name());
+        ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataType.STRING, DataType.STRING);
+        assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
+
+        assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
+        StringLiteral stringLiteral = (StringLiteral) whereClause.arguments().get(1);
+        assertThat(stringLiteral.value(), is("foo"));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testLikeEscapeInWhereQuery() {
+        analyze("select * from sys.nodes where name like 'foo' escape 'o'");
     }
 
     @Test
