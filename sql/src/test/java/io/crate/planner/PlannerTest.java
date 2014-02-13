@@ -7,6 +7,7 @@ import io.crate.analyze.Analyzer;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
+import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.metadata.table.SchemaInfo;
@@ -19,6 +20,7 @@ import io.crate.planner.node.PlanNode;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.InputColumn;
@@ -38,9 +40,7 @@ import java.util.Set;
 import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -50,9 +50,14 @@ public class PlannerTest {
     private Injector injector;
     private Analyzer analyzer;
     private Planner planner = new Planner();
-    Routing routing = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
+    Routing shardRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
             .put("nodeOne", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(1, 2)))
             .put("nodeTow", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(3, 4)))
+            .build());
+
+    Routing nodesRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
+            .put("nodeOne", ImmutableMap.<String, Set<Integer>>of())
+            .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
             .build());
 
     class TestShardsTableInfo extends SysShardsTableInfo {
@@ -64,7 +69,19 @@ public class PlannerTest {
 
         @Override
         public Routing getRouting(Function whereClause) {
-            return routing;
+            return shardRouting;
+        }
+    }
+
+    class TestNodesTableInfo extends SysNodesTableInfo {
+
+        public TestNodesTableInfo() {
+            super(null);
+        }
+
+        @Override
+        public Routing getRouting(Function whereClause) {
+            return nodesRouting;
         }
     }
 
@@ -72,6 +89,8 @@ public class PlannerTest {
 
         @Override
         protected void bindTableInfos() {
+            tableInfoBinder.addBinding(TestNodesTableInfo.IDENT.name()).toInstance(
+                    new TestNodesTableInfo());
             tableInfoBinder.addBinding(TestShardsTableInfo.IDENT.name()).toInstance(
                     new TestShardsTableInfo());
         }
@@ -96,7 +115,7 @@ public class PlannerTest {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             TableIdent userTableIdent = new TableIdent(null, "users");
-            TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, RowGranularity.DOC, routing)
+            TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, RowGranularity.DOC, shardRouting)
                     .add("name", DataType.STRING, null)
                     .add("id", DataType.LONG, null)
                     .build();
@@ -175,9 +194,9 @@ public class PlannerTest {
         TopNProjection topN = (TopNProjection)localMerge.projections().get(0);
         assertThat(topN.outputs().size(), is(2));
         assertThat(topN.outputs().get(0), instanceOf(InputColumn.class));
-        assertThat(((InputColumn)topN.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn)topN.outputs().get(0)).index(), is(1));
         assertThat(topN.outputs().get(1), instanceOf(InputColumn.class));
-        assertThat(((InputColumn)topN.outputs().get(1)).index(), is(1));
+        assertThat(((InputColumn)topN.outputs().get(1)).index(), is(0));
     }
 
     @Test
@@ -198,6 +217,10 @@ public class PlannerTest {
         TopNProjection topN = (TopNProjection)mergeNode.projections().get(1);
         assertThat(topN.limit(), is(2));
         assertThat(topN.offset(), is(0));
+        assertThat(topN.outputs().get(0), instanceOf(InputColumn.class));
+        assertThat(((InputColumn)topN.outputs().get(0)).index(), is(0));
+        assertThat(topN.outputs().get(1), instanceOf(InputColumn.class));
+        assertThat(((InputColumn)topN.outputs().get(1)).index(), is(1));
 
 
         // local merge
@@ -206,6 +229,10 @@ public class PlannerTest {
         topN = (TopNProjection)planNode.projections().get(0);
         assertThat(topN.limit(), is(1));
         assertThat(topN.offset(), is(1));
+        assertThat(topN.outputs().get(0), instanceOf(InputColumn.class));
+        assertThat(((InputColumn)topN.outputs().get(0)).index(), is(1));
+        assertThat(topN.outputs().get(1), instanceOf(InputColumn.class));
+        assertThat(((InputColumn)topN.outputs().get(1)).index(), is(0));
     }
 
     @Test
@@ -234,6 +261,26 @@ public class PlannerTest {
 
         PlanPrinter pp = new PlanPrinter();
         System.out.println(pp.print(plan));
+    }
+
+    @Test
+    public void testGroupByOnNodeLevel() throws Exception {
+        Plan plan = plan("select count(*), name from sys.nodes group by name");
+
+        Iterator<PlanNode> iterator = plan.iterator();
+
+        CollectNode collectNode = (CollectNode)iterator.next();
+        assertFalse(collectNode.hasDownstreams());
+        assertThat(collectNode.outputTypes().get(0), is(DataType.STRING));
+        assertThat(collectNode.outputTypes().get(1), is(DataType.LONG));
+
+        MergeNode mergeNode = (MergeNode)iterator.next();
+        assertThat(mergeNode.numUpstreams(), is(2));
+        TopNProjection projection = (TopNProjection)mergeNode.projections().get(1);
+        assertThat(((InputColumn)projection.outputs().get(0)).index(), is(1));
+        assertThat(((InputColumn)projection.outputs().get(1)).index(), is(0));
+
+        assertFalse(iterator.hasNext());
     }
 
     @Test

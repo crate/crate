@@ -166,6 +166,7 @@ public class DistributingCollectOperation extends LocalDataCollectOperation {
 
     @Override
     protected ListenableFuture<Object[][]> handleNodeCollect(CollectNode collectNode) {
+        // the planner optimizes group by on node granularity so this is never used/called.
         throw new UnsupportedOperationException("distributing collect not needed for node level statements");
     }
 

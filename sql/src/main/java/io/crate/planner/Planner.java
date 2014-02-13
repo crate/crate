@@ -26,6 +26,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Analysis;
+import io.crate.analyze.Analyzer;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.node.MergeNode;
@@ -356,9 +357,50 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
     }
 
     private void groupByWithAggregates(Analysis analysis, Plan plan) {
+        if (analysis.rowGranularity().ordinal() < RowGranularity.DOC.ordinal()) {
+            nonDistributedGroupBy(analysis, plan);
+        } else {
+            distributedGroupby(analysis, plan);
+        }
+    }
+
+    private void nonDistributedGroupBy(Analysis analysis, Plan plan) {
+        Context context = new Context(Aggregation.Step.FINAL, analysis.groupBy().size());
+        nodeVisitor.process(analysis.outputSymbols(), context);
+        nodeVisitor.process(analysis.sortSymbols(), context);
+
+        GroupProjection groupProjection =
+                new GroupProjection(analysis.groupBy(), context.aggregationList());
+        CollectNode collectNode = NodeBuilder.collect(
+                analysis,
+                context.symbolList(),
+                ImmutableList.<Projection>of(groupProjection)
+        );
+        plan.add(collectNode);
+
+        nodeVisitor.process(analysis.outputSymbols(), context);
+        nodeVisitor.process(analysis.sortSymbols(), context);
+        nodeVisitor.process(analysis.groupBy(), context);
+
+        // handler
+        groupProjection =
+                new GroupProjection(analysis.groupBy(), context.aggregationList());
+        TopNProjection topN = new TopNProjection(
+                Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                analysis.offset(),
+                analysis.sortSymbols(),
+                analysis.reverseFlags()
+        );
+        topN.outputs(analysis.outputSymbols());
+
+        plan.add(NodeBuilder.localMerge(ImmutableList.<Projection>of(groupProjection, topN), collectNode));
+    }
+
+    private void distributedGroupby(Analysis analysis, Plan plan) {
         // distributed collect on mapper nodes
         // merge on reducer to final (has row authority)
         // merge on handler
+
         Context context = new Context(Aggregation.Step.PARTIAL, analysis.groupBy().size());
         nodeVisitor.process(analysis.outputSymbols(), context);
         nodeVisitor.process(analysis.sortSymbols(), context);
@@ -373,7 +415,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         );
         plan.add(collectNode);
 
-        context = new Context(Aggregation.Step.FINAL);
+        context = new Context(Aggregation.Step.FINAL, analysis.groupBy().size());
         nodeVisitor.process(analysis.outputSymbols(), context);
         nodeVisitor.process(analysis.sortSymbols(), context);
         nodeVisitor.process(analysis.groupBy(), context);
@@ -402,7 +444,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 analysis.sortSymbols(),
                 analysis.reverseFlags()
         );
-        topN.outputs(generateGroupByOutputs(analysis.groupBy(), context.aggregationList()));
+        topN.outputs(analysis.outputSymbols());
 
         plan.add(NodeBuilder.localMerge(ImmutableList.<Projection>of(topN), mergeNode));
     }
