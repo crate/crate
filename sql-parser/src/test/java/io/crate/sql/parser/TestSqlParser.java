@@ -21,20 +21,8 @@
 
 package io.crate.sql.parser;
 
-import io.crate.sql.tree.CurrentTime;
-import io.crate.sql.tree.DateLiteral;
-import io.crate.sql.tree.DoubleLiteral;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.IntervalLiteral;
+import io.crate.sql.tree.*;
 import io.crate.sql.tree.IntervalLiteral.Sign;
-import io.crate.sql.tree.Node;
-import io.crate.sql.tree.QualifiedName;
-import io.crate.sql.tree.Query;
-import io.crate.sql.tree.QuerySpecification;
-import io.crate.sql.tree.SortItem;
-import io.crate.sql.tree.Statement;
-import io.crate.sql.tree.TimeLiteral;
-import io.crate.sql.tree.With;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
@@ -79,6 +67,11 @@ public class TestSqlParser
         assertExpression(".4E42", new DoubleLiteral(".4E42"));
         assertExpression(".4E+42", new DoubleLiteral(".4E42"));
         assertExpression(".4E-42", new DoubleLiteral(".4E-42"));
+    }
+
+    @Test
+    public void testParameter() throws Exception {
+        assertExpression("?", new ParameterExpression(0));
     }
 
     @Test

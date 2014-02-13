@@ -345,7 +345,7 @@ exprList returns [List<Expression> value = new ArrayList<>()]
     ;
 
 parameterExpr returns [ParameterExpression value]
-    : ':' integer { $value = new ParameterExpression(Integer.parseInt($integer.value)); }
+    : '$' integer { $value = new ParameterExpression(Integer.parseInt($integer.value)); }
     | '?'         { $value = new ParameterExpression(parameterPos++); }
     ;
 
