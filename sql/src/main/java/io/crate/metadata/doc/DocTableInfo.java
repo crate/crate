@@ -132,7 +132,7 @@ public class DocTableInfo implements TableInfo {
         return references;
     }
 
-    public List<String> primaryKeys() {
+    public List<String> primaryKey() {
         return primaryKeys;
     }
 

@@ -29,6 +29,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 
 import java.util.Collection;
+import java.util.List;
 
 public interface TableInfo {
 
@@ -47,5 +48,9 @@ public interface TableInfo {
     public TableIdent ident();
 
     public Routing getRouting(Function whereClause);
+
+    public List<String> primaryKey();
+
+    public String clusteredBy();
 
 }

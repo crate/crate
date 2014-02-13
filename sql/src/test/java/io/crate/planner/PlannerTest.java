@@ -4,18 +4,20 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
-import io.crate.metadata.*;
+import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.Routing;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysShardsTableInfo;
-import io.crate.metadata.table.TestingTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
+import io.crate.planner.node.CollectNode;
 import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.node.MergeNode;
 import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.CollectNode;
 import io.crate.planner.symbol.Function;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
@@ -23,7 +25,6 @@ import org.cratedb.DataType;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.h2.command.dml.Merge;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -76,11 +77,6 @@ public class PlannerTest {
             ClusterService clusterService = mock(ClusterService.class);
             bind(ClusterService.class).toInstance(clusterService);
             super.configure();
-        }
-
-        @Override
-        protected void bindReferences() {
-
         }
 
         @Override

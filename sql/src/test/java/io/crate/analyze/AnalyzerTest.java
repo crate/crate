@@ -21,10 +21,12 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
+import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
@@ -33,11 +35,13 @@ import io.crate.operator.operator.EqOperator;
 import io.crate.operator.operator.LteOperator;
 import io.crate.operator.operator.OperatorModule;
 import io.crate.operator.operator.OrOperator;
+import io.crate.operator.reference.sys.cluster.SysClusterExpression;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.sql.AmbiguousAliasException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -67,6 +71,20 @@ public class AnalyzerTest {
     private static final ReferenceInfo LOAD1_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "1"));
     private static final ReferenceInfo LOAD5_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "5"));
 
+    private static final ReferenceInfo CLUSTER_NAME_INFO = SysClusterTableInfo.INFOS.get(new ColumnIdent("name"));
+
+
+    class ClusterNameExpression extends SysClusterExpression<BytesRef> {
+
+        protected ClusterNameExpression() {
+            super(CLUSTER_NAME_INFO.ident().columnIdent().name());
+        }
+
+        @Override
+        public BytesRef value() {
+            return new BytesRef("testcluster");
+        }
+    }
 
     class TestMetaDataModule extends MetaDataModule {
 
@@ -74,6 +92,7 @@ public class AnalyzerTest {
         protected void bindReferences() {
             super.bindReferences();
             referenceBinder.addBinding(LOAD_INFO.ident()).to(NodeLoadExpression.class).asEagerSingleton();
+            referenceBinder.addBinding(CLUSTER_NAME_INFO.ident()).toInstance(new ClusterNameExpression());
         }
 
         @Override
@@ -307,7 +326,7 @@ public class AnalyzerTest {
         assertThat(analyze.sortSymbols().get(0), is(analyze.outputSymbols().get(0)));
     }
 
-    @Test (expected = AmbiguousAliasException.class)
+    @Test(expected = AmbiguousAliasException.class)
     public void testAmbiguousOrderByOnAlias() throws Exception {
         analyze("select id as load, load from sys.nodes order by load");
     }
@@ -317,4 +336,85 @@ public class AnalyzerTest {
         Analysis analyze = analyze("select * from sys.nodes limit 1 offset 3");
         assertThat(analyze.offset(), is(3));
     }
+
+    @Test
+    public void testNoMatchStatement() throws Exception {
+        for (String stmt : ImmutableList.of(
+                "select id from sys.nodes where false",
+                "select id from sys.nodes where 1=0",
+                "select id from sys.nodes where sys.cluster.name = 'something'"
+        )) {
+            Analysis analysis = analyze(stmt);
+            assertTrue(stmt, analysis.noMatch());
+            assertNull(stmt, analysis.whereClause());
+        }
+    }
+
+    @Test
+    public void testAllMatchStatement() throws Exception {
+        for (String stmt : ImmutableList.of(
+                "select id from sys.nodes where true",
+                "select id from sys.nodes where 1=1",
+                "select id from sys.nodes",
+                "select id from sys.nodes where sys.cluster.name = 'testcluster'"
+        )) {
+            Analysis analysis = analyze(stmt);
+            assertFalse(stmt, analysis.noMatch());
+            assertNull(stmt, analysis.whereClause());
+        }
+    }
+
+    @Test
+    public void test1ColPrimaryKeyLiteral() throws Exception {
+        Analysis analysis = analyze("select name from sys.nodes where id='jalla'");
+        assertEquals(analysis.primaryKeyLiterals(), ImmutableList.<Literal>of(new StringLiteral("jalla")));
+
+        analysis = analyze("select name from sys.nodes where 'jalla'=id");
+        assertEquals(analysis.primaryKeyLiterals(), ImmutableList.<Literal>of(new StringLiteral("jalla")));
+
+
+        analysis = analyze("select name from sys.nodes where id='jalla' and id='jalla'");
+        assertEquals(analysis.primaryKeyLiterals(), ImmutableList.<Literal>of(new StringLiteral("jalla")));
+
+        analysis = analyze("select name from sys.nodes where id='jalla' and (id='jalla' or 1=1)");
+        assertEquals(analysis.primaryKeyLiterals(), ImmutableList.<Literal>of(new StringLiteral("jalla")));
+
+        // a no match results in undefined key literals, since those are ambiguous
+        analysis = analyze("select name from sys.nodes where id='jalla' and id='kelle'");
+        assertNull(analysis.primaryKeyLiterals());
+        assertTrue(analysis.noMatch());
+
+        analysis = analyze("select name from sys.nodes where id='jalla' or name = 'something'");
+        assertNull(analysis.primaryKeyLiterals());
+        assertFalse(analysis.noMatch());
+
+        analysis = analyze("select name from sys.nodes where name = 'something'");
+        assertNull(analysis.primaryKeyLiterals());
+        assertFalse(analysis.noMatch());
+
+    }
+
+    @Test
+    public void test2ColPrimaryKeyLiteral() throws Exception {
+        Analysis analysis = analyze("select id from sys.shards where id=1 and table_name='jalla'");
+        assertEquals(ImmutableList.<Literal>of(new StringLiteral("jalla"), new IntegerLiteral(1)),
+                analysis.primaryKeyLiterals());
+        assertFalse(analysis.noMatch());
+
+        analysis = analyze("select id from sys.shards where id=1 and table_name='jalla' and id=1");
+        assertEquals(ImmutableList.<Literal>of(new StringLiteral("jalla"), new IntegerLiteral(1)),
+                analysis.primaryKeyLiterals());
+        assertFalse(analysis.noMatch());
+
+
+        analysis = analyze("select id from sys.shards where id=1");
+        assertNull(analysis.primaryKeyLiterals());
+        assertFalse(analysis.noMatch());
+
+        analysis = analyze("select id from sys.shards where id=1 and table_name='jalla' and id=2");
+        assertTrue(analysis.noMatch());
+        assertNull(analysis.primaryKeyLiterals());
+
+    }
+
 }

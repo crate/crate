@@ -21,6 +21,7 @@
 
 package io.crate.metadata.sys;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
@@ -40,14 +41,16 @@ public class SysShardsTableInfo extends SysTableInfo {
     public static Map<ColumnIdent, ReferenceInfo> INFOS = new HashMap<>(7);
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>(7);
 
+    private static final ImmutableList<String> primaryKey = ImmutableList.of("table_name", "id");
+
     static {
-        register("id", DataType.INTEGER, null);
+        register(primaryKey.get(0), DataType.STRING, null);
+        register(primaryKey.get(1), DataType.INTEGER, null);
         register("num_docs", DataType.LONG, null);
         register("primary", DataType.BOOLEAN, null);
         register("relocating_node", DataType.STRING, null);
         register("size", DataType.LONG, null);
         register("state", DataType.STRING, null);
-        register("table_name", DataType.STRING, null);
     }
 
     private final ClusterService clusterService;
@@ -118,6 +121,16 @@ public class SysShardsTableInfo extends SysTableInfo {
             processShardRouting(locations, shardRouting, null);
         }
         return new Routing(locations);
+    }
+
+    @Override
+    public List<String> primaryKey() {
+        return primaryKey;
+    }
+
+    @Override
+    public String clusteredBy() {
+        return null;
     }
 
 }

@@ -4,13 +4,14 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
+import io.crate.metadata.doc.PrimaryKeyVisitor;
 import io.crate.operator.operator.*;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolType;
+import io.crate.planner.symbol.ValueSymbol;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.*;
-import io.crate.sql.tree.DoubleLiteral;
-import io.crate.sql.tree.LongLiteral;
-import io.crate.sql.tree.StringLiteral;
 import org.cratedb.DataType;
 
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ import java.util.Map;
 
 class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
+    private static PrimaryKeyVisitor primaryKeyVisitor = new PrimaryKeyVisitor();
     private static OutputNameFormatter outputNameFormatter = new OutputNameFormatter();
     protected static SubscriptVisitor visitor = new SubscriptVisitor();
     protected static SymbolDataTypeVisitor symbolDataTypeVisitor = new SymbolDataTypeVisitor();
@@ -68,8 +70,17 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
         // the whereClause shouldn't resolve the aliases so this is done before resolving
         // the result columns to make sure the alias map is empty.
         if (node.getWhere().isPresent()) {
-            Function function = (Function) process(node.getWhere().get(), context);
-            context.whereClause(function);
+            Function whereClause = context.whereClause(process(node.getWhere().get(), context));
+            if (whereClause != null) {
+                PrimaryKeyVisitor.Context pkc = primaryKeyVisitor.process(context.table(), whereClause);
+                if (pkc != null) {
+                    if (pkc.noMatch()) {
+                        context.noMatch(pkc.noMatch());
+                    } else {
+                        context.primaryKeyLiterals(pkc.keyLiterals());
+                    }
+                }
+            }
         }
 
         process(node.getSelect(), context);
@@ -182,6 +193,12 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
         return context.allocateFunction(functionInfo, arguments);
     }
 
+
+    @Override
+    protected Symbol visitBooleanLiteral(BooleanLiteral node, Analysis context) {
+        return new io.crate.planner.symbol.BooleanLiteral(node.getValue());
+    }
+
     @Override
     protected Symbol visitStringLiteral(StringLiteral node, Analysis context) {
         return new io.crate.planner.symbol.StringLiteral(node.getValue());
@@ -213,7 +230,19 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
         if (symbol != null) {
             return symbol;
         }
-        return context.allocateReference(new ReferenceIdent(context.table().ident(), node.getSuffix().getSuffix()));
+        ReferenceIdent ident;
+        List<String> parts = node.getName().getParts();
+        switch (parts.size()) {
+            case 1:
+                ident = new ReferenceIdent(context.table().ident(), parts.get(0));
+                break;
+            case 3:
+                ident = new ReferenceIdent(new TableIdent(parts.get(0), parts.get(1)), parts.get(2));
+                break;
+            default:
+                throw new UnsupportedOperationException("unsupported name reference: " + node);
+        }
+        return context.allocateReference(ident);
     }
 
     @Override
@@ -227,9 +256,6 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     @Override
     protected Symbol visitLogicalBinaryExpression(LogicalBinaryExpression node, Analysis context) {
-        List<Symbol> arguments = new ArrayList<>(2);
-        arguments.add(process(node.getLeft(), context));
-        arguments.add(process(node.getRight(), context));
 
         FunctionInfo functionInfo;
         switch (node.getType()) {
@@ -243,6 +269,9 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
                 throw new UnsupportedOperationException("Unsupported logical binary expression " + node.getType().name());
         }
 
+        List<Symbol> arguments = new ArrayList<>(2);
+        arguments.add(process(node.getLeft(), context));
+        arguments.add(process(node.getRight(), context));
         return context.allocateFunction(functionInfo, arguments);
     }
 
@@ -271,14 +300,13 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
         // try implicit type cast (conversion)
         if (argumentTypes.get(0) != argumentTypes.get(1)) {
-            Symbol convertedSymbol = ((io.crate.planner.symbol.Literal)arguments.get(1)).convertTo(argumentTypes.get(0));
+            Symbol convertedSymbol = ((io.crate.planner.symbol.Literal) arguments.get(1)).convertTo(argumentTypes.get(0));
             arguments.set(1, convertedSymbol);
             argumentTypes.set(1, argumentTypes.get(0));
         }
 
         FunctionIdent functionIdent = new FunctionIdent(operatorName, argumentTypes);
         FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
-
         return context.allocateFunction(functionInfo, arguments);
     }
 

@@ -1,6 +1,7 @@
 package io.crate.planner.symbol;
 
 import io.crate.operator.Input;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 
 public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
@@ -29,6 +30,9 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
                 return new BooleanLiteral((Boolean)value);
             case IP:
             case STRING:
+                if (value instanceof BytesRef){
+                    return new StringLiteral(((BytesRef)value).utf8ToString());
+                }
                 return new StringLiteral((String)value);
             case OBJECT:
                 break;
