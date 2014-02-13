@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
 import io.crate.operator.operator.*;
 import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Literal;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.*;
 import io.crate.sql.tree.DoubleLiteral;
@@ -13,10 +14,7 @@ import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.StringLiteral;
 import org.cratedb.DataType;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
@@ -180,6 +178,47 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
         FunctionInfo functionInfo = context.getFunctionInfo(ident);
 
         return context.allocateFunction(functionInfo, arguments);
+    }
+
+    @Override
+    protected Symbol visitInPredicate(InPredicate node, Analysis context) {
+        List<Symbol> arguments = new ArrayList<>(2);
+        List<DataType> argumentTypes = new ArrayList<>(2);
+
+        Symbol value = process(node.getValue(), context);
+
+        arguments.add(value);
+        arguments.add(process(node.getValueList(), context));
+
+        DataType valueDataType = symbolDataTypeVisitor.process(value, context);
+        argumentTypes.add(valueDataType);
+        argumentTypes.add(DataType.SET_TYPES.get(valueDataType.ordinal()));
+
+        FunctionIdent functionIdent = new FunctionIdent(InOperator.NAME, argumentTypes);
+        FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
+        return context.allocateFunction(functionInfo, arguments);
+    }
+
+    @Override
+    protected Symbol visitInListExpression(InListExpression node, Analysis context) {
+        Set<Literal> symbols = new HashSet<>();
+        DataType dataType = null;
+        for (Expression expression : node.getValues()) {
+            Symbol s = process(expression, context);
+            Preconditions.checkArgument(s.symbolType().isLiteral());
+            Literal l = (Literal) s;
+            // check dataTypes to be of the same dataType
+            if (dataType == null) {
+                // first loop run
+                dataType = l.valueType();
+            } else {
+                Preconditions.checkArgument(dataType == l.valueType());
+            }
+            symbols.add(l);
+        }
+
+        dataType = DataType.SET_TYPES.get(dataType.ordinal());
+        return new SetLiteral(dataType, symbols);
     }
 
     @Override

@@ -29,15 +29,13 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.aggregation.impl.AverageAggregation;
-import io.crate.operator.operator.EqOperator;
-import io.crate.operator.operator.LteOperator;
-import io.crate.operator.operator.OperatorModule;
-import io.crate.operator.operator.OrOperator;
+import io.crate.operator.operator.*;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import org.cratedb.DataType;
 import org.cratedb.sql.AmbiguousAliasException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -55,6 +53,7 @@ import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -115,8 +114,6 @@ public class AnalyzerTest {
 
     @Before
     public void setUp() throws Exception {
-
-
         injector = new ModulesBuilder()
                 .add(new TestModule())
                 .add(new TestMetaDataModule())
@@ -317,4 +314,45 @@ public class AnalyzerTest {
         Analysis analyze = analyze("select * from sys.nodes limit 1 offset 3");
         assertThat(analyze.offset(), is(3));
     }
+
+    @Test
+    public void testWhereInSelect() throws Exception {
+        Statement statement = SqlParser.createStatement("select load from sys.nodes where load['1'] in (1, 2, 4, 8, 16)");
+        Analysis analysis = analyzer.analyze(statement);
+
+        Function whereClause = analysis.whereClause();
+        assertEquals(InOperator.NAME, whereClause.info().ident().name());
+        assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(SetLiteral.class));
+        SetLiteral setLiteral = (SetLiteral) whereClause.arguments().get(1);
+        assertEquals(setLiteral.symbolType(), SymbolType.SET_LITERAL);
+        assertEquals(setLiteral.valueType(), DataType.LONG_SET);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testWhereInSelectDifferentDataTypeList() throws Exception {
+        Statement statement = SqlParser.createStatement("select 'found' where 1 in (1.2, 2)");
+        analyzer.analyze(statement);
+    }
+
+    @Test
+    public void testWhereInSelectDifferentDataTypeValue() throws Exception {
+        Statement statement = SqlParser.createStatement("select 'found' where 1.2 in (1, 2)");
+        Analysis analysis = analyzer.analyze(statement);
+
+        Function whereClause = analysis.whereClause();
+        assertEquals(InOperator.NAME, whereClause.info().ident().name());
+        assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(DoubleLiteral.class));
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(SetLiteral.class));
+        SetLiteral setLiteral = (SetLiteral) whereClause.arguments().get(1);
+        assertEquals(setLiteral.symbolType(), SymbolType.SET_LITERAL);
+        assertEquals(setLiteral.valueType(), DataType.LONG_SET);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testWhereInSelectDifferentDataTypeValueUncompatibleDataTypes() throws Exception {
+        Statement statement = SqlParser.createStatement("select 'found' where 1 in (1, 'foo', 2)");
+        analyzer.analyze(statement);
+    }
+
 }
