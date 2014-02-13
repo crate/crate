@@ -34,6 +34,7 @@ public enum SymbolType {
     INTEGER_LITERAL(IntegerLiteral.FACTORY),
     LONG_LITERAL(LongLiteral.FACTORY),
     NULL_LITERAL(Null.FACTORY),
+    OBJECT_LITERAL(ObjectLiteral.FACTORY),
     INPUT_COLUMN(InputColumn.FACTORY),
     SET_LITERAL(SetLiteral.FACTORY),
     ;

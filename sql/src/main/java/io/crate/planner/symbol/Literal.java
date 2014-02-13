@@ -3,6 +3,10 @@ package io.crate.planner.symbol;
 import io.crate.operator.Input;
 import org.cratedb.DataType;
 
+import java.util.Map;
+
+
+@SuppressWarnings("unchecked")
 public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
         implements Input<ValueType>, Comparable<LiteralType> {
 
@@ -31,7 +35,7 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
             case STRING:
                 return new StringLiteral((String)value);
             case OBJECT:
-                break;
+                return new ObjectLiteral((Map<String, Object>)value);
             case NOT_SUPPORTED:
                 throw new UnsupportedOperationException();
         }

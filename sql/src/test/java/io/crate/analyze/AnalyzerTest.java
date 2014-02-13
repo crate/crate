@@ -635,4 +635,18 @@ public class AnalyzerTest {
     public void testInsertIntoSysTable() throws Exception {
         analyze("insert into sys.nodes (id, name) values (666, 'evilNode')");
     }
+
+
+    @Test
+    public void testSelectWithObjectLiteral() throws Exception {
+        Map<String, Object> map = new HashMap<>();
+        map.put("1", 1.0);
+        map.put("5", 2.5);
+        map.put("15", 8.0);
+        SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.nodes where load=?",
+                new Object[]{map});
+        Function whereClause = analysis.whereClause();
+        assertThat(whereClause.arguments().get(1), instanceOf(ObjectLiteral.class));
+        assertTrue(((ObjectLiteral)whereClause.arguments().get(1)).value().equals(map));
+    }
 }
