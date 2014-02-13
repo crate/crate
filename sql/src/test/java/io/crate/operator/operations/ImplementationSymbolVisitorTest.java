@@ -26,8 +26,6 @@ import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.aggregation.impl.CountAggregation;
-import io.crate.operator.scalar.MatchFunction;
-import io.crate.operator.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
@@ -150,7 +148,7 @@ public class ImplementationSymbolVisitorTest {
             visitor.process(value, context);
         }
 
-        ImplementationSymbolVisitor.AggregationContext[] aggregations = context.aggregations();
+        AggregationContext[] aggregations = context.aggregations();
         assertThat(aggregations.length, is(1));
 
         // collectExpressions: [ in0, in1 ]

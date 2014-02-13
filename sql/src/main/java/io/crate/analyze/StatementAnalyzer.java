@@ -22,6 +22,7 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
     private static OutputNameFormatter outputNameFormatter = new OutputNameFormatter();
     protected static SubscriptVisitor visitor = new SubscriptVisitor();
     protected static SymbolDataTypeVisitor symbolDataTypeVisitor = new SymbolDataTypeVisitor();
+    protected static NegativeLiteralVisitor negativeLiteralVisitor = new NegativeLiteralVisitor();
     private final Map<String, String> swapOperatorTable = ImmutableMap.<String, String>builder()
             .put(GtOperator.NAME, LtOperator.NAME)
             .put(GteOperator.NAME, LteOperator.NAME)
@@ -73,17 +74,8 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
         process(node.getSelect(), context);
 
-        if (node.getGroupBy().size() > 0) {
-            List<Symbol> groupBy = new ArrayList<>(node.getGroupBy().size());
-            for (Expression expression : node.getGroupBy()) {
-                Symbol s = process(expression, context);
-                // TODO: support column names and ordinals
-                int idx = context.outputSymbols().indexOf(s);
-                Preconditions.checkArgument(idx >= 0,
-                        "group by expression is not in output columns", s);
-                groupBy.add(context.outputSymbols().get(idx));
-            }
-            context.groupBy(groupBy);
+        if (!node.getGroupBy().isEmpty()) {
+            analyzeGroupBy(node.getGroupBy(), context);
         }
 
         Preconditions.checkArgument(node.getHaving().isPresent() == false, "having clause is not yet supported");
@@ -99,8 +91,62 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
             }
             context.sortSymbols(sortSymbols);
         }
-        // TODO: support offset, needs parser impl
         return null;
+    }
+
+    private void analyzeGroupBy(List<Expression> groupByExpressions, Analysis context) {
+        List<Symbol> groupBy = new ArrayList<>(groupByExpressions.size());
+        for (Expression expression : groupByExpressions) {
+            Symbol s = process(expression, context);
+            int idx;
+            if (s.symbolType() == SymbolType.LONG_LITERAL) {
+                idx = ((io.crate.planner.symbol.LongLiteral)s).value().intValue() - 1;
+                if (idx < 1) {
+                    throw new IllegalArgumentException(
+                            String.format("GROUP BY position %s is not in select list", idx));
+                }
+            } else {
+                idx = context.outputSymbols().indexOf(s);
+            }
+
+            if (idx >= 0) {
+                try {
+                    s = context.outputSymbols().get(idx);
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    throw new IllegalArgumentException(
+                            String.format("GROUP BY position %s is not in select list", idx));
+                }
+            }
+
+            if (s.symbolType() == SymbolType.FUNCTION && ((Function)s).info().isAggregate()) {
+                throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
+            }
+
+            groupBy.add(s);
+        }
+        context.groupBy(groupBy);
+
+        ensureOutputSymbolsInGroupBy(context);
+    }
+
+    @Override
+    protected Symbol visitNegativeExpression(NegativeExpression node, Analysis context) {
+        // in statements like "where x = -1" the  positive (expression)IntegerLiteral (1)
+        // is just wrapped inside a negativeExpression
+        // the visitor here swaps it to get -1 in a (symbol)LiteralInteger
+        return negativeLiteralVisitor.process(process(node.getValue(), context), null);
+    }
+
+    private void ensureOutputSymbolsInGroupBy(Analysis context) {
+        for (Symbol symbol : context.outputSymbols()) {
+            if (symbol.symbolType() == SymbolType.FUNCTION && ((Function)symbol).info().isAggregate()) {
+                continue;
+            }
+            if (!context.groupBy().contains(symbol)) {
+                throw new IllegalArgumentException(
+                        String.format("column %s must appear in the GROUP BY clause or be used in an aggregation function", symbol));
+            }
+        }
     }
 
     @Override
