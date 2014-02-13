@@ -109,6 +109,15 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testGroupByOnSysNodes() throws Exception {
+        execute("select count(*), name from sys.nodes group by name");
+        assertThat(response.rowCount(), is(2L));
+
+        execute("select count(*), hostname from sys.nodes group by hostname");
+        assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
     public void testSysCluster() throws Exception {
         execute("select id from sys.cluster");
         assertThat(response.rowCount(), is(1L));
