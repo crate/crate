@@ -437,7 +437,7 @@ qnameOrFunction
     ;
 
 parameterExpr
-    : ':' integer
+    : '$' integer
     | '?'
     ;
 

@@ -345,7 +345,7 @@ exprList returns [List<Expression> value = new ArrayList<>()]
     ;
 
 parameterExpr returns [ParameterExpression value]
-    : ':' integer { $value = new ParameterExpression(Integer.parseInt($integer.value)); }
+    : '$' integer { $value = new ParameterExpression(Integer.parseInt($integer.value)); }
     | '?'         { $value = new ParameterExpression(parameterPos++); }
     ;
 
@@ -365,8 +365,15 @@ identList returns [List<String> value = new ArrayList<>()]
     : ( ident { $value.add($ident.value); } )+
     ;
 
+/*
+ * case sensitivity like it is in postgres
+ * see also http://www.thenextage.com/wordpress/postgresql-case-sensitivity-part-1-the-ddl/
+ *
+ * unfortunately this has to be done in the parser because afterwards the 
+ * knowledge of the IDENT / QUOTED_IDENT difference is lost
+ */
 ident returns [String value]
-    : i=IDENT        { $value = $i.text; }
+    : i=IDENT        { $value = $i.text.toLowerCase(); }
     | q=QUOTED_IDENT { $value = $q.text; }
     ;
 

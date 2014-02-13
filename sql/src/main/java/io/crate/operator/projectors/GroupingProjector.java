@@ -25,7 +25,7 @@ import io.crate.operator.Input;
 import io.crate.operator.aggregation.AggregationCollector;
 import io.crate.operator.aggregation.AggregationState;
 import io.crate.operator.aggregation.CollectExpression;
-import io.crate.operator.operations.ImplementationSymbolVisitor;
+import io.crate.operator.operations.AggregationContext;
 
 import java.util.*;
 
@@ -42,7 +42,7 @@ public class GroupingProjector implements Projector {
 
     public GroupingProjector(Input[] keyInputs,
                              CollectExpression[] collectExpressions,
-                             ImplementationSymbolVisitor.AggregationContext[] aggregations) {
+                             AggregationContext[] aggregations) {
         this.keyInputs = keyInputs;
         this.collectExpressions = collectExpressions;
 
@@ -112,7 +112,7 @@ public class GroupingProjector implements Projector {
         int r = 0;
         for (Map.Entry<List<Object>, AggregationState[]> entry : result.entrySet()) {
             Object[] row = rows[r];
-            transformToRow(entry, row);
+            transformToRow(entry, row, aggregationCollectors);
             if (sendToDownStream) {
                 sendToDownStream = downStream.setNextRow(row);
             }
@@ -128,16 +128,22 @@ public class GroupingProjector implements Projector {
      * transform map entry into pre-allocated object array.
      * @param entry
      * @param row
+     * @param aggregationCollectors
      */
-    private static void transformToRow(Map.Entry<List<Object>, AggregationState[]> entry, Object[] row) {
+    private static void transformToRow(Map.Entry<List<Object>, AggregationState[]> entry,
+                                       Object[] row,
+                                       AggregationCollector[] aggregationCollectors) {
         int c = 0;
 
         for (Object o : entry.getKey()) {
             row[c] = o;
             c++;
         }
-        for (AggregationState aggregationState : entry.getValue()) {
-            row[c] = aggregationState.value();
+
+        AggregationState[] aggregationStates = entry.getValue();
+        for (int i = 0; i < aggregationStates.length; i++) {
+            aggregationCollectors[i].state(aggregationStates[i]);
+            row[c] = aggregationCollectors[i].finishCollect();
             c++;
         }
     }
@@ -149,18 +155,23 @@ public class GroupingProjector implements Projector {
 
     @Override
     public Iterator<Object[]> iterator() {
-        return new EntryToRowIterator(result.entrySet().iterator(), keyInputs.length + aggregationCollectors.length);
+        return new EntryToRowIterator(
+            result.entrySet().iterator(),
+            keyInputs.length + aggregationCollectors.length,
+            aggregationCollectors);
     }
 
     private static class EntryToRowIterator implements Iterator<Object[]> {
 
         private final Iterator<Map.Entry<List<Object>, AggregationState[]>> iter;
         private final int rowLength;
+        private final AggregationCollector[] aggregationCollectors;
 
         private EntryToRowIterator(Iterator<Map.Entry<List<Object>, AggregationState[]>> iter,
-                                   int rowLength) {
+                                   int rowLength, AggregationCollector[] aggregationCollectors) {
             this.iter = iter;
             this.rowLength = rowLength;
+            this.aggregationCollectors = aggregationCollectors;
         }
 
         @Override
@@ -172,7 +183,7 @@ public class GroupingProjector implements Projector {
         public Object[] next() {
             Map.Entry<List<Object>, AggregationState[]> entry = iter.next();
             Object[] row = new Object[rowLength];
-            transformToRow(entry, row);
+            transformToRow(entry, row, aggregationCollectors);
             return row;
         }
 

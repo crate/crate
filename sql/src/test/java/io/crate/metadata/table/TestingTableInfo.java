@@ -34,8 +34,10 @@ import java.util.Map;
 
 public class TestingTableInfo implements TableInfo {
 
-    public static Builder builder(TableIdent ident, RowGranularity granularity) {
-        return new Builder(ident, granularity);
+    private final Routing routing;
+
+    public static Builder builder(TableIdent ident, RowGranularity granularity, Routing routing) {
+        return new Builder(ident, granularity, routing);
     }
 
     public static class Builder {
@@ -45,9 +47,11 @@ public class TestingTableInfo implements TableInfo {
 
         private final RowGranularity granularity;
         private final TableIdent ident;
+        private final Routing routing;
 
-        public Builder(TableIdent ident, RowGranularity granularity) {
+        public Builder(TableIdent ident, RowGranularity granularity, Routing routing) {
             this.granularity = granularity;
+            this.routing = routing;
             this.ident = ident;
         }
 
@@ -61,7 +65,7 @@ public class TestingTableInfo implements TableInfo {
         }
 
         public TableInfo build() {
-            return new TestingTableInfo(columns.build(), references.build(), ident, granularity);
+            return new TestingTableInfo(columns.build(), references.build(), ident, granularity, routing);
         }
     }
 
@@ -72,11 +76,13 @@ public class TestingTableInfo implements TableInfo {
     private final RowGranularity granularity;
 
     public TestingTableInfo(List<ReferenceInfo> columns, Map<ColumnIdent, ReferenceInfo> references,
-                            TableIdent ident, RowGranularity granularity) {
+                            TableIdent ident, RowGranularity granularity,
+                            Routing routing) {
         this.columns = columns;
         this.references = references;
         this.ident = ident;
         this.granularity = granularity;
+        this.routing = routing;
     }
 
     @Override
@@ -101,7 +107,7 @@ public class TestingTableInfo implements TableInfo {
 
     @Override
     public Routing getRouting(Function whereClause) {
-        return null;
+        return routing;
     }
 
     @Override

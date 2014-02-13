@@ -2,22 +2,23 @@ package io.crate.analyze;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.PrimaryKeyVisitor;
+import io.crate.operator.aggregation.impl.CollectSetAggregation;
 import io.crate.operator.operator.*;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
-import io.crate.planner.symbol.ValueSymbol;
+import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Literal;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.*;
+import io.crate.sql.tree.BooleanLiteral;
+import io.crate.sql.tree.DoubleLiteral;
+import io.crate.sql.tree.LongLiteral;
+import io.crate.sql.tree.StringLiteral;
 import org.cratedb.DataType;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
@@ -25,6 +26,7 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
     private static OutputNameFormatter outputNameFormatter = new OutputNameFormatter();
     protected static SubscriptVisitor visitor = new SubscriptVisitor();
     protected static SymbolDataTypeVisitor symbolDataTypeVisitor = new SymbolDataTypeVisitor();
+    protected static NegativeLiteralVisitor negativeLiteralVisitor = new NegativeLiteralVisitor();
     private final Map<String, String> swapOperatorTable = ImmutableMap.<String, String>builder()
             .put(GtOperator.NAME, LtOperator.NAME)
             .put(GteOperator.NAME, LteOperator.NAME)
@@ -85,17 +87,8 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
 
         process(node.getSelect(), context);
 
-        if (node.getGroupBy().size() > 0) {
-            List<Symbol> groupBy = new ArrayList<>(node.getGroupBy().size());
-            for (Expression expression : node.getGroupBy()) {
-                Symbol s = process(expression, context);
-                // TODO: support column names and ordinals
-                int idx = context.outputSymbols().indexOf(s);
-                Preconditions.checkArgument(idx >= 0,
-                        "group by expression is not in output columns", s);
-                groupBy.add(context.outputSymbols().get(idx));
-            }
-            context.groupBy(groupBy);
+        if (!node.getGroupBy().isEmpty()) {
+            analyzeGroupBy(node.getGroupBy(), context);
         }
 
         Preconditions.checkArgument(node.getHaving().isPresent() == false, "having clause is not yet supported");
@@ -111,8 +104,62 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
             }
             context.sortSymbols(sortSymbols);
         }
-        // TODO: support offset, needs parser impl
         return null;
+    }
+
+    private void analyzeGroupBy(List<Expression> groupByExpressions, Analysis context) {
+        List<Symbol> groupBy = new ArrayList<>(groupByExpressions.size());
+        for (Expression expression : groupByExpressions) {
+            Symbol s = process(expression, context);
+            int idx;
+            if (s.symbolType() == SymbolType.LONG_LITERAL) {
+                idx = ((io.crate.planner.symbol.LongLiteral) s).value().intValue() - 1;
+                if (idx < 1) {
+                    throw new IllegalArgumentException(
+                            String.format("GROUP BY position %s is not in select list", idx));
+                }
+            } else {
+                idx = context.outputSymbols().indexOf(s);
+            }
+
+            if (idx >= 0) {
+                try {
+                    s = context.outputSymbols().get(idx);
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    throw new IllegalArgumentException(
+                            String.format("GROUP BY position %s is not in select list", idx));
+                }
+            }
+
+            if (s.symbolType() == SymbolType.FUNCTION && ((Function) s).info().isAggregate()) {
+                throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
+            }
+
+            groupBy.add(s);
+        }
+        context.groupBy(groupBy);
+
+        ensureOutputSymbolsInGroupBy(context);
+    }
+
+    @Override
+    protected Symbol visitNegativeExpression(NegativeExpression node, Analysis context) {
+        // in statements like "where x = -1" the  positive (expression)IntegerLiteral (1)
+        // is just wrapped inside a negativeExpression
+        // the visitor here swaps it to get -1 in a (symbol)LiteralInteger
+        return negativeLiteralVisitor.process(process(node.getValue(), context), null);
+    }
+
+    private void ensureOutputSymbolsInGroupBy(Analysis context) {
+        for (Symbol symbol : context.outputSymbols()) {
+            if (symbol.symbolType() == SymbolType.FUNCTION && ((Function) symbol).info().isAggregate()) {
+                continue;
+            }
+            if (!context.groupBy().contains(symbol)) {
+                throw new IllegalArgumentException(
+                        String.format("column %s must appear in the GROUP BY clause or be used in an aggregation function", symbol));
+            }
+        }
     }
 
     @Override
@@ -187,9 +234,49 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
             arguments.add(vs);
             argumentTypes.add(vs.valueType());
         }
-        FunctionIdent ident = new FunctionIdent(node.getName().toString(), argumentTypes);
-        FunctionInfo functionInfo = context.getFunctionInfo(ident);
 
+        FunctionInfo functionInfo = null;
+        if (node.isDistinct()) {
+            if (argumentTypes.size() > 1) {
+                throw new UnsupportedOperationException("Function(DISTINCT x) does not accept more than one argument");
+            }
+            // define the inner function. use the arguments/argumentTypes from above
+            FunctionIdent innerIdent = new FunctionIdent(CollectSetAggregation.NAME, argumentTypes);
+            FunctionInfo innerInfo = context.getFunctionInfo(innerIdent);
+            Function innerFunction = context.allocateFunction(innerInfo, arguments);
+
+            // define the outer function which contains the inner function as arugment.
+            String nodeName = "collection_" + node.getName().toString();
+            ImmutableList<Symbol> outerArguments = ImmutableList.<Symbol>of(innerFunction);
+            ImmutableList<DataType> outerArgumentTypes = ImmutableList.of(DataType.SET_TYPES.get(argumentTypes.get(0).ordinal()));
+
+            FunctionIdent ident = new FunctionIdent(nodeName, outerArgumentTypes);
+            functionInfo = context.getFunctionInfo(ident);
+            arguments = outerArguments;
+        } else {
+            FunctionIdent ident = new FunctionIdent(node.getName().toString(), argumentTypes);
+            functionInfo = context.getFunctionInfo(ident);
+        }
+
+        return context.allocateFunction(functionInfo, arguments);
+    }
+
+    @Override
+    protected Symbol visitInPredicate(InPredicate node, Analysis context) {
+        List<Symbol> arguments = new ArrayList<>(2);
+        List<DataType> argumentTypes = new ArrayList<>(2);
+
+        Symbol value = process(node.getValue(), context);
+
+        arguments.add(value);
+        arguments.add(process(node.getValueList(), context));
+
+        DataType valueDataType = symbolDataTypeVisitor.process(value, context);
+        argumentTypes.add(valueDataType);
+        argumentTypes.add(DataType.SET_TYPES.get(valueDataType.ordinal()));
+
+        FunctionIdent functionIdent = new FunctionIdent(InOperator.NAME, argumentTypes);
+        FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
         return context.allocateFunction(functionInfo, arguments);
     }
 
@@ -197,6 +284,28 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
     @Override
     protected Symbol visitBooleanLiteral(BooleanLiteral node, Analysis context) {
         return new io.crate.planner.symbol.BooleanLiteral(node.getValue());
+    }
+
+    @Override
+    protected Symbol visitInListExpression(InListExpression node, Analysis context) {
+        Set<Literal> symbols = new HashSet<>();
+        DataType dataType = null;
+        for (Expression expression : node.getValues()) {
+            Symbol s = process(expression, context);
+            Preconditions.checkArgument(s.symbolType().isLiteral());
+            Literal l = (Literal) s;
+            // check dataTypes to be of the same dataType
+            if (dataType == null) {
+                // first loop run
+                dataType = l.valueType();
+            } else {
+                Preconditions.checkArgument(dataType == l.valueType());
+            }
+            symbols.add(l);
+        }
+
+        dataType = DataType.SET_TYPES.get(dataType.ordinal());
+        return new SetLiteral(dataType, symbols);
     }
 
     @Override
@@ -308,6 +417,20 @@ class StatementAnalyzer extends DefaultTraversalVisitor<Symbol, Analysis> {
         FunctionIdent functionIdent = new FunctionIdent(operatorName, argumentTypes);
         FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
         return context.allocateFunction(functionInfo, arguments);
+    }
+
+    @Override
+    protected Symbol visitDelete(Delete node, Analysis context) {
+        context.isDelete(true);
+
+        process(node.getTable(), context);
+
+        if (node.getWhere().isPresent()) {
+            Function function = (Function) process(node.getWhere().get(), context);
+            context.whereClause(function);
+        }
+
+        return null;
     }
 
 }

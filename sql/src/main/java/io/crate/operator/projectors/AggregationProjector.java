@@ -23,7 +23,7 @@ package io.crate.operator.projectors;
 
 import io.crate.operator.aggregation.AggregationCollector;
 import io.crate.operator.aggregation.CollectExpression;
-import io.crate.operator.operations.ImplementationSymbolVisitor;
+import io.crate.operator.operations.AggregationContext;
 
 import java.util.Iterator;
 import java.util.Set;
@@ -62,7 +62,7 @@ public class AggregationProjector implements Projector {
     private Projector downStream;
 
     public AggregationProjector(Set<CollectExpression<?>> collectExpressions,
-                                ImplementationSymbolVisitor.AggregationContext[] aggregations) {
+                                AggregationContext[] aggregations) {
 
         row = new Object[aggregations.length];
         this.collectExpressions = collectExpressions;

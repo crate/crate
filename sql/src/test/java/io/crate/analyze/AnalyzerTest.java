@@ -31,17 +31,18 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.aggregation.impl.AverageAggregation;
-import io.crate.operator.operator.EqOperator;
-import io.crate.operator.operator.LteOperator;
-import io.crate.operator.operator.OperatorModule;
-import io.crate.operator.operator.OrOperator;
+import io.crate.operator.aggregation.impl.CollectSetAggregation;
+import io.crate.operator.operator.*;
 import io.crate.operator.reference.sys.cluster.SysClusterExpression;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
+import io.crate.operator.scalar.CollectionCountFunction;
+import io.crate.operator.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import org.apache.lucene.util.BytesRef;
+import org.cratedb.DataType;
 import org.cratedb.sql.AmbiguousAliasException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -56,6 +57,10 @@ import org.elasticsearch.monitor.os.OsStats;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -134,14 +139,13 @@ public class AnalyzerTest {
 
     @Before
     public void setUp() throws Exception {
-
-
         injector = new ModulesBuilder()
                 .add(new TestModule())
                 .add(new TestMetaDataModule())
                 .add(new MetaDataSysModule())
                 .add(new AggregationImplModule())
                 .add(new OperatorModule())
+                .add(new ScalarFunctionModule())
                 .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
     }
@@ -150,7 +154,6 @@ public class AnalyzerTest {
     public void testGroupedSelectMissingOutput() throws Exception {
         Statement statement = SqlParser.createStatement("select load['5'] from sys.nodes group by load['1']");
         analyzer.analyze(statement);
-
     }
 
 
@@ -170,13 +173,55 @@ public class AnalyzerTest {
         assertEquals(1, analysis.reverseFlags().length);
 
         assertEquals(LOAD5_INFO, ((Reference) analysis.sortSymbols().get(0)).info());
-
     }
 
+    @Test
+    public void testGroupKeyNotInResultColumnList() throws Exception {
+        Analysis analysis = analyze("select count(*) from sys.nodes group by name");
+
+        assertThat(analysis.groupBy().size(), is(1));
+        assertThat(analysis.outputNames().get(0), is("count(*)"));
+    }
+
+    @Test
+    public void testGroupByOnAlias() throws Exception {
+        Analysis analysis = analyze("select count(*), name as n from sys.nodes group by n");
+        assertThat(analysis.groupBy().size(), is(1));
+        assertThat(analysis.outputNames().get(0), is("count(*)"));
+        assertThat(analysis.outputNames().get(1), is("n"));
+
+        assertEquals(analysis.groupBy().get(0), analysis.outputSymbols().get(1));
+    }
+
+    @Test
+    public void testGroupByOnOrdinal() throws Exception {
+        // just like in postgres access by ordinal starts with 1
+        Analysis analysis = analyze("select count(*), name as n from sys.nodes group by 2");
+        assertThat(analysis.groupBy().size(), is(1));
+        assertEquals(analysis.groupBy().get(0), analysis.outputSymbols().get(1));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGroupByOnInvalidOrdinal() throws Exception {
+        analyze("select count(*), name from sys.nodes group by -4");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testGroupByOnOrdinalAggregation() throws Exception {
+        analyze("select count(*), name as n from sys.nodes group by 1");
+    }
+
+    @Test
+    public void testNegativeLiteral() throws Exception {
+        Analysis analyze = analyze("select * from sys.nodes where port['http'] = -400");
+        Function whereClause = analyze.whereClause();
+        Symbol symbol = whereClause.arguments().get(1);
+        assertThat(((IntegerLiteral) symbol).value(), is(-400));
+    }
 
     @Test
     public void testGroupedSelect() throws Exception {
-        Statement statement = SqlParser.createStatement("select load['1'],load['5'] from sys.nodes group by load['1']");
+        Statement statement = SqlParser.createStatement("select load['1'], count(*) from sys.nodes group by load['1']");
         Analysis analysis = analyzer.analyze(statement);
         assertEquals(analysis.table().ident(), SysNodesTableInfo.IDENT);
         assertNull(analysis.limit());
@@ -414,6 +459,103 @@ public class AnalyzerTest {
         analysis = analyze("select id from sys.shards where id=1 and table_name='jalla' and id=2");
         assertTrue(analysis.noMatch());
         assertNull(analysis.primaryKeyLiterals());
+    }
+
+    @Test
+    public void testGranularityWithSingleAggregation() throws Exception {
+        Analysis analyze = analyze("select count(*) from sys.nodes");
+        assertThat(analyze.rowGranularity(), is(RowGranularity.NODE));
+    }
+
+    @Test
+    public void testWhereInSelect() throws Exception {
+        Statement statement = SqlParser.createStatement("select load from sys.nodes where load['1'] in (1, 2, 4, 8, 16)");
+        Analysis analysis = analyzer.analyze(statement);
+
+        Function whereClause = analysis.whereClause();
+        assertEquals(InOperator.NAME, whereClause.info().ident().name());
+        assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(SetLiteral.class));
+        SetLiteral setLiteral = (SetLiteral) whereClause.arguments().get(1);
+        assertEquals(setLiteral.symbolType(), SymbolType.SET_LITERAL);
+        assertEquals(setLiteral.valueType(), DataType.LONG_SET);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testWhereInSelectDifferentDataTypeList() throws Exception {
+        Statement statement = SqlParser.createStatement("select 'found' where 1 in (1.2, 2)");
+        analyzer.analyze(statement);
+    }
+
+    @Test
+    public void testWhereInSelectDifferentDataTypeValue() throws Exception {
+        Statement statement = SqlParser.createStatement("select 'found' where 1.2 in (1, 2)");
+        Analysis analysis = analyzer.analyze(statement);
+        assertTrue(analysis.noMatch());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testWhereInSelectDifferentDataTypeValueUncompatibleDataTypes() throws Exception {
+        Statement statement = SqlParser.createStatement("select 'found' where 1 in (1, 'foo', 2)");
+        analyzer.analyze(statement);
+    }
+
+    @Test
+    public void testAggregationDistinct() {
+        Analysis analysis = analyze("select count(distinct load['1']) from sys.nodes");
+
+        assertTrue(analysis.hasAggregates());
+        assertEquals(2, analysis.functions().size());
+
+        Function collectionCount = getFunctionByName(CollectionCountFunction.NAME, analysis.functions());
+        Function collectSet = getFunctionByName(CollectSetAggregation.NAME, analysis.functions());
+        assertNotNull(collectionCount);
+        assertNotNull(collectSet);
+
+        List<Symbol> args = collectionCount.arguments();
+        assertEquals(1, args.size());
+        Function innerFunction = (Function) args.get(0);
+        assertTrue(innerFunction.info().isAggregate());
+        assertEquals(innerFunction.info().ident().name(), CollectSetAggregation.NAME);
+        List<Symbol> innerArguments = innerFunction.arguments();
+        assertThat(innerArguments.get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(((Reference) innerArguments.get(0)).info(), IsInstanceOf.instanceOf(ReferenceInfo.class));
+        ReferenceInfo refInfo = ((Reference) innerArguments.get(0)).info();
+        assertThat(refInfo.ident().columnIdent().name(), is("load"));
+        assertThat(refInfo.ident().columnIdent().path().get(0), is("1"));
+
+        assertSame(collectSet, innerFunction);
+    }
+
+    private static Function getFunctionByName(String functionName, Collection c) {
+        Function function = null;
+        Iterator<Function> it = c.iterator();
+        while (function == null && it.hasNext()) {
+            Function f = it.next();
+            if (f.info().ident().name().equals(functionName)) {
+                function = f;
+            }
+
+        }
+        return function;
+    }
+
+    @Test
+    public void testDeleteWhere() throws Exception {
+        Statement statement = SqlParser.createStatement("delete from sys.nodes where load['1'] = 1");
+        Analysis analysis = analyzer.analyze(statement);
+        assertTrue(analysis.isDelete());
+        assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
+
+        assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
+        assertFalse(analysis.hasGroupBy());
+
+        Function whereClause = analysis.whereClause();
+        assertEquals(EqOperator.NAME, whereClause.info().ident().name());
+        assertFalse(whereClause.info().isAggregate());
+
+        assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
 
     }
 

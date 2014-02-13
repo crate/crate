@@ -44,6 +44,7 @@ public class Analysis {
     private Function whereClause;
     private boolean noMatch = false;
     private List<Literal> primaryKeyLiterals;
+    private boolean isDelete = false;
 
     public List<Literal> primaryKeyLiterals() {
         return primaryKeyLiterals;
@@ -64,6 +65,7 @@ public class Analysis {
     public void table(TableIdent tableIdent) {
         table = referenceInfos.getTableInfo(tableIdent);
         Preconditions.checkNotNull(table, "Table not found", tableIdent);
+        updateRowGranularity(table.rowGranularity());
     }
 
     public TableInfo table() {
@@ -275,4 +277,11 @@ public class Analysis {
         return parameters[idx];
     }
 
+    public boolean isDelete() {
+        return isDelete;
+    }
+
+    public void isDelete(boolean isDelete) {
+        this.isDelete = isDelete;
+    }
 }

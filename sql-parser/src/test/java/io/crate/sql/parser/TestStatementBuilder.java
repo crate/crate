@@ -35,6 +35,8 @@ import static io.crate.sql.parser.TreeAssertions.assertFormattedSql;
 import static io.crate.sql.parser.TreePrinter.treeToString;
 import static com.google.common.base.Strings.repeat;
 import static java.lang.String.format;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
@@ -163,8 +165,21 @@ public class TestStatementBuilder
     }
 
     @Test
+    public void testCaseSensitivity() throws Exception {
+        Expression expression = SqlParser.createExpression("\"firstName\" = 'myName'");
+        QualifiedNameReference nameRef = (QualifiedNameReference)((ComparisonExpression)expression).getLeft();
+        StringLiteral myName = (StringLiteral)((ComparisonExpression)expression).getRight();
+        assertThat(nameRef.getName().getSuffix(), is("firstName"));
+        assertThat(myName.getValue(), is("myName"));
+
+        expression = SqlParser.createExpression("FIRSTNAME = 'myName'");
+        nameRef = (QualifiedNameReference)((ComparisonExpression)expression).getLeft();
+        assertThat(nameRef.getName().getSuffix(), is("firstname"));
+    }
+
+    @Test
     public void testParameterNode() throws Exception {
-        printStatement("select foo, :0 from foo where a = :1 or a = :2");
+        printStatement("select foo, $0 from foo where a = $1 or a = $2");
 
         final AtomicInteger counter = new AtomicInteger(0);
 
@@ -180,7 +195,7 @@ public class TestStatementBuilder
         assertEquals(3, counter.get());
         counter.set(0);
 
-        Expression andExpression = SqlParser.createExpression("a = ? and b = ? and c = :2");
+        Expression andExpression = SqlParser.createExpression("a = ? and b = ? and c = $2");
         andExpression.accept(new DefaultTraversalVisitor<Object, Object>() {
             @Override
             public Object visitParameterExpression(ParameterExpression node, Object context) {
