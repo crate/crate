@@ -26,7 +26,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Analysis;
-import io.crate.analyze.Analyzer;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.node.MergeNode;
@@ -245,15 +244,11 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
     public Plan plan(Analysis analysis) {
         Plan plan = new Plan();
 
-        if (analysis.hasAggregates()) {
-            if (analysis.hasGroupBy()) {
-                groupByWithAggregates(analysis, plan);
-            } else {
-                globalAggregates(analysis, plan);
-            }
+        if (analysis.hasGroupBy()) {
+            groupBy(analysis, plan);
         } else {
-            if (analysis.hasGroupBy()) {
-                throw new UnsupportedOperationException("groups without aggregates query plan not implemented");
+            if (analysis.hasAggregates()) {
+                globalAggregates(analysis, plan);
             } else {
                 if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal()) {
                     ESSearch(analysis, plan);
@@ -356,7 +351,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         plan.add(NodeBuilder.localMerge(ImmutableList.<Projection>of(ap), collectNode));
     }
 
-    private void groupByWithAggregates(Analysis analysis, Plan plan) {
+    private void groupBy(Analysis analysis, Plan plan) {
         if (analysis.rowGranularity().ordinal() < RowGranularity.DOC.ordinal()) {
             nonDistributedGroupBy(analysis, plan);
         } else {
@@ -368,6 +363,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         Context context = new Context(Aggregation.Step.FINAL, analysis.groupBy().size());
         nodeVisitor.process(analysis.outputSymbols(), context);
         nodeVisitor.process(analysis.sortSymbols(), context);
+        nodeVisitor.process(analysis.groupBy(), context);
 
         GroupProjection groupProjection =
                 new GroupProjection(analysis.groupBy(), context.aggregationList());
@@ -377,10 +373,6 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 ImmutableList.<Projection>of(groupProjection)
         );
         plan.add(collectNode);
-
-        nodeVisitor.process(analysis.outputSymbols(), context);
-        nodeVisitor.process(analysis.sortSymbols(), context);
-        nodeVisitor.process(analysis.groupBy(), context);
 
         // handler
         groupProjection =

@@ -193,6 +193,9 @@ public class PlannerTest {
         assertThat(localMerge.projections().get(0), instanceOf(TopNProjection.class));
         TopNProjection topN = (TopNProjection)localMerge.projections().get(0);
         assertThat(topN.outputs().size(), is(2));
+
+        // groupProjection changes output to  keys, aggregations
+        // topN needs to swap the outputs back
         assertThat(topN.outputs().get(0), instanceOf(InputColumn.class));
         assertThat(((InputColumn)topN.outputs().get(0)).index(), is(1));
         assertThat(topN.outputs().get(1), instanceOf(InputColumn.class));
@@ -232,7 +235,7 @@ public class PlannerTest {
         assertThat(topN.outputs().get(0), instanceOf(InputColumn.class));
         assertThat(((InputColumn)topN.outputs().get(0)).index(), is(1));
         assertThat(topN.outputs().get(1), instanceOf(InputColumn.class));
-        assertThat(((InputColumn)topN.outputs().get(1)).index(), is(0));
+        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(0));
     }
 
     @Test
