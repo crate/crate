@@ -33,6 +33,7 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.operator.operator.*;
 import io.crate.operator.scalar.MatchFunction;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.node.ESDeleteByQueryNode;
 import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.symbol.*;
 import org.elasticsearch.common.Nullable;
@@ -70,8 +71,6 @@ public class ESQueryBuilder {
      * adds the "query" part to the XContentBuilder
      */
     private void whereClause(Context context, Optional<Function> whereClause) throws IOException {
-        context.builder.startObject("query");
-
         if (whereClause.isPresent()) {
             /**
              * normalize to optimize queries like eq(1, 1)
@@ -81,8 +80,6 @@ public class ESQueryBuilder {
         } else {
             context.builder.field("match_all", new HashMap<>());
         }
-
-        context.builder.endObject();
     }
 
     /**
@@ -98,7 +95,9 @@ public class ESQueryBuilder {
     public BytesReference convert(Optional<Function> whereClause) throws IOException {
         Context context = new Context();
         context.builder = XContentFactory.jsonBuilder().startObject();
+        context.builder.startObject("query");
         whereClause(context, whereClause);
+        context.builder.endObject();
         context.builder.endObject();
         return context.builder.bytes();
     }
@@ -124,7 +123,9 @@ public class ESQueryBuilder {
             builder.field("version", true);
         }
 
+        builder.startObject("query");
         whereClause(context, node.whereClause());
+        builder.endObject();
 
         if (context.ignoredFields.containsKey("_score")) {
             builder.field("min_score", ((Number) context.ignoredFields.get("_score")).doubleValue());
@@ -134,6 +135,22 @@ public class ESQueryBuilder {
 
         builder.field("from", node.offset());
         builder.field("size", node.limit());
+
+        builder.endObject();
+        return builder.bytes();
+    }
+
+    /**
+     * use to create a full elasticsearch query "statement" used by deleteByQuery actions.
+     */
+    public BytesReference convert(ESDeleteByQueryNode node) throws IOException {
+        Preconditions.checkNotNull(node);
+
+        Context context = new Context();
+        context.builder = XContentFactory.jsonBuilder().startObject();
+        XContentBuilder builder = context.builder;
+
+        whereClause(context, node.whereClause());
 
         builder.endObject();
         return builder.bytes();

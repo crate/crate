@@ -42,6 +42,7 @@ public class Analysis {
     private RowGranularity rowGranularity;
     private boolean hasAggregates = false;
     private Function whereClause;
+    private boolean isDelete = false;
 
     public Analysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters) {
         this.referenceInfos = referenceInfos;
@@ -237,4 +238,11 @@ public class Analysis {
         return parameters[idx];
     }
 
+    public boolean isDelete() {
+        return isDelete;
+    }
+
+    public void isDelete(boolean isDelete) {
+        this.isDelete = isDelete;
+    }
 }
