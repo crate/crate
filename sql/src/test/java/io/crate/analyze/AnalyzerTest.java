@@ -583,16 +583,8 @@ public class AnalyzerTest {
     @Test
     public void testInsertWithConvertedTypes() throws Exception {
         InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, name, awesome) values (?, 'Trillian', ?)", new Object[]{1.0f, "true"});
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
-        assertThat(analysis.columns().size(), is(3));
 
-        assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
         assertThat(analysis.columns().get(0).valueType(), is(DataType.LONG));
-
-        assertThat(analysis.columns().get(1).info().ident().columnIdent().name(), is("name"));
-        assertThat(analysis.columns().get(1).valueType(), is(DataType.STRING));
-
-        assertThat(analysis.columns().get(2).info().ident().columnIdent().name(), is("awesome"));
         assertThat(analysis.columns().get(2).valueType(), is(DataType.BOOLEAN));
 
         List<Symbol> valuesList = analysis.values().get(0);
