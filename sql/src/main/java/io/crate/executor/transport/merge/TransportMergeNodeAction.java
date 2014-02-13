@@ -229,7 +229,11 @@ public class TransportMergeNodeAction {
 
                 @Override
                 public void onFailure(Throwable e) {
-                    logger.error(e.getMessage(), e);
+                    try {
+                        channel.sendResponse(e);
+                    } catch (IOException e1) {
+                        logger.error(e.getMessage(), e);
+                    }
                 }
             });
         }
