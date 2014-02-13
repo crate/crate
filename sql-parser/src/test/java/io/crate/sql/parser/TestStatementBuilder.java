@@ -35,6 +35,8 @@ import static io.crate.sql.parser.TreeAssertions.assertFormattedSql;
 import static io.crate.sql.parser.TreePrinter.treeToString;
 import static com.google.common.base.Strings.repeat;
 import static java.lang.String.format;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
@@ -160,6 +162,19 @@ public class TestStatementBuilder
     public void testStatementSubscript() throws Exception {
         printStatement("select a['x'] from foo where a['x']['y']['z'] = 1");
         printStatement("select a['x'] from foo where a[1 + 2]['y'] = 1");
+    }
+
+    @Test
+    public void testCaseSensitivity() throws Exception {
+        Expression expression = SqlParser.createExpression("\"firstName\" = 'myName'");
+        QualifiedNameReference nameRef = (QualifiedNameReference)((ComparisonExpression)expression).getLeft();
+        StringLiteral myName = (StringLiteral)((ComparisonExpression)expression).getRight();
+        assertThat(nameRef.getName().getSuffix(), is("firstName"));
+        assertThat(myName.getValue(), is("myName"));
+
+        expression = SqlParser.createExpression("FIRSTNAME = 'myName'");
+        nameRef = (QualifiedNameReference)((ComparisonExpression)expression).getLeft();
+        assertThat(nameRef.getName().getSuffix(), is("firstname"));
     }
 
     @Test
