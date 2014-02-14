@@ -286,4 +286,38 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     }
 
+    @Test
+    public void testESIndexTask() throws Exception {
+        insertCharacters();
+
+        ESIndexNode indexNode = new ESIndexNode("characters",
+                Arrays.asList(id_ref, name_ref),
+                Arrays.asList(Arrays.<Symbol>asList(
+                        new IntegerLiteral(99),
+                        new StringLiteral("Marvin")
+                )),
+                new int[]{0}
+        );
+        Plan plan = new Plan();
+        plan.add(indexNode);
+        Job job = executor.newJob(plan);
+        List<ListenableFuture<Object[][]>> result = executor.execute(job);
+        Object[][] rows = result.get(0).get();
+        assertThat(rows.length, is(1));
+        assertThat((Integer)rows[0][0], is(1));
+
+
+        // verify insertion
+        ESGetNode getNode = new ESGetNode("characters", "99");
+        getNode.outputs(ImmutableList.<Symbol>of(id_ref, name_ref));
+        plan = new Plan();
+        plan.add(getNode);
+        job = executor.newJob(plan);
+        result = executor.execute(job);
+        Object[][] objects = result.get(0).get();
+
+        assertThat(objects.length, is(1));
+        assertThat((Integer)objects[0][0], is(99));
+        assertThat((String)objects[0][1], is("Marvin"));
+    }
 }

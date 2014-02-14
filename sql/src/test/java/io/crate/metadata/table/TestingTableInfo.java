@@ -71,8 +71,8 @@ public class TestingTableInfo implements TableInfo {
         }
 
         public TableInfo build() {
-            return new TestingTableInfo(
-                    columns.build(), references.build(), ident, granularity, routing, primaryKey.build());
+            return new TestingTableInfo(columns.build(), references.build(), ident,
+                    granularity, routing, primaryKey.build());
         }
     }
 
@@ -82,6 +82,7 @@ public class TestingTableInfo implements TableInfo {
     private final TableIdent ident;
     private final RowGranularity granularity;
     private final List<String> primaryKey;
+
 
     public TestingTableInfo(List<ReferenceInfo> columns, Map<ColumnIdent, ReferenceInfo> references,
                             TableIdent ident, RowGranularity granularity,
