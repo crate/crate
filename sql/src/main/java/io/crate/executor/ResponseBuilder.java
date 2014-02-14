@@ -19,43 +19,14 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner;
+package io.crate.executor;
 
-import io.crate.planner.node.PlanNode;
 import org.cratedb.DataType;
+import org.cratedb.action.sql.SQLResponse;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-
-public class Plan implements Iterable<PlanNode> {
-
-    private ArrayList<PlanNode> nodes = new ArrayList<>();
-    private boolean expectsAffectedRows = false;
-
-    public void add(PlanNode node) {
-        nodes.add(node);
-    }
-
-    @Override
-    public Iterator<PlanNode> iterator() {
-        return nodes.iterator();
-    }
-
-    public DataType[] finalOutputTypes() {
-        if (nodes.size() == 0) {
-            return new DataType[0];
-        } else {
-            List<DataType> types = nodes.get(nodes.size() - 1).outputTypes();
-            return types.toArray(new DataType[types.size()]);
-        }
-    }
-
-    public void expectsAffectedRows(boolean expectsAffectedRows) {
-        this.expectsAffectedRows = expectsAffectedRows;
-    }
-
-    public boolean expectsAffectedRows() {
-        return expectsAffectedRows;
-    }
+public interface ResponseBuilder {
+    public SQLResponse buildResponse(String[] outputNames,
+                                     DataType[] outputTypes,
+                                     Object[][] rows,
+                                     long requestStartedTime);
 }

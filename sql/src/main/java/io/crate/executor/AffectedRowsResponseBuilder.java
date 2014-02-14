@@ -19,43 +19,26 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner;
+package io.crate.executor;
 
-import io.crate.planner.node.PlanNode;
+import org.cratedb.Constants;
 import org.cratedb.DataType;
+import org.cratedb.action.sql.SQLResponse;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+public class AffectedRowsResponseBuilder implements ResponseBuilder {
 
-public class Plan implements Iterable<PlanNode> {
-
-    private ArrayList<PlanNode> nodes = new ArrayList<>();
-    private boolean expectsAffectedRows = false;
-
-    public void add(PlanNode node) {
-        nodes.add(node);
-    }
-
+    /**
+     * expect the first column in the first row of <code>rows</code> to contain the number of affected rows
+     */
     @Override
-    public Iterator<PlanNode> iterator() {
-        return nodes.iterator();
-    }
-
-    public DataType[] finalOutputTypes() {
-        if (nodes.size() == 0) {
-            return new DataType[0];
-        } else {
-            List<DataType> types = nodes.get(nodes.size() - 1).outputTypes();
-            return types.toArray(new DataType[types.size()]);
+    public SQLResponse buildResponse(String[] outputNames,
+                                     DataType[] outputTypes,
+                                     Object[][] rows,
+                                     long requestStartedTime) {
+        long affectedRows = 0;
+        if (rows.length >= 1 && rows[0].length >= 1) {
+            affectedRows = (long)rows[0][0];
         }
-    }
-
-    public void expectsAffectedRows(boolean expectsAffectedRows) {
-        this.expectsAffectedRows = expectsAffectedRows;
-    }
-
-    public boolean expectsAffectedRows() {
-        return expectsAffectedRows;
+        return new SQLResponse(outputNames, Constants.EMPTY_RESULT, affectedRows, requestStartedTime);
     }
 }
