@@ -37,6 +37,8 @@ import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.aggregation.impl.AverageAggregation;
 import io.crate.operator.aggregation.impl.CollectSetAggregation;
 import io.crate.operator.operator.*;
+import io.crate.operator.predicate.IsNullPredicate;
+import io.crate.operator.predicate.PredicateModule;
 import io.crate.operator.reference.sys.cluster.SysClusterExpression;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import io.crate.operator.scalar.CollectionCountFunction;
@@ -205,6 +207,7 @@ public class AnalyzerTest {
                 .add(new MetaDataSysModule())
                 .add(new AggregationImplModule())
                 .add(new OperatorModule())
+                .add(new PredicateModule())
                 .add(new ScalarFunctionModule())
                 .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
@@ -816,6 +819,30 @@ public class AnalyzerTest {
         StringLiteral patternLiteral = (StringLiteral) function.arguments().get(1);
         assertThat(expressionLiteral.value(), is("1"));
         assertThat(patternLiteral.value(), is("2"));
+    }
+
+    @Test
+    public void testIsNullInWhereQuery() {
+        Analysis analysis = analyze("select * from sys.nodes where name is null");
+        Function isNullFunction = (Function) analysis.functions().toArray()[0];
+
+        assertThat(isNullFunction.info().ident().name(), is(IsNullPredicate.NAME));
+        assertThat(isNullFunction.arguments().size(), is(1));
+        assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+    }
+
+    @Test
+    public void testNullIsNullInWhereQuery() {
+        Analysis analysis = analyze("select * from sys.nodes where null is null");
+        Function isNullFunction = (Function) analysis.functions().toArray()[0];
+        assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(Null.class));
+    }
+
+    @Test
+    public void testLongIsNullInWhereQuery() {
+        Analysis analysis = analyze("select * from sys.nodes where 1 is null");
+        Function isNullFunction = (Function) analysis.functions().toArray()[0];
+        assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(LongLiteral.class));
     }
 
 }

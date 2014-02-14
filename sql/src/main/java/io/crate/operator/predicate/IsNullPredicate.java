@@ -42,6 +42,7 @@ public class IsNullPredicate implements FunctionImplementation<Function> {
         for (DataType type : DataType.PRIMITIVE_TYPES) {
             module.registerPredicateFunction(new IsNullPredicate(generateInfo(type)));
         }
+        module.registerPredicateFunction(new IsNullPredicate(generateInfo(DataType.NULL)));
     }
 
     private static FunctionInfo generateInfo(DataType type) {
