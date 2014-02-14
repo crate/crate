@@ -38,9 +38,9 @@ public class NotPredicateTest {
 
     @Test
     public void testNormalizeSymbolBoolean() throws Exception {
-        NotPredicate operator = new NotPredicate();
-        Function not = new Function(operator.info(), Arrays.<Symbol>asList(new BooleanLiteral(true)));
-        BooleanLiteral normalized = (BooleanLiteral)operator.normalizeSymbol(not);
+        NotPredicate predicate = new NotPredicate();
+        Function not = new Function(predicate.info(), Arrays.<Symbol>asList(new BooleanLiteral(true)));
+        BooleanLiteral normalized = (BooleanLiteral)predicate.normalizeSymbol(not);
 
         assertThat(normalized.value(), is(false));
     }

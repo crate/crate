@@ -35,23 +35,23 @@ import static org.junit.Assert.assertThat;
 
 public class IsNullPredicateTest {
 
-    IsNullPredicate op = new IsNullPredicate(new FunctionInfo(
+    IsNullPredicate predicate = new IsNullPredicate(new FunctionInfo(
             new FunctionIdent(IsNullPredicate.NAME, Arrays.asList(DataType.STRING)),
             DataType.BOOLEAN
     ));
 
     @Test
     public void testNormalizeSymbolFalse() throws Exception {
-        Function isNull = new Function(op.info(), Arrays.<Symbol>asList(new StringLiteral("a")));
-        Symbol symbol = op.normalizeSymbol(isNull);
+        Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(new StringLiteral("a")));
+        Symbol symbol = predicate.normalizeSymbol(isNull);
         assertThat(symbol, instanceOf(BooleanLiteral.class));
         assertThat(((BooleanLiteral) symbol).value(), is(false));
     }
 
     @Test
     public void testNormalizeSymbolTrue() throws Exception {
-        Function isNull = new Function(op.info(), Arrays.<Symbol>asList(Null.INSTANCE));
-        Symbol symbol = op.normalizeSymbol(isNull);
+        Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(Null.INSTANCE));
+        Symbol symbol = predicate.normalizeSymbol(isNull);
 
         assertThat(symbol, instanceOf(BooleanLiteral.class));
         assertThat(((BooleanLiteral) symbol).value(), is(true));
@@ -63,8 +63,8 @@ public class IsNullPredicateTest {
                         new ReferenceIdent(new TableIdent(null, "dummy"), "name"),
                         RowGranularity.DOC,
                         DataType.STRING));
-        Function isNull = new Function(op.info(), Arrays.<Symbol>asList(name_ref));
-        Symbol symbol = op.normalizeSymbol(isNull);
+        Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(name_ref));
+        Symbol symbol = predicate.normalizeSymbol(isNull);
         assertThat(symbol, instanceOf(Function.class));
     }
 }
