@@ -324,7 +324,9 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             if (literal.symbolType() == SymbolType.SET_LITERAL) {
                 throw new UnsupportedOperationException("Don't know how to plan a multi get yet");
             } else {
-                plan.add(new ESGetNode(analysis.table().ident().name(), literal.value().toString()));
+                ESGetNode getNode = new ESGetNode(analysis.table().ident().name(), literal.value().toString());
+                getNode.outputs(analysis.outputSymbols());
+                plan.add(getNode);
             }
         }
     }

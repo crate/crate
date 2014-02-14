@@ -205,6 +205,7 @@ public class PlannerTest {
         assertThat(node.index(), is("users"));
         assertThat(node.ids().get(0), is("1"));
         assertFalse(iterator.hasNext());
+        assertThat(node.outputs().size(), is(1));
     }
 
     @Test
