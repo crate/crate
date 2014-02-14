@@ -386,10 +386,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
                 SQLResponse response = responseBuilder.buildResponse(
                         analysis.outputNames().toArray(new String[analysis.outputNames().size()]),
-                        plan.finalOutputTypes(),
                         rows,
                         request.creationTime());
-
                 listener.onResponse(response);
             }
 

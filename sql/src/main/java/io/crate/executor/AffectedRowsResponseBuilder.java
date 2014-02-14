@@ -22,7 +22,6 @@
 package io.crate.executor;
 
 import org.cratedb.Constants;
-import org.cratedb.DataType;
 import org.cratedb.action.sql.SQLResponse;
 
 public class AffectedRowsResponseBuilder implements ResponseBuilder {
@@ -31,10 +30,7 @@ public class AffectedRowsResponseBuilder implements ResponseBuilder {
      * expect the first column in the first row of <code>rows</code> to contain the number of affected rows
      */
     @Override
-    public SQLResponse buildResponse(String[] outputNames,
-                                     DataType[] outputTypes,
-                                     Object[][] rows,
-                                     long requestStartedTime) {
+    public SQLResponse buildResponse(String[] outputNames, Object[][] rows, long requestStartedTime) {
         long affectedRows = 0;
         if (rows.length >= 1 && rows[0].length >= 1) {
             affectedRows = (long)rows[0][0];
