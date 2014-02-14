@@ -23,7 +23,9 @@ package io.crate.executor;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
+import com.google.common.base.Preconditions;
 import org.apache.lucene.util.BytesRef;
+import org.cratedb.DataType;
 import org.cratedb.action.sql.SQLResponse;
 
 public class RowsResponseBuilder implements ResponseBuilder {
@@ -38,21 +40,23 @@ public class RowsResponseBuilder implements ResponseBuilder {
     }
 
     @Override
-    public SQLResponse buildResponse(String[] outputNames, Object[][] rows, long requestStartedTime) {
+    public SQLResponse buildResponse(String[] outputNames, DataType[] outputTypes, Object[][] rows, long requestStartedTime) {
+        Preconditions.checkState(outputNames.length == outputTypes.length);
         if (convertBytesRefs) {
-            convertBytesRef(rows);
+            convertBytesRef(rows, outputTypes);
         }
         return new SQLResponse(outputNames, rows, rows.length, requestStartedTime);
     }
 
-    private void convertBytesRef(Object[][] rows) {
+    private void convertBytesRef(Object[][] rows, DataType[] dataTypes) {
         if (rows.length == 0) {
             return;
         }
 
         final IntArrayList stringColumns = new IntArrayList();
-        for (int c = 0; c < rows[0].length; c++) {
-            if (rows[0][c] instanceof BytesRef) { // TODO: once the analyzer sets the output types this can be optimized
+
+        for (int c = 0; c < dataTypes.length; c++) {
+            if (dataTypes[c] == DataType.STRING) {
                 stringColumns.add(c);
             }
         }

@@ -27,8 +27,10 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
+import io.crate.executor.AffectedRowsResponseBuilder;
 import io.crate.executor.Job;
 import io.crate.executor.ResponseBuilder;
+import io.crate.executor.RowsResponseBuilder;
 import io.crate.executor.transport.TransportExecutor;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -370,7 +372,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         final Plan plan = planner.plan(analysis);
         final Job job = transportExecutor.newJob(plan);
         final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(transportExecutor.execute(job));
-        final ResponseBuilder responseBuilder = plan.getResponseBuilder();
+        final ResponseBuilder responseBuilder = getResponseBuilder(plan);
         Futures.addCallback(resultFuture, new FutureCallback<List<Object[][]>>() {
             @Override
             public void onSuccess(@Nullable List<Object[][]> result) {
@@ -395,6 +397,14 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                 listener.onFailure(t);
             }
         });
+    }
+
+    private ResponseBuilder getResponseBuilder(Plan plan) {
+        if (plan.expectsAffectedRows()) {
+            return new AffectedRowsResponseBuilder();
+        } else {
+            return new RowsResponseBuilder(true);
+        }
     }
 
     /**

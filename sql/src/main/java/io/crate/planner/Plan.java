@@ -21,9 +21,6 @@
 
 package io.crate.planner;
 
-import io.crate.executor.AffectedRowsResponseBuilder;
-import io.crate.executor.ResponseBuilder;
-import io.crate.executor.RowsResponseBuilder;
 import io.crate.planner.node.PlanNode;
 
 import java.util.ArrayList;
@@ -49,13 +46,5 @@ public class Plan implements Iterable<PlanNode> {
 
     public boolean expectsAffectedRows() {
         return expectsAffectedRows;
-    }
-
-    public ResponseBuilder getResponseBuilder() {
-        if (expectsAffectedRows) {
-            return new AffectedRowsResponseBuilder();
-        } else {
-            return new RowsResponseBuilder(true);
-        }
     }
 }
