@@ -4,7 +4,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
-import io.crate.executor.RowsResponseBuilder;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
@@ -198,7 +197,6 @@ public class PlannerTest {
         assertThat(((InputColumn) topN.outputs().get(1)).index(), is(0));
 
         assertFalse(plan.expectsAffectedRows());
-        assertThat(plan.getResponseBuilder(), instanceOf(RowsResponseBuilder.class));
     }
 
     @Test
@@ -237,7 +235,6 @@ public class PlannerTest {
         assertThat(((InputColumn) topN.outputs().get(1)).index(), is(0));
 
         assertFalse(plan.expectsAffectedRows());
-        assertThat(plan.getResponseBuilder(), instanceOf(RowsResponseBuilder.class));
     }
 
     @Test
@@ -268,7 +265,6 @@ public class PlannerTest {
         System.out.println(pp.print(plan));
 
         assertFalse(plan.expectsAffectedRows());
-        assertThat(plan.getResponseBuilder(), instanceOf(RowsResponseBuilder.class));
     }
 
     @Test
@@ -291,7 +287,6 @@ public class PlannerTest {
         assertFalse(iterator.hasNext());
 
         assertFalse(plan.expectsAffectedRows());
-        assertThat(plan.getResponseBuilder(), instanceOf(RowsResponseBuilder.class));
     }
 
     @Test
@@ -322,7 +317,6 @@ public class PlannerTest {
         System.out.println(pp.print(plan));
 
         assertFalse(plan.expectsAffectedRows());
-        assertThat(plan.getResponseBuilder(), instanceOf(RowsResponseBuilder.class));
     }
 
     @Test
@@ -338,6 +332,5 @@ public class PlannerTest {
         assertTrue(searchNode.whereClause().isPresent());
 
         assertFalse(plan.expectsAffectedRows());
-        assertThat(plan.getResponseBuilder(), instanceOf(RowsResponseBuilder.class));
     }
 }
