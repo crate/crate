@@ -367,35 +367,39 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     }
 
     private void usePresto(final SQLRequest request, final ActionListener<SQLResponse> listener) {
-        final Statement statement = SqlParser.createStatement(request.stmt());
-        final Analysis analysis = analyzer.analyze(statement, request.args());
-        final Plan plan = planner.plan(analysis);
-        final Job job = transportExecutor.newJob(plan);
-        final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(transportExecutor.execute(job));
-        final ResponseBuilder responseBuilder = getResponseBuilder(plan);
-        Futures.addCallback(resultFuture, new FutureCallback<List<Object[][]>>() {
-            @Override
-            public void onSuccess(@Nullable List<Object[][]> result) {
-                Object[][] rows;
-                if (result == null) {
-                    rows = Constants.EMPTY_RESULT;
-                } else {
-                    Preconditions.checkArgument(result.size() == 1);
-                    rows = result.get(0);
+        try {
+            final Statement statement = SqlParser.createStatement(request.stmt());
+            final Analysis analysis = analyzer.analyze(statement, request.args());
+            final Plan plan = planner.plan(analysis);
+            final Job job = transportExecutor.newJob(plan);
+            final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(transportExecutor.execute(job));
+            final ResponseBuilder responseBuilder = getResponseBuilder(plan);
+            Futures.addCallback(resultFuture, new FutureCallback<List<Object[][]>>() {
+                @Override
+                public void onSuccess(@Nullable List<Object[][]> result) {
+                    Object[][] rows;
+                    if (result == null) {
+                        rows = Constants.EMPTY_RESULT;
+                    } else {
+                        Preconditions.checkArgument(result.size() == 1);
+                        rows = result.get(0);
+                    }
+
+                    SQLResponse response = responseBuilder.buildResponse(
+                            analysis.outputNames().toArray(new String[analysis.outputNames().size()]),
+                            rows,
+                            request.creationTime());
+                    listener.onResponse(response);
                 }
 
-                SQLResponse response = responseBuilder.buildResponse(
-                        analysis.outputNames().toArray(new String[analysis.outputNames().size()]),
-                        rows,
-                        request.creationTime());
-                listener.onResponse(response);
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                listener.onFailure(t);
-            }
-        });
+                @Override
+                public void onFailure(Throwable t) {
+                    listener.onFailure(t);
+                }
+            });
+        } catch (Exception e) {
+            listener.onFailure(ExceptionHelper.transformToCrateException(e));
+        }
     }
 
     private ResponseBuilder getResponseBuilder(Plan plan) {
