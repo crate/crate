@@ -322,10 +322,12 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
 
     @Override
     protected Symbol visitIsNullPredicate(IsNullPredicate node, T context) {
-        ImmutableList<Symbol> arguments = ImmutableList.<Symbol>of(process(node.getValue(), context));
-        ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(symbolDataTypeVisitor.process(arguments.get(0), context));
+        ImmutableList<Symbol> arguments = ImmutableList.of(process(node.getValue(), context));
+        ImmutableList<DataType> argumentTypes =
+                ImmutableList.of(symbolDataTypeVisitor.process(arguments.get(0), context));
 
-        FunctionIdent functionIdent = new FunctionIdent(io.crate.operator.predicate.IsNullPredicate.NAME, argumentTypes);
+        FunctionIdent functionIdent =
+                new FunctionIdent(io.crate.operator.predicate.IsNullPredicate.NAME, argumentTypes);
         FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
         return context.allocateFunction(functionInfo, arguments);
     }

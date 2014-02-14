@@ -838,6 +838,7 @@ public class AnalyzerTest {
         Function isNullFunction = (Function) analysis.functions().toArray()[0];
         assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(Null.class));
         assertNull(analysis.whereClause());
+        assertFalse(analysis.noMatch());
     }
 
     @Test
