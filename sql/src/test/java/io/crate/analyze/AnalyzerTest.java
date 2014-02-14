@@ -622,6 +622,7 @@ public class AnalyzerTest {
 
     }
 
+    @Test
     public void testInsertWithColumns() throws Exception {
         InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users (id, name) values (1, 'Trillian')");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
