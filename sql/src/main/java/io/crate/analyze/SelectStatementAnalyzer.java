@@ -25,7 +25,6 @@ import com.google.common.base.Preconditions;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.PrimaryKeyVisitor;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;

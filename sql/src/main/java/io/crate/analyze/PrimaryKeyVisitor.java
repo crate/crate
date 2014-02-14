@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.doc;
+package io.crate.analyze;
 
 import com.google.common.collect.Lists;
 import io.crate.metadata.table.TableInfo;
