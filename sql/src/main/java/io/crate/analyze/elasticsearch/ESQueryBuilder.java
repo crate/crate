@@ -26,12 +26,13 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.lucene.SQLToLuceneHelper;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operator.operator.*;
+import io.crate.operator.predicate.IsNullPredicate;
+import io.crate.operator.predicate.NotPredicate;
 import io.crate.operator.scalar.MatchFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.ESDeleteByQueryNode;
@@ -354,8 +355,8 @@ public class ESQueryBuilder {
                         .put(GteOperator.NAME, new RangeConverter("gte"))
                         .put(NotEqOperator.NAME, new NotEqConverter())
                         .put(LikeOperator.NAME, new LikeConverter())
-                        .put(IsNullOperator.NAME, new IsNullConverter())
-                        .put(NotOperator.NAME, new NotConverter())
+                        .put(IsNullPredicate.NAME, new IsNullConverter())
+                        .put(NotPredicate.NAME, new NotConverter())
                         .put(MatchFunction.NAME, new MatchConverter())
                         .build();
 

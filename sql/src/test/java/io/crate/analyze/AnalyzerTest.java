@@ -22,9 +22,6 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.ReferenceInfo;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.*;
@@ -73,7 +70,6 @@ import java.util.*;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

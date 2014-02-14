@@ -24,6 +24,8 @@ package io.crate.lucene;
 import com.google.common.base.*;
 import com.google.common.collect.ImmutableMap;
 import io.crate.operator.operator.*;
+import io.crate.operator.predicate.IsNullPredicate;
+import io.crate.operator.predicate.NotPredicate;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Function;
 import org.apache.lucene.search.*;
@@ -228,8 +230,8 @@ public class LuceneQueryBuilder {
                     .put(GteOperator.NAME, new GteQuery())
                     .put(GtOperator.NAME, new GtQuery())
                     .put(LikeOperator.NAME, new LikeQuery())
-                    .put(NotOperator.NAME, new NotQuery())
-                    .put(IsNullOperator.NAME, new IsNullQuery())
+                    .put(NotPredicate.NAME, new NotQuery())
+                    .put(IsNullPredicate.NAME, new IsNullQuery())
                 .build();
 
         @Override

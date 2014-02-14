@@ -30,6 +30,7 @@ import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.operations.collect.CollectOperationModule;
 import io.crate.operator.operations.collect.CollectShardModule;
 import io.crate.operator.operator.OperatorModule;
+import io.crate.operator.predicate.PredicateModule;
 import io.crate.operator.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operator.reference.sys.node.SysNodeExpressionModule;
 import io.crate.operator.reference.sys.shard.SysShardExpressionModule;
@@ -108,6 +109,7 @@ public class SQLPlugin extends AbstractPlugin {
             modules.add(MetaDataSysModule.class);
             modules.add(MetaDataDocModule.class);
             modules.add(OperatorModule.class);
+            modules.add(PredicateModule.class);
             modules.add(SysClusterExpressionModule.class);
             modules.add(SysNodeExpressionModule.class);
             modules.add(AggregationImplModule.class);

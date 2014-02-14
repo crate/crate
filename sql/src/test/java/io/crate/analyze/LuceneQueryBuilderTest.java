@@ -25,6 +25,9 @@ import com.google.common.base.Optional;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.*;
 import io.crate.operator.operator.*;
+import io.crate.operator.predicate.IsNullPredicate;
+import io.crate.operator.predicate.NotPredicate;
+import io.crate.operator.predicate.PredicateModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.document.*;
@@ -75,6 +78,7 @@ public class LuceneQueryBuilderTest {
     public void setUp() throws Exception {
         functions = new ModulesBuilder()
                 .add(new OperatorModule())
+                .add(new PredicateModule())
                 .createInjector().getInstance(Functions.class);
 
         RAMDirectory indexDirectory = new RAMDirectory();
@@ -324,7 +328,7 @@ public class LuceneQueryBuilderTest {
 
     @Test
     public void testWhereNotReferenceLikeString() throws Exception {
-        FunctionImplementation notOp = functions.get(new FunctionIdent(NotOperator.NAME, Arrays.asList(DataType.BOOLEAN)));
+        FunctionImplementation notOp = functions.get(new FunctionIdent(NotPredicate.NAME, Arrays.asList(DataType.BOOLEAN)));
         FunctionImplementation likeOp = functions.get(new FunctionIdent(LikeOperator.NAME, typeX2(name_ref.valueType())));
 
         Function likeClause = new Function(likeOp.info(),
@@ -341,7 +345,7 @@ public class LuceneQueryBuilderTest {
     @Test
     public void testWhereReferenceIsNull() throws Exception {
         FunctionImplementation isNullImpl = functions.get(
-                new FunctionIdent(IsNullOperator.NAME, Arrays.asList(extrafield.valueType())));
+                new FunctionIdent(IsNullPredicate.NAME, Arrays.asList(extrafield.valueType())));
 
         Function isNull = new Function(isNullImpl.info(), Arrays.<Symbol>asList(extrafield));
         Query query = builder.convert(isNull);

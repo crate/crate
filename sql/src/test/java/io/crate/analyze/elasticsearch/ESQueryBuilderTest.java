@@ -25,6 +25,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.*;
 import io.crate.operator.operator.*;
+import io.crate.operator.predicate.IsNullPredicate;
+import io.crate.operator.predicate.NotPredicate;
+import io.crate.operator.predicate.PredicateModule;
 import io.crate.operator.scalar.MatchFunction;
 import io.crate.operator.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
@@ -75,6 +78,7 @@ public class ESQueryBuilderTest {
     public void setUp() throws Exception {
         functions = new ModulesBuilder()
                 .add(new OperatorModule())
+                .add(new PredicateModule())
                 .add(new ScalarFunctionModule())
                 .createInjector().getInstance(Functions.class);
         generator = new ESQueryBuilder(functions, null);
@@ -189,7 +193,7 @@ public class ESQueryBuilderTest {
 
     @Test
     public void testWhereNotReferenceLikeString() throws Exception {
-        FunctionImplementation notOp = functions.get(new FunctionIdent(NotOperator.NAME, Arrays.asList(DataType.BOOLEAN)));
+        FunctionImplementation notOp = functions.get(new FunctionIdent(NotPredicate.NAME, Arrays.asList(DataType.BOOLEAN)));
         FunctionImplementation likeOp = functions.get(new FunctionIdent(LikeOperator.NAME, typeX2(name_ref.valueType())));
 
         Function likeClause = new Function(likeOp.info(),
@@ -201,7 +205,7 @@ public class ESQueryBuilderTest {
     @Test
     public void testWhereReferenceIsNull() throws Exception {
         FunctionImplementation isNullImpl = functions.get(
-                new FunctionIdent(IsNullOperator.NAME, Arrays.asList(extrafield.valueType())));
+                new FunctionIdent(IsNullPredicate.NAME, Arrays.asList(extrafield.valueType())));
 
         Function isNull = new Function(isNullImpl.info(), Arrays.<Symbol>asList(extrafield));
         xcontetAssert(isNull, "{\"query\":{\"filtered\":{\"filter\":{\"missing\":{\"field\":\"extrafield\",\"existence\":true,\"null_value\":true}}}}}");
