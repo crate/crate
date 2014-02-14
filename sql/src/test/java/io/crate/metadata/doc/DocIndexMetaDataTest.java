@@ -199,6 +199,31 @@ public class DocIndexMetaDataTest {
     }
 
     @Test
+    public void testDocSysColumnReferences() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .startObject("properties")
+                .startObject("content")
+                .field("type", "string")
+                .field("index", "not_analyzed")
+                .endObject()
+                .endObject()
+                .endObject()
+                .endObject();
+
+        DocIndexMetaData metaData = newMeta(getIndexMetaData("test", builder), "test");
+        ReferenceInfo id = metaData.references().get(new ColumnIdent("_id"));
+        assertNotNull(id);
+
+        ReferenceInfo version = metaData.references().get(new ColumnIdent("_version"));
+        assertNotNull(version);
+
+        ReferenceInfo score = metaData.references().get(new ColumnIdent("_score"));
+        assertNotNull(score);
+    }
+
+    @Test
     public void testExtractPrimaryKey() throws Exception {
 
         XContentBuilder builder = XContentFactory.jsonBuilder()

@@ -70,6 +70,7 @@ public class ESQueryBuilderTest {
         return Arrays.asList(type, type);
     }
 
+
     @Before
     public void setUp() throws Exception {
         functions = new ModulesBuilder()
@@ -247,6 +248,16 @@ public class ESQueryBuilderTest {
         BytesReference reference = generator.convert(searchNode, ImmutableList.<Reference>of(name_ref));
         String actual = reference.toUtf8();
         assertThat(actual, is("{\"fields\":[\"name\"],\"query\":{\"term\":{\"name\":\"Marvin\"}},\"from\":0,\"size\":10000}"));
+    }
+
+    @Test (expected = UnsupportedOperationException.class)
+    public void testQueryWith_Version() throws Exception {
+        FunctionImplementation eqImpl = functions.get(new FunctionIdent(EqOperator.NAME, typeX2(DataType.STRING)));
+        Function whereClause = new Function(eqImpl.info(), Arrays.<Symbol>asList(
+                TestingHelpers.createReference("_version", DataType.INTEGER),
+                new IntegerLiteral(4)));
+
+        generator.convert(whereClause);
     }
 
     @Test

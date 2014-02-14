@@ -25,6 +25,7 @@ package io.crate.analyze.elasticsearch;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.lucene.SQLToLuceneHelper;
@@ -54,7 +55,18 @@ public class ESQueryBuilder {
      * these fields are ignored in the whereClause
      * (only applies to Function with 2 arguments and if left == reference and right == literal)
      */
-    private final static Set<String> filteredFields = Sets.newHashSet("_score");
+    private final static Set<String> filteredFields = ImmutableSet.of("_score");
+
+    /**
+     * key = columnName
+     * value = error message
+     *
+     * (in the _version case if the primary key is present a GetPlan is built from the planner and
+     *  the ESQueryBuilder is never used)
+     */
+    private final static Map<String, String> unsupportedFields = ImmutableMap.<String, String>builder()
+            .put("_version", "\"_version\" column is only valid in the WHERE clause if the primary key column is also present")
+            .build();
 
     /**
      * Create a ESQueryBuilder to convert a whereClause to XContent or a ESSearchNode to XContent
@@ -361,7 +373,6 @@ public class ESQueryBuilder {
                 if (converter == null) {
                     return raiseUnsupported(function);
                 }
-
                 converter.convert(function, context);
 
             } catch (IOException ex) {
@@ -380,6 +391,11 @@ public class ESQueryBuilder {
                     if (filteredFields.contains(columnName)) {
                         context.ignoredFields.put(columnName, ((Literal) right).value());
                         return true;
+                    }
+
+                    String unsupported = unsupportedFields.get(columnName);
+                    if (unsupported != null) {
+                        throw new UnsupportedOperationException(unsupported);
                     }
                 }
             }

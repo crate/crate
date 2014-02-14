@@ -35,6 +35,7 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.Booleans;
 import org.elasticsearch.common.Preconditions;
+import org.elasticsearch.common.collect.Tuple;
 
 import java.io.IOException;
 import java.util.Map;
@@ -50,6 +51,7 @@ public class DocIndexMetaData {
 
     private final ImmutableList.Builder<ReferenceInfo> columnsBuilder = ImmutableList.builder();
     private final ImmutableMap.Builder<ColumnIdent, ReferenceInfo> referencesBuilder = ImmutableMap.builder();
+
     private final TableIdent ident;
     private ImmutableList<ReferenceInfo> columns;
     private ImmutableMap<ColumnIdent, ReferenceInfo> references;
@@ -210,6 +212,11 @@ public class DocIndexMetaData {
     public DocIndexMetaData build() {
         createColumnDefinitions();
         columns = columnsBuilder.build();
+
+        for (Tuple<ColumnIdent, ReferenceInfo> sysColumns : DocSysColumns.forTable(ident)) {
+            referencesBuilder.put(sysColumns.v1(), sysColumns.v2());
+        }
+
         references = referencesBuilder.build();
         primaryKey = getPrimaryKey();
         routingCol = getRoutingCol();
