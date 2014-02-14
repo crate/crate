@@ -114,17 +114,7 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
         }
 
         if (node.getWhere().isPresent()) {
-            Function whereClause = context.whereClause(process(node.getWhere().get(), context));
-            if (whereClause != null) {
-                PrimaryKeyVisitor.Context pkc = primaryKeyVisitor.process(context.table(), whereClause);
-                if (pkc != null) {
-                    if (pkc.noMatch()) {
-                        context.noMatch(pkc.noMatch());
-                    } else {
-                        context.primaryKeyLiterals(pkc.keyLiterals());
-                    }
-                }
-            }
+            processWhereClause(node.getWhere().get(), context);
         }
 
         process(node.getSelect(), context);
@@ -147,6 +137,33 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
             context.sortSymbols(sortSymbols);
         }
         return null;
+    }
+
+    @Override
+    public Symbol visitDelete(Delete node, SelectAnalysis context) {
+        context.isDelete(true);
+
+        process(node.getTable(), context);
+
+        if (node.getWhere().isPresent()) {
+            processWhereClause(node.getWhere().get(), context);
+        }
+
+        return null;
+    }
+
+    private void processWhereClause(Expression whereExpression, SelectAnalysis context) {
+        Function whereClause = context.whereClause(process(whereExpression, context));
+        if (whereClause != null) {
+            PrimaryKeyVisitor.Context pkc = primaryKeyVisitor.process(context.table(), whereClause);
+            if (pkc != null) {
+                if (pkc.noMatch()) {
+                    context.noMatch(pkc.noMatch());
+                } else {
+                    context.primaryKeyLiterals(pkc.keyLiterals());
+                }
+            }
+        }
     }
 
     private void analyzeGroupBy(List<Expression> groupByExpressions, SelectAnalysis context) {

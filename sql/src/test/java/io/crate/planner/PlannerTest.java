@@ -208,6 +208,16 @@ public class PlannerTest {
     }
 
     @Test
+    public void testDeletePlan() throws Exception {
+        Plan plan = plan("delete from users where id = 1");
+        Iterator<PlanNode> iterator = plan.iterator();
+        ESDeleteNode node = (ESDeleteNode)iterator.next();
+        assertThat(node.index(), is("users"));
+        assertThat(node.id(), is("1"));
+        assertFalse(iterator.hasNext());
+    }
+
+    @Test
     public void testGroupByWithAggregationAndLimit() throws Exception {
         Plan plan = plan("select count(*), name from users group by name limit 1 offset 1");
         Iterator<PlanNode> iterator = plan.iterator();

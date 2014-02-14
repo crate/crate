@@ -285,7 +285,11 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                             ESSearch(analysis, plan);
                         }
                     } else {
-                        ESDeleteByQuery(analysis, plan);
+                        if (analysis.primaryKeyLiterals() != null && !analysis.primaryKeyLiterals().isEmpty()) {
+                            ESDelete(analysis, plan);
+                        } else {
+                            ESDeleteByQuery(analysis, plan);
+                        }
                     }
                 } else {
                     normalSelect(analysis, plan);
@@ -294,6 +298,20 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         }
         plan.expectsAffectedRows(false);
         return plan;
+    }
+
+    private void ESDelete(SelectAnalysis analysis, Plan plan) {
+        assert analysis.primaryKeyLiterals() != null;
+        if (analysis.primaryKeyLiterals().size() > 1) {
+            throw new UnsupportedOperationException("Multi column primary keys are currently not supported");
+        } else {
+            Literal literal = analysis.primaryKeyLiterals().get(0);
+            if (literal.symbolType() == SymbolType.SET_LITERAL) {
+                throw new UnsupportedOperationException("Don't know how to plan a multi delete yet");
+            } else {
+                plan.add(new ESDeleteNode(analysis.table().ident().name(), literal.value().toString()));
+            }
+        }
     }
 
     private void ESGet(SelectAnalysis analysis, Plan plan) {
