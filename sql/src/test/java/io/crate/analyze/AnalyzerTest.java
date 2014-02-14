@@ -73,6 +73,7 @@ import java.util.*;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -785,13 +786,34 @@ public class AnalyzerTest {
         analyze("select * from sys.nodes where name like 'foo' escape 'o'");
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void testLikeNoStringDataTypeInWhereQuery() {
-        analyze("select * from sys.nodes where name like 1");
+        Analysis analysis = analyze("select * from sys.nodes where name like 1");
+
+        // check if the implicit cast of the pattern worked
+        ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataType.STRING, DataType.STRING);
+        Function whereClause = analysis.whereClause();
+        assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
+        StringLiteral stringLiteral = (StringLiteral) whereClause.arguments().get(1);
+        assertThat(stringLiteral.value(), is("1"));
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void testLikeLongDataTypeInWhereQuery() {
-        analyze("select * from sys.nodes where 1 like 1");
+        Analysis analysis = analyze("select * from sys.nodes where 1 like 2");
+
+        // check if implicit cast worked of both, expression and pattern.
+        Function function = (Function) analysis.functions().toArray()[0];
+        assertEquals(LikeOperator.NAME, function.info().ident().name());
+        ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataType.STRING, DataType.STRING);
+        assertEquals(argumentTypes, function.info().ident().argumentTypes());
+
+        assertThat(function.arguments().get(0), IsInstanceOf.instanceOf(StringLiteral.class));
+        assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
+        StringLiteral expressionLiteral = (StringLiteral) function.arguments().get(0);
+        StringLiteral patternLiteral = (StringLiteral) function.arguments().get(1);
+        assertThat(expressionLiteral.value(), is("1"));
+        assertThat(patternLiteral.value(), is("2"));
     }
 }
