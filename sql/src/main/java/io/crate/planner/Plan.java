@@ -22,9 +22,11 @@
 package io.crate.planner;
 
 import io.crate.planner.node.PlanNode;
+import org.cratedb.DataType;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 public class Plan implements Iterable<PlanNode> {
 
@@ -38,6 +40,15 @@ public class Plan implements Iterable<PlanNode> {
     @Override
     public Iterator<PlanNode> iterator() {
         return nodes.iterator();
+    }
+
+    public DataType[] finalOutputTypes() {
+        if (nodes.size() == 0) {
+            return new DataType[0];
+        } else {
+            List<DataType> types = nodes.get(nodes.size() - 1).outputTypes();
+            return types.toArray(new DataType[types.size()]);
+        }
     }
 
     public void expectsAffectedRows(boolean expectsAffectedRows) {
