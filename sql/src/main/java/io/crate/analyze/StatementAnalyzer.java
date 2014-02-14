@@ -240,6 +240,32 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
     }
 
     @Override
+    protected Symbol visitLikePredicate(LikePredicate node, T context) {
+        List<Symbol> arguments = new ArrayList<>(2);
+        arguments.add(process(node.getValue(), context));
+        arguments.add(process(node.getPattern(), context));
+
+        // resolve argument types
+        List<DataType> argumentTypes = new ArrayList<>(arguments.size());
+        argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(0), context));
+        argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(1), context));
+
+        for (DataType dataType : argumentTypes) {
+            if (dataType != DataType.STRING) {
+                throw new UnsupportedOperationException("<expression> LIKE <pattern>: expression and pattern must be of type string.");
+            }
+        }
+
+        if (node.getEscape() != null) {
+            throw new UnsupportedOperationException("ESCAPE is not supported yet.");
+        }
+
+        FunctionIdent functionIdent = new FunctionIdent(LikeOperator.NAME, argumentTypes);
+        FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
+        return context.allocateFunction(functionInfo, arguments);
+    }
+
+    @Override
     public Symbol visitDelete(Delete node, T context) {
         context.isDelete(true);
 

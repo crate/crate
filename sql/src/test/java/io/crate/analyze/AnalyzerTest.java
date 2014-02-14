@@ -751,7 +751,6 @@ public class AnalyzerTest {
         analyze("insert into sys.nodes (id, name) values (666, 'evilNode')");
     }
 
-
     @Test
     public void testSelectWithObjectLiteral() throws Exception {
         Map<String, Object> map = new HashMap<>();
@@ -763,5 +762,36 @@ public class AnalyzerTest {
         Function whereClause = analysis.whereClause();
         assertThat(whereClause.arguments().get(1), instanceOf(ObjectLiteral.class));
         assertTrue(((ObjectLiteral) whereClause.arguments().get(1)).value().equals(map));
+    }
+
+    @Test
+    public void testLikeInWhereQuery() {
+        Analysis analysis = analyze("select * from sys.nodes where name like 'foo'");
+
+        assertNotNull(analysis.whereClause());
+        Function whereClause = analysis.whereClause();
+        assertEquals(LikeOperator.NAME, whereClause.info().ident().name());
+        ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataType.STRING, DataType.STRING);
+        assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
+
+        assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
+        StringLiteral stringLiteral = (StringLiteral) whereClause.arguments().get(1);
+        assertThat(stringLiteral.value(), is("foo"));
+    }
+
+    @Test(expected = UnsupportedOperationException.class) // ESCAPE is not supported yet.
+    public void testLikeEscapeInWhereQuery() {
+        analyze("select * from sys.nodes where name like 'foo' escape 'o'");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testLikeNoStringDataTypeInWhereQuery() {
+        analyze("select * from sys.nodes where name like 1");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testLikeLongDataTypeInWhereQuery() {
+        analyze("select * from sys.nodes where 1 like 1");
     }
 }
