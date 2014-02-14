@@ -21,8 +21,6 @@
 
 package org.cratedb.action.sql;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -30,12 +28,12 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.executor.Job;
+import io.crate.executor.ResponseBuilder;
 import io.crate.executor.transport.TransportExecutor;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
-import org.apache.lucene.util.BytesRef;
 import org.cratedb.Constants;
 import org.cratedb.action.DistributedSQLRequest;
 import org.cratedb.action.TransportDistributedSQLAction;
@@ -372,7 +370,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         final Plan plan = planner.plan(analysis);
         final Job job = transportExecutor.newJob(plan);
         final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(transportExecutor.execute(job));
-
+        final ResponseBuilder responseBuilder = plan.getResponseBuilder();
         Futures.addCallback(resultFuture, new FutureCallback<List<Object[][]>>() {
             @Override
             public void onSuccess(@Nullable List<Object[][]> result) {
@@ -382,18 +380,14 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                 } else {
                     Preconditions.checkArgument(result.size() == 1);
                     rows = result.get(0);
-
-                    // TODO: only do conversion if the client requests it
-                    // ( add flag to SQLRequest to indicate if conversion is necessary )
-                    convertBytesRef(rows);
                 }
 
-                listener.onResponse(new SQLResponse(
+                SQLResponse response = responseBuilder.buildResponse(
                         analysis.outputNames().toArray(new String[analysis.outputNames().size()]),
                         rows,
-                        rows.length,
-                        request.creationTime()
-                ));
+                        request.creationTime());
+
+                listener.onResponse(response);
             }
 
             @Override
@@ -402,26 +396,6 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             }
         });
     }
-
-    private void convertBytesRef(Object[][] rows) {
-        if (rows.length == 0) {
-            return;
-        }
-
-        final IntArrayList stringColumns = new IntArrayList();
-        for (int c = 0; c < rows[0].length; c++) {
-            if (rows[0][c] instanceof BytesRef) { // TODO: once the analyzer sets the output types this can be optimized
-                stringColumns.add(c);
-            }
-        }
-
-        for (int r = 0; r < rows.length; r++) {
-            for (IntCursor stringColumn : stringColumns) {
-                rows[r][stringColumn.value] = ((BytesRef)rows[r][stringColumn.value]).utf8ToString();
-            }
-        }
-    }
-
 
     /**
      * for the migration from akiban to the presto based sql-parser

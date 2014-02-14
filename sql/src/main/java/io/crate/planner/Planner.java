@@ -27,17 +27,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Analysis;
+import io.crate.analyze.InsertAnalysis;
+import io.crate.analyze.SelectAnalysis;
 import io.crate.planner.node.*;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
-import io.crate.analyze.InsertAnalysis;
-import io.crate.analyze.SelectAnalysis;
-import io.crate.planner.node.CollectNode;
-import io.crate.planner.node.ESSearchNode;
-import io.crate.planner.node.MergeNode;
-import io.crate.planner.node.PlanNode;
-import io.crate.planner.projection.*;
-import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
@@ -294,6 +288,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 }
             }
         }
+        plan.expectsAffectedRows(false);
         return plan;
     }
 
@@ -496,6 +491,9 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
     }
 
     private Plan planInsert(InsertAnalysis analysis) {
+        // only a reminder
+        // Plan plan = new Plan();
+        // plan.expectsAffectedRows(true);
         throw new UnsupportedOperationException("insert plan creation not implemented yet.");
 
     }
