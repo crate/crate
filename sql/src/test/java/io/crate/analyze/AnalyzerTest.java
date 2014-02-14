@@ -73,6 +73,7 @@ import java.util.*;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -751,7 +752,6 @@ public class AnalyzerTest {
         analyze("insert into sys.nodes (id, name) values (666, 'evilNode')");
     }
 
-
     @Test
     public void testSelectWithObjectLiteral() throws Exception {
         Map<String, Object> map = new HashMap<>();
@@ -764,4 +764,62 @@ public class AnalyzerTest {
         assertThat(whereClause.arguments().get(1), instanceOf(ObjectLiteral.class));
         assertTrue(((ObjectLiteral) whereClause.arguments().get(1)).value().equals(map));
     }
+
+    @Test
+    public void testLikeInWhereQuery() {
+        Analysis analysis = analyze("select * from sys.nodes where name like 'foo'");
+
+        assertNotNull(analysis.whereClause());
+        Function whereClause = analysis.whereClause();
+        assertEquals(LikeOperator.NAME, whereClause.info().ident().name());
+        ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataType.STRING, DataType.STRING);
+        assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
+
+        assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
+        StringLiteral stringLiteral = (StringLiteral) whereClause.arguments().get(1);
+        assertThat(stringLiteral.value(), is("foo"));
+    }
+
+    @Test(expected = UnsupportedOperationException.class) // ESCAPE is not supported yet.
+    public void testLikeEscapeInWhereQuery() {
+        analyze("select * from sys.nodes where name like 'foo' escape 'o'");
+    }
+
+    @Test
+    public void testLikeNoStringDataTypeInWhereQuery() {
+        Analysis analysis = analyze("select * from sys.nodes where name like 1");
+
+        // check if the implicit cast of the pattern worked
+        ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataType.STRING, DataType.STRING);
+        Function whereClause = analysis.whereClause();
+        assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
+        StringLiteral stringLiteral = (StringLiteral) whereClause.arguments().get(1);
+        assertThat(stringLiteral.value(), is("1"));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testLikeReferenceInPatternInWhereQuery() {
+        analyze("select * from sys.nodes where 1 like name");
+    }
+
+    @Test
+    public void testLikeLongDataTypeInWhereQuery() {
+        Analysis analysis = analyze("select * from sys.nodes where 1 like 2");
+
+        // check if implicit cast worked of both, expression and pattern.
+        Function function = (Function) analysis.functions().toArray()[0];
+        assertEquals(LikeOperator.NAME, function.info().ident().name());
+        ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataType.STRING, DataType.STRING);
+        assertEquals(argumentTypes, function.info().ident().argumentTypes());
+
+        assertThat(function.arguments().get(0), IsInstanceOf.instanceOf(StringLiteral.class));
+        assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
+        StringLiteral expressionLiteral = (StringLiteral) function.arguments().get(0);
+        StringLiteral patternLiteral = (StringLiteral) function.arguments().get(1);
+        assertThat(expressionLiteral.value(), is("1"));
+        assertThat(patternLiteral.value(), is("2"));
+    }
+
 }

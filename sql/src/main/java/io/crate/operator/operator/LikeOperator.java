@@ -29,9 +29,7 @@ public class LikeOperator extends CmpOperator {
     public static final String NAME = "op_like";
 
     public static void register(OperatorModule module) {
-        for (DataType type : DataType.PRIMITIVE_TYPES) {
-            module.registerOperatorFunction(new LikeOperator(generateInfo(NAME, type)));
-        }
+        module.registerOperatorFunction(new LikeOperator(generateInfo(NAME, DataType.STRING)));
     }
 
     @Override
