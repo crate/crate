@@ -47,7 +47,7 @@ public class NotPredicateTest {
 
     @Test
     public void testNormalizeSymbol() throws Exception {
-        NotPredicate notOp = new NotPredicate();
+        NotPredicate notPredicate = new NotPredicate();
 
         Reference name_ref = new Reference(new ReferenceInfo(
                 new ReferenceIdent(new TableIdent(null, "dummy"), "foo"),
@@ -58,8 +58,8 @@ public class NotPredicateTest {
                 Arrays.<Symbol>asList(name_ref, new StringLiteral("foo"))
         );
 
-        Function not = new Function(notOp.info(), Arrays.<Symbol>asList(eqName));
-        Symbol normalized = notOp.normalizeSymbol(not);
+        Function not = new Function(notPredicate.info(), Arrays.<Symbol>asList(eqName));
+        Symbol normalized = notPredicate.normalizeSymbol(not);
 
         assertThat(normalized, instanceOf(Function.class));
     }
