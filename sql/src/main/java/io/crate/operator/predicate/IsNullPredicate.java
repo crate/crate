@@ -19,10 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.operator;
+package io.crate.operator.predicate;
 
 import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
@@ -32,14 +33,14 @@ import org.cratedb.DataType;
 
 import java.util.Arrays;
 
-public class IsNullOperator extends Operator {
+public class IsNullPredicate implements FunctionImplementation<Function> {
 
     public static final String NAME = "op_isnull";
     private final FunctionInfo info;
 
-    public static void register(OperatorModule module) {
+    public static void register(PredicateModule module) {
         for (DataType type : DataType.PRIMITIVE_TYPES) {
-            module.registerOperatorFunction(new IsNullOperator(generateInfo(type)));
+            module.registerPredicateFunction(new IsNullPredicate(generateInfo(type)));
         }
     }
 
@@ -47,9 +48,10 @@ public class IsNullOperator extends Operator {
         return new FunctionInfo(new FunctionIdent(NAME, Arrays.asList(type)), DataType.BOOLEAN);
     }
 
-    IsNullOperator(FunctionInfo info) {
+    IsNullPredicate(FunctionInfo info) {
         this.info = info;
     }
+
 
     @Override
     public FunctionInfo info() {

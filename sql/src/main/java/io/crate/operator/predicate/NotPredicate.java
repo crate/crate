@@ -19,10 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.operator;
+package io.crate.operator.predicate;
 
 import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
@@ -32,14 +33,14 @@ import org.cratedb.DataType;
 
 import java.util.Arrays;
 
-public class NotOperator extends Operator {
+public class NotPredicate implements FunctionImplementation<Function> {
 
     public static final String NAME = "op_not";
     public static final FunctionInfo INFO = new FunctionInfo(
             new FunctionIdent(NAME, Arrays.asList(DataType.BOOLEAN)), DataType.BOOLEAN);
 
-    public static void register(OperatorModule module) {
-        module.registerOperatorFunction(new NotOperator());
+    public static void register(PredicateModule module) {
+        module.registerPredicateFunction(new NotPredicate());
     }
 
     @Override
