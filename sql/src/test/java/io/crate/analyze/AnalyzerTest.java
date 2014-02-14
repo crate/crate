@@ -799,6 +799,11 @@ public class AnalyzerTest {
         assertThat(stringLiteral.value(), is("1"));
     }
 
+    @Test(expected = UnsupportedOperationException.class)
+    public void testLikeReferenceInPatternInWhereQuery() {
+        analyze("select * from sys.nodes where 1 like name");
+    }
+
     @Test
     public void testLikeLongDataTypeInWhereQuery() {
         Analysis analysis = analyze("select * from sys.nodes where 1 like 2");
@@ -816,4 +821,5 @@ public class AnalyzerTest {
         assertThat(expressionLiteral.value(), is("1"));
         assertThat(patternLiteral.value(), is("2"));
     }
+
 }
