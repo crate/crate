@@ -44,6 +44,7 @@ public class TestingTableInfo implements TableInfo {
 
         private final ImmutableList.Builder<ReferenceInfo> columns = ImmutableList.builder();
         private final ImmutableMap.Builder<ColumnIdent, ReferenceInfo> references = ImmutableMap.builder();
+        private final ImmutableList.Builder<String> primaryKey = ImmutableList.builder();
 
         private final RowGranularity granularity;
         private final TableIdent ident;
@@ -64,8 +65,14 @@ public class TestingTableInfo implements TableInfo {
             return this;
         }
 
+        public Builder addPrimaryKey(String column) {
+            primaryKey.add(column);
+            return this;
+        }
+
         public TableInfo build() {
-            return new TestingTableInfo(columns.build(), references.build(), ident, granularity, routing);
+            return new TestingTableInfo(
+                    columns.build(), references.build(), ident, granularity, routing, primaryKey.build());
         }
     }
 
@@ -74,15 +81,18 @@ public class TestingTableInfo implements TableInfo {
     private final Map<ColumnIdent, ReferenceInfo> references;
     private final TableIdent ident;
     private final RowGranularity granularity;
+    private final List<String> primaryKey;
 
     public TestingTableInfo(List<ReferenceInfo> columns, Map<ColumnIdent, ReferenceInfo> references,
                             TableIdent ident, RowGranularity granularity,
-                            Routing routing) {
+                            Routing routing,
+                            List<String> primaryKey) {
         this.columns = columns;
         this.references = references;
         this.ident = ident;
         this.granularity = granularity;
         this.routing = routing;
+        this.primaryKey = primaryKey;
     }
 
     @Override
@@ -112,7 +122,7 @@ public class TestingTableInfo implements TableInfo {
 
     @Override
     public List<String> primaryKey() {
-        return ImmutableList.of();
+        return primaryKey;
     }
 
     @Override

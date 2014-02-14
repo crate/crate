@@ -21,29 +21,31 @@
 
 package io.crate.planner.node;
 
-import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class ESGetNode extends AbstractESNode {
 
     private String index;
-    private String id;
+    private List<String> ids;
 
-    // TODO: change interface to whatever the planner can provide
+    public ESGetNode(String index, List<String> ids) {
+        this.index = index;
+        this.ids = ids;
+    }
+
     public ESGetNode(String index, String id) {
         this.index = index;
-        this.id = id;
+        this.ids = Arrays.asList(id);
     }
 
     public String index() {
         return index;
-    }
-    public String id() {
-        return id;
     }
 
     @Override
@@ -54,14 +56,25 @@ public class ESGetNode extends AbstractESNode {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        id = in.readString();
+        int numIds = in.readVInt();
+        ids = new ArrayList<>(numIds);
+        for (int i = 0; i < numIds; i++) {
+            ids.add(in.readString());
+        }
         index = in.readString();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeString(id);
+        out.writeVInt(ids.size());
+        for (String id : ids) {
+            out.writeString(id);
+        }
         out.writeString(index);
+    }
+
+    public List<String> ids() {
+        return ids;
     }
 }

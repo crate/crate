@@ -21,18 +21,20 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
 import io.crate.planner.node.ESGetNode;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolVisitor;
 import org.cratedb.Constants;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.get.TransportGetAction;
+import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.get.*;
+import org.elasticsearch.action.support.TransportAction;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -41,29 +43,79 @@ public class ESGetTask implements Task<Object[][]> {
     private final static Visitor visitor = new Visitor();
 
     private final List<ListenableFuture<Object[][]>> results;
-    private final TransportGetAction transport;
-    private final GetRequest request;
-    private final ActionListener<GetResponse> listener;
+    private final TransportAction transportAction;
+    private final ActionRequest request;
+    private final ActionListener listener;
 
-    public ESGetTask(TransportGetAction transport, ESGetNode node) {
-        Preconditions.checkNotNull(transport);
-        Preconditions.checkNotNull(node);
-
-        this.transport = transport;
-
-        final SettableFuture<Object[][]> result = SettableFuture.create();
-        results = Arrays.<ListenableFuture<Object[][]>>asList(result);
+    public ESGetTask(TransportMultiGetAction multiGetAction, TransportGetAction getAction, ESGetNode node) {
+        assert multiGetAction != null;
+        assert getAction != null;
+        assert node != null;
+        assert node.ids().size() > 0;
 
         final Context ctx = new Context(node.outputs().size());
         for (Symbol symbol : node.outputs()) {
             visitor.process(symbol, ctx);
         }
 
-        request = new GetRequest(node.index(), Constants.DEFAULT_MAPPING_TYPE, node.id());
-        request.fields(ctx.fields);
-        request.realtime(true);
+        final SettableFuture<Object[][]> result = SettableFuture.create();
+        results = Arrays.<ListenableFuture<Object[][]>>asList(result);
+        if (node.ids().size() > 1) {
+            MultiGetRequest multiGetRequest = new MultiGetRequest();
+            for (String id : node.ids()) {
+                MultiGetRequest.Item item = new MultiGetRequest.Item(node.index(), Constants.DEFAULT_MAPPING_TYPE, id);
+                item.fields(ctx.fields);
+                multiGetRequest.add(item);
+            }
+            multiGetRequest.realtime(true);
 
-        listener = new GetResponseListener(result, ctx);
+            transportAction = multiGetAction;
+            request = multiGetRequest;
+            listener = new MultiGetResponseListener(result, ctx);
+        } else {
+            GetRequest getRequest = new GetRequest(node.index(), Constants.DEFAULT_MAPPING_TYPE, node.ids().get(0));
+            getRequest.fields(ctx.fields);
+            getRequest.realtime(true);
+
+            transportAction = getAction;
+            request = getRequest;
+            listener = new GetResponseListener(result, ctx);
+        }
+    }
+
+    static class MultiGetResponseListener implements ActionListener<MultiGetResponse> {
+
+        private final SettableFuture<Object[][]> result;
+        private final Context ctx;
+
+        public MultiGetResponseListener(SettableFuture<Object[][]> result, Context ctx) {
+            this.result = result;
+            this.ctx = ctx;
+        }
+
+        @Override
+        public void onResponse(MultiGetResponse responses) {
+            List<Object[]> rows = new ArrayList<>(responses.getResponses().length);
+            for (MultiGetItemResponse response : responses) {
+                if (response.isFailed()) {
+                    continue;
+                }
+                Object[] row = new Object[ctx.fields.length];
+                int c = 0;
+                for (String field : ctx.fields) {
+                    row[c] = response.getResponse().getField(field).getValue();
+                    c++;
+                }
+                rows.add(row);
+            }
+
+            result.set(rows.toArray(new Object[rows.size()][]));
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            result.setException(e);
+        }
     }
 
     static class GetResponseListener implements ActionListener<GetResponse> {
@@ -108,8 +160,9 @@ public class ESGetTask implements Task<Object[][]> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void start() {
-        transport.execute(request, listener);
+        transportAction.execute(request, listener);
     }
 
     @Override
