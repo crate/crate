@@ -829,6 +829,7 @@ public class AnalyzerTest {
         assertThat(isNullFunction.info().ident().name(), is(IsNullPredicate.NAME));
         assertThat(isNullFunction.arguments().size(), is(1));
         assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertNotNull(analysis.whereClause());
     }
 
     @Test
@@ -836,6 +837,7 @@ public class AnalyzerTest {
         Analysis analysis = analyze("select * from sys.nodes where null is null");
         Function isNullFunction = (Function) analysis.functions().toArray()[0];
         assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(Null.class));
+        assertNull(analysis.whereClause());
     }
 
     @Test
@@ -843,6 +845,7 @@ public class AnalyzerTest {
         Analysis analysis = analyze("select * from sys.nodes where 1 is null");
         Function isNullFunction = (Function) analysis.functions().toArray()[0];
         assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(LongLiteral.class));
+        assertTrue(analysis.noMatch());
     }
 
 }
