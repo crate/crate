@@ -306,19 +306,6 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
         }
     }
 
-    @Override
-    public Symbol visitDelete(Delete node, T context) {
-        context.isDelete(true);
-
-        process(node.getTable(), context);
-
-        if (node.getWhere().isPresent()) {
-            Function function = (Function) process(node.getWhere().get(), context);
-            context.whereClause(function);
-        }
-
-        return null;
-    }
 
     @Override
     protected Symbol visitIsNullPredicate(IsNullPredicate node, T context) {
