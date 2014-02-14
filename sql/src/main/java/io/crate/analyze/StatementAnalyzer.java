@@ -241,6 +241,10 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
 
     @Override
     protected Symbol visitLikePredicate(LikePredicate node, T context) {
+        if (node.getEscape() != null) {
+            throw new UnsupportedOperationException("ESCAPE is not supported yet.");
+        }
+
         // add arguments
         List<Symbol> arguments = new ArrayList<>(2);
         arguments.add(process(node.getValue(), context));
@@ -251,9 +255,6 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
         argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(0), context));
         argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(1), context));
 
-        if (node.getEscape() != null) {
-            throw new UnsupportedOperationException("ESCAPE is not supported yet.");
-        }
 
         FunctionInfo functionInfo = null;
         try {
