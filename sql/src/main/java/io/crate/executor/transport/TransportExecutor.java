@@ -44,6 +44,7 @@ import io.crate.planner.node.*;
 import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
 import org.elasticsearch.action.get.TransportGetAction;
+import org.elasticsearch.action.get.TransportMultiGetAction;
 import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -61,6 +62,7 @@ public class TransportExecutor implements Executor {
     private final TransportCollectNodeAction transportCollectNodeAction;
     private final TransportMergeNodeAction transportMergeNodeAction;
     private final TransportGetAction transportGetAction;
+    private final TransportMultiGetAction transportMultiGetAction;
     private final TransportDeleteByQueryAction transportDeleteByQueryAction;
     private final TransportDeleteAction transportDeleteAction;
 
@@ -71,6 +73,7 @@ public class TransportExecutor implements Executor {
                              TransportCollectNodeAction transportCollectNodeAction,
                              TransportMergeNodeAction transportMergeNodeAction,
                              TransportGetAction transportGetAction,
+                             TransportMultiGetAction transportMultiGetAction,
                              TransportDeleteByQueryAction transportDeleteByQueryAction,
                              TransportDeleteAction transportDeleteAction,
                              ThreadPool threadPool,
@@ -78,6 +81,7 @@ public class TransportExecutor implements Executor {
                              ReferenceResolver referenceResolver,
                              LocalDataCollectOperation localCollectOperation) {
         this.transportGetAction = transportGetAction;
+        this.transportMultiGetAction = transportMultiGetAction;
         this.transportCollectNodeAction = transportCollectNodeAction;
         this.transportMergeNodeAction = transportMergeNodeAction;
         this.transportSearchAction = transportSearchAction;
@@ -155,7 +159,7 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Void visitESGetNode(ESGetNode node, Job context) {
-            context.addTask(new ESGetTask(transportGetAction, node));
+            context.addTask(new ESGetTask(transportMultiGetAction, transportGetAction, node));
             return null;
         }
 

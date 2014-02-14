@@ -203,7 +203,7 @@ public class PlannerTest {
         Iterator<PlanNode> iterator = plan.iterator();
         ESGetNode node = (ESGetNode)iterator.next();
         assertThat(node.index(), is("users"));
-        assertThat(node.id(), is("1"));
+        assertThat(node.ids().get(0), is("1"));
         assertFalse(iterator.hasNext());
     }
 
