@@ -466,9 +466,19 @@ public class AnalyzerTest {
         assertThat(stringLiteral.value(), is("foo"));
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test(expected = UnsupportedOperationException.class) // ESCAPE is not supported yet.
     public void testLikeEscapeInWhereQuery() {
         analyze("select * from sys.nodes where name like 'foo' escape 'o'");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testLikeNoStringDataTypeInWhereQuery() {
+        analyze("select * from sys.nodes where name like 1");
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testLikeLongDataTypeInWhereQuery() {
+        analyze("select * from sys.nodes where 1 like 1");
     }
 
     @Test
