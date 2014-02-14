@@ -32,7 +32,7 @@ public class AffectedRowsResponseBuilder implements ResponseBuilder {
     @Override
     public SQLResponse buildResponse(String[] outputNames, Object[][] rows, long requestStartedTime) {
         long affectedRows = 0;
-        if (rows.length > 1 && rows[0].length > 1) {
+        if (rows.length >= 1 && rows[0].length >= 1) {
             affectedRows = (long)rows[0][0];
         }
         return new SQLResponse(outputNames, Constants.EMPTY_RESULT, affectedRows, requestStartedTime);
