@@ -23,12 +23,9 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.executor.Task;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operator.Input;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.node.ESIndexNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
@@ -40,16 +37,17 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.index.TransportIndexAction;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
-public class ESIndexTask implements Task<Object[][]> {
+public class ESIndexTask extends AbstractESIndexTask {
 
     private final TransportIndexAction transport;
     private final IndexRequest request;
-    private final List<ListenableFuture<Object[][]>> results;
+
     private final ActionListener<IndexResponse> listener;
-    private final ESIndexNode node;
-    private final EvaluatingNormalizer normalizer;
 
     static class IndexResponseListener implements ActionListener<IndexResponse> {
         public static Object[][] affectedRowsResult = new Object[][]{new Object[]{1}};
@@ -77,16 +75,20 @@ public class ESIndexTask implements Task<Object[][]> {
      * @param referenceResolver
      */
     public ESIndexTask(TransportIndexAction transport,
-                       ESIndexNode node,
                        Functions functions,
-                       ReferenceResolver referenceResolver) {
+                       ReferenceResolver referenceResolver,
+                       ESIndexNode node) {
+        super(functions, referenceResolver, node);
         this.transport = transport;
-        this.node = node;
-        this.normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
 
-        final SettableFuture<Object[][]> result = SettableFuture.create();
-        results = Arrays.<ListenableFuture<Object[][]>>asList(result);
-        request = buildRequest();
+        int primaryKeyIdx = -1;
+        if (node.hasPrimaryKey()) {
+            primaryKeyIdx = node.primaryKeyIndices()[0];
+        }
+        request = buildIndexRequest(this.node.index(),
+                this.node.columns(),
+                this.node.valuesLists().get(0),
+                primaryKeyIdx);
         listener = new IndexResponseListener(result);
 
     }
