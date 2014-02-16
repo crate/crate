@@ -148,6 +148,7 @@ public class AnalyzerTest {
                     .add("name", DataType.STRING, null)
                     .add("details", DataType.OBJECT, null)
                     .add("awesome", DataType.BOOLEAN, null)
+                    .addPrimaryKey("id")
                     .build();
             when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
@@ -749,6 +750,11 @@ public class AnalyzerTest {
     @Test(expected = IllegalStateException.class)
     public void testInsertIntoSysTable() throws Exception {
         analyze("insert into sys.nodes (id, name) values (666, 'evilNode')");
+    }
+
+    @Test(expected = CrateException.class)
+    public void testInsertWithoutPrimaryKey() throws Exception {
+        analyze("insert into users (name) values ('Trillian')");
     }
 
     @Test

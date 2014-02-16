@@ -30,10 +30,7 @@ import io.crate.executor.task.LocalMergeTask;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.executor.transport.task.DistributedMergeTask;
 import io.crate.executor.transport.task.RemoteCollectTask;
-import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
-import io.crate.executor.transport.task.elasticsearch.ESDeleteTask;
-import io.crate.executor.transport.task.elasticsearch.ESGetTask;
-import io.crate.executor.transport.task.elasticsearch.ESSearchTask;
+import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
@@ -45,6 +42,7 @@ import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
 import org.elasticsearch.action.get.TransportGetAction;
 import org.elasticsearch.action.get.TransportMultiGetAction;
+import org.elasticsearch.action.index.TransportIndexAction;
 import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -65,6 +63,7 @@ public class TransportExecutor implements Executor {
     private final TransportMultiGetAction transportMultiGetAction;
     private final TransportDeleteByQueryAction transportDeleteByQueryAction;
     private final TransportDeleteAction transportDeleteAction;
+    private final TransportIndexAction transportIndexAction;
 
     private final LocalDataCollectOperation localDataCollectOperation;
 
@@ -79,6 +78,7 @@ public class TransportExecutor implements Executor {
                              ThreadPool threadPool,
                              Functions functions,
                              ReferenceResolver referenceResolver,
+                             TransportIndexAction transportIndexAction,
                              LocalDataCollectOperation localCollectOperation) {
         this.transportGetAction = transportGetAction;
         this.transportMultiGetAction = transportMultiGetAction;
@@ -87,6 +87,7 @@ public class TransportExecutor implements Executor {
         this.transportSearchAction = transportSearchAction;
         this.transportDeleteByQueryAction = transportDeleteByQueryAction;
         this.transportDeleteAction = transportDeleteAction;
+        this.transportIndexAction = transportIndexAction;
 
         this.localDataCollectOperation = localCollectOperation;
 
@@ -172,6 +173,12 @@ public class TransportExecutor implements Executor {
         @Override
         public Void visitESDeleteNode(ESDeleteNode node, Job context) {
             context.addTask(new ESDeleteTask(transportDeleteAction, node));
+            return null;
+        }
+
+        @Override
+        public Void visitESIndexNode(ESIndexNode node, Job context) {
+            context.addTask(new ESIndexTask(transportIndexAction, node, functions, referenceResolver));
             return null;
         }
 

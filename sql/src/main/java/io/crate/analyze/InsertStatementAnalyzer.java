@@ -49,12 +49,16 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
             Preconditions.checkState(maxValuesLength <= context.table().columns().size(), "too many values");
             List<Reference> impliedColumns = new ArrayList<>(maxValuesLength);
             int i = maxValuesLength;
+            context.columns(impliedColumns);
             for (ReferenceInfo columnInfo : context.table().columns()) {
                 if (i==0) { break; }
+                // set primary key index if found
+                if (context.table().primaryKey().contains(columnInfo.ident().columnIdent().name())) {
+                    context.addPrimaryKeyColumnIdx(impliedColumns.size());
+                }
                 impliedColumns.add(new Reference(columnInfo));
                 i--;
             }
-            context.columns(impliedColumns);
 
         } else {
             Preconditions.checkState(maxValuesLength == node.columns().size(), "invalid number of values");
@@ -65,6 +69,9 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
 
         for (QualifiedNameReference column : node.columns()) {
             process(column, context);
+        }
+        if (context.table().primaryKey().size() > 0 && context.primaryKeyColumnIndices().size() == 0) {
+            throw new CrateException("Primary key is required but is missing from the insert statement");
         }
 
         context.visitValues();
@@ -90,6 +97,12 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
             throw new CrateException("column references not allowed in insert values.");
         }
         ReferenceIdent ident = new ReferenceIdent(context.table().ident(), node.getSuffix().getSuffix());
+
+        // set primary key index if found
+        if (context.table().primaryKey().contains(ident.columnIdent().name())) {
+            context.addPrimaryKeyColumnIdx(context.columns().size());
+        }
+
         // ensure that every column is only listed once
         Reference columnReference = context.allocateUniqueReference(ident);
         context.columns().add(columnReference);
@@ -125,7 +138,6 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
                         i,
                         expectedType.getName()));
             }
-
             symbols.add(valuesSymbol);
             i++;
         }
