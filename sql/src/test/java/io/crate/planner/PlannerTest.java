@@ -374,7 +374,8 @@ public class PlannerTest {
         assertThat(((LongLiteral)indexNode.valuesLists().get(0).get(0)).value(), is(42l));
         assertThat(((StringLiteral)indexNode.valuesLists().get(0).get(1)).value(), is("Deep Thought"));
 
-        assertThat(indexNode.outputTypes().size(), is(0));
+        assertThat(indexNode.outputTypes().size(), is(1));
+        assertThat(indexNode.outputTypes().get(0), is(DataType.LONG));
 
         assertTrue(plan.expectsAffectedRows());
     }
@@ -395,7 +396,8 @@ public class PlannerTest {
         assertThat(((LongLiteral)indexNode.valuesLists().get(1).get(0)).value(), is(99l));
         assertThat(((StringLiteral)indexNode.valuesLists().get(1).get(1)).value(), is("Marvin"));
 
-        assertThat(indexNode.outputTypes().size(), is(0));
+        assertThat(indexNode.outputTypes().size(), is(1));
+        assertThat(indexNode.outputTypes().get(0), is(DataType.LONG));
 
         assertTrue(plan.expectsAffectedRows());
     }

@@ -26,6 +26,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -51,6 +52,7 @@ public class ESIndexNode extends PlanNode {
         this.columns = Objects.firstNonNull(columns, ImmutableList.<Reference>of());
         this.valuesLists = Objects.firstNonNull(valuesLists, ImmutableList.<List<Symbol>>of());
         this.primaryKeyIndices = Objects.firstNonNull(primaryKeyIndices, new int[0]);
+        this.outputTypes(ImmutableList.of(DataType.LONG));
     }
 
     public String index() {

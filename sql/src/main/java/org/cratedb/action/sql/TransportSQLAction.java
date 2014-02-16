@@ -394,7 +394,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
                 @Override
                 public void onFailure(Throwable t) {
-                    listener.onFailure(t);
+                    listener.onFailure(ExceptionHelper.transformToCrateException(t));
                 }
             });
         } catch (Exception e) {
@@ -453,6 +453,11 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                         isPresto.set(true);
                         return null;
                     }
+                }
+                // use presto for inserts
+                if (((QueryTreeNode) node).getNodeType() == NodeType.INSERT_NODE) {
+                    isPresto.set(true);
+                    return null;
                 }
                 return node;
             }

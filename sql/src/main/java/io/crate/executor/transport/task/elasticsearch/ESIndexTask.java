@@ -50,7 +50,7 @@ public class ESIndexTask extends AbstractESIndexTask {
     private final ActionListener<IndexResponse> listener;
 
     static class IndexResponseListener implements ActionListener<IndexResponse> {
-        public static Object[][] affectedRowsResult = new Object[][]{new Object[]{1}};
+        public static Object[][] affectedRowsResult = new Object[][]{new Object[]{1l}};
         private final SettableFuture<Object[][]> result;
 
         IndexResponseListener(SettableFuture<Object[][]> result) {

@@ -517,11 +517,11 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.values().size(), is(2));
 
         assertThat(((LongLiteral)analysis.values().get(0).get(0)).value(), is(99l));
-        assertThat(((StringLiteral)analysis.values().get(0).get(1)).value(), is("Marvin"));
+        assertThat(((StringLiteral)analysis.values().get(0).get(1)).value().utf8ToString(), is("Marvin"));
         assertThat(((BooleanLiteral)analysis.values().get(0).get(2)).value(), is(true));
 
         assertThat(((LongLiteral)analysis.values().get(1).get(0)).value(), is(42l));
-        assertThat(((StringLiteral)analysis.values().get(1).get(1)).value(), is("Deep Thought"));
+        assertThat(((StringLiteral)analysis.values().get(1).get(1)).value().utf8ToString(), is("Deep Thought"));
         assertThat(((BooleanLiteral)analysis.values().get(1).get(2)).value(), is(false));
     }
 

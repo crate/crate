@@ -53,7 +53,7 @@ public class ESBulkIndexTask extends AbstractESIndexTask {
         @Override
         public void onResponse(BulkResponse bulkItemResponses) {
             BulkItemResponse[] responses = bulkItemResponses.getItems();
-            int rowsAffected = 0;
+            long rowsAffected = 0l;
             for (BulkItemResponse response : responses) {
                 if (!response.isFailed()) {
                     rowsAffected++;
