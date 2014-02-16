@@ -530,11 +530,20 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
     }
 
     private Plan planInsert(InsertAnalysis analysis) {
-        // only a reminder
-        // Plan plan = new Plan();
-        // plan.expectsAffectedRows(true);
-        throw new UnsupportedOperationException("insert plan creation not implemented yet.");
+        Preconditions.checkState(analysis.values().size() >= 1, "no values given");
+        Plan plan = new Plan();
+        ESIndex(analysis, plan);
+        return plan;
+    }
 
+    private void ESIndex(InsertAnalysis analysis, Plan plan) {
+        String index = analysis.table().ident().name();
+        ESIndexNode indexNode = new ESIndexNode(index,
+                analysis.columns(),
+                analysis.values(),
+                analysis.primaryKeyColumnIndices().toArray());
+        plan.add(indexNode);
+        plan.expectsAffectedRows(true);
     }
 
     private static List<DataType> extractDataTypes(List<Symbol> symbols) {
