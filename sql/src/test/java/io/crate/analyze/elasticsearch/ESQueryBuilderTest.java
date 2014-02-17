@@ -34,38 +34,41 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.ESDeleteByQueryNode;
 import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.symbol.*;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 
 public class ESQueryBuilderTest {
 
     Functions functions;
-    TableIdent characters = new TableIdent(null, "characters");
-    Reference name_ref = new Reference(new ReferenceInfo(
+    static TableIdent characters = new TableIdent(null, "characters");
+    static Reference name_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "name"), RowGranularity.DOC, DataType.STRING));
-    Reference age_ref = new Reference(new ReferenceInfo(
+    static Reference age_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "age"), RowGranularity.DOC, DataType.INTEGER));
-    Reference weight_ref = new Reference(new ReferenceInfo(
+    static Reference weight_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "weight"), RowGranularity.DOC, DataType.DOUBLE));
-    Reference float_ref = new Reference(new ReferenceInfo(
+    static Reference float_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "float_ref"), RowGranularity.DOC, DataType.FLOAT));
-    Reference long_ref = new Reference(new ReferenceInfo(
+    static Reference long_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "long_ref"), RowGranularity.DOC, DataType.LONG));
-    Reference short_ref = new Reference(new ReferenceInfo(
+    static Reference short_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "short_ref"), RowGranularity.DOC, DataType.SHORT));
-    Reference isParanoid = new Reference(new ReferenceInfo(
+    static Reference isParanoid = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "isParanoid"), RowGranularity.DOC, DataType.BOOLEAN));
-    Reference extrafield = new Reference(new ReferenceInfo(
+    static Reference extrafield = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "extrafield"), RowGranularity.DOC, DataType.STRING));
     private ESQueryBuilder generator;
 
@@ -209,6 +212,32 @@ public class ESQueryBuilderTest {
 
         Function isNull = new Function(isNullImpl.info(), Arrays.<Symbol>asList(extrafield));
         xcontetAssert(isNull, "{\"query\":{\"filtered\":{\"filter\":{\"missing\":{\"field\":\"extrafield\",\"existence\":true,\"null_value\":true}}}}}");
+    }
+
+    @Test
+    public void testWhereReferenceInStringList() throws Exception {
+        // where name in ("alpha", "bravo", "charlie")
+        Reference ref = name_ref;
+        FunctionImplementation inListImpl = functions.get(
+                new FunctionIdent(InOperator.NAME,
+                Arrays.asList(DataType.STRING, DataType.STRING_SET))
+        );
+
+        ImmutableSet<BytesRef> list = ImmutableSet.of(
+                new BytesRef("alpha"), new BytesRef("bravo"), new BytesRef("charlie"));
+        SetLiteral set = new SetLiteral(DataType.STRING, list);
+        Function inList = new Function(inListImpl.info(), Arrays.<Symbol>asList(ref, set));
+
+        BytesReference reference = generator.convert(inList);
+        Tuple<XContentType, Map<String, Object>> actualMap =
+                XContentHelper.convertToMap(reference, true);
+        ArrayList<String> actualList = ((ArrayList)
+                ((Map)((Map)actualMap.v2()
+                .get("query"))
+                .get("terms"))
+                .get("name"));
+
+        assertEquals(ImmutableSet.of("alpha", "bravo", "charlie"), new HashSet<>(actualList));
     }
 
     @Test

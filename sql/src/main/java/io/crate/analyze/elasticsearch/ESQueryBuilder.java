@@ -38,6 +38,8 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.ESDeleteByQueryNode;
 import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.symbol.*;
+import org.apache.lucene.util.BytesRef;
+import org.cratedb.DataType;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
@@ -348,6 +350,35 @@ public class ESQueryBuilder {
             }
         }
 
+        class InConverter extends Converter {
+
+            @Override
+            public void convert(Function function, Context context) throws IOException {
+                assert (function != null);
+                assert (function.arguments().size() == 2);
+
+                Symbol left = function.arguments().get(0);
+                Symbol right = function.arguments().get(1);
+                String refName = ((Reference) left).info().ident().columnIdent().fqn();
+                SetLiteral setLiteral = (SetLiteral) right;
+                boolean convertBytesRef = false;
+                if (setLiteral.valueType() == DataType.STRING_SET) {
+                    convertBytesRef = true;
+                }
+                context.builder.startObject("terms").field(refName);
+                context.builder.startArray();
+                for (Object o : setLiteral.value()) {
+                    if (convertBytesRef) {
+                        context.builder.value(((BytesRef)o).utf8ToString());
+                    } else {
+                        context.builder.value(o);
+                    }
+                }
+                context.builder.endArray().endObject();
+            }
+
+        }
+
         private ImmutableMap<String, Converter> functions =
                 ImmutableMap.<String, Converter>builder()
                         .put(AndOperator.NAME, new AndConverter())
@@ -362,6 +393,7 @@ public class ESQueryBuilder {
                         .put(IsNullPredicate.NAME, new IsNullConverter())
                         .put(NotPredicate.NAME, new NotConverter())
                         .put(MatchFunction.NAME, new MatchConverter())
+                        .put(InOperator.NAME, new InConverter())
                         .build();
 
         @Override
