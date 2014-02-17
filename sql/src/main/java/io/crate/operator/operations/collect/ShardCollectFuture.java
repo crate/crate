@@ -26,6 +26,7 @@ import io.crate.operator.projectors.Projector;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * future that is set after configured number of shards signal
@@ -34,6 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class ShardCollectFuture extends AbstractFuture<Object[][]> {
     private final AtomicInteger numShards;
     protected final List<Projector> projectorChain;
+    protected final AtomicReference<Throwable> lastException = new AtomicReference<>();
 
     public ShardCollectFuture(int numShards, List<Projector> projectorChain) {
         this.numShards = new AtomicInteger(numShards);
@@ -44,6 +46,12 @@ public abstract class ShardCollectFuture extends AbstractFuture<Object[][]> {
         if (numShards.decrementAndGet() <= 0) {
             onAllShardsFinished();
         }
+    }
+
+    protected void shardFailure(Throwable t) {
+        lastException.set(t);
+        onAllShardsFinished();
+        super.setException(t);
     }
 
     public int numShards() {

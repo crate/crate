@@ -28,7 +28,6 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.transport.merge.NodeMergeResponse;
 import io.crate.metadata.Functions;
 import io.crate.operator.operations.DownstreamOperationFactory;
-import io.crate.operator.operations.merge.DownstreamOperation;
 import io.crate.planner.node.MergeNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import org.cratedb.DataType;
@@ -60,6 +59,7 @@ public class DistributedRequestContextManager {
 
     private final Map<UUID, DownstreamOperationContext> activeMergeOperations = new HashMap<>();
     private final Map<UUID, List<BytesReference>> unreadStreams = new HashMap<>();
+    private final Set<UUID> unreadFailures = new HashSet<>();
     private final Object lock = new Object();
     private final DownstreamOperationFactory downstreamOperationFactory;
     private final PlanNodeStreamerVisitor planNodeStreamerVisitor;
@@ -116,7 +116,11 @@ public class DistributedRequestContextManager {
         DownstreamOperationContext operationContext;
         if (request.rowsRead()) {
             operationContext = activeMergeOperations.get(request.contextId());
-            operationContext.add(request.rows());
+            if (request.failure()) {
+                operationContext.addFailure();
+            } else {
+                operationContext.add(request.rows());
+            }
             return;
         }
 
@@ -124,6 +128,10 @@ public class DistributedRequestContextManager {
             operationContext = activeMergeOperations.get(request.contextId());
 
             if (operationContext == null) {
+                if (request.failure()) {
+                    unreadFailures.add(request.contextId());
+                }
+
                 assert !request.rowsRead() && request.memoryStream() != null;
 
                 List<BytesReference> bytesStreamOutputs = unreadStreams.get(request.contextId());
@@ -133,6 +141,10 @@ public class DistributedRequestContextManager {
                 }
                 bytesStreamOutputs.add(request.memoryStream().bytes());
             } else {
+                if (request.failure()) {
+                    operationContext.addFailure();
+                    return;
+                }
                 mergeFromBytesReference(request.memoryStream().bytes(), operationContext);
             }
         }
@@ -160,6 +172,11 @@ public class DistributedRequestContextManager {
         synchronized (lock) {
             activeMergeOperations.put(contextId, downstreamOperationContext);
             bytesReferences = unreadStreams.get(contextId);
+            unreadStreams.remove(contextId);
+            if (unreadFailures.contains(contextId)) {
+                downstreamOperationContext.addFailure();
+            }
+            unreadFailures.remove(contextId);
         }
 
         if (bytesReferences != null) {

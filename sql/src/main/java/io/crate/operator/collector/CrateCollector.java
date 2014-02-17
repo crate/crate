@@ -22,5 +22,5 @@
 package io.crate.operator.collector;
 
 public interface CrateCollector {
-    public void doCollect();
+    public void doCollect() throws Exception;
 }

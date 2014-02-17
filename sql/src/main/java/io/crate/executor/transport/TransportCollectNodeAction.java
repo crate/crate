@@ -22,6 +22,8 @@
 package io.crate.executor.transport;
 
 import com.google.common.base.Preconditions;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.operator.operations.collect.DistributingCollectOperation;
 import io.crate.operator.operations.collect.LocalDataCollectOperation;
@@ -41,8 +43,8 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.*;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.concurrent.ExecutionException;
 
 public class TransportCollectNodeAction {
 
@@ -94,21 +96,21 @@ public class TransportCollectNodeAction {
             collectResult = localDataCollector.collect(node);
         }
         final PlainListenableActionFuture<NodeCollectResponse> collectResponse = new PlainListenableActionFuture<>(false, threadPool);
-        collectResult.addListener(new Runnable() {
+        Futures.addCallback(collectResult, new FutureCallback<Object[][]>() {
             @Override
-            public void run() {
-                if (collectResult.isDone()) {
-                    try {
-                        PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(node);
-                        NodeCollectResponse response = new NodeCollectResponse(streamerContext.outputStreamers());
-                        response.rows(collectResult.get());
-                        collectResponse.onResponse(response);
-                    } catch (ExecutionException | InterruptedException e) {
-                        collectResponse.onFailure(e);
-                    }
-                }
+            public void onSuccess(@Nullable Object[][] result) {
+                assert result != null;
+                PlanNodeStreamerVisitor.Context streamerContext = planNodeStreamerVisitor.process(node);
+                NodeCollectResponse response = new NodeCollectResponse(streamerContext.outputStreamers());
+                response.rows(result);
+                collectResponse.onResponse(response);
             }
-        }, threadPool.generic());
+
+            @Override
+            public void onFailure(Throwable t) {
+                collectResponse.onFailure(t);
+            }
+        });
         return collectResponse;
     }
 
