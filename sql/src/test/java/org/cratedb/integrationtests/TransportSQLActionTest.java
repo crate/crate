@@ -1,5 +1,27 @@
+/*
+ * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
+ */
+
 package org.cratedb.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Timeout;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Ordering;
@@ -31,6 +53,7 @@ import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilde
 import static org.hamcrest.Matchers.*;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 2)
+@Timeout(millis = 20000)
 public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     private SQLResponse response;
@@ -84,6 +107,22 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select count(*) from test where name = 'Trillian'");
         assertEquals(1, response.rowCount());
         assertEquals(1L, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testGroupByOnSysNodes() throws Exception {
+        execute("select count(*), name from sys.nodes group by name");
+        assertThat(response.rowCount(), is(2L));
+
+        execute("select count(*), hostname from sys.nodes group by hostname");
+        assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void testSysCluster() throws Exception {
+        execute("select id from sys.cluster");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(((String)response.rows()[0][0]).length(), is(36)); // looks like a uuid
     }
 
     @Test
@@ -1256,7 +1295,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test (expected = DuplicateKeyException.class)
-    public void testInsertWithUniqueContraintViolation() throws Exception {
+    public void testInsertWithUniqueConstraintViolation() throws Exception {
         createTestIndexWithPkMapping();
 
         Object[] args = new Object[] {
@@ -1314,7 +1353,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into test (message) values (?)", args);
     }
 
-    @Test (expected = SQLParseException.class)
+    @Test (expected = CrateException.class)
     public void testInsertWithPKMissingOnInsert() throws Exception {
         createTestIndexWithPkMapping();
 

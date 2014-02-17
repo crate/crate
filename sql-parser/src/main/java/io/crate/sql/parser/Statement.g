@@ -1,15 +1,22 @@
 /*
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
 grammar Statement;
@@ -81,6 +88,11 @@ tokens {
     SAMPLED_RELATION;
     QUERY_SPEC;
     STRATIFY_ON;
+    COLUMN_LIST;
+    INSERT_VALUES;
+    VALUES_LIST;
+    ASSIGNMENT;
+    ASSIGNMENT_LIST;
 }
 
 @header {
@@ -160,6 +172,9 @@ statement
     | refreshMaterializedViewStmt
     | createAliasStmt
     | dropAliasStmt
+    | insertStmt
+    | deleteStmt
+    | updateStmt
     ;
 
 query
@@ -168,13 +183,13 @@ query
 
 queryExpr
     : withClause?
-      ( (orderOrLimitQuerySpec) => orderOrLimitQuerySpec
-      | queryExprBody orderClause? limitClause?
+      ( (orderOrLimitOrOffsetQuerySpec) => orderOrLimitOrOffsetQuerySpec
+      | queryExprBody orderClause? limitClause? offsetClause?
       )
     ;
 
-orderOrLimitQuerySpec
-    : simpleQuery (orderClause limitClause? | limitClause) -> ^(QUERY_SPEC simpleQuery orderClause? limitClause?)
+orderOrLimitOrOffsetQuerySpec
+    : simpleQuery (orderClause limitClause? offsetClause? | limitClause offsetClause? | offsetClause) -> ^(QUERY_SPEC simpleQuery orderClause? limitClause? offsetClause?)
     ;
 
 queryExprBody
@@ -242,6 +257,10 @@ orderClause
 
 limitClause
     : LIMIT integer -> ^(LIMIT integer)
+    ;
+
+offsetClause
+    : OFFSET integer -> ^(OFFSET integer)
     ;
 
 withList
@@ -418,7 +437,7 @@ qnameOrFunction
     ;
 
 parameterExpr
-    : ':' integer
+    : '$' integer
     | '?'
     ;
 
@@ -583,7 +602,7 @@ showColumnsStmt
     ;
 
 showPartitionsStmt
-    : SHOW PARTITIONS (FROM | IN) qname w=whereClause? o=orderClause? l=limitClause? -> ^(SHOW_PARTITIONS qname $w? $o? $l?)
+    : SHOW PARTITIONS (FROM | IN) qname w=whereClause? o=orderClause? l=limitClause? oc=offsetClause? -> ^(SHOW_PARTITIONS qname $w? $o? $l? $oc?)
     ;
 
 showFunctionsStmt
@@ -700,6 +719,37 @@ integer
     : INTEGER_VALUE
     ;
 
+insertStmt
+    : INSERT INTO table (columns=columnList)? VALUES values=insertValues -> ^(INSERT table $values $columns?)
+    ;
+
+columnList
+    : '(' qname ( ',' qname )* ')' -> ^(COLUMN_LIST qname+)
+    ;
+insertValues
+    : valuesList ( ',' valuesList )* -> ^(INSERT_VALUES valuesList+)
+    ;
+
+valuesList
+    : '(' expr (',' expr)* ')' -> ^(VALUES_LIST expr+)
+    ;
+
+deleteStmt
+    : DELETE FROM table whereClause? -> ^(DELETE table whereClause?)
+    ;
+
+updateStmt
+    : UPDATE table SET assignmentList whereClause? -> ^(UPDATE table assignmentList whereClause?)
+    ;
+
+assignmentList
+    : assignment ( ',' assignment )* -> ^(ASSIGNMENT_LIST assignment+)
+    ;
+
+assignment
+    : qname EQ expr -> ^(ASSIGNMENT qname expr)
+    ;
+
 nonReserved
     : SHOW | TABLES | COLUMNS | PARTITIONS | FUNCTIONS | SCHEMAS | CATALOGS
     | OVER | PARTITION | RANGE | ROWS | PRECEDING | FOLLOWING | CURRENT | ROW
@@ -721,6 +771,7 @@ BY: 'BY';
 ORDER: 'ORDER';
 HAVING: 'HAVING';
 LIMIT: 'LIMIT';
+OFFSET: 'OFFSET';
 OR: 'OR';
 AND: 'AND';
 IN: 'IN';
@@ -827,6 +878,12 @@ SYSTEM: 'SYSTEM';
 BERNOULLI: 'BERNOULLI';
 TABLESAMPLE: 'TABLESAMPLE';
 STRATIFY: 'STRATIFY';
+INSERT: 'INSERT';
+INTO: 'INTO';
+VALUES: 'VALUES';
+DELETE: 'DELETE';
+UPDATE: 'UPDATE';
+SET: 'SET';
 
 EQ  : '=';
 NEQ : '<>' | '!=';
