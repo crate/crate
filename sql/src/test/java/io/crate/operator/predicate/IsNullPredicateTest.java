@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.operator;
+package io.crate.operator.predicate;
 
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
@@ -33,33 +33,38 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
-public class NotOperatorTest {
+public class IsNullPredicateTest {
+
+    IsNullPredicate predicate = new IsNullPredicate(new FunctionInfo(
+            new FunctionIdent(IsNullPredicate.NAME, Arrays.asList(DataType.STRING)),
+            DataType.BOOLEAN
+    ));
 
     @Test
-    public void testNormalizeSymbolBoolean() throws Exception {
-        NotOperator operator = new NotOperator();
-        Function not = new Function(operator.info(), Arrays.<Symbol>asList(new BooleanLiteral(true)));
-        BooleanLiteral normalized = (BooleanLiteral)operator.normalizeSymbol(not);
-
-        assertThat(normalized.value(), is(false));
+    public void testNormalizeSymbolFalse() throws Exception {
+        Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(new StringLiteral("a")));
+        Symbol symbol = predicate.normalizeSymbol(isNull);
+        assertThat(symbol, instanceOf(BooleanLiteral.class));
+        assertThat(((BooleanLiteral) symbol).value(), is(false));
     }
 
     @Test
-    public void testNormalizeSymbol() throws Exception {
-        NotOperator notOp = new NotOperator();
+    public void testNormalizeSymbolTrue() throws Exception {
+        Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(Null.INSTANCE));
+        Symbol symbol = predicate.normalizeSymbol(isNull);
 
+        assertThat(symbol, instanceOf(BooleanLiteral.class));
+        assertThat(((BooleanLiteral) symbol).value(), is(true));
+    }
+
+    @Test
+    public void testNormalizeReference() throws Exception {
         Reference name_ref = new Reference(new ReferenceInfo(
-                new ReferenceIdent(new TableIdent(null, "dummy"), "foo"),
-                RowGranularity.DOC, DataType.STRING)
-        );
-        Function eqName = new Function(
-                new FunctionInfo(new FunctionIdent(EqOperator.NAME, Arrays.asList(DataType.STRING, DataType.STRING)), DataType.BOOLEAN),
-                Arrays.<Symbol>asList(name_ref, new StringLiteral("foo"))
-        );
-
-        Function not = new Function(notOp.info(), Arrays.<Symbol>asList(eqName));
-        Symbol normalized = notOp.normalizeSymbol(not);
-
-        assertThat(normalized, instanceOf(Function.class));
+                        new ReferenceIdent(new TableIdent(null, "dummy"), "name"),
+                        RowGranularity.DOC,
+                        DataType.STRING));
+        Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(name_ref));
+        Symbol symbol = predicate.normalizeSymbol(isNull);
+        assertThat(symbol, instanceOf(Function.class));
     }
 }

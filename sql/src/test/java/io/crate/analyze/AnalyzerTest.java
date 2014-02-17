@@ -37,6 +37,8 @@ import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.aggregation.impl.AverageAggregation;
 import io.crate.operator.aggregation.impl.CollectSetAggregation;
 import io.crate.operator.operator.*;
+import io.crate.operator.predicate.IsNullPredicate;
+import io.crate.operator.predicate.PredicateModule;
 import io.crate.operator.reference.sys.cluster.SysClusterExpression;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import io.crate.operator.scalar.CollectionCountFunction;
@@ -146,6 +148,7 @@ public class AnalyzerTest {
                     .add("name", DataType.STRING, null)
                     .add("details", DataType.OBJECT, null)
                     .add("awesome", DataType.BOOLEAN, null)
+                    .addPrimaryKey("id")
                     .build();
             when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
@@ -205,6 +208,7 @@ public class AnalyzerTest {
                 .add(new MetaDataSysModule())
                 .add(new AggregationImplModule())
                 .add(new OperatorModule())
+                .add(new PredicateModule())
                 .add(new ScalarFunctionModule())
                 .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
@@ -784,6 +788,10 @@ public class AnalyzerTest {
         analyze("insert into sys.nodes (id, name) values (666, 'evilNode')");
     }
 
+    @Test(expected = CrateException.class)
+    public void testInsertWithoutPrimaryKey() throws Exception {
+        analyze("insert into users (name) values ('Trillian')");
+    }
 
     @Test
     public void testSelectWithObjectLiteral() throws Exception {
@@ -797,4 +805,90 @@ public class AnalyzerTest {
         assertThat(whereClause.arguments().get(1), instanceOf(ObjectLiteral.class));
         assertTrue(((ObjectLiteral) whereClause.arguments().get(1)).value().equals(map));
     }
+
+    @Test
+    public void testLikeInWhereQuery() {
+        Analysis analysis = analyze("select * from sys.nodes where name like 'foo'");
+
+        assertNotNull(analysis.whereClause());
+        Function whereClause = analysis.whereClause();
+        assertEquals(LikeOperator.NAME, whereClause.info().ident().name());
+        ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataType.STRING, DataType.STRING);
+        assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
+
+        assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
+        StringLiteral stringLiteral = (StringLiteral) whereClause.arguments().get(1);
+        assertThat(stringLiteral.value(), is("foo"));
+    }
+
+    @Test(expected = UnsupportedOperationException.class) // ESCAPE is not supported yet.
+    public void testLikeEscapeInWhereQuery() {
+        analyze("select * from sys.nodes where name like 'foo' escape 'o'");
+    }
+
+    @Test
+    public void testLikeNoStringDataTypeInWhereQuery() {
+        Analysis analysis = analyze("select * from sys.nodes where name like 1");
+
+        // check if the implicit cast of the pattern worked
+        ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataType.STRING, DataType.STRING);
+        Function whereClause = analysis.whereClause();
+        assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
+        StringLiteral stringLiteral = (StringLiteral) whereClause.arguments().get(1);
+        assertThat(stringLiteral.value(), is("1"));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testLikeReferenceInPatternInWhereQuery() {
+        analyze("select * from sys.nodes where 1 like name");
+    }
+
+    @Test
+    public void testLikeLongDataTypeInWhereQuery() {
+        Analysis analysis = analyze("select * from sys.nodes where 1 like 2");
+
+        // check if implicit cast worked of both, expression and pattern.
+        Function function = (Function) analysis.functions().toArray()[0];
+        assertEquals(LikeOperator.NAME, function.info().ident().name());
+        ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataType.STRING, DataType.STRING);
+        assertEquals(argumentTypes, function.info().ident().argumentTypes());
+
+        assertThat(function.arguments().get(0), IsInstanceOf.instanceOf(StringLiteral.class));
+        assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
+        StringLiteral expressionLiteral = (StringLiteral) function.arguments().get(0);
+        StringLiteral patternLiteral = (StringLiteral) function.arguments().get(1);
+        assertThat(expressionLiteral.value(), is("1"));
+        assertThat(patternLiteral.value(), is("2"));
+    }
+
+    @Test
+    public void testIsNullInWhereQuery() {
+        Analysis analysis = analyze("select * from sys.nodes where name is null");
+        Function isNullFunction = (Function) analysis.functions().toArray()[0];
+
+        assertThat(isNullFunction.info().ident().name(), is(IsNullPredicate.NAME));
+        assertThat(isNullFunction.arguments().size(), is(1));
+        assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
+        assertNotNull(analysis.whereClause());
+    }
+
+    @Test
+    public void testNullIsNullInWhereQuery() {
+        Analysis analysis = analyze("select * from sys.nodes where null is null");
+        Function isNullFunction = (Function) analysis.functions().toArray()[0];
+        assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(Null.class));
+        assertNull(analysis.whereClause());
+        assertFalse(analysis.noMatch());
+    }
+
+    @Test
+    public void testLongIsNullInWhereQuery() {
+        Analysis analysis = analyze("select * from sys.nodes where 1 is null");
+        Function isNullFunction = (Function) analysis.functions().toArray()[0];
+        assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(LongLiteral.class));
+        assertTrue(analysis.noMatch());
+    }
+
 }

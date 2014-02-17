@@ -25,8 +25,6 @@ public class OperatorModule extends AbstractModule {
         GtOperator.register(this);
         GteOperator.register(this);
         LikeOperator.register(this);
-        NotOperator.register(this);
-        IsNullOperator.register(this);
         InOperator.register(this);
     }
 }

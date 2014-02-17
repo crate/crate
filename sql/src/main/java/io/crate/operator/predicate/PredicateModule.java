@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *  http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -18,26 +18,25 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
+package io.crate.operator.predicate;
 
-package io.crate.operator.operator;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.inject.multibindings.MapBinder;
 
-import io.crate.metadata.FunctionInfo;
-import org.cratedb.DataType;
+public class PredicateModule extends AbstractModule {
 
-public class LikeOperator extends CmpOperator {
+    private MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
 
-    public static final String NAME = "op_like";
-
-    public static void register(OperatorModule module) {
-        module.registerOperatorFunction(new LikeOperator(generateInfo(NAME, DataType.STRING)));
+    public void registerPredicateFunction(FunctionImplementation impl) {
+        functionBinder.addBinding(impl.info().ident()).toInstance(impl);
     }
 
     @Override
-    protected boolean compare(int comparisonResult) {
-        return comparisonResult == 0;
-    }
-
-    LikeOperator(FunctionInfo info) {
-        super(info);
+    protected void configure() {
+        functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
+        IsNullPredicate.register(this);
+        NotPredicate.register(this);
     }
 }

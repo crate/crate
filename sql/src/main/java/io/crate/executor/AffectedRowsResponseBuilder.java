@@ -19,25 +19,22 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.operator;
+package io.crate.executor;
 
-import io.crate.metadata.FunctionInfo;
-import org.cratedb.DataType;
+import org.cratedb.Constants;
+import org.cratedb.action.sql.SQLResponse;
 
-public class LikeOperator extends CmpOperator {
+public class AffectedRowsResponseBuilder implements ResponseBuilder {
 
-    public static final String NAME = "op_like";
-
-    public static void register(OperatorModule module) {
-        module.registerOperatorFunction(new LikeOperator(generateInfo(NAME, DataType.STRING)));
-    }
-
+    /**
+     * expect the first column in the first row of <code>rows</code> to contain the number of affected rows
+     */
     @Override
-    protected boolean compare(int comparisonResult) {
-        return comparisonResult == 0;
-    }
-
-    LikeOperator(FunctionInfo info) {
-        super(info);
+    public SQLResponse buildResponse(String[] outputNames, Object[][] rows, long requestStartedTime) {
+        long affectedRows = 0;
+        if (rows.length >= 1 && rows[0].length >= 1) {
+            affectedRows = (long)rows[0][0];
+        }
+        return new SQLResponse(outputNames, Constants.EMPTY_RESULT, affectedRows, requestStartedTime);
     }
 }

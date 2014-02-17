@@ -16,10 +16,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.operator.OperatorModule;
-import io.crate.planner.node.CollectNode;
-import io.crate.planner.node.ESSearchNode;
-import io.crate.planner.node.MergeNode;
-import io.crate.planner.node.PlanNode;
+import io.crate.planner.node.*;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.TopNProjection;
@@ -113,6 +110,7 @@ public class PlannerTest {
             TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, RowGranularity.DOC, shardRouting)
                     .add("name", DataType.STRING, null)
                     .add("id", DataType.LONG, null)
+                    .addPrimaryKey("id")
                     .build();
             when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
@@ -195,6 +193,29 @@ public class PlannerTest {
         assertThat(((InputColumn) topN.outputs().get(0)).index(), is(1));
         assertThat(topN.outputs().get(1), instanceOf(InputColumn.class));
         assertThat(((InputColumn) topN.outputs().get(1)).index(), is(0));
+
+        assertFalse(plan.expectsAffectedRows());
+    }
+
+    @Test
+    public void testGetPlan() throws Exception {
+        Plan plan = plan("select name from users where id = 1");
+        Iterator<PlanNode> iterator = plan.iterator();
+        ESGetNode node = (ESGetNode)iterator.next();
+        assertThat(node.index(), is("users"));
+        assertThat(node.ids().get(0), is("1"));
+        assertFalse(iterator.hasNext());
+        assertThat(node.outputs().size(), is(1));
+    }
+
+    @Test
+    public void testDeletePlan() throws Exception {
+        Plan plan = plan("delete from users where id = 1");
+        Iterator<PlanNode> iterator = plan.iterator();
+        ESDeleteNode node = (ESDeleteNode)iterator.next();
+        assertThat(node.index(), is("users"));
+        assertThat(node.id(), is("1"));
+        assertFalse(iterator.hasNext());
     }
 
     @Test
@@ -231,6 +252,8 @@ public class PlannerTest {
         assertThat(((InputColumn) topN.outputs().get(0)).index(), is(1));
         assertThat(topN.outputs().get(1), instanceOf(InputColumn.class));
         assertThat(((InputColumn) topN.outputs().get(1)).index(), is(0));
+
+        assertFalse(plan.expectsAffectedRows());
     }
 
     @Test
@@ -259,6 +282,8 @@ public class PlannerTest {
 
         PlanPrinter pp = new PlanPrinter();
         System.out.println(pp.print(plan));
+
+        assertFalse(plan.expectsAffectedRows());
     }
 
     @Test
@@ -279,6 +304,8 @@ public class PlannerTest {
         assertThat(((InputColumn) projection.outputs().get(1)).index(), is(0));
 
         assertFalse(iterator.hasNext());
+
+        assertFalse(plan.expectsAffectedRows());
     }
 
     @Test
@@ -307,6 +334,8 @@ public class PlannerTest {
 
         PlanPrinter pp = new PlanPrinter();
         System.out.println(pp.print(plan));
+
+        assertFalse(plan.expectsAffectedRows());
     }
 
     @Test
@@ -320,5 +349,7 @@ public class PlannerTest {
         assertThat(searchNode.outputTypes().size(), is(1));
         assertThat(searchNode.outputTypes().get(0), is(DataType.STRING));
         assertTrue(searchNode.whereClause().isPresent());
+
+        assertFalse(plan.expectsAffectedRows());
     }
 }

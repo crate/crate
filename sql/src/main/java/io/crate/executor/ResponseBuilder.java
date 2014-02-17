@@ -19,25 +19,10 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.operator;
+package io.crate.executor;
 
-import io.crate.metadata.FunctionInfo;
-import org.cratedb.DataType;
+import org.cratedb.action.sql.SQLResponse;
 
-public class LikeOperator extends CmpOperator {
-
-    public static final String NAME = "op_like";
-
-    public static void register(OperatorModule module) {
-        module.registerOperatorFunction(new LikeOperator(generateInfo(NAME, DataType.STRING)));
-    }
-
-    @Override
-    protected boolean compare(int comparisonResult) {
-        return comparisonResult == 0;
-    }
-
-    LikeOperator(FunctionInfo info) {
-        super(info);
-    }
+public interface ResponseBuilder {
+    public SQLResponse buildResponse(String[] outputNames, Object[][] rows, long requestStartedTime);
 }

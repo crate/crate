@@ -67,7 +67,6 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
         return null;
     }
 
-
     @Override
     protected Symbol visitFunctionCall(FunctionCall node, T context) {
         List<Symbol> arguments = new ArrayList<>(node.getArguments().size());
@@ -238,17 +237,88 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
     }
 
     @Override
-    public Symbol visitDelete(Delete node, T context) {
-        context.isDelete(true);
-
-        process(node.getTable(), context);
-
-        if (node.getWhere().isPresent()) {
-            Function function = (Function) process(node.getWhere().get(), context);
-            context.whereClause(function);
+    protected Symbol visitLikePredicate(LikePredicate node, T context) {
+        if (node.getEscape() != null) {
+            throw new UnsupportedOperationException("ESCAPE is not supported yet.");
         }
 
-        return null;
+        // add arguments
+        List<Symbol> arguments = new ArrayList<>(2);
+        arguments.add(process(node.getValue(), context));
+        arguments.add(process(node.getPattern(), context));
+
+        // resolve argument types
+        List<DataType> argumentTypes = new ArrayList<>(arguments.size());
+        argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(0), context));
+        argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(1), context));
+
+
+        FunctionInfo functionInfo = null;
+        try {
+            // be optimistic. try to look up LikeOperator.
+            FunctionIdent functionIdent = new FunctionIdent(LikeOperator.NAME, argumentTypes);
+            functionInfo = context.getFunctionInfo(functionIdent);
+        } catch (UnsupportedOperationException e1) {
+            // check pattern
+            if (!(arguments.get(1).symbolType().isLiteral())) {
+                throw new UnsupportedOperationException("<expression> LIKE <pattern>: pattern must not be a reference.");
+            }
+            try {
+                tryToCastImplicitly(arguments, argumentTypes, 1, DataType.STRING);
+            } catch (UnsupportedOperationException e2) {
+                throw new UnsupportedOperationException("<expression> LIKE <pattern>: pattern couldn't be implicitly casted to string. Try to explicitly cast to string.");
+            }
+
+            // check expression
+            if (argumentTypes.get(0) != DataType.STRING) {
+                try {
+                    tryToCastImplicitly(arguments, argumentTypes, 0, DataType.STRING);
+                } catch (UnsupportedOperationException e3) {
+                    throw new UnsupportedOperationException("<expression> LIKE <pattern>: expression couldn't be implicitly casted to string. Try to explicitly cast to string.");
+                }
+            }
+
+            FunctionIdent functionIdent = new FunctionIdent(LikeOperator.NAME, argumentTypes);
+            functionInfo = context.getFunctionInfo(functionIdent);
+        }
+
+        return context.allocateFunction(functionInfo, arguments);
     }
 
+    /**
+     * Checks if <code>arguments</code> at <code>index</code> is a literal and tries to cast it to given <code>DataType castTo</code>.
+     * If successful, the <code>arguments</code> and <code>argumentTypes</code> will be updated.
+     * @param arguments
+     * @param argumentTypes
+     * @param index
+     * @param castTo
+     * @throws UnsupportedOperationException
+     */
+    private void tryToCastImplicitly(List<Symbol> arguments, List<DataType> argumentTypes, int index, DataType castTo) throws UnsupportedOperationException {
+        if (arguments.get(index).symbolType().isLiteral()) {
+            Literal literal = ((Literal) arguments.get(index)).convertTo(castTo); // may throw UnsupportedOperationException.
+            arguments.set(index, literal);
+            argumentTypes.set(index, literal.valueType());
+        } else {
+            throw new UnsupportedOperationException("Symbol is not of type Literal");
+        }
+    }
+
+
+    @Override
+    protected Symbol visitIsNullPredicate(IsNullPredicate node, T context) {
+        ImmutableList<Symbol> arguments = ImmutableList.of(process(node.getValue(), context));
+        ImmutableList<DataType> argumentTypes =
+                ImmutableList.of(symbolDataTypeVisitor.process(arguments.get(0), context));
+
+        FunctionIdent functionIdent =
+                new FunctionIdent(io.crate.operator.predicate.IsNullPredicate.NAME, argumentTypes);
+        FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
+        return context.allocateFunction(functionInfo, arguments);
+    }
+
+    @Override
+    protected Symbol visitNullLiteral(NullLiteral node, T context) {
+        return Null.INSTANCE;
+    }
 }

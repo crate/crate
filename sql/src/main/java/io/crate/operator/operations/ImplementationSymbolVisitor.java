@@ -132,7 +132,8 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
             }
             return new FunctionExpression<>((Scalar<?>) functionImplementation, argumentInputs);
         } else {
-            throw new CrateException("Unknown Function");
+            throw new IllegalArgumentException(
+                    String.format("Cannot find implementation for function %s", function));
         }
     }
 

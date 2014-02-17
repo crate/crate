@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import com.carrotsearch.hppc.IntOpenHashSet;
+import com.carrotsearch.hppc.IntSet;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
@@ -40,8 +42,12 @@ public class InsertAnalysis extends Analysis {
     private List<List<Symbol>> values;
     private List<Reference> columns;
     private boolean visitingValues = false;
+    private IntSet primaryKeyColumnIndices = new IntOpenHashSet(); // optional
 
-    public InsertAnalysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters, ReferenceResolver referenceResolver) {
+    public InsertAnalysis(ReferenceInfos referenceInfos,
+                          Functions functions,
+                          Object[] parameters,
+                          ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameters, referenceResolver);
     }
 
@@ -92,4 +98,13 @@ public class InsertAnalysis extends Analysis {
     public void columns(List<Reference> columns) {
         this.columns = columns;
     }
+
+    public IntSet primaryKeyColumnIndices() {
+        return primaryKeyColumnIndices;
+    }
+
+    public void addPrimaryKeyColumnIdx(int primaryKeyColumnIdx) {
+        this.primaryKeyColumnIndices.add(primaryKeyColumnIdx);
+    }
+
 }

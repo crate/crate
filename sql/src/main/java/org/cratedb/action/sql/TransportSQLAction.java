@@ -21,21 +21,21 @@
 
 package org.cratedb.action.sql;
 
-import com.carrotsearch.hppc.IntArrayList;
-import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
+import io.crate.executor.AffectedRowsResponseBuilder;
 import io.crate.executor.Job;
+import io.crate.executor.ResponseBuilder;
+import io.crate.executor.RowsResponseBuilder;
 import io.crate.executor.transport.TransportExecutor;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
-import org.apache.lucene.util.BytesRef;
 import org.cratedb.Constants;
 import org.cratedb.action.DistributedSQLRequest;
 import org.cratedb.action.TransportDistributedSQLAction;
@@ -367,61 +367,48 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     }
 
     private void usePresto(final SQLRequest request, final ActionListener<SQLResponse> listener) {
-        final Statement statement = SqlParser.createStatement(request.stmt());
-        final Analysis analysis = analyzer.analyze(statement, request.args());
-        final Plan plan = planner.plan(analysis);
-        final Job job = transportExecutor.newJob(plan);
-        final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(transportExecutor.execute(job));
+        try {
+            final Statement statement = SqlParser.createStatement(request.stmt());
+            final Analysis analysis = analyzer.analyze(statement, request.args());
+            final Plan plan = planner.plan(analysis);
+            final Job job = transportExecutor.newJob(plan);
+            final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(transportExecutor.execute(job));
+            final ResponseBuilder responseBuilder = getResponseBuilder(plan);
+            Futures.addCallback(resultFuture, new FutureCallback<List<Object[][]>>() {
+                @Override
+                public void onSuccess(@Nullable List<Object[][]> result) {
+                    Object[][] rows;
+                    if (result == null) {
+                        rows = Constants.EMPTY_RESULT;
+                    } else {
+                        Preconditions.checkArgument(result.size() == 1);
+                        rows = result.get(0);
+                    }
 
-        Futures.addCallback(resultFuture, new FutureCallback<List<Object[][]>>() {
-            @Override
-            public void onSuccess(@Nullable List<Object[][]> result) {
-                Object[][] rows;
-                if (result == null) {
-                    rows = Constants.EMPTY_RESULT;
-                } else {
-                    Preconditions.checkArgument(result.size() == 1);
-                    rows = result.get(0);
-
-                    // TODO: only do conversion if the client requests it
-                    // ( add flag to SQLRequest to indicate if conversion is necessary )
-                    convertBytesRef(rows);
+                    SQLResponse response = responseBuilder.buildResponse(
+                            analysis.outputNames().toArray(new String[analysis.outputNames().size()]),
+                            rows,
+                            request.creationTime());
+                    listener.onResponse(response);
                 }
 
-                listener.onResponse(new SQLResponse(
-                        analysis.outputNames().toArray(new String[analysis.outputNames().size()]),
-                        rows,
-                        rows.length,
-                        request.creationTime()
-                ));
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                listener.onFailure(t);
-            }
-        });
-    }
-
-    private void convertBytesRef(Object[][] rows) {
-        if (rows.length == 0) {
-            return;
-        }
-
-        final IntArrayList stringColumns = new IntArrayList();
-        for (int c = 0; c < rows[0].length; c++) {
-            if (rows[0][c] instanceof BytesRef) { // TODO: once the analyzer sets the output types this can be optimized
-                stringColumns.add(c);
-            }
-        }
-
-        for (int r = 0; r < rows.length; r++) {
-            for (IntCursor stringColumn : stringColumns) {
-                rows[r][stringColumn.value] = ((BytesRef)rows[r][stringColumn.value]).utf8ToString();
-            }
+                @Override
+                public void onFailure(Throwable t) {
+                    listener.onFailure(t);
+                }
+            });
+        } catch (Exception e) {
+            listener.onFailure(ExceptionHelper.transformToCrateException(e));
         }
     }
 
+    private ResponseBuilder getResponseBuilder(Plan plan) {
+        if (plan.expectsAffectedRows()) {
+            return new AffectedRowsResponseBuilder();
+        } else {
+            return new RowsResponseBuilder(true);
+        }
+    }
 
     /**
      * for the migration from akiban to the presto based sql-parser

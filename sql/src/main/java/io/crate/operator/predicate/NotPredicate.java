@@ -19,10 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.operator;
+package io.crate.operator.predicate;
 
 import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
@@ -32,28 +33,19 @@ import org.cratedb.DataType;
 
 import java.util.Arrays;
 
-public class IsNullOperator extends Operator {
+public class NotPredicate implements FunctionImplementation<Function> {
 
-    public static final String NAME = "op_isnull";
-    private final FunctionInfo info;
+    public static final String NAME = "op_not";
+    public static final FunctionInfo INFO = new FunctionInfo(
+            new FunctionIdent(NAME, Arrays.asList(DataType.BOOLEAN)), DataType.BOOLEAN);
 
-    public static void register(OperatorModule module) {
-        for (DataType type : DataType.PRIMITIVE_TYPES) {
-            module.registerOperatorFunction(new IsNullOperator(generateInfo(type)));
-        }
-    }
-
-    private static FunctionInfo generateInfo(DataType type) {
-        return new FunctionInfo(new FunctionIdent(NAME, Arrays.asList(type)), DataType.BOOLEAN);
-    }
-
-    IsNullOperator(FunctionInfo info) {
-        this.info = info;
+    public static void register(PredicateModule module) {
+        module.registerPredicateFunction(new NotPredicate());
     }
 
     @Override
     public FunctionInfo info() {
-        return info;
+        return INFO;
     }
 
     @Override
@@ -62,10 +54,8 @@ public class IsNullOperator extends Operator {
         Preconditions.checkArgument(symbol.arguments().size() == 1);
 
         Symbol arg = symbol.arguments().get(0);
-        if (arg.symbolType() == SymbolType.NULL_LITERAL) {
-            return new BooleanLiteral(true);
-        } else if (arg.symbolType().isLiteral()) {
-            return new BooleanLiteral(false);
+        if (arg.symbolType() == SymbolType.BOOLEAN_LITERAL) {
+            return new BooleanLiteral(!((BooleanLiteral)arg).value());
         }
 
         return symbol;

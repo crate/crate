@@ -86,6 +86,15 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
             case 1:
                 ident = new ReferenceIdent(context.table().ident(), parts.get(0));
                 break;
+            case 2: // select mytable.col from mytable -> parts = [mytable, col]
+
+                // make sure tableName matches the tableInfo
+                // TODO: support select sys.cluster.name from sys.nodes ?
+                if (!context.table().ident().name().equals(parts.get(0))) {
+                    throw new UnsupportedOperationException("unsupported name reference: " + node);
+                }
+                ident = new ReferenceIdent(context.table().ident(), parts.get(1));
+                break;
             case 3:
                 ident = new ReferenceIdent(new TableIdent(parts.get(0), parts.get(1)), parts.get(2));
                 break;
@@ -114,17 +123,7 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
         }
 
         if (node.getWhere().isPresent()) {
-            Function whereClause = context.whereClause(process(node.getWhere().get(), context));
-            if (whereClause != null) {
-                PrimaryKeyVisitor.Context pkc = primaryKeyVisitor.process(context.table(), whereClause);
-                if (pkc != null) {
-                    if (pkc.noMatch()) {
-                        context.noMatch(pkc.noMatch());
-                    } else {
-                        context.primaryKeyLiterals(pkc.keyLiterals());
-                    }
-                }
-            }
+            processWhereClause(node.getWhere().get(), context);
         }
 
         process(node.getSelect(), context);
@@ -147,6 +146,33 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
             context.sortSymbols(sortSymbols);
         }
         return null;
+    }
+
+    @Override
+    public Symbol visitDelete(Delete node, SelectAnalysis context) {
+        context.isDelete(true);
+
+        process(node.getTable(), context);
+
+        if (node.getWhere().isPresent()) {
+            processWhereClause(node.getWhere().get(), context);
+        }
+
+        return null;
+    }
+
+    private void processWhereClause(Expression whereExpression, SelectAnalysis context) {
+        Function whereClause = context.whereClause(process(whereExpression, context));
+        if (whereClause != null) {
+            PrimaryKeyVisitor.Context pkc = primaryKeyVisitor.process(context.table(), whereClause);
+            if (pkc != null) {
+                if (pkc.noMatch()) {
+                    context.noMatch(pkc.noMatch());
+                } else {
+                    context.primaryKeyLiterals(pkc.keyLiterals());
+                }
+            }
+        }
     }
 
     private void analyzeGroupBy(List<Expression> groupByExpressions, SelectAnalysis context) {

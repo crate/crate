@@ -21,10 +21,10 @@
 
 package org.cratedb.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Timeout;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Ordering;
-import org.apache.lucene.util.BytesRef;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.*;
@@ -53,6 +53,7 @@ import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilde
 import static org.hamcrest.Matchers.*;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 2)
+@Timeout(millis = 20000)
 public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     private SQLResponse response;

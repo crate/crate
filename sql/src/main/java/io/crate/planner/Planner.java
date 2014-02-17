@@ -27,17 +27,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Analysis;
+import io.crate.analyze.InsertAnalysis;
+import io.crate.analyze.SelectAnalysis;
 import io.crate.planner.node.*;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
-import io.crate.analyze.InsertAnalysis;
-import io.crate.analyze.SelectAnalysis;
-import io.crate.planner.node.CollectNode;
-import io.crate.planner.node.ESSearchNode;
-import io.crate.planner.node.MergeNode;
-import io.crate.planner.node.PlanNode;
-import io.crate.planner.projection.*;
-import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
@@ -285,16 +279,56 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             } else {
                 if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal()) {
                     if (!analysis.isDelete()) {
-                        ESSearch(analysis, plan);
+                        if (analysis.primaryKeyLiterals() != null && !analysis.primaryKeyLiterals().isEmpty()) {
+                            ESGet(analysis, plan);
+                        } else {
+                            ESSearch(analysis, plan);
+                        }
                     } else {
-                        ESDeleteByQuery(analysis, plan);
+                        if (analysis.primaryKeyLiterals() != null && !analysis.primaryKeyLiterals().isEmpty()) {
+                            ESDelete(analysis, plan);
+                        } else {
+                            ESDeleteByQuery(analysis, plan);
+                        }
                     }
                 } else {
                     normalSelect(analysis, plan);
                 }
             }
         }
+        plan.expectsAffectedRows(false);
         return plan;
+    }
+
+    private void ESDelete(SelectAnalysis analysis, Plan plan) {
+        assert analysis.primaryKeyLiterals() != null;
+        if (analysis.primaryKeyLiterals().size() > 1) {
+            throw new UnsupportedOperationException("Multi column primary keys are currently not supported");
+        } else {
+            Literal literal = analysis.primaryKeyLiterals().get(0);
+            if (literal.symbolType() == SymbolType.SET_LITERAL) {
+                throw new UnsupportedOperationException("Don't know how to plan a multi delete yet");
+            } else {
+                plan.add(new ESDeleteNode(analysis.table().ident().name(), literal.value().toString()));
+            }
+        }
+    }
+
+    private void ESGet(SelectAnalysis analysis, Plan plan) {
+        assert analysis.primaryKeyLiterals() != null;
+
+        if (analysis.primaryKeyLiterals().size() > 1) {
+            throw new UnsupportedOperationException("Multi column primary keys are currently not supported");
+        } else {
+            Literal literal = analysis.primaryKeyLiterals().get(0);
+            if (literal.symbolType() == SymbolType.SET_LITERAL) {
+                throw new UnsupportedOperationException("Don't know how to plan a multi get yet");
+            } else {
+                ESGetNode getNode = new ESGetNode(analysis.table().ident().name(), literal.value().toString());
+                getNode.outputs(analysis.outputSymbols());
+                plan.add(getNode);
+            }
+        }
     }
 
     private void normalSelect(SelectAnalysis analysis, Plan plan) {
@@ -496,6 +530,9 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
     }
 
     private Plan planInsert(InsertAnalysis analysis) {
+        // only a reminder
+        // Plan plan = new Plan();
+        // plan.expectsAffectedRows(true);
         throw new UnsupportedOperationException("insert plan creation not implemented yet.");
 
     }

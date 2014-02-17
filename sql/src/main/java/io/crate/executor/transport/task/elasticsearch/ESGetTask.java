@@ -21,18 +21,20 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
 import io.crate.planner.node.ESGetNode;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolVisitor;
 import org.cratedb.Constants;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.get.GetRequest;
-import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.get.TransportGetAction;
+import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.get.*;
+import org.elasticsearch.action.support.TransportAction;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -41,39 +43,122 @@ public class ESGetTask implements Task<Object[][]> {
     private final static Visitor visitor = new Visitor();
 
     private final List<ListenableFuture<Object[][]>> results;
-    private final TransportGetAction transport;
-    private final GetRequest request;
-    private final ActionListener<GetResponse> listener;
+    private final TransportAction transportAction;
+    private final ActionRequest request;
+    private final ActionListener listener;
 
-    public ESGetTask(TransportGetAction transport, ESGetNode node) {
-        Preconditions.checkNotNull(transport);
-        Preconditions.checkNotNull(node);
-
-        this.transport = transport;
-
-        final SettableFuture<Object[][]> result = SettableFuture.create();
-        results = Arrays.<ListenableFuture<Object[][]>>asList(result);
+    public ESGetTask(TransportMultiGetAction multiGetAction, TransportGetAction getAction, ESGetNode node) {
+        assert multiGetAction != null;
+        assert getAction != null;
+        assert node != null;
+        assert node.ids().size() > 0;
 
         final Context ctx = new Context(node.outputs().size());
         for (Symbol symbol : node.outputs()) {
             visitor.process(symbol, ctx);
         }
 
-        request = new GetRequest(node.index(), Constants.DEFAULT_MAPPING_TYPE, node.id());
-        request.fields(ctx.fields);
-        request.realtime(true);
+        final FieldExtractor[] extractors = buildExtractors(ctx.fields);
+        final SettableFuture<Object[][]> result = SettableFuture.create();
+        results = Arrays.<ListenableFuture<Object[][]>>asList(result);
+        if (node.ids().size() > 1) {
+            MultiGetRequest multiGetRequest = new MultiGetRequest();
+            for (String id : node.ids()) {
+                MultiGetRequest.Item item = new MultiGetRequest.Item(node.index(), Constants.DEFAULT_MAPPING_TYPE, id);
+                item.fields(ctx.fields);
+                multiGetRequest.add(item);
+            }
+            multiGetRequest.realtime(true);
 
-        listener = new GetResponseListener(result, ctx);
+            transportAction = multiGetAction;
+            request = multiGetRequest;
+            listener = new MultiGetResponseListener(result, extractors);
+        } else {
+            GetRequest getRequest = new GetRequest(node.index(), Constants.DEFAULT_MAPPING_TYPE, node.ids().get(0));
+            getRequest.fields(ctx.fields);
+            getRequest.realtime(true);
+
+            transportAction = getAction;
+            request = getRequest;
+            listener = new GetResponseListener(result, extractors);
+        }
+    }
+
+    private FieldExtractor[] buildExtractors(String[] fields) {
+        FieldExtractor[] extractors = new FieldExtractor[fields.length];
+        int i = 0;
+        for (final String field : fields) {
+            if (field.equals("_version")) {
+                extractors[i] = new FieldExtractor() {
+                    @Override
+                    public Object extract(GetResponse response) {
+                        return response.getVersion();
+                    }
+                };
+            } else if (field.equals("_id")) {
+                extractors[i] = new FieldExtractor() {
+                    @Override
+                    public Object extract(GetResponse response) {
+                        return response.getId();
+                    }
+                };
+            } else {
+                extractors[i] = new FieldExtractor() {
+                    @Override
+                    public Object extract(GetResponse response) {
+                        return response.getField(field).getValue();
+                    }
+                };
+            }
+
+            i++;
+        }
+        return extractors;
+    }
+
+    static class MultiGetResponseListener implements ActionListener<MultiGetResponse> {
+
+        private final SettableFuture<Object[][]> result;
+        private final FieldExtractor[] fieldExtractor;
+
+        public MultiGetResponseListener(SettableFuture<Object[][]> result, FieldExtractor[] extractors) {
+            this.result = result;
+            this.fieldExtractor = extractors;
+        }
+
+        @Override
+        public void onResponse(MultiGetResponse responses) {
+            List<Object[]> rows = new ArrayList<>(responses.getResponses().length);
+            for (MultiGetItemResponse response : responses) {
+                if (response.isFailed()) {
+                    continue;
+                }
+                final Object[] row = new Object[fieldExtractor.length];
+                int c = 0;
+                for (FieldExtractor extractor : fieldExtractor) {
+                    row[c] = extractor.extract(response.getResponse());
+                    c++;
+                }
+                rows.add(row);
+            }
+
+            result.set(rows.toArray(new Object[rows.size()][]));
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            result.setException(e);
+        }
     }
 
     static class GetResponseListener implements ActionListener<GetResponse> {
 
         private final SettableFuture<Object[][]> result;
-        private final Context ctx;
+        private final FieldExtractor[] extractors;
 
-        public GetResponseListener(SettableFuture<Object[][]> result, Context ctx) {
+        public GetResponseListener(SettableFuture<Object[][]> result, FieldExtractor[] extractors) {
             this.result = result;
-            this.ctx = ctx;
+            this.extractors = extractors;
         }
 
         @Override
@@ -83,9 +168,9 @@ public class ESGetTask implements Task<Object[][]> {
                 return;
             }
 
-            Object[][] rows = new Object[1][ctx.fields.length];
+            final Object[][] rows = new Object[1][extractors.length];
             int c = 0;
-            for (String field : ctx.fields) {
+            for (FieldExtractor extractor : extractors) {
                 /**
                  * NOTE: mapping isn't applied. So if an Insert was done using the ES Rest Endpoint
                  * the data might be returned in the wrong format (date as string instead of long)
@@ -94,7 +179,7 @@ public class ESGetTask implements Task<Object[][]> {
                  * for the old logic
                  *
                  */
-                rows[0][c] = response.getField(field).getValue();
+                rows[0][c] = extractor.extract(response);
                 c++;
             }
 
@@ -108,8 +193,9 @@ public class ESGetTask implements Task<Object[][]> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void start() {
-        transport.execute(request, listener);
+        transportAction.execute(request, listener);
     }
 
     @Override
@@ -149,5 +235,9 @@ public class ESGetTask implements Task<Object[][]> {
         protected Void visitSymbol(Symbol symbol, Context context) {
             throw new UnsupportedOperationException();
         }
+    }
+
+    private interface FieldExtractor {
+        Object extract(GetResponse response);
     }
 }

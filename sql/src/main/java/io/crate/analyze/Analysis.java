@@ -4,7 +4,6 @@ import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
-import io.crate.sql.tree.Query;
 import org.elasticsearch.common.Preconditions;
 
 import javax.annotation.Nullable;
@@ -17,7 +16,6 @@ import java.util.*;
 public abstract class Analysis {
 
     private final EvaluatingNormalizer normalizer;
-    private Query query;
 
     public static enum Type {
         SELECT,

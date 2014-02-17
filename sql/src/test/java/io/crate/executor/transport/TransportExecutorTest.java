@@ -47,6 +47,7 @@ import org.junit.Test;
 
 import java.util.*;
 
+import static java.util.Arrays.*;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 
@@ -93,7 +94,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         CollectNode collectNode = new CollectNode("collect", routing);
         collectNode.toCollect(Arrays.<Symbol>asList(reference));
-        collectNode.outputTypes(Arrays.asList(load1.type()));
+        collectNode.outputTypes(asList(load1.type()));
         collectNode.maxRowGranularity(RowGranularity.NODE);
 
         Plan plan = new Plan();
@@ -116,8 +117,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Symbol reference = new Reference(clusterNameInfo);
 
         CollectNode collectNode = new CollectNode("lcollect", new Routing());
-        collectNode.toCollect(Arrays.asList(reference, new FloatLiteral(2.3f)));
-        collectNode.outputTypes(Arrays.asList(clusterNameInfo.type()));
+        collectNode.toCollect(asList(reference, new FloatLiteral(2.3f)));
+        collectNode.outputTypes(asList(clusterNameInfo.type()));
         collectNode.maxRowGranularity(RowGranularity.CLUSTER);
 
         Plan plan = new Plan();
@@ -149,6 +150,20 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat(objects.length, is(1));
         assertThat((Integer) objects[0][0], is(2));
         assertThat((String) objects[0][1], is("Ford"));
+    }
+
+    @Test
+    public void testESMultiGet() throws Exception {
+        insertCharacters();
+        ESGetNode node = new ESGetNode("characters", asList("1", "2"));
+        node.outputs(ImmutableList.<Symbol>of(id_ref, name_ref));
+        Plan plan = new Plan();
+        plan.add(node);
+        Job job = executor.newJob(plan);
+        List<ListenableFuture<Object[][]>> result = executor.execute(job);
+        Object[][] objects = result.get(0).get();
+
+        assertThat(objects.length, is(2));
     }
 
     @Test
@@ -185,7 +200,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         insertCharacters();
 
         Function whereClause = new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, Arrays.asList(DataType.STRING, DataType.STRING)),
+                new FunctionIdent(EqOperator.NAME, asList(DataType.STRING, DataType.STRING)),
                 DataType.BOOLEAN),
                 Arrays.<Symbol>asList(name_ref, new StringLiteral("Ford")));
 
@@ -214,7 +229,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         insertCharacters();
 
         Function whereClause = new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, Arrays.asList(DataType.STRING, DataType.STRING)),
+                new FunctionIdent(EqOperator.NAME, asList(DataType.STRING, DataType.STRING)),
                 DataType.BOOLEAN),
                 Arrays.<Symbol>asList(id_ref, new IntegerLiteral(2)));
 
@@ -271,4 +286,38 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     }
 
+    @Test
+    public void testESIndexTask() throws Exception {
+        insertCharacters();
+
+        ESIndexNode indexNode = new ESIndexNode("characters",
+                Arrays.asList(id_ref, name_ref),
+                Arrays.asList(Arrays.<Symbol>asList(
+                        new IntegerLiteral(99),
+                        new StringLiteral("Marvin")
+                )),
+                new int[]{0}
+        );
+        Plan plan = new Plan();
+        plan.add(indexNode);
+        Job job = executor.newJob(plan);
+        List<ListenableFuture<Object[][]>> result = executor.execute(job);
+        Object[][] rows = result.get(0).get();
+        assertThat(rows.length, is(1));
+        assertThat((Integer)rows[0][0], is(1));
+
+
+        // verify insertion
+        ESGetNode getNode = new ESGetNode("characters", "99");
+        getNode.outputs(ImmutableList.<Symbol>of(id_ref, name_ref));
+        plan = new Plan();
+        plan.add(getNode);
+        job = executor.newJob(plan);
+        result = executor.execute(job);
+        Object[][] objects = result.get(0).get();
+
+        assertThat(objects.length, is(1));
+        assertThat((Integer)objects[0][0], is(99));
+        assertThat((String)objects[0][1], is("Marvin"));
+    }
 }

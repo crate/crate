@@ -31,11 +31,9 @@ import java.util.*;
 
 public class GroupingProjector implements Projector {
 
-    private final Input[] keyInputs;
     private final CollectExpression[] collectExpressions;
 
-    private final Map<List<Object>, AggregationState[]> result;
-    private final AggregationCollector[] aggregationCollectors;
+    private final Grouper grouper;
 
     private Object[][] rows;
     private Projector downStream = null;
@@ -43,10 +41,9 @@ public class GroupingProjector implements Projector {
     public GroupingProjector(Input[] keyInputs,
                              CollectExpression[] collectExpressions,
                              AggregationContext[] aggregations) {
-        this.keyInputs = keyInputs;
         this.collectExpressions = collectExpressions;
 
-        this.aggregationCollectors = new AggregationCollector[aggregations.length];
+        AggregationCollector[] aggregationCollectors = new AggregationCollector[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
             aggregationCollectors[i] = new AggregationCollector(
                     aggregations[i].symbol(),
@@ -55,7 +52,11 @@ public class GroupingProjector implements Projector {
             );
         }
 
-        result = new HashMap<>();
+        if (keyInputs.length == 1) {
+            grouper = new SingleKeyGrouper(keyInputs, collectExpressions, aggregationCollectors);
+        } else {
+            grouper = new ManyKeyGrouper(keyInputs, collectExpressions, aggregationCollectors);
+        }
     }
 
     @Override
@@ -72,56 +73,12 @@ public class GroupingProjector implements Projector {
 
     @Override
     public synchronized boolean setNextRow(final Object... row) {
-        for (CollectExpression collectExpression : collectExpressions) {
-            collectExpression.setNextRow(row);
-        }
-
-        // TODO: use something with better equals() performance for the keys
-        List<Object> key = new ArrayList<>(keyInputs.length);
-        for (Input keyInput : keyInputs) {
-            key.add(keyInput.value());
-        }
-
-        AggregationState[] states = result.get(key);
-        if (states == null) {
-            states = new AggregationState[aggregationCollectors.length];
-            for (int i = 0; i < aggregationCollectors.length; i++) {
-                aggregationCollectors[i].startCollect();
-                aggregationCollectors[i].processRow();
-                states[i] = aggregationCollectors[i].state();
-            }
-            result.put(key, states);
-        } else {
-            for (int i = 0; i < aggregationCollectors.length; i++) {
-                aggregationCollectors[i].state(states[i]);
-                aggregationCollectors[i].processRow();
-            }
-        }
-
-        return true;
+        return grouper.setNextRow(row);
     }
 
     @Override
     public void finishProjection() {
-        rows = new Object[result.size()][keyInputs.length + aggregationCollectors.length];
-        boolean sendToDownStream = downStream != null;
-        if (sendToDownStream) {
-            downStream.startProjection();
-        }
-
-        int r = 0;
-        for (Map.Entry<List<Object>, AggregationState[]> entry : result.entrySet()) {
-            Object[] row = rows[r];
-            transformToRow(entry, row, aggregationCollectors);
-            if (sendToDownStream) {
-                sendToDownStream = downStream.setNextRow(row);
-            }
-            r++;
-        }
-
-        if (downStream != null) {
-            downStream.finishProjection();
-        }
+        rows = grouper.finish();
     }
 
     /**
@@ -148,6 +105,20 @@ public class GroupingProjector implements Projector {
         }
     }
 
+    private static void singleTransformToRow(Map.Entry<Object, AggregationState[]> entry,
+                                       Object[] row,
+                                       AggregationCollector[] aggregationCollectors) {
+        int c = 0;
+        row[c] = entry.getKey();
+        c++;
+        AggregationState[] aggregationStates = entry.getValue();
+        for (int i = 0; i < aggregationStates.length; i++) {
+            aggregationCollectors[i].state(aggregationStates[i]);
+            row[c] = aggregationCollectors[i].finishCollect();
+            c++;
+        }
+    }
+
     @Override
     public Object[][] getRows() throws IllegalStateException {
         return rows;
@@ -155,19 +126,210 @@ public class GroupingProjector implements Projector {
 
     @Override
     public Iterator<Object[]> iterator() {
-        return new EntryToRowIterator(
-            result.entrySet().iterator(),
-            keyInputs.length + aggregationCollectors.length,
-            aggregationCollectors);
+        return grouper.iterator();
     }
 
-    private static class EntryToRowIterator implements Iterator<Object[]> {
+    private interface Grouper {
+        boolean setNextRow(final Object... row);
+        Object[][] finish();
+        Iterator<Object[]> iterator();
+    }
+
+    private class SingleKeyGrouper implements Grouper {
+
+        private final Map<Object, AggregationState[]> result;
+        private final CollectExpression[] collectExpressions;
+        private final AggregationCollector[] aggregationCollectors;
+        private final Input keyInput;
+
+        public SingleKeyGrouper(Input[] keyInputs,
+                                CollectExpression[] collectExpressions,
+                                AggregationCollector[] aggregationCollectors) {
+            this.result = new HashMap<>();
+            this.keyInput = keyInputs[0];
+            this.collectExpressions = collectExpressions;
+            this.aggregationCollectors = aggregationCollectors;
+        }
+
+        @Override
+        public boolean setNextRow(Object... row) {
+            for (CollectExpression collectExpression : collectExpressions) {
+                collectExpression.setNextRow(row);
+            }
+
+            Object key = keyInput.value();
+            AggregationState[] states = result.get(key);
+            if (states == null) {
+                states = new AggregationState[aggregationCollectors.length];
+                for (int i = 0; i < aggregationCollectors.length; i++) {
+                    aggregationCollectors[i].startCollect();
+                    aggregationCollectors[i].processRow();
+                    states[i] = aggregationCollectors[i].state();
+                }
+                result.put(key, states);
+            } else {
+                for (int i = 0; i < aggregationCollectors.length; i++) {
+                    aggregationCollectors[i].state(states[i]);
+                    aggregationCollectors[i].processRow();
+                }
+            }
+
+            return true;
+        }
+
+        @Override
+        public Object[][] finish() {
+            Object[][] rows = new Object[result.size()][1 + aggregationCollectors.length];
+            boolean sendToDownStream = downStream != null;
+            if (sendToDownStream) {
+                downStream.startProjection();
+            }
+
+            int r = 0;
+            for (Map.Entry<Object, AggregationState[]> entry : result.entrySet()) {
+                Object[] row = rows[r];
+                singleTransformToRow(entry, row, aggregationCollectors);
+                if (sendToDownStream) {
+                    sendToDownStream = downStream.setNextRow(row);
+                }
+                r++;
+            }
+
+            if (downStream != null) {
+                downStream.finishProjection();
+            }
+
+            return rows;
+        }
+
+        @Override
+        public Iterator<Object[]> iterator() {
+            return new SingleEntryToRowIterator(
+                    result.entrySet().iterator(), aggregationCollectors.length + 1, aggregationCollectors);
+        }
+    }
+
+    private class ManyKeyGrouper implements Grouper {
+
+        private final AggregationCollector[] aggregationCollectors;
+        private final Map<List<Object>, AggregationState[]> result;
+        private final CollectExpression[] collectExpressions;
+        private final Input[] keyInputs;
+
+        public ManyKeyGrouper(Input[] keyInputs,
+                              CollectExpression[] collectExpressions,
+                              AggregationCollector[] aggregationCollectors) {
+            this.result = new HashMap<>();
+            this.collectExpressions = collectExpressions;
+            this.keyInputs = keyInputs;
+            this.aggregationCollectors = aggregationCollectors;
+        }
+
+        @Override
+        public boolean setNextRow(Object... row) {
+            for (CollectExpression collectExpression : collectExpressions) {
+                collectExpression.setNextRow(row);
+            }
+
+            // TODO: use something with better equals() performance for the keys
+            List<Object> key = new ArrayList<>(keyInputs.length);
+            for (Input keyInput : keyInputs) {
+                key.add(keyInput.value());
+            }
+
+            AggregationState[] states = result.get(key);
+            if (states == null) {
+                states = new AggregationState[aggregationCollectors.length];
+                for (int i = 0; i < aggregationCollectors.length; i++) {
+                    aggregationCollectors[i].startCollect();
+                    aggregationCollectors[i].processRow();
+                    states[i] = aggregationCollectors[i].state();
+                }
+                result.put(key, states);
+            } else {
+                for (int i = 0; i < aggregationCollectors.length; i++) {
+                    aggregationCollectors[i].state(states[i]);
+                    aggregationCollectors[i].processRow();
+                }
+            }
+
+            return true;
+        }
+
+        @Override
+        public Object[][] finish() {
+            Object[][] rows = new Object[result.size()][keyInputs.length + aggregationCollectors.length];
+            boolean sendToDownStream = downStream != null;
+            if (sendToDownStream) {
+                downStream.startProjection();
+            }
+
+            int r = 0;
+            for (Map.Entry<List<Object>, AggregationState[]> entry : result.entrySet()) {
+                Object[] row = rows[r];
+                transformToRow(entry, row, aggregationCollectors);
+                if (sendToDownStream) {
+                    sendToDownStream = downStream.setNextRow(row);
+                }
+                r++;
+            }
+
+            if (downStream != null) {
+                downStream.finishProjection();
+            }
+
+            return rows;
+        }
+
+        @Override
+        public Iterator<Object[]> iterator() {
+            return new MultiEntryToRowIterator(
+                    result.entrySet().iterator(),
+                    keyInputs.length + aggregationCollectors.length,
+                    aggregationCollectors);
+        }
+    }
+
+
+    private static class SingleEntryToRowIterator implements Iterator<Object[]> {
+
+        private final Iterator<Map.Entry<Object, AggregationState[]>> iter;
+        private final int rowLength;
+        private final AggregationCollector[] aggregationCollectors;
+
+        private SingleEntryToRowIterator(Iterator<Map.Entry<Object, AggregationState[]>> iter,
+                                   int rowLength, AggregationCollector[] aggregationCollectors) {
+            this.iter = iter;
+            this.rowLength = rowLength;
+            this.aggregationCollectors = aggregationCollectors;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return iter.hasNext();
+        }
+
+        @Override
+        public Object[] next() {
+            Map.Entry<Object, AggregationState[]> entry = iter.next();
+            Object[] row = new Object[rowLength];
+            singleTransformToRow(entry, row, aggregationCollectors);
+            return row;
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("remove not supported");
+        }
+    }
+
+    private static class MultiEntryToRowIterator implements Iterator<Object[]> {
 
         private final Iterator<Map.Entry<List<Object>, AggregationState[]>> iter;
         private final int rowLength;
         private final AggregationCollector[] aggregationCollectors;
 
-        private EntryToRowIterator(Iterator<Map.Entry<List<Object>, AggregationState[]>> iter,
+        private MultiEntryToRowIterator(Iterator<Map.Entry<List<Object>, AggregationState[]>> iter,
                                    int rowLength, AggregationCollector[] aggregationCollectors) {
             this.iter = iter;
             this.rowLength = rowLength;

@@ -21,6 +21,7 @@
 
 package org.cratedb.sql;
 
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import org.cratedb.Constants;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.search.ReduceSearchPhaseException;
@@ -43,7 +44,7 @@ public class ExceptionHelper {
      * @return
      */
     public static Throwable transformToCrateException(Throwable e) {
-        if (e instanceof RemoteTransportException) {
+        if (e instanceof RemoteTransportException || e instanceof UncheckedExecutionException) {
             // if its a transport exception get the real cause throwable
             e = e.getCause();
         }
