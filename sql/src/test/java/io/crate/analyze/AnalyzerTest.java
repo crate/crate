@@ -819,7 +819,7 @@ public class AnalyzerTest {
         assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
         assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
         StringLiteral stringLiteral = (StringLiteral) whereClause.arguments().get(1);
-        assertThat(stringLiteral.value(), is("foo"));
+        assertThat(stringLiteral.value(), is(new BytesRef(("foo"))));
     }
 
     @Test(expected = UnsupportedOperationException.class) // ESCAPE is not supported yet.
@@ -837,7 +837,7 @@ public class AnalyzerTest {
         assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
         assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
         StringLiteral stringLiteral = (StringLiteral) whereClause.arguments().get(1);
-        assertThat(stringLiteral.value(), is("1"));
+        assertThat(stringLiteral.value(), is(new BytesRef("1")));
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -859,8 +859,8 @@ public class AnalyzerTest {
         assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
         StringLiteral expressionLiteral = (StringLiteral) function.arguments().get(0);
         StringLiteral patternLiteral = (StringLiteral) function.arguments().get(1);
-        assertThat(expressionLiteral.value(), is("1"));
-        assertThat(patternLiteral.value(), is("2"));
+        assertThat(expressionLiteral.value(), is(new BytesRef("1")));
+        assertThat(patternLiteral.value(), is(new BytesRef("2")));
     }
 
     @Test
