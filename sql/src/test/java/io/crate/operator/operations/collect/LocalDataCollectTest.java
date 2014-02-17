@@ -327,14 +327,14 @@ public class LocalDataCollectTest {
 
     @Test
     public void testUnknownFunction() throws Exception {
-
-        expectedException.expect(CrateException.class);
-        expectedException.expectMessage("Unknown Function");
+        // will be wrapped somewhere above
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot find implementation for function unknown()");
 
         CollectNode collectNode = new CollectNode("unknownFunction", testRouting);
         Function unknownFunction = new Function(
                 new FunctionInfo(
-                        new FunctionIdent("", ImmutableList.<DataType>of()),
+                        new FunctionIdent("unknown", ImmutableList.<DataType>of()),
                         DataType.BOOLEAN,
                         false
                 ),

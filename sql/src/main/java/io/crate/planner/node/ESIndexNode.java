@@ -26,6 +26,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -36,6 +37,7 @@ import java.util.Set;
 
 public class ESIndexNode extends PlanNode {
 
+    private static final List<DataType> OUTPUT_TYPES = ImmutableList.of(DataType.LONG);
     private String index;
 
     private List<Reference> columns;
@@ -91,5 +93,10 @@ public class ESIndexNode extends PlanNode {
 
     public boolean hasPrimaryKey() {
         return primaryKeyIndices.length > 0;
+    }
+
+    @Override
+    public List<DataType> outputTypes() {
+        return OUTPUT_TYPES;
     }
 }

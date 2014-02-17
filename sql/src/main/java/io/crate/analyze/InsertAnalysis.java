@@ -30,10 +30,14 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.ValueSymbol;
 import io.crate.sql.tree.Insert;
+import org.cratedb.DataType;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class InsertAnalysis extends Analysis {
@@ -82,9 +86,49 @@ public class InsertAnalysis extends Analysis {
         this.insertStatement = insertStatement;
     }
 
+    public void allocateValues() {
+        this.values = new ArrayList<>();
+    }
 
-    public void values(List<List<Symbol>> values) {
-        this.values = values;
+    public void allocateValues(int numValues) {
+        this.values = new ArrayList<>(numValues);
+    }
+
+    /**
+     * normalize and validate given value according to expected type
+     * @param value the value to normalize, might be anything from {@link io.crate.metadata.Scalar} to {@link io.crate.planner.symbol.Literal}
+     * @param expectedType the expected {@link org.cratedb.DataType} for the given value
+     * @return the normalized Symbol, should be a literal
+     * @throws IllegalArgumentException
+     */
+    public Literal normalizeValue(Symbol value, DataType expectedType) throws IllegalArgumentException {
+        Literal normalized;
+        try {
+            // everything that is allowed in insert statements should evaluate to Literal
+            normalized = (Literal)normalizer.process(value, null);
+        } catch (ClassCastException e) {
+            throw new IllegalArgumentException(String.format("invalid symbol '%s'", value.symbolType().name()));
+        }
+        try {
+            normalized = ((Literal) normalized).convertTo(expectedType);
+        } catch (Exception e) {  // UnsupportedOperationException, NumberFormatException ...
+            throw new IllegalArgumentException(String.format("wrong type '%s'. expected: '%s'",
+                    ((ValueSymbol) normalized).valueType().getName(),
+                    expectedType.getName()));
+        }
+
+        return normalized;
+    }
+
+    public void addValues(List<Symbol> values) {
+        if (this.values == null) {
+            allocateValues();
+        }
+        for (Symbol s : values) {
+            s = normalizer.process(s, null);
+        }
+        this.values.add(values);
+
     }
 
     public List<List<Symbol>> values() {

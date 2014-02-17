@@ -22,6 +22,8 @@ import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.LongLiteral;
+import io.crate.planner.symbol.StringLiteral;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import org.cratedb.DataType;
@@ -36,7 +38,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static junit.framework.Assert.assertTrue;
-import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
@@ -351,5 +353,52 @@ public class PlannerTest {
         assertTrue(searchNode.whereClause().isPresent());
 
         assertFalse(plan.expectsAffectedRows());
+    }
+
+    @Test
+    public void testESIndexPlan() throws Exception {
+        Plan plan = plan("insert into users (id, name) values (42, 'Deep Thought')");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(ESIndexNode.class));
+
+        ESIndexNode indexNode = (ESIndexNode) planNode;
+        assertThat(indexNode.columns().size(), is(2));
+        assertThat(indexNode.columns().get(0).valueType(), is(DataType.LONG));
+        assertThat(indexNode.columns().get(0).info().ident().columnIdent().name(), is("id"));
+
+        assertThat(indexNode.columns().get(1).valueType(), is(DataType.STRING));
+        assertThat(indexNode.columns().get(1).info().ident().columnIdent().name(), is("name"));
+
+        assertThat(indexNode.valuesLists().size(), is(1));
+        assertThat(((LongLiteral)indexNode.valuesLists().get(0).get(0)).value(), is(42l));
+        assertThat(((StringLiteral)indexNode.valuesLists().get(0).get(1)).value().utf8ToString(), is("Deep Thought"));
+
+        assertThat(indexNode.outputTypes().size(), is(1));
+        assertThat(indexNode.outputTypes().get(0), is(DataType.LONG));
+
+        assertTrue(plan.expectsAffectedRows());
+    }
+
+    @Test
+    public void testESIndexPlanMultipleValues() throws Exception {
+        Plan plan = plan("insert into users (id, name) values (42, 'Deep Thought'), (99, 'Marvin')");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(ESIndexNode.class));
+
+        ESIndexNode indexNode = (ESIndexNode) planNode;
+
+        assertThat(indexNode.valuesLists().size(), is(2));
+        assertThat(((LongLiteral)indexNode.valuesLists().get(0).get(0)).value(), is(42l));
+        assertThat(((StringLiteral)indexNode.valuesLists().get(0).get(1)).value().utf8ToString(), is("Deep Thought"));
+
+        assertThat(((LongLiteral)indexNode.valuesLists().get(1).get(0)).value(), is(99l));
+        assertThat(((StringLiteral)indexNode.valuesLists().get(1).get(1)).value().utf8ToString(), is("Marvin"));
+
+        assertThat(indexNode.outputTypes().size(), is(1));
+        assertThat(indexNode.outputTypes().get(0), is(DataType.LONG));
+
+        assertTrue(plan.expectsAffectedRows());
     }
 }

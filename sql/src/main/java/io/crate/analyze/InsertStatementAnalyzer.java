@@ -24,7 +24,6 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.ValueSymbol;
@@ -65,7 +64,7 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
             context.columns(new ArrayList<Reference>(node.columns().size()));
         }
 
-        context.values(new ArrayList<List<Symbol>>(node.valuesLists().size()));
+        context.allocateValues(node.valuesLists().size());
 
         for (QualifiedNameReference column : node.columns()) {
             process(column, context);
@@ -119,24 +118,11 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
             assert valuesSymbol instanceof ValueSymbol;
 
             // implicit type conversion
-            boolean wrongType = false;
             DataType expectedType = context.columns().get(i).valueType();
-            if (valuesSymbol instanceof Literal) {
-                try {
-                    valuesSymbol = ((Literal) valuesSymbol).convertTo(expectedType);
-                } catch (Exception e) {  // UnsupportedOperationException, NumberFormatException ...
-                    wrongType = true;
-
-                }
-            } else if (((ValueSymbol)valuesSymbol).valueType() != expectedType) {
-                wrongType = true;
-            }
-
-            if (wrongType) {
-                throw new CrateException(String.format("Invalid type '%s' at value idx %d. expected '%s'",
-                        ((ValueSymbol)valuesSymbol).valueType().getName(),
-                        i,
-                        expectedType.getName()));
+            try {
+                valuesSymbol = context.normalizeValue(valuesSymbol, expectedType);
+            } catch (IllegalArgumentException e) {
+                throw new CrateException(e.getMessage(), e);
             }
             symbols.add(valuesSymbol);
             i++;

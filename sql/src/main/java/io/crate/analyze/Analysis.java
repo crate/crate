@@ -1,5 +1,6 @@
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
@@ -15,7 +16,7 @@ import java.util.*;
  */
 public abstract class Analysis {
 
-    private final EvaluatingNormalizer normalizer;
+    protected final EvaluatingNormalizer normalizer;
 
     public static enum Type {
         SELECT,
@@ -33,8 +34,8 @@ public abstract class Analysis {
 
     protected Map<ReferenceIdent, Reference> referenceSymbols = new IdentityHashMap<>();
 
-    private List<String> outputNames;
-    private List<Symbol> outputSymbols;
+    private List<String> outputNames = ImmutableList.of();
+    private List<Symbol> outputSymbols = ImmutableList.of();
 
     protected boolean noMatch = false;
     protected List<Literal> primaryKeyLiterals;

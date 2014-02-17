@@ -25,7 +25,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.Job;
+import io.crate.executor.transport.task.elasticsearch.ESBulkIndexTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
+import io.crate.executor.transport.task.elasticsearch.ESIndexTask;
 import io.crate.executor.transport.task.elasticsearch.ESSearchTask;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysClusterTableInfo;
@@ -47,7 +49,8 @@ import org.junit.Test;
 
 import java.util.*;
 
-import static java.util.Arrays.*;
+import static java.util.Arrays.asList;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 
@@ -301,10 +304,12 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Plan plan = new Plan();
         plan.add(indexNode);
         Job job = executor.newJob(plan);
+        assertThat(job.tasks().get(0), instanceOf(ESIndexTask.class));
+
         List<ListenableFuture<Object[][]>> result = executor.execute(job);
         Object[][] rows = result.get(0).get();
         assertThat(rows.length, is(1));
-        assertThat((Integer)rows[0][0], is(1));
+        assertThat((Long)rows[0][0], is(1l));
 
 
         // verify insertion
@@ -319,5 +324,51 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat(objects.length, is(1));
         assertThat((Integer)objects[0][0], is(99));
         assertThat((String)objects[0][1], is("Marvin"));
+    }
+
+    @Test
+    public void testESBulkInsertTask() throws Exception {
+        insertCharacters();
+
+        ESIndexNode indexNode = new ESIndexNode("characters",
+                Arrays.asList(id_ref, name_ref),
+                Arrays.asList(
+                        Arrays.<Symbol>asList(
+                                new IntegerLiteral(99),
+                                new StringLiteral("Marvin")
+                        ),
+                        Arrays.<Symbol>asList(
+                                new IntegerLiteral(42),
+                                new StringLiteral("Deep Thought")
+                        )
+                ),
+                new int[]{0}
+        );
+        Plan plan = new Plan();
+        plan.add(indexNode);
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().get(0), instanceOf(ESBulkIndexTask.class));
+
+        List<ListenableFuture<Object[][]>> result = executor.execute(job);
+        Object[][] rows = result.get(0).get();
+        assertThat(rows.length, is(1));
+        assertThat((Long)rows[0][0], is(2l));
+
+        // verify insertion
+
+        ESGetNode getNode = new ESGetNode("characters", Arrays.asList("99", "42"));
+        getNode.outputs(ImmutableList.<Symbol>of(id_ref, name_ref));
+        plan = new Plan();
+        plan.add(getNode);
+        job = executor.newJob(plan);
+        result = executor.execute(job);
+        Object[][] objects = result.get(0).get();
+
+        assertThat(objects.length, is(2));
+        assertThat((Integer)objects[0][0], is(99));
+        assertThat((String)objects[0][1], is("Marvin"));
+
+        assertThat((Integer)objects[1][0], is(42));
+        assertThat((String)objects[1][1], is("Deep Thought"));
     }
 }

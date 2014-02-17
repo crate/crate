@@ -1295,7 +1295,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test (expected = DuplicateKeyException.class)
-    public void testInsertWithUniqueContraintViolation() throws Exception {
+    public void testInsertWithUniqueConstraintViolation() throws Exception {
         createTestIndexWithPkMapping();
 
         Object[] args = new Object[] {
@@ -1353,7 +1353,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("insert into test (message) values (?)", args);
     }
 
-    @Test (expected = SQLParseException.class)
+    @Test (expected = CrateException.class)
     public void testInsertWithPKMissingOnInsert() throws Exception {
         createTestIndexWithPkMapping();
 

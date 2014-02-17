@@ -510,6 +510,22 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
 
     @Test
+    public void testInsertMultipleValues() throws Exception {
+        InsertAnalysis analysis = (InsertAnalysis)analyze(
+                "insert into users (id, name, awesome) values (?, ?, ?), (?, ?, ?)",
+                new Object[]{ 99, "Marvin", true, 42, "Deep Thought", false });
+        assertThat(analysis.values().size(), is(2));
+
+        assertThat(((LongLiteral)analysis.values().get(0).get(0)).value(), is(99l));
+        assertThat(((StringLiteral)analysis.values().get(0).get(1)).value().utf8ToString(), is("Marvin"));
+        assertThat(((BooleanLiteral)analysis.values().get(0).get(2)).value(), is(true));
+
+        assertThat(((LongLiteral)analysis.values().get(1).get(0)).value(), is(42l));
+        assertThat(((StringLiteral)analysis.values().get(1).get(1)).value().utf8ToString(), is("Deep Thought"));
+        assertThat(((BooleanLiteral)analysis.values().get(1).get(2)).value(), is(false));
+    }
+
+    @Test
     public void testSelectWithObjectLiteral() throws Exception {
         Map<String, Object> map = new HashMap<>();
         map.put("1", 1.0);

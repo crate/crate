@@ -38,6 +38,7 @@ import io.crate.operator.operations.collect.LocalDataCollectOperation;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.*;
+import org.elasticsearch.action.bulk.TransportBulkAction;
 import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
 import org.elasticsearch.action.get.TransportGetAction;
@@ -64,6 +65,7 @@ public class TransportExecutor implements Executor {
     private final TransportDeleteByQueryAction transportDeleteByQueryAction;
     private final TransportDeleteAction transportDeleteAction;
     private final TransportIndexAction transportIndexAction;
+    private final TransportBulkAction transportBulkAction;
 
     private final LocalDataCollectOperation localDataCollectOperation;
 
@@ -79,6 +81,7 @@ public class TransportExecutor implements Executor {
                              Functions functions,
                              ReferenceResolver referenceResolver,
                              TransportIndexAction transportIndexAction,
+                             TransportBulkAction transportBulkAction,
                              LocalDataCollectOperation localCollectOperation) {
         this.transportGetAction = transportGetAction;
         this.transportMultiGetAction = transportMultiGetAction;
@@ -88,6 +91,7 @@ public class TransportExecutor implements Executor {
         this.transportDeleteByQueryAction = transportDeleteByQueryAction;
         this.transportDeleteAction = transportDeleteAction;
         this.transportIndexAction = transportIndexAction;
+        this.transportBulkAction = transportBulkAction;
 
         this.localDataCollectOperation = localCollectOperation;
 
@@ -178,7 +182,11 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Void visitESIndexNode(ESIndexNode node, Job context) {
-            context.addTask(new ESIndexTask(transportIndexAction, node, functions, referenceResolver));
+            if (node.valuesLists().size() > 1) {
+                context.addTask(new ESBulkIndexTask(transportBulkAction, node));
+            } else {
+                context.addTask(new ESIndexTask(transportIndexAction, node));
+            }
             return null;
         }
 

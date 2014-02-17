@@ -32,6 +32,7 @@ import io.crate.operator.Input;
 import io.crate.operator.reference.sys.cluster.SysClusterExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.LongLiteral;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.parser.SqlParser;
 import org.apache.lucene.util.BytesRef;
@@ -112,6 +113,9 @@ public class BaseAnalyzerTest {
 
         @Override
         public Symbol normalizeSymbol(Function symbol) {
+            if (symbol.arguments().get(0) instanceof Input) {
+                return new LongLiteral(evaluate((Input<?>)symbol.arguments().get(0)));
+            }
             return symbol;
         }
     }
