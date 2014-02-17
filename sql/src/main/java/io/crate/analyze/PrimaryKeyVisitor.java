@@ -80,7 +80,8 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         if (symbol.info().ident().equals(OrOperator.INFO.ident())) {
             return null;
         }
-        if (symbol.arguments().get(0).symbolType() == SymbolType.REFERENCE &&
+        if (symbol.arguments().size() == 2 &&
+                symbol.arguments().get(0).symbolType() == SymbolType.REFERENCE &&
                 symbol.arguments().get(1).symbolType().isLiteral() &&
                 PK_COMPARISONS.contains(symbol.info().ident().name())) {
 
