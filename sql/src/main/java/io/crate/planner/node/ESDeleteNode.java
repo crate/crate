@@ -21,6 +21,7 @@
 
 package io.crate.planner.node;
 
+import com.google.common.base.Optional;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -31,10 +32,12 @@ public class ESDeleteNode extends PlanNode {
 
     private String index;
     private String id;
+    private Optional<Long> version;
 
-    public ESDeleteNode(String index, String id) {
+    public ESDeleteNode(String index, String id, Optional<Long> version) {
         this.index = index;
         this.id = id;
+        this.version = version;
     }
 
     public String index() {
@@ -57,15 +60,15 @@ public class ESDeleteNode extends PlanNode {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        id = in.readString();
-        index = in.readString();
+        throw new UnsupportedOperationException("Must not serialize ESDeleteNodes");
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeString(id);
-        out.writeString(index);
+        throw new UnsupportedOperationException("Must not serialize ESDeleteNodes");
+    }
+
+    public Optional<Long> version() {
+        return version;
     }
 }

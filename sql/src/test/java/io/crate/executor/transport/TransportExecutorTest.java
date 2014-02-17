@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -244,7 +245,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         task.start();
         Object[][] rows = task.result().get(0).get();
-        assertThat(rows.length, is(0));
+        assertThat(rows.length, is(1));
+        assertThat((Long)rows[0][0], is(-1L));
 
         // verify deletion
         ESSearchNode searchNode = new ESSearchNode(
@@ -268,13 +270,14 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     public void testESDeleteTask() throws Exception {
         insertCharacters();
 
-        ESDeleteNode node = new ESDeleteNode("characters", "2");
+        ESDeleteNode node = new ESDeleteNode("characters", "2", Optional.<Long>absent());
         Plan plan = new Plan();
         plan.add(node);
         Job job = executor.newJob(plan);
         List<ListenableFuture<Object[][]>> result = executor.execute(job);
         Object[][] rows = result.get(0).get();
-        assertThat(rows.length, is(0));
+        assertThat(rows.length, is(1)); // contains rowcount in first row
+        assertThat((Long)rows[0][0], is(1L));
 
         // verify deletion
         ESGetNode getNode = new ESGetNode("characters", "2");

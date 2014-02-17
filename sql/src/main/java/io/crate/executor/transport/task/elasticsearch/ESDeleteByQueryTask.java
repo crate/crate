@@ -72,7 +72,7 @@ public class ESDeleteByQueryTask implements Task<Object[][]> {
             transportDeleteByQueryAction.execute(request, new ActionListener<DeleteByQueryResponse>() {
                 @Override
                 public void onResponse(DeleteByQueryResponse deleteByQueryResponses) {
-                    result.set(new Object[0][0]);
+                    result.set(new Object[][] { new Object[] { -1L }});
                 }
 
                 @Override

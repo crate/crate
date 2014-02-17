@@ -188,7 +188,7 @@ public class DocIndexMetaData {
         if (metaMap != null) {
             return ImmutableList.of((String) metaMap.get("primary_keys"));
         }
-        return ImmutableList.of();
+        return ImmutableList.of("_id");
     }
 
     private void createColumnDefinitions() {

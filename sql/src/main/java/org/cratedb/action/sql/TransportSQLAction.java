@@ -431,16 +431,9 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
         final AtomicReference<Boolean> isPresto = new AtomicReference<>(false);
 
-        // use presto for DeleteByQuery request (DISABLED)
-        // TODO: enable if all needed system columns (_id + _version) and all needed operators (IN) are implemented
-        /*
         if (node.getNodeType() == NodeType.DELETE_NODE) {
-            DeleteNode deleteNode = (DeleteNode)node;
-            if (((SelectNode)deleteNode.getResultSetNode()).getWhereClause() != null) {
-                return null;
-            }
+            return null;
         }
-        */
 
         Visitor visitor = new Visitor() {
             @Override
