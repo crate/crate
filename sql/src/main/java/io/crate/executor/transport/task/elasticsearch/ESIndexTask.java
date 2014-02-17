@@ -32,6 +32,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.ESIndexNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.Constants;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.action.ActionListener;
@@ -70,9 +71,8 @@ public class ESIndexTask implements Task<Object[][]> {
     }
 
     /**
-     *
-     * @param transport the transportAction to run the actual ES operation on
-     * @param node the plan node
+     * @param transport         the transportAction to run the actual ES operation on
+     * @param node              the plan node
      * @param functions
      * @param referenceResolver
      */
@@ -119,11 +119,15 @@ public class ESIndexTask implements Task<Object[][]> {
         if (node.hasPrimaryKey()) {
             primaryKeyIdx = node.primaryKeyIndices()[0];
         }
-        for (int i = 0, length=node.columns().size(); i<length; i++) {
+        for (int i = 0, length = node.columns().size(); i < length; i++) {
             Reference column = node.columns().get(i);
             Symbol v = valuesIt.next();
             try {
-                Object value = ((Input)normalizer.process(v, null)).value();
+                Object value = ((Input) normalizer.process(v, null)).value();
+                // TODO: handle this conversion in XContent
+                if (value instanceof BytesRef) {
+                    value = ((BytesRef) value).utf8ToString();
+                }
                 sourceMap.put(
                         column.info().ident().columnIdent().name(),
                         value
