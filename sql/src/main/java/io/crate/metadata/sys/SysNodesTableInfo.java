@@ -32,6 +32,7 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.inject.Inject;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 public class SysNodesTableInfo extends SysTableInfo {
@@ -44,27 +45,32 @@ public class SysNodesTableInfo extends SysTableInfo {
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
 
     static {
-        register(primaryKey.get(0), DataType.STRING, null);
-        register("name", DataType.STRING, null);
-        register("hostname", DataType.STRING, null);
-        register("port", DataType.OBJECT, null);
-        register("port", DataType.INTEGER, ImmutableList.of("http"));
-        register("port", DataType.INTEGER, ImmutableList.of("transport"));
-        register("load", DataType.OBJECT, null);
-        register("load", DataType.DOUBLE, ImmutableList.of("1"));
-        register("load", DataType.DOUBLE, ImmutableList.of("5"));
-        register("load", DataType.DOUBLE, ImmutableList.of("15"));
-        register("mem", DataType.OBJECT, null);
-        register("mem", DataType.LONG, ImmutableList.of("free"));
-        register("mem", DataType.LONG, ImmutableList.of("used"));
-        register("mem", DataType.SHORT, ImmutableList.of("free_percent"));
-        register("mem", DataType.SHORT, ImmutableList.of("used_percent"));
-        register("fs", DataType.OBJECT, null);
-        register("fs", DataType.LONG, ImmutableList.of("total"));
-        register("fs", DataType.LONG, ImmutableList.of("free"));
-        register("fs", DataType.LONG, ImmutableList.of("used"));
-        register("fs", DataType.LONG, ImmutableList.of("free_percent"));
-        register("fs", DataType.LONG, ImmutableList.of("used_percent"));
+        register(getReferenceInfo(primaryKey.get(0), DataType.STRING, null));
+        register(getReferenceInfo("name", DataType.STRING, null));
+        register(getReferenceInfo("hostname", DataType.STRING, null));
+        register(getReferenceInfo("port", DataType.OBJECT, null, Arrays.asList(
+                getReferenceInfo("port", DataType.INTEGER, ImmutableList.of("http")),
+                getReferenceInfo("port", DataType.INTEGER, ImmutableList.of("transport"))
+        )));
+        register(getReferenceInfo("load", DataType.OBJECT, null, Arrays.asList(
+                getReferenceInfo("load", DataType.DOUBLE, ImmutableList.of("1")),
+                getReferenceInfo("load", DataType.DOUBLE, ImmutableList.of("5")),
+                getReferenceInfo("load", DataType.DOUBLE, ImmutableList.of("15"))
+        )));
+        register(getReferenceInfo("mem", DataType.OBJECT, null, Arrays.asList(
+                getReferenceInfo("mem", DataType.LONG, ImmutableList.of("free")),
+                getReferenceInfo("mem", DataType.LONG, ImmutableList.of("used")),
+                getReferenceInfo("mem", DataType.SHORT, ImmutableList.of("free_percent")),
+                getReferenceInfo("mem", DataType.SHORT, ImmutableList.of("used_percent"))
+        )));
+
+        register(getReferenceInfo("fs", DataType.OBJECT, null, Arrays.asList(
+                getReferenceInfo("fs", DataType.LONG, ImmutableList.of("total")),
+                getReferenceInfo("fs", DataType.LONG, ImmutableList.of("free")),
+                getReferenceInfo("fs", DataType.LONG, ImmutableList.of("used")),
+                getReferenceInfo("fs", DataType.LONG, ImmutableList.of("free_percent")),
+                getReferenceInfo("fs", DataType.LONG, ImmutableList.of("used_percent"))
+        )));
     }
 
     private final ClusterService clusterService;
@@ -74,13 +80,23 @@ public class SysNodesTableInfo extends SysTableInfo {
         clusterService = service;
     }
 
-    private static ReferenceInfo register(String column, DataType type, List<String> path) {
-        ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(IDENT, column, path), RowGranularity.NODE, type);
+    private static ReferenceInfo getReferenceInfo(String column, DataType type, List<String> path) {
+        return getReferenceInfo(column, type, path, null);
+    }
+
+    private static ReferenceInfo getReferenceInfo(String column, DataType type, List<String> path, @Nullable List<ReferenceInfo> nestedColumns) {
+        return new ReferenceInfo(new ReferenceIdent(IDENT, column, path), RowGranularity.NODE, type, nestedColumns);
+    }
+
+    private static void register(ReferenceInfo info) {
         if (info.ident().isColumn()) {
             columns.add(info);
         }
         INFOS.put(info.ident().columnIdent(), info);
-        return info;
+        for (ReferenceInfo nestedColumn : info.nestedColumns()) {
+            register(nestedColumn);
+        }
+
     }
 
     @Override

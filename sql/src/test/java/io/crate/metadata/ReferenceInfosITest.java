@@ -47,13 +47,13 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDocTable() throws Exception {
-        execute("create table t1 (id int primary key, name string) clustered into 10 shards replicas 1");
+        execute("create table t1 (id int primary key, name string, details object(dynamic) as (size byte, created timestamp)) clustered into 10 shards replicas 1");
         ensureGreen();
 
         DocTableInfo ti = (DocTableInfo) referenceInfos.getTableInfo(new TableIdent(null, "t1"));
         assertThat(ti.ident().name(), is("t1"));
 
-        assertThat(ti.columns().size(), is(2));
+        assertThat(ti.columns().size(), is(3));
         assertThat(ti.primaryKey().size(), is(1));
         assertThat(ti.primaryKey().get(0), is("id"));
         assertThat(ti.clusteredBy(), is("id"));

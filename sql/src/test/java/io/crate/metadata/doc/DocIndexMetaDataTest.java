@@ -69,6 +69,66 @@ public class DocIndexMetaDataTest {
     }
 
     @Test
+    public void testExtractObjectColumnDefinitions() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject("properties")
+                .startObject("implicit_dynamic")
+                    .startObject("properties")
+                        .startObject("name")
+                            .field("type", "string")
+                            .field("index", "not_analyzed")
+                        .endObject()
+                    .endObject()
+                .endObject()
+                .startObject("explicit_dynamic")
+                    .field("dynamic", "true")
+                    .startObject("properties")
+                        .startObject("name")
+                            .field("type", "string")
+                            .field("index", "not_analyzed")
+                        .endObject()
+                        .startObject("age")
+                            .field("type", "integer")
+                            .field("index", "not_analyzed")
+                        .endObject()
+                    .endObject()
+                .endObject()
+                .startObject("ignored")
+                    .field("dynamic", "false")
+                    .startObject("properties")
+                        .startObject("name")
+                            .field("type", "string")
+                            .field("index", "not_analyzed")
+                        .endObject()
+                        .startObject("age")
+                            .field("type", "integer")
+                            .field("index", "not_analyzed")
+                        .endObject()
+                    .endObject()
+                .endObject()
+                .startObject("strict")
+                    .field("dynamic", "strict")
+                    .startObject("properties")
+                        .startObject("age")
+                            .field("type", "integer")
+                            .field("index", "not_analyzed")
+                        .endObject()
+                    .endObject()
+                .endObject()
+                .endObject()
+                .endObject();
+        IndexMetaData metaData = getIndexMetaData("test1", builder);
+        DocIndexMetaData md = newMeta(metaData, "test1");
+        assertThat(md.columns().size(), is(4));
+        assertThat(md.references().size(), is(13));
+        assertThat(md.references().get(new ColumnIdent("implicit_dynamic")).objectType(), is(ReferenceInfo.ObjectType.DYNAMIC));
+        assertThat(md.references().get(new ColumnIdent("explicit_dynamic")).objectType(), is(ReferenceInfo.ObjectType.DYNAMIC));
+        assertThat(md.references().get(new ColumnIdent("ignored")).objectType(), is(ReferenceInfo.ObjectType.IGNORED));
+        assertThat(md.references().get(new ColumnIdent("strict")).objectType(), is(ReferenceInfo.ObjectType.STRICT));
+    }
+
+    @Test
     public void testExtractColumnDefinitions() throws Exception {
         XContentBuilder builder = XContentFactory.jsonBuilder()
                 .startObject()

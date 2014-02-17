@@ -66,12 +66,14 @@ public class DocIndexMetaData {
         this.defaultMappingMap = this.defaultMappingMetaData.sourceAsMap();
     }
 
-    private void add(ColumnIdent column, DataType type) {
-        ReferenceInfo info = newInfo(column, type);
+    private void add(ReferenceInfo info) {
         if (info.ident().isColumn()) {
             columnsBuilder.add(info);
         }
         referencesBuilder.put(info.ident().columnIdent(), info);
+        for (ReferenceInfo nested : info.nestedColumns()) {
+            referencesBuilder.put(nested.ident().columnIdent(), nested);
+        }
     }
 
     private ReferenceInfo newInfo(ColumnIdent column, DataType type) {
@@ -122,10 +124,12 @@ public class DocIndexMetaData {
         return null;
     }
 
-    private ColumnIdent childIdent(ColumnIdent ident, String name) {
-        if (ident == null) {
+    private ColumnIdent childIdent(ReferenceInfo.Builder infoBuilder, String name) {
+
+        if (infoBuilder == null || infoBuilder.ident() == null || infoBuilder.ident().columnIdent() == null) {
             return new ColumnIdent(name);
         }
+        ColumnIdent ident = infoBuilder.ident().columnIdent();
         if (ident.isColumn()) {
             return new ColumnIdent(ident.name(), name);
         } else {
@@ -133,12 +137,13 @@ public class DocIndexMetaData {
             for (String s : ident.path()) {
                 builder.add(s);
             }
+            builder.add(name);
             return new ColumnIdent(ident.name(), builder.build());
         }
     }
 
     @SuppressWarnings("unchecked")
-    private void internalExtractColumnDefinitions(ColumnIdent columnIdent,
+    private void internalExtractColumnDefinitions(ReferenceInfo.Builder infoBuilder,
                                                   Map<String, Object> propertiesMap) {
         if (propertiesMap == null) {
             return;
@@ -146,6 +151,7 @@ public class DocIndexMetaData {
         for (Map.Entry<String, Object> columnEntry : propertiesMap.entrySet()) {
             Map<String, Object> columnProperties = (Map) columnEntry.getValue();
             DataType columnDataType = getColumnDataType(columnProperties);
+            ReferenceInfo.Builder builder = ReferenceInfo.builder().granularity(RowGranularity.NODE);
 
             if (columnProperties.get("type") != null
                     && columnProperties.get("type").equals("multi_field")) {
@@ -153,10 +159,9 @@ public class DocIndexMetaData {
                         ((Map<String, Object>) columnProperties.get("fields")).entrySet()) {
 
                     Map<String, Object> multiColumnProperties = (Map) multiColumnEntry.getValue();
-
                     if (multiColumnEntry.getKey().equals(columnEntry.getKey())) {
-                        ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
-                        add(newIdent, getColumnDataType(multiColumnProperties));
+                        ColumnIdent columnIdent = childIdent(infoBuilder, columnEntry.getKey());
+                        builder.type(getColumnDataType(multiColumnProperties)).ident(ident, columnIdent);
                     }
                 }
             } else if (columnDataType == DataType.OBJECT) {
@@ -165,19 +170,27 @@ public class DocIndexMetaData {
                 boolean dynamic = columnProperties.get("dynamic") == null ||
                         (!strict &&
                                 !columnProperties.get("dynamic").equals(false) &&
-                                !Booleans.isExplicitFalse((String) columnProperties.get("dynamic")));
-                ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
-                // add object column before child columns
-                add(newIdent, columnDataType);
-
+                                !Booleans.isExplicitFalse(columnProperties.get("dynamic").toString()));
+                ColumnIdent columnIdent = childIdent(infoBuilder, columnEntry.getKey());
+                builder.type(columnDataType)
+                       .ident(new ReferenceIdent(ident, columnIdent))
+                       .type(columnDataType)
+                       .objectType(dynamic, strict);
                 if (columnProperties.get("properties") != null) {
                     // walk nested
-                    internalExtractColumnDefinitions(newIdent, (Map<String, Object>) columnProperties.get("properties"));
+                    internalExtractColumnDefinitions(builder, (Map<String, Object>) columnProperties.get("properties"));
                 }
+
             } else {
-                ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
-                //String columnName = getColumnName(prefix, columnEntry.getKey());
-                add(newIdent, columnDataType);
+                ColumnIdent columnIdent = childIdent(infoBuilder, columnEntry.getKey());
+                builder.type(columnDataType).ident(new ReferenceIdent(ident, columnIdent));
+            }
+            ReferenceInfo info = builder.build();
+
+            if (infoBuilder != null) {
+                infoBuilder.addNestedColumn(info);
+            } else {
+                add(info);
             }
         }
     }
