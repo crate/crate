@@ -526,6 +526,42 @@ public class AnalyzerTest {
     }
 
     @Test
+    public void test1ColPrimaryKeySetLiteralDiffMatches() throws Exception {
+        Analysis analysis = analyze(
+                "select name from sys.nodes where id in ('jalla', 'kelle') and id in ('jalla', 'something')");
+        assertFalse(analysis.noMatch());
+        assertEquals(1, analysis.primaryKeyLiterals().size());
+        SetLiteral sl = (SetLiteral) analysis.primaryKeyLiterals().get(0);
+
+        assertEquals(1, sl.value().size());
+        assertEquals(SetLiteralTest.stringSet("jalla"), sl);
+    }
+
+
+    @Test
+    public void test1ColPrimaryKeySetLiteral() throws Exception {
+        Analysis analysis = analyze("select name from sys.nodes where id in ('jalla', 'kelle')");
+        assertFalse(analysis.noMatch());
+        assertEquals(1, analysis.primaryKeyLiterals().size());
+        SetLiteral sl = (SetLiteral) analysis.primaryKeyLiterals().get(0);
+
+        assertEquals(SetLiteralTest.stringSet("jalla", "kelle"), sl);
+
+    }
+
+    @Test
+    public void test2ColPrimaryKeySetLiteral() throws Exception {
+        Analysis analysis = analyze("select id from sys.shards where id=1 and table_name in ('jalla', 'kelle')");
+        assertEquals(2, analysis.primaryKeyLiterals().size());
+        SetLiteral tableName = (SetLiteral) analysis.primaryKeyLiterals().get(0);
+        IntegerLiteral id = (IntegerLiteral) analysis.primaryKeyLiterals().get(1);
+
+        assertThat(1, is(id.value()));
+        assertEquals(SetLiteralTest.stringSet("jalla", "kelle"), tableName);
+    }
+
+
+    @Test
     public void testGranularityWithSingleAggregation() throws Exception {
         Analysis analyze = analyze("select count(*) from sys.nodes");
         assertThat(analyze.rowGranularity(), is(RowGranularity.NODE));
@@ -683,7 +719,7 @@ public class AnalyzerTest {
 
     @Test
     public void testInsertWithConvertedTypes() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, name, awesome) values (?, 'Trillian', ?)", new Object[]{1.0f, "true"});
+        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users (id, name, awesome) values (?, 'Trillian', ?)", new Object[]{1.0f, "true"});
 
         assertThat(analysis.columns().get(0).valueType(), is(DataType.LONG));
         assertThat(analysis.columns().get(2).valueType(), is(DataType.BOOLEAN));
@@ -783,7 +819,7 @@ public class AnalyzerTest {
         assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
         assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
         StringLiteral stringLiteral = (StringLiteral) whereClause.arguments().get(1);
-        assertThat(stringLiteral.value(), is("foo"));
+        assertThat(stringLiteral.value(), is(new BytesRef(("foo"))));
     }
 
     @Test(expected = UnsupportedOperationException.class) // ESCAPE is not supported yet.
@@ -801,7 +837,7 @@ public class AnalyzerTest {
         assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
         assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
         StringLiteral stringLiteral = (StringLiteral) whereClause.arguments().get(1);
-        assertThat(stringLiteral.value(), is("1"));
+        assertThat(stringLiteral.value(), is(new BytesRef("1")));
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -823,8 +859,8 @@ public class AnalyzerTest {
         assertThat(function.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
         StringLiteral expressionLiteral = (StringLiteral) function.arguments().get(0);
         StringLiteral patternLiteral = (StringLiteral) function.arguments().get(1);
-        assertThat(expressionLiteral.value(), is("1"));
-        assertThat(patternLiteral.value(), is("2"));
+        assertThat(expressionLiteral.value(), is(new BytesRef("1")));
+        assertThat(patternLiteral.value(), is(new BytesRef("2")));
     }
 
     @Test

@@ -16,6 +16,9 @@ public class Null extends Literal<Void, Null> {
         }
     };
 
+    private Null() {
+    }
+
     @Override
     public DataType valueType() {
         return DataType.NULL;
@@ -48,6 +51,16 @@ public class Null extends Literal<Void, Null> {
 
     @Override
     public int compareTo(Null o) {
+        return 0;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
         return 0;
     }
 }

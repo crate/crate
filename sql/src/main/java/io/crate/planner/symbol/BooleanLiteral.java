@@ -1,6 +1,7 @@
 package io.crate.planner.symbol;
 
 import com.google.common.base.Preconditions;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -8,6 +9,9 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 
 public class BooleanLiteral extends Literal<Boolean, BooleanLiteral> {
+
+    private static final StringLiteral TRUE_STRING = new StringLiteral(new BytesRef("t"));
+    private static final StringLiteral FALSE_STRING = new StringLiteral(new BytesRef("f"));
 
     private Boolean value;
 
@@ -80,15 +84,16 @@ public class BooleanLiteral extends Literal<Boolean, BooleanLiteral> {
 
     @Override
     public Literal convertTo(DataType type) {
-        Object convertedValue;
         switch (type) {
             case STRING:
-                convertedValue = value().toString();
-                break;
+                if (value()) {
+                    return TRUE_STRING;
+                } else {
+                    return FALSE_STRING;
+                }
             default:
                 return super.convertTo(type);
         }
-        return Literal.forType(type, convertedValue);
     }
 
 }

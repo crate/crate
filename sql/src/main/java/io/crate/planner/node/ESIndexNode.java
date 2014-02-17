@@ -31,7 +31,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -78,59 +77,12 @@ public class ESIndexNode extends PlanNode {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        index = in.readString();
-
-        int numColumns = in.readVInt();
-        columns = new ArrayList<>(numColumns);
-        for (int i=0; i<numColumns;i++) {
-            Reference reference = new Reference();
-            reference.readFrom(in);
-            columns.add(reference);
-        }
-
-        int numValuesLists = in.readVInt();
-        valuesLists = new ArrayList<>(numValuesLists);
-        for (int i=0; i<numValuesLists;i++) {
-            int numValues = in.readVInt();
-            List<Symbol> values = new ArrayList<>(numValues);
-            for (int j=0; j<numValues;j++) {
-                Symbol symbol = Symbol.fromStream(in);
-                values.add(symbol);
-            }
-            valuesLists.add(values);
-        }
-        int numIndices = in.readVInt();
-
-        primaryKeyIndices = new int[numIndices];
-        for (int i = 0; i< numIndices; i++) {
-            primaryKeyIndices[i] = in.readVInt();
-        }
+        throw new UnsupportedOperationException("ESIndexNode has no serialization support");
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeString(index);
-
-        out.writeVInt(columns.size());
-        for (Reference reference : columns) {
-            reference.writeTo(out);
-        }
-
-        out.writeVInt(valuesLists.size());
-        for (List<Symbol> values : valuesLists) {
-            out.writeVInt(values.size());
-            for (Symbol symbol : values) {
-                Symbol.toStream(symbol, out);
-            }
-        }
-        out.writeVInt(primaryKeyIndices.length);
-        if (primaryKeyIndices.length > 0) {
-            for (int i : primaryKeyIndices) {
-                out.writeVInt(i);
-            }
-        }
+        throw new UnsupportedOperationException("ESIndexNode has no serialization support");
     }
 
     public int[] primaryKeyIndices() {

@@ -20,149 +20,69 @@
  */
 package io.crate.planner.symbol;
 
+import com.google.common.collect.ImmutableSet;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
 
+import static junit.framework.TestCase.assertSame;
 import static org.junit.Assert.assertEquals;
 
 public class SetLiteralTest {
 
+    public static SetLiteral stringSet(String... items) {
+        ImmutableSet.Builder<BytesRef> builder = ImmutableSet.builder();
+        for (String item : items) {
+            builder.add(new BytesRef(item));
+        }
+        return new SetLiteral(DataType.STRING, builder.build());
+    }
+
+    @Test
+    public void testIntersection() throws Exception {
+        SetLiteral setLiteral1 = stringSet("alpha", "bravo");
+        SetLiteral setLiteral2 = stringSet("foo", "alpha");
+        assertEquals(stringSet("alpha"), setLiteral1.intersection(setLiteral2));
+        assertEquals(stringSet("alpha"), setLiteral2.intersection(setLiteral1));
+    }
+
+    @Test
+    public void testEmptyIntersection() throws Exception {
+        SetLiteral setLiteral1 = stringSet();
+        SetLiteral setLiteral2 = stringSet("foo", "alpha");
+        assertSame(setLiteral1, setLiteral2.intersection(setLiteral1));
+    }
+
     @Test
     public void testCompareTo1() {
-        SetLiteral setLiteral1 = new SetLiteral(
-                DataType.STRING,
-                new HashSet<Literal>(
-                        Arrays.asList(
-                                new StringLiteral("alpha"),
-                                new StringLiteral("bravo"),
-                                new StringLiteral("charlie"),
-                                new StringLiteral("delta")
-                        )
-                )
-        );
-
-        SetLiteral setLiteral2 = new SetLiteral(
-                DataType.STRING,
-                new HashSet<Literal>(
-                        Arrays.asList(
-                                new StringLiteral("foo"),
-                                new StringLiteral("alpha"),
-                                new StringLiteral("beta"),
-                                new StringLiteral("bar")
-                        )
-                )
-        );
-
-        assertEquals(0, setLiteral1.compareTo(setLiteral2.literals()));
+        SetLiteral setLiteral1 = stringSet("alpha", "bravo", "charlie", "delta");
+        SetLiteral setLiteral2 = stringSet("foo", "alpha", "beta", "bar");
+        assertEquals(0, setLiteral1.compareTo(setLiteral2));
     }
 
     @Test
     public void testCompareTo2() {
-        SetLiteral setLiteral1 = new SetLiteral(
-                DataType.STRING,
-                new HashSet<Literal>(
-                        Arrays.asList(
-                                new StringLiteral("alpha"),
-                                new StringLiteral("bravo"),
-                                new StringLiteral("charlie"),
-                                new StringLiteral("delta")
-                        )
-                )
-        );
-
-        SetLiteral setLiteral2 = new SetLiteral(
-                DataType.STRING,
-                new HashSet<Literal>(
-                        Arrays.asList(
-                                new StringLiteral("foo"),
-                                new StringLiteral("alpha"),
-                                new StringLiteral("beta")
-                        )
-                )
-        );
-
-        assertEquals(1, setLiteral1.compareTo(setLiteral2.literals()));
+        SetLiteral setLiteral1 = stringSet("alpha", "bravo", "charlie", "delta");
+        SetLiteral setLiteral2 = stringSet("foo", "alpha", "beta");
+        assertEquals(1, setLiteral1.compareTo(setLiteral2));
     }
 
     @Test
     public void testCompareTo3() {
-        SetLiteral setLiteral1 = new SetLiteral(
-                DataType.STRING,
-                new HashSet<Literal>(
-                        Arrays.asList(
-                                new StringLiteral("charlie"),
-                                new StringLiteral("delta")
-                        )
-                )
-        );
-
-        SetLiteral setLiteral2 = new SetLiteral(
-                DataType.STRING,
-                new HashSet<Literal>(
-                        Arrays.asList(
-                                new StringLiteral("foo"),
-                                new StringLiteral("alpha"),
-                                new StringLiteral("beta")
-                        )
-                )
-        );
-
-        assertEquals(-1, setLiteral1.compareTo(setLiteral2.literals()));
-    }
-
-    @Test
-    public void testCompareTo4() {
-        SetLiteral setLiteral1 = new SetLiteral(
-                DataType.STRING,
-                new HashSet<Literal>(
-                        Arrays.asList(
-                                new StringLiteral("a"),
-                                new StringLiteral("b"),
-                                new StringLiteral("c"),
-                                new StringLiteral("d"),
-                                new StringLiteral("e")
-                        )
-                )
-        );
-
-        SetLiteral setLiteral2 = new SetLiteral(
-                DataType.STRING,
-                new HashSet<Literal>(
-                        Arrays.asList(
-                                new StringLiteral("a"),
-                                new StringLiteral("b"),
-                                new StringLiteral("c"),
-                                new StringLiteral("e"),
-                                new StringLiteral("f")
-                        )
-                )
-        );
-
-        assertEquals(0, setLiteral1.compareTo(setLiteral2.literals()));
+        SetLiteral setLiteral1 = stringSet("alpha", "bravo");
+        SetLiteral setLiteral2 = stringSet("foo", "alpha", "beta");
+        assertEquals(-1, setLiteral1.compareTo(setLiteral2));
     }
 
     @Test
     public void testSerialization() throws IOException {
+        SetLiteral setLiteralOut = stringSet("alpha", "bravo", "charlie", "delta");
+
         BytesStreamOutput outputStream = new BytesStreamOutput();
-
-        SetLiteral setLiteralOut = new SetLiteral(
-                DataType.STRING,
-                new HashSet<Literal>(
-                        Arrays.asList(
-                                new StringLiteral("alpha"),
-                                new StringLiteral("bravo"),
-                                new StringLiteral("charlie"),
-                                new StringLiteral("delta")
-                        )
-                )
-        );
-
         setLiteralOut.writeTo(outputStream);
 
         BytesStreamInput inputStream = new BytesStreamInput(outputStream.bytes().copyBytesArray());

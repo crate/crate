@@ -49,8 +49,8 @@ public abstract class SetOperatorNode extends TableOperatorNode
     /**
      * Initializer for a SetOperatorNode.
      *
-     * @param leftResult The ResultSetNode on the left side of this union
-     * @param rightResult The ResultSetNode on the right side of this union
+     * @param leftResult The ResultSetNode on the left side of this intersection
+     * @param rightResult The ResultSetNode on the right side of this intersection
      * @param all Whether or not this is an ALL.
      * @param tableProperties Properties list associated with the table
      *

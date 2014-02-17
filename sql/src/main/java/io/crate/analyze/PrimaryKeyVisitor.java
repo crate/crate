@@ -21,9 +21,11 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operator.operator.EqOperator;
+import io.crate.operator.operator.InOperator;
 import io.crate.operator.operator.OrOperator;
 import io.crate.planner.symbol.*;
 
@@ -31,6 +33,10 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 
 public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, Void> {
+
+    private static final ImmutableSet<String> PK_COMPARISONS = ImmutableSet.of(
+            EqOperator.NAME, InOperator.NAME
+    );
 
     public static class Context {
 
@@ -74,9 +80,10 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         if (symbol.info().ident().equals(OrOperator.INFO.ident())) {
             return null;
         }
-        if (symbol.arguments().get(0).symbolType() == SymbolType.REFERENCE &&
-                symbol.info().ident().name().equals(EqOperator.NAME) &&
-                symbol.arguments().get(1).symbolType().isLiteral()) {
+        if (symbol.arguments().size() == 2 &&
+                symbol.arguments().get(0).symbolType() == SymbolType.REFERENCE &&
+                symbol.arguments().get(1).symbolType().isLiteral() &&
+                PK_COMPARISONS.contains(symbol.info().ident().name())) {
 
             Reference ref = (Reference) symbol.arguments().get(0);
             if (ref.info().ident().tableIdent().equals(context.table.ident())) {
@@ -87,7 +94,18 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
                         context.foundKeys++;
                         context.keyLiterals[idx] = right;
                     } else if (!context.keyLiterals[idx].equals(right)) {
-                        context.noMatch = true;
+                        if (context.keyLiterals[idx] instanceof SetLiteral) {
+                            if (right instanceof SetLiteral) {
+                                SetLiteral intersection = ((SetLiteral) context.keyLiterals[idx]).intersection((SetLiteral) right);
+                                if (intersection.size() > 0) {
+                                    context.keyLiterals[idx] = intersection;
+                                } else {
+                                    context.noMatch = true;
+                                }
+                            }
+                        } else {
+                            context.noMatch = true;
+                        }
                     }
                 }
             }
