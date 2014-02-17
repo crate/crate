@@ -67,10 +67,8 @@ public class SetLiteral extends Literal<Set<?>, SetLiteral> {
      */
     public SetLiteral intersection(SetLiteral other) {
         Preconditions.checkArgument(itemType == other.itemType);
-        if (values.containsAll(other.values)) {
+        if (values.size() == 0 || other.values.size() == 0 || values.equals(other.values)) {
             return this;
-        } else if (other.values.containsAll(values)) {
-            return other;
         }
         return new SetLiteral(itemType, Sets.intersection(values, other.values));
     }
