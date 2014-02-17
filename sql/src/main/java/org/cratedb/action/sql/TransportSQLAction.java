@@ -455,10 +455,11 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                     }
                 }
                 // use presto for inserts
-                if (((QueryTreeNode) node).getNodeType() == NodeType.INSERT_NODE) {
+                // TODO: keep disabled until type validation and stuff works correctly
+                /*if (((QueryTreeNode) node).getNodeType() == NodeType.INSERT_NODE) {
                     isPresto.set(true);
                     return null;
-                }
+                }*/
                 return node;
             }
 
