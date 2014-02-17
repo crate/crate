@@ -70,6 +70,7 @@ public class BaseAnalyzerTest {
             .add("details", DataType.OBJECT, null)
             .add("awesome", DataType.BOOLEAN, null)
             .addPrimaryKey("id")
+            .clusteredBy("id")
             .build();
     static final FunctionInfo ABS_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("abs", Arrays.asList(DataType.LONG)),

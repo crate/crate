@@ -355,6 +355,17 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testClusteredBy() throws Exception {
+        Analysis analysis = analyze("select name from users where id=1");
+        assertEquals(1L, analysis.clusteredByLiteral().value());
+
+        analysis = analyze("select name from users where id=1 or id=2");
+        assertNull(analysis.clusteredByLiteral());
+
+
+    }
+
+    @Test
     public void test1ColPrimaryKeyLiteral() throws Exception {
         Analysis analysis = analyze("select name from sys.nodes where id='jalla'");
         assertEquals(analysis.primaryKeyLiterals(), ImmutableList.<Literal>of(new StringLiteral("jalla")));

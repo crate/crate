@@ -44,6 +44,8 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         public Literal[] keyLiterals;
         public boolean noMatch = false;
         public int foundKeys = 0;
+        public Literal clusteredByLiteral;
+
 
         public Context(TableInfo tableInfo) {
             this.table = tableInfo;
@@ -61,11 +63,15 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
             return null;
         }
 
+        public Literal clusteredByLiteral() {
+            return clusteredByLiteral;
+        }
+
     }
 
     @Nullable
     public Context process(TableInfo table, Function whereClause) {
-        if (table.primaryKey().size() > 0) {
+        if (table.primaryKey().size() > 0 || table.clusteredBy() != null) {
             Context context = new Context(table);
             visitFunction(whereClause, context);
             return context;
@@ -84,9 +90,19 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
                 symbol.arguments().get(0).symbolType() == SymbolType.REFERENCE &&
                 symbol.arguments().get(1).symbolType().isLiteral() &&
                 PK_COMPARISONS.contains(symbol.info().ident().name())) {
-
             Reference ref = (Reference) symbol.arguments().get(0);
             if (ref.info().ident().tableIdent().equals(context.table.ident())) {
+                if (symbol.info().ident().name().equals(EqOperator.NAME) &&
+                        ref.info().ident().columnIdent().name().equals(context.table.clusteredBy())) {
+                    if (context.clusteredByLiteral == null) {
+                        context.clusteredByLiteral = (Literal) symbol.arguments().get(1);
+                    } else {
+                        if (!context.clusteredByLiteral.equals(symbol.arguments().get(1))) {
+                            // we cannot use the routing, since we have two values
+                            context.clusteredByLiteral = null;
+                        }
+                    }
+                }
                 int idx = context.table.primaryKey().indexOf(ref.info().ident().columnIdent().name());
                 if (idx >= 0) {
                     Literal right = (Literal) symbol.arguments().get(1);
