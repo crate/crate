@@ -22,24 +22,18 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import io.crate.metadata.*;
+import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
-import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operator.Input;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.aggregation.impl.AverageAggregation;
 import io.crate.operator.aggregation.impl.CollectSetAggregation;
 import io.crate.operator.operator.*;
 import io.crate.operator.predicate.IsNullPredicate;
 import io.crate.operator.predicate.PredicateModule;
-import io.crate.operator.reference.sys.cluster.SysClusterExpression;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import io.crate.operator.scalar.CollectionCountFunction;
 import io.crate.operator.scalar.ScalarFunctionModule;
@@ -50,24 +44,14 @@ import io.crate.sql.tree.Statement;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.sql.AmbiguousAliasException;
-import org.cratedb.sql.CrateException;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.discovery.Discovery;
-import org.elasticsearch.monitor.os.OsService;
-import org.elasticsearch.monitor.os.OsStats;
+import org.elasticsearch.common.inject.Module;
 import org.hamcrest.core.IsInstanceOf;
-import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -75,61 +59,10 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class AnalyzerTest {
 
-    private static final TableIdent TEST_DOC_TABLE_IDENT = new TableIdent(null, "users");
-    private static final FunctionInfo ABS_FUNCTION_INFO = new FunctionInfo(
-            new FunctionIdent("abs", Arrays.asList(DataType.LONG)),
-            DataType.LONG);
-    private Injector injector;
-    private Analyzer analyzer;
+public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
-    private static final ReferenceInfo LOAD_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load"));
-    private static final ReferenceInfo LOAD1_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "1"));
-    private static final ReferenceInfo LOAD5_INFO = SysNodesTableInfo.INFOS.get(new ColumnIdent("load", "5"));
-
-    private static final ReferenceInfo CLUSTER_NAME_INFO = SysClusterTableInfo.INFOS.get(new ColumnIdent("name"));
-
-    class ClusterNameExpression extends SysClusterExpression<BytesRef> {
-
-        protected ClusterNameExpression() {
-            super(CLUSTER_NAME_INFO.ident().columnIdent().name());
-        }
-
-        @Override
-        public BytesRef value() {
-            return new BytesRef("testcluster");
-        }
-    }
-
-    Routing shardRouting = new Routing(ImmutableMap.<String, Map<String, Set<Integer>>>builder()
-            .put("nodeOne", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(1, 2)))
-            .put("nodeTow", ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(3, 4)))
-            .build());
-
-    static class AbsFunction implements Scalar<Long> {
-
-        @Override
-        public Long evaluate(Input<?>... args) {
-            if (args == null || args.length == 0) {
-                return 0l;
-            }
-            return Math.abs(((Number) args[0].value()).longValue());
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return ABS_FUNCTION_INFO;
-        }
-
-
-        @Override
-        public Symbol normalizeSymbol(Function symbol) {
-            return symbol;
-        }
-    }
-
-    class TestMetaDataModule extends MetaDataModule {
+    static class TestMetaDataModule extends MetaDataModule {
 
         @Override
         protected void bindReferences() {
@@ -142,76 +75,24 @@ public class AnalyzerTest {
         protected void bindSchemas() {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            TableIdent userTableIdent = TEST_DOC_TABLE_IDENT;
-            TableInfo userTableInfo = TestingTableInfo.builder(userTableIdent, RowGranularity.DOC, shardRouting)
-                    .add("id", DataType.LONG, null)
-                    .add("name", DataType.STRING, null)
-                    .add("details", DataType.OBJECT, null)
-                    .add("awesome", DataType.BOOLEAN, null)
-                    .addPrimaryKey("id")
-                    .build();
-            when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
+            when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
-
-        @Override
-        protected void bindFunctions() {
-            super.bindFunctions();
-            functionBinder.addBinding(ABS_FUNCTION_INFO.ident()).to(AbsFunction.class);
-        }
     }
 
-    /**
-     * borrowed from {@link io.crate.operator.reference.sys.TestGlobalSysExpressions}
-     * // TODO share it
-     */
-    class TestModule extends AbstractModule {
-
-        @Override
-        protected void configure() {
-            // clusterService.state().metaData().settings()
-            ClusterService clusterService = mock(ClusterService.class);
-            ClusterState state = mock(ClusterState.class);
-            MetaData metaData = mock(MetaData.class);
-            when(metaData.settings()).thenReturn(ImmutableSettings.EMPTY);
-            when(state.metaData()).thenReturn(metaData);
-            when(clusterService.state()).thenReturn(state);
-            bind(ClusterService.class).toInstance(clusterService);
-            bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
-            OsService osService = mock(OsService.class);
-            OsStats osStats = mock(OsStats.class);
-            when(osService.stats()).thenReturn(osStats);
-            when(osStats.loadAverage()).thenReturn(new double[]{1, 5, 15});
-            bind(OsService.class).toInstance(osService);
-            Discovery discovery = mock(Discovery.class);
-            bind(Discovery.class).toInstance(discovery);
-            DiscoveryNode node = mock(DiscoveryNode.class);
-            when(discovery.localNode()).thenReturn(node);
-            when(node.getId()).thenReturn("node-id-1");
-            when(node.getName()).thenReturn("node 1");
-        }
-    }
-
-    private Analysis analyze(String statement) {
-        return analyzer.analyze(SqlParser.createStatement(statement));
-    }
-
-    private Analysis analyze(String statement, Object[] params) {
-        return analyzer.analyze(SqlParser.createStatement(statement), params);
-    }
-
-    @Before
-    public void setUp() throws Exception {
-        injector = new ModulesBuilder()
-                .add(new TestModule())
-                .add(new TestMetaDataModule())
-                .add(new MetaDataSysModule())
-                .add(new AggregationImplModule())
-                .add(new OperatorModule())
-                .add(new PredicateModule())
-                .add(new ScalarFunctionModule())
-                .createInjector();
-        analyzer = injector.getInstance(Analyzer.class);
+    @Override
+    protected List<Module> getModules() {
+        List<Module> modules = super.getModules();
+        modules.addAll(Arrays.<Module>asList(
+                new TestModule(),
+                new TestMetaDataModule(),
+                new MetaDataSysModule(),
+                new OperatorModule(),
+                new AggregationImplModule(),
+                new PredicateModule(),
+                new ScalarFunctionModule()
+        ));
+        return modules;
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -627,171 +508,6 @@ public class AnalyzerTest {
         assertSame(collectSet, innerFunction);
     }
 
-    private static Function getFunctionByName(String functionName, Collection c) {
-        Function function = null;
-        Iterator<Function> it = c.iterator();
-        while (function == null && it.hasNext()) {
-            Function f = it.next();
-            if (f.info().ident().name().equals(functionName)) {
-                function = f;
-            }
-
-        }
-        return function;
-    }
-
-    @Test
-    public void testDeleteWhere() throws Exception {
-        Statement statement = SqlParser.createStatement("delete from sys.nodes where load['1'] = 1");
-        SelectAnalysis analysis = (SelectAnalysis) analyzer.analyze(statement);
-        assertTrue(analysis.isDelete());
-        assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
-
-        assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
-        assertFalse(analysis.hasGroupBy());
-
-        Function whereClause = analysis.whereClause();
-        assertEquals(EqOperator.NAME, whereClause.info().ident().name());
-        assertFalse(whereClause.info().isAggregate());
-
-        assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
-        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
-
-    }
-
-    @Test
-    public void testInsertWithColumns() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users (id, name) values (1, 'Trillian')");
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
-        assertThat(analysis.columns().size(), is(2));
-
-        assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
-        assertThat(analysis.columns().get(0).valueType(), is(DataType.LONG));
-
-        assertThat(analysis.columns().get(1).info().ident().columnIdent().name(), is("name"));
-        assertThat(analysis.columns().get(1).valueType(), is(DataType.STRING));
-
-        assertThat(analysis.values().size(), is(1));
-        List<Symbol> values = analysis.values().get(0);
-        assertThat(values.size(), is(2));
-        assertThat(values.get(0), instanceOf(LongLiteral.class));
-        assertThat(values.get(1), instanceOf(StringLiteral.class));
-    }
-
-    @Test
-    public void testInsertWithTwistedColumns() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users (name, id) values ('Trillian', 2)");
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
-        assertThat(analysis.columns().size(), is(2));
-
-        assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("name"));
-        assertThat(analysis.columns().get(0).valueType(), is(DataType.STRING));
-
-        assertThat(analysis.columns().get(1).info().ident().columnIdent().name(), is("id"));
-        assertThat(analysis.columns().get(1).valueType(), is(DataType.LONG));
-
-        assertThat(analysis.values().size(), is(1));
-        List<Symbol> values = analysis.values().get(0);
-        assertThat(values.size(), is(2));
-        assertThat(values.get(0), instanceOf(StringLiteral.class));
-        assertThat(values.get(1), instanceOf(LongLiteral.class));
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void testInsertWithColumnsAndTooManyValues() throws Exception {
-        analyze("insert into users (name, id) values ('Trillian', 2, true)");
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void testInsertWithColumnsAndTooLessValues() throws Exception {
-        analyze("insert into users (name, id) values ('Trillian')");
-    }
-
-    @Test(expected = CrateException.class)
-    public void testInsertWithWrongType() throws Exception {
-        analyze("insert into users (name, id) values (1, 'Trillian')");
-    }
-
-    @Test(expected = CrateException.class)
-    public void testInsertWithWrongParameterType() throws Exception {
-        analyze("insert into users (name, id) values (?, ?)", new Object[]{1, true});
-    }
-
-    @Test
-    public void testInsertWithConvertedTypes() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users (id, name, awesome) values (?, 'Trillian', ?)", new Object[]{1.0f, "true"});
-
-        assertThat(analysis.columns().get(0).valueType(), is(DataType.LONG));
-        assertThat(analysis.columns().get(2).valueType(), is(DataType.BOOLEAN));
-
-        List<Symbol> valuesList = analysis.values().get(0);
-        assertThat(valuesList.get(0), instanceOf(LongLiteral.class));
-        assertThat(valuesList.get(2), instanceOf(BooleanLiteral.class));
-
-    }
-
-    @Test
-    public void testInsertWithFunction() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users values (ABS(-1), 'Trillian')");
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
-        assertThat(analysis.columns().size(), is(2));
-
-        assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
-        assertThat(analysis.columns().get(0).valueType(), is(DataType.LONG));
-
-        assertThat(analysis.columns().get(1).info().ident().columnIdent().name(), is("name"));
-        assertThat(analysis.columns().get(1).valueType(), is(DataType.STRING));
-
-        assertThat(analysis.values().size(), is(1));
-        List<Symbol> values = analysis.values().get(0);
-        assertThat(values.size(), is(2));
-        assertThat(values.get(0), instanceOf(Function.class));
-        assertThat(values.get(1), instanceOf(StringLiteral.class));
-    }
-
-    @Test
-    public void testInsertWithoutColumns() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users values (1, 'Trillian')");
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
-        assertThat(analysis.columns().size(), is(2));
-
-        assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
-        assertThat(analysis.columns().get(0).valueType(), is(DataType.LONG));
-
-        assertThat(analysis.columns().get(1).info().ident().columnIdent().name(), is("name"));
-        assertThat(analysis.columns().get(1).valueType(), is(DataType.STRING));
-
-        assertThat(analysis.values().size(), is(1));
-        List<Symbol> values = analysis.values().get(0);
-        assertThat(values.size(), is(2));
-        assertThat(values.get(0), instanceOf(LongLiteral.class));
-        assertThat(values.get(1), instanceOf(StringLiteral.class));
-    }
-
-    @Test
-    public void testInsertWithoutColumnsAndOnlyOneColumn() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users values (1)");
-        assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
-        assertThat(analysis.columns().size(), is(1));
-
-        assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
-        assertThat(analysis.columns().get(0).valueType(), is(DataType.LONG));
-
-        assertThat(analysis.values().size(), is(1));
-        List<Symbol> values = analysis.values().get(0);
-        assertThat(values.size(), is(1));
-        assertThat(values.get(0), instanceOf(LongLiteral.class));
-    }
-
-    @Test(expected = IllegalStateException.class)
-    public void testInsertIntoSysTable() throws Exception {
-        analyze("insert into sys.nodes (id, name) values (666, 'evilNode')");
-    }
-
-    @Test(expected = CrateException.class)
-    public void testInsertWithoutPrimaryKey() throws Exception {
-        analyze("insert into users (name) values ('Trillian')");
-    }
 
     @Test
     public void testSelectWithObjectLiteral() throws Exception {
@@ -890,5 +606,4 @@ public class AnalyzerTest {
         assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(LongLiteral.class));
         assertTrue(analysis.noMatch());
     }
-
 }
