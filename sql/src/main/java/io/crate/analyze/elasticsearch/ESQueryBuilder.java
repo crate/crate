@@ -38,6 +38,8 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.ESDeleteByQueryNode;
 import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.symbol.*;
+import org.apache.lucene.util.BytesRef;
+import org.cratedb.DataType;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
@@ -352,19 +354,25 @@ public class ESQueryBuilder {
 
             @Override
             public void convert(Function function, Context context) throws IOException {
-                Preconditions.checkNotNull(function);
-                Preconditions.checkArgument(function.arguments().size() == 2);
+                assert (function != null);
+                assert (function.arguments().size() == 2);
 
                 Symbol left = function.arguments().get(0);
                 Symbol right = function.arguments().get(1);
-                Preconditions.checkArgument(left.symbolType() == SymbolType.REFERENCE);
-                Preconditions.checkArgument(right.symbolType() == SymbolType.SET_LITERAL);
                 String refName = ((Reference) left).info().ident().columnIdent().fqn();
                 SetLiteral setLiteral = (SetLiteral) right;
+                boolean convertBytesRef = false;
+                if (setLiteral.valueType() == DataType.STRING_SET) {
+                    convertBytesRef = true;
+                }
                 context.builder.startObject("terms").field(refName);
                 context.builder.startArray();
                 for (Object o : setLiteral.value()) {
-                    context.builder.value(o);
+                    if (convertBytesRef) {
+                        context.builder.value(((BytesRef)o).utf8ToString());
+                    } else {
+                        context.builder.value(o);
+                    }
                 }
                 context.builder.endArray().endObject();
             }
