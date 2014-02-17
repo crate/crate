@@ -268,6 +268,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     private Plan planSelect(SelectAnalysis analysis) {
         Plan plan = new Plan();
+        plan.expectsAffectedRows(false);
 
         if (analysis.hasGroupBy()) {
             groupBy(analysis, plan);
@@ -294,7 +295,6 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 }
             }
         }
-        plan.expectsAffectedRows(false);
         return plan;
     }
 
@@ -412,6 +412,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 ImmutableSet.<String>of(analysis.table().ident().name()),
                 analysis.whereClause());
         plan.add(node);
+        plan.expectsAffectedRows(true);
     }
 
     private void globalAggregates(SelectAnalysis analysis, Plan plan) {

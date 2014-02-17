@@ -432,7 +432,6 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         final AtomicReference<Boolean> isPresto = new AtomicReference<>(false);
 
         if (node.getNodeType() == NodeType.DELETE_NODE) {
-            DeleteNode deleteNode = (DeleteNode)node;
             return null;
         }
 

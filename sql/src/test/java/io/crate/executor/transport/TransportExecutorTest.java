@@ -245,7 +245,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         task.start();
         Object[][] rows = task.result().get(0).get();
-        assertThat(rows.length, is(0));
+        assertThat(rows.length, is(1));
+        assertThat((Long)rows[0][0], is(-1L));
 
         // verify deletion
         ESSearchNode searchNode = new ESSearchNode(
