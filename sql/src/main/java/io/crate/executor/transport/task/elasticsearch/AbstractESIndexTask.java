@@ -23,15 +23,13 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.executor.Task;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceResolver;
 import io.crate.operator.Input;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.node.ESIndexNode;
+import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.Constants;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.action.index.IndexRequest;
@@ -43,13 +41,9 @@ public abstract class AbstractESIndexTask implements Task<Object[][]> {
     protected final SettableFuture<Object[][]> result;
     protected final List<ListenableFuture<Object[][]>> results;
     protected final ESIndexNode node;
-    protected final EvaluatingNormalizer normalizer;
 
-    public AbstractESIndexTask(Functions functions,
-                               ReferenceResolver referenceResolver,
-                               ESIndexNode node) {
+    public AbstractESIndexTask(ESIndexNode node) {
         this.node = node;
-        this.normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
 
         result = SettableFuture.create();
         results = Arrays.<ListenableFuture<Object[][]>>asList(result);
@@ -82,8 +76,12 @@ public abstract class AbstractESIndexTask implements Task<Object[][]> {
         for (int i = 0, length=columns.size(); i<length; i++) {
             Reference column = columns.get(i);
             Symbol v = valuesIt.next();
+            assert v instanceof Literal;
             try {
-                Object value = ((Input)normalizer.process(v, null)).value();
+                Object value = ((Input)v).value();
+                if (value instanceof BytesRef) {
+                    value = ((BytesRef) value).utf8ToString();
+                }
                 sourceMap.put(
                         column.info().ident().columnIdent().name(),
                         value

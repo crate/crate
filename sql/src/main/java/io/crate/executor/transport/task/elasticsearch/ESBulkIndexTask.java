@@ -22,8 +22,6 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.node.ESIndexNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
@@ -69,10 +67,8 @@ public class ESBulkIndexTask extends AbstractESIndexTask {
     }
 
     public ESBulkIndexTask(TransportBulkAction bulkAction,
-                           Functions functions,
-                           ReferenceResolver referenceResolver,
                            ESIndexNode node) {
-        super(functions, referenceResolver, node);
+        super(node);
         this.bulkAction = bulkAction;
 
         this.request = new BulkRequest();

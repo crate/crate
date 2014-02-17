@@ -183,9 +183,9 @@ public class TransportExecutor implements Executor {
         @Override
         public Void visitESIndexNode(ESIndexNode node, Job context) {
             if (node.valuesLists().size() > 1) {
-                context.addTask(new ESBulkIndexTask(transportBulkAction, functions, referenceResolver, node));
+                context.addTask(new ESBulkIndexTask(transportBulkAction, node));
             } else {
-                context.addTask(new ESIndexTask(transportIndexAction, functions, referenceResolver, node));
+                context.addTask(new ESIndexTask(transportIndexAction, node));
             }
             return null;
         }

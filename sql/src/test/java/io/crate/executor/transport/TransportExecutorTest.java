@@ -309,7 +309,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         List<ListenableFuture<Object[][]>> result = executor.execute(job);
         Object[][] rows = result.get(0).get();
         assertThat(rows.length, is(1));
-        assertThat((Integer)rows[0][0], is(1));
+        assertThat((Long)rows[0][0], is(1l));
 
 
         // verify insertion
@@ -352,7 +352,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         List<ListenableFuture<Object[][]>> result = executor.execute(job);
         Object[][] rows = result.get(0).get();
         assertThat(rows.length, is(1));
-        assertThat((Integer)rows[0][0], is(2));
+        assertThat((Long)rows[0][0], is(2l));
 
         // verify insertion
 

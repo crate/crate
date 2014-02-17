@@ -372,7 +372,7 @@ public class PlannerTest {
 
         assertThat(indexNode.valuesLists().size(), is(1));
         assertThat(((LongLiteral)indexNode.valuesLists().get(0).get(0)).value(), is(42l));
-        assertThat(((StringLiteral)indexNode.valuesLists().get(0).get(1)).value(), is("Deep Thought"));
+        assertThat(((StringLiteral)indexNode.valuesLists().get(0).get(1)).value().utf8ToString(), is("Deep Thought"));
 
         assertThat(indexNode.outputTypes().size(), is(1));
         assertThat(indexNode.outputTypes().get(0), is(DataType.LONG));
@@ -391,10 +391,10 @@ public class PlannerTest {
 
         assertThat(indexNode.valuesLists().size(), is(2));
         assertThat(((LongLiteral)indexNode.valuesLists().get(0).get(0)).value(), is(42l));
-        assertThat(((StringLiteral)indexNode.valuesLists().get(0).get(1)).value(), is("Deep Thought"));
+        assertThat(((StringLiteral)indexNode.valuesLists().get(0).get(1)).value().utf8ToString(), is("Deep Thought"));
 
         assertThat(((LongLiteral)indexNode.valuesLists().get(1).get(0)).value(), is(99l));
-        assertThat(((StringLiteral)indexNode.valuesLists().get(1).get(1)).value(), is("Marvin"));
+        assertThat(((StringLiteral)indexNode.valuesLists().get(1).get(1)).value().utf8ToString(), is("Marvin"));
 
         assertThat(indexNode.outputTypes().size(), is(1));
         assertThat(indexNode.outputTypes().get(0), is(DataType.LONG));

@@ -155,7 +155,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.values().size(), is(1));
         List<Symbol> values = analysis.values().get(0);
         assertThat(values.size(), is(2));
-        assertThat(values.get(0), instanceOf(Function.class));
+        assertThat(values.get(0), instanceOf(LongLiteral.class)); // normalized/evaluated
         assertThat(values.get(1), instanceOf(StringLiteral.class));
     }
 

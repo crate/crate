@@ -21,26 +21,12 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceResolver;
-import io.crate.operator.Input;
 import io.crate.planner.node.ESIndexNode;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
-import org.apache.lucene.util.BytesRef;
-import org.cratedb.Constants;
-import org.cratedb.sql.CrateException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.index.TransportIndexAction;
-
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
 public class ESIndexTask extends AbstractESIndexTask {
 
@@ -71,14 +57,10 @@ public class ESIndexTask extends AbstractESIndexTask {
     /**
      * @param transport         the transportAction to run the actual ES operation on
      * @param node              the plan node
-     * @param functions
-     * @param referenceResolver
      */
     public ESIndexTask(TransportIndexAction transport,
-                       Functions functions,
-                       ReferenceResolver referenceResolver,
                        ESIndexNode node) {
-        super(functions, referenceResolver, node);
+        super(node);
         this.transport = transport;
 
         int primaryKeyIdx = -1;
@@ -96,53 +78,5 @@ public class ESIndexTask extends AbstractESIndexTask {
     @Override
     public void start() {
         transport.execute(request, listener);
-    }
-
-    @Override
-    public List<ListenableFuture<Object[][]>> result() {
-        return results;
-    }
-
-    @Override
-    public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
-        throw new UnsupportedOperationException();
-    }
-
-    private IndexRequest buildRequest() {
-        IndexRequest request = new IndexRequest(node.index(), Constants.DEFAULT_MAPPING_TYPE);
-        request.create(true);
-
-        Map<String, Object> sourceMap = new HashMap<>();
-        List<Symbol> values = node.valuesLists().get(0);
-        Iterator<Symbol> valuesIt = values.iterator();
-
-
-        int primaryKeyIdx = -1;
-        if (node.hasPrimaryKey()) {
-            primaryKeyIdx = node.primaryKeyIndices()[0];
-        }
-        for (int i = 0, length = node.columns().size(); i < length; i++) {
-            Reference column = node.columns().get(i);
-            Symbol v = valuesIt.next();
-            try {
-                Object value = ((Input) normalizer.process(v, null)).value();
-                // TODO: handle this conversion in XContent
-                if (value instanceof BytesRef) {
-                    value = ((BytesRef) value).utf8ToString();
-                }
-                sourceMap.put(
-                        column.info().ident().columnIdent().name(),
-                        value
-                );
-                if (i == primaryKeyIdx) {
-                    request.id(value.toString());
-                }
-            } catch (ClassCastException e) {
-                // symbol is no input
-                throw new CrateException(String.format("invalid value '%s' in insert statement", v.toString()));
-            }
-        }
-        request.source(sourceMap);
-        return request;
     }
 }

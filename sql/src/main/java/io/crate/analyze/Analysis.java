@@ -16,7 +16,7 @@ import java.util.*;
  */
 public abstract class Analysis {
 
-    private final EvaluatingNormalizer normalizer;
+    protected final EvaluatingNormalizer normalizer;
 
     public static enum Type {
         SELECT,
