@@ -83,18 +83,24 @@ public class DistributingCollectOperation extends LocalDataCollectOperation {
             for (int i=0, length = this.downStreams.size(); i<length; i++) {
                 this.requests[i] = new DistributedResultRequest(jobId, streamers);
             }
-            // this is a pseudo result, immediately set
-            super.set(Constants.EMPTY_RESULT);
         }
 
         @Override
         protected void onAllShardsFinished() {
-            projectorChain.get(0).finishProjection();
+            Throwable throwable = lastException.get();
+            if (throwable != null) {
+                setException(throwable);
+                forwardFailures();
+                return;
+            }
+            super.set(Constants.EMPTY_RESULT);
 
+            projectorChain.get(0).finishProjection();
             BucketingIterator bucketingIterator = new ModuloBucketingIterator(
                     this.numDownStreams,
                     projectorChain.get(projectorChain.size()-1)
             );
+
             // send requests
             int i = 0;
             for (List<Object[]> bucket : bucketingIterator) {
@@ -106,46 +112,57 @@ public class DistributingCollectOperation extends LocalDataCollectOperation {
                             jobId.toString(),
                             node.id());
                 }
-                transportService.submitRequest(
-                    node,
-                    TransportMergeNodeAction.mergeRowsAction, // NOTICE: hard coded transport action, should be delivered by collectNode
-                    request,
-                    new BaseTransportResponseHandler<DistributedResultResponse>() {
-                        @Override
-                        public DistributedResultResponse newInstance() {
-                            return new DistributedResultResponse();
-                        }
-
-                        @Override
-                        public void handleResponse(DistributedResultResponse response) {
-                            if (logger.isTraceEnabled()) {
-                                logger.trace("[{}] successfully sent distributing collect request to {}",
-                                        jobId.toString(),
-                                        node.id());
-                            }
-                        }
-
-                        @Override
-                        public void handleException(TransportException exp) {
-                            if (logger.isTraceEnabled()) {
-                                logger.trace("[{}] Exception sending distributing collect request to {}",
-                                        exp,
-                                        jobId.toString(),
-                                        node.id());
-                            }
-                        }
-
-                        @Override
-                        public String executor() {
-                            return ThreadPool.Names.SEARCH;
-                        }
-                    }
-                );
+                sendRequest(request, node);
                 i++;
             }
         }
 
+        private void forwardFailures() {
+            int idx = 0;
+            for (DistributedResultRequest request : requests) {
+                request.failure(true);
+                sendRequest(request, downStreams.get(idx));
+                idx++;
+            }
+        }
 
+        private void sendRequest(DistributedResultRequest request, final DiscoveryNode node) {
+            transportService.submitRequest(
+                node,
+                TransportMergeNodeAction.mergeRowsAction, // NOTICE: hard coded transport action, should be delivered by collectNode
+                request,
+                new BaseTransportResponseHandler<DistributedResultResponse>() {
+                    @Override
+                    public DistributedResultResponse newInstance() {
+                        return new DistributedResultResponse();
+                    }
+
+                    @Override
+                    public void handleResponse(DistributedResultResponse response) {
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("[{}] successfully sent distributing collect request to {}",
+                                    jobId.toString(),
+                                    node.id());
+                        }
+                    }
+
+                    @Override
+                    public void handleException(TransportException exp) {
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("[{}] Exception sending distributing collect request to {}",
+                                    exp,
+                                    jobId.toString(),
+                                    node.id());
+                        }
+                    }
+
+                    @Override
+                    public String executor() {
+                        return ThreadPool.Names.SEARCH;
+                    }
+                }
+            );
+        }
     }
 
     private final TransportService transportService;

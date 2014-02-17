@@ -21,8 +21,8 @@
 
 package io.crate.executor.transport.distributed;
 
-import com.google.common.base.Function;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.exceptions.UnknownUpstreamFailure;
 import io.crate.operator.operations.merge.DownstreamOperation;
 import org.cratedb.DataType;
 
@@ -38,6 +38,7 @@ public class DownstreamOperationContext {
     private final DistributedRequestContextManager.DoneCallback doneCallback;
     private boolean canContinue = true;
     private final Object lock = new Object();
+    private AtomicBoolean listenerSet = new AtomicBoolean(false);
 
     public DownstreamOperationContext(DownstreamOperation downstreamOperation,
                                       SettableFuture<Object[][]> listener,
@@ -50,6 +51,16 @@ public class DownstreamOperationContext {
         this.doneCallback = doneCallback;
     }
 
+    public void addFailure() {
+        if (!listenerSet.get()) {
+            listener.setException(new UnknownUpstreamFailure());
+        }
+
+        if (mergeOperationsLeft.decrementAndGet() == 0) {
+            doneCallback.finished();
+        }
+    }
+
     public void add(Object[][] rows) {
         synchronized (lock) {
             if (canContinue) {
@@ -58,7 +69,9 @@ public class DownstreamOperationContext {
         }
 
         if (mergeOperationsLeft.decrementAndGet() == 0) {
-            listener.set(downstreamOperation.result());
+            if (!listenerSet.get()) {
+                listener.set(downstreamOperation.result());
+            }
             doneCallback.finished();
         }
     }

@@ -116,7 +116,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
     }
 
     @Override
-    public void doCollect() {
+    public void doCollect() throws Exception {
         // start collect
         CollectorContext collectorContext = new CollectorContext().searchContext(searchContext);
         for (CollectorExpression<?> collectorExpression : collectorExpressions) {
@@ -133,8 +133,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         // do the lucene search
         try {
             searchContext.searcher().search(query, this);
-        } catch (IOException ioe) {
-            // TODO
         } finally {
             searchContext.release();
             SearchContext.removeCurrent();

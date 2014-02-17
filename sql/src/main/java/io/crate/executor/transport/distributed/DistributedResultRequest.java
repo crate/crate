@@ -39,6 +39,7 @@ public class DistributedResultRequest extends TransportRequest {
     private Object[][] rows;
     private UUID contextId;
     private BytesStreamOutput memoryStream;
+    private boolean failure = false;
 
     public DistributedResultRequest(DistributedRequestContextManager contextManager) {
         this.contextManager = contextManager;
@@ -66,14 +67,19 @@ public class DistributedResultRequest extends TransportRequest {
     }
 
     public boolean rowsRead() {
-        return rows != null;
+        return memoryStream == null;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-
         contextId = new UUID(in.readLong(), in.readLong());
+
+        if (in.readBoolean()) {
+            failure= true;
+            return;
+        }
+
         final Optional<DataType.Streamer<?>[]> optStreamer = contextManager.getStreamer(contextId);
         if (optStreamer.isPresent()) {
             final DataType.Streamer<?>[] streamers = optStreamer.get();
@@ -107,12 +113,18 @@ public class DistributedResultRequest extends TransportRequest {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        assert streamers != null;
-        final int numColumns = streamers.length;
-
         super.writeTo(out);
         out.writeLong(contextId.getMostSignificantBits());
         out.writeLong(contextId.getLeastSignificantBits());
+
+        if (failure) {
+            out.writeBoolean(true);
+            return;
+        }
+        out.writeBoolean(false);
+
+        assert streamers != null;
+        final int numColumns = streamers.length;
 
         out.writeVInt(rows.length);
         for (Object[] row : rows) {
@@ -122,4 +134,11 @@ public class DistributedResultRequest extends TransportRequest {
         }
     }
 
+    public void failure(boolean failure) {
+        this.failure = failure;
+    }
+
+    public boolean failure() {
+        return this.failure;
+    }
 }

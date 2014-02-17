@@ -23,6 +23,7 @@ package io.crate.executor.transport.task;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.exceptions.UnknownUpstreamFailure;
 import io.crate.executor.Task;
 import io.crate.executor.transport.merge.NodeMergeRequest;
 import io.crate.executor.transport.merge.NodeMergeResponse;
@@ -33,12 +34,14 @@ import org.elasticsearch.common.Preconditions;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public class DistributedMergeTask implements Task<Object[][]> {
 
     private final MergeNode mergeNode;
     private final TransportMergeNodeAction transportMergeNodeAction;
     private final ArrayList<ListenableFuture<Object[][]>> results;
+    private List<ListenableFuture<Object[][]>> upstreamResult;
 
     public DistributedMergeTask(TransportMergeNodeAction transportMergeNodeAction, MergeNode mergeNode) {
         Preconditions.checkNotNull(mergeNode.executionNodes());
@@ -67,7 +70,18 @@ public class DistributedMergeTask implements Task<Object[][]> {
 
                 @Override
                 public void onFailure(Throwable e) {
-                    ((SettableFuture<Object[][]>)results.get(resultIdx)).setException(e);
+                    if (upstreamResult != null && e instanceof UnknownUpstreamFailure) {
+                        ListenableFuture<Object[][]> upstreamResultFuture = upstreamResult.get(resultIdx);
+                        if (upstreamResultFuture != null) {
+                            try {
+                                upstreamResultFuture.get(); // trigger exception;
+                            } catch (InterruptedException | ExecutionException e1) {
+                                ((SettableFuture<Object[][]>)results.get(resultIdx)).setException(e1.getCause());
+                                return;
+                            }
+                        }
+                    }
+                    ((SettableFuture<Object[][]>)results.get(resultIdx)).setException(e.getCause());
                 }
             });
 
@@ -82,5 +96,6 @@ public class DistributedMergeTask implements Task<Object[][]> {
 
     @Override
     public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
+        upstreamResult = result;
     }
 }

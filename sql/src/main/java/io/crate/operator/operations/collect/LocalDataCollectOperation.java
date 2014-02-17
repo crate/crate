@@ -225,14 +225,19 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
             threadPool.executor(ThreadPool.Names.SEARCH).execute(new Runnable() {
                 @Override
                 public void run() {
-                    shardCollector.doCollect();
-                    result.shardFinished();
+                    try {
+                        shardCollector.doCollect();
+                        result.shardFinished();
+                    } catch (Exception ex) {
+                        result.shardFailure(ex);
+                    }
                     if (logger.isTraceEnabled()) {
                         logger.trace("shard finished collect, {} to go", result.numShards());
                     }
                 }
             });
         }
+
         if (logger.isTraceEnabled()) {
             logger.trace("started {} shardCollectors", numShards);
         }

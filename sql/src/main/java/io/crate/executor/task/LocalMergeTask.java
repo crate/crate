@@ -28,7 +28,6 @@ import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.operator.operations.merge.MergeOperation;
 import io.crate.planner.node.MergeNode;
 import org.cratedb.Constants;
-import org.cratedb.sql.CrateException;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Arrays;
@@ -82,10 +81,8 @@ public class LocalMergeTask implements Task<Object[][]> {
                             if (countDown.decrementAndGet()==0) {
                                 result.set(mergeOperation.result());
                             }
-                        } catch (InterruptedException e) {
-                            throw new CrateException("interrupted during merge operation");
-                        } catch (ExecutionException e) {
-                            throw new CrateException("error during merge operation", e);
+                        } catch (InterruptedException | ExecutionException e) {
+                            result.setException(e.getCause());
                         }
                     }
                 }, threadPool.executor(ThreadPool.Names.GENERIC));
