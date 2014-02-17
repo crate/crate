@@ -28,7 +28,6 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.ValueSymbol;
 import io.crate.sql.tree.*;
-import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
 
 import java.util.ArrayList;
@@ -118,9 +117,9 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
             assert valuesSymbol instanceof ValueSymbol;
 
             // implicit type conversion
-            DataType expectedType = context.columns().get(i).valueType();
+            Reference column = context.columns().get(i);
             try {
-                valuesSymbol = context.normalizeValue(valuesSymbol, expectedType);
+                valuesSymbol = context.normalizeInputValue(valuesSymbol, column);
             } catch (IllegalArgumentException e) {
                 throw new CrateException(e.getMessage(), e);
             }

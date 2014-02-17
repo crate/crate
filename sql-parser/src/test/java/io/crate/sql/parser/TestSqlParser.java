@@ -85,7 +85,7 @@ public class TestSqlParser
                         Optional.<With>absent(),
                         new QuerySpecification(
                                 selectList(new DoubleLiteral("123.456E7")),
-                                table(QualifiedName.of("DUAL")),
+                                table(QualifiedName.of("dual")),
                                 Optional.<Expression>absent(),
                                 ImmutableList.<Expression>of(),
                                 Optional.<Expression>absent(),

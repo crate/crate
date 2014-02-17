@@ -5,6 +5,8 @@ import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
+import org.cratedb.DataType;
+import org.cratedb.sql.ValidationException;
 import org.elasticsearch.common.Preconditions;
 
 import javax.annotation.Nullable;
@@ -228,5 +230,84 @@ public abstract class Analysis {
 
     public void isDelete(boolean isDelete) {
         this.isDelete = isDelete;
+    }
+
+    /**
+     * normalize and validate given value according to the corresponding {@link io.crate.planner.symbol.Reference}
+     * @param inputValue the value to normalize, might be anything from {@link io.crate.metadata.Scalar} to {@link io.crate.planner.symbol.Literal}
+     * @param reference the reference to which the value has to comply in terms of type-compatibility
+     * @return the normalized Symbol, should be a literal
+     * @throws org.cratedb.sql.ValidationException
+     */
+    public Literal normalizeInputValue(Symbol inputValue, Reference reference) {
+        Literal normalized;
+        // 1. evaluate
+        try {
+            // everything that is allowed for input should evaluate to Literal
+            normalized = (Literal)normalizer.process(inputValue, null);
+        } catch (ClassCastException e) {
+            throw new ValidationException(
+                    reference.info().ident().columnIdent().name(),
+                    String.format("Invalid value '%s'", inputValue.symbolType().name()));
+        }
+
+        // 2. convert if necessary (detect wrong types)
+        try {
+            normalized = normalized.convertTo(reference.info().type());
+        } catch (Exception e) {  // UnsupportedOperationException, NumberFormatException ...
+            throw new ValidationException(
+                    reference.info().ident().columnIdent().name(),
+                    String.format("wrong type '%s'. expected: '%s'",
+                            normalized.valueType().getName(),
+                            reference.info().type().getName()));
+        }
+
+        // 3. if reference is of type object - do special validation
+        if (reference.info().type() == DataType.OBJECT
+                && normalized instanceof ObjectLiteral) {
+            Map<String, Object> value = ((ObjectLiteral)normalized).value();
+            if (value == null) {
+                return Null.INSTANCE;
+            }
+            normalized = new ObjectLiteral(normalizeObjectValue(value, reference.info()));
+        }
+
+        return normalized;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> normalizeObjectValue(Map<String, Object> value, ReferenceInfo referenceInfo) {
+        if (referenceInfo.objectType() == ReferenceInfo.ObjectType.STRICT && value.size() > referenceInfo.nestedColumns().size()) {
+            throw new ValidationException(referenceInfo.ident().columnIdent().fqn(), "cannot add new columns to STRICT object");
+        }
+        for (ReferenceInfo info : referenceInfo.nestedColumns()) {
+            List<String> path = info.ident().columnIdent().path();
+            String mapKey = path.get(path.size()-1);
+            Object nestedValue = value.get(mapKey);
+            if (nestedValue == null) {
+                continue;
+            }
+            if (info.type() == DataType.OBJECT && nestedValue instanceof Map) {
+                value.put(mapKey, normalizeObjectValue((Map<String, Object>)nestedValue, info));
+            } else {
+                value.put(mapKey, normalizePrimitiveValue(nestedValue, info));
+            }
+        }
+        return value;
+    }
+
+    private Object normalizePrimitiveValue(Object primitiveValue, ReferenceInfo info) {
+        try {
+            // try to convert to correctly typed literal
+            Literal l = Literal.forType(DataType.forClass(primitiveValue.getClass()), primitiveValue);
+            return l.convertTo(info.type()).value();
+        } catch (Exception e) {
+            throw new ValidationException(info.ident().columnIdent().fqn(),
+                    String.format("Validation failed for %s: Invalid %s",
+                            info.ident().columnIdent().fqn(),
+                            info.type().getName()
+                            )
+                    );
+        }
     }
 }
