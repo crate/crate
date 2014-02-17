@@ -27,10 +27,12 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
 import io.crate.planner.node.ESDeleteNode;
 import org.cratedb.Constants;
+import org.cratedb.sql.VersionConflictException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.delete.TransportDeleteAction;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 import java.util.Arrays;
 import java.util.List;
@@ -53,6 +55,9 @@ public class ESDeleteTask implements Task<Object[][]> {
 
 
         request = new DeleteRequest(node.index(), Constants.DEFAULT_MAPPING_TYPE, node.id());
+        if (node.version().isPresent()) {
+            request.version(node.version().get());
+        }
         listener = new DeleteResponseListener(result);
     }
 
@@ -66,13 +71,24 @@ public class ESDeleteTask implements Task<Object[][]> {
 
         @Override
         public void onResponse(DeleteResponse response) {
-            // TODO: check for response.isNotFound() and set affected rows according to this
-            result.set(Constants.EMPTY_RESULT);
+            if (response.isNotFound()) {
+                result.set(Constants.EMPTY_RESULT);
+            } else {
+                result.set(new Object[][] { new Object[] {1L}});
+            }
         }
 
         @Override
         public void onFailure(Throwable e) {
-            result.setException(e);
+            Throwable cause = e.getCause();
+            // if the delete Operation was done locally (on the same node) e is the real exception
+            // otherwise the exception is wrapped inside a transportExecutionException
+            if (e instanceof VersionConflictEngineException || (cause != null && cause instanceof VersionConflictEngineException)) {
+                // treat version conflict as rows affected = 0
+                result.set(Constants.EMPTY_RESULT);
+            } else {
+                result.setException(e);
+            }
         }
     }
 

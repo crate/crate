@@ -361,8 +361,14 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
         analysis = analyze("select name from users where id=1 or id=2");
         assertNull(analysis.clusteredByLiteral());
+    }
 
-
+    @Test
+    public void testPrimaryKeyAndVersion() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis)analyze(
+            "select name from users where id = 2 and \"_version\" = 1");
+        assertEquals(analysis.primaryKeyLiterals(), ImmutableList.<Literal>of(new LongLiteral(2)));
+        assertThat(analysis.version().get(), is(1L));
     }
 
     @Test

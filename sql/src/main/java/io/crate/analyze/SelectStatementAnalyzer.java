@@ -171,6 +171,7 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
                 } else {
                     context.primaryKeyLiterals(pkc.keyLiterals());
                 }
+                context.version(pkc.version());
                 context.clusteredByLiteral(pkc.clusteredByLiteral());
             }
         }

@@ -232,6 +232,13 @@ public class PlannerTest {
     }
 
     @Test
+    public void testMultiDeletePlan() throws Exception {
+        Plan plan = plan("delete from users where id in (1, 2)");
+        Iterator<PlanNode> iterator = plan.iterator();
+        assertThat(iterator.next(), instanceOf(ESDeleteByQueryNode.class));
+    }
+
+    @Test
     public void testGroupByWithAggregationAndLimit() throws Exception {
         Plan plan = plan("select count(*), name from users group by name limit 1 offset 1");
         Iterator<PlanNode> iterator = plan.iterator();

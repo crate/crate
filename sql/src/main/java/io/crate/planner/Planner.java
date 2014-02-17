@@ -36,6 +36,7 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.DefaultTraversalVisitor;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.Constants;
 import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
@@ -304,9 +305,17 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         } else {
             Literal literal = analysis.primaryKeyLiterals().get(0);
             if (literal.symbolType() == SymbolType.SET_LITERAL) {
-                throw new UnsupportedOperationException("Don't know how to plan a multi delete yet");
+                // TODO: implement bulk delete task / node
+                ESDeleteByQuery(analysis, plan);
             } else {
-                plan.add(new ESDeleteNode(analysis.table().ident().name(), literal.value().toString()));
+                String id;
+                if (literal.valueType() == DataType.STRING) {
+                    id = ((BytesRef)literal.value()).utf8ToString();
+                } else {
+                    id = literal.value().toString();
+                }
+                plan.add(new ESDeleteNode(analysis.table().ident().name(), id, analysis.version()));
+                plan.expectsAffectedRows(true);
             }
         }
     }

@@ -45,6 +45,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         public boolean noMatch = false;
         public int foundKeys = 0;
         public Literal clusteredByLiteral;
+        Long version;
 
 
         public Context(TableInfo tableInfo) {
@@ -67,6 +68,10 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
             return clusteredByLiteral;
         }
 
+        @Nullable
+        public Long version() {
+            return version;
+        }
     }
 
     @Nullable
@@ -90,14 +95,31 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
                 symbol.arguments().get(0).symbolType() == SymbolType.REFERENCE &&
                 symbol.arguments().get(1).symbolType().isLiteral() &&
                 PK_COMPARISONS.contains(symbol.info().ident().name())) {
+
+            Literal right = (Literal)symbol.arguments().get(1);
             Reference ref = (Reference) symbol.arguments().get(0);
+
             if (ref.info().ident().tableIdent().equals(context.table.ident())) {
+                if (ref.info().ident().columnIdent().name().equals("_version")) {
+                    switch (right.symbolType()) {
+                        case LONG_LITERAL:
+                            context.version = ((LongLiteral)right).value();
+                            break;
+                        case INTEGER_LITERAL:
+                            context.version = ((IntegerLiteral)right).value().longValue();
+                            break;
+                        default:
+                            throw new IllegalArgumentException(
+                                "comparison operation on \"_version\" requires a long");
+                    }
+                }
+
                 if (symbol.info().ident().name().equals(EqOperator.NAME) &&
                         ref.info().ident().columnIdent().name().equals(context.table.clusteredBy())) {
                     if (context.clusteredByLiteral == null) {
-                        context.clusteredByLiteral = (Literal) symbol.arguments().get(1);
+                        context.clusteredByLiteral = right;
                     } else {
-                        if (!context.clusteredByLiteral.equals(symbol.arguments().get(1))) {
+                        if (!context.clusteredByLiteral.equals(right)) {
                             // we cannot use the routing, since we have two values
                             context.clusteredByLiteral = null;
                         }
@@ -105,7 +127,6 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
                 }
                 int idx = context.table.primaryKey().indexOf(ref.info().ident().columnIdent().name());
                 if (idx >= 0) {
-                    Literal right = (Literal) symbol.arguments().get(1);
                     if (context.keyLiterals[idx] == null) {
                         context.foundKeys++;
                         context.keyLiterals[idx] = right;

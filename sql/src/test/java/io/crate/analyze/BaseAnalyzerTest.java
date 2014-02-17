@@ -69,6 +69,7 @@ public class BaseAnalyzerTest {
             .add("name", DataType.STRING, null)
             .add("details", DataType.OBJECT, null)
             .add("awesome", DataType.BOOLEAN, null)
+            .add("_version", DataType.INTEGER, null)
             .addPrimaryKey("id")
             .clusteredBy("id")
             .build();

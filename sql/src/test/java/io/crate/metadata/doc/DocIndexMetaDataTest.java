@@ -272,7 +272,7 @@ public class DocIndexMetaDataTest {
                 .endObject();
 
         md = newMeta(getIndexMetaData("test4", builder), "test4");
-        assertThat(md.primaryKey().size(), is(0));
+        assertThat(md.primaryKey().size(), is(1)); // _id is always the fallback primary key
 
         builder = XContentFactory.jsonBuilder()
                 .startObject()
@@ -280,7 +280,7 @@ public class DocIndexMetaDataTest {
                 .endObject()
                 .endObject();
         md = newMeta(getIndexMetaData("test5", builder), "test5");
-        assertThat(md.primaryKey().size(), is(0));
+        assertThat(md.primaryKey().size(), is(1));
     }
 
     @Test
