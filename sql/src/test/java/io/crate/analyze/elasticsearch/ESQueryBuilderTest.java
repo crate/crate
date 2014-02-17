@@ -48,28 +48,27 @@ import java.io.IOException;
 import java.util.*;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class ESQueryBuilderTest {
 
     Functions functions;
-    TableIdent characters = new TableIdent(null, "characters");
-    Reference name_ref = new Reference(new ReferenceInfo(
+    static TableIdent characters = new TableIdent(null, "characters");
+    static Reference name_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "name"), RowGranularity.DOC, DataType.STRING));
-    Reference age_ref = new Reference(new ReferenceInfo(
+    static Reference age_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "age"), RowGranularity.DOC, DataType.INTEGER));
-    Reference weight_ref = new Reference(new ReferenceInfo(
+    static Reference weight_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "weight"), RowGranularity.DOC, DataType.DOUBLE));
-    Reference float_ref = new Reference(new ReferenceInfo(
+    static Reference float_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "float_ref"), RowGranularity.DOC, DataType.FLOAT));
-    Reference long_ref = new Reference(new ReferenceInfo(
+    static Reference long_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "long_ref"), RowGranularity.DOC, DataType.LONG));
-    Reference short_ref = new Reference(new ReferenceInfo(
+    static Reference short_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "short_ref"), RowGranularity.DOC, DataType.SHORT));
-    Reference isParanoid = new Reference(new ReferenceInfo(
+    static Reference isParanoid = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "isParanoid"), RowGranularity.DOC, DataType.BOOLEAN));
-    Reference extrafield = new Reference(new ReferenceInfo(
+    static Reference extrafield = new Reference(new ReferenceInfo(
             new ReferenceIdent(characters, "extrafield"), RowGranularity.DOC, DataType.STRING));
     private ESQueryBuilder generator;
 
@@ -219,47 +218,26 @@ public class ESQueryBuilderTest {
     public void testWhereReferenceInStringList() throws Exception {
         // where name in ("alpha", "bravo", "charlie")
         Reference ref = name_ref;
-        DataType valueType = ref.valueType();
-        DataType setType = DataType.SET_TYPES.get(valueType.ordinal());
         FunctionImplementation inListImpl = functions.get(
-                new FunctionIdent(InOperator.NAME, Arrays.asList(valueType, setType))
+                new FunctionIdent(InOperator.NAME,
+                Arrays.asList(DataType.STRING, DataType.STRING_SET))
         );
 
-        ImmutableSet<BytesRef> list = ImmutableSet.<BytesRef>of(
+        ImmutableSet<BytesRef> list = ImmutableSet.of(
                 new BytesRef("alpha"), new BytesRef("bravo"), new BytesRef("charlie"));
         SetLiteral set = new SetLiteral(DataType.STRING, list);
         Function inList = new Function(inListImpl.info(), Arrays.<Symbol>asList(ref, set));
 
-        // expected result
-        // {"query":{"terms":{"name":["alpha","bravo","charlie"]}}}
-        String expectedQuery =
-                "{\"query\":{\"terms\":{\"name\":[\"alpha\",\"bravo\",\"charlie\"]}}}";
-        // "name": [...] is internally handled as a Set.
-        // therefore, one cannot expect a deterministic sort ordering at all times.
-        // let the generator convert the function, then use the XContentHelper
-        // to compare the content.
         BytesReference reference = generator.convert(inList);
-        Tuple<XContentType, Map<String, Object>> expectedMap =
-                XContentHelper.convertToMap(expectedQuery.getBytes(), true);
         Tuple<XContentType, Map<String, Object>> actualMap =
                 XContentHelper.convertToMap(reference, true);
-        ArrayList<String> expectedList = ((ArrayList)
-                ((Map)((Map)expectedMap.v2()
-                .get("query"))
-                .get("terms"))
-                .get("name"));
         ArrayList<String> actualList = ((ArrayList)
                 ((Map)((Map)actualMap.v2()
                 .get("query"))
                 .get("terms"))
                 .get("name"));
-        Set<String> expectedSet = new HashSet<>(expectedList);
-        Set<String> actualSet = new HashSet<>(actualList);
 
-        assertTrue(actualSet.size() == expectedSet.size());
-        assertTrue(actualSet.containsAll(expectedSet));
-    }
-
+        assertEquals(ImmutableSet.of("alpha", "bravo", "charlie"), new HashSet<>(actualList));
     }
 
     @Test
