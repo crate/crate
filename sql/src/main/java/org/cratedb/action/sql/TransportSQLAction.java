@@ -1,5 +1,42 @@
+/*
+ * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
+ */
+
 package org.cratedb.action.sql;
 
+import com.google.common.base.Preconditions;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.analyze.Analysis;
+import io.crate.analyze.Analyzer;
+import io.crate.executor.AffectedRowsResponseBuilder;
+import io.crate.executor.Job;
+import io.crate.executor.ResponseBuilder;
+import io.crate.executor.RowsResponseBuilder;
+import io.crate.executor.transport.TransportExecutor;
+import io.crate.planner.Plan;
+import io.crate.planner.Planner;
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.Statement;
+import org.cratedb.Constants;
 import org.cratedb.action.DistributedSQLRequest;
 import org.cratedb.action.TransportDistributedSQLAction;
 import org.cratedb.action.import_.ImportRequest;
@@ -9,7 +46,11 @@ import org.cratedb.action.parser.ESRequestBuilder;
 import org.cratedb.action.parser.SQLResponseBuilder;
 import org.cratedb.service.InformationSchemaService;
 import org.cratedb.service.SQLParseService;
+import org.cratedb.sql.CrateException;
 import org.cratedb.sql.ExceptionHelper;
+import org.cratedb.sql.SQLParseException;
+import org.cratedb.sql.parser.StandardException;
+import org.cratedb.sql.parser.parser.*;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
@@ -52,6 +93,10 @@ import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportService;
 
+import javax.annotation.Nullable;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+
 
 public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse> {
 
@@ -72,10 +117,15 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction;
     private final TransportImportAction transportImportAction;
 
+    private final Analyzer analyzer;
+    private final TransportExecutor transportExecutor;
+    private final static Planner planner = new Planner();
 
     @Inject
     protected TransportSQLAction(Settings settings, ThreadPool threadPool,
             SQLParseService sqlParseService,
+            Analyzer analyzer,
+            TransportExecutor transportExecutor,
             TransportService transportService,
             TransportSearchAction transportSearchAction,
             TransportDeleteByQueryAction transportDeleteByQueryAction,
@@ -94,6 +144,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             InformationSchemaService informationSchemaService) {
         super(settings, threadPool);
         this.sqlParseService = sqlParseService;
+        this.analyzer = analyzer;
+        this.transportExecutor = transportExecutor;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
         this.transportSearchAction = transportSearchAction;
         this.transportIndexAction = transportIndexAction;
@@ -215,8 +267,17 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     @Override
     protected void doExecute(SQLRequest request, ActionListener<SQLResponse> listener) {
         logger.trace("doExecute: " + request);
+
         try {
-            ParsedStatement stmt = sqlParseService.parse(request.stmt(), request.args());
+            StatementNode akibanNode = getAkibanNode(request.stmt());
+            ParsedStatement stmt;
+            if (akibanNode != null) {
+                stmt = sqlParseService.parse(request.stmt(), akibanNode, request.args());
+            } else {
+                usePresto(request, listener);
+                return;
+            }
+
             ESRequestBuilder builder = new ESRequestBuilder(stmt);
             switch (stmt.type()) {
                 case INFORMATION_SCHEMA:
@@ -303,6 +364,121 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         } catch (Exception e) {
             listener.onFailure(ExceptionHelper.transformToCrateException(e));
         }
+    }
+
+    private void usePresto(final SQLRequest request, final ActionListener<SQLResponse> listener) {
+        try {
+            final Statement statement = SqlParser.createStatement(request.stmt());
+            final Analysis analysis = analyzer.analyze(statement, request.args());
+            final Plan plan = planner.plan(analysis);
+            final Job job = transportExecutor.newJob(plan);
+            final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(transportExecutor.execute(job));
+            final ResponseBuilder responseBuilder = getResponseBuilder(plan);
+            Futures.addCallback(resultFuture, new FutureCallback<List<Object[][]>>() {
+                @Override
+                public void onSuccess(@Nullable List<Object[][]> result) {
+                    Object[][] rows;
+                    if (result == null) {
+                        rows = Constants.EMPTY_RESULT;
+                    } else {
+                        Preconditions.checkArgument(result.size() == 1);
+                        rows = result.get(0);
+                    }
+
+                    SQLResponse response = responseBuilder.buildResponse(
+                            analysis.outputNames().toArray(new String[analysis.outputNames().size()]),
+                            rows,
+                            request.creationTime());
+                    listener.onResponse(response);
+                }
+
+                @Override
+                public void onFailure(Throwable t) {
+                    listener.onFailure(t);
+                }
+            });
+        } catch (Exception e) {
+            listener.onFailure(ExceptionHelper.transformToCrateException(e));
+        }
+    }
+
+    private ResponseBuilder getResponseBuilder(Plan plan) {
+        if (plan.expectsAffectedRows()) {
+            return new AffectedRowsResponseBuilder();
+        } else {
+            return new RowsResponseBuilder(true);
+        }
+    }
+
+    /**
+     * for the migration from akiban to the presto based sql-parser
+     * if presto should be used it returns null, otherwise it returns the parsed StatementNode for akiban.
+     *
+     * @param stmt sql statement as string
+     * @return null or the akiban StatementNode
+     * @throws StandardException
+     */
+    private StatementNode getAkibanNode(String stmt) throws StandardException {
+
+        SQLParser parser = new SQLParser();
+        StatementNode node;
+        try {
+            node = parser.parseStatement(stmt);
+        } catch (CrateException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new SQLParseException(ex.getMessage(), ex);
+        }
+        final AtomicReference<Boolean> isPresto = new AtomicReference<>(false);
+
+        // use presto for DeleteByQuery request (DISABLED)
+        // TODO: enable if all needed system columns (_id + _version) and all needed operators (IN) are implemented
+        /*
+        if (node.getNodeType() == NodeType.DELETE_NODE) {
+            DeleteNode deleteNode = (DeleteNode)node;
+            if (((SelectNode)deleteNode.getResultSetNode()).getWhereClause() != null) {
+                return null;
+            }
+        }
+        */
+
+        Visitor visitor = new Visitor() {
+            @Override
+            public Visitable visit(Visitable node) throws StandardException {
+                if (((QueryTreeNode)node).getNodeType() == NodeType.FROM_BASE_TABLE) {
+                    TableName tableName = ((FromBaseTable) node).getTableName();
+                    if (tableName.getSchemaName() != null
+                            && tableName.getSchemaName().equalsIgnoreCase("sys")) {
+
+                        isPresto.set(true);
+                        return null;
+                    }
+                }
+                return node;
+            }
+
+            @Override
+            public boolean visitChildrenFirst(Visitable node) {
+                return false;
+            }
+
+            @Override
+            public boolean stopTraversal() {
+                return isPresto.get();
+            }
+
+            @Override
+            public boolean skipChildren(Visitable node) throws StandardException {
+                return false;
+            }
+        };
+
+        node.accept(visitor);
+
+        if (isPresto.get()) {
+            return null;
+        }
+        return node;
     }
 
     private class TransportHandler extends BaseTransportRequestHandler<SQLRequest> {

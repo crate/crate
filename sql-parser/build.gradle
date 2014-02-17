@@ -15,7 +15,10 @@ dependencies {
     compile 'com.google.guava:guava:15.0'
     compile 'org.antlr:antlr-runtime:3.4'
 
-    testCompile 'org.testng:testng:6.8'
+    testCompile ('org.testng:testng:6.8') {
+        exclude group: 'junit', module: 'junit'
+    }
+    testCompile 'junit:junit:4.11'
 }
 
 configurations {
