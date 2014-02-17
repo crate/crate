@@ -211,6 +211,17 @@ public class PlannerTest {
     }
 
     @Test
+    public void testMultiGetPlan() throws Exception {
+        Plan plan = plan("select name from users where id in (1, 2)");
+        Iterator<PlanNode> iterator = plan.iterator();
+        ESGetNode node = (ESGetNode)iterator.next();
+        assertThat(node.index(), is("users"));
+        assertThat(node.ids().size(), is(2));
+        assertThat(node.ids().get(0), is("1"));
+        assertThat(node.ids().get(1), is("2"));
+    }
+
+    @Test
     public void testDeletePlan() throws Exception {
         Plan plan = plan("delete from users where id = 1");
         Iterator<PlanNode> iterator = plan.iterator();

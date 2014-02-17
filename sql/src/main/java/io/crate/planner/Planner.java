@@ -42,10 +42,7 @@ import org.cratedb.sql.CrateException;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Singleton
 public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
@@ -321,13 +318,20 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             throw new UnsupportedOperationException("Multi column primary keys are currently not supported");
         } else {
             Literal literal = analysis.primaryKeyLiterals().get(0);
+            List<String> ids;
             if (literal.symbolType() == SymbolType.SET_LITERAL) {
-                throw new UnsupportedOperationException("Don't know how to plan a multi get yet");
+                Set<?> objects = ((SetLiteral) literal).value();
+                ids = new ArrayList<>(objects.size());
+                for (Object object : objects) {
+                    ids.add(object.toString());
+                }
             } else {
-                ESGetNode getNode = new ESGetNode(analysis.table().ident().name(), literal.value().toString());
-                getNode.outputs(analysis.outputSymbols());
-                plan.add(getNode);
+                ids = Arrays.asList(literal.value().toString());
             }
+
+            ESGetNode getNode = new ESGetNode(analysis.table().ident().name(), ids);
+            getNode.outputs(analysis.outputSymbols());
+            plan.add(getNode);
         }
     }
 
