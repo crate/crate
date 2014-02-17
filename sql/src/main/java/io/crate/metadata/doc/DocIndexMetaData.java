@@ -34,10 +34,10 @@ import org.cratedb.sql.TableAliasSchemaException;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.Booleans;
-import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.collect.Tuple;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 public class DocIndexMetaData {
@@ -62,8 +62,11 @@ public class DocIndexMetaData {
         this.ident = ident;
         this.metaData = metaData;
         this.defaultMappingMetaData = this.metaData.mappingOrDefault(Constants.DEFAULT_MAPPING_TYPE);
-        Preconditions.checkNotNull(this.defaultMappingMetaData, "defaultMappingMetaData");
-        this.defaultMappingMap = this.defaultMappingMetaData.sourceAsMap();
+        if (defaultMappingMetaData == null) {
+            this.defaultMappingMap = new HashMap<>();
+        } else {
+            this.defaultMappingMap = this.defaultMappingMetaData.sourceAsMap();
+        }
     }
 
     private void add(ReferenceInfo info) {
