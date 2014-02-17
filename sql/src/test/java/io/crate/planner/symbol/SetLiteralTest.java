@@ -29,6 +29,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 
+import static junit.framework.TestCase.assertSame;
 import static org.junit.Assert.assertEquals;
 
 public class SetLiteralTest {
@@ -47,6 +48,13 @@ public class SetLiteralTest {
         SetLiteral setLiteral2 = stringSet("foo", "alpha");
         assertEquals(stringSet("alpha"), setLiteral1.intersection(setLiteral2));
         assertEquals(stringSet("alpha"), setLiteral2.intersection(setLiteral1));
+    }
+
+    @Test
+    public void testEmptyIntersection() throws Exception {
+        SetLiteral setLiteral1 = stringSet();
+        SetLiteral setLiteral2 = stringSet("foo", "alpha");
+        assertSame(setLiteral1, setLiteral2.intersection(setLiteral1));
     }
 
     @Test
