@@ -55,4 +55,5 @@ public abstract class NumberLiteral<ValueType extends Number, LiteralType> exten
         }
         return Literal.forType(type, convertedValue);
     }
-}
+
+ }

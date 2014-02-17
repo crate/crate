@@ -2,6 +2,7 @@ package io.crate.lucene;
 
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.elasticsearch.common.lucene.BytesRefs;
 
@@ -138,12 +139,12 @@ public abstract class QueryBuilderHelper {
 
         @Override
         public Query eq(String columnName, Object value) {
-            return new TermQuery(new Term(columnName, (String)value));
+            return new TermQuery(new Term(columnName, (BytesRef)value));
         }
 
         @Override
         public Query like(String columnName, Object value) {
-            String like = SQLToLuceneHelper.convertWildcard((String)value);
+            String like = SQLToLuceneHelper.convertWildcard(((BytesRef)value).utf8ToString());
             return new WildcardQuery(new Term(columnName, like));
         }
     }

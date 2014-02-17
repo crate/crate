@@ -35,6 +35,7 @@ import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.StringLiteral;
 import io.crate.planner.symbol.Symbol;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -90,7 +91,7 @@ public class ProjectionToProjectorVisitorTest {
         projector.finishProjection();
         Object[][] rows = projector.getRows();
         assertThat(rows.length, is(10));
-        assertThat((String)rows[0][0], is("foo"));
+        assertThat((BytesRef) rows[0][0], is(new BytesRef("foo")));
         assertThat((Integer)rows[0][1], is(42));
     }
 
@@ -124,7 +125,7 @@ public class ProjectionToProjectorVisitorTest {
                 formerRow = row;
                 continue;
             }
-            assertThat((String)row[0], is("foo"));
+            assertThat((BytesRef)row[0], is(new BytesRef("foo")));
             assertThat((Integer)formerRow[1], lessThanOrEqualTo((Integer)row[1]));
             if (formerRow[1].equals(row[1]))  {
                 assertThat((Integer)formerRow[2], lessThanOrEqualTo((Integer)row[2]));

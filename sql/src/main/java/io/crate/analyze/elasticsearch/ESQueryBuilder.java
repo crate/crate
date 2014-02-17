@@ -232,12 +232,16 @@ public class ESQueryBuilder {
                 }
 
                 assert left.symbolType() == SymbolType.REFERENCE;
-                assert right.symbolType().isLiteral();
 
-                return new Tuple<>(
-                        ((Reference) left).info().ident().columnIdent().fqn(),
-                        ((Literal) right).value()
-                );
+
+                Object value;
+                if (right.symbolType() == SymbolType.STRING_LITERAL) {
+                    value = ((StringLiteral) right).value().utf8ToString();
+                } else {
+                    assert right.symbolType().isLiteral();
+                    value = ((Literal) right).value();
+                }
+                return new Tuple<>(((Reference) left).info().ident().columnIdent().fqn(), value);
             }
         }
 

@@ -21,14 +21,12 @@
 
 package io.crate.planner.projection;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 
 public abstract class Projection implements Streamable {
@@ -58,5 +56,10 @@ public abstract class Projection implements Streamable {
     // force subclasses to implement equality
     @Override
     public abstract boolean equals(Object obj);
+
+    @Override
+    public int hashCode() {
+        return projectionType().hashCode();
+    }
 
 }

@@ -22,9 +22,6 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.ReferenceInfo;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.*;
@@ -525,6 +522,42 @@ public class AnalyzerTest {
     }
 
     @Test
+    public void test1ColPrimaryKeySetLiteralDiffMatches() throws Exception {
+        Analysis analysis = analyze(
+                "select name from sys.nodes where id in ('jalla', 'kelle') and id in ('jalla', 'something')");
+        assertFalse(analysis.noMatch());
+        assertEquals(1, analysis.primaryKeyLiterals().size());
+        SetLiteral sl = (SetLiteral) analysis.primaryKeyLiterals().get(0);
+
+        assertEquals(1, sl.value().size());
+        assertEquals(SetLiteralTest.stringSet("jalla"), sl);
+    }
+
+
+    @Test
+    public void test1ColPrimaryKeySetLiteral() throws Exception {
+        Analysis analysis = analyze("select name from sys.nodes where id in ('jalla', 'kelle')");
+        assertFalse(analysis.noMatch());
+        assertEquals(1, analysis.primaryKeyLiterals().size());
+        SetLiteral sl = (SetLiteral) analysis.primaryKeyLiterals().get(0);
+
+        assertEquals(SetLiteralTest.stringSet("jalla", "kelle"), sl);
+
+    }
+
+    @Test
+    public void test2ColPrimaryKeySetLiteral() throws Exception {
+        Analysis analysis = analyze("select id from sys.shards where id=1 and table_name in ('jalla', 'kelle')");
+        assertEquals(2, analysis.primaryKeyLiterals().size());
+        SetLiteral tableName = (SetLiteral) analysis.primaryKeyLiterals().get(0);
+        IntegerLiteral id = (IntegerLiteral) analysis.primaryKeyLiterals().get(1);
+
+        assertThat(1, is(id.value()));
+        assertEquals(SetLiteralTest.stringSet("jalla", "kelle"), tableName);
+    }
+
+
+    @Test
     public void testGranularityWithSingleAggregation() throws Exception {
         Analysis analyze = analyze("select count(*) from sys.nodes");
         assertThat(analyze.rowGranularity(), is(RowGranularity.NODE));
@@ -682,7 +715,7 @@ public class AnalyzerTest {
 
     @Test
     public void testInsertWithConvertedTypes() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, name, awesome) values (?, 'Trillian', ?)", new Object[]{1.0f, "true"});
+        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users (id, name, awesome) values (?, 'Trillian', ?)", new Object[]{1.0f, "true"});
 
         assertThat(analysis.columns().get(0).valueType(), is(DataType.LONG));
         assertThat(analysis.columns().get(2).valueType(), is(DataType.BOOLEAN));

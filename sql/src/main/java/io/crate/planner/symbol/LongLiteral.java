@@ -57,4 +57,5 @@ public class LongLiteral extends NumberLiteral<Long, LongLiteral> {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeLong(value);
     }
+
 }

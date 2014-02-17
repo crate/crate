@@ -21,6 +21,7 @@
 
 package io.crate.planner.symbol;
 
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.junit.Test;
 
@@ -39,7 +40,7 @@ public class NumberLiteralTest {
         assertEquals(123.0f, numberLiteral.convertTo(DataType.FLOAT).value());
         assertEquals(123, numberLiteral.convertTo(DataType.SHORT).value());
         assertEquals(123, numberLiteral.convertTo(DataType.BYTE).value());
-        assertEquals("123", numberLiteral.convertTo(DataType.STRING).value());
+        assertEquals(new BytesRef("123"), numberLiteral.convertTo(DataType.STRING).value());
     }
 
     @Test(expected = UnsupportedOperationException.class)

@@ -27,7 +27,7 @@ import org.cratedb.sql.parser.StandardException;
 
 /**
  * A UnionNode represents a UNION in a DML statement.    It contains a boolean
- * telling whether the union operation should eliminate duplicate rows.
+ * telling whether the intersection operation should eliminate duplicate rows.
  *
  */
 
@@ -42,8 +42,8 @@ public class UnionNode extends SetOperatorNode
     /**
      * Initializer for a UnionNode.
      *
-     * @param leftResult The ResultSetNode on the left side of this union
-     * @param rightResult The ResultSetNode on the right side of this union
+     * @param leftResult The ResultSetNode on the left side of this intersection
+     * @param rightResult The ResultSetNode on the right side of this intersection
      * @param all Whether or not this is a UNION ALL.
      * @param tableConstructor Whether or not this is from a table constructor.
      * @param tableProperties Properties list associated with the table

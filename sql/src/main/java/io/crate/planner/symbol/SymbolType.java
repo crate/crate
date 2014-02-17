@@ -35,9 +35,8 @@ public enum SymbolType {
     LONG_LITERAL(LongLiteral.FACTORY),
     NULL_LITERAL(Null.FACTORY),
     OBJECT_LITERAL(ObjectLiteral.FACTORY),
-    INPUT_COLUMN(InputColumn.FACTORY),
     SET_LITERAL(SetLiteral.FACTORY),
-    ;
+    INPUT_COLUMN(InputColumn.FACTORY);
 
     private final Symbol.SymbolFactory factory;
 

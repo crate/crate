@@ -36,6 +36,7 @@ import io.crate.operator.reference.sys.shard.SysShardExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.symbol.*;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.action.SQLXContentQueryParser;
 import org.cratedb.sql.CrateException;
@@ -354,7 +355,7 @@ public class LocalDataCollectTest {
         ));
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, equalTo(1));
-        assertThat((String) result[0][0], equalTo("foobar"));
+        assertThat((BytesRef) result[0][0], equalTo(new BytesRef("foobar")));
         assertThat((Boolean) result[0][1], equalTo(true));
         assertThat((Integer) result[0][2], equalTo(1));
         assertThat((Double) result[0][3], equalTo(4.2));

@@ -18,6 +18,7 @@ import io.crate.sql.tree.*;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.StringLiteral;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 
 import java.util.*;
@@ -145,15 +146,12 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
             }
             symbols.add(l);
         }
-
-        dataType = DataType.SET_TYPES.get(dataType.ordinal());
-        return new SetLiteral(dataType, symbols);
+        return SetLiteral.fromLiterals(dataType, symbols);
     }
 
     @Override
     protected Symbol visitStringLiteral(StringLiteral node, T context) {
-
-        return new io.crate.planner.symbol.StringLiteral(node.getValue());
+        return new io.crate.planner.symbol.StringLiteral(new BytesRef(node.getValue()));
     }
 
     @Override

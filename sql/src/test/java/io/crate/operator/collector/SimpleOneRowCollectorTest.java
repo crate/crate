@@ -26,6 +26,7 @@ import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.projectors.Projector;
 import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.StringLiteral;
+import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -46,7 +47,7 @@ public class SimpleOneRowCollectorTest {
         );
         collector.doCollect();
         verify(downStream, times(1)).startProjection();
-        verify(downStream, times(1)).setNextRow(true, "foo");
+        verify(downStream, times(1)).setNextRow(true, new BytesRef("foo"));
         verify(downStream, never()).finishProjection();
 
     }

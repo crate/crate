@@ -21,6 +21,7 @@
 
 package io.crate.planner.symbol;
 
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.junit.Test;
 
@@ -39,7 +40,7 @@ public class StringLiteralTest {
         assertEquals(123.0f, stringLiteral.convertTo(DataType.FLOAT).value());
         assertEquals(123, stringLiteral.convertTo(DataType.SHORT).value());
         assertEquals(123, stringLiteral.convertTo(DataType.BYTE).value());
-        assertEquals("123", stringLiteral.convertTo(DataType.STRING).value());
+        assertEquals(new BytesRef("123"), stringLiteral.convertTo(DataType.STRING).value());
 
         assertEquals(false, new StringLiteral("false").convertTo(DataType.BOOLEAN).value());
         assertEquals(false, new StringLiteral("FALSE").convertTo(DataType.BOOLEAN).value());

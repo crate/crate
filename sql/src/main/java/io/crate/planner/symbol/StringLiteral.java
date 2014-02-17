@@ -21,9 +21,9 @@
 
 package io.crate.planner.symbol;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -35,10 +35,11 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public class StringLiteral extends Literal<String, StringLiteral> {
+public class StringLiteral extends Literal<BytesRef, StringLiteral> {
 
     private static final FormatDateTimeFormatter dateTimeFormatter = Joda.forPattern("dateOptionalTime", Locale.ROOT);
     private static final TimeUnit timeUnit = TimeUnit.MILLISECONDS;
+
     private static final Map<String, Boolean> booleanMap = ImmutableMap.<String, Boolean>builder()
             .put("f", false)
             .put("false", false)
@@ -52,14 +53,19 @@ public class StringLiteral extends Literal<String, StringLiteral> {
             return new StringLiteral();
         }
     };
-    private String value;
+    private BytesRef value;
 
     public StringLiteral(String value) {
-        Preconditions.checkNotNull(value);
+        this(new BytesRef(value));
+    }
+
+    public StringLiteral(BytesRef value) {
+        assert value != null;
         this.value = value;
     }
 
-    StringLiteral() {}
+    StringLiteral() {
+    }
 
     @Override
     public SymbolType symbolType() {
@@ -67,7 +73,7 @@ public class StringLiteral extends Literal<String, StringLiteral> {
     }
 
     @Override
-    public String value() {
+    public BytesRef value() {
         return value;
     }
 
@@ -78,12 +84,12 @@ public class StringLiteral extends Literal<String, StringLiteral> {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        value = in.readString();
+        value = in.readBytesRef();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(value);
+        out.writeBytesRef(value);
     }
 
     @Override
@@ -118,28 +124,28 @@ public class StringLiteral extends Literal<String, StringLiteral> {
         Object convertedValue;
         switch (type) {
             case LONG:
-                convertedValue = new Long(value());
+                convertedValue = new Long(value().utf8ToString());
                 break;
             case TIMESTAMP:
                 convertedValue = parseTimestampString();
                 break;
             case INTEGER:
-                convertedValue = new Integer(value());
+                convertedValue = new Integer(value().utf8ToString());
                 break;
             case DOUBLE:
-                convertedValue = new Double(value());
+                convertedValue = new Double(value().utf8ToString());
                 break;
             case FLOAT:
-                convertedValue = new Float(value());
+                convertedValue = new Float(value().utf8ToString());
                 break;
             case SHORT:
-                convertedValue = new Short(value());
+                convertedValue = new Short(value().utf8ToString());
                 break;
             case BYTE:
-                convertedValue = new Byte(value());
+                convertedValue = new Byte(value().utf8ToString());
                 break;
             case BOOLEAN:
-                convertedValue = booleanMap.get(value().toLowerCase());
+                convertedValue = booleanMap.get(value().utf8ToString().toLowerCase());
                 if (convertedValue == null) {
                     super.convertTo(type);
                 }
@@ -151,11 +157,12 @@ public class StringLiteral extends Literal<String, StringLiteral> {
     }
 
     private long parseTimestampString() {
+        String s = value.utf8ToString();
         try {
-            return dateTimeFormatter.parser().parseMillis(value);
+            return dateTimeFormatter.parser().parseMillis(s);
         } catch (RuntimeException e) {
             try {
-                long time = Long.parseLong(value);
+                long time = Long.parseLong(s);
                 return timeUnit.toMillis(time);
             } catch (NumberFormatException e1) {
                 throw new UnsupportedOperationException("failed to parse timestamp field [" + value + "], tried both date format [" + dateTimeFormatter.format() + "], and timestamp number with locale [" + dateTimeFormatter.locale() + "]", e);
