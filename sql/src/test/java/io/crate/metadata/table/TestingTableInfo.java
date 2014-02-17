@@ -35,6 +35,7 @@ import java.util.Map;
 public class TestingTableInfo implements TableInfo {
 
     private final Routing routing;
+    private final String clusteredBy;
 
     public static Builder builder(TableIdent ident, RowGranularity granularity, Routing routing) {
         return new Builder(ident, granularity, routing);
@@ -45,10 +46,13 @@ public class TestingTableInfo implements TableInfo {
         private final ImmutableList.Builder<ReferenceInfo> columns = ImmutableList.builder();
         private final ImmutableMap.Builder<ColumnIdent, ReferenceInfo> references = ImmutableMap.builder();
         private final ImmutableList.Builder<String> primaryKey = ImmutableList.builder();
+        private String clusteredBy;
+
 
         private final RowGranularity granularity;
         private final TableIdent ident;
         private final Routing routing;
+
 
         public Builder(TableIdent ident, RowGranularity granularity, Routing routing) {
             this.granularity = granularity;
@@ -70,10 +74,18 @@ public class TestingTableInfo implements TableInfo {
             return this;
         }
 
+        public Builder clusteredBy(String clusteredBy) {
+            this.clusteredBy = clusteredBy;
+            return this;
+        }
+
+
         public TableInfo build() {
             return new TestingTableInfo(columns.build(), references.build(), ident,
-                    granularity, routing, primaryKey.build());
+                    granularity, routing, primaryKey.build(), clusteredBy);
         }
+
+
     }
 
 
@@ -87,13 +99,15 @@ public class TestingTableInfo implements TableInfo {
     public TestingTableInfo(List<ReferenceInfo> columns, Map<ColumnIdent, ReferenceInfo> references,
                             TableIdent ident, RowGranularity granularity,
                             Routing routing,
-                            List<String> primaryKey) {
+                            List<String> primaryKey,
+                            String clusteredBy) {
         this.columns = columns;
         this.references = references;
         this.ident = ident;
         this.granularity = granularity;
         this.routing = routing;
         this.primaryKey = primaryKey;
+        this.clusteredBy = clusteredBy;
     }
 
     @Override
@@ -128,6 +142,6 @@ public class TestingTableInfo implements TableInfo {
 
     @Override
     public String clusteredBy() {
-        return null;
+        return clusteredBy;
     }
 }

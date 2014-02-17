@@ -39,6 +39,7 @@ public abstract class Analysis {
 
     protected boolean noMatch = false;
     protected List<Literal> primaryKeyLiterals;
+    protected Literal clusteredByLiteral;
 
     private boolean isDelete = false;
     protected Function whereClause;
@@ -51,6 +52,15 @@ public abstract class Analysis {
 
     public void primaryKeyLiterals(List<Literal> primaryKeyLiterals) {
         this.primaryKeyLiterals = primaryKeyLiterals;
+    }
+
+    @Nullable
+    public Literal clusteredByLiteral(){
+        return clusteredByLiteral;
+    }
+
+    public void clusteredByLiteral(Literal clusteredByLiteral){
+        this.clusteredByLiteral = clusteredByLiteral;
     }
 
     public Analysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters,
