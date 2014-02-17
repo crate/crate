@@ -21,8 +21,8 @@
 
 package org.cratedb.stats;
 
+import org.apache.lucene.index.memory.ExtendedMemoryIndex;
 import org.apache.lucene.index.memory.MemoryIndex;
-import org.apache.lucene.index.memory.ReusableMemoryIndex;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.action.collect.CollectorContext;
@@ -228,7 +228,7 @@ public class ShardStatsTable implements StatsTable {
                          StatsInfo shardInfo,
                          Collector collector) throws Exception
     {
-        final ReusableMemoryIndex memoryIndex = memoryIndexPool.acquire();
+        final ExtendedMemoryIndex memoryIndex = memoryIndexPool.acquire();
 
         index(stmt, memoryIndex, shardInfo);
         memoryIndex.createSearcher().search(stmt.query, collector);

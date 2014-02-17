@@ -22,7 +22,7 @@
 package org.cratedb.rest.action;
 
 import org.cratedb.sql.CrateException;
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
@@ -37,7 +37,7 @@ import static org.elasticsearch.rest.action.support.RestXContentBuilder.restCont
 public class CrateThrowableRestResponse extends XContentRestResponse {
 
     public CrateThrowableRestResponse(RestRequest request, Throwable t) throws IOException {
-        this(request, ((t instanceof ElasticSearchException) ? ((ElasticSearchException) t).status() : RestStatus.INTERNAL_SERVER_ERROR), t);
+        this(request, ((t instanceof ElasticsearchException) ? ((ElasticsearchException) t).status() : RestStatus.INTERNAL_SERVER_ERROR), t);
     }
 
     public CrateThrowableRestResponse(RestRequest request, RestStatus status, Throwable t) throws IOException {

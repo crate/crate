@@ -426,8 +426,21 @@ public class IndexMetaDataExtractor {
 
                     DataType columnDataType = getColumnDataType(columnProperties);
 
-                    if (columnProperties.get("type") != null
-                            && columnProperties.get("type").equals("multi_field")) {
+                    // main field
+                    if (DataType.ALL_TYPES.contains(columnDataType)) {
+                        Index idx = Index.create(
+                                tableName,
+                                columnEntry.getKey(),
+                                columnEntry.getKey(),
+                                columnProperties,
+                                indicesColumns);
+                        if (idx != null) {
+                            indices.add(idx);
+                        }
+                    }
+
+                    // sub fields
+                    if (columnProperties.containsKey("fields")) {
                         for (Map.Entry<String, Object> multiColumnEntry :
                                 ((Map<String, Object>) columnProperties.get("fields")).entrySet()) {
                             Map<String, Object> multiColumnProperties = (Map) multiColumnEntry.getValue();
@@ -440,16 +453,6 @@ public class IndexMetaDataExtractor {
                             if (idx != null) {
                                 indices.add(idx);
                             }
-                        }
-                    } else if (DataType.ALL_TYPES.contains(columnDataType)) {
-                        Index idx = Index.create(
-                                tableName,
-                                columnEntry.getKey(),
-                                columnEntry.getKey(),
-                                columnProperties,
-                                indicesColumns);
-                        if (idx != null) {
-                            indices.add(idx);
                         }
                     }
                 }

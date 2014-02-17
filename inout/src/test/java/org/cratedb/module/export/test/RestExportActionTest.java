@@ -28,7 +28,6 @@ import org.cratedb.module.AbstractRestActionTest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.index.VersionType;
 import org.junit.Test;
@@ -418,7 +417,6 @@ public class RestExportActionTest extends AbstractRestActionTest {
      */
     @Test
     public void testTimestampStored(){
-        client().admin().indices().prepareDelete().execute().actionGet();
         prepareCreate("tsstored").setSettings(
             ImmutableSettings.builder().loadFromClasspath("essetup/settings/test_b.json").build())
             .addMapping("d", "{\"d\": {\"_timestamp\": {\"enabled\": true, \"store\": \"yes\"}}}")
@@ -428,7 +426,7 @@ public class RestExportActionTest extends AbstractRestActionTest {
                 "field1", "value1").setTimestamp("123").execute().actionGet();
         client().admin().indices().prepareRefresh().execute().actionGet();
 
-        ExportResponse response = executeExportRequest(
+        ExportResponse response = executeExportRequest("tsstored",
                 "{\"output_cmd\": \"cat\", \"fields\": [\"_id\", \"_timestamp\"]}");
 
         List<Map<String, Object>> infos = getExports(response);
@@ -451,17 +449,24 @@ public class RestExportActionTest extends AbstractRestActionTest {
      */
     @Test
     public void testTTLEnabled() {
-        deleteAll();
+        /*
         prepareCreate("ttlenabled").setSettings(
             ImmutableSettings.builder().loadFromClasspath("essetup/settings/test_b.json").build())
             .addMapping("d", "{\"d\": {\"_ttl\": {\"enabled\": true, \"default\": \"1d\"}}}").execute().actionGet();
+        */
 
-        Client client = client();
-        client.prepareIndex("ttlenabled", "d", "1").setSource("field1", "value1").execute().actionGet();
-        client.admin().indices().prepareRefresh().execute().actionGet();
+        prepareCreate("ttlenabled")
+                .setSettings(ImmutableSettings.builder().put("index.number_of_shards", 2)
+                        .put("index.number_of_replicas", 0).build())
+                .addMapping("d", "{\"d\": {\"_ttl\": {\"enabled\": true, \"default\": \"1d\"}}}")
+                .execute().actionGet();
+        ensureGreen();
+
+        index("ttlenabled", "d", "1", "field1", "value1");
+        refresh();
 
         Date now = new Date();
-        ExportResponse response = executeExportRequest(
+        ExportResponse response = executeExportRequest("ttlenabled",
                 "{\"output_cmd\": \"cat\", \"fields\": [\"_id\", \"_ttl\"]}");
         List<Map<String, Object>> infos = getExports(response);
         String stdout = infos.get(1).get("stdout").toString();
@@ -612,9 +617,9 @@ public class RestExportActionTest extends AbstractRestActionTest {
         List<Map<String, Object>> infos = getExports(response);
         assertEquals(2, infos.size());
         String mappings_0 = new BufferedReader(new FileReader(new File(filename_0))).readLine();
-        assertEquals("{\"users\":{\"d\":{\"properties\":{\"name\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"store\":true,\"norms\":{\"enabled\":false},\"index_options\":\"docs\"}}}}}", mappings_0);
+        assertEquals("{\"users\":{\"d\":{\"properties\":{\"name\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"store\":true}}}}}", mappings_0);
         String mappings_1 = new BufferedReader(new FileReader(new File(filename_1))).readLine();
-        assertEquals("{\"users\":{\"d\":{\"properties\":{\"name\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"store\":true,\"norms\":{\"enabled\":false},\"index_options\":\"docs\"}}}}}", mappings_1);
+        assertEquals("{\"users\":{\"d\":{\"properties\":{\"name\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"store\":true}}}}}", mappings_1);
     }
 
     @Test
@@ -655,6 +660,11 @@ public class RestExportActionTest extends AbstractRestActionTest {
      *
      * @param source
      */
+    private ExportResponse executeExportRequest(String index, String source) {
+        ExportRequest exportRequest = new ExportRequest(index);
+        exportRequest.source(source);
+        return client().execute(ExportAction.INSTANCE, exportRequest).actionGet();
+    }
     private ExportResponse executeExportRequest(String source) {
         ExportRequest exportRequest = new ExportRequest();
         exportRequest.source(source);

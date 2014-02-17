@@ -63,8 +63,7 @@ Now a new index with the same content was created::
             "failed": 0,
             "successful": 1,
             "total": 1
-        },
-        "ok": true
+        }
     }
 
     >>> ep.ppost("/newindex/_refresh")
@@ -73,8 +72,7 @@ Now a new index with the same content was created::
             "failed": 0,
             "successful": 1,
             "total": 1
-        },
-        "ok": true
+        }
     }
 
     >>> ep.pget("/newindex/_search?pretty=1")
@@ -108,8 +106,7 @@ Initially, the second cluster does not contain any indizes::
     >>> ep2.pget("/_status?pretty=1")
     {
         ...
-        "indices": {},
-        ...
+        "indices": {}
     }
 
     >>> payload = {"fields":["_id", "_source"],
@@ -154,8 +151,7 @@ cluster::
             "failed": 0,
             "successful": 1,
             "total": 1
-        },
-        "ok": true
+        }
     }
 
     >>> ep2.ppost("/users/_refresh")
@@ -164,8 +160,7 @@ cluster::
             "failed": 0,
             "successful": 1,
             "total": 1
-        },
-        "ok": true
+        }
     }
 
     >>> ep2.pget("/users/_search?pretty=1")

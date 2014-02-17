@@ -21,7 +21,6 @@
 
 package org.cratedb.service;
 
-import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.Joiner;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.ParsedStatement;
@@ -37,9 +36,7 @@ import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -77,20 +74,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
 
     @After
     public void cleanUp() throws Exception {
-
-        final Set<String> indices = new HashSet<>();
-        client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metaData().getIndices().keys().forEach(new ObjectProcedure<String>() {
-            @Override
-            public void apply(String value) {
-                indices.add(value);
-            }
-        });
-
-        client().admin().indices()
-                .prepareDelete(indices.toArray(new String[indices.size()]))
-                .execute()
-                .actionGet();
+        wipeIndices("_all");
     }
 
     @AfterClass

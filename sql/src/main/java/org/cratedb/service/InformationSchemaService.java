@@ -31,7 +31,7 @@ import org.cratedb.sql.CrateException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.TableUnknownException;
 import org.cratedb.sql.parser.parser.NodeType;
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.PlainActionFuture;
@@ -82,7 +82,7 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
     }
 
     @Override
-    protected void doStart() throws ElasticSearchException {
+    protected void doStart() throws ElasticsearchException {
 
         logger.info("starting...");
         listener = new ClusterStateListener() {
@@ -100,13 +100,13 @@ public class InformationSchemaService extends AbstractLifecycleComponent<Informa
     }
 
     @Override
-    protected void doStop() throws ElasticSearchException {
+    protected void doStop() throws ElasticsearchException {
         logger.info("stopping...");
         clusterService.remove(listener);
     }
 
     @Override
-    protected void doClose() throws ElasticSearchException {
+    protected void doClose() throws ElasticsearchException {
         for (ImmutableMap.Entry<String, InformationSchemaTable> tableEntry: this.tables.entrySet()) {
             tableEntry.getValue().close();
         }

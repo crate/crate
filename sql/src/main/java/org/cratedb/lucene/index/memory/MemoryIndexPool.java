@@ -21,7 +21,7 @@
 
 package org.cratedb.lucene.index.memory;
 
-import org.apache.lucene.index.memory.ReusableMemoryIndex;
+import org.apache.lucene.index.memory.ExtendedMemoryIndex;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
  * MemoryIndex instance to reuse its internal memory based on a user configured real-time value.
  */
 public class MemoryIndexPool {
-    private volatile BlockingQueue<ReusableMemoryIndex> memoryIndexQueue;
+    private volatile BlockingQueue<ExtendedMemoryIndex> memoryIndexQueue;
 
     // used to track the in-flight memoryIdx instances so we don't overallocate
     private int poolMaxSize = 10;
@@ -52,25 +52,25 @@ public class MemoryIndexPool {
         this.poolMaxSize = poolMaxSize;
         this.maxMemorySize = maxMemorySize;
         this.timeout = timeout;
-        memoryIndexQueue = new ArrayBlockingQueue<ReusableMemoryIndex>(poolMaxSize);
+        memoryIndexQueue = new ArrayBlockingQueue<ExtendedMemoryIndex>(poolMaxSize);
         bytesPerMemoryIndex = maxMemorySize.bytes() / poolMaxSize;
     }
 
-    public ReusableMemoryIndex acquire() {
-        final BlockingQueue<ReusableMemoryIndex> queue = memoryIndexQueue;
-        final ReusableMemoryIndex poll = queue.poll();
+    public ExtendedMemoryIndex acquire() {
+        final BlockingQueue<ExtendedMemoryIndex> queue = memoryIndexQueue;
+        final ExtendedMemoryIndex poll = queue.poll();
         return poll == null ? waitOrCreate(queue) : poll;
     }
 
-    private ReusableMemoryIndex waitOrCreate(BlockingQueue<ReusableMemoryIndex> queue) {
+    private ExtendedMemoryIndex waitOrCreate(BlockingQueue<ExtendedMemoryIndex> queue) {
         synchronized (this) {
             if (poolCurrentSize < poolMaxSize) {
                 poolCurrentSize++;
-                return new ReusableMemoryIndex(false, bytesPerMemoryIndex);
+                return new ExtendedMemoryIndex(false, bytesPerMemoryIndex);
 
             }
         }
-        ReusableMemoryIndex poll = null;
+        ExtendedMemoryIndex poll = null;
         try {
             final TimeValue timeout = this.timeout; // only read the volatile var once
             poll = queue.poll(timeout.getMillis(), TimeUnit.MILLISECONDS); // delay this by 100ms by default
@@ -78,12 +78,12 @@ public class MemoryIndexPool {
             // don't swallow the interrupt
             Thread.currentThread().interrupt();
         }
-        return poll == null ? new ReusableMemoryIndex(false, bytesPerMemoryIndex) : poll;
+        return poll == null ? new ExtendedMemoryIndex(false, bytesPerMemoryIndex) : poll;
     }
 
-    public void release(ReusableMemoryIndex index) {
+    public void release(ExtendedMemoryIndex index) {
         assert index != null : "can't release null reference";
-        if (bytesPerMemoryIndex == index.getMaxReuseBytes()) {
+        if (bytesPerMemoryIndex == index.getMemorySize()) {
             index.reset();
             // only put is back into the queue if the size fits - prune old settings on the fly
             memoryIndexQueue.offer(index);

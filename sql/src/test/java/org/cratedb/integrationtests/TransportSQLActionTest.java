@@ -24,7 +24,6 @@ package org.cratedb.integrationtests;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Ordering;
-import org.apache.lucene.util.BytesRef;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.*;
@@ -108,6 +107,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rows()[0][0]);
     }
 
+    /*
     @Test
     public void testGroupByOnSysNodes() throws Exception {
         execute("select count(*), name from sys.nodes group by name");
@@ -116,6 +116,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select count(*), hostname from sys.nodes group by hostname");
         assertThat(response.rowCount(), is(1L));
     }
+    */
 
     @Test
     public void testSysCluster() throws Exception {
@@ -142,10 +143,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(0, response.rowCount());
     }
 
-    @Test
+    @Test(expected = GroupByOnArrayUnsupportedException.class)
     public void testGroupByOnAnalyzedColumn() throws Exception {
-        expectedException.expect(GroupByOnArrayUnsupportedException.class);
-
         execute("create table test1 (col1 string index using fulltext)");
         refresh();
 
@@ -1068,7 +1067,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testUpdateNestedObjectWithDetailedSchema() throws Exception {
         prepareCreate("test")
             .addMapping("default", "{\n" +
-                "    \"type\": {\n" +
                 "        \"properties\": {\n" +
                 "            \"coolness\": {\n" +
                 "                \"type\": \"object\",\n" +
@@ -1084,7 +1082,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "                }\n" +
                 "            }\n" +
                 "        }\n" +
-                "    }\n" +
                 "}\n")
             .execute().actionGet();
 
@@ -1730,15 +1727,14 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"_all\":{\"enabled\":false}," +
                 "\"properties\":{" +
                     "\"col1\":{\"type\":\"integer\"}," +
-                    "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"," +
-                                "\"norms\":{\"enabled\":false},\"index_options\":\"docs\"}" +
+                    "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}" +
                 "}}}";
 
         String expectedSettings = "{\"test\":{" +
                 "\"settings\":{" +
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
-                "\"index.version.created\":\"901199\"" +
+                "\"index.version.created\":\"1000099\"" +
                 "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
@@ -1844,15 +1840,14 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"_all\":{\"enabled\":false}," +
                 "\"properties\":{" +
                 "\"col1\":{\"type\":\"integer\"}," +
-                "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"," +
-                "\"norms\":{\"enabled\":false},\"index_options\":\"docs\"}" +
+                "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}" +
                 "}}}";
 
         String expectedSettings = "{\"test\":{" +
                 "\"settings\":{" +
                     "\"index.number_of_replicas\":\"2\"," +
                     "\"index.number_of_shards\":\"10\"," +
-                    "\"index.version.created\":\"901199\"" +
+                    "\"index.version.created\":\"1000099\"" +
                 "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
@@ -2217,7 +2212,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("insert into quotes values (?), (?)",
                 new Object[]{"Would it save you a lot of time if I just gave up and went mad now?",
-                        "Time is an illusion. Lunchtime doubly so"}
+                        "Time is an illusion. Lunchtime doubly so. Take your time."}
         );
         refresh();
 

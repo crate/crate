@@ -40,6 +40,7 @@ import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
 import java.io.IOException;
 import java.util.List;
@@ -78,7 +79,7 @@ public class ESRequestBuilder {
     public CountRequest buildCountRequest() {
         CountRequest request = new CountRequest();
         request.indices(stmt.indices());
-        request.query(stmt.xcontent.toBytes());
+        request.source(stmt.xcontent.toBytes());
         return request;
     }
 
@@ -100,7 +101,7 @@ public class ESRequestBuilder {
     public GetRequest buildGetRequest() {
         GetRequest request = new GetRequest(
             stmt.tableName(), Constants.DEFAULT_MAPPING_TYPE, stmt.primaryKeyLookupValue);
-        request.fields(stmt.columnNames());
+        request.fetchSourceContext(new FetchSourceContext(stmt.columnNames()));
         request.realtime(true);
         return request;
     }
@@ -109,10 +110,11 @@ public class ESRequestBuilder {
         Set<String> ids = stmt.primaryKeyValues;
         assert ids != null;
         MultiGetRequest request = new MultiGetRequest();
+        FetchSourceContext fetchSourceContext = new FetchSourceContext(stmt.columnNames());
         for (String id: ids) {
             MultiGetRequest.Item item
                 = new MultiGetRequest.Item(stmt.tableName(), Constants.DEFAULT_MAPPING_TYPE, id);
-            item.fields(stmt.columnNames());
+            item.fetchSourceContext(fetchSourceContext);
             request.add(item);
         }
         request.realtime(true);
@@ -121,7 +123,7 @@ public class ESRequestBuilder {
 
     public DeleteByQueryRequest buildDeleteByQueryRequest() {
         DeleteByQueryRequest request = new DeleteByQueryRequest();
-        request.query(stmt.xcontent.toBytes());
+        request.source(stmt.xcontent.toBytes());
         request.indices(stmt.indices());
 
         // // Set routing values if found by planner
@@ -150,7 +152,11 @@ public class ESRequestBuilder {
             stmt.tableName(), Constants.DEFAULT_MAPPING_TYPE, stmt.primaryKeyLookupValue);
         request.fields(stmt.cols());
         request.paths(stmt.updateDoc());
-        request.retryOnConflict(ParsedStatement.UPDATE_RETRY_ON_CONFLICT);
+        if (stmt.versionFilter != null ) {
+            request.version(stmt.versionFilter);
+        } else {
+            request.retryOnConflict(ParsedStatement.UPDATE_RETRY_ON_CONFLICT);
+        }
 
         return request;
     }

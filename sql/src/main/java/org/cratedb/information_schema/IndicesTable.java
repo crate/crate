@@ -98,8 +98,7 @@ public class IndicesTable extends AbstractInformationSchemaTable {
                 continue;
             }
 
-            for (IndexMetaDataExtractor.Index index: extractor
-                    .getIndices()) {
+            for (IndexMetaDataExtractor.Index index: extractor.getIndices()) {
                 addIndexDocument(index);
             }
 

@@ -22,16 +22,13 @@
 package org.cratedb.sql.facet;
 
 import org.apache.lucene.index.AtomicReaderContext;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Scorer;
 import org.cratedb.action.sql.ParsedStatement;
 import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
-import org.elasticsearch.common.lucene.uid.UidField;
 import org.elasticsearch.index.fielddata.ScriptDocValues;
 import org.elasticsearch.index.mapper.Uid;
-import org.elasticsearch.index.mapper.internal.UidFieldMapper;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.search.facet.FacetExecutor;
 import org.elasticsearch.search.internal.SearchContext;
@@ -50,8 +47,6 @@ public class UpdateCollector extends FacetExecutor.Collector {
     private final Map<String, Object> updateDoc;
     private final ShardId shardId;
     private long rowCount;
-    private Long requiredVersion;
-    private AtomicReaderContext currentReaderContext;
 
     public long rowCount() {
         return rowCount;
@@ -70,14 +65,12 @@ public class UpdateCollector extends FacetExecutor.Collector {
     public UpdateCollector(
             Map<String, Object> updateDoc,
             TransportUpdateAction updateAction,
-            SearchContext context,
-            Long requiredVersion) {
+            SearchContext context) {
         this.shardId = context.indexShard().shardId();
         this.updateAction = updateAction;
         this.lookup = context.lookup();
         this.updateDoc = updateDoc;
         this.rowCount = 0;
-        this.requiredVersion = requiredVersion;
     }
 
     @Override
@@ -87,7 +80,6 @@ public class UpdateCollector extends FacetExecutor.Collector {
 
     @Override
     public void setNextReader(AtomicReaderContext context) {
-        this.currentReaderContext = context;
         lookup.setNextReader(context);
     }
 
@@ -101,16 +93,6 @@ public class UpdateCollector extends FacetExecutor.Collector {
     public void collect(int doc) throws IOException {
         lookup.setNextDocId(doc);
         Uid uid = Uid.createUid(((ScriptDocValues.Strings) lookup.doc().get("_uid")).getValue());
-        if (requiredVersion != null) {
-            Long currentVersion = UidField.loadVersion(
-                    currentReaderContext,
-                    new Term(UidFieldMapper.NAME, uid.toBytesRef())
-            );
-
-            if (!currentVersion.equals(requiredVersion)) {
-                return;
-            }
-        }
         collect(uid);
     }
 

@@ -32,6 +32,7 @@ import org.cratedb.action.groupby.key.Rows;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.service.GlobalExpressionService;
 import org.elasticsearch.cache.recycler.CacheRecycler;
+import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
@@ -41,6 +42,7 @@ import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.SearchShardTarget;
+import org.elasticsearch.search.internal.DefaultSearchContext;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.internal.ShardSearchRequest;
 
@@ -58,6 +60,7 @@ public class SQLQueryService {
     private final ClusterService clusterService;
     private final ScriptService scriptService;
     private final CacheRecycler cacheRecycler;
+    private final PageCacheRecycler pageCacheRecycler;
     private final SQLXContentQueryParser parser;
     private final IndicesService indicesService;
     private final Map<String, AggFunction> aggFunctionMap;
@@ -70,11 +73,13 @@ public class SQLQueryService {
                            Map<String, AggFunction> aggFunctionMap,
                            SQLXContentQueryParser sqlxContentQueryParser,
                            CacheRecycler cacheRecycler,
+                           PageCacheRecycler pageCacheRecycler,
                            GlobalExpressionService globalExpressionService)
     {
         this.clusterService = clusterService;
         this.scriptService = scriptService;
         this.cacheRecycler = cacheRecycler;
+        this.pageCacheRecycler = pageCacheRecycler;
         this.indicesService = indicesService;
         this.parser = sqlxContentQueryParser;
         this.aggFunctionMap = aggFunctionMap;
@@ -136,9 +141,9 @@ public class SQLQueryService {
         ShardSearchRequest request = new ShardSearchRequest();
         request.types(new String[]{Constants.DEFAULT_MAPPING_TYPE});
 
-        return new SearchContext(0,
+        return new DefaultSearchContext(0,
             request, shardTarget, indexShard.acquireSearcher("search"), indexService,
-            indexShard, scriptService, cacheRecycler
+            indexShard, scriptService, cacheRecycler, pageCacheRecycler
         );
     }
 

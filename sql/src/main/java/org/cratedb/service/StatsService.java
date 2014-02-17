@@ -29,7 +29,7 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.stats.ShardStatsTable;
 import org.cratedb.stats.StatsInfo;
 import org.cratedb.stats.StatsTableUnknownException;
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -65,19 +65,19 @@ public class StatsService extends AbstractLifecycleComponent<StatsService> {
     }
 
     @Override
-    protected void doStart() throws ElasticSearchException {
+    protected void doStart() throws ElasticsearchException {
 
         logger.info("starting...");
 
     }
 
     @Override
-    protected void doStop() throws ElasticSearchException {
+    protected void doStop() throws ElasticsearchException {
         logger.info("stopping...");
     }
 
     @Override
-    protected void doClose() throws ElasticSearchException {
+    protected void doClose() throws ElasticsearchException {
     }
 
     public Rows queryGroupBy(String virtualTableName,

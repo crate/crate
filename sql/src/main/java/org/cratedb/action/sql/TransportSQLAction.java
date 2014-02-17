@@ -88,6 +88,7 @@ import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.DocumentMissingException;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
@@ -601,10 +602,12 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void onFailure(Throwable e) {
-            if (e instanceof DocumentMissingException) {
+            e = ExceptionHelper.transformToCrateException(e);
+            if (e instanceof DocumentMissingException
+                    || e instanceof VersionConflictEngineException) {
                 listener.onResponse(builder.buildMissingDocumentResponse(requestStartedTime));
             } else {
-                listener.onFailure(ExceptionHelper.transformToCrateException(e));
+                listener.onFailure(e);
             }
         }
     }

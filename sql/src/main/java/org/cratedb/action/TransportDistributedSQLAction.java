@@ -32,10 +32,10 @@ import org.cratedb.core.collections.LimitingCollectionIterator;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.service.StatsService;
 import org.cratedb.sql.CrateException;
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.NoShardAvailableActionException;
-import org.elasticsearch.action.support.IgnoreIndices;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
@@ -164,7 +164,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
         return new SQLShardResponse(parsedStatement);
     }
 
-    protected SQLShardResponse shardOperation(SQLShardRequest request) throws ElasticSearchException {
+    protected SQLShardResponse shardOperation(SQLShardRequest request) throws ElasticsearchException {
         ParsedStatement stmt = sqlParseService.parse(request.sqlRequest.stmt(), request.sqlRequest.args());
         StopWatch stopWatch = null;
         CrateException exception = null;
@@ -344,7 +344,7 @@ public class TransportDistributedSQLAction extends TransportAction<DistributedSQ
                 tableName = parsedStatement.tableName();
                 // resolve aliases to the concreteIndices
                 concreteIndices = clusterState.metaData().concreteIndices(
-                    indices, IgnoreIndices.NONE, true
+                        indices, IndicesOptions.strict()
                 );
             }
 

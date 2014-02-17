@@ -151,7 +151,7 @@ public class QueryPlannerTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("pk_col", "phrase"))
+                        .field("_source", Arrays.asList("pk_col", "phrase"))
                         .startObject("query")
                         .startObject("bool")
                         .field("minimum_should_match", 1)
@@ -185,7 +185,7 @@ public class QueryPlannerTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("pk_col", "phrase"))
+                        .field("_source", Arrays.asList("pk_col", "phrase"))
                         .startObject("query")
                         .startObject("bool")
                         .field("minimum_should_match", 1)
@@ -224,7 +224,9 @@ public class QueryPlannerTest {
 
         String expected =
                 XContentFactory.jsonBuilder()
-                        .startObject().startObject("bool")
+                        .startObject()
+                        .startObject("query")
+                        .startObject("bool")
                         .field("minimum_should_match", 1)
                         .startArray("must")
                         .startObject().startObject("term").field("pk_col",
@@ -234,11 +236,12 @@ public class QueryPlannerTest {
                         .endArray()
                         .endObject()
                         .endObject()
+                        .endObject()
                         .string();
 
         assertEquals(ParsedStatement.ActionType.DELETE_BY_QUERY_ACTION, stmt.type());
 
-        assertEquals("[[phrases]][[]], querySource["+expected+"]",
+        assertEquals("[[phrases]][[]], source["+expected+"]",
                 requestBuilder.buildDeleteByQueryRequest().toString());
 
         Set<String> routingValues = stmt.routingValues;
@@ -455,7 +458,7 @@ public class QueryPlannerTest {
     public void selectGetRequestWithColumnAlias() throws Exception {
         execStatement("SELECT phrase as satz FROM phrases WHERE pk_col=?",
                 new Object[]{"foo"});
-        assertThat(requestBuilder.buildGetRequest().fields(), arrayContaining("phrase"));
+        assertThat(requestBuilder.buildGetRequest().fetchSourceContext().includes(), arrayContaining("phrase"));
     }
 
     @Test
@@ -483,7 +486,7 @@ public class QueryPlannerTest {
     public void testUpdateWhereVersion() throws Exception {
         execStatement("update phrases set phrase = ? where pk_col = ? and \"_version\" = ?",
                 new Object[]{"don't panic", 112, 1});
-        assertEquals(ParsedStatement.ActionType.SEARCH_ACTION, stmt.type());
+        assertEquals(ParsedStatement.ActionType.UPDATE_ACTION, stmt.type());
         assertEquals("112", stmt.primaryKeyLookupValue);
         assertEquals(1L, stmt.versionFilter.longValue());
 

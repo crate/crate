@@ -21,7 +21,7 @@
 
 package org.cratedb.sql.types;
 
-import org.elasticsearch.ElasticSearchIllegalArgumentException;
+import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.index.mapper.ip.IpFieldMapper;
 
 public class IpSQLType extends SQLType {
@@ -39,7 +39,7 @@ public class IpSQLType extends SQLType {
             IpFieldMapper.ipToLong((String)value);
         } catch (ClassCastException e) {
             throw new ConvertException(typeName());
-        } catch (ElasticSearchIllegalArgumentException e) {
+        } catch (ElasticsearchIllegalArgumentException e) {
             throw new ConvertException(typeName(), e.getMessage());
         }
         return value;

@@ -23,7 +23,7 @@ package org.cratedb.blob;
 
 import org.cratedb.blob.exceptions.MissingHTTPEndpointException;
 import org.cratedb.blob.pending_transfer.BlobHeadRequestHandler;
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -73,7 +73,7 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
     }
 
     @Override
-    protected void doStart() throws ElasticSearchException {
+    protected void doStart() throws ElasticsearchException {
         logger.info("BlobService.doStart() {}", this);
         blobRecoverySource.registerHandler();
         blobHeadRequestHandler.registerHandler();
@@ -91,12 +91,12 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
     }
 
     @Override
-    protected void doStop() throws ElasticSearchException {
+    protected void doStop() throws ElasticsearchException {
         //TODO: implement
     }
 
     @Override
-    protected void doClose() throws ElasticSearchException {
+    protected void doClose() throws ElasticsearchException {
         //TODO: implement
     }
 

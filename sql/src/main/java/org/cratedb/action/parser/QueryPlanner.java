@@ -95,10 +95,7 @@ public class QueryPlanner {
                     stmt.type(ParsedStatement.ActionType.GET_ACTION);
                     break;
                 case UPDATE_NODE:
-                    // version handling works only with sql facet and search_action
-                    if (stmt.versionFilter == null) {
-                        stmt.type(ParsedStatement.ActionType.UPDATE_ACTION);
-                    }
+                    stmt.type(ParsedStatement.ActionType.UPDATE_ACTION);
                     break;
                 case DELETE_NODE:
                     stmt.type(ParsedStatement.ActionType.DELETE_ACTION);

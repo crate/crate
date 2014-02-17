@@ -155,7 +155,7 @@ public class QueryVisitorTest {
     public void testSelectAllFromTable() throws StandardException, IOException {
         execStatement("select * from locations");
         assertEquals(
-            "{\"fields\":[\"a\",\"b\"],\"query\":{\"match_all\":{}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
+            "{\"_source\":[\"a\",\"b\"],\"query\":{\"match_all\":{}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
             getSource()
         );
     }
@@ -175,7 +175,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("name"))
+                        .field("_source", Arrays.asList("name"))
                         .startObject("query")
                         .field("match_all", new HashMap<String, Object>())
                         .endObject()
@@ -193,7 +193,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("name"))
+                        .field("_source", Arrays.asList("name"))
                         .startObject("query")
                         .field("match_all", new HashMap<String, Object>())
                         .endObject()
@@ -222,7 +222,7 @@ public class QueryVisitorTest {
         String expected =
             XContentFactory.jsonBuilder()
                 .startObject()
-                .field("fields", Arrays.asList("name"))
+                .field("_source", Arrays.asList("name"))
                 .startObject("query")
                 .field("match_all", new HashMap())
                 .endObject()
@@ -249,7 +249,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("name"))
+                        .field("_source", Arrays.asList("name"))
                         .startObject("query")
                         .field("match_all", new HashMap())
                         .endObject()
@@ -284,14 +284,14 @@ public class QueryVisitorTest {
     @Test
     public void testSelectAllAndFieldFromTable() throws StandardException, IOException {
         execStatement("select *, name from locations");
-        assertEquals("{\"fields\":[\"a\",\"b\",\"name\"],\"query\":{\"match_all\":{}},\"size\":10000}",
+        assertEquals("{\"_source\":[\"a\",\"b\",\"name\"],\"query\":{\"match_all\":{}},\"size\":10000}",
                 getSource());
     }
 
     @Test
     public void testSelectWithLimit() throws StandardException, IOException {
         execStatement("select * from locations limit 5");
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"match_all\":{}},\"size\":5}",
+        assertEquals("{\"_source\":[\"a\",\"b\"],\"query\":{\"match_all\":{}},\"size\":5}",
                 getSource());
     }
 
@@ -299,7 +299,7 @@ public class QueryVisitorTest {
     public void testSelectWithHugeLimit() throws StandardException, IOException {
         execStatement("select * from locations limit 2000");
         assertEquals(
-            "{\"fields\":[\"a\",\"b\"],\"query\":{\"match_all\":{}},\"size\":2000}",
+            "{\"_source\":[\"a\",\"b\"],\"query\":{\"match_all\":{}},\"size\":2000}",
             getSource()
         );
 
@@ -309,7 +309,7 @@ public class QueryVisitorTest {
     public void testSelectWithLimitAndOffset() throws StandardException, IOException {
         execStatement("select * from locations limit 5 offset 3");
         assertEquals(
-                "{\"fields\":[\"a\",\"b\"],\"query\":{\"match_all\":{}},\"from\":3,\"size\":5}",
+                "{\"_source\":[\"a\",\"b\"],\"query\":{\"match_all\":{}},\"from\":3,\"size\":5}",
                 getSource());
     }
 
@@ -318,7 +318,7 @@ public class QueryVisitorTest {
 
         execStatement("select * from locations order by kind");
         assertEquals(
-                "{\"fields\":[\"a\",\"b\"]," +
+                "{\"_source\":[\"a\",\"b\"]," +
                         "\"query\":{\"match_all\":{}}," +
                         "\"sort\":[{\"kind\":{\"order\":\"asc\",\"ignore_unmapped\":true}}]," +
                         "\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT +
@@ -330,7 +330,7 @@ public class QueryVisitorTest {
 
         execStatement("select * from locations order by kind asc, name desc");
         assertEquals(
-                "{\"fields\":[\"a\",\"b\"]," +
+                "{\"_source\":[\"a\",\"b\"]," +
                         "\"query\":{\"match_all\":{}}," +
                         "\"sort\":[{\"kind\":{\"order\":\"asc\",\"ignore_unmapped\":true}}," +
                         "{\"name\":{\"order\":\"desc\"," +
@@ -348,7 +348,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("name", "kind"))
+                        .field("_source", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .field("match_all", new HashMap())
                         .endObject()
@@ -380,7 +380,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("message", "person.addresses"))
+                        .field("_source", Arrays.asList("message", "person.addresses"))
                         .startObject("query")
                         .startObject("term").field("person.name", "Ford").endObject()
                         .endObject()
@@ -431,7 +431,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("name", "kind"))
+                        .field("_source", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("term").field("name", "Bartledan").endObject()
                         .endObject()
@@ -448,7 +448,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("name", "kind"))
+                        .field("_source", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("term").field("_id", 1).endObject()
                         .endObject()
@@ -464,7 +464,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("name", "kind"))
+                        .field("_source", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("bool")
                         .startObject("must_not")
@@ -485,7 +485,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("name"))
+                        .field("_source", Arrays.asList("name"))
                         .startObject("query")
                         .startObject("filtered")
                         .startObject("filter")
@@ -511,7 +511,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("name"))
+                        .field("_source", Arrays.asList("name"))
                         .startObject("query")
                         .startObject("bool")
                         .startObject("must_not")
@@ -541,7 +541,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("name", "kind"))
+                        .field("_source", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("bool")
                         .startObject("must_not")
@@ -562,7 +562,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("name", "kind"))
+                        .field("_source", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("term").field("date", "2013-07-16").endObject()
                         .endObject()
@@ -577,7 +577,7 @@ public class QueryVisitorTest {
             IOException {
         execStatement("select * from locations where position = 4");
 
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"term\":{\"position\":4}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
+        assertEquals("{\"_source\":[\"a\",\"b\"],\"query\":{\"term\":{\"position\":4}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
                 getSource());
     }
 
@@ -588,7 +588,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("name", "kind"))
+                        .field("_source", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("term").field("name", "Bartledan").endObject()
                         .endObject()
@@ -606,7 +606,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("name", "kind"))
+                        .field("_source", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("bool")
                         .field("minimum_should_match", 1)
@@ -631,7 +631,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("name", "kind"))
+                        .field("_source", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("bool")
                         .field("minimum_should_match", 1)
@@ -664,7 +664,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("name", "kind"))
+                        .field("_source", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("bool")
                         .field("minimum_should_match", 1)
@@ -709,7 +709,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("name", "kind"))
+                        .field("_source", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("bool")
                         .field("minimum_should_match", 1)
@@ -744,7 +744,7 @@ public class QueryVisitorTest {
         String expected =
                 XContentFactory.jsonBuilder()
                         .startObject()
-                        .field("fields", Arrays.asList("name", "kind"))
+                        .field("_source", Arrays.asList("name", "kind"))
                         .startObject("query")
                         .startObject("bool")
                         .field("minimum_should_match", 1)
@@ -772,7 +772,7 @@ public class QueryVisitorTest {
     public void testWhereClauseToRangeQueryWithGtNumberField() throws StandardException,
             IOException {
         execStatement("select * from locations where position > 4");
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gt\":4}}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
+        assertEquals("{\"_source\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gt\":4}}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
                 getSource());
     }
 
@@ -780,7 +780,7 @@ public class QueryVisitorTest {
     public void testWhereClauseToRangeQueryWithGteNumberField() throws StandardException,
             IOException {
         execStatement("select * from locations where position >= 4");
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gte\":4}}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
+        assertEquals("{\"_source\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gte\":4}}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
                 getSource());
     }
 
@@ -788,7 +788,7 @@ public class QueryVisitorTest {
     public void testWhereClauseToRangeQueryWithGtNumberFieldYoda() throws StandardException,
             IOException {
         execStatement("select * from locations where 4 < position");
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gt\":4}}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
+        assertEquals("{\"_source\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"gt\":4}}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
                 getSource());
     }
 
@@ -796,14 +796,14 @@ public class QueryVisitorTest {
     public void testWhereClauseToRangeQueryWithLteNumberField() throws StandardException,
             IOException {
         execStatement("select * from locations where position <= 4");
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"lte\":4}}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
+        assertEquals("{\"_source\":[\"a\",\"b\"],\"query\":{\"range\":{\"position\":{\"lte\":4}}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
                 getSource());
     }
 
     @Test
     public void testWhereClauseInList() throws StandardException {
         execStatement("select * from locations where position in (?,?,?)", new Object[]{3, 5, 6});
-        assertEquals("{\"fields\":[\"a\",\"b\"],\"query\":{\"terms\":{\"position\":[3,5,6]}},\"size\":10000}", getSource());
+        assertEquals("{\"_source\":[\"a\",\"b\"],\"query\":{\"terms\":{\"position\":[3,5,6]}},\"size\":10000}", getSource());
     }
 
     @Test
@@ -815,14 +815,14 @@ public class QueryVisitorTest {
     @Test
     public void testDeleteQuery() throws Exception {
         execStatement("delete from locations where 4 < position");
-        assertEquals("{\"range\":{\"position\":{\"gt\":4}}}",
+        assertEquals("{\"query\":{\"range\":{\"position\":{\"gt\":4}}}}",
                 getSource());
     }
 
     @Test
     public void testCountQuery() throws Exception {
         execStatement("select count(*) from locations where 4 < position");
-        assertEquals("{\"range\":{\"position\":{\"gt\":4}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
+        assertEquals("{\"query\":{\"range\":{\"position\":{\"gt\":4}}},\"size\":" + SQLParseService.DEFAULT_SELECT_LIMIT + "}",
             getSource());
     }
 
@@ -873,7 +873,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereLikePrefixQuery() throws Exception {
         execStatement("select kind from locations where kind like 'P%'");
         assertEquals(
-            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P*\"}},\"size\":10000}",
+            "{\"_source\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P*\"}},\"size\":10000}",
             getSource()
         );
     }
@@ -882,7 +882,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereLikePrefixQueryEscaped() throws Exception {
         execStatement("select kind from locations where kind like 'P\\%'");
         assertEquals(
-            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P%\"}},\"size\":10000}",
+            "{\"_source\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P%\"}},\"size\":10000}",
             getSource()
         );
     }
@@ -891,7 +891,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereLikeWithEscapedStar() throws Exception {
         execStatement("select kind from locations where kind like 'P*'");
         assertEquals(
-            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\\\\*\"}},\"size\":10000}",
+            "{\"_source\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\\\\*\"}},\"size\":10000}",
             getSource()
         );
     }
@@ -900,7 +900,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereLikeWithoutWildcards() throws Exception {
         execStatement("select kind from locations where kind like 'P'");
         assertEquals(
-            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\"}},\"size\":10000}",
+            "{\"_source\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\"}},\"size\":10000}",
             getSource()
         );
     }
@@ -909,7 +909,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereLikePrefixQueryUnderscore() throws Exception {
         execStatement("select kind from locations where kind like 'P_'");
         assertEquals(
-            "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P?\"}},\"size\":10000}",
+            "{\"_source\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P?\"}},\"size\":10000}",
             getSource()
         );
     }
@@ -918,7 +918,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereLikePrefixQueryUnderscoreEscaped() throws Exception {
         execStatement("select kind from locations where kind like 'P\\_'");
         assertEquals(
-                "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P_\"}},\"size\":10000}",
+                "{\"_source\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P_\"}},\"size\":10000}",
                 getSource()
         );
     }
@@ -927,7 +927,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereLikePrefixQueryQuestionmark() throws Exception {
         execStatement("select kind from locations where kind like 'P?'");
         assertEquals(
-                "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\\\\?\"}},\"size\":10000}",
+                "{\"_source\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P\\\\?\"}},\"size\":10000}",
                 getSource()
         );
     }
@@ -936,7 +936,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereLikeReversed() throws Exception {
         execStatement("select kind from locations where 'P_' like kind");
         assertEquals(
-                "{\"fields\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P?\"}},\"size\":10000}",
+                "{\"_source\":[\"kind\"],\"query\":{\"wildcard\":{\"kind\":\"P?\"}},\"size\":10000}",
                 getSource()
         );
     }
@@ -973,7 +973,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereMatch() throws Exception {
         execStatement("select kind from locations where match(kind, 'Star')");
         assertEquals(
-                "{\"fields\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"size\":10000}",
+                "{\"_source\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"size\":10000}",
                 getSource()
         );
     }
@@ -982,7 +982,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereNotMatch() throws Exception {
         execStatement("select kind from locations where not match(kind, 'Star')");
         assertEquals(
-                "{\"fields\":[\"kind\"],\"query\":{\"bool\":{\"must_not\":{\"match\":{\"kind\":\"Star\"}}}},\"size\":10000}",
+                "{\"_source\":[\"kind\"],\"query\":{\"bool\":{\"must_not\":{\"match\":{\"kind\":\"Star\"}}}},\"size\":10000}",
                 getSource()
         );
     }
@@ -991,7 +991,7 @@ public class QueryVisitorTest {
     public void testSelectWithWhereMatchAnd() throws Exception {
         execStatement("select kind from locations where match(kind, 'Star') and name = 'Algol'");
         assertEquals(
-                "{\"fields\":[\"kind\"],\"query\":{\"bool\":{\"minimum_should_match\":1,\"must\":[{\"match\":{\"kind\":\"Star\"}},{\"term\":{\"name\":\"Algol\"}}]}},\"size\":10000}",
+                "{\"_source\":[\"kind\"],\"query\":{\"bool\":{\"minimum_should_match\":1,\"must\":[{\"match\":{\"kind\":\"Star\"}},{\"term\":{\"name\":\"Algol\"}}]}},\"size\":10000}",
                 getSource()
         );
     }
@@ -1002,7 +1002,7 @@ public class QueryVisitorTest {
                 "order by \"_score\" desc",
                 new Object[]{"Star", "Star"});
         assertEquals(
-                "{\"fields\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"sort\":[{\"_score\":{\"order\":\"desc\",\"ignore_unmapped\":true}}],\"size\":10000}",
+                "{\"_source\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"sort\":[{\"_score\":{\"order\":\"desc\",\"ignore_unmapped\":true}}],\"size\":10000}",
                 getSource()
         );
     }
@@ -1013,7 +1013,7 @@ public class QueryVisitorTest {
                 "order by \"_score\" desc",
                 new Object[]{"Star", "Star"});
         assertEquals(
-                "{\"fields\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"sort\":[{\"_score\":{\"order\":\"desc\",\"ignore_unmapped\":true}}],\"size\":10000}",
+                "{\"_source\":[\"kind\"],\"query\":{\"match\":{\"kind\":\"Star\"}},\"sort\":[{\"_score\":{\"order\":\"desc\",\"ignore_unmapped\":true}}],\"size\":10000}",
                 getSource()
         );
     }
@@ -1024,7 +1024,7 @@ public class QueryVisitorTest {
                 "and \"_score\" > 0.05",
                 new Object[]{"Star", "Star"});
         assertEquals(
-                "{\"fields\":[\"kind\"],\"query\":{\"bool\":{\"minimum_should_match\":1,\"must\":[{\"match\":{\"kind\":\"Star\"}},{\"match_all\":{}}]}},\"min_score\":0.05,\"size\":10000}",
+                "{\"_source\":[\"kind\"],\"query\":{\"bool\":{\"minimum_should_match\":1,\"must\":[{\"match\":{\"kind\":\"Star\"}},{\"match_all\":{}}]}},\"min_score\":0.05,\"size\":10000}",
                 getSource()
         );
     }
@@ -1265,7 +1265,7 @@ public class QueryVisitorTest {
         execStatement("select locations.col from locations where locations.col is not null order by locations.col");
         assertEquals("col", stmt.outputFields().get(0).v1());
         assertEquals("col", stmt.outputFields().get(0).v2());
-        assertEquals("{\"fields\":[\"col\"]," +
+        assertEquals("{\"_source\":[\"col\"]," +
                 "\"query\":{\"bool\":{\"must_not\":{\"filtered\":{\"filter\":" +
                 "{\"missing\":{\"field\":\"col\",\"existence\":true,\"null_value\":true}}}}}}," +
                 "\"sort\":[{\"col\":{\"order\":\"asc\",\"ignore_unmapped\":true}}]," +

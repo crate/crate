@@ -23,12 +23,12 @@ package org.elasticsearch.indices.recovery;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.apache.lucene.store.IOContext;
+import org.apache.lucene.store.IndexInput;
 import org.cratedb.blob.BlobTransferTarget;
 import org.cratedb.blob.recovery.BlobRecoveryHandler;
 import org.cratedb.blob.v2.BlobIndices;
-import org.apache.lucene.store.IOContext;
-import org.apache.lucene.store.IndexInput;
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -139,7 +139,7 @@ public class BlobRecoverySource extends AbstractComponent {
 
         shard.recover(new Engine.RecoveryHandler() {
             @Override
-            public void phase1(final SnapshotIndexCommit snapshot) throws ElasticSearchException {
+            public void phase1(final SnapshotIndexCommit snapshot) throws ElasticsearchException {
                 long totalSize = 0;
                 long existingTotalSize = 0;
                 try {
@@ -255,7 +255,7 @@ public class BlobRecoverySource extends AbstractComponent {
             }
 
             @Override
-            public void phase2(Translog.Snapshot snapshot) throws ElasticSearchException {
+            public void phase2(Translog.Snapshot snapshot) throws ElasticsearchException {
                 if (shard.state() == IndexShardState.CLOSED) {
                     throw new IndexShardClosedException(request.shardId());
                 }
@@ -276,7 +276,7 @@ public class BlobRecoverySource extends AbstractComponent {
             }
 
             @Override
-            public void phase3(Translog.Snapshot snapshot) throws ElasticSearchException {
+            public void phase3(Translog.Snapshot snapshot) throws ElasticsearchException {
                 if (shard.state() == IndexShardState.CLOSED) {
                     throw new IndexShardClosedException(request.shardId());
                 }
@@ -300,7 +300,7 @@ public class BlobRecoverySource extends AbstractComponent {
                 response.phase3Operations = totalOperations;
             }
 
-            private int sendSnapshot(Translog.Snapshot snapshot) throws ElasticSearchException {
+            private int sendSnapshot(Translog.Snapshot snapshot) throws ElasticsearchException {
                 int ops = 0;
                 long size = 0;
                 int totalOperations = 0;

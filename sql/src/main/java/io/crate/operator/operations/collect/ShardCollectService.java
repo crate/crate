@@ -21,7 +21,6 @@
 
 package io.crate.operator.operations.collect;
 
-import com.google.common.base.Optional;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.NormalizationHelper;
 import io.crate.analyze.elasticsearch.ESQueryBuilder;
@@ -39,6 +38,7 @@ import io.crate.planner.symbol.Function;
 import org.cratedb.action.SQLXContentQueryParser;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.cache.recycler.CacheRecycler;
+import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
@@ -58,6 +58,7 @@ public class ShardCollectService {
     private final IndexService indexService;
     private final ScriptService scriptService;
     private final CacheRecycler cacheRecycler;
+    private final PageCacheRecycler pageCacheRecycler;
     private final Functions functions;
     private final ReferenceResolver referenceResolver;
     private final SQLXContentQueryParser sqlxContentQueryParser;
@@ -68,6 +69,7 @@ public class ShardCollectService {
                                IndexService indexService,
                                ScriptService scriptService,
                                CacheRecycler cacheRecycler,
+                               PageCacheRecycler pageCacheRecycler,
                                SQLXContentQueryParser sqlxContentQueryParser,
                                Functions functions,
                                ShardReferenceResolver referenceResolver) {
@@ -76,6 +78,7 @@ public class ShardCollectService {
         this.indexService = indexService;
         this.scriptService = scriptService;
         this.cacheRecycler = cacheRecycler;
+        this.pageCacheRecycler = pageCacheRecycler;
         this.sqlxContentQueryParser = sqlxContentQueryParser;
         this.functions = functions;
         this.referenceResolver = referenceResolver;
@@ -107,7 +110,7 @@ public class ShardCollectService {
                     ESQueryBuilder queryBuilder = new ESQueryBuilder(functions, referenceResolver);
                     BytesReference querySource = queryBuilder.convert(collectNode.whereClause());
                     result = new LuceneDocCollector(clusterService, shardId, indexService,
-                            scriptService, cacheRecycler, sqlxContentQueryParser,
+                            scriptService, cacheRecycler, pageCacheRecycler, sqlxContentQueryParser,
                             ctx.topLevelInputs(),
                             ctx.docLevelExpressions(),
                             querySource,

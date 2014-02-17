@@ -133,9 +133,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
 
     private void xcontent(UpdateNode node) throws Exception {
 
-        jsonBuilder.startObject("query");
         whereClause(((SelectNode) node.getResultSetNode()).getWhereClause());
-        jsonBuilder.endObject();
 
         // only include the version if it was explicitly selected.
         if (stmt.versionSysColumnSelected) {
@@ -193,15 +191,10 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
         }
         visit(node.getResultColumns());
 
-        if (stmt.countRequest()) {
-            whereClause(node.getWhereClause());
-        } else {
-            jsonBuilder.startObject("query");
-            whereClause(node.getWhereClause());
-            jsonBuilder.endObject();
-            if (stmt.scoreMinimum != null) {
-                jsonBuilder.field("min_score", stmt.scoreMinimum);
-            }
+        whereClause(node.getWhereClause());
+
+        if (stmt.scoreMinimum != null) {
+            jsonBuilder.field("min_score", stmt.scoreMinimum);
         }
 
         // only include the version if it was explicitly selected.
@@ -211,13 +204,14 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
     }
 
     private void whereClause(ValueNode node) throws Exception {
+        jsonBuilder.startObject("query");
         if (node == null) {
             rootQuery = new MatchAllDocsQuery();
             jsonBuilder.field("match_all", new HashMap<>());
-            return;
+        } else {
+            visit(null, node);
         }
-
-        visit(null, node);
+        jsonBuilder.endObject();
     }
 
     private void addGroupByColumns(GroupByList groupByList) throws StandardException {
@@ -432,7 +426,9 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
              * {@link org.cratedb.action.SQLQueryService}
              */
             if (fields.size() > 0) {
-                jsonBuilder.field("fields", fields);
+                if (!fields.contains("_source")) {
+                    jsonBuilder.field("_source", fields);
+                }
             }
             if (stmt.globalExpressionCount() > 0) {
                 throw new SQLParseException("Global expressions not allowed here.");

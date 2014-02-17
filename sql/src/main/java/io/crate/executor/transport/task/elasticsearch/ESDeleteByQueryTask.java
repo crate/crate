@@ -28,16 +28,14 @@ import io.crate.executor.Task;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.node.ESDeleteByQueryNode;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolVisitor;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;
 import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 
 public class ESDeleteByQueryTask implements Task<Object[][]> {
 
@@ -46,7 +44,6 @@ public class ESDeleteByQueryTask implements Task<Object[][]> {
     private final SettableFuture<Object[][]> result;
     private final List<ListenableFuture<Object[][]>> results;
     private final ESQueryBuilder queryBuilder;
-    private final Visitor visitor = new Visitor();
 
     public ESDeleteByQueryTask(ESDeleteByQueryNode deleteByQueryNode,
                                TransportDeleteByQueryAction transportDeleteByQueryAction,
@@ -62,12 +59,11 @@ public class ESDeleteByQueryTask implements Task<Object[][]> {
 
     @Override
     public void start() {
-        final Context ctx = new Context();
         final DeleteByQueryRequest request = new DeleteByQueryRequest();
 
         try {
-            request.query(queryBuilder.convert(deleteByQueryNode), false);
-            request.indices(deleteByQueryNode.indices().toArray(new String[ctx.indices.size()]));
+            request.source(queryBuilder.convert(deleteByQueryNode), false);
+            request.indices(deleteByQueryNode.indices().toArray(new String[deleteByQueryNode.indices().size()]));
 
             transportDeleteByQueryAction.execute(request, new ActionListener<DeleteByQueryResponse>() {
                 @Override
@@ -93,25 +89,5 @@ public class ESDeleteByQueryTask implements Task<Object[][]> {
     @Override
     public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
         throw new UnsupportedOperationException("Can't have upstreamResults");
-    }
-
-    class Context {
-        final public List<Reference> outputs = new ArrayList<>();
-        final public Set<String> indices = new HashSet<>();
-    }
-
-    static class Visitor extends SymbolVisitor<Context, Void> {
-
-        @Override
-        public Void visitReference(Reference symbol, Context context) {
-            context.outputs.add(symbol);
-            context.indices.add(symbol.info().ident().tableIdent().name());
-            return null;
-        }
-
-        @Override
-        protected Void visitSymbol(Symbol symbol, Context context) {
-            throw new UnsupportedOperationException(String.format("Symbol %s not supported", symbol));
-        }
     }
 }

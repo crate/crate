@@ -21,9 +21,9 @@
 
 package org.cratedb.sql;
 
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 
-public class CrateException extends ElasticSearchException {
+public class CrateException extends ElasticsearchException {
 
     public CrateException(String msg) {
         super(msg);

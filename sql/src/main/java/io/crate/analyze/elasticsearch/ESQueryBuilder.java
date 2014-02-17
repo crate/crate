@@ -71,6 +71,7 @@ public class ESQueryBuilder {
      * adds the "query" part to the XContentBuilder
      */
     private void whereClause(Context context, Optional<Function> whereClause) throws IOException {
+        context.builder.startObject("query");
         if (whereClause.isPresent()) {
             /**
              * normalize to optimize queries like eq(1, 1)
@@ -80,6 +81,7 @@ public class ESQueryBuilder {
         } else {
             context.builder.field("match_all", new HashMap<>());
         }
+        context.builder.endObject();
     }
 
     /**
@@ -95,9 +97,7 @@ public class ESQueryBuilder {
     public BytesReference convert(Optional<Function> whereClause) throws IOException {
         Context context = new Context();
         context.builder = XContentFactory.jsonBuilder().startObject();
-        context.builder.startObject("query");
         whereClause(context, whereClause);
-        context.builder.endObject();
         context.builder.endObject();
         return context.builder.bytes();
     }
@@ -117,15 +117,15 @@ public class ESQueryBuilder {
         for (Reference output : outputs) {
             fields.add(output.info().ident().columnIdent().fqn());
         }
-        builder.field("fields", fields);
+        if (fields.size() > 0) {
+            builder.field("_source", fields);
+        }
 
         if (fields.contains("_version")) {
             builder.field("version", true);
         }
 
-        builder.startObject("query");
         whereClause(context, node.whereClause());
-        builder.endObject();
 
         if (context.ignoredFields.containsKey("_score")) {
             builder.field("min_score", ((Number) context.ignoredFields.get("_score")).doubleValue());

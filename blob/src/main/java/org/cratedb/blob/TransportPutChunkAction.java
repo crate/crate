@@ -21,7 +21,7 @@
 
 package org.cratedb.blob;
 
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.support.replication.TransportShardReplicationOperationAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -96,7 +96,7 @@ public class TransportPutChunkAction extends TransportShardReplicationOperationA
     }
 
     @Override
-    protected ShardIterator shards(ClusterState clusterState, PutChunkRequest request) throws ElasticSearchException {
+    protected ShardIterator shards(ClusterState clusterState, PutChunkRequest request) throws ElasticsearchException {
         return clusterService.operationRouting()
             .indexShards(clusterService.state(),
                 request.index(),

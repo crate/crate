@@ -24,13 +24,14 @@ package org.cratedb.action.searchinto;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import org.elasticsearch.cache.recycler.CacheRecycler;
+import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.SearchShardTarget;
-import org.elasticsearch.search.internal.SearchContext;
+import org.elasticsearch.search.internal.DefaultSearchContext;
 import org.elasticsearch.search.internal.ShardSearchRequest;
 
 import java.util.HashMap;
@@ -40,7 +41,7 @@ import java.util.Map;
 /**
  * Container class for inout specific informations.
  */
-public class SearchIntoContext extends SearchContext {
+public class SearchIntoContext extends DefaultSearchContext {
 
     // currently we only support index targets
     private String targetType = "index";
@@ -58,9 +59,10 @@ public class SearchIntoContext extends SearchContext {
     public SearchIntoContext(long id, ShardSearchRequest request,
             SearchShardTarget shardTarget, Engine.Searcher engineSearcher,
             IndexService indexService, IndexShard indexShard,
-            ScriptService scriptService, CacheRecycler cacheRecycler) {
+            ScriptService scriptService, CacheRecycler cacheRecycler,
+            PageCacheRecycler pageRecycler) {
         super(id, request, shardTarget, engineSearcher, indexService,
-                indexShard, scriptService, cacheRecycler);
+                indexShard, scriptService, cacheRecycler, pageRecycler);
     }
 
     public String targetType() {

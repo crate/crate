@@ -21,15 +21,13 @@
 
 package org.cratedb.rest.action.admin.searchinto;
 
-import static org.elasticsearch.rest.RestRequest.Method.POST;
-import static org.elasticsearch.rest.RestStatus.BAD_REQUEST;
-import static org.elasticsearch.rest.RestStatus.OK;
-
-import java.io.IOException;
-
+import org.cratedb.action.searchinto.SearchIntoAction;
+import org.cratedb.action.searchinto.SearchIntoRequest;
+import org.cratedb.action.searchinto.SearchIntoResponse;
+import org.cratedb.client.action.searchinto.SearchIntoRequestBuilder;
 import org.elasticsearch.action.Action;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.IgnoreIndices;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.broadcast.BroadcastOperationThreading;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.Strings;
@@ -37,19 +35,16 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.rest.BaseRestHandler;
-import org.elasticsearch.rest.RestChannel;
-import org.elasticsearch.rest.RestController;
-import org.elasticsearch.rest.RestRequest;
-import org.elasticsearch.rest.XContentRestResponse;
-import org.elasticsearch.rest.XContentThrowableRestResponse;
+import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.rest.*;
 import org.elasticsearch.rest.action.support.RestActions;
 import org.elasticsearch.rest.action.support.RestXContentBuilder;
 
-import org.cratedb.action.searchinto.SearchIntoAction;
-import org.cratedb.action.searchinto.SearchIntoRequest;
-import org.cratedb.action.searchinto.SearchIntoResponse;
-import org.cratedb.client.action.searchinto.SearchIntoRequestBuilder;
+import java.io.IOException;
+
+import static org.elasticsearch.rest.RestRequest.Method.POST;
+import static org.elasticsearch.rest.RestStatus.BAD_REQUEST;
+import static org.elasticsearch.rest.RestStatus.OK;
 
 /**
  *
@@ -78,10 +73,19 @@ public class RestSearchIntoAction extends BaseRestHandler {
         SearchIntoRequest searchIntoRequest = new SearchIntoRequest(
             Strings.splitStringByCommaToArray(request.param("index")));
 
-        if (request.hasParam("ignore_indices")) {
-            searchIntoRequest.ignoreIndices(IgnoreIndices.fromString(
-                    request.param(
-                            "ignore_indices")));
+        if (request.hasParam("ignore_unavailable") ||
+                request.hasParam("allow_no_indices") ||
+                request.hasParam("expand_wildcards")) {
+            IndicesOptions indicesOptions = IndicesOptions.fromRequest(request, IndicesOptions.lenient());
+            searchIntoRequest.indicesOptions(indicesOptions);
+        }
+        else if (request.hasParam("ignore_indices")) {
+            if (request.param("ignore_indices").equalsIgnoreCase("missing")) {
+                searchIntoRequest.indicesOptions(IndicesOptions.lenient());
+            }
+            else {
+                searchIntoRequest.indicesOptions(IndicesOptions.strict());
+            }
         }
         searchIntoRequest.listenerThreaded(false);
         try {
@@ -104,7 +108,7 @@ public class RestSearchIntoAction extends BaseRestHandler {
                     searchIntoRequest.source(source);
                 } else {
                     BytesReference querySource = RestActions.parseQuerySource(
-                            request);
+                            request).buildAsBytes(XContentType.JSON);
                     if (querySource != null) {
                         searchIntoRequest.source(querySource, false);
                     }

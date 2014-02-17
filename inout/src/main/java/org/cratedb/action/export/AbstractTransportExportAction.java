@@ -23,12 +23,13 @@ package org.cratedb.action.export;
 
 import org.cratedb.action.export.parser.IExportParser;
 import org.cratedb.export.Exporter;
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.broadcast.BroadcastShardOperationFailedException;
 import org.elasticsearch.action.support.broadcast.TransportBroadcastOperationAction;
 import org.elasticsearch.cache.recycler.CacheRecycler;
+import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -38,7 +39,6 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.indices.IndicesService;
@@ -75,17 +75,21 @@ public abstract class AbstractTransportExportAction extends TransportBroadcastOp
 
     private final CacheRecycler cacheRecycler;
 
+    private final PageCacheRecycler pageRecycler;
+
     private String nodePath;
 
     public AbstractTransportExportAction(Settings settings, ThreadPool threadPool, ClusterService clusterService,
                                          TransportService transportService, IndicesService indicesService,
                                          ScriptService scriptService, CacheRecycler cacheRecycler,
+                                         PageCacheRecycler pageRecycler,
                                          IExportParser exportParser, Exporter exporter,
                                          NodeEnvironment nodeEnv) {
         super(settings, threadPool, clusterService, transportService);
         this.indicesService = indicesService;
         this.scriptService = scriptService;
         this.cacheRecycler = cacheRecycler;
+        this.pageRecycler = pageRecycler;
         this.exportParser = exportParser;
         this.exporter = exporter;
         File[] paths = nodeEnv.nodeDataLocations();
@@ -162,7 +166,7 @@ public abstract class AbstractTransportExportAction extends TransportBroadcastOp
 
 
     @Override
-    protected ShardExportResponse shardOperation(ShardExportRequest request) throws ElasticSearchException {
+    protected ShardExportResponse shardOperation(ShardExportRequest request) throws ElasticsearchException {
 
 
         IndexService indexService = indicesService.indexServiceSafe(request.index());
@@ -170,8 +174,9 @@ public abstract class AbstractTransportExportAction extends TransportBroadcastOp
 
         SearchShardTarget shardTarget = new SearchShardTarget(clusterService.localNode().id(), request.index(), request.shardId());
         ExportContext context = new ExportContext(0,
-            new ShardSearchRequest().types(request.types()).filteringAliases(request.filteringAliases()),
-            shardTarget, indexShard.acquireSearcher("crate/inout"), indexService, indexShard, scriptService, cacheRecycler, nodePath);
+                new ShardSearchRequest().types(request.types()).filteringAliases(request.filteringAliases()),
+                shardTarget, indexShard.acquireSearcher("crate/inout"), indexService, indexShard,
+                scriptService, cacheRecycler, pageRecycler, nodePath);
         ExportContext.setCurrent(context);
 
         try {

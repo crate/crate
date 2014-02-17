@@ -23,7 +23,7 @@ package org.cratedb.rest.action;
 
 import org.cratedb.action.sql.SQLRequestBuilder;
 import org.cratedb.action.sql.SQLResponse;
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.client.Client;
@@ -54,7 +54,7 @@ public class RestSQLAction extends BaseRestHandler {
             if (request.hasContent()) {
                 requestBuilder.source(request.content());
             } else {
-                throw new ElasticSearchException("missing request body");
+                throw new ElasticsearchException("missing request body");
             }
         } catch (Exception e) {
             if (logger.isDebugEnabled()) {

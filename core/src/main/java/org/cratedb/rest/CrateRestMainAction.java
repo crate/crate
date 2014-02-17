@@ -34,7 +34,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.*;
-import org.elasticsearch.rest.action.main.RestMainAction;
 import org.elasticsearch.rest.action.support.RestXContentBuilder;
 
 import static org.elasticsearch.rest.RestRequest.Method.GET;
@@ -64,7 +63,7 @@ public class CrateRestMainAction extends BaseRestHandler {
         clusterStateRequest.listenerThreaded(false);
         clusterStateRequest.masterNodeTimeout(TimeValue.timeValueMillis(0));
         clusterStateRequest.local(true);
-        clusterStateRequest.filterAll().filterBlocks(false);
+        clusterStateRequest.clear().blocks(true);
         client.admin().cluster().state(clusterStateRequest, new ActionListener<ClusterStateResponse>() {
             @Override
             public void onResponse(ClusterStateResponse response) {

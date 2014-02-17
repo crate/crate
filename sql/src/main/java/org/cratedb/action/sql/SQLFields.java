@@ -26,6 +26,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.text.StringAndBytesText;
 import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.index.get.GetField;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHitField;
@@ -96,6 +97,21 @@ public class SQLFields {
 
     }
 
+    class HitSourceFieldExtractor extends FieldExtractor {
+
+        private final String fieldName;
+
+        public HitSourceFieldExtractor(String fieldName) {
+            this.fieldName = fieldName;
+        }
+
+        @Override
+        public Object getValue() {
+            return XContentMapValues.extractValue(fieldName, hit.getSource());
+        }
+
+    }
+
     public void hit(SearchHit hit) {
         this.hit = hit;
     }
@@ -108,7 +124,7 @@ public class SQLFields {
         List<FieldExtractor> extractors = new ArrayList<>(fields.size());
         for (Tuple<String, String> t : fields) {
             String fn = t.v2();
-            FieldExtractor fc = null;
+            FieldExtractor fc;
             if (fn.startsWith("_")) {
                 if (fn.equals("_source")) {
                     fc = new SourceFieldExtractor();
@@ -137,7 +153,7 @@ public class SQLFields {
                     fc = new HitFieldExtractor(fn);
                 }
             } else {
-                fc = new HitFieldExtractor(fn);
+                fc = new HitSourceFieldExtractor(fn);
             }
             extractors.add(fc);
         }
@@ -165,8 +181,8 @@ public class SQLFields {
         }
 
         InternalSearchHit searchHit = new InternalSearchHit(0, getResponse.getId(),
-                new StringAndBytesText(getResponse.getType()), source,
-                searchFields);
+                new StringAndBytesText(getResponse.getType()),
+                searchFields).sourceRef(source);
         searchHit.version(getResponse.getVersion());
 
         return searchHit;

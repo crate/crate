@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.*;
 import org.elasticsearch.client.transport.TransportClientNodesService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -70,7 +70,7 @@ public class InternalCrateClient {
                 new TransportClientNodesService.NodeCallback<ActionFuture<Response>>() {
                     @Override
                     public ActionFuture<Response> doWithNode(DiscoveryNode node) throws
-                            ElasticSearchException {
+                            ElasticsearchException {
                         return proxy.execute(node, request);
                     }
                 });

@@ -21,7 +21,6 @@
 
 package org.cratedb.sql.facet;
 
-import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.ParsedStatement;
 import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.search.facet.FacetExecutor;
@@ -47,8 +46,7 @@ public class SQLFacetExecutor extends FacetExecutor {
         this.collector = new UpdateCollector(
                 stmt.updateDoc(),
                 updateAction,
-                searchContext,
-                stmt.versionFilter);
+                searchContext);
     }
 
     /**

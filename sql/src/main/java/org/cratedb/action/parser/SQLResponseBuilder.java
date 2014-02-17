@@ -137,7 +137,7 @@ public class SQLResponseBuilder {
 
     public SQLResponse buildResponse(DeleteResponse deleteResponse, long requestStartedTime) {
         int rowCount = 0;
-        if (! deleteResponse.isNotFound()) {
+        if (deleteResponse.isFound()) {
             rowCount = 1;
         }
 
