@@ -348,6 +348,29 @@ public class ESQueryBuilder {
             }
         }
 
+        class InConverter extends Converter {
+
+            @Override
+            public void convert(Function function, Context context) throws IOException {
+                Preconditions.checkNotNull(function);
+                Preconditions.checkArgument(function.arguments().size() == 2);
+
+                Symbol left = function.arguments().get(0);
+                Symbol right = function.arguments().get(1);
+                Preconditions.checkArgument(left.symbolType() == SymbolType.REFERENCE);
+                Preconditions.checkArgument(right.symbolType() == SymbolType.SET_LITERAL);
+                String refName = ((Reference) left).info().ident().columnIdent().fqn();
+                SetLiteral setLiteral = (SetLiteral) right;
+                context.builder.startObject("terms").field(refName);
+                context.builder.startArray();
+                for (Object o : setLiteral.value()) {
+                    context.builder.value(o);
+                }
+                context.builder.endArray().endObject();
+            }
+
+        }
+
         private ImmutableMap<String, Converter> functions =
                 ImmutableMap.<String, Converter>builder()
                         .put(AndOperator.NAME, new AndConverter())
@@ -362,6 +385,7 @@ public class ESQueryBuilder {
                         .put(IsNullPredicate.NAME, new IsNullConverter())
                         .put(NotPredicate.NAME, new NotConverter())
                         .put(MatchFunction.NAME, new MatchConverter())
+                        .put(InOperator.NAME, new InConverter())
                         .build();
 
         @Override

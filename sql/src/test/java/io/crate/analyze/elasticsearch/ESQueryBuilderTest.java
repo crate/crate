@@ -36,16 +36,19 @@ import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class ESQueryBuilderTest {
 
@@ -209,6 +212,84 @@ public class ESQueryBuilderTest {
 
         Function isNull = new Function(isNullImpl.info(), Arrays.<Symbol>asList(extrafield));
         xcontetAssert(isNull, "{\"query\":{\"filtered\":{\"filter\":{\"missing\":{\"field\":\"extrafield\",\"existence\":true,\"null_value\":true}}}}}");
+    }
+
+    @Test
+    public void testWhereReferenceInList() throws Exception {
+        // where name in ("alpha", "bravo", "charlie", "delta")
+        Reference ref = name_ref;
+        DataType valueType = ref.valueType();
+        DataType setType = DataType.SET_TYPES.get(valueType.ordinal());
+        FunctionImplementation inListImpl = functions.get(
+                new FunctionIdent(InOperator.NAME, Arrays.asList(valueType, setType))
+        );
+
+        ImmutableSet<String> list = ImmutableSet.<String>of("alpha", "bravo", "charlie", "delta");
+        SetLiteral set = new SetLiteral(DataType.STRING, list);
+        Function inList = new Function(inListImpl.info(), Arrays.<Symbol>asList(ref, set));
+
+        // expected result
+        // {"query":{"terms":{"name":["alpha","bravo","charlie","delta"]}}}
+        String expectedQuery =
+                "{\"query\":{\"terms\":{\"name\":[\"alpha\",\"bravo\",\"charlie\",\"delta\"]}}}";
+        // "name": [...] is internally handled as a Set.
+        // therefore, one cannot expect a deterministic sort ordering at all times.
+        // let the generator convert the function, then use the XContentHelper
+        // to compare the content.
+        BytesReference reference = generator.convert(inList);
+        Tuple<XContentType, Map<String, Object>> expectedMap =
+                XContentHelper.convertToMap(expectedQuery.getBytes(), true);
+        Tuple<XContentType, Map<String, Object>> map =
+                XContentHelper.convertToMap(reference, true);
+        assertTrue(compareInListSetEquals(ref, expectedMap, map));
+    }
+
+    /**
+     * Compares the XContent of two maps.
+     * <b>Bear in mind</b>: this is not a generic approach!
+     * The <code>actual</code> map is generated using a SetLiteral and one can therefore not expect
+     * a deterministic sort ordering.
+     * @see ESQueryBuilderTest#testWhereReferenceInList()
+     * @see io.crate.analyze.elasticsearch.ESQueryBuilder (InConverter#convert)
+     * @param ref used to get the 'full qualified name'.
+     * @param expected
+     * @param actual
+     * @return
+     */
+    private boolean compareInListSetEquals(Reference ref, Tuple<XContentType, Map<String, Object>> expected,
+                                           Tuple<XContentType, Map<String, Object>> actual) {
+        try {
+            HashMap<String, Object> queryExpected = (HashMap<String, Object>) expected.v2().get("query");
+            HashMap<String, Object> termsExpected = (HashMap<String, Object>) queryExpected.get("terms");
+            ArrayList<Object> inListExpected = (ArrayList<Object>) termsExpected.get(ref.info()
+                    .ident().columnIdent().fqn());
+
+            HashMap<String, Object> queryActual = (HashMap<String, Object>) actual.v2().get("query");
+            HashMap<String, Object> termsActual = (HashMap<String, Object>) queryActual.get("terms");
+            ArrayList<Object> inListActual = (ArrayList<Object>) termsActual.get(ref.info()
+                    .ident().columnIdent().fqn());
+
+            // compare the 'SetLiteral'
+            if (inListExpected.size() != inListActual.size()) {
+                throw new AssertionError("Sets are not of equal size.");
+            }
+            for (Object actualEntry : inListActual) {
+                if (!inListExpected.contains(actualEntry)) {
+                    throw new AssertionError("actualEntry '" + actualEntry + "' was not expected.");
+                }
+            }
+
+            return true;
+        } catch (NullPointerException e) {
+            System.err.println("Check constructed Tuple<XContentType, Map<>>. " +
+                    "Most likely obtaining 'query' or 'terms' failed.");
+            e.printStackTrace();
+            return false;
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
     }
 
     @Test
