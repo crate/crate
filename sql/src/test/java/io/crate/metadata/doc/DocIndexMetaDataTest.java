@@ -23,10 +23,7 @@ import org.junit.rules.ExpectedException;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -66,6 +63,37 @@ public class DocIndexMetaDataTest {
 
     private DocIndexMetaData newMeta(IndexMetaData metaData, String name) throws IOException {
         return new DocIndexMetaData(metaData, new TableIdent(null, name)).build();
+    }
+
+    @Test
+    public void testNestedColumnIdent() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+                .startObject()
+                .startObject("properties")
+                    .startObject("person")
+                        .startObject("properties")
+                            .startObject("addresses")
+                                .startObject("properties")
+                                    .startObject("city")
+                                        .field("type", "string")
+                                        .field("index", "not_analyzed")
+                                    .endObject()
+                                    .startObject("country")
+                                        .field("type", "string")
+                                        .field("index", "not_analyzed")
+                                    .endObject()
+                                .endObject()
+                            .endObject()
+                        .endObject()
+                    .endObject()
+                .endObject()
+                .endObject();
+
+        IndexMetaData metaData = getIndexMetaData("test1", builder);
+        DocIndexMetaData md = newMeta(metaData, "test1");
+
+        ReferenceInfo referenceInfo = md.references().get(new ColumnIdent("person", Arrays.asList("addresses", "city")));
+        assertNotNull(referenceInfo);
     }
 
     @Test
