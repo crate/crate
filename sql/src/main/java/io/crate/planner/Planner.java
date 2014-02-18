@@ -332,10 +332,18 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 Set<?> objects = ((SetLiteral) literal).value();
                 ids = new ArrayList<>(objects.size());
                 for (Object object : objects) {
-                    ids.add(object.toString());
+                    if (object instanceof BytesRef) {
+                        ids.add(((BytesRef)object).utf8ToString());
+                    } else {
+                        ids.add(object.toString());
+                    }
                 }
             } else {
-                ids = Arrays.asList(literal.value().toString());
+                if (literal.valueType() == DataType.STRING) {
+                    ids = Arrays.asList(((BytesRef)literal.value()).utf8ToString());
+                } else {
+                    ids = Arrays.asList(literal.value().toString());
+                }
             }
 
             ESGetNode getNode = new ESGetNode(analysis.table().ident().name(), ids);
