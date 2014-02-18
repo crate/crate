@@ -168,4 +168,25 @@ public class LikeOperatorTest {
         assertThat(result, instanceOf(BooleanLiteral.class));
         assertTrue(((BooleanLiteral)result).value());
     }
+
+    @Test
+    public void testNormalizeSymbolLikeMixedMiddle() {
+        Symbol result = normalizeSymbol("%o_a%", "foobar");
+        assertThat(result, instanceOf(BooleanLiteral.class));
+        assertTrue(((BooleanLiteral)result).value());
+    }
+
+    @Test
+    public void testNormalizeSymbolLikeMixedMiddle2() {
+        Symbol result = normalizeSymbol("%i%m%", "Lorem ipsum dolor...");
+        assertThat(result, instanceOf(BooleanLiteral.class));
+        assertTrue(((BooleanLiteral)result).value());
+    }
+
+    @Test
+    public void testNormalizeSymbolNotLikeMixedMiddle() {
+        Symbol result = normalizeSymbol("%i%m", "Lorem ipsum dolor...");
+        assertThat(result, instanceOf(BooleanLiteral.class));
+        assertFalse(((BooleanLiteral)result).value());
+    }
 }
