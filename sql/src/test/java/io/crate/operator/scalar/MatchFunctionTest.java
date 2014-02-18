@@ -21,44 +21,70 @@
 
 package io.crate.operator.scalar;
 
-import io.crate.planner.symbol.BooleanLiteral;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.StringLiteral;
-import io.crate.planner.symbol.Symbol;
+import com.google.common.collect.ImmutableList;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.planner.symbol.*;
+import org.cratedb.DataType;
 import org.junit.Test;
 
 import java.util.Arrays;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 public class MatchFunctionTest {
 
     @Test
-    public void testNormalizeSymbolNoMatch() throws Exception {
-        MatchFunction function = new MatchFunction();
+    public void testNormalizeSymbol() throws Exception {
+        FunctionInfo functionInfo = new FunctionInfo(
+                new FunctionIdent(
+                        MatchFunction.NAME,
+                        ImmutableList.of(DataType.STRING, DataType.STRING)),
+                DataType.BOOLEAN
+        );
+        MatchFunction op = new MatchFunction(functionInfo);
 
         Function matchFunction = new Function(
-                MatchFunction.INFO,
-                // behaves like eqOperator on literals, so this is no match since no analyzer is in use
-                Arrays.<Symbol>asList(new StringLiteral("foo bar"), new StringLiteral("foo")));
-        Symbol normalized = function.normalizeSymbol(matchFunction);
+                functionInfo,
+                Arrays.<Symbol>asList(new Reference(), new StringLiteral("foo")));
+        Symbol result = op.normalizeSymbol(matchFunction);
 
-        assertThat(normalized, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral)normalized).value(), is(false));
+        assertThat(result, instanceOf(Function.class));
+        assertEquals(matchFunction, result);
     }
 
-    @Test
-    public void testNormalizeSymbolMatch() throws Exception {
-        MatchFunction function = new MatchFunction();
+    @Test(expected = UnsupportedOperationException.class)
+    public void testNormalizeSymbolExceptionLeft() throws Exception {
+        FunctionInfo functionInfo = new FunctionInfo(
+                new FunctionIdent(
+                        MatchFunction.NAME,
+                        ImmutableList.of(DataType.STRING, DataType.STRING)),
+                DataType.BOOLEAN
+        );
+        MatchFunction op = new MatchFunction(functionInfo);
 
         Function matchFunction = new Function(
-                MatchFunction.INFO,
-                Arrays.<Symbol>asList(new StringLiteral("foo"), new StringLiteral("foo")));
-        Symbol normalized = function.normalizeSymbol(matchFunction);
-
-        assertThat(normalized, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral)normalized).value(), is(true));
+                functionInfo,
+                Arrays.<Symbol>asList(new StringLiteral("causes exception"), new StringLiteral("foo")));
+        op.normalizeSymbol(matchFunction);
     }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testNormalizeSymbolExceptionRight() throws Exception {
+        FunctionInfo functionInfo = new FunctionInfo(
+                new FunctionIdent(
+                        MatchFunction.NAME,
+                        ImmutableList.of(DataType.STRING, DataType.STRING)),
+                DataType.BOOLEAN
+        );
+        MatchFunction op = new MatchFunction(functionInfo);
+
+        Function matchFunction = new Function(
+                functionInfo,
+                Arrays.<Symbol>asList(new Reference(), new LongLiteral(2)));
+        op.normalizeSymbol(matchFunction);
+    }
+
 }

@@ -37,9 +37,9 @@ public class ScalarFunctionModule extends AbstractModule {
     @Override
     protected void configure() {
         functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
-        functionBinder.addBinding(MatchFunction.INFO.ident()).to(MatchFunction.class);
 
         CollectionCountFunction.register(this);
         CollectionAverageFunction.register(this);
+        MatchFunction.register(this);
     }
 }
