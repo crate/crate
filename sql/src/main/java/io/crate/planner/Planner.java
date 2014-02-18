@@ -36,7 +36,6 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.DefaultTraversalVisitor;
-import org.apache.lucene.util.BytesRef;
 import org.cratedb.Constants;
 import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
@@ -308,13 +307,8 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 // TODO: implement bulk delete task / node
                 ESDeleteByQuery(analysis, plan);
             } else {
-                String id;
-                if (literal.valueType() == DataType.STRING) {
-                    id = ((BytesRef)literal.value()).utf8ToString();
-                } else {
-                    id = literal.value().toString();
-                }
-                plan.add(new ESDeleteNode(analysis.table().ident().name(), id, analysis.version()));
+                plan.add(new ESDeleteNode(
+                        analysis.table().ident().name(), literal.valueAsString(), analysis.version()));
                 plan.expectsAffectedRows(true);
             }
         }
@@ -328,22 +322,15 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         } else {
             Literal literal = analysis.primaryKeyLiterals().get(0);
             List<String> ids;
+
             if (literal.symbolType() == SymbolType.SET_LITERAL) {
-                Set<?> objects = ((SetLiteral) literal).value();
-                ids = new ArrayList<>(objects.size());
-                for (Object object : objects) {
-                    if (object instanceof BytesRef) {
-                        ids.add(((BytesRef)object).utf8ToString());
-                    } else {
-                        ids.add(object.toString());
-                    }
+                Set<Literal> literals = ((SetLiteral) literal).literals();
+                ids = new ArrayList<>(literals.size());
+                for (Literal id : literals) {
+                    ids.add(id.valueAsString());
                 }
             } else {
-                if (literal.valueType() == DataType.STRING) {
-                    ids = Arrays.asList(((BytesRef)literal.value()).utf8ToString());
-                } else {
-                    ids = Arrays.asList(literal.value().toString());
-                }
+                ids = ImmutableList.of(literal.valueAsString());
             }
 
             ESGetNode getNode = new ESGetNode(analysis.table().ident().name(), ids);

@@ -68,6 +68,11 @@ public class StringLiteral extends Literal<BytesRef, StringLiteral> {
     }
 
     @Override
+    public String valueAsString() {
+        return value().utf8ToString();
+    }
+
+    @Override
     public SymbolType symbolType() {
         return SymbolType.STRING_LITERAL;
     }
