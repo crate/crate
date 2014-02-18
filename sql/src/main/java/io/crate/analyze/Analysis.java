@@ -277,20 +277,24 @@ public abstract class Analysis {
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> normalizeObjectValue(Map<String, Object> value, ReferenceInfo referenceInfo) {
-        if (referenceInfo.objectType() == ReferenceInfo.ObjectType.STRICT && value.size() > referenceInfo.nestedColumns().size()) {
-            throw new ValidationException(referenceInfo.ident().columnIdent().fqn(), "cannot add new columns to STRICT object");
-        }
-        for (ReferenceInfo info : referenceInfo.nestedColumns()) {
-            List<String> path = info.ident().columnIdent().path();
-            String mapKey = path.get(path.size()-1);
-            Object nestedValue = value.get(mapKey);
-            if (nestedValue == null) {
-                continue;
-            }
-            if (info.type() == DataType.OBJECT && nestedValue instanceof Map) {
-                value.put(mapKey, normalizeObjectValue((Map<String, Object>)nestedValue, info));
+        for (Map.Entry<String, Object> entry : value.entrySet()) {
+            ColumnIdent nestedIdent = ColumnIdent.getChild(referenceInfo.ident().columnIdent(), entry.getKey());
+            ReferenceInfo info = table.getColumnInfo(nestedIdent);
+            if (info == null) {
+                if (referenceInfo.objectType() == ReferenceInfo.ObjectType.STRICT) {
+                    throw new ValidationException(referenceInfo.ident().columnIdent().fqn(), "cannot add new columns to STRICT object");
+                } else {
+                    // TODO: create DynamicReference
+                }
             } else {
-                value.put(mapKey, normalizePrimitiveValue(nestedValue, info));
+                if (entry.getValue() == null) {
+                    continue;
+                }
+                if (info.type() == DataType.OBJECT && entry.getValue() instanceof Map) {
+                    value.put(entry.getKey(), normalizeObjectValue((Map<String, Object>)entry.getValue(), info));
+                } else {
+                    value.put(entry.getKey(), normalizePrimitiveValue(entry.getValue(), info));
+                }
             }
         }
         return value;
