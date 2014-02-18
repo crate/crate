@@ -39,6 +39,16 @@ public class Null extends Literal<Void, Null> {
         return null;
     }
 
+    /**
+     * null literals can occur anywhere
+     * @param type
+     * @return
+     */
+    @Override
+    public Literal convertTo(DataType type) {
+        return INSTANCE;
+    }
+
     @Override
     public void readFrom(StreamInput in) throws IOException {
 

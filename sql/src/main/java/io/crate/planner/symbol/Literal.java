@@ -49,6 +49,21 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
         return null;
     }
 
+    /**
+     * create a literal for a given Java object
+     * @param value the value to wrap/transform into a literal
+     * @return a literal of a guessed type, holding the value object
+     * @throws java.lang.IllegalArgumentException if value cannot be wrapped into a <code>Literal</code>
+     */
+    public static Literal forValue(Object value) {
+        DataType type = DataType.forValue(value);
+        if (type == null) {
+            throw new IllegalArgumentException(
+                    String.format("value of unsupported class '%s'", value.getClass().getSimpleName()));
+        }
+        return forType(type, value);
+    }
+
     public Literal convertTo(DataType type) {
         if (valueType() == type) {
             return this;
