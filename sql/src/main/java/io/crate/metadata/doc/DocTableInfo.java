@@ -23,13 +23,11 @@ package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.Routing;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
+import org.cratedb.DataType;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
@@ -37,6 +35,7 @@ import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.index.shard.ShardId;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 public class DocTableInfo implements TableInfo {
@@ -72,9 +71,42 @@ public class DocTableInfo implements TableInfo {
         this.isAlias = isAlias;
     }
 
+    /**
+     * Returns the ReferenceInfo if it is defined in the table's schema.
+     * If the table doesn't contain the column and the columnIdent has no path it will create a
+     * referenceInfo with type null. This indicates a "unknown column".
+     *
+     * If the columnIdent does contain a path it's parent will be resolved, if found and if it a STRICT object
+     * null is returned.
+     *
+     * If the parent isn't strict or not found a referenceInfo with type null is returned.
+     */
     @Override
+    @Nullable
     public ReferenceInfo getColumnInfo(ColumnIdent columnIdent) {
-        return references.get(columnIdent);
+        ReferenceInfo info = references.get(columnIdent);
+        if (info != null) {
+            return info;
+        }
+
+        if (columnIdent.isColumn()) {
+            return new ReferenceInfo(new ReferenceIdent(ident, columnIdent), rowGranularity(), DataType.NULL);
+        }
+
+        ReferenceInfo parentInfo = null;
+        ColumnIdent parent;
+        while ( (parent = columnIdent.getParent()) != null) {
+            parentInfo = references.get(parent);
+            if (parentInfo != null) {
+                break;
+            }
+        }
+
+        if (parentInfo != null && parentInfo.objectType() == ReferenceInfo.ObjectType.STRICT) {
+            return null;
+        }
+
+        return new ReferenceInfo(new ReferenceIdent(ident, columnIdent), rowGranularity(), DataType.NULL);
     }
 
     @Override
