@@ -37,6 +37,7 @@ import java.util.*;
 public class SysShardsTableInfo extends SysTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "shards");
+    private static final String[] PARTITIONS = new String[]{IDENT.name()};
 
     public static Map<ColumnIdent, ReferenceInfo> INFOS = new HashMap<>(7);
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>(7);
@@ -133,4 +134,8 @@ public class SysShardsTableInfo extends SysTableInfo {
         return null;
     }
 
+    @Override
+    public String[] partitions() {
+        return PARTITIONS;
+    }
 }

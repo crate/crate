@@ -150,4 +150,8 @@ public class DocTableInfo implements TableInfo {
         return isAlias;
     }
 
+    @Override
+    public String[] partitions() {
+        return concreteIndices;
+    }
 }

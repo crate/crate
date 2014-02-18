@@ -31,6 +31,7 @@ import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -91,6 +92,22 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
 
         assertNotNull(entsafterTable);
         assertTrue(entsafterTable.isAlias());
+    }
+
+    @Test
+    public void testAliasPartitions() throws Exception {
+        execute("create table terminator (model string, good boolean, actor object)");
+        execute("create table transformer (model string, good boolean, actor object)");
+        IndicesAliasesRequest request = new IndicesAliasesRequest();
+        request.addAlias("terminator", "entsafter");
+        request.addAlias("transformer", "entsafter");
+        client().admin().indices().aliases(request).actionGet();
+        ensureGreen();
+
+        TableInfo entsafterTable = referenceInfos.getTableInfo(new TableIdent(null, "entsafter"));
+        assertNotNull(entsafterTable);
+        assertThat(entsafterTable.partitions().length, is(2));
+        assertThat(Arrays.asList(entsafterTable.partitions()), contains("terminator", "transformer"));
     }
 
 
