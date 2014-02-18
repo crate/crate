@@ -32,14 +32,6 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
     private final RowGranularity granularity;
     private final ReferenceResolver referenceResolver;
 
-    public com.google.common.base.Function<Symbol, Symbol> processorFunction = new com.google.common.base.Function<Symbol, Symbol>() {
-        @Nullable
-        @Override
-        public Symbol apply(@Nullable Symbol input) {
-            return process(input, null);
-        }
-    };
-
     public EvaluatingNormalizer(
             Functions functions, RowGranularity granularity, ReferenceResolver referenceResolver) {
         this.functions = functions;
@@ -90,8 +82,8 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
         return symbol;
     }
 
-    public boolean evaluatesToFalse(@Nullable Symbol whereClause){
-        if (whereClause==null){
+    public boolean evaluatesToFalse(@Nullable Symbol whereClause) {
+        if (whereClause == null) {
             return false;
         }
         return (whereClause.symbolType() == SymbolType.NULL_LITERAL ||
@@ -100,9 +92,16 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
 
     }
 
+
+    /**
+     * return <code>true</code> if this function evaluates to <code>false</code> or <code>null</code>
+     *
+     * @param whereClause
+     * @return false if whereClause evaluates to <code>false</code> or {@link io.crate.planner.symbol.Null}
+     */
     public boolean evaluatesToFalse(@Nullable Function whereClause) {
         // no whereclause means match all
-        if (whereClause == null){
+        if (whereClause == null) {
             return false;
         }
         return evaluatesToFalse(process(whereClause, null));
@@ -111,7 +110,7 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
     /**
      * normalizes the given list of symbols inplace
      */
-    public void normalize(List<Symbol> symbols){
+    public void normalize(List<Symbol> symbols) {
         for (int i = 0; i < symbols.size(); i++) {
             symbols.set(i, process(symbols.get(i), null));
         }

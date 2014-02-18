@@ -64,6 +64,17 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
         return new ColumnIdent(parent.name, childPath);
     }
 
+    public ColumnIdent getParent() {
+        if (isColumn()) {
+            return null;
+        }
+
+        if (path.size() > 1) {
+            return new ColumnIdent(name(), path.subList(0, path.size() - 2));
+        }
+        return new ColumnIdent(name());
+    }
+
     public String name() {
         return name;
     }

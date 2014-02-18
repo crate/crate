@@ -33,6 +33,7 @@ import io.crate.operator.aggregation.impl.AverageAggregation;
 import io.crate.operator.aggregation.impl.CollectSetAggregation;
 import io.crate.operator.operator.*;
 import io.crate.operator.predicate.IsNullPredicate;
+import io.crate.operator.predicate.NotPredicate;
 import io.crate.operator.predicate.PredicateModule;
 import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import io.crate.operator.scalar.CollectionCountFunction;
@@ -101,6 +102,17 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         analyzer.analyze(statement);
     }
 
+    @Test
+    public void testIsNullQuery() {
+        Analysis analysis = analyze("select * from sys.nodes where id is not null");
+        assertNotNull(analysis.whereClause());
+        Function whereClause = analysis.whereClause();
+
+        assertThat(whereClause.info().ident().name(), is(NotPredicate.NAME));
+        assertThat(whereClause.arguments().get(0), instanceOf(Function.class));
+        Function isNull = (Function) whereClause.arguments().get(0);
+        assertThat(isNull.info().ident().name(), is(IsNullPredicate.NAME));
+    }
 
     @Test
     public void testOrderedSelect() throws Exception {

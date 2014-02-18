@@ -20,10 +20,7 @@ import io.crate.planner.node.*;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.TopNProjection;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.LongLiteral;
-import io.crate.planner.symbol.StringLiteral;
+import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import org.cratedb.DataType;
@@ -139,6 +136,17 @@ public class PlannerTest {
 
     private Plan plan(String statement) {
         return planner.plan(analyzer.analyze(SqlParser.createStatement(statement)));
+    }
+
+    @Test
+    public void testGroupByWithAggregationStringLiteralArguments() {
+        Plan plan = plan("select count('foo'), name from users group by name");
+        Iterator<PlanNode> iterator = plan.iterator();
+        CollectNode collectNode = (CollectNode)iterator.next();
+        assertThat(collectNode.toCollect().size(), is(1));
+        GroupProjection groupProjection = (GroupProjection) collectNode.projections().get(0);
+        Aggregation aggregation = groupProjection.values().get(0);
+        assertTrue(aggregation.inputs().get(0).symbolType().isLiteral());
     }
 
     @Test

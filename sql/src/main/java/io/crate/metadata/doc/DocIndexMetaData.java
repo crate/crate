@@ -146,6 +146,7 @@ public class DocIndexMetaData {
             for (String s : ident.path()) {
                 builder.add(s);
             }
+            builder.add(name);
             return new ColumnIdent(ident.name(), builder.build());
         }
     }

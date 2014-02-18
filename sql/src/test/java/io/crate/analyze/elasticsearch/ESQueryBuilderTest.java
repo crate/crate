@@ -242,7 +242,9 @@ public class ESQueryBuilderTest {
 
     @Test
     public void testWhereReferenceMatchString() throws Exception {
-        FunctionImplementation matchImpl = functions.get(MatchFunction.INFO.ident());
+        FunctionIdent functionIdent = new FunctionIdent(
+                MatchFunction.NAME, ImmutableList.of(DataType.STRING, DataType.STRING));
+        FunctionImplementation matchImpl = functions.get(functionIdent);
         Function match = new Function(matchImpl.info(),
                 Arrays.<Symbol>asList(name_ref, new StringLiteral("arthur")));
 
