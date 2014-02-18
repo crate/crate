@@ -32,9 +32,6 @@ import io.crate.planner.symbol.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by bd on 18.2.14.
- */
 public abstract class AbstractImplementationSymbolVisitor<C extends AbstractImplementationSymbolVisitor.Context>
         extends SymbolVisitor<C, Input<?>> {
 
