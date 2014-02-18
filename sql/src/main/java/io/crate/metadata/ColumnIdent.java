@@ -122,10 +122,15 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
     public void readFrom(StreamInput in) throws IOException {
         name = in.readString();
         int numParts = in.readVInt();
-        path = new ArrayList<>(numParts);
-        for (int i = 0; i < numParts; i++) {
-            path.add(in.readString());
+        if (numParts > 0) {
+            path = new ArrayList<>(numParts);
+            for (int i = 0; i < numParts; i++) {
+                path.add(in.readString());
+            }
+        } else {
+            path = ImmutableList.of();
         }
+
     }
 
     @Override
