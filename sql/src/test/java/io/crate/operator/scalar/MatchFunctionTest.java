@@ -36,18 +36,18 @@ import static org.junit.Assert.assertThat;
 
 public class MatchFunctionTest {
 
+    private static FunctionInfo functionInfo = new FunctionInfo(
+            new FunctionIdent(
+                    MatchFunction.NAME,
+                    ImmutableList.of(DataType.STRING, DataType.STRING)),
+            DataType.BOOLEAN
+    );
+    private static MatchFunction op = new MatchFunction(functionInfo);
+
     @Test
     public void testNormalizeSymbol() throws Exception {
-        FunctionInfo functionInfo = new FunctionInfo(
-                new FunctionIdent(
-                        MatchFunction.NAME,
-                        ImmutableList.of(DataType.STRING, DataType.STRING)),
-                DataType.BOOLEAN
-        );
-        MatchFunction op = new MatchFunction(functionInfo);
-
         Function matchFunction = new Function(
-                functionInfo,
+                op.info(),
                 Arrays.<Symbol>asList(new Reference(), new StringLiteral("foo")));
         Symbol result = op.normalizeSymbol(matchFunction);
 
@@ -57,32 +57,16 @@ public class MatchFunctionTest {
 
     @Test(expected = UnsupportedOperationException.class)
     public void testNormalizeSymbolExceptionLeft() throws Exception {
-        FunctionInfo functionInfo = new FunctionInfo(
-                new FunctionIdent(
-                        MatchFunction.NAME,
-                        ImmutableList.of(DataType.STRING, DataType.STRING)),
-                DataType.BOOLEAN
-        );
-        MatchFunction op = new MatchFunction(functionInfo);
-
         Function matchFunction = new Function(
-                functionInfo,
+                op.info(),
                 Arrays.<Symbol>asList(new StringLiteral("causes exception"), new StringLiteral("foo")));
         op.normalizeSymbol(matchFunction);
     }
 
     @Test(expected = UnsupportedOperationException.class)
     public void testNormalizeSymbolExceptionRight() throws Exception {
-        FunctionInfo functionInfo = new FunctionInfo(
-                new FunctionIdent(
-                        MatchFunction.NAME,
-                        ImmutableList.of(DataType.STRING, DataType.STRING)),
-                DataType.BOOLEAN
-        );
-        MatchFunction op = new MatchFunction(functionInfo);
-
         Function matchFunction = new Function(
-                functionInfo,
+                op.info(),
                 Arrays.<Symbol>asList(new Reference(), new LongLiteral(2)));
         op.normalizeSymbol(matchFunction);
     }

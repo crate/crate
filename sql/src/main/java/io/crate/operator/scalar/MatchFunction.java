@@ -37,12 +37,8 @@ public class MatchFunction implements Scalar<Boolean> {
     public static final String NAME = "match";
 
     public static void register(ScalarFunctionModule module) {
-        ImmutableList<FunctionIdent> functionIdents = ImmutableList.of(
-                new FunctionIdent(MatchFunction.NAME, ImmutableList.of(DataType.STRING, DataType.STRING)),
-                new FunctionIdent(MatchFunction.NAME, ImmutableList.of(DataType.NULL, DataType.STRING))
-        );
-
-        for (FunctionIdent functionIdent : functionIdents) {
+        for (DataType dataType : ImmutableList.of(DataType.NULL, DataType.STRING)) {
+            FunctionIdent functionIdent = new FunctionIdent(MatchFunction.NAME, ImmutableList.of(dataType, DataType.STRING));
             module.registerScalarFunction(new MatchFunction(new FunctionInfo(functionIdent, DataType.BOOLEAN)));
         }
     }
