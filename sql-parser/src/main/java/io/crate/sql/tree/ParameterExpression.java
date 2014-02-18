@@ -30,7 +30,6 @@ public class ParameterExpression extends Expression{
         this.position = position;
     }
 
-
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitParameterExpression(this, context);
@@ -55,5 +54,9 @@ public class ParameterExpression extends Expression{
 
     public int position() {
         return position;
+    }
+
+    public int index() {
+        return position - 1;
     }
 }
