@@ -33,24 +33,27 @@ import static org.junit.Assert.*;
 
 public class LikeOperatorTest {
 
-    private static Symbol normalizeSymbol(StringLiteral expression, StringLiteral pattern) {
+    private static Symbol normalizeSymbol(String expression, String pattern) {
         LikeOperator op = new LikeOperator(
                 LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
         );
-        Function function = new Function(op.info(), ImmutableList.<Symbol>of(expression, pattern));
+        Function function = new Function(
+                op.info(), 
+                ImmutableList.<Symbol>of(new StringLiteral(expression), new StringLiteral(pattern))
+        );
         return op.normalizeSymbol(function);
     }
 
     @Test
     public void testNormalizeSymbolEqual() {
-        Symbol result = normalizeSymbol(new StringLiteral("foo"), new StringLiteral("foo"));
+        Symbol result = normalizeSymbol("foo", "foo");
         assertThat(result, instanceOf(BooleanLiteral.class));
         assertTrue(((BooleanLiteral)result).value());
     }
 
     @Test
     public void testNormalizeSymbolNotEqual() {
-        Symbol result = normalizeSymbol(new StringLiteral("foo"), new StringLiteral("notFoo"));
+        Symbol result = normalizeSymbol("foo", "notFoo");
         assertThat(result, instanceOf(BooleanLiteral.class));
         assertFalse(((BooleanLiteral) result).value());
     }
@@ -59,49 +62,49 @@ public class LikeOperatorTest {
 
     @Test
     public void testNormalizeSymbolLikeZeroOrMoreLeftN() {
-        Symbol result = normalizeSymbol(new StringLiteral("%bar"), new StringLiteral("foobar"));
+        Symbol result = normalizeSymbol("%bar", "foobar");
         assertThat(result, instanceOf(BooleanLiteral.class));
         assertTrue(((BooleanLiteral)result).value());
     }
 
     @Test
     public void testNormalizeSymbolLikeZeroOrMoreLeftZero() {
-        Symbol result = normalizeSymbol(new StringLiteral("%bar"), new StringLiteral("bar"));
+        Symbol result = normalizeSymbol("%bar", "bar");
         assertThat(result, instanceOf(BooleanLiteral.class));
         assertTrue(((BooleanLiteral)result).value());
     }
 
     @Test
     public void testNormalizeSymbolNotLikeZeroOrMoreLeft() {
-        Symbol result = normalizeSymbol(new StringLiteral("%bar"), new StringLiteral("ar"));
+        Symbol result = normalizeSymbol("%bar", "ar");
         assertThat(result, instanceOf(BooleanLiteral.class));
         assertFalse(((BooleanLiteral) result).value());
     }
 
     @Test
     public void testNormalizeSymbolLikeZeroOrMoreRightN() {
-        Symbol result = normalizeSymbol(new StringLiteral("foo%"), new StringLiteral("foobar"));
+        Symbol result = normalizeSymbol("foo%", "foobar");
         assertThat(result, instanceOf(BooleanLiteral.class));
         assertTrue(((BooleanLiteral)result).value());
     }
 
     @Test
     public void testNormalizeSymbolLikeZeroOrMoreRightZero() {
-        Symbol result = normalizeSymbol(new StringLiteral("foo%"), new StringLiteral("foo"));
+        Symbol result = normalizeSymbol("foo%", "foo");
         assertThat(result, instanceOf(BooleanLiteral.class));
         assertTrue(((BooleanLiteral)result).value());
     }
 
     @Test
     public void testNormalizeSymbolNotLikeZeroOrMoreRight() {
-        Symbol result = normalizeSymbol(new StringLiteral("foo%"), new StringLiteral("fo"));
+        Symbol result = normalizeSymbol("foo%", "fo");
         assertThat(result, instanceOf(BooleanLiteral.class));
         assertFalse(((BooleanLiteral) result).value());
     }
 
     @Test
     public void testNormalizeSymbolLikeZeroOrMoreLeftRightN() {
-        Symbol result = normalizeSymbol(new StringLiteral("%oob%"), new StringLiteral("foobar"));
+        Symbol result = normalizeSymbol("%oob%", "foobar");
         assertThat(result, instanceOf(BooleanLiteral.class));
         assertTrue(((BooleanLiteral)result).value());
     }
@@ -110,58 +113,58 @@ public class LikeOperatorTest {
 
     @Test
     public void testNormalizeSymbolLikeSingleLeft() {
-        Symbol result = normalizeSymbol(new StringLiteral("_ar"), new StringLiteral("bar"));
+        Symbol result = normalizeSymbol("_ar", "bar");
         assertThat(result, instanceOf(BooleanLiteral.class));
         assertTrue(((BooleanLiteral)result).value());
     }
 
     @Test
     public void testNormalizeSymbolNotLikeSingleLeft() {
-        Symbol result = normalizeSymbol(new StringLiteral("_bar"), new StringLiteral("bar"));
+        Symbol result = normalizeSymbol("_bar", "bar");
         assertThat(result, instanceOf(BooleanLiteral.class));
         assertFalse(((BooleanLiteral) result).value());
     }
 
     @Test
     public void testNormalizeSymbolLikeSingleRight() {
-        Symbol result = normalizeSymbol(new StringLiteral("fo_"), new StringLiteral("foo"));
+        Symbol result = normalizeSymbol("fo_", "foo");
         assertThat(result, instanceOf(BooleanLiteral.class));
         assertTrue(((BooleanLiteral)result).value());
     }
 
     @Test
     public void testNormalizeSymbolNotLikeSingleRight() {
-        Symbol result = normalizeSymbol(new StringLiteral("foo_"), new StringLiteral("foo"));
+        Symbol result = normalizeSymbol("foo_", "foo");
         assertThat(result, instanceOf(BooleanLiteral.class));
-        assertFalse(((BooleanLiteral)result).value());
+        assertFalse(((BooleanLiteral) result).value());
     }
 
     @Test
     public void testNormalizeSymbolLikeSingleLeftRight() {
-        Symbol result = normalizeSymbol(new StringLiteral("_o_"), new StringLiteral("foo"));
+        Symbol result = normalizeSymbol("_o_", "foo");
         assertThat(result, instanceOf(BooleanLiteral.class));
         assertTrue(((BooleanLiteral) result).value());
     }
 
     @Test
     public void testNormalizeSymbolNotLikeSingleLeftRight() {
-        Symbol result = normalizeSymbol(new StringLiteral("_foobar_"), new StringLiteral("foobar"));
+        Symbol result = normalizeSymbol("_foobar_", "foobar");
         assertThat(result, instanceOf(BooleanLiteral.class));
-        assertFalse(((BooleanLiteral)result).value());
+        assertFalse(((BooleanLiteral) result).value());
     }
 
     // Following tests: mixed wildcards:
 
     @Test
     public void testNormalizeSymbolLikeMixed() {
-        Symbol result = normalizeSymbol(new StringLiteral("%o_ar"), new StringLiteral("foobar"));
+        Symbol result = normalizeSymbol("%o_ar", "foobar");
         assertThat(result, instanceOf(BooleanLiteral.class));
         assertTrue(((BooleanLiteral)result).value());
     }
 
     @Test
     public void testNormalizeSymbolLikeMixed2() {
-        Symbol result = normalizeSymbol(new StringLiteral("%a_"), new StringLiteral("foobar"));
+        Symbol result = normalizeSymbol("%a_", "foobar");
         assertThat(result, instanceOf(BooleanLiteral.class));
         assertTrue(((BooleanLiteral)result).value());
     }
