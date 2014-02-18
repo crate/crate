@@ -27,7 +27,7 @@ import io.crate.operator.InputCollectExpression;
 import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.aggregation.FunctionExpression;
-import io.crate.operator.reference.doc.CollectorExpression;
+import io.crate.operator.reference.doc.LuceneCollectorExpression;
 import io.crate.operator.reference.doc.DocLevelExpressions;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.CollectNode;
@@ -44,7 +44,7 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
     public static class Context {
         protected Set<CollectExpression<?>> collectExpressions = new LinkedHashSet<>(); // to keep insertion order
         protected List<Input<?>> topLevelInputs = new ArrayList<>();
-        protected List<CollectorExpression<?>> docLevelExpressions = new ArrayList<>();
+        protected List<LuceneCollectorExpression<?>> docLevelExpressions = new ArrayList<>();
         protected RowGranularity maxGranularity = RowGranularity.CLUSTER;
         protected List<AggregationContext> aggregations = new ArrayList<>();
 
@@ -62,8 +62,8 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
             topLevelInputs.add(input);
         }
 
-        public CollectorExpression<?>[] docLevelExpressions() {
-            return docLevelExpressions.toArray(new CollectorExpression<?>[docLevelExpressions.size()]);
+        public LuceneCollectorExpression<?>[] docLevelExpressions() {
+            return docLevelExpressions.toArray(new LuceneCollectorExpression<?>[docLevelExpressions.size()]);
         }
 
         public Set<CollectExpression<?>> collectExpressions() {
@@ -150,7 +150,7 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
 
         if (symbol.info().granularity().ordinal() <= rowGranularity.ordinal()) {
             if (symbol.info().granularity() == RowGranularity.DOC) {
-                CollectorExpression<?> docLevelExpression = DocLevelExpressions.getExpression(symbol.info());
+                LuceneCollectorExpression<?> docLevelExpression = DocLevelExpressions.getExpression(symbol.info());
                 context.docLevelExpressions.add(docLevelExpression);
                 result = docLevelExpression;
             } else {

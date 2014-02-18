@@ -25,7 +25,7 @@ package io.crate.operator.reference.doc;
 import org.cratedb.core.StringUtils;
 
 public abstract class ColumnReferenceCollectorExpression<ReturnType> extends
-        CollectorExpression<ReturnType> implements ColumnReferenceExpression {
+        LuceneCollectorExpression<ReturnType> implements ColumnReferenceExpression {
 
     protected final String columnName;
 

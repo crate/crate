@@ -24,7 +24,7 @@ package io.crate.operator.collector;
 import io.crate.operator.Input;
 import io.crate.operator.projectors.Projector;
 import io.crate.operator.reference.doc.CollectorContext;
-import io.crate.operator.reference.doc.CollectorExpression;
+import io.crate.operator.reference.doc.LuceneCollectorExpression;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.search.*;
 import org.cratedb.Constants;
@@ -50,7 +50,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
     private final SearchContext searchContext;
     private final Projector downStream;
     private final Input<?>[] topLevelInputs;
-    private final CollectorExpression<?>[] collectorExpressions;
+    private final LuceneCollectorExpression<?>[] collectorExpressions;
 
     public LuceneDocCollector(ClusterService clusterService,
                               ShardId shardId,
@@ -59,7 +59,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
                               CacheRecycler cacheRecycler,
                               SQLXContentQueryParser sqlxContentQueryParser,
                               Input<?>[] inputs,
-                              CollectorExpression<?>[] collectorExpressions,
+                              LuceneCollectorExpression<?>[] collectorExpressions,
                               BytesReference querySource,
                               Projector downStreamProjector) throws Exception {
         this.downStream = downStreamProjector;
@@ -90,7 +90,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
     @Override
     public void collect(int doc) throws IOException {
         Object[] newRow = new Object[topLevelInputs.length];
-        for (CollectorExpression e : collectorExpressions) {
+        for (LuceneCollectorExpression e : collectorExpressions) {
             e.setNextDocId(doc);
         }
         int i = 0;
@@ -105,7 +105,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
 
     @Override
     public void setNextReader(AtomicReaderContext context) throws IOException {
-        for (CollectorExpression expr : collectorExpressions) {
+        for (LuceneCollectorExpression expr : collectorExpressions) {
             expr.setNextReader(context);
         }
     }
@@ -119,7 +119,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
     public void doCollect() throws Exception {
         // start collect
         CollectorContext collectorContext = new CollectorContext().searchContext(searchContext);
-        for (CollectorExpression<?> collectorExpression : collectorExpressions) {
+        for (LuceneCollectorExpression<?> collectorExpression : collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }
         downStream.startProjection(); // finishProjection called in ShardCollectFuture

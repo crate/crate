@@ -28,7 +28,7 @@ import org.cratedb.DataType;
 /**
  * An expression which gets evaluated in the collect phase
  */
-public abstract class CollectorExpression<ReturnType> implements Input<ReturnType> {
+public abstract class LuceneCollectorExpression<ReturnType> implements Input<ReturnType> {
 
     public void startCollect(CollectorContext context){
 
