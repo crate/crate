@@ -31,6 +31,7 @@ import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.planner.node.MergeNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.Preconditions;
+import org.elasticsearch.transport.RemoteTransportException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,18 +71,32 @@ public class DistributedMergeTask implements Task<Object[][]> {
 
                 @Override
                 public void onFailure(Throwable e) {
-                    if (upstreamResult != null && e instanceof UnknownUpstreamFailure) {
-                        ListenableFuture<Object[][]> upstreamResultFuture = upstreamResult.get(resultIdx);
-                        if (upstreamResultFuture != null) {
-                            try {
-                                upstreamResultFuture.get(); // trigger exception;
-                            } catch (InterruptedException | ExecutionException e1) {
-                                ((SettableFuture<Object[][]>)results.get(resultIdx)).setException(e1.getCause());
-                                return;
-                            }
-                        }
+                    if (e instanceof RemoteTransportException) {
+                        e = e.getCause();
                     }
-                    ((SettableFuture<Object[][]>)results.get(resultIdx)).setException(e.getCause());
+                    SettableFuture<Object[][]> result = (SettableFuture<Object[][]>) results.get(resultIdx);
+
+                    /**
+                     * if the upstream task of the merge task throws an exception it sends a
+                     * failure flag to its downstream (the merge task).
+                     * This flag triggers a UnknownUpstreamFailure exception.
+                     *
+                     * If this exception is received here we have to look at the upstreamResult to get the real
+                     * cause of the exception.
+                     **/
+                    if (e instanceof UnknownUpstreamFailure) {
+                        assert upstreamResult != null;
+                        ListenableFuture<Object[][]> upstreamResultFuture = upstreamResult.get(resultIdx);
+                        assert upstreamResultFuture != null;
+
+                        try {
+                            upstreamResultFuture.get(); // trigger exception;
+                        } catch (InterruptedException | ExecutionException e1) {
+                            ((SettableFuture<Object[][]>)results.get(resultIdx)).setException(e1.getCause());
+                        }
+                    } else {
+                        result.setException(e);
+                    }
                 }
             });
 
