@@ -10,12 +10,14 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.TableIdent;
 import io.crate.operator.aggregation.impl.CollectSetAggregation;
 import io.crate.operator.operator.*;
+import io.crate.operator.predicate.*;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.*;
 import io.crate.sql.tree.DoubleLiteral;
+import io.crate.sql.tree.IsNullPredicate;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.StringLiteral;
 import org.apache.lucene.util.BytesRef;
@@ -122,6 +124,19 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
         return context.allocateFunction(functionInfo, arguments);
     }
 
+    @Override
+    protected Symbol visitIsNotNullPredicate(IsNotNullPredicate node, T context) {
+        Symbol argument = process(node.getValue(), context);
+        DataType argumentType = symbolDataTypeVisitor.process(argument, context);
+
+        FunctionIdent isNullIdent =
+                new FunctionIdent(io.crate.operator.predicate.IsNullPredicate.NAME, ImmutableList.of(argumentType));
+        FunctionInfo isNullInfo = context.getFunctionInfo(isNullIdent);
+
+        return context.allocateFunction(
+                NotPredicate.INFO,
+                ImmutableList.<Symbol>of(context.allocateFunction(isNullInfo, ImmutableList.of(argument))));
+    }
 
     @Override
     protected Symbol visitBooleanLiteral(BooleanLiteral node, Analysis context) {
