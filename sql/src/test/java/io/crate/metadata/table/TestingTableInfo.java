@@ -161,4 +161,9 @@ public class TestingTableInfo implements TableInfo {
     public boolean isAlias() {
         return isAlias;
     }
+
+    @Override
+    public String[] partitions() {
+        return new String[]{ident.name()};
+    }
 }

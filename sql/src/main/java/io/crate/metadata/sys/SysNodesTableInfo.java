@@ -37,6 +37,7 @@ import java.util.*;
 public class SysNodesTableInfo extends SysTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "nodes");
+    private static final String[] PARTITIONS = new String[]{IDENT.name()};
 
     private static final ImmutableList<String> primaryKey = ImmutableList.of("id");
 
@@ -123,5 +124,10 @@ public class SysNodesTableInfo extends SysTableInfo {
     @Override
     public String clusteredBy() {
         return null;
+    }
+
+    @Override
+    public String[] partitions() {
+        return PARTITIONS;
     }
 }

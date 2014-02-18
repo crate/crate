@@ -58,4 +58,6 @@ public interface TableInfo {
      */
     public boolean isAlias();
 
+    public String[] partitions();
+
 }
