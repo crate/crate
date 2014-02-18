@@ -57,6 +57,10 @@ public class LikeOperator extends Operator {
         assert (symbol != null);
         assert (symbol.arguments().size() == 2);
 
+        if (!symbol.arguments().get(0).symbolType().isLiteral()) {
+            return symbol;
+        }
+
         StringLiteral expression = (StringLiteral) symbol.arguments().get(0);
         StringLiteral pattern = (StringLiteral) symbol.arguments().get(1);
 
