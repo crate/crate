@@ -125,7 +125,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
 
         @Override
         protected Symbol visitSymbol(Symbol symbol, Context context) {
-            return context.allocateSymbol(symbol);
+            return symbol;
         }
 
         @Override
@@ -144,7 +144,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
 
         @Override
         public Symbol visitReference(Reference symbol, Context context) {
-            return super.visitReference(symbol, context);
+            return context.allocateSymbol(symbol);
         }
 
         @Override
