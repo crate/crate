@@ -27,4 +27,8 @@ public abstract class SysTableInfo implements TableInfo {
 
     public static final String SCHEMA = "sys";
 
+    @Override
+    public boolean isAlias() {
+        return false;
+    }
 }

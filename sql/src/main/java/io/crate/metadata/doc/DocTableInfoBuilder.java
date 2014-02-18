@@ -76,6 +76,7 @@ public class DocTableInfoBuilder {
     public DocTableInfo build() {
         DocIndexMetaData md = docIndexMetaData();
         return new DocTableInfo(ident, md.columns(), md.references(), md.primaryKey(), md.routingCol(),
+                md.isAlias(),
                 concreteIndices, clusterService);
     }
 

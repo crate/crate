@@ -53,4 +53,9 @@ public interface TableInfo {
 
     public String clusteredBy();
 
+    /**
+     * @return true if this <code>TableInfo</code> is referenced by an alias name, false otherwise
+     */
+    public boolean isAlias();
+
 }
