@@ -22,9 +22,14 @@
 package io.crate.analyze;
 
 import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.Routing;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.table.TestingTableInfo;
+import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
@@ -43,12 +48,19 @@ import static org.mockito.Mockito.when;
 
 public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
+    private static TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(null, "alias");
+    private static TableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
+            TEST_ALIAS_TABLE_IDENT, RowGranularity.DOC, new Routing())
+            .add("bla", DataType.STRING, null)
+            .isAlias(true).build();
+
     static class TestMetaDataModule extends MetaDataModule {
         @Override
         protected void bindSchemas() {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
+            when(schemaInfo.getTableInfo(TEST_ALIAS_TABLE_IDENT.name())).thenReturn(TEST_ALIAS_TABLE_INFO);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
 
@@ -197,6 +209,11 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
     @Test(expected = IllegalStateException.class)
     public void testInsertIntoSysTable() throws Exception {
         analyze("insert into sys.nodes (id, name) values (666, 'evilNode')");
+    }
+
+    @Test( expected = IllegalArgumentException.class)
+    public void testInsertIntoAliasTable() throws Exception {
+        analyze("insert into alias (bla) values ('blubb')");
     }
 
     @Test(expected = CrateException.class)

@@ -51,12 +51,16 @@ public class DocTableInfo implements TableInfo {
 
     private final String[] indices;
 
+    private final boolean isAlias;
+
     public DocTableInfo(TableIdent ident,
                         ImmutableList<ReferenceInfo> columns,
                         ImmutableMap<ColumnIdent, ReferenceInfo> references,
                         List<String> primaryKeys,
                         String clusteredBy,
-                        String[] concreteIndices, ClusterService clusterService) {
+                        boolean isAlias,
+                        String[] concreteIndices,
+                        ClusterService clusterService) {
         this.clusterService = clusterService;
         this.columns = columns;
         this.references = references;
@@ -65,6 +69,7 @@ public class DocTableInfo implements TableInfo {
         this.clusteredBy = clusteredBy;
         this.concreteIndices = concreteIndices;
         indices = new String[]{ident.name()};
+        this.isAlias = isAlias;
     }
 
     @Override
@@ -138,6 +143,11 @@ public class DocTableInfo implements TableInfo {
 
     public String clusteredBy() {
         return clusteredBy;
+    }
+
+    @Override
+    public boolean isAlias() {
+        return isAlias;
     }
 
 }

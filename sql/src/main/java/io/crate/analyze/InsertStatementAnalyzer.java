@@ -40,6 +40,9 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
         context.insertStatement(node);
         process(node.table(), context);
 
+        if (context.table().isAlias()) {
+            throw new IllegalArgumentException("Table alias not allowed in INSERT statement.");
+        }
         int maxValuesLength = node.maxValuesLength();
         if (node.columns().size() == 0) {
             // no columns given in statement

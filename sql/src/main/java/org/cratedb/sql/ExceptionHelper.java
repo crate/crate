@@ -48,8 +48,9 @@ public class ExceptionHelper {
             // if its a transport exception get the real cause throwable
             e = e.getCause();
         }
-
-        if (e instanceof DocumentAlreadyExistsException) {
+        if (e instanceof IllegalArgumentException) {
+            return new SQLParseException(e.getMessage());
+        } else if (e instanceof DocumentAlreadyExistsException) {
             return new DuplicateKeyException(
                     "A document with the same primary key exists already", e);
         } else if (e instanceof IndexAlreadyExistsException) {

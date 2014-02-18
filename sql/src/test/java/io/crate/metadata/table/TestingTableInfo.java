@@ -52,6 +52,7 @@ public class TestingTableInfo implements TableInfo {
         private final RowGranularity granularity;
         private final TableIdent ident;
         private final Routing routing;
+        private boolean isAlias = false;
 
 
         public Builder(TableIdent ident, RowGranularity granularity, Routing routing) {
@@ -79,10 +80,14 @@ public class TestingTableInfo implements TableInfo {
             return this;
         }
 
+        public Builder isAlias(boolean isAlias) {
+            this.isAlias = isAlias;
+            return this;
+        }
 
         public TableInfo build() {
             return new TestingTableInfo(columns.build(), references.build(), ident,
-                    granularity, routing, primaryKey.build(), clusteredBy);
+                    granularity, routing, primaryKey.build(), clusteredBy, isAlias);
         }
 
 
@@ -94,13 +99,15 @@ public class TestingTableInfo implements TableInfo {
     private final TableIdent ident;
     private final RowGranularity granularity;
     private final List<String> primaryKey;
+    private final boolean isAlias;
 
 
     public TestingTableInfo(List<ReferenceInfo> columns, Map<ColumnIdent, ReferenceInfo> references,
                             TableIdent ident, RowGranularity granularity,
                             Routing routing,
                             List<String> primaryKey,
-                            String clusteredBy) {
+                            String clusteredBy,
+                            boolean isAlias) {
         this.columns = columns;
         this.references = references;
         this.ident = ident;
@@ -108,6 +115,7 @@ public class TestingTableInfo implements TableInfo {
         this.routing = routing;
         this.primaryKey = primaryKey;
         this.clusteredBy = clusteredBy;
+        this.isAlias = isAlias;
     }
 
     @Override
@@ -143,5 +151,10 @@ public class TestingTableInfo implements TableInfo {
     @Override
     public String clusteredBy() {
         return clusteredBy;
+    }
+
+    @Override
+    public boolean isAlias() {
+        return isAlias;
     }
 }

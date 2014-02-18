@@ -27,6 +27,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.test.integration.CrateIntegrationTest;
+import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -74,6 +75,22 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
             }
         }
         assertThat(numShards, is(10));
+    }
+
+    @Test
+    public void testTableAlias() throws Exception {
+        execute("create table terminator (model string, good boolean, actor object)");
+        IndicesAliasesRequest request = new IndicesAliasesRequest();
+        request.addAlias("terminator", "entsafter");
+        client().admin().indices().aliases(request).actionGet();
+        ensureGreen();
+        TableInfo terminatorTable = referenceInfos.getTableInfo(new TableIdent(null, "terminator"));
+        TableInfo entsafterTable = referenceInfos.getTableInfo(new TableIdent(null, "entsafter"));
+        assertNotNull(terminatorTable);
+        assertFalse(terminatorTable.isAlias());
+
+        assertNotNull(entsafterTable);
+        assertTrue(entsafterTable.isAlias());
     }
 
 

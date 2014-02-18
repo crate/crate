@@ -154,6 +154,10 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
 
         process(node.getTable(), context);
 
+        if (context.table().isAlias()) {
+            throw new IllegalArgumentException("Table alias not allowed in DELETE statement.");
+        }
+
         if (node.getWhere().isPresent()) {
             processWhereClause(node.getWhere().get(), context);
         }

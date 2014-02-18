@@ -23,6 +23,7 @@ package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -39,6 +40,7 @@ import org.elasticsearch.common.collect.Tuple;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class DocIndexMetaData {
 
@@ -57,10 +59,14 @@ public class DocIndexMetaData {
     private ImmutableMap<ColumnIdent, ReferenceInfo> references;
     private ImmutableList<String> primaryKey;
     private String routingCol;
+    private final boolean isAlias;
+    private final Set<String> aliases;
 
     public DocIndexMetaData(IndexMetaData metaData, TableIdent ident) throws IOException {
         this.ident = ident;
         this.metaData = metaData;
+        this.isAlias = !metaData.getIndex().equals(ident.name());
+        this.aliases = ImmutableSet.copyOf(metaData.aliases().keys().toArray(String.class));
         this.defaultMappingMetaData = this.metaData.mappingOrDefault(Constants.DEFAULT_MAPPING_TYPE);
         if (defaultMappingMetaData == null) {
             this.defaultMappingMap = new HashMap<>();
@@ -280,4 +286,18 @@ public class DocIndexMetaData {
         return ident.name();
     }
 
+    /**
+     * @return the name of the underlying index even if this table is referenced by alias
+     */
+    public String concreteIndexName() {
+        return metaData.index();
+    }
+
+    public boolean isAlias() {
+        return isAlias;
+    }
+
+    public Set<String> aliases() {
+        return aliases;
+    }
 }
