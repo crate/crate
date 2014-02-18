@@ -21,28 +21,33 @@
 
 package io.crate.operator.scalar;
 
-import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.operator.Input;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
-
-import java.util.Arrays;
-import java.util.Objects;
 
 public class MatchFunction implements Scalar<Boolean> {
 
     public static final String NAME = "match";
-    public static final FunctionInfo INFO = new FunctionInfo(
-            new FunctionIdent(NAME, Arrays.asList(DataType.STRING, DataType.STRING)),
-            DataType.BOOLEAN
-    );
+
+    public static void register(ScalarFunctionModule module) {
+        for (DataType dataType : ImmutableList.of(DataType.NULL, DataType.STRING)) {
+            FunctionIdent functionIdent = new FunctionIdent(MatchFunction.NAME, ImmutableList.of(dataType, DataType.STRING));
+            module.registerScalarFunction(new MatchFunction(new FunctionInfo(functionIdent, DataType.BOOLEAN)));
+        }
+    }
+
+    private final FunctionInfo info;
 
     @Inject
-    public MatchFunction() {}
+    public MatchFunction(FunctionInfo info) {
+        this.info = info;
+    }
 
     @Override
     public Boolean evaluate(Input<?>... args) {
@@ -51,21 +56,11 @@ public class MatchFunction implements Scalar<Boolean> {
 
     @Override
     public FunctionInfo info() {
-        return INFO;
+        return info;
     }
 
     @Override
     public Symbol normalizeSymbol(Function function) {
-        Preconditions.checkNotNull(function);
-        Preconditions.checkArgument(function.arguments().size() == 2);
-
-        Symbol left = function.arguments().get(0);
-        Symbol right = function.arguments().get(1);
-
-        if (left.symbolType() == SymbolType.STRING_LITERAL && right.symbolType() == SymbolType.STRING_LITERAL) {
-            return new BooleanLiteral(Objects.equals(left, right));
-        }
-
         return function;
     }
 }
