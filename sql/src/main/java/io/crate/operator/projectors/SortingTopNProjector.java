@@ -155,7 +155,7 @@ public class SortingTopNProjector extends AbstractProjector {
 
     @Override
     public void finishProjection() {
-        int resultSize = pq.size() - start;
+        final int resultSize = Math.max(pq.size() - start, 0);
         if (downStream.isPresent()) {
             // pass rows to downStream
             Projector projector = downStream.get();
