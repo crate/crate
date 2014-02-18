@@ -62,7 +62,11 @@ public class TestingTableInfo implements TableInfo {
         }
 
         public Builder add(String column, DataType type, List<String> path) {
-            ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(ident, column, path), granularity, type);
+            return add(column, type, path, ReferenceInfo.ObjectType.DYNAMIC);
+        }
+
+        public Builder add(String column, DataType type, List<String> path, ReferenceInfo.ObjectType objectType) {
+            ReferenceInfo info = new ReferenceInfo(new ReferenceIdent(ident, column, path), granularity, type, objectType);
             if (info.ident().isColumn()) {
                 columns.add(info);
             }

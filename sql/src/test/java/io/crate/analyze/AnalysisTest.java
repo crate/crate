@@ -23,6 +23,10 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
+import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operator.Input;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
@@ -39,6 +43,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class AnalysisTest {
 
@@ -47,6 +54,22 @@ public class AnalysisTest {
     private Functions functions;
     private static final TableIdent TEST_TABLE_IDENT = new TableIdent(null, "test1");
     private static final FunctionInfo TEST_FUNCTION_INFO = new FunctionInfo(new FunctionIdent("abs", ImmutableList.of(DataType.DOUBLE)), DataType.DOUBLE);
+    private static final TableInfo userTableInfo = TestingTableInfo.builder(TEST_TABLE_IDENT, RowGranularity.DOC, new Routing())
+            .add("id", DataType.LONG, null)
+            .add("name", DataType.STRING, null)
+            .add("d", DataType.DOUBLE, null)
+            .add("dyn_empty", DataType.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("dyn", DataType.OBJECT, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("dyn", DataType.DOUBLE, ImmutableList.of("d"))
+            .add("dyn", DataType.OBJECT, ImmutableList.of("inner_strict"), ReferenceInfo.ObjectType.STRICT)
+            .add("dyn", DataType.DOUBLE, ImmutableList.of("inner_strict", "double"))
+            .add("strict", DataType.OBJECT, null, ReferenceInfo.ObjectType.STRICT)
+            .add("strict", DataType.DOUBLE, ImmutableList.of("inner_d"))
+            .add("ignored", DataType.OBJECT, null, ReferenceInfo.ObjectType.IGNORED)
+            .addPrimaryKey("id")
+            .clusteredBy("id")
+            .build();
+
 
     static class AbsFunction implements Scalar<Double> {
 
@@ -78,7 +101,17 @@ public class AnalysisTest {
             super.bindFunctions();
             functionBinder.addBinding(TEST_FUNCTION_INFO.ident()).toInstance(new AbsFunction());
         }
+
+        @Override
+        protected void bindSchemas() {
+            super.bindSchemas();
+            SchemaInfo schemaInfo = mock(SchemaInfo.class);
+            when(schemaInfo.getTableInfo(TEST_TABLE_IDENT.name())).thenReturn(userTableInfo);
+            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+        }
     }
+
+
 
     @Before
     public void prepare() {
@@ -95,7 +128,9 @@ public class AnalysisTest {
     }
 
     public Analysis getAnalysis(Object[] args) {
-        return new SelectAnalysis(referenceInfos, functions, args, resolver);
+        SelectAnalysis analysis = new SelectAnalysis(referenceInfos, functions, args, resolver);
+        analysis.table(TEST_TABLE_IDENT);
+        return analysis;
     }
 
     @Test
@@ -126,95 +161,65 @@ public class AnalysisTest {
     @Test
     public void testNormalizeDynamicEmptyObjectLiteral() throws Exception {
         Analysis analysis = getAnalysis();
-        ReferenceInfo objInfo = ReferenceInfo.builder()
-                .granularity(RowGranularity.DOC)
-                .type(DataType.OBJECT)
-                .objectType(ReferenceInfo.ObjectType.DYNAMIC)
-                .ident(TEST_TABLE_IDENT, new ColumnIdent("obj")).build();
+        ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("dyn_empty"));
         Map<String, Object> map = new HashMap<>();
         map.put("time", "2014-02-16T00:00:01");
         map.put("false", true);
-        assertThat(analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo)), Matchers.<Literal>is(new ObjectLiteral(map)));
+        ObjectLiteral normalized = (ObjectLiteral)analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
+        // TODO: guess and map unknown references
+        assertThat((String)normalized.value().get("time"), is("2014-02-16T00:00:01"));
+        assertThat((Boolean)normalized.value().get("false"), is(true));
     }
 
     @Test( expected = ValidationException.class)
     public void testNormalizeObjectLiteralInvalidNested() throws Exception {
         Analysis analysis = getAnalysis();
-        ReferenceInfo doubleInfo = ReferenceInfo.builder()
-                .granularity(RowGranularity.DOC)
-                .type(DataType.DOUBLE)
-                .ident(TEST_TABLE_IDENT, new ColumnIdent("obj", Arrays.asList("double"))).build();
-        ReferenceInfo objInfo = ReferenceInfo.builder()
-                .granularity(RowGranularity.DOC)
-                .type(DataType.OBJECT)
-                .objectType(ReferenceInfo.ObjectType.DYNAMIC)
-                .addNestedColumn(doubleInfo)
-                .ident(TEST_TABLE_IDENT, new ColumnIdent("obj")).build();
+        ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<>();
-        map.put("double", "2014-02-16T00:00:01");
+        map.put("d", "2014-02-16T00:00:01");
         analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
     }
 
     @Test
     public void testNormalizeObjectLiteralConvertFromString() throws Exception {
         Analysis analysis = getAnalysis();
-        ReferenceInfo doubleInfo = ReferenceInfo.builder()
-                .granularity(RowGranularity.DOC)
-                .type(DataType.DOUBLE)
-                .ident(TEST_TABLE_IDENT, new ColumnIdent("obj", Arrays.asList("double"))).build();
-        ReferenceInfo objInfo = ReferenceInfo.builder()
-                .granularity(RowGranularity.DOC)
-                .type(DataType.OBJECT)
-                .objectType(ReferenceInfo.ObjectType.DYNAMIC)
-                .addNestedColumn(doubleInfo)
-                .ident(TEST_TABLE_IDENT, new ColumnIdent("obj")).build();
+        ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<>();
-        map.put("double", "2.9");
+        map.put("d", "2.9");
 
-        Map<String, Object> converted = new HashMap<>();
-        map.put("double", 2.9d);
         Literal normalized = analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
         assertThat(normalized, Matchers.instanceOf(ObjectLiteral.class));
-        assertThat(((ObjectLiteral)normalized).value().get("double"), Matchers.<Object>is(2.9d));
+        assertThat(((ObjectLiteral)normalized).value().get("d"), Matchers.<Object>is(2.9d));
     }
 
     @Test
     public void testNormalizeObjectLiteral() throws Exception {
         Analysis analysis = getAnalysis();
-        ReferenceInfo doubleInfo = ReferenceInfo.builder()
-                .granularity(RowGranularity.DOC)
-                .type(DataType.DOUBLE)
-                .ident(TEST_TABLE_IDENT, new ColumnIdent("obj", Arrays.asList("double"))).build();
-        ReferenceInfo objInfo = ReferenceInfo.builder()
-                .granularity(RowGranularity.DOC)
-                .type(DataType.OBJECT)
-                .objectType(ReferenceInfo.ObjectType.DYNAMIC)
-                .addNestedColumn(doubleInfo)
-                .ident(TEST_TABLE_IDENT, new ColumnIdent("obj")).build();
-        Map<String, Object> map = new HashMap<>();
-        map.put("double", 2.9d);
+        ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("dyn"));
+        Map<String, Object> map = new HashMap<String, Object>() {{
+            put("d", 2.9d);
+            put("inner_strict", new HashMap<String, Object>(){{
+                put("double", "-88.7");
+            }});
+        }};
         analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
 
         Literal normalized = analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
         assertThat(normalized, Matchers.instanceOf(ObjectLiteral.class));
-        assertThat(((ObjectLiteral)normalized).value().get("double"), Matchers.<Object>is(2.9d));
+        assertThat(((ObjectLiteral)normalized).value().get("d"), Matchers.<Object>is(2.9d));
+        assertThat(((ObjectLiteral)normalized).value().get("inner_strict"),
+                Matchers.<Object>is(new HashMap<String, Object>(){{
+                    put("double", -88.7d);
+                }}
+        ));
     }
 
     @Test
     public void testNormalizeDynamicObjectLiteralWithAdditionalColumn() throws Exception {
         Analysis analysis = getAnalysis();
-        ReferenceInfo doubleInfo = ReferenceInfo.builder()
-                .granularity(RowGranularity.DOC)
-                .type(DataType.DOUBLE)
-                .ident(TEST_TABLE_IDENT, new ColumnIdent("obj", Arrays.asList("double"))).build();
-        ReferenceInfo objInfo = ReferenceInfo.builder()
-                .granularity(RowGranularity.DOC)
-                .type(DataType.OBJECT)
-                .objectType(ReferenceInfo.ObjectType.DYNAMIC)
-                .addNestedColumn(doubleInfo)
-                .ident(TEST_TABLE_IDENT, new ColumnIdent("obj")).build();
+        ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<>();
-        map.put("double", 2.9d);
+        map.put("d", 2.9d);
         map.put("half", "1.45");
         Literal normalized = analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
         assertThat(normalized.value(), Matchers.<Object>is(map)); // stays the same
@@ -223,18 +228,9 @@ public class AnalysisTest {
     @Test(expected = ValidationException.class)
     public void testNormalizeStrictObjectLiteralWithAdditionalColumn() throws Exception {
         Analysis analysis = getAnalysis();
-        ReferenceInfo doubleInfo = ReferenceInfo.builder()
-                .granularity(RowGranularity.DOC)
-                .type(DataType.DOUBLE)
-                .ident(TEST_TABLE_IDENT, new ColumnIdent("obj", Arrays.asList("double"))).build();
-        ReferenceInfo objInfo = ReferenceInfo.builder()
-                .granularity(RowGranularity.DOC)
-                .type(DataType.OBJECT)
-                .objectType(ReferenceInfo.ObjectType.STRICT)
-                .addNestedColumn(doubleInfo)
-                .ident(TEST_TABLE_IDENT, new ColumnIdent("obj")).build();
+        ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("strict"));
         Map<String, Object> map = new HashMap<>();
-        map.put("double", 2.9d);
+        map.put("inner_d", 2.9d);
         map.put("half", "1.45");
         analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
     }
@@ -242,26 +238,10 @@ public class AnalysisTest {
     @Test(expected = ValidationException.class)
     public void testNormalizeNestedStrictObjectLiteralWithAdditionalColumn() throws Exception {
         Analysis analysis = getAnalysis();
-        ReferenceInfo doubleInfo = ReferenceInfo.builder()
-                .granularity(RowGranularity.DOC)
-                .type(DataType.DOUBLE)
-                .ident(TEST_TABLE_IDENT, new ColumnIdent("obj", Arrays.asList("double"))).build();
-        ReferenceInfo objInfo = ReferenceInfo.builder()
-                .granularity(RowGranularity.DOC)
-                .type(DataType.OBJECT)
-                .objectType(ReferenceInfo.ObjectType.STRICT)
-                .addNestedColumn(doubleInfo)
-                .ident(TEST_TABLE_IDENT, new ColumnIdent("obj")).build();
-
-        ReferenceInfo outerInfo = ReferenceInfo.builder()
-                .granularity(RowGranularity.DOC)
-                .type(DataType.OBJECT)
-                .objectType(ReferenceInfo.ObjectType.DYNAMIC)
-                .addNestedColumn(objInfo)
-                .ident(TEST_TABLE_IDENT, new ColumnIdent("dyn")).build();
+        ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("dyn"));
 
         Map<String, Object> map = new HashMap<>();
-        map.put("obj", new HashMap<String, Object>(){{
+        map.put("inner_strict", new HashMap<String, Object>(){{
             put("double", 2.9d);
             put("half", "1.45");
         }});

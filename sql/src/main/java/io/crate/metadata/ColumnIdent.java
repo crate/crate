@@ -59,6 +59,11 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
         this.path = Objects.firstNonNull(path, ImmutableList.<String>of());
     }
 
+    public static ColumnIdent getChild(ColumnIdent parent, String name) {
+        List<String> childPath = ImmutableList.<String>builder().addAll(parent.path).add(name).build();
+        return new ColumnIdent(parent.name, childPath);
+    }
+
     public String name() {
         return name;
     }

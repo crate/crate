@@ -24,28 +24,21 @@ package io.crate.metadata;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.ImmutableList;
 import io.crate.planner.RowGranularity;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
 
 public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
 
     public static class Builder {
         private ReferenceIdent ident;
         private DataType type;
-        private ObjectType objectType = ObjectType.DYNAMIC;
+        private ObjectType objectType = ObjectType.DYNAMIC; // reflects default value of objects
         private RowGranularity granularity;
-        private ImmutableList.Builder<ReferenceInfo> nestedColumnsBuilder = new ImmutableList.Builder<>();
 
         public Builder type(DataType type) {
             this.type = type;
@@ -71,11 +64,6 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
             return ident;
         }
 
-        public Builder addNestedColumn(ReferenceInfo column) {
-            nestedColumnsBuilder.add(column);
-            return this;
-        }
-
         public Builder objectType(ObjectType objectType) {
             this.objectType = objectType;
             return this;
@@ -96,7 +84,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
             Preconditions.checkNotNull(ident);
             Preconditions.checkNotNull(granularity);
             Preconditions.checkNotNull(type);
-            return new ReferenceInfo(ident, granularity, type, nestedColumnsBuilder.build(), objectType);
+            return new ReferenceInfo(ident, granularity, type, objectType);
         }
     }
 
@@ -110,32 +98,24 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
     private DataType type;
     private ObjectType objectType = ObjectType.DYNAMIC;
     private RowGranularity granularity;
-    private List<ReferenceInfo> nestedColumns = ImmutableList.of();
 
     public ReferenceInfo() {
 
     }
 
-    public ReferenceInfo(ReferenceIdent ident, RowGranularity granularity, DataType type) {
-        this(ident, granularity, type, null, ObjectType.DYNAMIC);
+    public ReferenceInfo(ReferenceIdent ident,
+                         RowGranularity granularity,
+                         DataType type) {
+        this(ident, granularity, type, ObjectType.DYNAMIC);
     }
 
     public ReferenceInfo(ReferenceIdent ident,
                          RowGranularity granularity,
                          DataType type,
-                         @Nullable List<ReferenceInfo> nestedColumns) {
-        this(ident, granularity, type, nestedColumns, ObjectType.DYNAMIC);
-    }
-
-    public ReferenceInfo(ReferenceIdent ident,
-                         RowGranularity granularity,
-                         DataType type,
-                         @Nullable List<ReferenceInfo> nestedColumns,
                          ObjectType objectType) {
         this.ident = ident;
         this.type = type;
         this.granularity = granularity;
-        this.nestedColumns = Objects.firstNonNull(nestedColumns, ImmutableList.<ReferenceInfo>of());
         this.objectType = objectType;
     }
 
@@ -151,14 +131,6 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
         return granularity;
     }
 
-    public boolean hasNestedColumns() {
-        return type == DataType.OBJECT && nestedColumns.size() > 0;
-    }
-
-    public List<ReferenceInfo> nestedColumns() {
-        return nestedColumns;
-    }
-
     public ObjectType objectType() {
         return objectType;
     }
@@ -172,8 +144,6 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
 
         if (granularity != that.granularity) return false;
         if (ident != null ? !ident.equals(that.ident) : that.ident != null) return false;
-        if (nestedColumns != null ? !nestedColumns.equals(that.nestedColumns) : that.nestedColumns != null)
-            return false;
         if (objectType.ordinal() != that.objectType.ordinal()) { return false; }
         if (type != that.type) return false;
 
@@ -182,7 +152,7 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(granularity, ident, type, nestedColumns, objectType);
+        return Objects.hashCode(granularity, ident, type, objectType);
     }
 
     @Override
@@ -194,9 +164,6 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
         if (type == DataType.OBJECT) {
             helper.add("object type", objectType.name());
         }
-        if (nestedColumns.size() > 0) {
-            helper.add("nested columns", nestedColumns);
-        }
         return helper.toString();
     }
 
@@ -207,21 +174,6 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
                 .compare(ident, o.ident)
                 .compare(type, o.type)
                 .compare(objectType.ordinal(), o.objectType.ordinal())
-                .compare(nestedColumns, o.nestedColumns, new Comparator<List<ReferenceInfo>>() {
-                    @Override
-                    public int compare(List<ReferenceInfo> o1, List<ReferenceInfo> o2) {
-                        Iterator<ReferenceInfo> o2It = o2.iterator();
-                        for (ReferenceInfo info : o1) {
-                            if (!o2It.hasNext()) {
-                                return 1;
-                            }
-                            int cmp = info.compareTo(o2It.next());
-                            if (cmp != 0) { return cmp; }
-                        }
-                        if (o2It.hasNext()) { return -1; }
-                        else { return 0; }
-                    }
-                })
                 .result();
     }
 
@@ -232,14 +184,6 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
         type = DataType.fromStream(in);
         granularity = RowGranularity.fromStream(in);
 
-        int numNestedColumns = in.readVInt();
-        nestedColumns = new ArrayList<>(numNestedColumns);
-        while(numNestedColumns > 0) {
-            ReferenceInfo nestedInfo = new ReferenceInfo();
-            nestedInfo.readFrom(in);
-            nestedColumns.add(nestedInfo);
-            numNestedColumns--;
-        }
         objectType = ObjectType.values()[in.readVInt()];
     }
 
@@ -249,10 +193,6 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
         DataType.toStream(type, out);
         RowGranularity.toStream(granularity, out);
 
-        out.writeVInt(nestedColumns.size());
-        for (ReferenceInfo nestedInfo : nestedColumns) {
-            nestedInfo.writeTo(out);
-        }
         out.writeVInt(objectType.ordinal());
     }
 
