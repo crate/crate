@@ -61,7 +61,9 @@ public class InsertAnalysis extends Analysis {
     public void table(TableIdent tableIdent) {
         TableInfo t = referenceInfos.getTableInfo(tableIdent);
         Preconditions.checkNotNull(t, "Table not found", tableIdent);
-        Preconditions.checkState(t.rowGranularity() == RowGranularity.DOC, "cannot insert into system tables");
+        if (t.rowGranularity() != RowGranularity.DOC) {
+            throw new UnsupportedOperationException("cannot insert into system tables");
+        }
         table = t;
         updateRowGranularity(table.rowGranularity());
         super.table(tableIdent);
