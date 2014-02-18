@@ -26,6 +26,7 @@ import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.projectors.Projector;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -33,14 +34,14 @@ import java.util.Set;
  */
 public class SimpleOneRowCollector extends AbstractRowCollector<Object[]> implements CrateCollector {
 
-    private final Input<?>[] inputs;
+    private final List<Input<?>> inputs;
     private final Set<CollectExpression<?>> collectExpressions;
     private final Object[] result;
     private final Projector downStreamProjector;
 
-    public SimpleOneRowCollector(Input<?>[] inputs, Set<CollectExpression<?>> collectExpressions, Projector downStream) {
+    public SimpleOneRowCollector(List<Input<?>> inputs, Set<CollectExpression<?>> collectExpressions, Projector downStream) {
         this.inputs = inputs;
-        this.result = new Object[inputs.length];
+        this.result = new Object[inputs.size()];
         this.collectExpressions = collectExpressions;
         this.downStreamProjector = downStream;
     }

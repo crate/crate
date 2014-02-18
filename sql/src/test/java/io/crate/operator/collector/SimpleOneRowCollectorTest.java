@@ -21,6 +21,7 @@
 
 package io.crate.operator.collector;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.projectors.Projector;
@@ -30,12 +31,14 @@ import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.List;
 
 import static org.mockito.Mockito.*;
 
 public class SimpleOneRowCollectorTest {
 
-    private final Input<?>[] inputs = new Input<?>[]{new BooleanLiteral(true), new StringLiteral("foo")};
+    private final List<Input<?>> inputs = ImmutableList.<Input<?>>of(
+            new BooleanLiteral(true), new StringLiteral("foo"));
 
     @Test
     public void testCollectOneRow() throws Exception {
