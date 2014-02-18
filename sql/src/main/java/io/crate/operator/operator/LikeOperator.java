@@ -43,7 +43,7 @@ public class LikeOperator extends Operator {
         module.registerOperatorFunction(new LikeOperator(generateInfo(NAME, DataType.STRING)));
     }
 
-    LikeOperator(FunctionInfo info) {
+    public LikeOperator(FunctionInfo info) {
         this.info = info;
     }
 
