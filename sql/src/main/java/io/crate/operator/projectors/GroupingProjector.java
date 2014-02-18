@@ -31,15 +31,15 @@ import java.util.*;
 
 public class GroupingProjector implements Projector {
 
-    private final CollectExpression[] collectExpressions;
+    private final List<CollectExpression<?>> collectExpressions;
 
     private final Grouper grouper;
 
     private Object[][] rows;
     private Projector downStream = null;
 
-    public GroupingProjector(Input[] keyInputs,
-                             CollectExpression[] collectExpressions,
+    public GroupingProjector(List<Input<?>> keyInputs,
+                             List<CollectExpression<?>> collectExpressions,
                              AggregationContext[] aggregations) {
         this.collectExpressions = collectExpressions;
 
@@ -52,8 +52,8 @@ public class GroupingProjector implements Projector {
             );
         }
 
-        if (keyInputs.length == 1) {
-            grouper = new SingleKeyGrouper(keyInputs, collectExpressions, aggregationCollectors);
+        if (keyInputs.size() == 1) {
+            grouper = new SingleKeyGrouper(keyInputs.get(0), collectExpressions, aggregationCollectors);
         } else {
             grouper = new ManyKeyGrouper(keyInputs, collectExpressions, aggregationCollectors);
         }
@@ -138,15 +138,15 @@ public class GroupingProjector implements Projector {
     private class SingleKeyGrouper implements Grouper {
 
         private final Map<Object, AggregationState[]> result;
-        private final CollectExpression[] collectExpressions;
+        private final List<CollectExpression<?>> collectExpressions;
         private final AggregationCollector[] aggregationCollectors;
         private final Input keyInput;
 
-        public SingleKeyGrouper(Input[] keyInputs,
-                                CollectExpression[] collectExpressions,
+        public SingleKeyGrouper(Input keyInput,
+                                List<CollectExpression<?>> collectExpressions,
                                 AggregationCollector[] aggregationCollectors) {
             this.result = new HashMap<>();
-            this.keyInput = keyInputs[0];
+            this.keyInput = keyInput;
             this.collectExpressions = collectExpressions;
             this.aggregationCollectors = aggregationCollectors;
         }
@@ -213,11 +213,11 @@ public class GroupingProjector implements Projector {
 
         private final AggregationCollector[] aggregationCollectors;
         private final Map<List<Object>, AggregationState[]> result;
-        private final CollectExpression[] collectExpressions;
-        private final Input[] keyInputs;
+        private final List<CollectExpression<?>> collectExpressions;
+        private final List<Input<?>> keyInputs;
 
-        public ManyKeyGrouper(Input[] keyInputs,
-                              CollectExpression[] collectExpressions,
+        public ManyKeyGrouper(List<Input<?>> keyInputs,
+                              List<CollectExpression<?>> collectExpressions,
                               AggregationCollector[] aggregationCollectors) {
             this.result = new HashMap<>();
             this.collectExpressions = collectExpressions;
@@ -232,7 +232,7 @@ public class GroupingProjector implements Projector {
             }
 
             // TODO: use something with better equals() performance for the keys
-            List<Object> key = new ArrayList<>(keyInputs.length);
+            List<Object> key = new ArrayList<>(keyInputs.size());
             for (Input keyInput : keyInputs) {
                 key.add(keyInput.value());
             }
@@ -258,7 +258,7 @@ public class GroupingProjector implements Projector {
 
         @Override
         public Object[][] finish() {
-            Object[][] rows = new Object[result.size()][keyInputs.length + aggregationCollectors.length];
+            Object[][] rows = new Object[result.size()][keyInputs.size() + aggregationCollectors.length];
             boolean sendToDownStream = downStream != null;
             if (sendToDownStream) {
                 downStream.startProjection();
@@ -285,7 +285,7 @@ public class GroupingProjector implements Projector {
         public Iterator<Object[]> iterator() {
             return new MultiEntryToRowIterator(
                     result.entrySet().iterator(),
-                    keyInputs.length + aggregationCollectors.length,
+                    keyInputs.size() + aggregationCollectors.length,
                     aggregationCollectors);
         }
     }

@@ -9,19 +9,21 @@ import io.crate.planner.symbol.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.Nullable;
+import java.util.List;
+
 
 /**
- * the normalizer is responsible for simplifying function trees
- *
+ * the normalizer does symbol normalization and reference resolving if possible
+ * <p/>
  * E.g.:
- *  The query
- *
- *      and(true, eq(column_ref, 'someliteral'))
- *
- *  will be changed to
- *
- *      eq(column_ref, 'someliteral')
- *
+ * The query
+ * <p/>
+ * and(true, eq(column_ref, 'someliteral'))
+ * <p/>
+ * will be changed to
+ * <p/>
+ * eq(column_ref, 'someliteral')
  */
 public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
 
@@ -29,6 +31,14 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
     private final Functions functions;
     private final RowGranularity granularity;
     private final ReferenceResolver referenceResolver;
+
+    public com.google.common.base.Function<Symbol, Symbol> processorFunction = new com.google.common.base.Function<Symbol, Symbol>() {
+        @Nullable
+        @Override
+        public Symbol apply(@Nullable Symbol input) {
+            return process(input, null);
+        }
+    };
 
     public EvaluatingNormalizer(
             Functions functions, RowGranularity granularity, ReferenceResolver referenceResolver) {
@@ -79,4 +89,32 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
     protected Symbol visitSymbol(Symbol symbol, Void context) {
         return symbol;
     }
+
+    public boolean evaluatesToFalse(@Nullable Symbol whereClause){
+        if (whereClause==null){
+            return false;
+        }
+        return (whereClause.symbolType() == SymbolType.NULL_LITERAL ||
+                (whereClause.symbolType() == SymbolType.BOOLEAN_LITERAL &&
+                        !((BooleanLiteral) whereClause).value()));
+
+    }
+
+    public boolean evaluatesToFalse(@Nullable Function whereClause) {
+        // no whereclause means match all
+        if (whereClause == null){
+            return false;
+        }
+        return evaluatesToFalse(process(whereClause, null));
+    }
+
+    /**
+     * normalizes the given list of symbols inplace
+     */
+    public void normalize(List<Symbol> symbols){
+        for (int i = 0; i < symbols.size(); i++) {
+            symbols.set(i, process(symbols.get(i), null));
+        }
+    }
+
 }

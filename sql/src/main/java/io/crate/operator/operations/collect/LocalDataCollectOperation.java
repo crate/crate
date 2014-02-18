@@ -24,7 +24,6 @@ package io.crate.operator.operations.collect;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.NormalizationHelper;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operator.Input;
@@ -37,7 +36,6 @@ import io.crate.operator.projectors.ProjectionToProjectorVisitor;
 import io.crate.operator.projectors.Projector;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.CollectNode;
-import io.crate.planner.symbol.Function;
 import org.cratedb.Constants;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.TableUnknownException;
@@ -135,8 +133,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
      */
     protected ListenableFuture<Object[][]> handleNodeCollect(CollectNode collectNode) {
         SettableFuture<Object[][]> result = SettableFuture.create();
-        Function whereClause = collectNode.whereClause();
-        if (whereClause != null && NormalizationHelper.evaluatesToFalse(whereClause, this.normalizer)
+        if (normalizer.evaluatesToFalse(collectNode.whereClause())
                 || collectNode.toCollect() == null || collectNode.toCollect().size() == 0) {
             result.set(Constants.EMPTY_RESULT);
             return result;
@@ -148,7 +145,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
                 this.functions,
                 collectNode.maxRowGranularity() // could be CLUSTER or NODE
         ).process(collectNode);
-        Input<?>[] inputs = ctx.topLevelInputs();
+        List<Input<?>> inputs = ctx.topLevelInputs();
         Set<CollectExpression<?>> collectExpressions = ctx.collectExpressions();
 
         assert ctx.maxGranularity().ordinal() <= RowGranularity.NODE.ordinal() : "wrong RowGranularity";
@@ -186,8 +183,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
         List<Projector> projectors = extractProjectors(collectNode);
         final ShardCollectFuture result = getShardCollectFuture(numShards, projectors, collectNode);
 
-        Function whereClause = collectNode.whereClause();
-        if (whereClause != null && NormalizationHelper.evaluatesToFalse(whereClause, this.normalizer)) {
+        if (normalizer.evaluatesToFalse(collectNode.whereClause())) {
             result.onAllShardsFinished();
             return result;
         }

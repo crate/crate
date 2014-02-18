@@ -21,9 +21,7 @@
 
 package io.crate.operator.operations.collect;
 
-import com.google.common.base.Optional;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.NormalizationHelper;
 import io.crate.analyze.elasticsearch.ESQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
@@ -31,11 +29,16 @@ import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.operator.collector.CrateCollector;
 import io.crate.operator.collector.LuceneDocCollector;
 import io.crate.operator.collector.SimpleOneRowCollector;
+import io.crate.operator.operations.CollectInputSymbolVisitor;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.operator.projectors.Projector;
+import io.crate.operator.reference.doc.LuceneCollectorExpression;
+import io.crate.operator.reference.doc.LuceneDocLevelReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolType;
 import org.cratedb.action.SQLXContentQueryParser;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.cache.recycler.CacheRecycler;
@@ -50,9 +53,12 @@ public class ShardCollectService {
 
     public static CrateCollector NOOP_COLLECTOR = new CrateCollector() {
         @Override
-        public void doCollect() {}
+        public void doCollect() {
+        }
     };
 
+
+    private final CollectInputSymbolVisitor<LuceneCollectorExpression<?>> docInputSymbolVisitor;
     private final ClusterService clusterService;
     private final ShardId shardId;
     private final IndexService indexService;
@@ -61,6 +67,9 @@ public class ShardCollectService {
     private final Functions functions;
     private final ReferenceResolver referenceResolver;
     private final SQLXContentQueryParser sqlxContentQueryParser;
+    private final ESQueryBuilder queryBuilder;
+    private final ImplementationSymbolVisitor shardInputSymbolVisitor;
+    private final EvaluatingNormalizer normalizer;
 
     @Inject
     public ShardCollectService(ClusterService clusterService,
@@ -79,37 +88,58 @@ public class ShardCollectService {
         this.sqlxContentQueryParser = sqlxContentQueryParser;
         this.functions = functions;
         this.referenceResolver = referenceResolver;
+        this.shardInputSymbolVisitor = new ImplementationSymbolVisitor(
+                referenceResolver, functions, RowGranularity.SHARD);
+        this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(
+                functions, LuceneDocLevelReferenceResolver.INSTANCE);
+        this.queryBuilder = new ESQueryBuilder(functions, referenceResolver);
+        this.normalizer = new EvaluatingNormalizer(functions, RowGranularity.SHARD, referenceResolver);
+
+
     }
 
     /**
      * get a collector
+     *
      * @param collectNode describes the collectOperation
-     * @param upStream every returned collector should call {@link io.crate.operator.projectors.Projector#setNextRow(Object...)}
-     *                 on this upStream Projector if a row is produced.
+     * @param upStream    every returned collector should call {@link io.crate.operator.projectors.Projector#setNextRow(Object...)}
+     *                    on this upStream Projector if a row is produced.
      * @return collector wrapping different collect implementations, call {@link CrateCollector#doCollect()} to start
-     *         collecting with this collector
+     * collecting with this collector
      */
     public CrateCollector getCollector(CollectNode collectNode, Projector upStream) throws Exception {
         CrateCollector result;
-        RowGranularity granularity = collectNode.maxRowGranularity();
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, granularity, referenceResolver);
-        Function whereClause = collectNode.whereClause();
-        if (whereClause != null  && NormalizationHelper.evaluatesToFalse(whereClause, normalizer)) {
+
+
+        Symbol normalizedWhereClause;
+        if (collectNode.whereClause()!=null){
+            normalizedWhereClause = normalizer.process(collectNode.whereClause(), null);
+        } else {
+            normalizedWhereClause = null;
+        }
+
+        if (normalizer.evaluatesToFalse(normalizedWhereClause)) {
             result = NOOP_COLLECTOR;
         } else {
-            ImplementationSymbolVisitor visitor = new ImplementationSymbolVisitor(referenceResolver, functions, granularity);
-            ImplementationSymbolVisitor.Context ctx = visitor.process(collectNode);
-            switch(granularity) {
+            RowGranularity granularity = collectNode.maxRowGranularity();
+            Function whereClause = null;
+            if (normalizedWhereClause != null && normalizedWhereClause.symbolType() == SymbolType.FUNCTION){
+                whereClause = (Function) normalizedWhereClause;
+            }
+            switch (granularity) {
                 case SHARD:
-                    result = new SimpleOneRowCollector(ctx.topLevelInputs(), ctx.collectExpressions(), upStream);
+                    ImplementationSymbolVisitor.Context shardCtx = shardInputSymbolVisitor.process(collectNode);
+                    result = new SimpleOneRowCollector(shardCtx.topLevelInputs(), shardCtx.collectExpressions(), upStream);
                     break;
                 case DOC:
-                    ESQueryBuilder queryBuilder = new ESQueryBuilder(functions, referenceResolver);
-                    BytesReference querySource = queryBuilder.convert(collectNode.whereClause());
+                    // normalize shard level expressions
+                    normalizer.normalize(collectNode.toCollect());
+                    CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
+                    BytesReference querySource = queryBuilder.convert(whereClause);
                     result = new LuceneDocCollector(clusterService, shardId, indexService,
                             scriptService, cacheRecycler, sqlxContentQueryParser,
-                            ctx.topLevelInputs(),
-                            ctx.docLevelExpressions(),
+                            docCtx.topLevelInputs(),
+                            docCtx.docLevelExpressions(),
                             querySource,
                             upStream);
                     break;

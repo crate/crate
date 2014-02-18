@@ -22,22 +22,22 @@
 package io.crate.operator.reference.doc;
 
 import io.crate.metadata.ReferenceInfo;
+import io.crate.operator.reference.DocLevelReferenceResolver;
 import io.crate.planner.RowGranularity;
 import org.cratedb.sql.CrateException;
 
-public class DocLevelExpressions {
+public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolver<LuceneCollectorExpression<?>> {
 
-    /**
-     * Get a LuceneCollectorExpression to be used in {@link io.crate.operator.collector.LuceneDocCollector}s
-     * from a {@link io.crate.metadata.ReferenceInfo}.
-     * @param referenceInfo
-     * @return
-     */
-    public static LuceneCollectorExpression getExpression(ReferenceInfo referenceInfo) {
+    public static final LuceneDocLevelReferenceResolver INSTANCE = new LuceneDocLevelReferenceResolver();
+
+    private LuceneDocLevelReferenceResolver() {
+    }
+
+    public LuceneCollectorExpression<?> getImplementation(ReferenceInfo referenceInfo) {
         String colName = referenceInfo.ident().columnIdent().fqn();
         assert referenceInfo.granularity() == RowGranularity.DOC;
 
-        switch(referenceInfo.type()) {
+        switch (referenceInfo.type()) {
             case BYTE:
                 return new ByteColumnReference(colName);
             case SHORT:

@@ -6,7 +6,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.AggregationFunction;
-import io.crate.operator.aggregation.AggregationState;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.aggregation.impl.CountAggregation;
@@ -16,8 +15,6 @@ import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Test;
-
-import java.util.Arrays;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -34,9 +31,9 @@ public class GroupingProjectorTest {
     @Test
     public void testAggregationToPartial() {
 
-        Input[] keys = new Input[] {
-                new DummyInput("one", "one", "three"),
-        };
+        ImmutableList<Input<?>> keys = ImmutableList.<Input<?>>of(
+                new DummyInput("one", "one", "three"));
+
 
         FunctionInfo countInfo = new FunctionInfo(new FunctionIdent("count", ImmutableList.<DataType>of()), DataType.LONG);
         Aggregation countAggregation =
@@ -52,7 +49,7 @@ public class GroupingProjectorTest {
         AggregationContext[] aggregations = new AggregationContext[] { aggregationContext };
         GroupingProjector projector = new GroupingProjector(
                 keys,
-                new CollectExpression[0],
+                ImmutableList.<CollectExpression<?>>of(),
                 aggregations
         );
 

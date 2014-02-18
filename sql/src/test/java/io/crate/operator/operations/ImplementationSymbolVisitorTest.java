@@ -114,11 +114,11 @@ public class ImplementationSymbolVisitorTest {
         assertThat((Long) keyExpressions[1].value(), is(2L)); // raw input value
 
         // inputs: [ x, multiply ]
-        Input<?>[] inputs = context.topLevelInputs();
+        List<Input<?>> inputs = context.topLevelInputs();
 
-        assertThat(inputs.length, is(2));
-        assertThat((Long)inputs[0].value(), is(1L));
-        assertThat((Long) inputs[1].value(), is(4L));  // multiplied value
+        assertThat(inputs.size(), is(2));
+        assertThat((Long)inputs.get(0).value(), is(1L));
+        assertThat((Long) inputs.get(1).value(), is(4L));  // multiplied value
     }
 
     @Test
@@ -142,7 +142,7 @@ public class ImplementationSymbolVisitorTest {
 
         ImplementationSymbolVisitor.Context context = visitor.process(keys);
         // inputs: [ x, multiply ]
-        Input<?>[] keyInputs = context.topLevelInputs();
+        List<Input<?>> keyInputs = context.topLevelInputs();
 
         for (Aggregation value : values) {
             visitor.process(value, context);
@@ -154,8 +154,8 @@ public class ImplementationSymbolVisitorTest {
         // collectExpressions: [ in0, in1 ]
         assertThat(context.collectExpressions().size(), is(2));
 
-        Input<?>[] allInputs = context.topLevelInputs();
-        assertThat(allInputs.length, is(2)); // only 2 because count is no input
+        List<Input<?>> allInputs = context.topLevelInputs();
+        assertThat(allInputs.size(), is(2)); // only 2 because count is no input
 
         CollectExpression[] collectExpressions = context.collectExpressions().toArray(new CollectExpression[2]);
         collectExpressions[0].setNextRow(1L, 2L);
@@ -164,8 +164,8 @@ public class ImplementationSymbolVisitorTest {
         assertThat((Long) collectExpressions[1].value(), is(2L)); // raw input value
 
 
-        assertThat(keyInputs.length, is(2));
-        assertThat((Long)keyInputs[0].value(), is(1L));
-        assertThat((Long) keyInputs[1].value(), is(4L));  // multiplied value
+        assertThat(keyInputs.size(), is(2));
+        assertThat((Long)keyInputs.get(0).value(), is(1L));
+        assertThat((Long) keyInputs.get(1).value(), is(4L));  // multiplied value
     }
 }
