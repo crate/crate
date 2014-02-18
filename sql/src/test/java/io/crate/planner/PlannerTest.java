@@ -114,6 +114,13 @@ public class PlannerTest {
                     .add("id", DataType.LONG, null)
                     .addPrimaryKey("id")
                     .build();
+            TableIdent charactersTableIdent = new TableIdent(null, "characters");
+            TableInfo charactersTableInfo = TestingTableInfo.builder(charactersTableIdent, RowGranularity.DOC, shardRouting)
+                    .add("name", DataType.STRING, null)
+                    .add("id", DataType.STRING, null)
+                    .addPrimaryKey("id")
+                    .build();
+            when(schemaInfo.getTableInfo(charactersTableIdent.name())).thenReturn(charactersTableInfo);
             when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
@@ -206,6 +213,17 @@ public class PlannerTest {
         ESGetNode node = (ESGetNode)iterator.next();
         assertThat(node.index(), is("users"));
         assertThat(node.ids().get(0), is("1"));
+        assertFalse(iterator.hasNext());
+        assertThat(node.outputs().size(), is(1));
+    }
+
+    @Test
+    public void testGetPlanStringLiteral() throws Exception {
+        Plan plan = plan("select name from characters where id = 'one'");
+        Iterator<PlanNode> iterator = plan.iterator();
+        ESGetNode node = (ESGetNode)iterator.next();
+        assertThat(node.index(), is("characters"));
+        assertThat(node.ids().get(0), is("one"));
         assertFalse(iterator.hasNext());
         assertThat(node.outputs().size(), is(1));
     }
