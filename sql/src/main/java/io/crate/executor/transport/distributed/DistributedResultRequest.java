@@ -39,6 +39,9 @@ public class DistributedResultRequest extends TransportRequest {
     private Object[][] rows;
     private UUID contextId;
     private BytesStreamOutput memoryStream;
+
+    // TODO: change failure flag to string or enum so that the receiver can recreate the
+    // exception and the error handling in the DistributedMergeTask can be simplified.
     private boolean failure = false;
 
     public DistributedResultRequest(DistributedRequestContextManager contextManager) {
