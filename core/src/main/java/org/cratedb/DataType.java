@@ -30,7 +30,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -380,11 +379,13 @@ public enum DataType {
             .build();
 
     @Nullable
-    public static DataType forClass(Class<?> clazz) {
-        DataType type = typesMap.get(clazz);
-        if (type == null && Arrays.asList(clazz.getInterfaces()).contains(Map.class)) {
-            return DataType.OBJECT;
+    public static DataType forValue(Object value) {
+        if (value == null) {
+            return NULL;
         }
-        return type;
+        if (value instanceof Map) { // reflection class checks don't work 100%
+            return OBJECT;
+        }
+        return typesMap.get(value.getClass());
     }
 }

@@ -32,6 +32,7 @@ import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -201,5 +202,26 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
     @Test(expected = CrateException.class)
     public void testInsertWithoutPrimaryKey() throws Exception {
         analyze("insert into users (name) values ('Trillian')");
+    }
+
+    @Test
+    public void testNullLiterals() throws Exception {
+        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, name, awesome, details) values (?, ?, ?, ?)",
+                new Object[]{null, null, null, null});
+        List<Symbol> values = analysis.values().get(0);
+        assertThat(values.get(0), instanceOf(Null.class));
+        assertThat(values.get(1), instanceOf(Null.class));
+        assertThat(values.get(2), instanceOf(Null.class));
+        assertThat(values.get(3), instanceOf(Null.class));
+    }
+
+    @Test
+    public void testObjectLiterals() throws Exception {
+        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, name, awesome, details) values (?, ?, ?, ?)",
+                new Object[]{null, null, null, new HashMap<String, Object>(){{
+                    put("new_col", "new value");
+                }}});
+        List<Symbol> values = analysis.values().get(0);
+        assertThat(values.get(3), instanceOf(ObjectLiteral.class));
     }
 }

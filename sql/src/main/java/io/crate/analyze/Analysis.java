@@ -299,7 +299,7 @@ public abstract class Analysis {
     private Object normalizePrimitiveValue(Object primitiveValue, ReferenceInfo info) {
         try {
             // try to convert to correctly typed literal
-            Literal l = Literal.forType(DataType.forClass(primitiveValue.getClass()), primitiveValue);
+            Literal l = Literal.forValue(primitiveValue);
             return l.convertTo(info.type()).value();
         } catch (Exception e) {
             throw new ValidationException(info.ident().columnIdent().fqn(),

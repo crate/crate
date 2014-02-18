@@ -166,11 +166,11 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
     @Override
     public Symbol visitParameterExpression(ParameterExpression node, T context) {
         Object parameter = context.parameterAt(node.position());
-        DataType type = DataType.forClass(parameter.getClass());
-        if (type == null) {
+        try {
+            return Literal.forValue(parameter);
+        } catch (IllegalArgumentException e) {
             throw new UnsupportedOperationException("Unsupported parameter type " + parameter.getClass());
         }
-        return io.crate.planner.symbol.Literal.forType(type, parameter);
     }
 
     @Override
