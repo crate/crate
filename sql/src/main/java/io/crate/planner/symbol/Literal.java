@@ -49,6 +49,10 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
         return null;
     }
 
+    public String valueAsString() {
+        return value().toString();
+    }
+
     /**
      * create a literal for a given Java object
      * @param value the value to wrap/transform into a literal
