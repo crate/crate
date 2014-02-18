@@ -23,6 +23,7 @@ package io.crate.metadata;
 
 import com.google.common.collect.Sets;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.test.integration.CrateIntegrationTest;
@@ -33,6 +34,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -112,4 +115,20 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
         TableInfo ti = referenceInfos.getTableInfo(new TableIdent("sys", "cluster"));
         assertNull(ti.getRouting(null));
     }
+
+    @Test
+    public void testSysSchemaTables() throws Exception {
+        SchemaInfo si = referenceInfos.getSchemaInfo("sys");
+        assertThat(si.tableNames(), contains("cluster", "nodes", "shards"));
+    }
+
+    @Test
+    public void testDocSchemaTables() throws Exception {
+        execute("create table users (id int primary key)");
+        ensureGreen();
+        SchemaInfo si = referenceInfos.getSchemaInfo(null);
+        assertThat(si.tableNames(), containsInAnyOrder("users"));
+    }
+
+
 }

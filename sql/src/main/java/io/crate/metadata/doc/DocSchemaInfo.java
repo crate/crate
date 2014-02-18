@@ -32,6 +32,8 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.common.inject.Inject;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.ExecutionException;
 
 public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
@@ -74,9 +76,15 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     }
 
     @Override
+    public Collection<String> tableNames() {
+        return Arrays.asList(clusterService.state().metaData().concreteAllIndices());
+    }
+
+    @Override
     public void clusterChanged(ClusterChangedEvent event) {
         if (event.metaDataChanged()) {
             cache.invalidateAll();
         }
     }
+
 }
