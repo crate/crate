@@ -55,20 +55,4 @@ public class MatchFunctionTest {
         assertEquals(matchFunction, result);
     }
 
-    @Test(expected = UnsupportedOperationException.class)
-    public void testNormalizeSymbolExceptionLeft() throws Exception {
-        Function matchFunction = new Function(
-                op.info(),
-                Arrays.<Symbol>asList(new StringLiteral("causes exception"), new StringLiteral("foo")));
-        op.normalizeSymbol(matchFunction);
-    }
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testNormalizeSymbolExceptionRight() throws Exception {
-        Function matchFunction = new Function(
-                op.info(),
-                Arrays.<Symbol>asList(new Reference(), new LongLiteral(2)));
-        op.normalizeSymbol(matchFunction);
-    }
-
 }

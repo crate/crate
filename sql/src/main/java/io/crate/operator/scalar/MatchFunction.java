@@ -28,7 +28,6 @@ import io.crate.metadata.Scalar;
 import io.crate.operator.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
 
@@ -62,18 +61,6 @@ public class MatchFunction implements Scalar<Boolean> {
 
     @Override
     public Symbol normalizeSymbol(Function function) {
-        assert (function != null);
-        assert (function.arguments().size() == 2);
-
-        Symbol left = function.arguments().get(0);
-        Symbol right = function.arguments().get(1);
-
-        if (left.symbolType() != SymbolType.STRING_LITERAL && right.symbolType() == SymbolType.STRING_LITERAL) {
-            return function;
-        } else {
-            throw new UnsupportedOperationException(
-                    "Query does not fulfil the MATCH('index name', 'query term') specification."
-            );
-        }
+        return function;
     }
 }
