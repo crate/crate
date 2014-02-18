@@ -71,6 +71,29 @@ public class SortingTopNProjectorTest {
     }
 
     @Test
+    public void testWithHighOffset() throws Exception {
+        SortingTopNProjector projector = new SortingTopNProjector(
+                new Input<?>[] { INPUT, TRUE_LITERAL },
+                new CollectExpression[] { (CollectExpression<?>)INPUT },
+                2,
+                new int[] { 0 },
+                new boolean[] { false },
+                2,
+                30
+        );
+
+        projector.startProjection();
+        for (int i = 0; i < 10; i++) {
+            if (!projector.setNextRow(i)) {
+                break;
+            }
+        }
+
+        projector.finishProjection();
+        assertThat(projector.getRows().length, is(0));
+    }
+
+    @Test
     public void testOrderByWithoutLimit() throws Exception {
         SortingTopNProjector projector = new SortingTopNProjector(
                 new Input<?>[]{INPUT, TRUE_LITERAL},
