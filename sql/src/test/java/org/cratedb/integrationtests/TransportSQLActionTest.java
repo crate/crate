@@ -648,6 +648,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals("Youri", response.rows()[1][7]);
     }
 
+
+    /* TODO: this feature has been disabled. currently one cannot add multiple values for one field
+             as array parameter
     @Test
     @SuppressWarnings("unchecked")
     public void testInsertCoreTypesAsArrayAndObject() throws Exception {
@@ -738,7 +741,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         assertThat( ((List<String>)response.rows()[0][8]).get(0), is("Youri"));
         assertThat( ((List<String>)response.rows()[0][8]).get(1), is("Juri"));
-    }
+    }*/
 
     @Test
     public void testInsertMultipleRows() throws Exception {

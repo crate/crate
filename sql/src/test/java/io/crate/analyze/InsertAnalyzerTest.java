@@ -39,6 +39,7 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -142,7 +143,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertWithConvertedTypes() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, name, awesome) values (?, 'Trillian', ?)", new Object[]{1.0f, "true"});
+        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, name, awesome) values ($1, 'Trillian', $2)", new Object[]{1.0f, "true"});
 
         assertThat(analysis.columns().get(0).valueType(), is(DataType.LONG));
         assertThat(analysis.columns().get(2).valueType(), is(DataType.BOOLEAN));
@@ -206,7 +207,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(values.get(0), instanceOf(LongLiteral.class));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = UnsupportedOperationException.class)
     public void testInsertIntoSysTable() throws Exception {
         analyze("insert into sys.nodes (id, name) values (666, 'evilNode')");
     }
@@ -216,7 +217,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         analyze("insert into alias (bla) values ('blubb')");
     }
 
-    @Test(expected = CrateException.class)
+    @Test(expected = UnsupportedOperationException.class)
     public void testInsertWithoutPrimaryKey() throws Exception {
         analyze("insert into users (name) values ('Trillian')");
     }
@@ -240,5 +241,20 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
                 }}});
         List<Symbol> values = analysis.values().get(0);
         assertThat(values.get(3), instanceOf(ObjectLiteral.class));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testInsertArrays() throws Exception {
+        analyze("insert into users (id, name, awesome, details) values (?, ?, ?, ?)",
+                new Object[]{
+                        new Long[]{1l ,2l},
+                        new String[]{"Karl Liebknecht", "Rosa Luxemburg"},
+                        new Boolean[]{true, false},
+                        new Map[] {
+                                new HashMap<String, Object>(),
+                                new HashMap<String, Object>()
+                        }
+                });
+
     }
 }

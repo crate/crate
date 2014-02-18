@@ -72,7 +72,7 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
             process(column, context);
         }
         if (context.table().primaryKey().size() > 0 && context.primaryKeyColumnIndices().size() == 0) {
-            throw new CrateException("Primary key is required but is missing from the insert statement");
+            throw new UnsupportedOperationException("Primary key is required but is missing from the insert statement");
         }
 
         context.visitValues();
@@ -81,11 +81,6 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
         }
 
         return null;
-    }
-
-    @Override
-    protected Symbol visitTable(Table node, InsertAnalysis context) {
-        return super.visitTable(node, context);
     }
 
     /**

@@ -168,8 +168,8 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
         Object parameter = context.parameterAt(node.index());
         try {
             return Literal.forValue(parameter);
-        } catch (IllegalArgumentException e) {
-            throw new UnsupportedOperationException("Unsupported parameter type " + parameter.getClass());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Unsupported parameter type " + parameter.getClass());
         }
     }
 
