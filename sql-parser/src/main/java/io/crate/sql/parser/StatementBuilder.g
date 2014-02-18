@@ -40,7 +40,7 @@ options {
 }
 
 @members {
-    private int parameterPos = 0;
+    private int parameterPos = 1;
 
     @Override
     protected Object recoverFromMismatchedToken(IntStream input, int tokenType, BitSet follow)

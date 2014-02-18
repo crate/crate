@@ -183,7 +183,7 @@ public class TestStatementBuilder
 
     @Test
     public void testParameterNode() throws Exception {
-        printStatement("select foo, $0 from foo where a = $1 or a = $2");
+        printStatement("select foo, $1 from foo where a = $2 or a = $3");
 
         final AtomicInteger counter = new AtomicInteger(0);
 
@@ -191,7 +191,7 @@ public class TestStatementBuilder
         inExpression.accept(new DefaultTraversalVisitor<Object, Object>() {
             @Override
             public Object visitParameterExpression(ParameterExpression node, Object context) {
-                assertEquals(counter.getAndIncrement(), node.position());
+                assertEquals(counter.incrementAndGet(), node.position());
                 return super.visitParameterExpression(node, context);
             }
         }, null);
@@ -199,11 +199,11 @@ public class TestStatementBuilder
         assertEquals(3, counter.get());
         counter.set(0);
 
-        Expression andExpression = SqlParser.createExpression("a = ? and b = ? and c = $2");
+        Expression andExpression = SqlParser.createExpression("a = ? and b = ? and c = $3");
         andExpression.accept(new DefaultTraversalVisitor<Object, Object>() {
             @Override
             public Object visitParameterExpression(ParameterExpression node, Object context) {
-                assertEquals(counter.getAndIncrement(), node.position());
+                assertEquals(counter.incrementAndGet(), node.position());
                 return super.visitParameterExpression(node, context);
             }
         }, null);

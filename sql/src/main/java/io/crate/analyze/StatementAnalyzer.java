@@ -165,7 +165,7 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
 
     @Override
     public Symbol visitParameterExpression(ParameterExpression node, T context) {
-        Object parameter = context.parameterAt(node.position());
+        Object parameter = context.parameterAt(node.index());
         try {
             return Literal.forValue(parameter);
         } catch (IllegalArgumentException e) {
