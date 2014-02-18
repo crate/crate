@@ -43,10 +43,7 @@ public class ReferenceInfos {
 
     @Nullable
     public TableInfo getTableInfo(TableIdent ident) {
-        if (ident.schema() == null) {
-            return defaultSchemaInfo.getTableInfo(ident.name());
-        }
-        SchemaInfo schemaInfo = schemas.get(ident.schema());
+        SchemaInfo schemaInfo = getSchemaInfo(ident.schema());
         if (schemaInfo != null) {
             return schemaInfo.getTableInfo(ident.name());
         }
@@ -60,6 +57,15 @@ public class ReferenceInfos {
             return tableInfo.getColumnInfo(ident.columnIdent());
         }
         return null;
+    }
+
+    @Nullable
+    public SchemaInfo getSchemaInfo(@Nullable String schemaName) {
+        if (schemaName == null) {
+            return defaultSchemaInfo;
+        } else {
+            return schemas.get(schemaName);
+        }
     }
 
 }
