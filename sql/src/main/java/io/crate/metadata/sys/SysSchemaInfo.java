@@ -25,6 +25,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.inject.Inject;
 
+import java.util.Collection;
 import java.util.Map;
 
 public class SysSchemaInfo implements SchemaInfo {
@@ -40,6 +41,11 @@ public class SysSchemaInfo implements SchemaInfo {
     @Override
     public TableInfo getTableInfo(String name) {
         return tableInfos.get(name);
+    }
+
+    @Override
+    public Collection<String> tableNames() {
+        return tableInfos.keySet();
     }
 
 }

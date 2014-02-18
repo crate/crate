@@ -21,8 +21,12 @@
 
 package io.crate.metadata.table;
 
+import java.util.Collection;
+
 public interface SchemaInfo {
 
     public TableInfo getTableInfo(String name);
+
+    public Collection<String> tableNames();
 
 }
