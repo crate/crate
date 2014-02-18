@@ -22,22 +22,58 @@
 package io.crate.operator.operator;
 
 import io.crate.metadata.FunctionInfo;
+import io.crate.planner.symbol.BooleanLiteral;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.StringLiteral;
+import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 
-public class LikeOperator extends CmpOperator {
+import java.util.regex.Pattern;
+
+public class LikeOperator extends Operator {
 
     public static final String NAME = "op_like";
+
+    private FunctionInfo info;
+
+    private static final String ZERO_OR_MORE = "%";
+    private static final String EXACTLY_ONE = "_";
 
     public static void register(OperatorModule module) {
         module.registerOperatorFunction(new LikeOperator(generateInfo(NAME, DataType.STRING)));
     }
 
-    @Override
-    protected boolean compare(int comparisonResult) {
-        return comparisonResult == 0;
+    public LikeOperator(FunctionInfo info) {
+        this.info = info;
     }
 
-    LikeOperator(FunctionInfo info) {
-        super(info);
+    @Override
+    public FunctionInfo info() {
+        return info;
     }
+
+    @Override
+    public Symbol normalizeSymbol(Function symbol) {
+        assert (symbol != null);
+        assert (symbol.arguments().size() == 2);
+
+        if (!symbol.arguments().get(0).symbolType().isLiteral()) {
+            return symbol;
+        }
+
+        StringLiteral expression = (StringLiteral) symbol.arguments().get(0);
+        StringLiteral pattern = (StringLiteral) symbol.arguments().get(1);
+
+        return new BooleanLiteral(matches(expression, pattern));
+    }
+
+    private boolean matches(StringLiteral expression, StringLiteral pattern) {
+        return Pattern.matches(replaceWildcards(expression), pattern.value().utf8ToString());
+    }
+
+    private String replaceWildcards(StringLiteral literal) {
+        String s = literal.value().utf8ToString();
+        return s.replaceAll(ZERO_OR_MORE, ".*").replaceAll(EXACTLY_ONE, ".");
+    }
+
 }

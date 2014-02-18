@@ -17,7 +17,6 @@ public class CmpOperatorTest {
     private GteOperator op_gte_double;
     private LtOperator op_lt_int;
     private LteOperator op_lte_long;
-    private LikeOperator op_like_string;
 
     @Before
     public void setUp() {
@@ -25,7 +24,6 @@ public class CmpOperatorTest {
         op_gte_double = new GteOperator(Operator.generateInfo(GteOperator.NAME, DataType.DOUBLE));
         op_lt_int = new LtOperator(Operator.generateInfo(LtOperator.NAME, DataType.INTEGER));
         op_lte_long = new LteOperator(Operator.generateInfo(LteOperator.NAME, DataType.LONG));
-        op_like_string = new LikeOperator(Operator.generateInfo(LikeOperator.NAME, DataType.STRING));
     }
 
     private Function getFunction(Operator operator, Symbol... symbols) {
@@ -102,17 +100,4 @@ public class CmpOperatorTest {
         assertThat(symbol, instanceOf(Function.class));
     }
 
-    @Test
-    public void testNormalizeLikeLiteral() throws Exception {
-        Symbol symbol = normalize(op_like_string, new StringLiteral("a"), new Value(DataType.STRING));
-        assertThat(symbol, instanceOf(Function.class));
-
-        symbol = normalize(op_like_string, new StringLiteral("a"), new StringLiteral("a"));
-        assertThat(symbol, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral) symbol).value(), is(true));
-
-        symbol = normalize(op_like_string, new StringLiteral("a"), new StringLiteral("b"));
-        assertThat(symbol, instanceOf(BooleanLiteral.class));
-        assertThat(((BooleanLiteral) symbol).value(), is(false));
-    }
 }
