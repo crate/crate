@@ -112,7 +112,7 @@ public abstract class Analysis {
     public ReferenceInfo getReferenceInfo(ReferenceIdent ident) {
         ReferenceInfo info = referenceInfos.getReferenceInfo(ident);
         if (info == null) {
-            throw new UnsupportedOperationException("TODO: unknown column reference: " + ident);
+            throw new UnsupportedOperationException("Unknown column reference: " + ident);
         }
         return info;
     }

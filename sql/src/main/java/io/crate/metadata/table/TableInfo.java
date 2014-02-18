@@ -28,6 +28,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 
@@ -36,6 +37,7 @@ public interface TableInfo {
     /**
      * returns information about a column with the given ident
      */
+    @Nullable
     public ReferenceInfo getColumnInfo(ColumnIdent columnIdent);
 
     /**
