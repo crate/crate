@@ -21,18 +21,12 @@
 
 package io.crate.operator.operator;
 
-import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionInfo;
-import io.crate.operator.Input;
-import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 
-import java.util.Objects;
-
-public class NotEqOperator extends Operator {
+public class NotEqOperator extends CmpOperator {
 
     public static final String NAME = "op_<>";
-    private final FunctionInfo info;
 
     public static void register(OperatorModule module) {
         for (DataType type : DataType.ALL_TYPES) {
@@ -40,37 +34,18 @@ public class NotEqOperator extends Operator {
         }
     }
 
-    NotEqOperator(FunctionInfo info) {
-        this.info = info;
+    public NotEqOperator(FunctionInfo info) {
+        super(info);
+    }
+
+    @Override
+    protected boolean compare(int comparisonResult) {
+        return comparisonResult != 0;
     }
 
     @Override
     public FunctionInfo info() {
         return info;
-    }
-
-    @Override
-    public Symbol normalizeSymbol(Function function) {
-        Preconditions.checkNotNull(function);
-        Preconditions.checkArgument(function.arguments().size() == 2);
-
-        Symbol left = function.arguments().get(0);
-        Symbol right = function.arguments().get(1);
-
-        if (left.symbolType() == SymbolType.NULL_LITERAL || right.symbolType() == SymbolType.NULL_LITERAL) {
-            return Null.INSTANCE;
-        }
-
-        if (left instanceof Literal && right instanceof Literal) {
-            return new BooleanLiteral(!(Objects.equals(left, right)));
-        }
-
-        return function;
-    }
-
-    @Override
-    public Boolean evaluate(Input<?>... args) {
-        return null;
     }
 
 }
