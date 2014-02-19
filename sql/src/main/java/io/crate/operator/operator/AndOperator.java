@@ -26,6 +26,7 @@ import io.crate.operator.Input;
 import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolType;
 import org.cratedb.DataType;
 
 public class AndOperator extends Operator {
@@ -44,16 +45,17 @@ public class AndOperator extends Operator {
 
     @Override
     public Symbol normalizeSymbol(Function function) {
-        Boolean result = true;
+        assert (function != null);
+
         for (Symbol symbol : function.arguments()) {
-            if (symbol instanceof BooleanLiteral) {
-                result = result && ((BooleanLiteral) symbol).value();
-            } else {
+            if ((symbol.symbolType() != SymbolType.BOOLEAN_LITERAL)) {
                 return function; // can't optimize -> return unmodified symbol
             }
         }
 
-        return new BooleanLiteral(result);
+        BooleanLiteral[] literals = new BooleanLiteral[function.arguments().size()];
+        function.arguments().toArray(literals);
+        return new BooleanLiteral(evaluate(literals));
     }
 
     @Override
