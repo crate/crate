@@ -121,7 +121,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testLocalCollectTask() throws Exception {
+    public void testMapSideCollectTask() throws Exception {
         ReferenceInfo clusterNameInfo = SysClusterTableInfo.INFOS.get(new ColumnIdent("name"));
         Symbol reference = new Reference(clusterNameInfo);
 

@@ -147,7 +147,7 @@ public class LocalDataCollectTest {
 
     private Functions functions;
     private IndexService indexService = mock(IndexService.class);
-    private LocalDataCollectOperation operation;
+    private MapSideDataCollectOperation operation;
     private Routing testRouting = new Routing(new HashMap<String, Map<String, Set<Integer>>>(1) {{
         put(TEST_NODE_ID, new HashMap<String, Set<Integer>>());
     }});
@@ -239,7 +239,7 @@ public class LocalDataCollectTest {
         when(indexService.shardSafe(1)).thenReturn(shard1Injector.getInstance(IndexShard.class));
         when(indicesService.indexServiceSafe(TEST_TABLE_NAME)).thenReturn(indexService);
 
-        operation = new LocalDataCollectOperation(injector.getInstance(ClusterService.class),
+        operation = new MapSideDataCollectOperation(injector.getInstance(ClusterService.class),
                 functions, injector.getInstance(ReferenceResolver.class), indicesService, testThreadPool);
     }
 

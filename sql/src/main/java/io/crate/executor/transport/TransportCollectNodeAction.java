@@ -26,7 +26,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.operator.operations.collect.DistributingCollectOperation;
-import io.crate.operator.operations.collect.LocalDataCollectOperation;
+import io.crate.operator.operations.collect.MapSideDataCollectOperation;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import org.cratedb.DataType;
@@ -54,7 +54,7 @@ public class TransportCollectNodeAction {
     private final TransportService transportService;
     private final ThreadPool threadPool;
     private final ClusterService clusterService;
-    private final LocalDataCollectOperation localDataCollector;
+    private final MapSideDataCollectOperation localDataCollector;
     private final PlanNodeStreamerVisitor planNodeStreamerVisitor;
     private final String executor = ThreadPool.Names.SEARCH;
     private final DistributingCollectOperation distributingCollectOperation;
@@ -63,7 +63,7 @@ public class TransportCollectNodeAction {
     public TransportCollectNodeAction(ThreadPool threadPool,
                                       ClusterService clusterService,
                                       TransportService transportService,
-                                      LocalDataCollectOperation localDataCollector,
+                                      MapSideDataCollectOperation localDataCollector,
                                       DistributingCollectOperation distributingCollectOperation,
                                       PlanNodeStreamerVisitor planNodeStreamerVisitor) {
         this.threadPool = threadPool;

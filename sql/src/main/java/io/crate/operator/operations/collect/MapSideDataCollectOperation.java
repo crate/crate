@@ -53,9 +53,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 import java.util.*;
 
 /**
- * collect local data from node/shards/docs on shards
+ * collect local data from node/shards/docs on nodes where the data resides (aka Mapper nodes)
  */
-public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
+public class MapSideDataCollectOperation implements CollectOperation<Object[][]> {
 
     private ESLogger logger = Loggers.getLogger(getClass());
 
@@ -80,11 +80,11 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
     protected final ClusterService clusterService;
 
     @Inject
-    public LocalDataCollectOperation(ClusterService clusterService,
-                                     Functions functions,
-                                     ReferenceResolver referenceResolver,
-                                     IndicesService indicesService,
-                                     ThreadPool threadPool) {
+    public MapSideDataCollectOperation(ClusterService clusterService,
+                                       Functions functions,
+                                       ReferenceResolver referenceResolver,
+                                       IndicesService indicesService,
+                                       ThreadPool threadPool) {
         this.clusterService = clusterService;
         this.functions = functions;
         this.referenceResolver = referenceResolver;
@@ -107,8 +107,8 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
      */
     @Override
     public ListenableFuture<Object[][]> collect(CollectNode collectNode) {
+        assert collectNode.isRouted(); // not routed collect is not handled here
         String localNodeId = clusterService.localNode().id();
-
         if (collectNode.executionNodes().contains(localNodeId)) {
             if (collectNode.routing().locations().get(localNodeId).size() == 0) {
                 // node collect
@@ -117,14 +117,9 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
                 // shard or doc level
                 return handleShardCollect(collectNode);
             }
-        } else if (collectNode.maxRowGranularity() == RowGranularity.CLUSTER) {
-            // cluster level collect on handler
-            return handleNodeCollect(collectNode);
         }
-
         throw new CrateException("unsupported routing");
     }
-
 
     /**
      * collect data on node level only - one row per node expected
@@ -139,7 +134,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
             result.set(Constants.EMPTY_RESULT);
             return result;
         }
-        assert collectNode.toCollect().size()>0;
+        assert collectNode.toCollect().size() > 0;
         // resolve Implementations
         ImplementationSymbolVisitor.Context ctx = new ImplementationSymbolVisitor(
                 this.referenceResolver,

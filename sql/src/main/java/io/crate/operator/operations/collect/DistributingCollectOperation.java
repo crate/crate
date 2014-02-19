@@ -52,7 +52,7 @@ import java.util.UUID;
  * handling distributing collect requests
  * collected data is distributed to downStream nodes that further merge/reduce their data
  */
-public class DistributingCollectOperation extends LocalDataCollectOperation {
+public class DistributingCollectOperation extends MapSideDataCollectOperation {
 
     private static class DistributingShardCollectFuture extends ShardCollectFuture {
 
