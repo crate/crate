@@ -29,8 +29,10 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
+import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
 public class InOperatorTest {
@@ -202,6 +204,87 @@ public class InOperatorTest {
 
         assertThat(result, instanceOf(BooleanLiteral.class));
         assertThat(((BooleanLiteral) result).value(), is(false));
+    }
+
+    @Test
+    public void testEvaluateIntegerIncluded() {
+        IntegerLiteral inValue = new IntegerLiteral(1);
+        SetLiteral inListValues = SetLiteral.fromLiterals(
+                DataType.INTEGER,
+                new HashSet<Literal>(
+                        Arrays.asList(
+                                new IntegerLiteral(1),
+                                new IntegerLiteral(2),
+                                new IntegerLiteral(4),
+                                new IntegerLiteral(8)
+                        )
+                )
+        );
+
+        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.INTEGER));
+        Boolean result = op.evaluate(inValue, inListValues);
+        assertTrue(result);
+    }
+
+    @Test
+    public void testEvaluateIntegerNotIncluded() {
+        IntegerLiteral inValue = new IntegerLiteral(128);
+
+        SetLiteral inListValues = SetLiteral.fromLiterals(
+                DataType.INTEGER,
+                new HashSet<Literal>(
+                        Arrays.asList(
+                                new IntegerLiteral(1),
+                                new IntegerLiteral(2),
+                                new IntegerLiteral(4),
+                                new IntegerLiteral(8)
+                        )
+                )
+        );
+
+        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.INTEGER));
+        Boolean result = op.evaluate(inValue, inListValues);
+        assertFalse(result);
+    }
+
+    @Test
+    public void testEvaluateStringIncluded() {
+        StringLiteral inValue = new StringLiteral("charlie");
+        SetLiteral inListValues = SetLiteral.fromLiterals(
+                DataType.STRING,
+                new HashSet<Literal>(
+                        Arrays.asList(
+                                new StringLiteral("alpha"),
+                                new StringLiteral("bravo"),
+                                new StringLiteral("charlie"),
+                                new StringLiteral("delta")
+                        )
+                )
+        );
+
+        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.INTEGER));
+        Boolean result = op.evaluate(inValue, inListValues);
+        assertTrue(result);
+    }
+
+    @Test
+    public void testEvaluateStringNotIncluded() {
+        StringLiteral inValue = new StringLiteral("not included");
+        SetLiteral inListValues = SetLiteral.fromLiterals(
+                DataType.STRING,
+                new HashSet<Literal>(
+                        Arrays.asList(
+                                new StringLiteral("alpha"),
+                                new StringLiteral("bravo"),
+                                new StringLiteral("charlie"),
+                                new StringLiteral("delta")
+                        )
+                )
+        );
+
+        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.INTEGER));
+        Boolean result = op.evaluate(inValue, inListValues);
+        assertFalse(result);
     }
 
 }

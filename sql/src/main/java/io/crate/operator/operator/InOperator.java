@@ -27,6 +27,8 @@ import io.crate.operator.Input;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 
+import java.util.Set;
+
 public class InOperator extends Operator {
 
     public static final String NAME = "op_in";
@@ -62,15 +64,27 @@ public class InOperator extends Operator {
         Literal leftLiteral = (Literal) left;
         SetLiteral literals = (SetLiteral) function.arguments().get(1);
 
-        if (literals.contains(leftLiteral)) {
-            return new BooleanLiteral(true);
+        // not in list if data types do not match.
+        if (leftLiteral.valueType() != literals.itemType()) {
+            return new BooleanLiteral(false);
         }
-        return new BooleanLiteral(false);
+
+        return new BooleanLiteral(evaluate(leftLiteral, literals));
     }
 
     @Override
     public Boolean evaluate(Input<?>... args) {
-        return null;
+        assert (args != null);
+        assert (args.length == 2);
+        assert (args[1] instanceof SetLiteral);
+
+        Object inValue = args[0].value();
+        Set<?> inList = (Set<?>)args[1].value();
+        if (inList.contains(inValue)) {
+            return true;
+        }
+
+        return false;
     }
 
 }

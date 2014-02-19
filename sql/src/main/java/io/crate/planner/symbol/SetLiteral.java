@@ -138,6 +138,10 @@ public class SetLiteral extends Literal<Set<?>, SetLiteral> {
         return valueType;
     }
 
+    public DataType itemType() {
+        return itemType;
+    }
+
     @Override
     public SymbolType symbolType() {
         return SymbolType.SET_LITERAL;
