@@ -97,7 +97,7 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
      * @return false if whereClause evaluates to <code>false</code> or {@link io.crate.planner.symbol.Null}
      */
     public boolean evaluatesToFalse(@Nullable Function whereClause) {
-        // no whereclause means match all
+        // no whereClause means match all
         if (whereClause == null) {
             return false;
         }
@@ -105,7 +105,7 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
     }
 
     /**
-     * Normalizes all sumbols of a List. Does not return a new list if no changes occur.
+     * Normalizes all symbols of a List. Does not return a new list if no changes occur.
      *
      * @param symbols the list to be normalized
      * @return a list with normalized symbols
