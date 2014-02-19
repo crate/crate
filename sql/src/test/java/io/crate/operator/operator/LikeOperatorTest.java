@@ -28,6 +28,8 @@ import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 import org.junit.Test;
 
+import static io.crate.operator.operator.LikeOperator.DEFAULT_ESCAPE;
+import static io.crate.operator.operator.LikeOperator.expressionToRegex;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.*;
 
@@ -173,7 +175,7 @@ public class LikeOperatorTest {
     public void testNormalizeSymbolLikeMixedMiddle() {
         Symbol result = normalizeSymbol("%o_a%", "foobar");
         assertThat(result, instanceOf(BooleanLiteral.class));
-        assertTrue(((BooleanLiteral)result).value());
+        assertTrue(((BooleanLiteral) result).value());
     }
 
     @Test
@@ -184,9 +186,61 @@ public class LikeOperatorTest {
     }
 
     @Test
+    public void testNormalizeSymbolLikeMixedMulti() {
+        Symbol result = normalizeSymbol("%%%sum%%", "Lorem ipsum dolor...");
+        assertThat(result, instanceOf(BooleanLiteral.class));
+        assertTrue(((BooleanLiteral)result).value());
+    }
+
+    @Test
     public void testNormalizeSymbolNotLikeMixedMiddle() {
         Symbol result = normalizeSymbol("%i%m", "Lorem ipsum dolor...");
         assertThat(result, instanceOf(BooleanLiteral.class));
-        assertFalse(((BooleanLiteral)result).value());
+        assertFalse(((BooleanLiteral) result).value());
     }
+
+    // Following tests: escaping wildcards
+
+    @Test
+    public void testExpressionToRegexExactlyOne() {
+        String expression = "fo_bar";
+        assertEquals("^fo.bar$", expressionToRegex(expression, DEFAULT_ESCAPE, true));
+    }
+
+    @Test
+    public void testExpressionToRegexZeroOrMore() {
+        String expression = "fo%bar";
+        assertEquals("^fo.*bar$", expressionToRegex(expression, DEFAULT_ESCAPE, true));
+    }
+
+    @Test
+    public void testExpressionToRegexEscapingPercent() {
+        String expression = "fo\\%bar";
+        assertEquals("^fo%bar$", expressionToRegex(expression, DEFAULT_ESCAPE, true));
+    }
+
+    @Test
+    public void testExpressionToRegexEscapingUnderline() {
+        String expression = "fo\\_bar";
+        assertEquals("^fo_bar$", expressionToRegex(expression, DEFAULT_ESCAPE, true));
+    }
+
+    @Test
+    public void testExpressionToRegexEscaping() {
+        String expression = "fo\\\\_bar";
+        assertEquals("^fo\\\\.bar$", expressionToRegex(expression, DEFAULT_ESCAPE, true));
+    }
+
+    @Test
+    public void testExpressionToRegexEscapingMutli() {
+        String expression = "%%\\%sum%%";
+        assertEquals("^.*.*%sum.*.*$", expressionToRegex(expression, DEFAULT_ESCAPE, true));
+    }
+
+    @Test
+    public void testExpressionToRegexMaliciousPatterns() {
+        String expression = "foo\\bar^$.*";
+        assertEquals("^foobar\\^\\$\\.\\*$", expressionToRegex(expression, DEFAULT_ESCAPE, true));
+    }
+
 }

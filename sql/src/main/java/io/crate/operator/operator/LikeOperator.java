@@ -37,8 +37,7 @@ public class LikeOperator extends Operator {
 
     private FunctionInfo info;
 
-    private static final String ZERO_OR_MORE = "%";
-    private static final String EXACTLY_ONE = "_";
+    public static final char DEFAULT_ESCAPE = '\\';
 
     public static void register(OperatorModule module) {
         module.registerOperatorFunction(new LikeOperator(generateInfo(NAME, DataType.STRING)));
@@ -69,16 +68,65 @@ public class LikeOperator extends Operator {
     }
 
     private boolean matches(StringLiteral expression, StringLiteral pattern) {
-        return Pattern.matches(replaceWildcards(expression), pattern.value().utf8ToString());
-    }
-
-    private String replaceWildcards(StringLiteral literal) {
-        String s = literal.value().utf8ToString();
-        return s.replaceAll(ZERO_OR_MORE, ".*").replaceAll(EXACTLY_ONE, ".");
+        return Pattern.matches(
+                expressionToRegex(expression, DEFAULT_ESCAPE, true),
+                pattern.value().utf8ToString()
+        );
     }
 
     @Override
     public Boolean evaluate(Input<?>... args) {
         return null;
     }
+
+    protected static String expressionToRegex(StringLiteral expression, char escapeChar, boolean shouldEscape) {
+        return expressionToRegex(expression.value().utf8ToString(), escapeChar, shouldEscape);
+    }
+
+    protected static String expressionToRegex(String patternString, char escapeChar, boolean shouldEscape) {
+        StringBuilder regex = new StringBuilder(patternString.length() * 2);
+
+        regex.append('^');
+        boolean escaped = false;
+        for (char currentChar : patternString.toCharArray()) {
+            if (shouldEscape && !escaped && currentChar == escapeChar) {
+                escaped = true;
+            } else {
+                switch (currentChar) {
+                    case '%':
+                        if (escaped) {
+                            regex.append("%");
+                        } else {
+                            regex.append(".*");
+                        }
+                        escaped = false;
+                        break;
+                    case '_':
+                        if (escaped) {
+                            regex.append("_");
+                        } else {
+                            regex.append('.');
+                        }
+                        escaped = false;
+                        break;
+                    default:
+                        // escape special regex characters
+                        switch (currentChar) {
+                            case '\\':
+                            case '^':
+                            case '$':
+                            case '.':
+                            case '*':
+                                regex.append('\\');
+                        }
+
+                        regex.append(currentChar);
+                        escaped = false;
+                }
+            }
+        }
+        regex.append('$');
+        return regex.toString();
+    }
+
 }
