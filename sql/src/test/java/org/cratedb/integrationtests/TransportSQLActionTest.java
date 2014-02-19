@@ -25,6 +25,7 @@ import com.carrotsearch.randomizedtesting.annotations.Timeout;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Ordering;
+import org.cratedb.Constants;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.*;
@@ -917,10 +918,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUpdateNestedObjectWithoutDetailedSchema() throws Exception {
-        prepareCreate("test")
-            .addMapping("default",
-                "coolness", "type=object,index=not_analyzed")
-            .execute().actionGet();
+        execute("create table test (coolness object)");
         ensureGreen();
 
         Map<String, Object> map = new HashMap<>();
@@ -1870,19 +1868,20 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGroupByMultiValueField() throws Exception {
-        // exception changed due to dropped support for parameter arrays
-        expectedException.expect(SQLParseException.class);
-        //expectedException.expect(GroupByOnArrayUnsupportedException.class);
+        expectedException.expect(GroupByOnArrayUnsupportedException.class);
         this.setup.groupBySetup();
-
-        execute("insert into characters (race, gender, name) values (?, ?, ?)",
-            new Object[] { new String[] {"Android"}, new String[] {"male", "robot"}, "Marvin2"}
-        );
-        execute("insert into characters (race, gender, name) values (?, ?, ?)",
-            new Object[] { new String[] {"Android"}, new String[] {"male", "robot"}, "Marvin3"}
-        );
+        // inserting multiple values not supported anymore
+        client().prepareIndex("characters", Constants.DEFAULT_MAPPING_TYPE).setSource(new HashMap<String, Object>(){{
+            put("race", new String[] {"Android"});
+            put("gender", new String[]{"male", "robot"});
+            put("name", "Marvin2");
+        }}).execute().actionGet();
+        client().prepareIndex("characters", Constants.DEFAULT_MAPPING_TYPE).setSource(new HashMap<String, Object>(){{
+            put("race", new String[] {"Android"});
+            put("gender", new String[]{"male", "robot"});
+            put("name", "Marvin3");
+        }}).execute().actionGet();
         refresh();
-
         execute("select gender from characters group by gender");
     }
 
