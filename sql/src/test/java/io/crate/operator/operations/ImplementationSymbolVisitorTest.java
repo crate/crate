@@ -25,9 +25,13 @@ import io.crate.metadata.*;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
+import io.crate.operator.aggregation.impl.AverageAggregation;
 import io.crate.operator.aggregation.impl.CountAggregation;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
@@ -40,6 +44,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 
 public class ImplementationSymbolVisitorTest {
@@ -91,6 +96,27 @@ public class ImplementationSymbolVisitorTest {
                 injector.getInstance(Functions.class),
                 RowGranularity.DOC
         );
+    }
+
+    @Test
+    public void testAggregationSymbolsInputReuse() throws Exception {
+        FunctionInfo countInfo = new FunctionInfo(
+                new FunctionIdent(CountAggregation.NAME, Arrays.asList(DataType.STRING)), DataType.LONG);
+        FunctionInfo avgInfo = new FunctionInfo(
+                new FunctionIdent(AverageAggregation.NAME, Arrays.asList(DataType.INTEGER)), DataType.DOUBLE);
+
+        List<Symbol> aggregations = Arrays.<Symbol>asList(
+                new Aggregation(avgInfo, Arrays.<Symbol>asList(new InputColumn(0)),
+                        Aggregation.Step.ITER, Aggregation.Step.FINAL),
+                new Aggregation(countInfo, Arrays.<Symbol>asList(new InputColumn(0)),
+                        Aggregation.Step.ITER, Aggregation.Step.FINAL)
+        );
+
+        ImplementationSymbolVisitor.Context context = visitor.process(aggregations);
+        Input<?> inputCount = context.aggregations.get(0).inputs()[0];
+        Input<?> inputAverage = context.aggregations.get(1).inputs()[0];
+
+        assertSame(inputCount, inputAverage);
     }
 
     @Test

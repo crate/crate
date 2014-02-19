@@ -36,10 +36,7 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.cratedb.sql.CrateException;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * convert Symbols into Inputs for evaluation and CollectExpressions
@@ -53,6 +50,7 @@ public class ImplementationSymbolVisitor extends
         protected Set<CollectExpression<?>> collectExpressions = new LinkedHashSet<>(); // to keep insertion order
         protected RowGranularity maxGranularity = RowGranularity.CLUSTER;
         protected List<AggregationContext> aggregations = new ArrayList<>();
+        protected Map<InputColumn, InputCollectExpression> allocatedInputCollectionExpressions = new HashMap<>();
 
         public RowGranularity maxGranularity() {
             return maxGranularity;
@@ -70,6 +68,16 @@ public class ImplementationSymbolVisitor extends
 
         public AggregationContext[] aggregations() {
             return aggregations.toArray(new AggregationContext[aggregations.size()]);
+        }
+
+        public Input<?> collectExpressionFor(InputColumn inputColumn) {
+            InputCollectExpression<?> collectExpression = allocatedInputCollectionExpressions.get(inputColumn);
+            if (collectExpression == null) {
+                collectExpression = new InputCollectExpression<>(inputColumn.index());
+                allocatedInputCollectionExpressions.put(inputColumn, collectExpression);
+            }
+            collectExpressions.add(collectExpression);
+            return collectExpression;
         }
     }
 
@@ -90,9 +98,7 @@ public class ImplementationSymbolVisitor extends
 
     @Override
     public Input<?> visitInputColumn(InputColumn inputColumn, Context context) {
-        InputCollectExpression<?> input = new InputCollectExpression<>(inputColumn.index());
-        context.collectExpressions.add(input);
-        return input;
+        return context.collectExpressionFor(inputColumn);
     }
 
     @Override
