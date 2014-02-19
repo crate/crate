@@ -24,6 +24,7 @@ package io.crate.operator.operations.collect;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -280,13 +281,6 @@ public class LocalDataCollectTest {
     }
 
     @Test
-    public void testCollectNothing() throws Exception {
-        CollectNode collectNode = new CollectNode("nothing", testRouting);
-        Object[][] result = operation.collect(collectNode).get();
-        assertThat(result, equalTo(new Object[0]));
-    }
-
-    @Test
     public void testCollectUnknownReference() throws Exception {
 
         expectedException.expect(CrateException.class);
@@ -366,10 +360,10 @@ public class LocalDataCollectTest {
     public void testCollectWithFalseWhereClause() throws Exception {
         CollectNode collectNode = new CollectNode("whereClause", testRouting);
         collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
-        collectNode.whereClause(new Function(
+        collectNode.whereClause(new WhereClause(new Function(
                 AndOperator.INFO,
                 Arrays.<Symbol>asList(new BooleanLiteral(false), new BooleanLiteral(false))
-        ));
+        )));
         Object[][] result = operation.collect(collectNode).get();
         assertArrayEquals(new Object[0][], result);
     }
@@ -378,10 +372,10 @@ public class LocalDataCollectTest {
     public void testCollectWithTrueWhereClause() throws Exception {
         CollectNode collectNode = new CollectNode("whereClause", testRouting);
         collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
-        collectNode.whereClause(new Function(
+        collectNode.whereClause(new WhereClause(new Function(
                 AndOperator.INFO,
                 Arrays.<Symbol>asList(new BooleanLiteral(true), new BooleanLiteral(true))
-        ));
+        )));
         collectNode.maxRowGranularity(RowGranularity.NODE);
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, equalTo(1));
@@ -394,10 +388,10 @@ public class LocalDataCollectTest {
         EqOperator op = (EqOperator) functions.get(new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)));
         CollectNode collectNode = new CollectNode("whereClause", testRouting);
         collectNode.toCollect(Arrays.<Symbol>asList(testNodeReference));
-        collectNode.whereClause(new Function(
+        collectNode.whereClause(new WhereClause(new Function(
                 op.info(),
                 Arrays.<Symbol>asList(Null.INSTANCE, Null.INSTANCE)
-        ));
+        )));
         Object[][] result = operation.collect(collectNode).get();
         assertArrayEquals(new Object[0][], result);
     }
@@ -416,11 +410,13 @@ public class LocalDataCollectTest {
 
     @Test
     public void testCollectShardExpressionsWhereShardIdIs0() throws Exception {
-        EqOperator op = (EqOperator) functions.get(new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)));
+        EqOperator op = (EqOperator) functions.get(new FunctionIdent(
+                EqOperator.NAME, ImmutableList.of(DataType.INTEGER, DataType.INTEGER)));
 
         CollectNode collectNode = new CollectNode("shardCollect", shardRouting(0, 1));
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
-        collectNode.whereClause(new Function(op.info(), Arrays.<Symbol>asList(testShardIdReference, new IntegerLiteral(0))));
+        collectNode.whereClause(new WhereClause(
+                new Function(op.info(), Arrays.<Symbol>asList(testShardIdReference, new IntegerLiteral(0)))));
         collectNode.maxRowGranularity(RowGranularity.SHARD);
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(equalTo(1)));
@@ -438,10 +434,10 @@ public class LocalDataCollectTest {
         int i, j;
         if (result[0][0] == 0) {
             i = 0;
-            j=1;
+            j = 1;
         } else {
             i = 1;
-            j=0;
+            j = 0;
         }
         assertThat((Integer) result[i][0], is(0));
         assertThat((Boolean) result[i][1], is(true));

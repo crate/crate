@@ -21,11 +21,6 @@
 
 package io.crate.planner.node;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -52,27 +47,6 @@ public class ESGetNode extends AbstractESNode {
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitESGetNode(this, context);
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        int numIds = in.readVInt();
-        ids = new ArrayList<>(numIds);
-        for (int i = 0; i < numIds; i++) {
-            ids.add(in.readString());
-        }
-        index = in.readString();
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeVInt(ids.size());
-        for (String id : ids) {
-            out.writeString(id);
-        }
-        out.writeString(index);
     }
 
     public List<String> ids() {

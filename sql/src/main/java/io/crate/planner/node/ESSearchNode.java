@@ -23,10 +23,9 @@ package io.crate.planner.node;
 
 
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import io.crate.planner.symbol.Function;
+import io.crate.analyze.WhereClause;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.cratedb.Constants;
@@ -40,21 +39,22 @@ public class ESSearchNode extends AbstractESNode {
     private final int limit;
     private final int offset;
     private final boolean[] reverseFlags;
-    private final Optional<Function> whereClause;
+    private final WhereClause whereClause;
 
     public ESSearchNode(List<Symbol> outputs,
                         @Nullable List<Reference> orderBy,
                         @Nullable boolean[] reverseFlags,
                         @Nullable Integer limit,
                         @Nullable Integer offset,
-                        @Nullable Function whereClause) {
-        Preconditions.checkNotNull(outputs);
+                        WhereClause whereClause) {
+        assert outputs != null;
+        assert whereClause != null;
         this.orderBy = Objects.firstNonNull(orderBy, ImmutableList.<Reference>of());
         this.reverseFlags = Objects.firstNonNull(reverseFlags, new boolean[0]);
         Preconditions.checkArgument(this.orderBy.size() == this.reverseFlags.length,
                 "orderBy size doesn't match with reverseFlag length");
 
-        this.whereClause = Optional.fromNullable(whereClause);
+        this.whereClause = whereClause;
         this.outputs = outputs;
 
         // TODO: move constant to some other location?
@@ -78,7 +78,7 @@ public class ESSearchNode extends AbstractESNode {
         return orderBy;
     }
 
-    public Optional<Function> whereClause() {
+    public WhereClause whereClause() {
         return whereClause;
     }
 

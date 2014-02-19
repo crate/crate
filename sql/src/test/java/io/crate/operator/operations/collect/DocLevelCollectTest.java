@@ -22,6 +22,7 @@
 package io.crate.operator.operations.collect;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
@@ -117,9 +118,9 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         CollectNode collectNode = new CollectNode("docCollect", routing());
         collectNode.toCollect(Arrays.<Symbol>asList(testDocLevelReference));
         collectNode.maxRowGranularity(RowGranularity.DOC);
-        collectNode.whereClause(new Function(
+        collectNode.whereClause(new WhereClause(new Function(
                 op.info(),
-                Arrays.<Symbol>asList(testDocLevelReference, new IntegerLiteral(2))
+                Arrays.<Symbol>asList(testDocLevelReference, new IntegerLiteral(2)))
         ));
 
         Object[][] result = operation.collect(collectNode).get();

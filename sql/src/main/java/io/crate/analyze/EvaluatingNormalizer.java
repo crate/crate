@@ -10,6 +10,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.List;
 
 
@@ -41,19 +42,15 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
 
     @Override
     public Symbol visitFunction(Function function, Void context) {
-        int i = 0;
-        // copy function to not modify where clause
-        Function copy = function.clone();
-        for (Symbol symbol : function.arguments()) {
-            copy.setArgument(i, symbol.accept(this, context));
-            i++;
+        List<Symbol> newArgs = normalize(function.arguments());
+        if (newArgs != function.arguments()) {
+            function = new Function(function.info(), newArgs);
         }
-
-        return optimize(copy);
+        return normalizeFunctionSymbol(function);
     }
 
     @SuppressWarnings("unchecked")
-    private Symbol optimize(Function function) {
+    private Symbol normalizeFunctionSymbol(Function function) {
         FunctionImplementation impl = functions.get(function.info().ident());
         if (impl != null) {
             return impl.normalizeSymbol(function);
@@ -108,12 +105,32 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
     }
 
     /**
-     * normalizes the given list of symbols inplace
+     * Normalizes all sumbols of a List. Does not return a new list if no changes occur.
+     *
+     * @param symbols the list to be normalized
+     * @return a list with normalized symbols
      */
-    public void normalize(List<Symbol> symbols) {
-        for (int i = 0; i < symbols.size(); i++) {
-            symbols.set(i, process(symbols.get(i), null));
+    public List<Symbol> normalize(List<Symbol> symbols) {
+        if (symbols.size() > 0) {
+            boolean changed = false;
+            Symbol[] newArgs = new Symbol[symbols.size()];
+            int i = 0;
+            for (Symbol symbol : symbols) {
+                Symbol newArg = normalize(symbol);
+                changed = changed || newArg != symbol;
+                newArgs[i++] = newArg;
+            }
+            if (changed) {
+                return Arrays.asList(newArgs);
+            }
         }
+        return symbols;
     }
 
+    public Symbol normalize(@Nullable Symbol symbol) {
+        if (symbol == null) {
+            return null;
+        }
+        return process(symbol, null);
+    }
 }

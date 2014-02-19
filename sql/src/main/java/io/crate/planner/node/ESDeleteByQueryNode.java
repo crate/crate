@@ -21,28 +21,27 @@
 
 package io.crate.planner.node;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
-import io.crate.planner.symbol.Function;
-import org.elasticsearch.common.Nullable;
+import io.crate.analyze.WhereClause;
 
 import java.util.Set;
 
 public class ESDeleteByQueryNode extends PlanNode {
 
     private final Set<String> indices;
-    private final Optional<Function> whereClause;
+    private final WhereClause whereClause;
 
-    public ESDeleteByQueryNode(Set<String> indices, @Nullable Function whereClause) {
+    public ESDeleteByQueryNode(Set<String> indices, WhereClause whereClause) {
+        assert whereClause != null;
         this.indices = indices;
-        this.whereClause = Optional.fromNullable(whereClause);
+        this.whereClause = whereClause;
     }
 
     public Set<String> indices() {
         return indices;
     }
 
-    public Optional<Function> whereClause() {
+    public WhereClause whereClause() {
         return whereClause;
     }
 

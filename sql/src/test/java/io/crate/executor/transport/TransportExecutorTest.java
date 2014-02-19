@@ -25,6 +25,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.analyze.WhereClause;
 import io.crate.executor.Job;
 import io.crate.executor.transport.task.elasticsearch.ESBulkIndexTask;
 import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
@@ -57,6 +58,10 @@ import static org.hamcrest.number.OrderingComparison.greaterThan;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class TransportExecutorTest extends SQLTransportIntegrationTest {
+
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
 
     private ClusterService clusterService;
     private ClusterName clusterName;
@@ -178,7 +183,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Reference>asList(name_ref),
                 new boolean[]{false},
-                null, null, null
+                null, null, WhereClause.MATCH_ALL
         );
         Plan plan = new Plan();
         plan.add(node);
@@ -213,7 +218,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Reference>asList(name_ref),
                 new boolean[]{false},
                 null, null,
-                whereClause
+                new WhereClause(whereClause)
         );
         Plan plan = new Plan();
         plan.add(node);
@@ -237,7 +242,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 DataType.BOOLEAN),
                 Arrays.<Symbol>asList(id_ref, new IntegerLiteral(2)));
 
-        ESDeleteByQueryNode node = new ESDeleteByQueryNode(ImmutableSet.<String>of("characters"), whereClause);
+        ESDeleteByQueryNode node = new ESDeleteByQueryNode(ImmutableSet.<String>of("characters"),
+                new WhereClause(whereClause));
         Plan plan = new Plan();
         plan.add(node);
         Job job = executor.newJob(plan);
@@ -254,7 +260,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Reference>asList(name_ref),
                 new boolean[]{false},
                 null, null,
-                whereClause
+                new WhereClause(whereClause)
         );
         plan = new Plan();
         plan.add(searchNode);

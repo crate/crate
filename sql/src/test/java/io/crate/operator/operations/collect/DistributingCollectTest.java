@@ -22,6 +22,7 @@
 package io.crate.operator.operations.collect;
 
 import com.google.common.collect.ImmutableSet;
+import io.crate.analyze.WhereClause;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.metadata.*;
@@ -77,6 +78,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class DistributingCollectTest {
+
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
 
     private IndexService indexService = mock(IndexService.class);
     private DistributingCollectOperation operation;
@@ -219,7 +224,6 @@ public class DistributingCollectTest {
         collectNode.maxRowGranularity(RowGranularity.SHARD);
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
 
-
         assertThat(operation.collect(collectNode).get(), is(Constants.EMPTY_RESULT));
         Thread.sleep(20); // give the mocked transport time to operate
         assertThat(buckets.size(), is(2));
@@ -245,10 +249,10 @@ public class DistributingCollectTest {
         collectNode.maxRowGranularity(RowGranularity.SHARD);
         collectNode.toCollect(Arrays.<Symbol>asList(testShardIdReference));
 
-        collectNode.whereClause(new Function(
+        collectNode.whereClause(new WhereClause(new Function(
                 AndOperator.INFO,
                 Arrays.<Symbol>asList(new BooleanLiteral(false), new BooleanLiteral(false))
-        ));
+        )));
 
         Object[][] pseudoResult = operation.collect(collectNode).get();
         assertThat(pseudoResult, is(Constants.EMPTY_RESULT));

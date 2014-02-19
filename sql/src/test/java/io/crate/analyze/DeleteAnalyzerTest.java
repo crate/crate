@@ -75,7 +75,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
         assertFalse(analysis.hasGroupBy());
 
-        Function whereClause = analysis.whereClause();
+        Function whereClause = analysis.whereClause().query();
         assertEquals(EqOperator.NAME, whereClause.info().ident().name());
         assertFalse(whereClause.info().isAggregate());
 

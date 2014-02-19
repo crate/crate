@@ -31,4 +31,5 @@ public abstract class SysTableInfo implements TableInfo {
     public boolean isAlias() {
         return false;
     }
+
 }

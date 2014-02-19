@@ -23,6 +23,7 @@ package io.crate.analyze.elasticsearch;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.operator.operator.*;
 import io.crate.operator.predicate.IsNullPredicate;
@@ -88,7 +89,7 @@ public class ESQueryBuilderTest {
     }
 
     private void xcontetAssert(Function whereClause, String expected) throws IOException {
-        BytesReference reference = generator.convert(whereClause);
+        BytesReference reference = generator.convert(new WhereClause(whereClause));
         String actual = reference.toUtf8();
         assertThat(actual, is(expected));
     }
@@ -228,7 +229,7 @@ public class ESQueryBuilderTest {
         SetLiteral set = new SetLiteral(DataType.STRING, list);
         Function inList = new Function(inListImpl.info(), Arrays.<Symbol>asList(ref, set));
 
-        BytesReference reference = generator.convert(inList);
+        BytesReference reference = generator.convert(new WhereClause(inList));
         Tuple<XContentType, Map<String, Object>> actualMap =
                 XContentHelper.convertToMap(reference, true);
         ArrayList<String> actualList = ((ArrayList)
@@ -261,7 +262,8 @@ public class ESQueryBuilderTest {
                 DataType.BOOLEAN),
                 Arrays.<Symbol>asList(minScore_ref, new DoubleLiteral(0.4))
         );
-        ESSearchNode node = new ESSearchNode(ImmutableList.<Symbol>of(), null, null, null, null, whereClause);
+        ESSearchNode node = new ESSearchNode(
+                ImmutableList.<Symbol>of(), null, null, null, null, new WhereClause(whereClause));
         BytesReference bytesReference = generator.convert(node, ImmutableList.<Reference>of());
 
         assertThat(bytesReference.toUtf8(),
@@ -278,7 +280,7 @@ public class ESQueryBuilderTest {
                 new boolean[0],
                 null,
                 null,
-                whereClause);
+                new WhereClause(whereClause));
 
         BytesReference reference = generator.convert(searchNode, ImmutableList.<Reference>of(name_ref));
         String actual = reference.toUtf8();
@@ -292,7 +294,7 @@ public class ESQueryBuilderTest {
                 TestingHelpers.createReference("_version", DataType.INTEGER),
                 new IntegerLiteral(4)));
 
-        generator.convert(whereClause);
+        generator.convert(new WhereClause(whereClause));
     }
 
     @Test
@@ -302,7 +304,7 @@ public class ESQueryBuilderTest {
 
         ESDeleteByQueryNode deleteByQueryNode = new ESDeleteByQueryNode(
                 ImmutableSet.<String>of(characters.name()),
-                whereClause);
+                new WhereClause(whereClause));
 
         BytesReference reference = generator.convert(deleteByQueryNode);
         String actual = reference.toUtf8();

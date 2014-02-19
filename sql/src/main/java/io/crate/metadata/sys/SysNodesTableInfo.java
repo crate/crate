@@ -23,9 +23,9 @@ package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.Function;
 import org.cratedb.DataType;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -105,7 +105,7 @@ public class SysNodesTableInfo extends SysTableInfo {
     }
 
     @Override
-    public Routing getRouting(Function whereClause) {
+    public Routing getRouting(WhereClause whereClause) {
         DiscoveryNodes nodes = clusterService.state().nodes();
         ImmutableMap.Builder<String, Map<String, Set<Integer>>> builder = ImmutableMap.builder();
 

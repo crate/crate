@@ -27,7 +27,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -50,21 +49,12 @@ public abstract class AbstractESNode extends PlanNode {
     }
 
     @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        int numOutputs = in.readVInt();
-        outputs = new ArrayList<>(numOutputs);
-        for (int i = 0; i < numOutputs; i++) {
-            outputs.add(Symbol.fromStream(in));
-        }
+    public final void readFrom(StreamInput in) throws IOException {
+        throw new UnsupportedOperationException("ESNode has no serialization support");
     }
 
     @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeVInt(outputs.size());
-        for (Symbol output : outputs) {
-            Symbol.toStream(output, out);
-        }
+    public final void writeTo(StreamOutput out) throws IOException {
+        throw new UnsupportedOperationException("ESNode has no serialization support");
     }
 }
