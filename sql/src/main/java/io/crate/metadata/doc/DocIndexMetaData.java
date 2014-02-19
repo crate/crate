@@ -39,6 +39,7 @@ import org.elasticsearch.common.collect.Tuple;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -204,11 +205,18 @@ public class DocIndexMetaData {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private ImmutableList<String> getPrimaryKey() {
-        @SuppressWarnings("unchecked")
         Map<String, Object> metaMap = (Map<String, Object>) defaultMappingMap.get("_meta");
         if (metaMap != null) {
-            return ImmutableList.of((String) metaMap.get("primary_keys"));
+            ImmutableList.Builder<String> builder = ImmutableList.builder();
+            Object pKeys = metaMap.get("primary_keys");
+            if (pKeys instanceof String) {
+                builder.add((String) pKeys);
+            } else if (pKeys instanceof Collection) {
+                builder.addAll((Collection)pKeys);
+            }
+            return builder.build();
         }
         return ImmutableList.of("_id");
     }

@@ -48,6 +48,10 @@ public class SymbolVisitor<C, R> {
         return visitSymbol(symbol, context);
     }
 
+    public R visitDynamicReference(DynamicReference symbol, C context) {
+        return visitSymbol(symbol, context);
+    }
+
     public R visitFunction(Function symbol, C context) {
         return visitSymbol(symbol, context);
     }
@@ -89,6 +93,10 @@ public class SymbolVisitor<C, R> {
     }
 
     public R visitObjectLiteral(ObjectLiteral symbol, C context) {
+        return visitSymbol(symbol, context);
+    }
+
+    public R visitTimestampLiteral(TimestampLiteral symbol, C context) {
         return visitSymbol(symbol, context);
     }
 }

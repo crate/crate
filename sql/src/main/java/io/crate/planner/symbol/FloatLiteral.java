@@ -59,4 +59,12 @@ public class FloatLiteral extends NumberLiteral<Float, FloatLiteral> {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeFloat(value);
     }
+
+    @Override
+    public Literal convertTo(DataType type) {
+        if (type == DataType.TIMESTAMP) {
+            return new TimestampLiteral((long)(value()*1000));
+        }
+        return super.convertTo(type);
+    }
 }

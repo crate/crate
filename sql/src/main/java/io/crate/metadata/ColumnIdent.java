@@ -64,13 +64,30 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
         return new ColumnIdent(parent.name, childPath);
     }
 
+    /**
+     * person['addresses']['street'] --> person['addresses']
+     * <p>
+     * person --> null
+     */
     public ColumnIdent getParent() {
         if (isColumn()) {
             return null;
         }
 
         if (path.size() > 1) {
-            return new ColumnIdent(name(), path.subList(0, path.size() - 2));
+            return new ColumnIdent(name(), path.subList(0, path.size() - 1));
+        }
+        return new ColumnIdent(name());
+    }
+
+    /**
+     * person['addresses']['street'] --> person
+     * <p>
+     * person --> person
+     */
+    public ColumnIdent getRoot() {
+        if (isColumn()) {
+            return this;
         }
         return new ColumnIdent(name());
     }

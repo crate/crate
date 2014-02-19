@@ -21,87 +21,70 @@
 
 package io.crate.planner.symbol;
 
-import com.google.common.base.Objects;
-import com.google.common.base.Preconditions;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.planner.RowGranularity;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class Reference extends ValueSymbol {
+public class DynamicReference extends Reference {
 
-    public static final SymbolFactory<Reference> FACTORY = new SymbolFactory<Reference>() {
+    public static final SymbolFactory FACTORY = new SymbolFactory() {
         @Override
-        public Reference newInstance() {
-            return new Reference();
+        public Symbol newInstance() {
+            return new DynamicReference();
         }
     };
 
     private ReferenceInfo info;
 
-    public Reference(ReferenceInfo info) {
-        Preconditions.checkArgument(info!=null, "Info is null");
+    public DynamicReference() {}
+
+    public DynamicReference(ReferenceInfo info) {
         this.info = info;
     }
 
-    public Reference() {
-
+    public DynamicReference(ReferenceIdent ident, RowGranularity rowGranularity) {
+        this.info = new ReferenceInfo(ident, rowGranularity, DataType.NULL);
     }
 
+    @Override
     public ReferenceInfo info() {
         return info;
     }
 
+    public void valueType(DataType dataType) {
+        assert this.info != null;
+        this.info = new ReferenceInfo(info.ident(), info.granularity(), dataType, info.objectType());
+    }
+
+    public void objectType(ReferenceInfo.ObjectType objectType) {
+        assert this.info != null;
+        this.info = new ReferenceInfo(info.ident(), info.granularity(), info.type(), objectType);
+    }
+
     @Override
     public SymbolType symbolType() {
-        return SymbolType.REFERENCE;
-    }
-
-    @Override
-    public DataType valueType() {
-        return info().type();
-    }
-
-    @Override
-    public String toString() {
-        return Objects.toStringHelper(this)
-                .add("info", info())
-                .toString();
+        return SymbolType.DYNAMIC_REFERENCE;
     }
 
     @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
-        return visitor.visitReference(this, context);
+        return visitor.visitDynamicReference(this, context);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         info = new ReferenceInfo();
         info.readFrom(in);
+
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        info().writeTo(out);
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if ((obj == null) || (getClass() != obj.getClass())) {
-            return false;
-        }
-
-        Reference o = (Reference) obj;
-        return Objects.equal(info().ident(), o.info().ident());
-    }
-
-    @Override
-    public int hashCode() {
-        return info().hashCode();
+        info.writeTo(out);
     }
 }

@@ -50,6 +50,9 @@ public abstract class NumberLiteral<ValueType extends Number, LiteralType> exten
             case STRING:
                 convertedValue = value().toString();
                 break;
+            case TIMESTAMP:
+                convertedValue = value().longValue();
+                break;
             default:
                 return super.convertTo(type);
         }

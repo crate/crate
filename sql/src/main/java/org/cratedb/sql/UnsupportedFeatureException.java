@@ -19,38 +19,24 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.symbol;
+package org.cratedb.sql;
 
-public enum SymbolType {
+public class UnsupportedFeatureException extends CrateException {
 
-    AGGREGATION(Aggregation.FACTORY),
-    REFERENCE(Reference.FACTORY),
-    VALUE(Value.FACTORY),
-    FUNCTION(Function.FACTORY),
-    STRING_LITERAL(StringLiteral.FACTORY),
-    DOUBLE_LITERAL(DoubleLiteral.FACTORY),
-    FLOAT_LITERAL(FloatLiteral.FACTORY),
-    BOOLEAN_LITERAL(BooleanLiteral.FACTORY),
-    INTEGER_LITERAL(IntegerLiteral.FACTORY),
-    LONG_LITERAL(LongLiteral.FACTORY),
-    NULL_LITERAL(Null.FACTORY),
-    OBJECT_LITERAL(ObjectLiteral.FACTORY),
-    SET_LITERAL(SetLiteral.FACTORY),
-    INPUT_COLUMN(InputColumn.FACTORY),
-    DYNAMIC_REFERENCE(DynamicReference.FACTORY);
-
-    private final Symbol.SymbolFactory factory;
-
-    SymbolType(Symbol.SymbolFactory factory) {
-        this.factory = factory;
+    public UnsupportedFeatureException(Throwable e) {
+        super(e);
     }
 
-    public Symbol newInstance() {
-        return factory.newInstance();
+    public UnsupportedFeatureException(String msg) {
+        super(msg);
     }
 
-    public boolean isLiteral() {
-        return ordinal() > FUNCTION.ordinal() && ordinal() < INPUT_COLUMN.ordinal();
+    public UnsupportedFeatureException(String msg, Exception e) {
+        super(msg, e);
     }
 
+    @Override
+    public int errorCode() {
+        return 4004;
+    }
 }
