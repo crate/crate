@@ -41,6 +41,7 @@ import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.internal.ShardSearchRequest;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * collect documents from ES shard, a lucene index
@@ -49,8 +50,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
 
     private final SearchContext searchContext;
     private final Projector downStream;
-    private final Input<?>[] topLevelInputs;
-    private final LuceneCollectorExpression<?>[] collectorExpressions;
+    private final List<Input<?>> topLevelInputs;
+    private final List<LuceneCollectorExpression<?>> collectorExpressions;
 
     public LuceneDocCollector(ClusterService clusterService,
                               ShardId shardId,
@@ -58,8 +59,8 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
                               ScriptService scriptService,
                               CacheRecycler cacheRecycler,
                               SQLXContentQueryParser sqlxContentQueryParser,
-                              Input<?>[] inputs,
-                              LuceneCollectorExpression<?>[] collectorExpressions,
+                              List<Input<?>> inputs,
+                              List<LuceneCollectorExpression<?>> collectorExpressions,
                               BytesReference querySource,
                               Projector downStreamProjector) throws Exception {
         this.downStream = downStreamProjector;
@@ -89,7 +90,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
 
     @Override
     public void collect(int doc) throws IOException {
-        Object[] newRow = new Object[topLevelInputs.length];
+        Object[] newRow = new Object[topLevelInputs.size()];
         for (LuceneCollectorExpression e : collectorExpressions) {
             e.setNextDocId(doc);
         }

@@ -36,7 +36,6 @@ import io.crate.planner.node.MergeNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import org.cratedb.DataType;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ListenableActionFuture;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;

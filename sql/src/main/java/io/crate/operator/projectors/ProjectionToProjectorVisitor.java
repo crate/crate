@@ -21,6 +21,7 @@
 
 package io.crate.operator.projectors;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
@@ -28,7 +29,6 @@ import io.crate.planner.projection.*;
 import io.crate.planner.symbol.Aggregation;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -40,11 +40,12 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         /**
          * add the projector to the list of projectors
          * and connect this projector to the last gathered one by setting it as downStream.
+         *
          * @param projector
          */
         public void add(Projector projector) {
             if (!projectors.isEmpty()) {
-                projectors.get(projectors.size()-1).setDownStream(projector);
+                projectors.get(projectors.size() - 1).setDownStream(projector);
             }
             projectors.add(projector);
         }
@@ -78,7 +79,7 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         List<CollectExpression<?>> collectExpressions = new ArrayList<>();
 
         ImplementationSymbolVisitor.Context ctx = symbolVisitor.process(projection.outputs());
-        inputs.addAll(Arrays.asList(ctx.topLevelInputs()));
+        inputs.addAll(ctx.topLevelInputs());
         collectExpressions.addAll(ctx.collectExpressions());
 
         if (projection.isOrdered()) {
@@ -86,12 +87,12 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
             ImplementationSymbolVisitor.Context orderByCtx = symbolVisitor.process(projection.orderBy());
 
             // append orderby inputs to row, needed for sorting on them
-            inputs.addAll(Arrays.asList(orderByCtx.topLevelInputs()));
+            inputs.addAll(orderByCtx.topLevelInputs());
             collectExpressions.addAll(orderByCtx.collectExpressions());
 
-            int[] orderByIndices = new int[inputs.size()-numOutputs];
+            int[] orderByIndices = new int[inputs.size() - numOutputs];
             int idx = 0;
-            for (int i=numOutputs; i<inputs.size(); i++) {
+            for (int i = numOutputs; i < inputs.size(); i++) {
                 orderByIndices[idx++] = i;
             }
 
@@ -117,15 +118,14 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
     @Override
     public Projector visitGroupProjection(GroupProjection projection, Context context) {
         ImplementationSymbolVisitor.Context symbolContext = symbolVisitor.process(projection.keys());
-        Input<?>[] keyInputs = symbolContext.topLevelInputs();
+        List<Input<?>> keyInputs = symbolContext.topLevelInputs();
 
         for (Aggregation aggregation : projection.values()) {
             symbolVisitor.process(aggregation, symbolContext);
         }
         Projector groupProjector = new GroupingProjector(
                 keyInputs,
-                symbolContext.collectExpressions().toArray(
-                        new CollectExpression[symbolContext.collectExpressions().size()]),
+                ImmutableList.copyOf(symbolContext.collectExpressions()),
                 symbolContext.aggregations()
         );
         context.add(groupProjector);

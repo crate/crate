@@ -21,30 +21,36 @@
 
 package io.crate.operator.operations;
 
-import io.crate.metadata.*;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.ReferenceResolver;
 import io.crate.operator.Input;
 import io.crate.operator.InputCollectExpression;
 import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.CollectExpression;
-import io.crate.operator.aggregation.FunctionExpression;
-import io.crate.operator.reference.doc.LuceneCollectorExpression;
-import io.crate.operator.reference.doc.DocLevelExpressions;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.CollectNode;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
 import org.cratedb.sql.CrateException;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * convert Symbols into Inputs for evaluation and CollectExpressions
  * that might be treated in a special way
  */
-public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSymbolVisitor.Context, Input<?>> {
-    public static class Context {
+public class ImplementationSymbolVisitor extends
+        AbstractImplementationSymbolVisitor<ImplementationSymbolVisitor.Context> {
+
+    public static class Context extends AbstractImplementationSymbolVisitor.Context {
+
         protected Set<CollectExpression<?>> collectExpressions = new LinkedHashSet<>(); // to keep insertion order
-        protected List<Input<?>> topLevelInputs = new ArrayList<>();
-        protected List<LuceneCollectorExpression<?>> docLevelExpressions = new ArrayList<>();
         protected RowGranularity maxGranularity = RowGranularity.CLUSTER;
         protected List<AggregationContext> aggregations = new ArrayList<>();
 
@@ -58,22 +64,8 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
             }
         }
 
-        private void add(Input<?> input) {
-            topLevelInputs.add(input);
-        }
-
-        public LuceneCollectorExpression<?>[] docLevelExpressions() {
-            return docLevelExpressions.toArray(new LuceneCollectorExpression<?>[docLevelExpressions.size()]);
-        }
-
         public Set<CollectExpression<?>> collectExpressions() {
             return collectExpressions;
-        }
-
-        // note: some implementations using this method expect a copy of the data
-        // so that if the context / backing list is manipulated the output from this doesn't change
-        public Input<?>[] topLevelInputs() {
-            return topLevelInputs.toArray(new Input<?>[topLevelInputs.size()]);
         }
 
         public AggregationContext[] aggregations() {
@@ -82,59 +74,18 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
     }
 
     protected final ReferenceResolver referenceResolver;
-    protected final Functions functions;
     protected final RowGranularity rowGranularity;
 
-
-    public ImplementationSymbolVisitor(ReferenceResolver referenceResolver, Functions functions, RowGranularity rowGranularity) {
+    public ImplementationSymbolVisitor(ReferenceResolver referenceResolver, Functions functions,
+                                       RowGranularity rowGranularity) {
+        super(functions);
         this.referenceResolver = referenceResolver;
-        this.functions = functions;
         this.rowGranularity = rowGranularity;
     }
 
-
-    public Context process(CollectNode node) {
-        Context context = new Context();
-        if (node.toCollect() != null) {
-            for (Symbol symbol : node.toCollect()) {
-                context.add(process(symbol, context));
-            }
-        }
-        return context;
-    }
-
-    public Context process(Symbol... symbols) {
-        Context context = new Context();
-        for (Symbol symbol : symbols) {
-            context.add(process(symbol, context));
-        }
-        return context;
-    }
-
-    public Context process(List<Symbol> symbols) {
-        Context context = new Context();
-        for (Symbol symbol : symbols) {
-            context.add(process(symbol, context));
-        }
-        return context;
-    }
-
     @Override
-    public Input<?> visitFunction(Function function, Context context) {
-        final FunctionImplementation functionImplementation = functions.get(function.info().ident());
-        if (functionImplementation != null && functionImplementation instanceof Scalar<?>) {
-
-            List<Symbol> arguments = function.arguments();
-            Input[] argumentInputs = new Input[arguments.size()];
-            int i = 0;
-            for (Symbol argument : function.arguments()) {
-                argumentInputs[i++] = process(argument, context);
-            }
-            return new FunctionExpression<>((Scalar<?>) functionImplementation, argumentInputs);
-        } else {
-            throw new IllegalArgumentException(
-                    String.format("Cannot find implementation for function %s", function));
-        }
+    protected Context newContext() {
+        return new Context();
     }
 
     @Override
@@ -147,24 +98,17 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
     @Override
     public Input<?> visitReference(Reference symbol, Context context) {
         Input<?> result;
-
         if (symbol.info().granularity().ordinal() <= rowGranularity.ordinal()) {
-            if (symbol.info().granularity() == RowGranularity.DOC) {
-                LuceneCollectorExpression<?> docLevelExpression = DocLevelExpressions.getExpression(symbol.info());
-                context.docLevelExpressions.add(docLevelExpression);
-                result = docLevelExpression;
-            } else {
-                ReferenceImplementation impl = referenceResolver.getImplementation(symbol.info().ident());
-                if (impl != null && impl instanceof Input<?>) {
-                    // collect collectExpressions separately
-                    if (impl instanceof CollectExpression<?>) {
-                        context.collectExpressions.add((CollectExpression<?>) impl);
-                    }
-                    result = (Input<?>)impl;
-                } else {
-                    // same or lower granularity and not found means unknown
-                    throw new CrateException("Unknown Reference");
+            ReferenceImplementation impl = referenceResolver.getImplementation(symbol.info().ident());
+            if (impl != null && impl instanceof Input<?>) {
+                // collect collectExpressions separately
+                if (impl instanceof CollectExpression<?>) {
+                    context.collectExpressions.add((CollectExpression<?>) impl);
                 }
+                result = (Input<?>) impl;
+            } else {
+                // same or lower granularity and not found means unknown
+                throw new CrateException("Unknown Reference");
             }
             context.setMaxGranularity(symbol.info().granularity());
         } else {
@@ -181,7 +125,7 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
                     String.format("Can't load aggregation impl for symbol %s", symbol));
         }
 
-        AggregationContext aggregationContext = new AggregationContext((AggregationFunction)impl, symbol);
+        AggregationContext aggregationContext = new AggregationContext((AggregationFunction) impl, symbol);
         for (Symbol aggInput : symbol.inputs()) {
             aggregationContext.addInput(process(aggInput, context));
         }
@@ -190,45 +134,5 @@ public class ImplementationSymbolVisitor extends SymbolVisitor<ImplementationSym
         // can't generate an input from an aggregation.
         // since they cannot/shouldn't be nested this should be okay.
         return null;
-    }
-
-    @Override
-    public Input<?> visitStringLiteral(StringLiteral symbol, Context context) {
-        return symbol;
-    }
-
-    @Override
-    public Input<?> visitDoubleLiteral(DoubleLiteral symbol, Context context) {
-        return symbol;
-    }
-
-    @Override
-    public Input<?> visitBooleanLiteral(BooleanLiteral symbol, Context context) {
-        return symbol;
-    }
-
-    @Override
-    public Input<?> visitIntegerLiteral(IntegerLiteral symbol, Context context) {
-        return symbol;
-    }
-
-    @Override
-    public Input<?> visitNullLiteral(Null symbol, Context context) {
-        return symbol;
-    }
-
-    @Override
-    public Input<?> visitLongLiteral(LongLiteral symbol, Context context) {
-        return symbol;
-    }
-
-    @Override
-    public Input<?> visitFloatLiteral(FloatLiteral symbol, Context context) {
-        return symbol;
-    }
-
-    @Override
-    protected Input<?> visitSymbol(Symbol symbol, Context context) {
-        throw new UnsupportedOperationException(String.format("Can't handle Symbol %s", symbol));
     }
 }
