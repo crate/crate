@@ -116,7 +116,7 @@ public class Setup {
                         new HashMap<String, Object>(){{
                             put("name", "Bartledannians");
                             put("description", "Similar to humans, but do not breathe");
-                            put("interests", new String[]{"netball"});
+                            put("interests", "netball");
                         }}
                 },
                 new Object[]{

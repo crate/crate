@@ -51,6 +51,8 @@ public class ExceptionHelper {
         }
         if (e instanceof IllegalArgumentException || e instanceof ParsingException) {
             return new SQLParseException(e.getMessage());
+        } else if (e instanceof UnsupportedOperationException) {
+            return new UnsupportedFeatureException(e);
         } else if (e instanceof DocumentAlreadyExistsException) {
             return new DuplicateKeyException(
                     "A document with the same primary key exists already", e);

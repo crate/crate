@@ -189,7 +189,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testInsertObjectField() throws Exception {
 
         expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("Nested Column Reference not allowed in INSERT statement");
+        expectedException.expectMessage("line 1:33: mismatched input '[' expecting ')'");
 
         setUpObjectTable();
         execute("insert into test12 (object_field['size']) values (127)");
@@ -300,7 +300,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         execute("insert into t1 (id, string_field, boolean_field, byte_field, short_field, integer_field," +
                 "long_field, float_field, double_field, object_field," +
                 "timestamp_field, ip_field) values " +
-                "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", new Object[]{
+                "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", new Object[]{
                 0, "Blabla", true, 120, 1000, 1200000,
                 120000000000L, 1.4, 3.456789, new HashMap<String, Object>(){{put("inner", "1970-01-01");}},
                 "1970-01-01", "127.0.0.1"

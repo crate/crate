@@ -1310,7 +1310,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureGreen();
     }
 
-    @Test (expected = SQLParseException.class)
+    @Test (expected = UnsupportedFeatureException.class)
     public void testMultiplePrimaryKeyColumns() throws Exception {
         XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
                     .startObject("default")

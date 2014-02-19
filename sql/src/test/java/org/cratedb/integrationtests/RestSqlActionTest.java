@@ -81,7 +81,7 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
     public void testSqlRequestWithNullArgs() throws Exception {
 
         String json = restSQLExecute("{\n" +
-                "    \"stmt\": \"insert into locations (id, name, kind) values (?, ?)\",\n" +
+                "    \"stmt\": \"insert into locations (id, name, kind) values (?, ?, ?)\",\n" +
                 "    \"args\": [\"100\", \"Somewhere\", null]\n" +
                 "}\n");
 

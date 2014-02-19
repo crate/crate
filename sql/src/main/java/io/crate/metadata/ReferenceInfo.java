@@ -86,13 +86,6 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
             Preconditions.checkNotNull(type);
             return new ReferenceInfo(ident, granularity, type, objectType);
         }
-
-        public void fromInfo(ReferenceInfo info) {
-            ident = info.ident;
-            granularity = info.granularity;
-            type = info.type;
-            objectType = info.objectType;
-        }
     }
 
     public static enum ObjectType {
