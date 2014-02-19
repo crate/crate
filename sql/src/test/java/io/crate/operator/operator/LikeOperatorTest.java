@@ -21,10 +21,7 @@
 package io.crate.operator.operator;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.planner.symbol.BooleanLiteral;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.StringLiteral;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 import org.junit.Test;
 
@@ -241,6 +238,32 @@ public class LikeOperatorTest {
     public void testExpressionToRegexMaliciousPatterns() {
         String expression = "foo\\bar^$.*";
         assertEquals("^foobar\\^\\$\\.\\*$", expressionToRegex(expression, DEFAULT_ESCAPE, true));
+    }
+
+    // test evaluate
+
+    @Test
+    public void testEvaluateTrue() {
+        LikeOperator op = new LikeOperator(
+                LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
+        );
+        Boolean result = op.evaluate(
+                new StringLiteral("foo%baz"),
+                new StringLiteral("foobarbaz")
+        );
+        assertTrue(result);
+    }
+
+    @Test
+    public void testEvaluateFalse() {
+        LikeOperator op = new LikeOperator(
+                LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
+        );
+        Boolean result = op.evaluate(
+                new StringLiteral("foo_baz"),
+                new StringLiteral("foobarbaz")
+        );
+        assertFalse(result);
     }
 
 }

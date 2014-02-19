@@ -64,19 +64,31 @@ public class LikeOperator extends Operator {
         StringLiteral expression = (StringLiteral) symbol.arguments().get(0);
         StringLiteral pattern = (StringLiteral) symbol.arguments().get(1);
 
-        return new BooleanLiteral(matches(expression, pattern));
-    }
-
-    private boolean matches(StringLiteral expression, StringLiteral pattern) {
-        return Pattern.matches(
-                expressionToRegex(expression, DEFAULT_ESCAPE, true),
-                pattern.value().utf8ToString()
-        );
+        return new BooleanLiteral(evaluate(expression, pattern));
     }
 
     @Override
     public Boolean evaluate(Input<?>... args) {
-        return null;
+        assert (args != null);
+        assert (args.length == 2);
+        assert (args[0] instanceof StringLiteral);
+        assert (args[1] instanceof StringLiteral);
+
+        try {
+            String expression = ((StringLiteral)args[0]).value().utf8ToString();
+            String pattern = ((StringLiteral)args[1]).value().utf8ToString();
+
+            return matches(expression, pattern);
+        } catch (ClassCastException | NullPointerException e) {
+            throw new UnsupportedOperationException("Could not evaluate operation");
+        }
+    }
+
+    private boolean matches(String expression, String pattern) {
+        return Pattern.matches(
+                expressionToRegex(expression, DEFAULT_ESCAPE, true),
+                pattern
+        );
     }
 
     protected static String expressionToRegex(StringLiteral expression, char escapeChar, boolean shouldEscape) {
