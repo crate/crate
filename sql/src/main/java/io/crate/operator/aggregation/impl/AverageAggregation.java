@@ -104,6 +104,11 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
                 return thisValue.compareTo(other);
             }
         }
+
+        @Override
+        public String toString() {
+            return "sum: " + sum + " count: " + count;
+        }
     }
 
 
