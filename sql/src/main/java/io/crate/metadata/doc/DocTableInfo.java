@@ -27,7 +27,8 @@ import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
-import org.cratedb.DataType;
+import io.crate.planner.symbol.DynamicReference;
+import org.cratedb.sql.ColumnUnknownException;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
@@ -37,6 +38,7 @@ import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.util.*;
+
 
 public class DocTableInfo implements TableInfo {
 
@@ -84,11 +86,8 @@ public class DocTableInfo implements TableInfo {
     @Override
     @Nullable
     public ReferenceInfo getColumnInfo(ColumnIdent columnIdent) {
-        ReferenceInfo info = references.get(columnIdent);
-        if (info != null) {
-            return info;
-        }
-
+        return references.get(columnIdent);
+        /*
         if (columnIdent.isColumn()) {
             return new ReferenceInfo(new ReferenceIdent(ident, columnIdent), rowGranularity(), DataType.NULL);
         }
@@ -107,6 +106,40 @@ public class DocTableInfo implements TableInfo {
         }
 
         return new ReferenceInfo(new ReferenceIdent(ident, columnIdent), rowGranularity(), DataType.NULL);
+        */
+    }
+
+    @Override
+    public DynamicReference getDynamic(ColumnIdent ident) {
+        boolean parentIsIgnored = false;
+        if (!ident.isColumn()) {
+            // see if parent is strict object
+            ColumnIdent parentIdent = ident.getParent();
+            ReferenceInfo parentInfo = null;
+
+            while (parentIdent != null) {
+                parentInfo = getColumnInfo(parentIdent);
+                if (parentInfo != null) {
+                    break;
+                }
+                parentIdent = parentIdent.getParent();
+            }
+
+            if (parentInfo != null) {
+                switch (parentInfo.objectType()) {
+                    case STRICT:
+                        throw new ColumnUnknownException(ident().name(), ident.fqn());
+                    case IGNORED:
+                        parentIsIgnored = true;
+                        break;
+                }
+            }
+        }
+        DynamicReference reference = new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity());
+        if (parentIsIgnored) {
+            reference.objectType(ReferenceInfo.ObjectType.IGNORED);
+        }
+        return reference;
     }
 
     @Override
@@ -171,6 +204,11 @@ public class DocTableInfo implements TableInfo {
 
     public List<String> primaryKey() {
         return primaryKeys;
+    }
+
+    @Override
+    public boolean hasCustomPrimaryKey() {
+        return !(primaryKeys.size() == 1 && primaryKeys.get(0).equals("_id"));
     }
 
     public String clusteredBy() {

@@ -25,6 +25,13 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
             case INTEGER:
                 return new IntegerLiteral((Integer) value);
             case TIMESTAMP:
+                if (value instanceof BytesRef) {
+                    return new TimestampLiteral((BytesRef) value);
+                } else if (value instanceof String) {
+                    return new TimestampLiteral((String)value);
+                } else {
+                    return new TimestampLiteral((Long)value);
+                }
             case LONG:
                 return new LongLiteral((Long) value);
             case FLOAT:
@@ -53,14 +60,18 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
         return value().toString();
     }
 
+    public static Literal forValue(Object value) {
+        return forValue(value, true);
+    }
+
     /**
      * create a literal for a given Java object
      * @param value the value to wrap/transform into a literal
      * @return a literal of a guessed type, holding the value object
      * @throws java.lang.IllegalArgumentException if value cannot be wrapped into a <code>Literal</code>
      */
-    public static Literal forValue(Object value) {
-        DataType type = DataType.forValue(value);
+    public static Literal forValue(Object value, boolean strict) {
+        DataType type = DataType.forValue(value, strict);
         if (type == null) {
             throw new IllegalArgumentException(
                     String.format("value of unsupported class '%s'", value.getClass().getSimpleName()));
@@ -71,6 +82,8 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
     public Literal convertTo(DataType type) {
         if (valueType() == type) {
             return this;
+        } else if (type == DataType.NOT_SUPPORTED) {
+            return Null.INSTANCE;
         }
         throw new UnsupportedOperationException("Invalid input for type " + type.getName() + ": " + value().toString());
     }

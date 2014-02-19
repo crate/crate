@@ -26,7 +26,9 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.DynamicReference;
 import org.cratedb.DataType;
+import org.cratedb.sql.ColumnUnknownException;
 
 import java.util.Collection;
 import java.util.List;
@@ -153,6 +155,11 @@ public class TestingTableInfo implements TableInfo {
     }
 
     @Override
+    public boolean hasCustomPrimaryKey() {
+        return !(primaryKey.size() == 1 && primaryKey.get(0).equals("_id"));
+    }
+
+    @Override
     public String clusteredBy() {
         return clusteredBy;
     }
@@ -165,5 +172,17 @@ public class TestingTableInfo implements TableInfo {
     @Override
     public String[] partitions() {
         return new String[]{ident.name()};
+    }
+
+    @Override
+    public DynamicReference getDynamic(ColumnIdent ident) {
+        if (!ident.isColumn()) {
+            ColumnIdent parentIdent = ident.getParent();
+            ReferenceInfo parentInfo = getColumnInfo(parentIdent);
+            if (parentInfo != null && parentInfo.objectType() == ReferenceInfo.ObjectType.STRICT) {
+                throw new ColumnUnknownException(ident().name(), ident.fqn());
+            }
+        }
+        return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity());
     }
 }

@@ -121,12 +121,12 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(values.get(1), instanceOf(LongLiteral.class));
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testInsertWithColumnsAndTooManyValues() throws Exception {
         analyze("insert into users (name, id) values ('Trillian', 2, true)");
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testInsertWithColumnsAndTooLessValues() throws Exception {
         analyze("insert into users (name, id) values ('Trillian')");
     }
@@ -217,7 +217,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         analyze("insert into alias (bla) values ('blubb')");
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testInsertWithoutPrimaryKey() throws Exception {
         analyze("insert into users (name) values ('Trillian')");
     }

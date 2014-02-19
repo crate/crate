@@ -21,13 +21,15 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Preconditions;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.ValueSymbol;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.Insert;
+import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.ValuesList;
 import org.cratedb.sql.CrateException;
 
 import java.util.ArrayList;
@@ -45,9 +47,10 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
         }
         int maxValuesLength = node.maxValuesLength();
         if (node.columns().size() == 0) {
+            if (maxValuesLength > context.table().columns().size()) {
+                throw new IllegalArgumentException("too many values");
+            }
             // no columns given in statement
-            // num columns == max valuesList size
-            Preconditions.checkState(maxValuesLength <= context.table().columns().size(), "too many values");
             List<Reference> impliedColumns = new ArrayList<>(maxValuesLength);
             int i = maxValuesLength;
             context.columns(impliedColumns);
@@ -62,7 +65,9 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
             }
 
         } else {
-            Preconditions.checkState(maxValuesLength == node.columns().size(), "invalid number of values");
+            if (maxValuesLength > node.columns().size()) {
+                throw new IllegalArgumentException("too many values");
+            }
             context.columns(new ArrayList<Reference>(node.columns().size()));
         }
 
@@ -71,8 +76,8 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
         for (QualifiedNameReference column : node.columns()) {
             process(column, context);
         }
-        if (context.table().primaryKey().size() > 0 && context.primaryKeyColumnIndices().size() == 0) {
-            throw new UnsupportedOperationException("Primary key is required but is missing from the insert statement");
+        if (context.table().hasCustomPrimaryKey() && context.primaryKeyColumnIndices().size() == 0) {
+            throw new IllegalArgumentException("Primary key is required but is missing from the insert statement");
         }
 
         context.visitValues();
@@ -110,6 +115,9 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
         List<Symbol> symbols = new ArrayList<>();
 
         int i = 0;
+        if (node.values().size() != context.columns().size()) {
+            throw new IllegalArgumentException("incorrect number of values");
+        }
         for (Expression value : node.values()) {
             Symbol valuesSymbol = process(value, context);
             assert valuesSymbol instanceof ValueSymbol;

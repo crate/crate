@@ -77,6 +77,11 @@ public class SymbolDataTypeVisitor extends SymbolVisitor<Analysis, DataType> {
     }
 
     @Override
+    public DataType visitTimestampLiteral(TimestampLiteral symbol, Analysis context) {
+        return symbol.valueType();
+    }
+
+    @Override
     public DataType visitValue(Value symbol, Analysis context) {
         return symbol.valueType();
     }

@@ -21,7 +21,10 @@
 
 package io.crate.metadata.sys;
 
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.symbol.DynamicReference;
 
 public abstract class SysTableInfo implements TableInfo {
 
@@ -32,4 +35,8 @@ public abstract class SysTableInfo implements TableInfo {
         return false;
     }
 
+    @Override
+    public DynamicReference getDynamic(ColumnIdent ident) {
+        return new DynamicReference(new ReferenceIdent(ident(),ident), rowGranularity());
+    }
 }

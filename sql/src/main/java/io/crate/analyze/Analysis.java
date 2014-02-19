@@ -5,6 +5,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.sql.ValidationException;
 import org.elasticsearch.common.Preconditions;
@@ -82,15 +83,31 @@ public abstract class Analysis {
         return this.table;
     }
 
-    public Reference allocateReference(ReferenceIdent ident) {
+    private Reference allocateReference(ReferenceIdent ident, boolean unique) {
         Reference reference = referenceSymbols.get(ident);
         if (reference == null) {
             ReferenceInfo info = getReferenceInfo(ident);
-            reference = new Reference(info);
+            if (info == null) {
+                reference = table.getDynamic(ident.columnIdent());
+                info = reference.info();
+            } else {
+                reference = new Reference(info);
+            }
             referenceSymbols.put(info.ident(), reference);
+        } else if (unique) {
+            throw new IllegalArgumentException(String.format("reference '%s' repeated", ident));
         }
         updateRowGranularity(reference.info().granularity());
         return reference;
+    }
+
+    /**
+     * add a reference for the given ident, get from map-cache if already
+     * @param ident
+     * @return
+     */
+    public Reference allocateReference(ReferenceIdent ident) {
+        return allocateReference(ident, false);
     }
 
     /**
@@ -98,22 +115,12 @@ public abstract class Analysis {
      * and throw an error if this ident has already been added
      */
     public Reference allocateUniqueReference(ReferenceIdent ident) {
-        if (referenceSymbols.get(ident) != null) {
-            throw new IllegalArgumentException(String.format("reference '%s' repeated", ident));
-        }
-        ReferenceInfo info = getReferenceInfo(ident);
-        Reference reference = new Reference(info);
-        referenceSymbols.put(info.ident(), reference);
-        updateRowGranularity(reference.info().granularity());
-        return reference;
+        return allocateReference(ident, true);
     }
 
+    @Nullable
     public ReferenceInfo getReferenceInfo(ReferenceIdent ident) {
-        ReferenceInfo info = referenceInfos.getReferenceInfo(ident);
-        if (info == null) {
-            throw new UnsupportedOperationException("Unknown column reference: " + ident);
-        }
-        return info;
+        return referenceInfos.getReferenceInfo(ident);
     }
 
     public FunctionInfo getFunctionInfo(FunctionIdent ident) {
@@ -227,6 +234,7 @@ public abstract class Analysis {
      */
     public Literal normalizeInputValue(Symbol inputValue, Reference reference) {
         Literal normalized;
+
         // 1. evaluate
         try {
             // everything that is allowed for input should evaluate to Literal
@@ -235,6 +243,12 @@ public abstract class Analysis {
             throw new ValidationException(
                     reference.info().ident().columnIdent().name(),
                     String.format("Invalid value '%s'", inputValue.symbolType().name()));
+        }
+
+        if (reference instanceof DynamicReference) {
+            // guess type for dynamic column
+            DataType type = DataType.forValue(normalized.value(), false);
+            ((DynamicReference) reference).valueType(type);
         }
 
         // 2. convert if necessary (detect wrong types)
@@ -261,26 +275,32 @@ public abstract class Analysis {
         return normalized;
     }
 
+
     @SuppressWarnings("unchecked")
-    private Map<String, Object> normalizeObjectValue(Map<String, Object> value, ReferenceInfo referenceInfo) {
+    private Map<String, Object> normalizeObjectValue(Map<String, Object> value, ReferenceInfo info) {
         for (Map.Entry<String, Object> entry : value.entrySet()) {
-            ColumnIdent nestedIdent = ColumnIdent.getChild(referenceInfo.ident().columnIdent(), entry.getKey());
-            ReferenceInfo info = table.getColumnInfo(nestedIdent);
-            if (info == null) {
-                if (referenceInfo.objectType() == ReferenceInfo.ObjectType.STRICT) {
-                    throw new ValidationException(referenceInfo.ident().columnIdent().fqn(), "cannot add new columns to STRICT object");
-                } else {
-                    // TODO: create DynamicReference
+            ColumnIdent nestedIdent = ColumnIdent.getChild(info.ident().columnIdent(), entry.getKey());
+            ReferenceInfo nestedInfo = table.getColumnInfo(nestedIdent);
+            if (nestedInfo == null) {
+                if (info.objectType() == ReferenceInfo.ObjectType.IGNORED) {
+                    continue;
                 }
+                DynamicReference dynamicReference = table.getDynamic(nestedIdent);
+                DataType type = DataType.forValue(entry.getValue(), false);
+                if (type == null) {
+                    throw new ValidationException(info.ident().columnIdent().fqn(), "Invalid value");
+                }
+                dynamicReference.valueType(type);
+                nestedInfo = dynamicReference.info();
             } else {
                 if (entry.getValue() == null) {
                     continue;
                 }
-                if (info.type() == DataType.OBJECT && entry.getValue() instanceof Map) {
-                    value.put(entry.getKey(), normalizeObjectValue((Map<String, Object>) entry.getValue(), info));
-                } else {
-                    value.put(entry.getKey(), normalizePrimitiveValue(entry.getValue(), info));
-                }
+            }
+            if (info.type() == DataType.OBJECT && entry.getValue() instanceof Map) {
+                value.put(entry.getKey(), normalizeObjectValue((Map<String, Object>)entry.getValue(), nestedInfo));
+            } else {
+                value.put(entry.getKey(), normalizePrimitiveValue(entry.getValue(), nestedInfo));
             }
         }
         return value;
@@ -290,11 +310,15 @@ public abstract class Analysis {
         try {
             // try to convert to correctly typed literal
             Literal l = Literal.forValue(primitiveValue);
-            return l.convertTo(info.type()).value();
+            Object primitiveNormalized = l.convertTo(info.type()).value();
+            if (primitiveNormalized instanceof BytesRef) {
+                // no BytesRefs in maps
+                primitiveNormalized = ((BytesRef) primitiveNormalized).utf8ToString();
+            }
+            return primitiveNormalized;
         } catch (Exception e) {
             throw new ValidationException(info.ident().columnIdent().fqn(),
-                    String.format("Validation failed for %s: Invalid %s",
-                            info.ident().columnIdent().fqn(),
+                    String.format("Invalid %s",
                             info.type().getName()
                     )
             );
