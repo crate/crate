@@ -116,6 +116,7 @@ public class CollectNode extends PlanNode {
     }
 
     public void toCollect(List<Symbol> toCollect) {
+        assert toCollect != null;
         this.toCollect = toCollect;
     }
 
@@ -157,6 +158,8 @@ public class CollectNode extends PlanNode {
             for (int i = 0; i < numCols; i++) {
                 toCollect.add(Symbol.fromStream(in));
             }
+        } else {
+            toCollect = ImmutableList.of();
         }
 
         maxRowgranularity = RowGranularity.fromStream(in);
