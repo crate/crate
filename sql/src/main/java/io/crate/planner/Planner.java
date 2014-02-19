@@ -277,7 +277,9 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             } else {
                 if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal()) {
                     if (!analysis.isDelete()) {
-                        if (analysis.primaryKeyLiterals() != null && !analysis.primaryKeyLiterals().isEmpty()) {
+                        if (analysis.primaryKeyLiterals() != null
+                                && !analysis.primaryKeyLiterals().isEmpty()
+                                && !analysis.table().isAlias()) {
                             ESGet(analysis, plan);
                         } else {
                             ESSearch(analysis, plan);
