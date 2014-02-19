@@ -23,10 +23,10 @@ package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.Function;
 import org.cratedb.DataType;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterService;
@@ -146,7 +146,7 @@ public class DocTableInfo implements TableInfo {
 
 
     @Override
-    public Routing getRouting(Function whereClause) {
+    public Routing getRouting(WhereClause whereClause) {
 
         Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
         GroupShardsIterator shardIterators = clusterService.operationRouting().searchShards(

@@ -68,14 +68,14 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
         @Override
         protected void onAllShardsFinished() {
             projectorChain.get(0).finishProjection();
-            super.set(projectorChain.get(projectorChain.size()-1).getRows());
+            super.set(projectorChain.get(projectorChain.size() - 1).getRows());
         }
     }
 
     private final Functions functions;
     private final ReferenceResolver referenceResolver;
     private final IndicesService indicesService;
-    protected final EvaluatingNormalizer normalizer;
+    protected final EvaluatingNormalizer nodeNormalizer;
     private final ThreadPool threadPool;
     protected final ClusterService clusterService;
 
@@ -89,21 +89,21 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
         this.functions = functions;
         this.referenceResolver = referenceResolver;
         this.indicesService = indicesService;
-        this.normalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
+        this.nodeNormalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
         this.threadPool = threadPool;
     }
 
 
     /**
      * dispatch by the following criteria:
-     *
-     *  * if local node id is contained in routing:
-     *    * if no shards are given:
-     *      -> run node level collect
-     *    * if shards are given:
-     *      -> run shard or doc level collect
-     *  * else if we got cluster RowGranularity:
-     *    -> run node level collect (cluster level)
+     * <p/>
+     * * if local node id is contained in routing:
+     * * if no shards are given:
+     * -> run node level collect
+     * * if shards are given:
+     * -> run shard or doc level collect
+     * * else if we got cluster RowGranularity:
+     * -> run node level collect (cluster level)
      */
     @Override
     public ListenableFuture<Object[][]> collect(CollectNode collectNode) {
@@ -128,17 +128,18 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
 
     /**
      * collect data on node level only - one row per node expected
+     *
      * @param collectNode {@link io.crate.planner.node.CollectNode} instance containing routing information and symbols to collect
      * @return the collect result from this node, one row only so return value is <code>Object[1][]</code>
      */
     protected ListenableFuture<Object[][]> handleNodeCollect(CollectNode collectNode) {
         SettableFuture<Object[][]> result = SettableFuture.create();
-        if (normalizer.evaluatesToFalse(collectNode.whereClause())
-                || collectNode.toCollect() == null || collectNode.toCollect().size() == 0) {
+        collectNode = collectNode.normalize(nodeNormalizer);
+        if (collectNode.whereClause().noMatch()) {
             result.set(Constants.EMPTY_RESULT);
             return result;
         }
-
+        assert collectNode.toCollect().size()>0;
         // resolve Implementations
         ImplementationSymbolVisitor.Context ctx = new ImplementationSymbolVisitor(
                 this.referenceResolver,
@@ -168,7 +169,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
 
     /**
      * collect data on shard or doc level
-     *
+     * <p/>
      * collects data from each shard in a separate thread,
      * collecting the data into a single state through an {@link java.util.concurrent.ArrayBlockingQueue}.
      *
@@ -179,14 +180,17 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
 
         String localNodeId = clusterService.localNode().id();
         final int numShards = collectNode.routing().numShards(localNodeId);
-        List<CrateCollector> shardCollectors = new ArrayList<>(numShards);
+
         List<Projector> projectors = extractProjectors(collectNode);
         final ShardCollectFuture result = getShardCollectFuture(numShards, projectors, collectNode);
 
-        if (normalizer.evaluatesToFalse(collectNode.whereClause())) {
+        collectNode = collectNode.normalize(nodeNormalizer);
+        if (collectNode.whereClause().noMatch()) {
             result.onAllShardsFinished();
             return result;
         }
+
+        List<CrateCollector> shardCollectors = new ArrayList<>(numShards);
 
         // get shardCollectors from single shards
         Map<String, Set<Integer>> shardIdMap = collectNode.routing().locations().get(localNodeId);
@@ -194,10 +198,9 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
             IndexService indexService;
             try {
                 indexService = indicesService.indexServiceSafe(entry.getKey());
-            } catch(IndexMissingException e) {
+            } catch (IndexMissingException e) {
                 throw new TableUnknownException(entry.getKey(), e);
             }
-
             for (Integer shardId : entry.getValue()) {
                 Injector shardInjector;
                 try {
@@ -205,7 +208,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
                     ShardCollectService shardCollectService = shardInjector.getInstance(ShardCollectService.class);
                     CrateCollector crateCollector = shardCollectService.getCollector(collectNode, projectors.get(0));
                     shardCollectors.add(crateCollector);
-                } catch(IndexShardMissingException e) {
+                } catch (IndexShardMissingException e) {
                     throw new CrateException(
                             String.format("unknown shard id %d on index '%s'",
                                     shardId, entry.getKey()));
@@ -217,7 +220,7 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
         }
 
         // start shardCollectors
-        for (final CrateCollector shardCollector : shardCollectors ) {
+        for (final CrateCollector shardCollector : shardCollectors) {
             threadPool.executor(ThreadPool.Names.SEARCH).execute(new Runnable() {
                 @Override
                 public void run() {
@@ -260,8 +263,9 @@ public class LocalDataCollectOperation implements CollectOperation<Object[][]> {
 
     /**
      * chose the right ShardCollectFuture for this class
-     * @param numShards number of shards until the result is considered complete
-     * @param projectors the projectors to process the collected rows
+     *
+     * @param numShards   number of shards until the result is considered complete
+     * @param projectors  the projectors to process the collected rows
      * @param collectNode in case any other properties need to be extracted
      * @return a fancy ShardCollectFuture implementation
      */

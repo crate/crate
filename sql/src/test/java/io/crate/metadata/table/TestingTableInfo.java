@@ -23,9 +23,9 @@ package io.crate.metadata.table;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.Function;
 import org.cratedb.DataType;
 
 import java.util.Collection;
@@ -143,7 +143,7 @@ public class TestingTableInfo implements TableInfo {
     }
 
     @Override
-    public Routing getRouting(Function whereClause) {
+    public Routing getRouting(WhereClause whereClause) {
         return routing;
     }
 

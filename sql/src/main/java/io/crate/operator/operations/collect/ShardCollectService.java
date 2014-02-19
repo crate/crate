@@ -36,9 +36,6 @@ import io.crate.operator.reference.doc.LuceneCollectorExpression;
 import io.crate.operator.reference.doc.LuceneDocLevelReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.CollectNode;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
 import org.cratedb.action.SQLXContentQueryParser;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.cache.recycler.CacheRecycler;
@@ -69,7 +66,7 @@ public class ShardCollectService {
     private final SQLXContentQueryParser sqlxContentQueryParser;
     private final ESQueryBuilder queryBuilder;
     private final ImplementationSymbolVisitor shardInputSymbolVisitor;
-    private final EvaluatingNormalizer normalizer;
+    private final EvaluatingNormalizer shardNormalizer;
 
     @Inject
     public ShardCollectService(ClusterService clusterService,
@@ -93,7 +90,7 @@ public class ShardCollectService {
         this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(
                 functions, LuceneDocLevelReferenceResolver.INSTANCE);
         this.queryBuilder = new ESQueryBuilder(functions, referenceResolver);
-        this.normalizer = new EvaluatingNormalizer(functions, RowGranularity.SHARD, referenceResolver);
+        this.shardNormalizer = new EvaluatingNormalizer(functions, RowGranularity.SHARD, referenceResolver);
 
 
     }
@@ -108,45 +105,28 @@ public class ShardCollectService {
      * collecting with this collector
      */
     public CrateCollector getCollector(CollectNode collectNode, Projector upStream) throws Exception {
-        CrateCollector result;
 
+        collectNode = collectNode.normalize(shardNormalizer);
 
-        Symbol normalizedWhereClause;
-        if (collectNode.whereClause()!=null){
-            normalizedWhereClause = normalizer.process(collectNode.whereClause(), null);
-        } else {
-            normalizedWhereClause = null;
-        }
-
-        if (normalizer.evaluatesToFalse(normalizedWhereClause)) {
-            result = NOOP_COLLECTOR;
+        if (collectNode.whereClause().noMatch()) {
+            return NOOP_COLLECTOR;
         } else {
             RowGranularity granularity = collectNode.maxRowGranularity();
-            Function whereClause = null;
-            if (normalizedWhereClause != null && normalizedWhereClause.symbolType() == SymbolType.FUNCTION){
-                whereClause = (Function) normalizedWhereClause;
+            if (granularity == RowGranularity.DOC) {
+                CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
+                BytesReference querySource = queryBuilder.convert(collectNode.whereClause());
+                return new LuceneDocCollector(clusterService, shardId, indexService,
+                        scriptService, cacheRecycler, sqlxContentQueryParser,
+                        docCtx.topLevelInputs(),
+                        docCtx.docLevelExpressions(),
+                        querySource,
+                        upStream);
+
+            } else if (granularity == RowGranularity.SHARD) {
+                ImplementationSymbolVisitor.Context shardCtx = shardInputSymbolVisitor.process(collectNode);
+                return new SimpleOneRowCollector(shardCtx.topLevelInputs(), shardCtx.collectExpressions(), upStream);
             }
-            switch (granularity) {
-                case SHARD:
-                    ImplementationSymbolVisitor.Context shardCtx = shardInputSymbolVisitor.process(collectNode);
-                    result = new SimpleOneRowCollector(shardCtx.topLevelInputs(), shardCtx.collectExpressions(), upStream);
-                    break;
-                case DOC:
-                    // normalize shard level expressions
-                    normalizer.normalize(collectNode.toCollect());
-                    CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
-                    BytesReference querySource = queryBuilder.convert(whereClause);
-                    result = new LuceneDocCollector(clusterService, shardId, indexService,
-                            scriptService, cacheRecycler, sqlxContentQueryParser,
-                            docCtx.topLevelInputs(),
-                            docCtx.docLevelExpressions(),
-                            querySource,
-                            upStream);
-                    break;
-                default:
-                    throw new CrateException(String.format("Granularity %s not supported", granularity.name()));
-            }
+            throw new CrateException(String.format("Granularity %s not supported", granularity.name()));
         }
-        return result;
     }
 }

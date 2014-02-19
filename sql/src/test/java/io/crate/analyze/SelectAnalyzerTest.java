@@ -105,12 +105,12 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testIsNullQuery() {
         Analysis analysis = analyze("select * from sys.nodes where id is not null");
-        assertNotNull(analysis.whereClause());
-        Function whereClause = analysis.whereClause();
+        assertTrue(analysis.whereClause().hasQuery());
+        Function query = analysis.whereClause().query();
 
-        assertThat(whereClause.info().ident().name(), is(NotPredicate.NAME));
-        assertThat(whereClause.arguments().get(0), instanceOf(Function.class));
-        Function isNull = (Function) whereClause.arguments().get(0);
+        assertThat(query.info().ident().name(), is(NotPredicate.NAME));
+        assertThat(query.arguments().get(0), instanceOf(Function.class));
+        Function isNull = (Function) query.arguments().get(0);
         assertThat(isNull.info().ident().name(), is(IsNullPredicate.NAME));
     }
 
@@ -171,7 +171,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testNegativeLiteral() throws Exception {
         Analysis analyze = analyze("select * from sys.nodes where port['http'] = -400");
-        Function whereClause = analyze.whereClause();
+        Function whereClause = analyze.whereClause().query();
         Symbol symbol = whereClause.arguments().get(1);
         assertThat(((IntegerLiteral) symbol).value(), is(-400));
     }
@@ -255,7 +255,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
         assertFalse(analysis.hasGroupBy());
 
-        Function whereClause = analysis.whereClause();
+        Function whereClause = analysis.whereClause().query();
         assertEquals(OrOperator.NAME, whereClause.info().ident().name());
         assertFalse(whereClause.info().isAggregate());
 
@@ -283,7 +283,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
                 new Short("1"),
                 "node 1"
         });
-        Function whereClause = analysis.whereClause();
+        Function whereClause = analysis.whereClause().query();
         assertEquals(OrOperator.NAME, whereClause.info().ident().name());
         assertFalse(whereClause.info().isAggregate());
 
@@ -348,8 +348,15 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         )) {
             Analysis analysis = analyze(stmt);
             assertTrue(stmt, analysis.noMatch());
-            assertNull(stmt, analysis.whereClause());
+            assertFalse(stmt, analysis.whereClause().hasQuery());
         }
+    }
+
+    @Test
+    public void testEvaluatingMatchAllStatement() throws Exception {
+        Analysis analysis = analyze("select id from sys.nodes where sys.cluster.name = 'testcluster'");
+        assertFalse(analysis.noMatch());
+        assertFalse(analysis.whereClause().hasQuery());
     }
 
     @Test
@@ -357,12 +364,12 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         for (String stmt : ImmutableList.of(
                 "select id from sys.nodes where true",
                 "select id from sys.nodes where 1=1",
-                "select id from sys.nodes",
-                "select id from sys.nodes where sys.cluster.name = 'testcluster'"
+                "select id from sys.nodes"
         )) {
+            System.out.println(stmt);
             Analysis analysis = analyze(stmt);
             assertFalse(stmt, analysis.noMatch());
-            assertNull(stmt, analysis.whereClause());
+            assertFalse(stmt, analysis.whereClause().hasQuery());
         }
     }
 
@@ -482,7 +489,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         Statement statement = SqlParser.createStatement("select load from sys.nodes where load['1'] in (1, 2, 4, 8, 16)");
         Analysis analysis = analyzer.analyze(statement);
 
-        Function whereClause = analysis.whereClause();
+        Function whereClause = analysis.whereClause().query();
         assertEquals(InOperator.NAME, whereClause.info().ident().name());
         assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
         assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(SetLiteral.class));
@@ -562,7 +569,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         map.put("15", 8.0);
         SelectAnalysis analysis = (SelectAnalysis) analyze("select id from sys.nodes where load=?",
                 new Object[]{map});
-        Function whereClause = analysis.whereClause();
+        Function whereClause = analysis.whereClause().query();
         assertThat(whereClause.arguments().get(1), instanceOf(ObjectLiteral.class));
         assertTrue(((ObjectLiteral) whereClause.arguments().get(1)).value().equals(map));
     }
@@ -572,7 +579,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         Analysis analysis = analyze("select * from sys.nodes where name like 'foo'");
 
         assertNotNull(analysis.whereClause());
-        Function whereClause = analysis.whereClause();
+        Function whereClause = analysis.whereClause().query();
         assertEquals(LikeOperator.NAME, whereClause.info().ident().name());
         ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataType.STRING, DataType.STRING);
         assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
@@ -594,7 +601,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
         // check if the implicit cast of the pattern worked
         ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataType.STRING, DataType.STRING);
-        Function whereClause = analysis.whereClause();
+        Function whereClause = analysis.whereClause().query();
         assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
         assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
         StringLiteral stringLiteral = (StringLiteral) whereClause.arguments().get(1);
@@ -640,7 +647,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         Analysis analysis = analyze("select * from sys.nodes where null is null");
         Function isNullFunction = (Function) analysis.functions().toArray()[0];
         assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(Null.class));
-        assertNull(analysis.whereClause());
+        assertFalse(analysis.whereClause().hasQuery());
         assertFalse(analysis.noMatch());
     }
 

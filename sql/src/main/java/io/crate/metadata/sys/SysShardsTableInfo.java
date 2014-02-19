@@ -22,9 +22,9 @@
 package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.Function;
 import org.cratedb.DataType;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterService;
@@ -115,7 +115,7 @@ public class SysShardsTableInfo extends SysTableInfo {
 
 
     @Override
-    public Routing getRouting(Function whereClause) {
+    public Routing getRouting(WhereClause whereClause) {
         // TODO: filter on whereClause
         Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
         for (ShardRouting shardRouting : clusterService.state().routingTable().allShards()) {

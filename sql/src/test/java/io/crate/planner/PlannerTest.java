@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.WhereClause;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
@@ -64,7 +65,7 @@ public class PlannerTest {
         }
 
         @Override
-        public Routing getRouting(Function whereClause) {
+        public Routing getRouting(WhereClause whereClause) {
             return shardRouting;
         }
     }
@@ -76,7 +77,7 @@ public class PlannerTest {
         }
 
         @Override
-        public Routing getRouting(Function whereClause) {
+        public Routing getRouting(WhereClause whereClause) {
             return nodesRouting;
         }
     }
@@ -142,7 +143,7 @@ public class PlannerTest {
     public void testGroupByWithAggregationStringLiteralArguments() {
         Plan plan = plan("select count('foo'), name from users group by name");
         Iterator<PlanNode> iterator = plan.iterator();
-        CollectNode collectNode = (CollectNode)iterator.next();
+        CollectNode collectNode = (CollectNode) iterator.next();
         assertThat(collectNode.toCollect().size(), is(1));
         GroupProjection groupProjection = (GroupProjection) collectNode.projections().get(0);
         Aggregation aggregation = groupProjection.values().get(0);
@@ -218,7 +219,7 @@ public class PlannerTest {
     public void testGetPlan() throws Exception {
         Plan plan = plan("select name from users where id = 1");
         Iterator<PlanNode> iterator = plan.iterator();
-        ESGetNode node = (ESGetNode)iterator.next();
+        ESGetNode node = (ESGetNode) iterator.next();
         assertThat(node.index(), is("users"));
         assertThat(node.ids().get(0), is("1"));
         assertFalse(iterator.hasNext());
@@ -229,7 +230,7 @@ public class PlannerTest {
     public void testGetPlanStringLiteral() throws Exception {
         Plan plan = plan("select name from characters where id = 'one'");
         Iterator<PlanNode> iterator = plan.iterator();
-        ESGetNode node = (ESGetNode)iterator.next();
+        ESGetNode node = (ESGetNode) iterator.next();
         assertThat(node.index(), is("characters"));
         assertThat(node.ids().get(0), is("one"));
         assertFalse(iterator.hasNext());
@@ -240,7 +241,7 @@ public class PlannerTest {
     public void testMultiGetPlan() throws Exception {
         Plan plan = plan("select name from users where id in (1, 2)");
         Iterator<PlanNode> iterator = plan.iterator();
-        ESGetNode node = (ESGetNode)iterator.next();
+        ESGetNode node = (ESGetNode) iterator.next();
         assertThat(node.index(), is("users"));
         assertThat(node.ids().size(), is(2));
         assertThat(node.ids().get(0), is("1"));
@@ -251,7 +252,7 @@ public class PlannerTest {
     public void testDeletePlan() throws Exception {
         Plan plan = plan("delete from users where id = 1");
         Iterator<PlanNode> iterator = plan.iterator();
-        ESDeleteNode node = (ESDeleteNode)iterator.next();
+        ESDeleteNode node = (ESDeleteNode) iterator.next();
         assertThat(node.index(), is("users"));
         assertThat(node.id(), is("1"));
         assertFalse(iterator.hasNext());
@@ -394,7 +395,7 @@ public class PlannerTest {
 
         assertThat(searchNode.outputTypes().size(), is(1));
         assertThat(searchNode.outputTypes().get(0), is(DataType.STRING));
-        assertTrue(searchNode.whereClause().isPresent());
+        assertTrue(searchNode.whereClause().hasQuery());
 
         assertFalse(plan.expectsAffectedRows());
     }
@@ -415,8 +416,8 @@ public class PlannerTest {
         assertThat(indexNode.columns().get(1).info().ident().columnIdent().name(), is("name"));
 
         assertThat(indexNode.valuesLists().size(), is(1));
-        assertThat(((LongLiteral)indexNode.valuesLists().get(0).get(0)).value(), is(42l));
-        assertThat(((StringLiteral)indexNode.valuesLists().get(0).get(1)).value().utf8ToString(), is("Deep Thought"));
+        assertThat(((LongLiteral) indexNode.valuesLists().get(0).get(0)).value(), is(42l));
+        assertThat(((StringLiteral) indexNode.valuesLists().get(0).get(1)).value().utf8ToString(), is("Deep Thought"));
 
         assertThat(indexNode.outputTypes().size(), is(1));
         assertThat(indexNode.outputTypes().get(0), is(DataType.LONG));
@@ -434,11 +435,11 @@ public class PlannerTest {
         ESIndexNode indexNode = (ESIndexNode) planNode;
 
         assertThat(indexNode.valuesLists().size(), is(2));
-        assertThat(((LongLiteral)indexNode.valuesLists().get(0).get(0)).value(), is(42l));
-        assertThat(((StringLiteral)indexNode.valuesLists().get(0).get(1)).value().utf8ToString(), is("Deep Thought"));
+        assertThat(((LongLiteral) indexNode.valuesLists().get(0).get(0)).value(), is(42l));
+        assertThat(((StringLiteral) indexNode.valuesLists().get(0).get(1)).value().utf8ToString(), is("Deep Thought"));
 
-        assertThat(((LongLiteral)indexNode.valuesLists().get(1).get(0)).value(), is(99l));
-        assertThat(((StringLiteral)indexNode.valuesLists().get(1).get(1)).value().utf8ToString(), is("Marvin"));
+        assertThat(((LongLiteral) indexNode.valuesLists().get(1).get(0)).value(), is(99l));
+        assertThat(((StringLiteral) indexNode.valuesLists().get(1).get(1)).value().utf8ToString(), is("Marvin"));
 
         assertThat(indexNode.outputTypes().size(), is(1));
         assertThat(indexNode.outputTypes().get(0), is(DataType.LONG));

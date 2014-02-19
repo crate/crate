@@ -22,11 +22,11 @@
 package io.crate.analyze.elasticsearch;
 
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.WhereClause;
 import io.crate.lucene.SQLToLuceneHelper;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
@@ -40,7 +40,6 @@ import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -63,9 +62,9 @@ public class ESQueryBuilder {
     /**
      * key = columnName
      * value = error message
-     *
+     * <p/>
      * (in the _version case if the primary key is present a GetPlan is built from the planner and
-     *  the ESQueryBuilder is never used)
+     * the ESQueryBuilder is never used)
      */
     private final static Map<String, String> unsupportedFields = ImmutableMap.<String, String>builder()
             .put("_version", "\"_version\" column is only valid in the WHERE clause if the primary key column is also present")
@@ -85,13 +84,9 @@ public class ESQueryBuilder {
     /**
      * adds the "query" part to the XContentBuilder
      */
-    private void whereClause(Context context, Optional<Function> whereClause) throws IOException {
-        if (whereClause.isPresent()) {
-            /**
-             * normalize to optimize queries like eq(1, 1)
-             */
-            Symbol normalizedClause = normalizer.process(whereClause.get(), null);
-            visitor.process(normalizedClause, context);
+    private void whereClause(Context context, WhereClause whereClause) throws IOException {
+        if (whereClause.hasQuery()) {
+            visitor.process(whereClause.query(), context);
         } else {
             context.builder.field("match_all", new HashMap<>());
         }
@@ -100,14 +95,7 @@ public class ESQueryBuilder {
     /**
      * use to generate the "query" xcontent
      */
-    public BytesReference convert(@Nullable Function whereClause) throws IOException {
-        return convert(Optional.fromNullable(whereClause));
-    }
-
-    /**
-     * use to generate the "query" xcontent
-     */
-    public BytesReference convert(Optional<Function> whereClause) throws IOException {
+    public BytesReference convert(WhereClause whereClause) throws IOException {
         Context context = new Context();
         context.builder = XContentFactory.jsonBuilder().startObject();
         context.builder.startObject("query");
@@ -369,7 +357,7 @@ public class ESQueryBuilder {
                 context.builder.startArray();
                 for (Object o : setLiteral.value()) {
                     if (convertBytesRef) {
-                        context.builder.value(((BytesRef)o).utf8ToString());
+                        context.builder.value(((BytesRef) o).utf8ToString());
                     } else {
                         context.builder.value(o);
                     }

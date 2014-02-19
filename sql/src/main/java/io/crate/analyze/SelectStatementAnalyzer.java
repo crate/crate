@@ -166,12 +166,12 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
     }
 
     private void processWhereClause(Expression whereExpression, SelectAnalysis context) {
-        Function whereClause = context.whereClause(process(whereExpression, context));
-        if (whereClause != null) {
-            PrimaryKeyVisitor.Context pkc = primaryKeyVisitor.process(context.table(), whereClause);
+        WhereClause whereClause = context.whereClause(process(whereExpression, context));
+        if (whereClause.hasQuery()){
+            PrimaryKeyVisitor.Context pkc = primaryKeyVisitor.process(context.table(), whereClause.query());
             if (pkc != null) {
                 if (pkc.noMatch()) {
-                    context.noMatch(pkc.noMatch());
+                    context.whereClause(WhereClause.NO_MATCH);
                 } else {
                     context.primaryKeyLiterals(pkc.keyLiterals());
                 }

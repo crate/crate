@@ -39,12 +39,11 @@ public abstract class Analysis {
     private List<String> outputNames = ImmutableList.of();
     private List<Symbol> outputSymbols = ImmutableList.of();
 
-    protected boolean noMatch = false;
     protected List<Literal> primaryKeyLiterals;
     protected Literal clusteredByLiteral;
 
     private boolean isDelete = false;
-    protected Function whereClause;
+    protected WhereClause whereClause = WhereClause.MATCH_ALL;
     protected RowGranularity rowGranularity;
     protected boolean hasAggregates = false;
 
@@ -57,11 +56,11 @@ public abstract class Analysis {
     }
 
     @Nullable
-    public Literal clusteredByLiteral(){
+    public Literal clusteredByLiteral() {
         return clusteredByLiteral;
     }
 
-    public void clusteredByLiteral(Literal clusteredByLiteral){
+    public void clusteredByLiteral(Literal clusteredByLiteral) {
         this.clusteredByLiteral = clusteredByLiteral;
     }
 
@@ -151,34 +150,20 @@ public abstract class Analysis {
      * Indicates that the statement will not match, so that there is no need to execute it
      */
     public boolean noMatch() {
-        return noMatch;
+        return whereClause().noMatch();
     }
 
-    public void noMatch(boolean noMatch) {
-        this.noMatch = noMatch;
-    }
-
-    @Nullable
-    public Function whereClause(@Nullable Symbol whereClause) {
-        if (whereClause != null) {
-            Symbol normalizedWhereClause = normalizer.process(whereClause, null);
-            switch (normalizedWhereClause.symbolType()) {
-                case FUNCTION:
-                    this.whereClause = (Function) normalizedWhereClause;
-                    break;
-                case BOOLEAN_LITERAL:
-                    noMatch = !((BooleanLiteral) normalizedWhereClause).value();
-                    break;
-                case NULL_LITERAL:
-                    noMatch = true;
-                default:
-                    throw new UnsupportedOperationException("unsupported whereClause symbol: " + normalizedWhereClause);
-            }
-        }
+    public WhereClause whereClause(WhereClause whereClause) {
+        this.whereClause = whereClause.normalize(normalizer);
         return this.whereClause;
     }
 
-    public Function whereClause() {
+    public WhereClause whereClause(Symbol whereClause) {
+        this.whereClause = new WhereClause(normalizer.process(whereClause, null));
+        return this.whereClause;
+    }
+
+    public WhereClause whereClause() {
         return whereClause;
     }
 
@@ -234,8 +219,9 @@ public abstract class Analysis {
 
     /**
      * normalize and validate given value according to the corresponding {@link io.crate.planner.symbol.Reference}
+     *
      * @param inputValue the value to normalize, might be anything from {@link io.crate.metadata.Scalar} to {@link io.crate.planner.symbol.Literal}
-     * @param reference the reference to which the value has to comply in terms of type-compatibility
+     * @param reference  the reference to which the value has to comply in terms of type-compatibility
      * @return the normalized Symbol, should be a literal
      * @throws org.cratedb.sql.ValidationException
      */
@@ -244,7 +230,7 @@ public abstract class Analysis {
         // 1. evaluate
         try {
             // everything that is allowed for input should evaluate to Literal
-            normalized = (Literal)normalizer.process(inputValue, null);
+            normalized = (Literal) normalizer.process(inputValue, null);
         } catch (ClassCastException e) {
             throw new ValidationException(
                     reference.info().ident().columnIdent().name(),
@@ -265,7 +251,7 @@ public abstract class Analysis {
         // 3. if reference is of type object - do special validation
         if (reference.info().type() == DataType.OBJECT
                 && normalized instanceof ObjectLiteral) {
-            Map<String, Object> value = ((ObjectLiteral)normalized).value();
+            Map<String, Object> value = ((ObjectLiteral) normalized).value();
             if (value == null) {
                 return Null.INSTANCE;
             }
@@ -291,7 +277,7 @@ public abstract class Analysis {
                     continue;
                 }
                 if (info.type() == DataType.OBJECT && entry.getValue() instanceof Map) {
-                    value.put(entry.getKey(), normalizeObjectValue((Map<String, Object>)entry.getValue(), info));
+                    value.put(entry.getKey(), normalizeObjectValue((Map<String, Object>) entry.getValue(), info));
                 } else {
                     value.put(entry.getKey(), normalizePrimitiveValue(entry.getValue(), info));
                 }
@@ -310,8 +296,8 @@ public abstract class Analysis {
                     String.format("Validation failed for %s: Invalid %s",
                             info.ident().columnIdent().fqn(),
                             info.type().getName()
-                            )
-                    );
+                    )
+            );
         }
     }
 }

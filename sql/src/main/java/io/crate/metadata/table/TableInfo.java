@@ -21,12 +21,12 @@
 
 package io.crate.metadata.table;
 
+import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.Function;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -49,7 +49,7 @@ public interface TableInfo {
 
     public TableIdent ident();
 
-    public Routing getRouting(Function whereClause);
+    public Routing getRouting(WhereClause whereClause);
 
     public List<String> primaryKey();
 

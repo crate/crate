@@ -24,10 +24,11 @@ package io.crate.planner.node;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -47,7 +48,7 @@ public class CollectNode extends PlanNode {
     private Optional<UUID> jobId = Optional.absent();
     private Routing routing;
     private List<Symbol> toCollect;
-    private Function whereClause;
+    private WhereClause whereClause = WhereClause.MATCH_ALL;
     private RowGranularity maxRowgranularity = RowGranularity.CLUSTER;
     private List<String> downStreamNodes;
 
@@ -95,11 +96,12 @@ public class CollectNode extends PlanNode {
         this.projections = projections;
     }
 
-    public Function whereClause() {
+    public WhereClause whereClause() {
         return whereClause;
     }
 
-    public void whereClause(Function whereClause) {
+    public void whereClause(WhereClause whereClause) {
+        assert whereClause != null;
         this.whereClause = whereClause;
     }
 
@@ -168,10 +170,9 @@ public class CollectNode extends PlanNode {
             routing = new Routing();
             routing.readFrom(in);
         }
-        if (in.readBoolean()) {
-            whereClause = new Function();
-            whereClause.readFrom(in);
-        }
+
+        whereClause = new WhereClause(in);
+
         int numDownStreams = in.readVInt();
         downStreamNodes = new ArrayList<>(numDownStreams);
         for (int i = 0; i < numDownStreams; i++) {
@@ -201,12 +202,7 @@ public class CollectNode extends PlanNode {
         } else {
             out.writeBoolean(false);
         }
-        if (whereClause != null) {
-            out.writeBoolean(true);
-            whereClause.writeTo(out);
-        } else {
-            out.writeBoolean(false);
-        }
+        whereClause.writeTo(out);
 
         if (hasDownstreams()) {
             out.writeVInt(downStreamNodes.size());
@@ -221,6 +217,30 @@ public class CollectNode extends PlanNode {
             out.writeLong(jobId.get().getMostSignificantBits());
             out.writeLong(jobId.get().getLeastSignificantBits());
         }
+    }
+
+    /**
+     * normalizes the symbols of this node with the given normalizer
+     *
+     * @param normalizer
+     * @return a normalized node, if no changes occurred returns this
+     */
+    public CollectNode normalize(EvaluatingNormalizer normalizer) {
+        assert whereClause() != null;
+        List<Symbol> newToCollect = normalizer.normalize(toCollect());
+        CollectNode result = this;
+        boolean changed = newToCollect != toCollect();
+        WhereClause newWhereClause = whereClause().normalize(normalizer);
+        if (newWhereClause != whereClause()) {
+            changed = changed || newWhereClause != whereClause();
+        }
+        if (changed) {
+            result = new CollectNode(id(), routing, newToCollect, projections);
+            result.downStreamNodes = downStreamNodes;
+            result.maxRowgranularity = maxRowgranularity;
+            result.whereClause(newWhereClause);
+        }
+        return result;
     }
 
 }

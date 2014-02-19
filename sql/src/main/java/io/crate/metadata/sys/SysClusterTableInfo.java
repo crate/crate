@@ -22,9 +22,9 @@
 package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.Function;
 import org.cratedb.DataType;
 
 import java.util.*;
@@ -62,7 +62,7 @@ public class SysClusterTableInfo extends SysTableInfo {
     }
 
     @Override
-    public Routing getRouting(Function whereClause) {
+    public Routing getRouting(WhereClause whereClause) {
         // No routing for cluster level
         return null;
     }
