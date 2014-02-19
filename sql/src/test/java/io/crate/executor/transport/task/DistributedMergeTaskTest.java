@@ -1,6 +1,5 @@
 package io.crate.executor.transport.task;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.distributed.DistributedResultResponse;
@@ -31,14 +30,6 @@ import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
-
-    static {
-        System.out.println();
-        for (String cp : Splitter.on(':').split(System.getProperty("java.class.path"))) {
-            System.out.println(cp);
-        }
-        System.out.println();
-    }
 
     @Test
     public void testDistributedMergeTask() throws Exception {
