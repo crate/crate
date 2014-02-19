@@ -27,8 +27,8 @@ Crate...
 Getting Started
 ===============
 
-A Crate instance in 5 minutes
------------------------------
+Installation
+------------
 
 - Download_ the latest release and unzip the archive.
 
@@ -38,7 +38,7 @@ A Crate instance in 5 minutes
 
 - Start some more servers to form a cluster and relax.
 
-.. _Download: https://download.crate.io/
+.. _Download: https://crate.io/download/
 
 Get Crate
 =========
@@ -68,28 +68,24 @@ Lync, Saucy Salamander and Precise Pangolin.
 RPM: CentOS, Scientific Linux
 -----------------------------
 
-Add the following config for the repository to ``/etc/yum.repos.d/crate.repo``:
+All CRATE packages are signed with GPG. To verify the packages the public
+key must be installed to the system. After that, you can install the .rpm
+containing the YUM repository definition on your system.
 
 ::
 
-    [crate]
-    gpgcheck=0
-    baseurl=https://yum.crate.io/release/
-    name=Crate
-
-Or simply copy & paste the following line to your bash to create the above
-repository config:
-
-::
-
-    echo -e '[crate]\ngpgcheck=0\nbaseurl=https://yum.crate.io/release/\nname=Crate' >> /etc/yum.repos.d/crate.repo
+sudo rpm --import https://cdn.crate.io/downloads/yum/RPM-GPG-KEY-crate
+sudo rpm -Uvh https://cdn.crate.io/downloads/yum/6/x86_64/crate-release-6.5-1.noarch.rpm
 
 Then install Crate:
 
 ``yum install crate``
 
+The CRATE Testing repository is disabled by default. It contains development builds and is
+frequently updated. If you want to enable the Testing repo on your server, set ``enabled=1`` in
+``/etc/yum.repos.d/crate.repo``.
 
-.. _Download: https://download.crate.io/
+.. _Download: https://crate.io/download/
 .. _Launchpad: https://launchpad.net/~crate
 
 Where to go from here?
@@ -97,7 +93,7 @@ Where to go from here?
 
 That is certainly not all Crate offers to you. Take a look at the
 documentation found under the ``docs`` directory or visit
-`https://docs.crate.io/ <https://docs.crate.io/>`_. If you already installed
+`https://crate.io/docs/ <https://crate.io/docs/>`_. If you already installed
 Crate you can also use the documentation it was shipped with available via
 `http://localhost:4200/_plugin/docs/ <http://localhost:4200/_plugin/docs/>`_.
 
@@ -115,10 +111,10 @@ There are several different ways to manage data in Crate.
 
 - `Java client`_
 
-.. _Python client: https://docs.crate.io/current/clients.html#crate-python-client
+.. _Python client: https://crate.io/docs/current/clients.html#crate-python-client
 .. _GitHub: https://github.com/crate/crate-python
 .. _pypi: https://pypi.python.org/pypi/crate/
-.. _Java client: https://docs.crate.io/current/clients.html#crate-java-client
+.. _Java client: https://crate.io/docs/current/clients.html#crate-java-client
 
 Are you a Developer?
 ====================
@@ -139,14 +135,14 @@ Once that is done, we suggest to continue as follows:
 3. Add your contributions (``git commit -am "Added feature"``)
 
 4. Commit and publish your feature branch to your own fork
-   (``git push -u origin my_feature``).
+   (``git push -u origin my_markup``).
 
 5. Create a `pull requests <https://help.github.com/articles/using-pull-requests>`_
    specifying the Crate repository as the destination.
 
 6. Lay back and relax while waiting for our response.
 
-.. _CLA: https://crate.io/contributing-to-crate/
+.. _CLA: https://crate.io/legal/contribute/
 
 Help & Contact
 ==============
