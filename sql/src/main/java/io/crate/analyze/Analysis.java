@@ -83,7 +83,7 @@ public abstract class Analysis {
         return this.table;
     }
 
-    public Reference allocateReference(ReferenceIdent ident) {
+    private Reference allocateReference(ReferenceIdent ident, boolean unique) {
         Reference reference = referenceSymbols.get(ident);
         if (reference == null) {
             ReferenceInfo info = getReferenceInfo(ident);
@@ -94,9 +94,20 @@ public abstract class Analysis {
                 reference = new Reference(info);
             }
             referenceSymbols.put(info.ident(), reference);
+        } else if (unique) {
+            throw new IllegalArgumentException(String.format("reference '%s' repeated", ident));
         }
         updateRowGranularity(reference.info().granularity());
         return reference;
+    }
+
+    /**
+     * add a reference for the given ident, get from map-cache if already
+     * @param ident
+     * @return
+     */
+    public Reference allocateReference(ReferenceIdent ident) {
+        return allocateReference(ident, false);
     }
 
     /**
@@ -104,19 +115,7 @@ public abstract class Analysis {
      * and throw an error if this ident has already been added
      */
     public Reference allocateUniqueReference(ReferenceIdent ident) {
-        if (referenceSymbols.get(ident) != null) {
-            throw new IllegalArgumentException(String.format("reference '%s' repeated", ident));
-        }
-        ReferenceInfo info = getReferenceInfo(ident);
-        Reference reference;
-        if (info == null) {
-            reference = table.getDynamic(ident.columnIdent());
-        } else {
-            reference = new Reference(info);
-        }
-        referenceSymbols.put(ident, reference);
-        updateRowGranularity(reference.info().granularity());
-        return reference;
+        return allocateReference(ident, true);
     }
 
     @Nullable

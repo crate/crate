@@ -38,30 +38,32 @@ public class DynamicReference extends Reference {
             return new DynamicReference();
         }
     };
-                                                                          // DEFAULT TYPE
-    private final ReferenceInfo.Builder builder = ReferenceInfo.builder().type(DataType.NULL);
+
+    private ReferenceInfo info;
 
     public DynamicReference() {}
 
     public DynamicReference(ReferenceInfo info) {
-        this.builder.fromInfo(info);
+        this.info = info;
     }
 
     public DynamicReference(ReferenceIdent ident, RowGranularity rowGranularity) {
-        this.builder.ident(ident).granularity(rowGranularity);
+        this.info = new ReferenceInfo(ident, rowGranularity, DataType.NULL);
     }
 
     @Override
     public ReferenceInfo info() {
-        return builder.build();
+        return info;
     }
 
     public void valueType(DataType dataType) {
-        this.builder.type(dataType);
+        assert this.info != null;
+        this.info = new ReferenceInfo(info.ident(), info.granularity(), dataType, info.objectType());
     }
 
     public void objectType(ReferenceInfo.ObjectType objectType) {
-        this.builder.objectType(objectType);
+        assert this.info != null;
+        this.info = new ReferenceInfo(info.ident(), info.granularity(), info.type(), objectType);
     }
 
     @Override
@@ -76,13 +78,13 @@ public class DynamicReference extends Reference {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        ReferenceInfo info = new ReferenceInfo();
+        info = new ReferenceInfo();
         info.readFrom(in);
-        this.builder.fromInfo(info);
+
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        builder.build().writeTo(out);
+        info.writeTo(out);
     }
 }

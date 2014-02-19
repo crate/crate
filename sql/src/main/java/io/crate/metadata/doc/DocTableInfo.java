@@ -27,9 +27,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
-import org.cratedb.DataType;
 import io.crate.planner.symbol.DynamicReference;
-import io.crate.planner.symbol.Function;
 import org.cratedb.sql.ColumnUnknownException;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterService;
@@ -117,16 +115,24 @@ public class DocTableInfo implements TableInfo {
         if (!ident.isColumn()) {
             // see if parent is strict object
             ColumnIdent parentIdent = ident.getParent();
-            ReferenceInfo parentInfo = getColumnInfo(parentIdent);
-            if ( parentInfo == null) {
-                return getDynamic(parentIdent);
+            ReferenceInfo parentInfo = null;
+
+            while (parentIdent != null) {
+                parentInfo = getColumnInfo(parentIdent);
+                if (parentInfo != null) {
+                    break;
+                }
+                parentIdent = parentIdent.getParent();
             }
 
-            if (parentInfo.objectType() == ReferenceInfo.ObjectType.STRICT) {
-                throw new ColumnUnknownException(ident().name(), ident.fqn());
-            } else if (parentInfo.objectType() == ReferenceInfo.ObjectType.IGNORED) {
-                // childs of ignored object columns are also ignored by default (otherwise explicitly stated not to)
-                parentIsIgnored = true;
+            if (parentInfo != null) {
+                switch (parentInfo.objectType()) {
+                    case STRICT:
+                        throw new ColumnUnknownException(ident().name(), ident.fqn());
+                    case IGNORED:
+                        parentIsIgnored = true;
+                        break;
+                }
             }
         }
         DynamicReference reference = new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity());

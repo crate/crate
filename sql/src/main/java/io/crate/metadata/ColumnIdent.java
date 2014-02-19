@@ -64,6 +64,11 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
         return new ColumnIdent(parent.name, childPath);
     }
 
+    /**
+     * person['addresses']['street'] --> person['addresses']
+     * <p>
+     * person --> null
+     */
     public ColumnIdent getParent() {
         if (isColumn()) {
             return null;
@@ -75,12 +80,16 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
         return new ColumnIdent(name());
     }
 
+    /**
+     * person['addresses']['street'] --> person
+     * <p>
+     * person --> person
+     */
     public ColumnIdent getRoot() {
         if (isColumn()) {
-            return null;
+            return this;
         }
         return new ColumnIdent(name());
-
     }
 
     public String name() {

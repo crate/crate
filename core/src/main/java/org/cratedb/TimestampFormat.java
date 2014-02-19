@@ -33,12 +33,8 @@ public class TimestampFormat {
     private static final TimeUnit timeUnit = TimeUnit.MILLISECONDS;
     private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
 
-    public static long parseTimestampString(String value) throws UnsupportedOperationException {
-        try {
-            return dateTimeFormatter.parser().parseMillis(value);
-        } catch (RuntimeException e) {
-            throw new UnsupportedOperationException("failed to parse timestamp field [" + value + "], tried both date format [" + dateTimeFormatter.format() + "], and timestamp number with locale [" + dateTimeFormatter.locale() + "]", e);
-        }
+    public static long parseTimestampString(String value) throws UnsupportedOperationException, IllegalArgumentException {
+        return dateTimeFormatter.parser().parseMillis(value);
     }
 
     public static boolean isDateFormat(String value) {
