@@ -23,6 +23,7 @@ package io.crate.operator.operator;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.operator.Input;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 
@@ -65,6 +66,11 @@ public class InOperator extends Operator {
             return new BooleanLiteral(true);
         }
         return new BooleanLiteral(false);
+    }
+
+    @Override
+    public Boolean evaluate(Input<?>... args) {
+        return null;
     }
 
 }

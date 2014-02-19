@@ -8,8 +8,10 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
+import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
 public class AndOperatorTest {
@@ -40,5 +42,28 @@ public class AndOperatorTest {
         Symbol symbol = operator.normalizeSymbol(function);
         assertThat(symbol, instanceOf(BooleanLiteral.class));
         assertThat(((BooleanLiteral) symbol).value(), is(false));
+    }
+
+    @Test
+    public void testEvaluateTrue() {
+        AndOperator operator = new AndOperator();
+        Boolean result = operator.evaluate(
+                new BooleanLiteral(true),
+                new BooleanLiteral(true)
+        );
+
+        assertTrue(result);
+    }
+
+    @Test
+    public void testEvaluateFalse() {
+        AndOperator operator = new AndOperator();
+        Boolean result = operator.evaluate(
+                new BooleanLiteral(true),
+                new BooleanLiteral(false),
+                new BooleanLiteral(true)
+        );
+
+        assertFalse(result);
     }
 }

@@ -4,12 +4,13 @@ import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
 import org.cratedb.DataType;
 
-public abstract class Operator implements FunctionImplementation<Function> {
+public abstract class Operator implements FunctionImplementation<Function>, Scalar<Boolean> {
 
     protected static FunctionInfo generateInfo(String name, DataType type) {
         return new FunctionInfo(new FunctionIdent(name, ImmutableList.of(type, type)), DataType.BOOLEAN);
@@ -18,4 +19,5 @@ public abstract class Operator implements FunctionImplementation<Function> {
     protected boolean containsNull(Symbol left, Symbol right) {
         return left.symbolType() == SymbolType.NULL_LITERAL || right.symbolType() == SymbolType.NULL_LITERAL;
     }
+
 }

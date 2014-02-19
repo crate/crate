@@ -22,6 +22,7 @@
 package io.crate.operator.operator;
 
 import io.crate.metadata.FunctionInfo;
+import io.crate.operator.Input;
 import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.StringLiteral;
@@ -76,4 +77,8 @@ public class LikeOperator extends Operator {
         return s.replaceAll(ZERO_OR_MORE, ".*").replaceAll(EXACTLY_ONE, ".");
     }
 
+    @Override
+    public Boolean evaluate(Input<?>... args) {
+        return null;
+    }
 }

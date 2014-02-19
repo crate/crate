@@ -22,6 +22,7 @@
 package io.crate.operator.operator;
 
 import io.crate.metadata.FunctionInfo;
+import io.crate.operator.Input;
 import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
@@ -53,5 +54,19 @@ public class AndOperator extends Operator {
         }
 
         return new BooleanLiteral(result);
+    }
+
+    @Override
+    public Boolean evaluate(Input<?>... args) {
+        if (args == null) {
+            return false;
+        }
+        for (Input<?> input : args) {
+            if (!(Boolean)input.value()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
