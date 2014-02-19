@@ -1,16 +1,24 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
  */
+
 package io.crate.sql.parser;
 
 import io.crate.sql.SqlFormatter;
@@ -27,6 +35,8 @@ import static io.crate.sql.parser.TreeAssertions.assertFormattedSql;
 import static io.crate.sql.parser.TreePrinter.treeToString;
 import static com.google.common.base.Strings.repeat;
 import static java.lang.String.format;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 
@@ -79,7 +89,11 @@ public class TestStatementBuilder
         printStatement("show partitions from foo where name = 'foo'");
         printStatement("show partitions from foo order by x");
         printStatement("show partitions from foo limit 10");
+        printStatement("show partitions from foo limit 10 offset 20");
+        printStatement("show partitions from foo offset 20");
         printStatement("show partitions from foo order by x desc limit 10");
+        printStatement("show partitions from foo order by x desc limit 10 offset 20");
+        printStatement("show partitions from foo order by x desc offset 20");
 
         printStatement("select * from a.b.c@d");
 
@@ -90,7 +104,23 @@ public class TestStatementBuilder
         printStatement("select * from foo tablesample bernoulli (10) stratify on (id)");
         printStatement("select * from foo tablesample system (50) stratify on (id, name)");
 
+        printStatement("select * from foo limit 100 offset 20");
+        printStatement("select * from foo offset 20");
+
         printStatement("create table foo as select * from abc");
+
+        printStatement("insert into foo (id, name) values ('string', 1.2)");
+        printStatement("insert into foo values ('string', NULL)");
+        printStatement("insert into foo (id, name) values ('string', 1.2), (abs(-4), 4+?)");
+        printStatement("insert into schemah.foo (foo.id, bar.name) values ('string', 1.2)");
+
+        printStatement("delete from foo");
+        printStatement("delete from schemah.foo where foo.a=foo.b and a is not null");
+
+        printStatement("update foo set a=b");
+        printStatement("update schemah.foo set foo.a='b', foo.b=foo.a");
+        printStatement("update schemah.foo set foo.a=abs(-6.3334), x=true where x=false");
+
     }
 
     @Test
@@ -135,8 +165,25 @@ public class TestStatementBuilder
     }
 
     @Test
+    public void testCaseSensitivity() throws Exception {
+        Expression expression = SqlParser.createExpression("\"firstName\" = 'myName'");
+        QualifiedNameReference nameRef = (QualifiedNameReference)((ComparisonExpression)expression).getLeft();
+        StringLiteral myName = (StringLiteral)((ComparisonExpression)expression).getRight();
+        assertThat(nameRef.getName().getSuffix(), is("firstName"));
+        assertThat(myName.getValue(), is("myName"));
+
+        expression = SqlParser.createExpression("FIRSTNAME = 'myName'");
+        nameRef = (QualifiedNameReference)((ComparisonExpression)expression).getLeft();
+        assertThat(nameRef.getName().getSuffix(), is("firstname"));
+
+        expression = SqlParser.createExpression("ABS(1)");
+        QualifiedName functionName = ((FunctionCall)expression).getName();
+        assertThat(functionName.getSuffix(), is("abs"));
+    }
+
+    @Test
     public void testParameterNode() throws Exception {
-        printStatement("select foo, :0 from foo where a = :1 or a = :2");
+        printStatement("select foo, $1 from foo where a = $2 or a = $3");
 
         final AtomicInteger counter = new AtomicInteger(0);
 
@@ -144,7 +191,7 @@ public class TestStatementBuilder
         inExpression.accept(new DefaultTraversalVisitor<Object, Object>() {
             @Override
             public Object visitParameterExpression(ParameterExpression node, Object context) {
-                assertEquals(counter.getAndIncrement(), node.position());
+                assertEquals(counter.incrementAndGet(), node.position());
                 return super.visitParameterExpression(node, context);
             }
         }, null);
@@ -152,11 +199,11 @@ public class TestStatementBuilder
         assertEquals(3, counter.get());
         counter.set(0);
 
-        Expression andExpression = SqlParser.createExpression("a = ? and b = ? and c = :2");
+        Expression andExpression = SqlParser.createExpression("a = ? and b = ? and c = $3");
         andExpression.accept(new DefaultTraversalVisitor<Object, Object>() {
             @Override
             public Object visitParameterExpression(ParameterExpression node, Object context) {
-                assertEquals(counter.getAndIncrement(), node.position());
+                assertEquals(counter.incrementAndGet(), node.position());
                 return super.visitParameterExpression(node, context);
             }
         }, null);

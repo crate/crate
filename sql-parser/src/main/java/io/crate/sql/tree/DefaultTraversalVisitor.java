@@ -1,16 +1,24 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
  */
+
 package io.crate.sql.tree;
 
 public abstract class DefaultTraversalVisitor<R, C>
@@ -303,12 +311,15 @@ public abstract class DefaultTraversalVisitor<R, C>
     @Override
     protected R visitQuerySpecification(QuerySpecification node, C context)
     {
-        process(node.getSelect(), context);
+
+        // visit the from first, since this qualifies the select
         if (node.getFrom() != null) {
             for (Relation relation : node.getFrom()) {
                 process(relation, context);
             }
         }
+
+        process(node.getSelect(), context);
         if (node.getWhere().isPresent()) {
             process(node.getWhere().get(), context);
         }
@@ -385,6 +396,26 @@ public abstract class DefaultTraversalVisitor<R, C>
             process(((JoinOn) node.getCriteria().get()).getExpression(), context);
         }
 
+        return null;
+    }
+
+    @Override
+    public R visitInsert(Insert node, C context) {
+        process(node.table(), context);
+        for (QualifiedNameReference column : node.columns()) {
+            process(column, context);
+        }
+        for (ValuesList valuesList : node.valuesLists()) {
+            process(valuesList, context);
+        }
+        return null;
+    }
+
+    @Override
+    public R visitValuesList(ValuesList node, C context) {
+        for (Expression value : node.values()) {
+            process(value, context);
+        }
         return null;
     }
 }

@@ -1,0 +1,18 @@
+org.cratedb.sql.parser.parser.CreateAnalyzerNode@7db9c2f0
+name: my_analyzer
+statementType: CREATE ANALYZER
+	
+	org.cratedb.sql.parser.parser.AnalyzerElements@2ead5b0c
+
+	Tokenizer: 		
+		org.cratedb.sql.parser.parser.NamedNodeWithOptionalProperties@773488c4
+		myTokenizer
+		Properties: 			null
+	Properties: 		
+		org.cratedb.sql.parser.parser.GenericProperties@19ff3900
+		{}
+	TokenFilters: 		
+		org.cratedb.sql.parser.parser.TokenFilterList@42f73c55
+
+	CharFilters: 		
+		org.cratedb.sql.parser.parser.CharFilterList@759a12cb
