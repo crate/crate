@@ -33,6 +33,7 @@ public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolve
     private LuceneDocLevelReferenceResolver() {
     }
 
+    @Override
     public LuceneCollectorExpression<?> getImplementation(ReferenceInfo referenceInfo) {
         String colName = referenceInfo.ident().columnIdent().fqn();
         assert referenceInfo.granularity() == RowGranularity.DOC;
