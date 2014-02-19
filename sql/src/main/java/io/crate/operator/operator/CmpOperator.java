@@ -52,8 +52,7 @@ public abstract class CmpOperator extends Operator {
 
         if (left.symbolType().isLiteral() && right.symbolType().isLiteral()) {
             // must be true due to the function registration (argument DataType signature)
-            assert left.getClass() == right.getClass();
-            return new BooleanLiteral(compare(((Literal) left).compareTo(right)));
+            return new BooleanLiteral(evaluate((Literal)left, (Literal)right));
         }
 
         return symbol;
@@ -64,7 +63,6 @@ public abstract class CmpOperator extends Operator {
         assert (args != null);
         assert (args.length == 2);
 
-        // handle Input.value() as Object to get the Class of an object.
         Object left = args[0].value();
         Object right = args[1].value();
         assert (left.getClass().equals(right.getClass()));

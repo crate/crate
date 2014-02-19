@@ -376,6 +376,7 @@ public enum DataType {
             .put(String.class, DataType.STRING)
             .put(Boolean.class, DataType.BOOLEAN)
             .put(Map.class, DataType.OBJECT)
+            .put(BytesRef.class, DataType.STRING)
             .build();
 
     @Nullable
