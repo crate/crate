@@ -76,4 +76,12 @@ public class DoubleLiteral extends NumberLiteral<Double, DoubleLiteral> {
         Preconditions.checkNotNull(o);
         return Integer.signum(Double.compare(value, o.value));
     }
+
+    @Override
+    public Literal convertTo(DataType type) {
+        if (type == DataType.TIMESTAMP) {
+            return new TimestampLiteral((long)(value()*1000));
+        }
+        return super.convertTo(type);
+    }
 }

@@ -7,13 +7,15 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.DynamicReference;
 import org.cratedb.DataType;
+import org.cratedb.sql.ColumnUnknownException;
 import org.junit.Test;
 
 import java.util.Arrays;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
 
 public class DocTableInfoTest {
 
@@ -31,7 +33,10 @@ public class DocTableInfoTest {
                 null);
 
         ReferenceInfo foobar = info.getColumnInfo(new ColumnIdent("foobar"));
-        assertNotNull(foobar);
+        assertNull(foobar);
+        DynamicReference reference = info.getDynamic(new ColumnIdent("foobar"));
+        assertNotNull(reference);
+        assertThat(reference.valueType(), is(DataType.NULL));
     }
 
     @Test
@@ -60,6 +65,24 @@ public class DocTableInfoTest {
                 new String[0],
                 null);
 
-        assertNull(info.getColumnInfo(new ColumnIdent("foobar", Arrays.asList("foo", "bar"))));
+
+        try {
+            ColumnIdent columnIdent = new ColumnIdent("foobar", Arrays.asList("foo", "bar"));
+            assertNull(info.getColumnInfo(columnIdent));
+            info.getDynamic(columnIdent);
+            fail();
+        } catch (ColumnUnknownException e) {
+
+        }
+        try {
+            ColumnIdent columnIdent = new ColumnIdent("foobar", Arrays.asList("foo"));
+            assertNull(info.getColumnInfo(columnIdent));
+            info.getDynamic(columnIdent);
+            fail();
+        } catch (ColumnUnknownException e) {
+
+        }
+        ReferenceInfo colInfo = info.getColumnInfo(new ColumnIdent("foobar"));
+        assertNotNull(colInfo);
     }
 }

@@ -121,6 +121,9 @@ public class InsertAnalysis extends Analysis {
     }
 
     public void addPrimaryKeyColumnIdx(int primaryKeyColumnIdx) {
+        if (this.primaryKeyColumnIndices.size() > 0) {
+            throw new IllegalArgumentException("Multiple primary key columns are not supported.");
+        }
         this.primaryKeyColumnIndices.add(primaryKeyColumnIdx);
     }
 

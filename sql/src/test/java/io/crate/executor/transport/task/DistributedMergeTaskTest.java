@@ -1,17 +1,21 @@
 package io.crate.executor.transport.task;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.distributed.DistributedResultResponse;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
-import io.crate.metadata.*;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.Functions;
 import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.impl.CountAggregation;
 import io.crate.planner.node.AggregationStateStreamer;
 import io.crate.planner.node.MergeNode;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.TopNProjection;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.SQLTransportIntegrationTest;
@@ -27,6 +31,14 @@ import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
+
+    static {
+        System.out.println();
+        for (String cp : Splitter.on(':').split(System.getProperty("java.class.path"))) {
+            System.out.println(cp);
+        }
+        System.out.println();
+    }
 
     @Test
     public void testDistributedMergeTask() throws Exception {
