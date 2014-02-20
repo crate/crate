@@ -27,8 +27,8 @@ public class SubscriptExpression extends Expression {
     private Expression name;
     private Expression index;
 
-    public SubscriptExpression(Expression columnName, Expression indexExpression) {
-        this.name = columnName;
+    public SubscriptExpression(Expression nameExpression, Expression indexExpression) {
+        this.name = nameExpression;
         this.index = indexExpression;
     }
 

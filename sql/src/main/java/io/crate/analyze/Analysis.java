@@ -51,7 +51,7 @@ public abstract class Analysis {
     protected RowGranularity rowGranularity;
     protected boolean hasAggregates = false;
 
-    private Long version;
+    protected Long version;
 
     public List<Literal> primaryKeyLiterals() {
         return primaryKeyLiterals;
