@@ -6,6 +6,7 @@ import io.crate.planner.symbol.*;
 import org.cratedb.core.collections.MapComparator;
 
 import java.util.Map;
+import java.util.Objects;
 
 public abstract class CmpOperator extends Operator<Object> {
 
@@ -58,25 +59,22 @@ public abstract class CmpOperator extends Operator<Object> {
     public Boolean evaluate(Input<Object>... args) {
         assert (args != null);
         assert (args.length == 2);
-
-        if (args[0] == null && args[1] == null) {
-            return compare(0);
-        } else if (args[0] == null && args[1] != null) {
-            return compare(1);
-        } else if (args[0] != null && args[1] == null) {
-            return compare(-1);
-        }
+        assert (args[0] != null && args[1] != null);
 
         Object left = args[0].value();
         Object right = args[1].value();
+        if (left == null || right == null) {
+            return null;
+        }
         assert (left.getClass().equals(right.getClass()));
 
         if (left instanceof Comparable) {
             return compare(((Comparable)left).compareTo(right));
         } else if (left instanceof Map) {
-            return compare(MapComparator.compareMaps((Map)left, (Map)right));
+            return compare(Objects.compare((Map)left, (Map)right, MapComparator.getInstancne()));
+        } else {
+            return null;
         }
-        throw new UnsupportedOperationException("Could not compare the expressions");
     }
 
 }

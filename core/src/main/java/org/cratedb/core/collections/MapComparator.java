@@ -23,9 +23,21 @@ package org.cratedb.core.collections;
 
 import com.google.common.base.Preconditions;
 
+import java.util.Comparator;
 import java.util.Map;
 
-public class MapComparator {
+public class MapComparator implements Comparator<Map> {
+
+    private static MapComparator instancne;
+
+    private MapComparator() {}
+
+    public static MapComparator getInstancne() {
+        if (instancne == null) {
+            instancne = new MapComparator();
+        }
+        return instancne;
+    }
 
     public static <K, V> int compareMaps(Map<K, V> m1, Map<K, V> m2) {
         Preconditions.checkNotNull(m1, "map is null");
@@ -54,5 +66,10 @@ public class MapComparator {
             }
         }
         return 0;
+    }
+
+    @Override
+    public int compare(Map o1, Map o2) {
+        return compareMaps(o1, o2);
     }
 }
