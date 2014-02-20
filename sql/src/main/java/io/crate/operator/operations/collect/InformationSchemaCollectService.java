@@ -110,7 +110,7 @@ public class InformationSchemaCollectService {
                 for (InformationCollectorExpression<R, ?> collectorExpression : collectorExpressions) {
                     collectorExpression.setNextRow(row);
                 }
-                if (condition != null && !condition.value()){
+                if (!condition.value()){
                     // no match
                     continue;
                 }
