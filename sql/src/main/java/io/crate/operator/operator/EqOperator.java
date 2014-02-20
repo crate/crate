@@ -22,10 +22,12 @@
 package io.crate.operator.operator;
 
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
+import io.crate.operator.Input;
 import org.cratedb.DataType;
 
 
-public class EqOperator extends CmpOperator {
+public class EqOperator extends CmpOperator implements Scalar<Boolean> {
 
     public static final String NAME = "op_=";
 
@@ -42,5 +44,19 @@ public class EqOperator extends CmpOperator {
 
     EqOperator(FunctionInfo info) {
         super(info);
+    }
+
+    @Override
+    public Boolean evaluate(Input<?>... args) {
+        assert args.length == 2;
+        Object left = args[0].value();
+        if (left == null){
+            return null;
+        }
+        Object right = args[1].value();
+        if (right == null){
+            return null;
+        }
+        return left.equals(right);
     }
 }

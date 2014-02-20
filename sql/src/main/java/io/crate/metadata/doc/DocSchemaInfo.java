@@ -21,25 +21,31 @@
 
 package io.crate.metadata.doc;
 
+import com.google.common.base.Function;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.Iterators;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.common.inject.Inject;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 
 public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     public static final String NAME = "doc";
     private final ClusterService clusterService;
+
 
     private final LoadingCache<String, DocTableInfo> cache = CacheBuilder.newBuilder()
             .maximumSize(10000)
@@ -51,11 +57,19 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                         }
                     }
             );
+    private final Function<String, TableInfo> tableInfoFunction;
 
     @Inject
     public DocSchemaInfo(ClusterService clusterService) {
         this.clusterService = clusterService;
         clusterService.add(this);
+        this.tableInfoFunction = new Function<String, TableInfo>() {
+            @Nullable
+            @Override
+            public TableInfo apply(@Nullable String input) {
+                return getTableInfo(input);
+            }
+        };
     }
 
     private DocTableInfo innerGetTableInfo(String name) {
@@ -87,4 +101,8 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
         }
     }
 
+    @Override
+    public Iterator<TableInfo> iterator() {
+        return Iterators.transform(tableNames().iterator(), tableInfoFunction);
+    }
 }

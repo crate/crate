@@ -19,15 +19,22 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.collector;
+package io.crate.metadata.information;
 
-public interface CrateCollector {
+import io.crate.metadata.ReferenceImplementation;
+import io.crate.operator.Input;
 
-    public static final CrateCollector NOOP = new CrateCollector() {
-        @Override
-        public void doCollect() {
-        }
-    };
+/**
+ * Base class for information_schema expressions.
+ * @param <T> The returnType of the expression
+ */
+public abstract class InformationCollectorExpression<R, T> implements ReferenceImplementation, Input<T> {
 
-    public void doCollect() throws Exception;
+    public abstract void setNextRow(R row);
+
+    @Override
+    public ReferenceImplementation getChildImplementation(String name) {
+        return null;
+    }
+
 }

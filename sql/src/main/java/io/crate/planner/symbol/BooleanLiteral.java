@@ -13,6 +13,9 @@ public class BooleanLiteral extends Literal<Boolean, BooleanLiteral> {
     private static final StringLiteral TRUE_STRING = new StringLiteral(new BytesRef("t"));
     private static final StringLiteral FALSE_STRING = new StringLiteral(new BytesRef("f"));
 
+    public static final BooleanLiteral TRUE = new BooleanLiteral(true);
+    public static final BooleanLiteral FALSE = new BooleanLiteral(false);
+
     private Boolean value;
 
     public static final SymbolFactory<BooleanLiteral> FACTORY = new SymbolFactory<BooleanLiteral>() {

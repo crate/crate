@@ -48,13 +48,6 @@ import org.elasticsearch.script.ScriptService;
 
 public class ShardCollectService {
 
-    public static CrateCollector NOOP_COLLECTOR = new CrateCollector() {
-        @Override
-        public void doCollect() {
-        }
-    };
-
-
     private final CollectInputSymbolVisitor<LuceneCollectorExpression<?>> docInputSymbolVisitor;
     private final ClusterService clusterService;
     private final ShardId shardId;
@@ -109,7 +102,7 @@ public class ShardCollectService {
         collectNode = collectNode.normalize(shardNormalizer);
 
         if (collectNode.whereClause().noMatch()) {
-            return NOOP_COLLECTOR;
+            return CrateCollector.NOOP;
         } else {
             RowGranularity granularity = collectNode.maxRowGranularity();
             if (granularity == RowGranularity.DOC) {
