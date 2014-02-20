@@ -241,8 +241,8 @@ public class LikeOperatorTest {
 
     @Test
     public void testExpressionToRegexMaliciousPatterns() {
-        String expression = "foo\\bar^$.*";
-        assertEquals("^foobar\\^\\$\\.\\*$", expressionToRegex(expression, DEFAULT_ESCAPE, true));
+        String expression = "fo(ooo)o[asdf]o\\bar^$.*";
+        assertEquals("^fo\\(ooo\\)o\\[asdf\\]obar\\^\\$\\.\\*$", expressionToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     // test evaluate
