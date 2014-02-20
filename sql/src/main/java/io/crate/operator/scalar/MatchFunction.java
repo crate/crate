@@ -23,15 +23,14 @@ package io.crate.operator.scalar;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
-import io.crate.operator.Input;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
 
-public class MatchFunction implements Scalar<Boolean, Object> {
+public class MatchFunction implements FunctionImplementation<Function> {
 
     public static final String NAME = "match";
 
@@ -47,11 +46,6 @@ public class MatchFunction implements Scalar<Boolean, Object> {
     @Inject
     public MatchFunction(FunctionInfo info) {
         this.info = info;
-    }
-
-    @Override
-    public Boolean evaluate(Input<Object>... args) {
-        throw new UnsupportedOperationException();
     }
 
     @Override
