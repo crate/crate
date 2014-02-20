@@ -73,9 +73,6 @@ public class AggregationProjector implements Projector {
                     aggregations[i].function(),
                     aggregations[i].inputs()
             );
-            // the same aggregation projector is re-used across all shards
-            // generate the aggregate state only once here instead of in startProjection
-            aggregationCollectors[i].startCollect();
         }
     }
 
@@ -86,6 +83,9 @@ public class AggregationProjector implements Projector {
 
     @Override
     public void startProjection() {
+        for (AggregationCollector collector : aggregationCollectors) {
+            collector.startCollect();
+        }
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.startCollect();
         }
@@ -119,7 +119,7 @@ public class AggregationProjector implements Projector {
 
     @Override
     public Object[][] getRows() throws IllegalStateException {
-        return new Object[][] { row };
+        return new Object[][]{row};
     }
 
     @Override
