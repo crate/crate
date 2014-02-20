@@ -73,14 +73,29 @@ public class LikeOperator extends Operator<BytesRef> {
         assert (args != null);
         assert (args.length == 2);
 
-        try {
-            String expression = args[0].value().utf8ToString();
-            String pattern = args[1].value().utf8ToString();
-
-            return matches(expression, pattern);
-        } catch (ClassCastException | NullPointerException e) {
-            throw new UnsupportedOperationException("Could not evaluate operation");
+        Boolean argsNull = compareAndCheckNull(args[0], args[1]);
+        if (argsNull != null) {
+            return argsNull;
         }
+
+        BytesRef expression = args[0].value();
+        BytesRef pattern = args[1].value();
+        Boolean refsNull = compareAndCheckNull(expression, pattern);
+        if (refsNull != null) {
+            return refsNull;
+        }
+
+        return matches(expression.utf8ToString(), pattern.utf8ToString());
+    }
+
+    private Boolean compareAndCheckNull(Object o1, Object o2) {
+        if (o1 == null && o2 == null) {
+            return true;
+        }
+        if ((o1 != null && o2 == null) || (o1 == null && o2 != null)) {
+            return false;
+        }
+        return null;
     }
 
     private boolean matches(String expression, String pattern) {

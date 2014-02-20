@@ -78,10 +78,10 @@ public class InOperator extends Operator<Object> {
         assert (args.length == 2);
 
         if (args[0] == null) {
-            throw new IllegalArgumentException("<expression> IN <pattern>: expression must not be null");
+            throw new IllegalArgumentException("<expression> IN <pattern>: arg[0] must not be null");
         }
-        if (args[1] == null) {
-            throw new IllegalArgumentException("<expression> IN <pattern>: expression must not be null");
+        if (args[1] == null || args[1].value() == null) {
+            throw new IllegalArgumentException("<expression> IN <pattern>: pattern must not be null");
         }
         if (!(args[1].value() instanceof Set)) {
             throw new IllegalArgumentException("<expression> IN <pattern>: pattern must be of type Set");
@@ -89,11 +89,8 @@ public class InOperator extends Operator<Object> {
 
         Object inValue = args[0].value();
         Set<?> inList = (Set<?>)args[1].value();
-        if (inList.contains(inValue)) {
-            return true;
-        }
 
-        return false;
+        return inList.contains(inValue);
     }
 
 }

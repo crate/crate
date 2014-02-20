@@ -21,7 +21,12 @@
 package io.crate.operator.operator;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.planner.symbol.*;
+import io.crate.operator.operator.input.BytesRefInput;
+import io.crate.planner.symbol.BooleanLiteral;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.StringLiteral;
+import io.crate.planner.symbol.Symbol;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.junit.Test;
 
@@ -248,8 +253,8 @@ public class LikeOperatorTest {
                 LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
         );
         Boolean result = op.evaluate(
-                new StringLiteral("foo%baz"),
-                new StringLiteral("foobarbaz")
+                new BytesRefInput("foo%baz"),
+                new BytesRefInput("foobarbaz")
         );
         assertTrue(result);
     }
@@ -260,10 +265,71 @@ public class LikeOperatorTest {
                 LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
         );
         Boolean result = op.evaluate(
-                new StringLiteral("foo_baz"),
-                new StringLiteral("foobarbaz")
+                new BytesRefInput("foo_baz"),
+                new BytesRefInput("foobarbaz")
         );
         assertFalse(result);
     }
 
+    @Test
+    public void testEvaluateNullBytesRef() {
+        LikeOperator op = new LikeOperator(
+                LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
+        );
+        Boolean result = op.evaluate(
+                null,
+                new BytesRefInput("foobarbaz")
+        );
+        assertFalse(result);
+    }
+
+    @Test
+    public void testEvaluateBytesRefNull() {
+        LikeOperator op = new LikeOperator(
+                LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
+        );
+        Boolean result = op.evaluate(
+                new BytesRefInput("foobarbaz"),
+                null
+        );
+        assertFalse(result);
+    }
+
+    @Test
+    public void testEvaluateNullNull() {
+        LikeOperator op = new LikeOperator(
+                LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
+        );
+        Boolean result = op.evaluate(
+                null,
+                null
+        );
+        assertTrue(result);
+    }
+
+    @Test
+    public void testEvaluateBytesRefNullValue() {
+        LikeOperator op = new LikeOperator(
+                LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
+        );
+        BytesRef value = null;
+        Boolean result = op.evaluate(
+                new BytesRefInput(value),
+                null
+        );
+        assertFalse(result);
+    }
+
+    @Test
+    public void testEvaluateBytesRefNullValue2() {
+        LikeOperator op = new LikeOperator(
+                LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
+        );
+        BytesRef value = null;
+        Boolean result = op.evaluate(
+                null,
+                new BytesRefInput(value)
+        );
+        assertFalse(result);
+    }
 }

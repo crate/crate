@@ -244,4 +244,29 @@ public class InOperatorTest {
         assertFalse(result);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testEvaluateStringNullReference() {
+        ObjectInput inValue = null;
+        ObjectInput inListValues = new ObjectInput(ImmutableSet.of("alpha", "bravo", "charlie", "delta"));
+        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.STRING));
+        op.evaluate(inValue, inListValues);
+    }
+
+    @Test
+    public void testEvaluateStringNullValue() {
+        ObjectInput inValue = new ObjectInput(null);
+        ObjectInput inListValues = new ObjectInput(ImmutableSet.of("alpha", "bravo", "charlie", "delta"));
+        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.STRING));
+        Boolean result = op.evaluate(inValue, inListValues);
+        assertFalse(result);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testEvaluateStringNullList() {
+        ObjectInput inValue = new ObjectInput(null);
+        ObjectInput inListValues = null;
+        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.STRING));
+        op.evaluate(inValue, inListValues);
+    }
+
 }
