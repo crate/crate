@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - updated .gitignore and renamed heading in README.rst
+
 2014/01/29 0.22.2
 =================
 
