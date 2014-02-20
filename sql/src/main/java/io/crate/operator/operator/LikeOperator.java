@@ -27,11 +27,12 @@ import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.StringLiteral;
 import io.crate.planner.symbol.Symbol;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 
 import java.util.regex.Pattern;
 
-public class LikeOperator extends Operator {
+public class LikeOperator extends Operator<BytesRef> {
 
     public static final String NAME = "op_like";
 
@@ -68,15 +69,13 @@ public class LikeOperator extends Operator {
     }
 
     @Override
-    public Boolean evaluate(Input<?>... args) {
+    public Boolean evaluate(Input<BytesRef>... args) {
         assert (args != null);
         assert (args.length == 2);
-        assert (args[0] instanceof StringLiteral);
-        assert (args[1] instanceof StringLiteral);
 
         try {
-            String expression = ((StringLiteral)args[0]).value().utf8ToString();
-            String pattern = ((StringLiteral)args[1]).value().utf8ToString();
+            String expression = args[0].value().utf8ToString();
+            String pattern = args[1].value().utf8ToString();
 
             return matches(expression, pattern);
         } catch (ClassCastException | NullPointerException e) {
