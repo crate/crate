@@ -44,6 +44,7 @@ public abstract class CollectSetAggregation<T extends Comparable<T>> extends Agg
 
     public static void register(AggregationImplModule mod) {
         for (final DataType dataType : new DataType[]{DataType.STRING, DataType.IP}) {
+
             mod.registerAggregateFunction(
                     new CollectSetAggregation<BytesRef>(
                             new FunctionInfo(new FunctionIdent(NAME,
@@ -55,12 +56,12 @@ public abstract class CollectSetAggregation<T extends Comparable<T>> extends Agg
                             return new CollectSetAggState<BytesRef>() {
                                 @Override
                                 public void readFrom(StreamInput in) throws IOException {
-                                    setValue(dataType.streamer().readFrom(in));
+                                    setValue(DataType.STRING_SET.streamer().readFrom(in));
                                 }
 
                                 @Override
                                 public void writeTo(StreamOutput out) throws IOException {
-                                    dataType.streamer().writeTo(out, value());
+                                    DataType.STRING_SET.streamer().writeTo(out, value());
                                 }
                             };
                         }
