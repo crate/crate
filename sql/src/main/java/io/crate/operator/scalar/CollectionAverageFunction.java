@@ -53,6 +53,9 @@ public class CollectionAverageFunction implements Scalar<Double, Set<Number>> {
     @Override
     public Double evaluate(Input<Set<Number>>... args) {
         // NOTE: always returning double ignoring the input type, maybe better implement type safe
+        if (args[0].value() == null) {
+            return null;
+        }
         double sum = 0;
         long count = 0;
         for (Number value : args[0].value()) {

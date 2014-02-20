@@ -53,6 +53,9 @@ public class CollectionCountFunction implements Scalar<Long, Set<DataType>> {
     @Override
     public Long evaluate(Input<Set<DataType>>... args) {
         // TODO: eliminate Integer.MAX_VALUE limitation of Set.size()
+        if (args[0].value() == null) {
+            return null;
+        }
         return new Long((args[0].value()).size());
     }
 

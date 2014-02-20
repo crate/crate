@@ -101,8 +101,8 @@ public class BaseAnalyzerTest {
 
         @Override
         public Long evaluate(Input<Number>... args) {
-            if (args == null || args.length == 0) {
-                return 0l;
+            if (args[0].value() == null) {
+                return null;
             }
             return Math.abs((args[0].value()).longValue());
         }
