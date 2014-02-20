@@ -56,20 +56,24 @@ public class SymbolVisitor<C, R> {
         return visitSymbol(symbol, context);
     }
 
-    public R visitStringLiteral(StringLiteral symbol, C context) {
+    public R visitLiteral(Literal symbol, C context) {
         return visitSymbol(symbol, context);
+    }
+
+    public R visitStringLiteral(StringLiteral symbol, C context) {
+        return visitLiteral(symbol, context);
     }
 
     public R visitDoubleLiteral(DoubleLiteral symbol, C context) {
-        return visitSymbol(symbol, context);
+        return visitLiteral(symbol, context);
     }
 
     public R visitBooleanLiteral(BooleanLiteral symbol, C context) {
-        return visitSymbol(symbol, context);
+        return visitLiteral(symbol, context);
     }
 
     public R visitIntegerLiteral(IntegerLiteral symbol, C context) {
-        return visitSymbol(symbol, context);
+        return visitLiteral(symbol, context);
     }
 
     public R visitInputColumn(InputColumn inputColumn, C context) {
@@ -77,27 +81,27 @@ public class SymbolVisitor<C, R> {
     }
 
     public R visitNullLiteral(Null symbol, C context) {
-        return visitSymbol(symbol, context);
+        return visitLiteral(symbol, context);
     }
 
     public R visitLongLiteral(LongLiteral symbol, C context) {
-        return visitSymbol(symbol, context);
+        return visitLiteral(symbol, context);
     }
 
     public R visitFloatLiteral(FloatLiteral symbol, C context) {
-        return visitSymbol(symbol, context);
+        return visitLiteral(symbol, context);
     }
 
     public R visitSetLiteral(SetLiteral symbol, C context) {
-        return visitSymbol(symbol, context);
+        return visitLiteral(symbol, context);
     }
 
     public R visitObjectLiteral(ObjectLiteral symbol, C context) {
-        return visitSymbol(symbol, context);
+        return visitLiteral(symbol, context);
     }
 
     public R visitTimestampLiteral(TimestampLiteral symbol, C context) {
-        return visitSymbol(symbol, context);
+        return visitLiteral(symbol, context);
     }
 }
 
