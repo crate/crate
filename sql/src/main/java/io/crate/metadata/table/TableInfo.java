@@ -27,6 +27,7 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.DynamicReference;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -35,7 +36,8 @@ import java.util.List;
 public interface TableInfo {
 
     /**
-     * returns information about a column with the given ident
+     * returns information about a column with the given ident.
+     * returns null if this table contains no such column.
      */
     @Nullable
     public ReferenceInfo getColumnInfo(ColumnIdent columnIdent);
@@ -53,6 +55,8 @@ public interface TableInfo {
 
     public List<String> primaryKey();
 
+    public boolean hasCustomPrimaryKey();
+
     public String clusteredBy();
 
     /**
@@ -62,4 +66,12 @@ public interface TableInfo {
 
     public String[] partitions();
 
+    /**
+     * return a Dynamic Reference used when a column does not exist in the table mapping
+     * but we need a reference
+     *
+     * @param ident
+     * @return
+     */
+    DynamicReference getDynamic(ColumnIdent ident);
 }

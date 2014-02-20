@@ -102,37 +102,7 @@ public abstract class AbstractImplementationSymbolVisitor<C extends AbstractImpl
     }
 
     @Override
-    public Input<?> visitStringLiteral(StringLiteral symbol, C context) {
-        return symbol;
-    }
-
-    @Override
-    public Input<?> visitDoubleLiteral(DoubleLiteral symbol, C context) {
-        return symbol;
-    }
-
-    @Override
-    public Input<?> visitBooleanLiteral(BooleanLiteral symbol, C context) {
-        return symbol;
-    }
-
-    @Override
-    public Input<?> visitIntegerLiteral(IntegerLiteral symbol, C context) {
-        return symbol;
-    }
-
-    @Override
-    public Input<?> visitNullLiteral(Null symbol, C context) {
-        return symbol;
-    }
-
-    @Override
-    public Input<?> visitLongLiteral(LongLiteral symbol, C context) {
-        return symbol;
-    }
-
-    @Override
-    public Input<?> visitFloatLiteral(FloatLiteral symbol, C context) {
+    public Input<?> visitLiteral(Literal symbol, C context) {
         return symbol;
     }
 

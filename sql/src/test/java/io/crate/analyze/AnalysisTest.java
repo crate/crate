@@ -31,6 +31,7 @@ import io.crate.operator.Input;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
+import org.cratedb.sql.ColumnUnknownException;
 import org.cratedb.sql.ValidationException;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -43,6 +44,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -166,8 +168,7 @@ public class AnalysisTest {
         map.put("time", "2014-02-16T00:00:01");
         map.put("false", true);
         ObjectLiteral normalized = (ObjectLiteral)analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
-        // TODO: guess and map unknown references
-        assertThat((String)normalized.value().get("time"), is("2014-02-16T00:00:01"));
+        assertThat((Long) normalized.value().get("time"), is(1392508801000l));
         assertThat((Boolean)normalized.value().get("false"), is(true));
     }
 
@@ -188,7 +189,7 @@ public class AnalysisTest {
         map.put("d", "2.9");
 
         Literal normalized = analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
-        assertThat(normalized, Matchers.instanceOf(ObjectLiteral.class));
+        assertThat(normalized, instanceOf(ObjectLiteral.class));
         assertThat(((ObjectLiteral)normalized).value().get("d"), Matchers.<Object>is(2.9d));
     }
 
@@ -205,7 +206,7 @@ public class AnalysisTest {
         analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
 
         Literal normalized = analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
-        assertThat(normalized, Matchers.instanceOf(ObjectLiteral.class));
+        assertThat(normalized, instanceOf(ObjectLiteral.class));
         assertThat(((ObjectLiteral)normalized).value().get("d"), Matchers.<Object>is(2.9d));
         assertThat(((ObjectLiteral)normalized).value().get("inner_strict"),
                 Matchers.<Object>is(new HashMap<String, Object>(){{
@@ -225,7 +226,7 @@ public class AnalysisTest {
         assertThat(normalized.value(), Matchers.<Object>is(map)); // stays the same
     }
 
-    @Test(expected = ValidationException.class)
+    @Test(expected = ColumnUnknownException.class)
     public void testNormalizeStrictObjectLiteralWithAdditionalColumn() throws Exception {
         Analysis analysis = getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("strict"));
@@ -235,7 +236,19 @@ public class AnalysisTest {
         analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
     }
 
-    @Test(expected = ValidationException.class)
+    @Test(expected = ColumnUnknownException.class)
+    public void testNormalizeStrictObjectLiteralWithAdditionalNestedColumn() throws Exception {
+        Analysis analysis = getAnalysis();
+        ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("strict"));
+        Map<String, Object> map = new HashMap<>();
+        map.put("inner_d", 2.9d);
+        map.put("inner_map", new HashMap<String, Object>(){{
+            put("much_inner", "yaw");
+        }});
+        analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
+    }
+
+    @Test(expected = ColumnUnknownException.class)
     public void testNormalizeNestedStrictObjectLiteralWithAdditionalColumn() throws Exception {
         Analysis analysis = getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("dyn"));
@@ -249,5 +262,46 @@ public class AnalysisTest {
         analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
     }
 
+    @Test
+    public void testNormalizeDynamicNewColumnTimestamp() throws Exception {
+        Analysis analysis = getAnalysis();
+        ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("dyn"));
+        Map<String, Object> map = new HashMap<String, Object>() {{
+            put("time", "1970-01-01T00:00:00");
+        }};
+        ObjectLiteral literal = (ObjectLiteral)analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
+        assertThat((Long) literal.value().get("time"), is(0l));
+    }
 
+    @Test
+    public void testNormalizeIgnoredNewColumnTimestamp() throws Exception {
+        Analysis analysis = getAnalysis();
+        ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("ignored"));
+        Map<String, Object> map = new HashMap<String, Object>() {{
+            put("time", "1970-01-01T00:00:00");
+        }};
+        ObjectLiteral literal = (ObjectLiteral)analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
+        assertThat((String)literal.value().get("time"), is("1970-01-01T00:00:00"));
+    }
+
+    @Test
+    public void testNormalizeDynamicNewColumnNoTimestamp() throws Exception {
+        Analysis analysis = getAnalysis();
+        ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("ignored"));
+        Map<String, Object> map = new HashMap<String, Object>() {{
+            put("no_time", "1970");
+        }};
+        ObjectLiteral literal = (ObjectLiteral)analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
+        assertThat((String)literal.value().get("no_time"), is("1970"));
+    }
+
+    @Test
+    public void testNormalizeStringToNumberColumn() throws Exception {
+        Analysis analysis = getAnalysis();
+        ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("d"));
+        StringLiteral stringDoubleLiteral = new StringLiteral("298.444");
+        Literal literal = analysis.normalizeInputValue(stringDoubleLiteral, new Reference(objInfo));
+        assertThat(literal, instanceOf(DoubleLiteral.class));
+        assertThat((Double)literal.value(), is(298.444d));
+    }
 }

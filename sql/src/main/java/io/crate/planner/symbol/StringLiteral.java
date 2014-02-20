@@ -25,20 +25,14 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
+import org.cratedb.TimestampFormat;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.joda.FormatDateTimeFormatter;
-import org.elasticsearch.common.joda.Joda;
 
 import java.io.IOException;
-import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 public class StringLiteral extends Literal<BytesRef, StringLiteral> {
-
-    private static final FormatDateTimeFormatter dateTimeFormatter = Joda.forPattern("dateOptionalTime", Locale.ROOT);
-    private static final TimeUnit timeUnit = TimeUnit.MILLISECONDS;
 
     private static final Map<String, Boolean> booleanMap = ImmutableMap.<String, Boolean>builder()
             .put("f", false)
@@ -132,7 +126,7 @@ public class StringLiteral extends Literal<BytesRef, StringLiteral> {
                 convertedValue = new Long(value().utf8ToString());
                 break;
             case TIMESTAMP:
-                convertedValue = parseTimestampString();
+                convertedValue = TimestampFormat.parseTimestampString(value().utf8ToString());
                 break;
             case INTEGER:
                 convertedValue = new Integer(value().utf8ToString());
@@ -149,6 +143,9 @@ public class StringLiteral extends Literal<BytesRef, StringLiteral> {
             case BYTE:
                 convertedValue = new Byte(value().utf8ToString());
                 break;
+            case IP:
+                convertedValue = value;
+                break;
             case BOOLEAN:
                 convertedValue = booleanMap.get(value().utf8ToString().toLowerCase());
                 if (convertedValue == null) {
@@ -159,19 +156,5 @@ public class StringLiteral extends Literal<BytesRef, StringLiteral> {
                 return super.convertTo(type);
         }
         return Literal.forType(type, convertedValue);
-    }
-
-    private long parseTimestampString() {
-        String s = value.utf8ToString();
-        try {
-            return dateTimeFormatter.parser().parseMillis(s);
-        } catch (RuntimeException e) {
-            try {
-                long time = Long.parseLong(s);
-                return timeUnit.toMillis(time);
-            } catch (NumberFormatException e1) {
-                throw new UnsupportedOperationException("failed to parse timestamp field [" + value + "], tried both date format [" + dateTimeFormatter.format() + "], and timestamp number with locale [" + dateTimeFormatter.locale() + "]", e);
-            }
-        }
     }
 }

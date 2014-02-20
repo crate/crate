@@ -23,19 +23,23 @@ package io.crate.executor.task;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.Task;
-import io.crate.operator.operations.collect.LocalDataCollectOperation;
+import io.crate.operator.operations.collect.CollectOperation;
 import io.crate.planner.node.CollectNode;
 
 import java.util.ArrayList;
 import java.util.List;
 
+
+/**
+ * A collect task which returns one future and runs a  collectOperation locally and synchronous
+ */
 public class LocalCollectTask implements Task<Object[][]> {
 
     private final CollectNode collectNode;
-    private final LocalDataCollectOperation collectOperation;
+    private final CollectOperation collectOperation;
     private final List<ListenableFuture<Object[][]>> resultList;
 
-    public LocalCollectTask(LocalDataCollectOperation collectOperation, CollectNode collectNode) {
+    public LocalCollectTask(CollectOperation collectOperation, CollectNode collectNode) {
         this.collectNode = collectNode;
         this.collectOperation = collectOperation;
         this.resultList = new ArrayList<>(1);

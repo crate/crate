@@ -34,7 +34,7 @@ import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
-import io.crate.operator.operations.collect.LocalDataCollectOperation;
+import io.crate.operator.operations.collect.HandlerSideDataCollectOperation;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.*;
@@ -67,7 +67,8 @@ public class TransportExecutor implements Executor {
     private final TransportIndexAction transportIndexAction;
     private final TransportBulkAction transportBulkAction;
 
-    private final LocalDataCollectOperation localDataCollectOperation;
+    // operation for handler side collecting
+    private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
 
     @Inject
     public TransportExecutor(TransportSearchAction transportSearchAction,
@@ -82,7 +83,8 @@ public class TransportExecutor implements Executor {
                              ReferenceResolver referenceResolver,
                              TransportIndexAction transportIndexAction,
                              TransportBulkAction transportBulkAction,
-                             LocalDataCollectOperation localCollectOperation) {
+                             HandlerSideDataCollectOperation handlerSideDataCollectOperation
+                             ) {
         this.transportGetAction = transportGetAction;
         this.transportMultiGetAction = transportMultiGetAction;
         this.transportCollectNodeAction = transportCollectNodeAction;
@@ -93,8 +95,7 @@ public class TransportExecutor implements Executor {
         this.transportIndexAction = transportIndexAction;
         this.transportBulkAction = transportBulkAction;
 
-        this.localDataCollectOperation = localCollectOperation;
-
+        this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.threadPool = threadPool;
         this.functions = functions;
         this.referenceResolver = referenceResolver;
@@ -136,7 +137,7 @@ public class TransportExecutor implements Executor {
             if (node.isRouted()) {
                 context.addTask(new RemoteCollectTask(node, transportCollectNodeAction));
             } else {
-                context.addTask(new LocalCollectTask(localDataCollectOperation, node));
+                context.addTask(new LocalCollectTask(handlerSideDataCollectOperation, node));
             }
             return null;
         }

@@ -373,20 +373,45 @@ public enum DataType {
             .put(Long.class, DataType.LONG)
             .put(Short.class, DataType.SHORT)
             .put(Byte.class, DataType.BYTE)
-            .put(String.class, DataType.STRING)
             .put(Boolean.class, DataType.BOOLEAN)
             .put(Map.class, DataType.OBJECT)
+            .put(String.class, DataType.STRING)
             .put(BytesRef.class, DataType.STRING)
             .build();
 
     @Nullable
     public static DataType forValue(Object value) {
+        return forValue(value, true);
+    }
+
+    @Nullable
+    public static DataType guess(Object value) {
+        return forValue(value, false);
+    }
+
+    /**
+     *
+     * @param value the value to get the type for
+     * @param strict if false do not check for timestamp strings
+     * @return the datatype for the given value or null if no datatype matches
+     */
+    @Nullable
+    public static DataType forValue(Object value, boolean strict) {
         if (value == null) {
             return NULL;
-        }
-        if (value instanceof Map) { // reflection class checks don't work 100%
+        } else if (value instanceof Map) { // reflection class checks don't work 100%
             return OBJECT;
+        } else if (!strict && (value instanceof BytesRef || value instanceof String)) {
+            // special treatment for timestamp strings
+            if (TimestampFormat.isDateFormat(
+                    (value instanceof BytesRef ? ((BytesRef) value).utf8ToString() : (String)value))
+                    ) {
+                return TIMESTAMP;
+            } else {
+                return STRING;
+            }
         }
+
         return typesMap.get(value.getClass());
     }
 }

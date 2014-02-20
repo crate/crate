@@ -21,36 +21,45 @@
 
 package io.crate.planner.symbol;
 
-public enum SymbolType {
+import org.apache.lucene.util.BytesRef;
+import org.cratedb.DataType;
+import org.cratedb.TimestampFormat;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-    AGGREGATION(Aggregation.FACTORY),
-    REFERENCE(Reference.FACTORY),
-    VALUE(Value.FACTORY),
-    FUNCTION(Function.FACTORY),
-    STRING_LITERAL(StringLiteral.FACTORY),
-    DOUBLE_LITERAL(DoubleLiteral.FACTORY),
-    FLOAT_LITERAL(FloatLiteral.FACTORY),
-    BOOLEAN_LITERAL(BooleanLiteral.FACTORY),
-    INTEGER_LITERAL(IntegerLiteral.FACTORY),
-    LONG_LITERAL(LongLiteral.FACTORY),
-    NULL_LITERAL(Null.FACTORY),
-    OBJECT_LITERAL(ObjectLiteral.FACTORY),
-    SET_LITERAL(SetLiteral.FACTORY),
-    INPUT_COLUMN(InputColumn.FACTORY),
-    DYNAMIC_REFERENCE(DynamicReference.FACTORY);
+import java.io.IOException;
 
-    private final Symbol.SymbolFactory factory;
+public class TimestampLiteral extends LongLiteral {
 
-    SymbolType(Symbol.SymbolFactory factory) {
-        this.factory = factory;
+    public TimestampLiteral(String value) {
+        super(TimestampFormat.parseTimestampString(value));
     }
 
-    public Symbol newInstance() {
-        return factory.newInstance();
+    public TimestampLiteral(BytesRef value) {
+        this(value.utf8ToString());
     }
 
-    public boolean isLiteral() {
-        return ordinal() > FUNCTION.ordinal() && ordinal() < INPUT_COLUMN.ordinal();
+    public TimestampLiteral(Long value) {
+        super(value);
     }
 
+    @Override
+    public DataType valueType() {
+        return DataType.TIMESTAMP;
+    }
+
+    @Override
+    public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
+        return visitor.visitTimestampLiteral(this, context);
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+
+    }
 }

@@ -22,6 +22,7 @@
 package org.cratedb.sql;
 
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import io.crate.sql.parser.ParsingException;
 import org.cratedb.Constants;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.search.ReduceSearchPhaseException;
@@ -48,8 +49,10 @@ public class ExceptionHelper {
             // if its a transport exception get the real cause throwable
             e = e.getCause();
         }
-        if (e instanceof IllegalArgumentException) {
+        if (e instanceof IllegalArgumentException || e instanceof ParsingException) {
             return new SQLParseException(e.getMessage());
+        } else if (e instanceof UnsupportedOperationException) {
+            return new UnsupportedFeatureException(e);
         } else if (e instanceof DocumentAlreadyExistsException) {
             return new DuplicateKeyException(
                     "A document with the same primary key exists already", e);
