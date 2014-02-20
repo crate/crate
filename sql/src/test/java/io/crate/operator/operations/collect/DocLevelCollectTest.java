@@ -60,13 +60,13 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
             )
     );
 
-    private LocalDataCollectOperation operation;
+    private MapSideDataCollectOperation operation;
     private Functions functions;
 
     @Before
     public void prepare() {
-        Loggers.getLogger(LocalDataCollectOperation.class).setLevel("TRACE");
-        operation = cluster().getInstance(LocalDataCollectOperation.class);
+        Loggers.getLogger(MapSideDataCollectOperation.class).setLevel("TRACE");
+        operation = cluster().getInstance(MapSideDataCollectOperation.class);
         functions = cluster().getInstance(Functions.class);
 
         execute(String.format("create table %s (" +
