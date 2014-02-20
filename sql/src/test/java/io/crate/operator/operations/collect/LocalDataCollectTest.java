@@ -100,12 +100,12 @@ public class LocalDataCollectTest {
         }
     }
 
-    static class TestFunction implements Scalar<Integer> {
+    static class TestFunction implements Scalar<Integer, Object> {
         public static final FunctionIdent ident = new FunctionIdent("twoTimes", Arrays.asList(DataType.INTEGER));
         public static final FunctionInfo info = new FunctionInfo(ident, DataType.INTEGER, false);
 
         @Override
-        public Integer evaluate(Input<?>... args) {
+        public Integer evaluate(Input<Object>... args) {
             if (args.length == 0) {
                 return 0;
             }

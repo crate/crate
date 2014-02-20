@@ -31,7 +31,7 @@ import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
 
-public class MatchFunction implements Scalar<Boolean> {
+public class MatchFunction implements Scalar<Boolean, Object> {
 
     public static final String NAME = "match";
 
@@ -50,7 +50,7 @@ public class MatchFunction implements Scalar<Boolean> {
     }
 
     @Override
-    public Boolean evaluate(Input<?>... args) {
+    public Boolean evaluate(Input<Object>... args) {
         throw new UnsupportedOperationException();
     }
 

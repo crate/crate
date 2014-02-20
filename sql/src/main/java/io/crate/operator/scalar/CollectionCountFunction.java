@@ -32,7 +32,7 @@ import org.cratedb.DataType;
 
 import java.util.Set;
 
-public class CollectionCountFunction implements Scalar<Long> {
+public class CollectionCountFunction implements Scalar<Long, Set<DataType>> {
 
     public static final String NAME = "collection_count";
     private final FunctionInfo info;
@@ -51,9 +51,9 @@ public class CollectionCountFunction implements Scalar<Long> {
     }
 
     @Override
-    public Long evaluate(Input<?>... args) {
+    public Long evaluate(Input<Set<DataType>>... args) {
         // TODO: eliminate Integer.MAX_VALUE limitation of Set.size()
-        return new Long(((Set<DataType>) args[0].value()).size());
+        return new Long((args[0].value()).size());
     }
 
     @Override

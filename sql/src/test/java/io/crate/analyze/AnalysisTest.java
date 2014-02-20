@@ -71,10 +71,10 @@ public class AnalysisTest {
             .build();
 
 
-    static class AbsFunction implements Scalar<Double> {
+    static class AbsFunction implements Scalar<Double, Number> {
 
         @Override
-        public Double evaluate(Input<?>... args) {
+        public Double evaluate(Input<Number>... args) {
             if (args == null || args.length == 0) {
                 return 0.0d;
             }

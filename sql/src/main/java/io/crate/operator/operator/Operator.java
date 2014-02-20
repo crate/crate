@@ -10,7 +10,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
 import org.cratedb.DataType;
 
-public abstract class Operator implements FunctionImplementation<Function>, Scalar<Boolean> {
+public abstract class Operator<I> implements FunctionImplementation<Function>, Scalar<Boolean, I> {
 
     protected static FunctionInfo generateInfo(String name, DataType type) {
         return new FunctionInfo(new FunctionIdent(name, ImmutableList.of(type, type)), DataType.BOOLEAN);

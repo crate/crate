@@ -28,6 +28,6 @@ import io.crate.planner.symbol.Function;
  * evaluatable function implementation
  * @param <T> the class of the returned value
  */
-public interface Scalar<T> extends FunctionImplementation<Function> {
-    public T evaluate(Input<?>... args);
+public interface Scalar<T, I> extends FunctionImplementation<Function> {
+    public T evaluate(Input<I>... args);
 }
