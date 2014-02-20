@@ -66,10 +66,10 @@ public class InOperator extends Operator<Object> {
 
         // not in list if data types do not match.
         if (!inList.contains(inValue)) {
-            return new BooleanLiteral(false);
+            return BooleanLiteral.FALSE;
         }
 
-        return new BooleanLiteral(true);
+        return BooleanLiteral.TRUE;
     }
 
     @Override
