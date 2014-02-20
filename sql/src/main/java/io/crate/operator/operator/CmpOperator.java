@@ -1,17 +1,13 @@
 package io.crate.operator.operator;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operator.Input;
 import io.crate.planner.symbol.*;
-import org.cratedb.DataType;
 import org.cratedb.core.collections.MapComparator;
 
-import java.util.Comparator;
 import java.util.Map;
-import java.util.Objects;
 
-public abstract class CmpOperator extends Operator {
+public abstract class CmpOperator extends Operator<Object> {
 
     /**
      * called inside {@link #normalizeSymbol(io.crate.planner.symbol.Function)}
@@ -52,67 +48,35 @@ public abstract class CmpOperator extends Operator {
 
         if (left.symbolType().isLiteral() && right.symbolType().isLiteral()) {
             // must be true due to the function registration (argument DataType signature)
-            return new BooleanLiteral(evaluate((Literal)left, (Literal)right));
+            return new BooleanLiteral(compare(((Literal) left).compareTo(right)));
         }
 
         return symbol;
     }
 
     @Override
-    public Boolean evaluate(Input<?>... args) {
+    public Boolean evaluate(Input<Object>... args) {
         assert (args != null);
         assert (args.length == 2);
+
+        if (args[0] == null && args[1] == null) {
+            return compare(0);
+        } else if (args[0] == null && args[1] != null) {
+            return compare(1);
+        } else if (args[0] != null && args[1] == null) {
+            return compare(-1);
+        }
 
         Object left = args[0].value();
         Object right = args[1].value();
         assert (left.getClass().equals(right.getClass()));
 
-        if (!(left instanceof Comparable) && !(left instanceof Map) ||
-            !(right instanceof Comparable) && !(right instanceof Map)) {
-            throw new UnsupportedOperationException("Failed to evaluate. Arguments are not comparable");
+        if (left instanceof Comparable) {
+            return compare(((Comparable)left).compareTo(right));
+        } else if (left instanceof Map) {
+            return compare(MapComparator.compareMaps((Map)left, (Map)right));
         }
-
-        Comparator comparator = lookupComparator(left);
-        if (comparator == null) {
-            throw new UnsupportedOperationException("Failed to evaluate. Unsupported data type");
-        }
-        return compare(Objects.compare(left, right, comparator));
-    }
-
-    protected static Comparator lookupComparator(Object left) {
-        DataType dataType = DataType.forValue(left);
-        return cmpMap.get(dataType);
-    }
-
-    private final static Map<DataType, Comparator> cmpMap = ImmutableMap.<DataType, Comparator>builder()
-            .put(DataType.BYTE, new PrimitiveCmp())
-            .put(DataType.SHORT, new PrimitiveCmp())
-            .put(DataType.INTEGER, new PrimitiveCmp())
-            .put(DataType.LONG, new PrimitiveCmp())
-            .put(DataType.FLOAT, new PrimitiveCmp())
-            .put(DataType.DOUBLE, new PrimitiveCmp())
-            .put(DataType.BOOLEAN, new PrimitiveCmp())
-            .put(DataType.STRING, new PrimitiveCmp())
-            .put(DataType.OBJECT, new ObjectCmp())
-            .build();
-        /*
-            no need for putting following data types:
-                DataType.TIMESTAMP      // handled with LongCmp
-                DataType.IP             // handled with StringCmp
-        */
-
-    protected static class PrimitiveCmp implements Comparator<Comparable> {
-        @Override
-        public int compare(Comparable o1, Comparable o2) {
-            return o1.compareTo(o2);
-        }
-    }
-
-    protected static class ObjectCmp implements Comparator<Map<String,Object>> {
-        @Override
-        public int compare(Map<String,Object> o1, Map<String,Object> o2) {
-            return MapComparator.compareMaps(o1, o2);
-        }
+        throw new UnsupportedOperationException("Could not compare the expressions");
     }
 
 }
