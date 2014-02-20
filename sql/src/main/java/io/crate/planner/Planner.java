@@ -50,125 +50,250 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     static class Context {
 
-        private final int numGroupKeys;
-        private Map<Symbol, InputColumn> symbols = new LinkedHashMap<>();
-        private Map<Aggregation, InputColumn> aggregations = new LinkedHashMap<>();
-        private Aggregation.Step toAggStep;
+        final int numGroupKeys;
+        List<Aggregation> aggregations = new ArrayList<>();
+        List<Symbol> groupBy;
+        Aggregation.Step[] steps;
+        int stepIdx = 0;
+        Symbol parent;
+        Map<Symbol, InputColumn> toCollectAllocation = new LinkedHashMap<>();
+        Map<Symbol, Symbol> resolvedSymbols = new HashMap<>();
+        List<Symbol> orderBy = new ArrayList<>();
+        List<Symbol> outputs = new ArrayList<>();
+        List<Symbol> originalGroupBy;
 
-        Context(Aggregation.Step toAggStep) {
-            this.toAggStep = toAggStep;
-            this.numGroupKeys = 0;
-        }
-
-        Context(Aggregation.Step toAggStep, int numGroupKeys) {
-            this.toAggStep = toAggStep;
+        public Context(int numGroupKeys, int numAggregationSteps) {
             this.numGroupKeys = numGroupKeys;
-        }
-
-        public InputColumn allocateSymbol(Symbol symbol) {
-            InputColumn ic = symbols.get(symbol);
-            if (ic == null) {
-                // TODO: add returnType to inputColumn
-                // would simplify PlanNodeStreamerVisitor and type resolving
-                ic = new InputColumn(symbols.size());
-                symbols.put(symbol, ic);
-            }
-
-            return ic;
-        }
-
-
-        public Symbol allocateAggregation(Aggregation aggregation) {
-            InputColumn ic = aggregations.get(aggregation);
-            if (ic == null) {
-                ic = new InputColumn(numGroupKeys + aggregations.size());
-                aggregations.put(aggregation, ic);
-            }
-            return ic;
-        }
-
-        public Symbol allocateAggregation(Function function) {
-            if (toAggStep == null) {
-                return function;
-            }
-            Aggregation agg = new Aggregation(function.info(), function.arguments(),
-                    Aggregation.Step.ITER, toAggStep);
-
-            Symbol ic = allocateAggregation(agg);
-            // split the aggregation if we are not final
-            if (toAggStep == Aggregation.Step.FINAL) {
-                return ic;
-            } else {
-                return new Aggregation(function.info(), ImmutableList.<Symbol>of(ic),
-                        toAggStep, Aggregation.Step.FINAL);
+            this.groupBy = new ArrayList<>(numGroupKeys);
+            switch (numAggregationSteps) {
+                case 0:
+                    this.steps = null;
+                    break;
+                case 1:
+                    this.steps = new Aggregation.Step[] {Aggregation.Step.FINAL};
+                    break;
+                case 2:
+                    this.steps = new Aggregation.Step[] {Aggregation.Step.PARTIAL, Aggregation.Step.FINAL};
+                    break;
+                default:
+                    throw new IllegalArgumentException("Invalid number of aggregation steps");
             }
         }
 
-        public List<Symbol> symbolList() {
-            List<Symbol> result = new ArrayList<>(symbols.size());
-            for (Symbol symbol : symbols.keySet()) {
-                result.add(symbol);
-            }
-            return result;
+        public Aggregation.Step step() {
+            return steps[stepIdx];
         }
 
-        public List<Aggregation> aggregationList() {
-            List<Aggregation> result = new ArrayList<>(aggregations.size());
-            for (Aggregation symbol : aggregations.keySet()) {
-                result.add(symbol);
+        private Symbol allocateToCollect(Symbol symbol) {
+            InputColumn inputColumn = toCollectAllocation.get(symbol);
+            if (inputColumn == null) {
+                inputColumn = new InputColumn(toCollectAllocation.size());
+                toCollectAllocation.put(symbol, inputColumn);
             }
-            return result;
+            return inputColumn;
         }
     }
 
-    static class SplittingPlanNodeVisitor extends SymbolVisitor<Context, Symbol> {
+    static class ContextBuilder {
+
+        private final Context context;
+        public boolean aggregationsWrappedInScalar;
+
+        public ContextBuilder(int numAggregationSteps, List<Symbol> groupBy) {
+            this.context = new Context(groupBy.size(), numAggregationSteps);
+            context.originalGroupBy = groupBy;
+            for (Symbol symbol : groupBy) {
+                context.groupBy.add(context.allocateToCollect(symbol));
+            }
+        }
+
+        public ContextBuilder() {
+            this.context = new Context(0, 0);
+        }
+
+        public ContextBuilder(int numAggregationSteps) {
+            this.context = new Context(0, numAggregationSteps);
+        }
+
+        public List<Symbol> groupBy() {
+            return context.groupBy;
+        }
+
+        public List<Symbol> toCollect() {
+            return Lists.newArrayList(context.toCollectAllocation.keySet());
+        }
+
+        /**
+         * calcualtes the toCollect symbols and generates the outputs which can be used
+         * for the first TopNProjection
+         *
+         * to build AggregationProjection or GroupProjections use the groupBy or aggregations symbols directly.
+         */
+        public ContextBuilder output(List<Symbol> symbols) {
+            if (context.steps == null) {
+                for (Symbol symbol : symbols) {
+                    context.outputs.add(context.allocateToCollect(symbol));
+                }
+            } else {
+                // need to split on aggregations
+                for (Symbol symbol : symbols) {
+                    context.parent = null;
+                    Symbol splitSymbol = splitter.process(symbol, context);
+                    Symbol resolvedSymbol;
+                    if (context.parent != null && splitSymbol.symbolType() == SymbolType.FUNCTION) {
+                        // found a scalar function with an aggregation underneath.
+                        aggregationsWrappedInScalar = true;
+                        resolvedSymbol = splitSymbol;
+                    } else if (context.numGroupKeys > 0 && splitSymbol.symbolType() != SymbolType.INPUT_COLUMN) {
+                        // in case the symbol was an aggregation function it is replaced directly.
+                        // this wasn't the case so the symbol must be a group by
+                        resolvedSymbol = new InputColumn(context.originalGroupBy.indexOf(splitSymbol));
+                    } else if (splitSymbol.symbolType() == SymbolType.INPUT_COLUMN) {
+                        resolvedSymbol = splitSymbol;
+                    } else {
+                        assert false; // TODO: this case shouldn't happen? verify
+                        resolvedSymbol = context.allocateToCollect(symbol);
+                    }
+
+                    context.resolvedSymbols.put(symbol, resolvedSymbol);
+                    context.outputs.add(resolvedSymbol);
+                }
+            }
+            return this;
+        }
+
+        public List<Aggregation> aggregations() {
+            return Lists.newArrayList(context.aggregations);
+        }
+
+        /**
+         * this can be used after the first GroupProjection or AggregationProjection
+         * it will move the groupBy and aggregations inputColumns to point to the outputs of the previous projection
+         */
+        public void nextStep() {
+            context.stepIdx++;
+            if (context.stepIdx + 1 <= context.steps.length) {
+                // aggregations now take the partial aggregation state as their input.
+                int idx = context.numGroupKeys;
+                int i = 0;
+                for (Aggregation aggregation : context.aggregations) {
+                    context.aggregations.set(i, new Aggregation(
+                            aggregation.functionInfo(),
+                            Arrays.<Symbol>asList(new InputColumn(idx)),
+                            aggregation.toStep(), context.step()));
+                    i++;
+                    idx++;
+                }
+            }
+
+            int idx = 0;
+            for (Symbol symbol : context.groupBy) {
+                context.groupBy.set(idx, new InputColumn(idx));
+            }
+        }
+
+        public List<Symbol> orderBy() {
+            return Lists.newArrayList(context.orderBy);
+        }
+
+        public ContextBuilder orderBy(List<Symbol> symbols) {
+            if (symbols == null) {
+                return this;
+            }
+            if (context.steps == null || context.numGroupKeys == 0) {
+                for (Symbol symbol : symbols) {
+                    context.orderBy.add(context.allocateToCollect(symbol));
+                }
+            } else {
+                for (Symbol symbol : symbols) {
+                    Symbol resolvedSymbol = context.resolvedSymbols.get(symbol);
+
+                    // symbol is already resolved at this point
+                    // because outputs are set first and in the group by case
+                    // every symbol in order by must be present in the outputs
+                    assert resolvedSymbol != null;
+                    context.orderBy.add(resolvedSymbol);
+                }
+            }
+            return this;
+        }
+
+        /**
+         * returns the symbols to be used in the first topN projection
+         *
+         * if their is a second topN projection the {@link #passThroughOutputs()} method should be
+         * used.
+         */
+        public List<Symbol> outputs() {
+            return Lists.newArrayList(context.outputs);
+        }
+
+        /**
+         * use this together with {@link #passThroughOutputs()}
+         * in the topN node
+         * 
+         * if {@link #outputs()} is used use {@link #orderBy()} instead.
+         * @return
+         */
+        public List<Symbol> passThroughOrderBy() {
+            List<Symbol> orderBy = new ArrayList<>();
+            for (Symbol symbol : context.orderBy) {
+                orderBy.add(new InputColumn(context.outputs.indexOf(symbol)));
+            }
+
+            return orderBy;
+        }
+
+        /**
+         * will just take the inputs as they are. No re-ordering or scalar functions are left at this point.
+         * Make sure to use {@link #outputs()} before this is used..
+         */
+        public List<Symbol> passThroughOutputs() {
+            List<Symbol> outputs = new ArrayList<>();
+            for (int i = 0; i < context.outputs.size(); i++) {
+                outputs.add(new InputColumn(i));
+            }
+            return outputs;
+        }
+    }
+
+    static class AggregationSplitter extends SymbolVisitor<Context, Symbol> {
+
+        @Override
+        public Symbol visitFunction(Function function, Context context) {
+            Symbol result = function;
+            if (function.info().isAggregate()) {
+                result = new InputColumn(context.numGroupKeys + context.aggregations.size());
+                Aggregation aggregation = new Aggregation(function.info(), function.arguments(),
+                        Aggregation.Step.ITER, context.step());
+                context.aggregations.add(aggregation);
+                context.parent = aggregation;
+            }
+
+            if (context.parent != null && context.parent.symbolType() == SymbolType.AGGREGATION) {
+                // beneath a aggregation. Just mark everything as to collect
+                int idx = 0;
+                for (Symbol symbol : function.arguments()) {
+                    function.arguments().set(idx, context.allocateToCollect(symbol));
+                    idx++;
+                }
+            } else {
+                int idx = 0;
+                for (Symbol symbol : function.arguments()) {
+                    function.arguments().set(idx, process(symbol, context));
+                    idx++;
+                }
+            }
+            return result;
+        }
 
         @Override
         protected Symbol visitSymbol(Symbol symbol, Context context) {
             return symbol;
         }
-
-        @Override
-        public Symbol visitInputColumn(InputColumn inputColumn, Context context) {
-            // override to make sure we do not replace a symbol twice
-            return inputColumn;
-        }
-
-        public void process(List<Symbol> symbols, Context context) {
-            if (symbols != null) {
-                for (int i = 0; i < symbols.size(); i++) {
-                    symbols.set(i, process(symbols.get(i), context));
-                }
-            }
-        }
-
-        @Override
-        public Symbol visitReference(Reference symbol, Context context) {
-            return context.allocateSymbol(symbol);
-        }
-
-        @Override
-        public Symbol visitAggregation(Aggregation symbol, Context context) {
-            return context.allocateAggregation(symbol);
-        }
-
-        @Override
-        public Symbol visitFunction(Function function, Context context) {
-            if (function.info().isAggregate()) {
-                // split off below aggregates
-                for (int i = 0; i < function.arguments().size(); i++) {
-                    Symbol ic = process(function.arguments().get(i), context);
-                    // note, that this modifies the tree
-                    function.arguments().set(i, ic);
-                }
-                return context.allocateAggregation(function);
-            } else {
-                return context.allocateSymbol(function);
-            }
-        }
     }
 
-    private static final SplittingPlanNodeVisitor nodeVisitor = new SplittingPlanNodeVisitor();
+    private static final AggregationSplitter splitter = new AggregationSplitter();
     private static final DataTypeVisitor dataTypeVisitor = new DataTypeVisitor();
 
     private static class NodeBuilder {
@@ -200,7 +325,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             return node;
         }
 
-        static MergeNode localMerge(ImmutableList<Projection> projections,
+        static MergeNode localMerge(List<Projection> projections,
                                     PlanNode previousNode) {
             MergeNode node = new MergeNode("localMerge", previousNode.executionNodes().size());
             node.projections(projections);
@@ -271,29 +396,27 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
 
         if (analysis.hasGroupBy()) {
             groupBy(analysis, plan);
+        } else if (analysis.hasAggregates()) {
+            globalAggregates(analysis, plan);
         } else {
-            if (analysis.hasAggregates()) {
-                globalAggregates(analysis, plan);
-            } else {
-                if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal()) {
-                    if (!analysis.isDelete()) {
-                        if (analysis.primaryKeyLiterals() != null
-                                && !analysis.primaryKeyLiterals().isEmpty()
-                                && !analysis.table().isAlias()) {
-                            ESGet(analysis, plan);
-                        } else {
-                            ESSearch(analysis, plan);
-                        }
+            if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal()) {
+                if (!analysis.isDelete()) {
+                    if (analysis.primaryKeyLiterals() != null
+                            && !analysis.primaryKeyLiterals().isEmpty()
+                            && !analysis.table().isAlias()) {
+                        ESGet(analysis, plan);
                     } else {
-                        if (analysis.primaryKeyLiterals() != null && !analysis.primaryKeyLiterals().isEmpty()) {
-                            ESDelete(analysis, plan);
-                        } else {
-                            ESDeleteByQuery(analysis, plan);
-                        }
+                        ESSearch(analysis, plan);
                     }
                 } else {
-                    normalSelect(analysis, plan);
+                    if (analysis.primaryKeyLiterals() != null && !analysis.primaryKeyLiterals().isEmpty()) {
+                        ESDelete(analysis, plan);
+                    } else {
+                        ESDeleteByQuery(analysis, plan);
+                    }
                 }
+            } else {
+                normalSelect(analysis, plan);
             }
         }
         return plan;
@@ -343,26 +466,24 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     private void normalSelect(SelectAnalysis analysis, Plan plan) {
         // node or shard level normal select
-        Context context = new Context(null);
-        nodeVisitor.process(analysis.outputSymbols(), context);
-        nodeVisitor.process(analysis.sortSymbols(), context);
+
+        ContextBuilder contextBuilder = new ContextBuilder()
+                .output(analysis.outputSymbols())
+                .orderBy(analysis.sortSymbols());
 
         ImmutableList<Projection> projections;
         if (analysis.limit() != null) {
             TopNProjection tnp = new TopNProjection(analysis.limit(), analysis.offset(),
                     analysis.sortSymbols(), analysis.reverseFlags());
-            tnp.outputs(analysis.outputSymbols());
+            tnp.outputs(contextBuilder.outputs());
             projections = ImmutableList.<Projection>of(tnp);
         } else {
             projections = ImmutableList.<Projection>of();
         }
 
-        CollectNode collectNode =
-                NodeBuilder.collect(analysis, context.symbolList(), projections);
+        CollectNode collectNode = NodeBuilder.collect(analysis, contextBuilder.toCollect(), projections);
         plan.add(collectNode);
 
-        nodeVisitor.process(analysis.outputSymbols(), context);
-        nodeVisitor.process(analysis.sortSymbols(), context);
 
         TopNProjection tnp = new TopNProjection(
                 Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
@@ -370,8 +491,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 analysis.sortSymbols(),
                 analysis.reverseFlags()
         );
-        tnp.outputs(analysis.outputSymbols());
-
+        tnp.outputs(contextBuilder.outputs());
         plan.add(NodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), collectNode));
     }
 
@@ -414,130 +534,142 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     private void globalAggregates(SelectAnalysis analysis, Plan plan) {
         // global aggregate: collect and partial aggregate on C and final agg on H
-        Context context = new Context(Aggregation.Step.PARTIAL);
-        nodeVisitor.process(analysis.outputSymbols(), context);
-        nodeVisitor.process(analysis.groupBy(), context);
-        nodeVisitor.process(analysis.sortSymbols(), context);
+        ContextBuilder contextBuilder = new ContextBuilder(2)
+                .output(analysis.outputSymbols());
 
         AggregationProjection ap = new AggregationProjection();
-        ap.aggregations(context.aggregationList());
+        ap.aggregations(contextBuilder.aggregations());
         CollectNode collectNode = NodeBuilder.collect(
             analysis,
-            context.symbolList(),
+            contextBuilder.toCollect(),
             ImmutableList.<Projection>of(ap)
         );
-
         plan.add(collectNode);
 
-        // the hander stuff
-        Context mergeContext = new Context(Aggregation.Step.FINAL);
-        nodeVisitor.process(analysis.outputSymbols(), mergeContext);
-        nodeVisitor.process(analysis.groupBy(), mergeContext);
-        nodeVisitor.process(analysis.sortSymbols(), mergeContext);
+        contextBuilder.nextStep();
 
-        ap = new AggregationProjection();
-        ap.aggregations(mergeContext.aggregationList());
-        plan.add(NodeBuilder.localMerge(ImmutableList.<Projection>of(ap), collectNode));
+        //// the hander stuff
+        List<Projection> projections = new ArrayList<>();
+        projections.add(new AggregationProjection(contextBuilder.aggregations()));
+
+        if (contextBuilder.aggregationsWrappedInScalar) {
+            TopNProjection topNProjection = new TopNProjection(1, 0);
+            topNProjection.outputs(contextBuilder.outputs());
+            projections.add(topNProjection);
+        }
+        plan.add(NodeBuilder.localMerge(projections, collectNode));
     }
 
     private void groupBy(SelectAnalysis analysis, Plan plan) {
         if (analysis.rowGranularity().ordinal() < RowGranularity.DOC.ordinal()) {
             nonDistributedGroupBy(analysis, plan);
         } else {
-            distributedGroupby(analysis, plan);
+            distributedGroupBy(analysis, plan);
         }
     }
 
     private void nonDistributedGroupBy(SelectAnalysis analysis, Plan plan) {
-        Context context = new Context(Aggregation.Step.FINAL, analysis.groupBy().size());
-        nodeVisitor.process(analysis.outputSymbols(), context);
-        nodeVisitor.process(analysis.sortSymbols(), context);
-        nodeVisitor.process(analysis.groupBy(), context);
+        ContextBuilder contextBuilder = new ContextBuilder(1, analysis.groupBy())
+                .output(analysis.outputSymbols())
+                .orderBy(analysis.sortSymbols());
 
         GroupProjection groupProjection =
-                new GroupProjection(analysis.groupBy(), context.aggregationList());
+                new GroupProjection(analysis.groupBy(), contextBuilder.aggregations());
         CollectNode collectNode = NodeBuilder.collect(
                 analysis,
-                context.symbolList(),
+                contextBuilder.toCollect(),
                 ImmutableList.<Projection>of(groupProjection)
         );
         plan.add(collectNode);
 
+        contextBuilder.nextStep();
+
         // handler
         groupProjection =
-                new GroupProjection(analysis.groupBy(), context.aggregationList());
+                new GroupProjection(analysis.groupBy(), contextBuilder.aggregations());
         TopNProjection topN = new TopNProjection(
                 Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                 analysis.offset(),
                 analysis.sortSymbols(),
                 analysis.reverseFlags()
         );
-        topN.outputs(analysis.outputSymbols());
-
+        topN.outputs(contextBuilder.outputs());
         plan.add(NodeBuilder.localMerge(ImmutableList.<Projection>of(groupProjection, topN), collectNode));
     }
 
-    private void distributedGroupby(SelectAnalysis analysis, Plan plan) {
-        // distributed collect on mapper nodes
-        // merge on reducer to final (has row authority)
-        // merge on handler
 
-        Context context = new Context(Aggregation.Step.PARTIAL, analysis.groupBy().size());
-        nodeVisitor.process(analysis.outputSymbols(), context);
-        nodeVisitor.process(analysis.sortSymbols(), context);
+    /**
+     * distributed collect on mapper nodes
+     * with merge on reducer to final (they have row authority)
+     *
+     * final merge on handler
+     */
+    private void distributedGroupBy(SelectAnalysis analysis, Plan plan) {
+        ContextBuilder contextBuilder = new ContextBuilder(2, analysis.groupBy())
+                .output(analysis.outputSymbols())
+                .orderBy(analysis.sortSymbols());
 
-        GroupProjection groupProjection =
-            new GroupProjection(analysis.groupBy(), context.aggregationList());
+        // collector
+        GroupProjection groupProjection = new GroupProjection(
+                contextBuilder.groupBy(), contextBuilder.aggregations());
         CollectNode collectNode = NodeBuilder.distributingCollect(
-            analysis,
-            context.symbolList(),
-            Lists.newArrayList(analysis.table().getRouting(analysis.whereClause()).nodes()),
-            ImmutableList.<Projection>of(groupProjection)
+                analysis,
+                contextBuilder.toCollect(),
+                nodesFromTable(analysis),
+                ImmutableList.<Projection>of(groupProjection)
         );
         plan.add(collectNode);
 
-        context = new Context(Aggregation.Step.FINAL, analysis.groupBy().size());
-        nodeVisitor.process(analysis.outputSymbols(), context);
-        nodeVisitor.process(analysis.sortSymbols(), context);
-        nodeVisitor.process(analysis.groupBy(), context);
+        contextBuilder.nextStep();
 
-        // reducer
-        List<Projection> projections = new ArrayList<>();
-        projections.add(new GroupProjection(analysis.groupBy(), context.aggregationList()));
-        if (analysis.limit() != null || analysis.offset() != 0) {
-                TopNProjection topN = new TopNProjection(
-                        Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
-                        0,
-                        analysis.sortSymbols(),
-                        analysis.reverseFlags()
-                );
-            topN.outputs(generateGroupByOutputs(analysis.groupBy(), context.aggregationList()));
-            projections.add(topN);
+        // mergeNode for reducer
+        ImmutableList.Builder<Projection> projectionsBuilder = ImmutableList.<Projection>builder();
+        projectionsBuilder.add(new GroupProjection(
+                contextBuilder.groupBy(),
+                contextBuilder.aggregations()));
+
+        boolean topNDone = false;
+        if (analysis.limit() != null
+                || analysis.offset() > 0
+                || contextBuilder.aggregationsWrappedInScalar) {
+            topNDone = true;
+
+            TopNProjection topN = new TopNProjection(
+                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT) + analysis.offset(),
+                    0,
+                    contextBuilder.orderBy(),
+                    analysis.reverseFlags()
+            );
+            topN.outputs(contextBuilder.outputs());
+            projectionsBuilder.add(topN);
         }
-
-        MergeNode mergeNode = NodeBuilder.distributedMerge(collectNode, ImmutableList.copyOf(projections));
+        MergeNode mergeNode = NodeBuilder.distributedMerge(collectNode, projectionsBuilder.build());
         plan.add(mergeNode);
 
-        // handler
-        TopNProjection topN = new TopNProjection(
-                Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                analysis.offset(),
-                analysis.sortSymbols(),
-                analysis.reverseFlags()
-        );
-        topN.outputs(analysis.outputSymbols());
 
-        plan.add(NodeBuilder.localMerge(ImmutableList.<Projection>of(topN), mergeNode));
+        List<Symbol> outputs;
+        List<Symbol> orderBy;
+        if (topNDone) {
+            orderBy = contextBuilder.passThroughOrderBy();
+            outputs = contextBuilder.passThroughOutputs();
+        } else {
+            orderBy = contextBuilder.orderBy();
+            outputs = contextBuilder.outputs();
+        }
+        // mergeNode handler
+        TopNProjection topN = new TopNProjection(
+            Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+            analysis.offset(),
+            orderBy,
+            analysis.reverseFlags()
+        );
+        topN.outputs(outputs);
+        MergeNode localMergeNode = NodeBuilder.localMerge(ImmutableList.<Projection>of(topN), mergeNode);
+        plan.add(localMergeNode);
     }
 
-    private List<Symbol> generateGroupByOutputs(List<Symbol> groupKeys, List<Aggregation> aggregations) {
-        List<Symbol> outputs = new ArrayList<>(groupKeys);
-        int idx = groupKeys.size();
-        for (Aggregation aggregation : aggregations) {
-            outputs.add(new InputColumn(idx));
-            idx++;
-        }
-        return outputs;
+    private List<String> nodesFromTable(SelectAnalysis analysis) {
+        return Lists.newArrayList(analysis.table().getRouting(analysis.whereClause()).nodes());
     }
 
     private Plan planInsert(InsertAnalysis analysis) {
