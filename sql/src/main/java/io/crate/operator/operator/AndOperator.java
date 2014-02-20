@@ -22,12 +22,13 @@
 package io.crate.operator.operator;
 
 import io.crate.metadata.FunctionInfo;
+import io.crate.operator.Input;
 import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 
-public class AndOperator extends Operator {
+public class AndOperator extends Operator<Boolean> {
 
     public static final String NAME = "op_and";
     public static final FunctionInfo INFO = generateInfo(NAME, DataType.BOOLEAN);
@@ -43,6 +44,8 @@ public class AndOperator extends Operator {
 
     @Override
     public Symbol normalizeSymbol(Function function) {
+        assert (function != null);
+
         Boolean result = true;
         for (Symbol symbol : function.arguments()) {
             if (symbol instanceof BooleanLiteral) {
@@ -53,5 +56,39 @@ public class AndOperator extends Operator {
         }
 
         return new BooleanLiteral(result);
+    }
+
+    @Override
+    public Boolean evaluate(Input<Boolean>... args) {
+        assert (args != null);
+        assert (args.length == 2);
+
+        // implement three valued logic.
+        // don't touch anything unless you have a good reason for it! :)
+        // http://en.wikipedia.org/wiki/Three-valued_logic
+        Boolean left = (args[0] == null) ? null : args[0].value();
+        Boolean right = (args[1] == null) ? null : args[1].value();
+
+        if (left == null && right == null) {
+            return null;
+        }
+
+        if (left == null) {
+            if (right != null && !right) {
+                return false;
+            } else {
+                return null;
+            }
+        }
+
+        if (right == null) {
+            if (left != null && !left) {
+                return false;
+            } else {
+                return null;
+            }
+        }
+
+        return left && right;
     }
 }

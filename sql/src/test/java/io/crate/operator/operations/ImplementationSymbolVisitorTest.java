@@ -51,7 +51,7 @@ public class ImplementationSymbolVisitorTest {
 
     private ImplementationSymbolVisitor visitor;
 
-    static class MultiplyFunction implements Scalar<Long> {
+    static class MultiplyFunction implements Scalar<Long, Object> {
 
         public final static String NAME = "dummy_multiply";
         public static FunctionInfo INFO = new FunctionInfo(
@@ -60,7 +60,7 @@ public class ImplementationSymbolVisitorTest {
         );
 
         @Override
-        public Long evaluate(Input<?>... args) {
+        public Long evaluate(Input<Object>... args) {
             return (Long)args[0].value() * 2L;
         }
 

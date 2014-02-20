@@ -23,12 +23,14 @@ package io.crate.operator.operator;
 
 import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionInfo;
+import io.crate.operator.Input;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 
 import java.util.Objects;
 
-public class NotEqOperator extends Operator {
+@Deprecated
+public class NotEqOperator extends Operator<Object> {
 
     public static final String NAME = "op_<>";
     private final FunctionInfo info;
@@ -66,4 +68,10 @@ public class NotEqOperator extends Operator {
 
         return function;
     }
+
+    @Override
+    public Boolean evaluate(Input<Object>... args) {
+        return null;
+    }
+
 }

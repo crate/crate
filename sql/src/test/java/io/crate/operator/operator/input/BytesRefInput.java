@@ -18,16 +18,21 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
-
-package io.crate.metadata;
+package io.crate.operator.operator.input;
 
 import io.crate.operator.Input;
-import io.crate.planner.symbol.Function;
+import org.apache.lucene.util.BytesRef;
 
-/**
- * evaluatable function implementation
- * @param <T> the class of the returned value
- */
-public interface Scalar<T, I> extends FunctionImplementation<Function> {
-    public T evaluate(Input<I>... args);
+public class BytesRefInput implements Input<BytesRef> {
+    private BytesRef value;
+    public BytesRefInput(String value) {
+        this(new BytesRef(value));
+    }
+    public BytesRefInput(BytesRef value) {
+        this.value = value;
+    }
+    @Override
+    public BytesRef value() {
+        return value;
+    }
 }

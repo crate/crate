@@ -97,14 +97,14 @@ public class BaseAnalyzerTest {
         }
     }
 
-    static class AbsFunction implements Scalar<Long> {
+    static class AbsFunction implements Scalar<Long, Number> {
 
         @Override
-        public Long evaluate(Input<?>... args) {
+        public Long evaluate(Input<Number>... args) {
             if (args == null || args.length == 0) {
                 return 0l;
             }
-            return Math.abs(((Number) args[0].value()).longValue());
+            return Math.abs((args[0].value()).longValue());
         }
 
         @Override
@@ -116,7 +116,7 @@ public class BaseAnalyzerTest {
         @Override
         public Symbol normalizeSymbol(Function symbol) {
             if (symbol.arguments().get(0) instanceof Input) {
-                return new LongLiteral(evaluate((Input<?>)symbol.arguments().get(0)));
+                return new LongLiteral(evaluate((Input<Number>)symbol.arguments().get(0)));
             }
             return symbol;
         }
