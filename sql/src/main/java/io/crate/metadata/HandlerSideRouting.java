@@ -19,38 +19,50 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.sys;
+package io.crate.metadata;
 
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
+import java.io.IOException;
 
-public class SysSchemaInfo implements SchemaInfo {
+/**
+ * A routing which represents a handler side data location via a table.
+ */
+public class HandlerSideRouting extends Routing {
 
-    public static final String NAME = "sys";
-    private final Map<String, ? extends TableInfo> tableInfos;
+    private final TableIdent tableIdent;
 
-    @Inject
-    public SysSchemaInfo(Map<String, SysTableInfo> infos) {
-        tableInfos = infos;
+    public HandlerSideRouting(TableIdent tableIdent) {
+        assert tableIdent != null;
+        this.tableIdent = tableIdent;
+    }
+
+    public TableIdent tableIdent() {
+        return tableIdent;
     }
 
     @Override
-    public TableInfo getTableInfo(String name) {
-        return tableInfos.get(name);
+    public boolean hasLocations() {
+        return false;
     }
 
     @Override
-    public Collection<String> tableNames() {
-        return tableInfos.keySet();
+    public String toString() {
+        return "HandlerSideRouting{" +
+                "tableIdent=" + tableIdent +
+                "} ";
     }
 
     @Override
-    public Iterator<TableInfo> iterator() {
-        return (Iterator<TableInfo>) tableInfos.values().iterator();
+    public final void readFrom(StreamInput in) throws IOException {
+        throw new UnsupportedOperationException("HandlerSideRouting has no serialization support");
     }
+
+    @Override
+    public final void writeTo(StreamOutput out) throws IOException {
+        throw new UnsupportedOperationException("HandlerSideRouting has no serialization support");
+    }
+
+
 }

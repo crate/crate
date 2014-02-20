@@ -26,9 +26,10 @@ import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
+import java.util.Iterator;
 import java.util.Map;
 
-public class ReferenceInfos {
+public class ReferenceInfos implements Iterable<SchemaInfo>{
 
     public static final String DEFAULT_SCHEMA = "doc";
 
@@ -68,4 +69,8 @@ public class ReferenceInfos {
         }
     }
 
+    @Override
+    public Iterator<SchemaInfo> iterator() {
+        return schemas.values().iterator();
+    }
 }
