@@ -46,7 +46,7 @@ public class AndOperator extends Operator<Boolean> {
     public Symbol normalizeSymbol(Function function) {
         assert (function != null);
 
-        Boolean result = true;
+        boolean result = true;
         for (Symbol symbol : function.arguments()) {
             if (symbol instanceof BooleanLiteral) {
                 result = result && ((BooleanLiteral) symbol).value();
@@ -55,7 +55,7 @@ public class AndOperator extends Operator<Boolean> {
             }
         }
 
-        return new BooleanLiteral(result);
+        return (result) ? BooleanLiteral.TRUE : BooleanLiteral.FALSE;
     }
 
     @Override

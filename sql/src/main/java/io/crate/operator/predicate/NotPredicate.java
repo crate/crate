@@ -21,7 +21,6 @@
 
 package io.crate.operator.predicate;
 
-import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
@@ -50,12 +49,15 @@ public class NotPredicate implements FunctionImplementation<Function> {
 
     @Override
     public Symbol normalizeSymbol(Function symbol) {
-        Preconditions.checkNotNull(symbol);
-        Preconditions.checkArgument(symbol.arguments().size() == 1);
+        assert (symbol != null);
+        assert (symbol.arguments().size() == 1);
 
         Symbol arg = symbol.arguments().get(0);
         if (arg.symbolType() == SymbolType.BOOLEAN_LITERAL) {
-            return new BooleanLiteral(!((BooleanLiteral)arg).value());
+            if (((BooleanLiteral)arg).value()) {
+                return BooleanLiteral.FALSE;
+            }
+            return BooleanLiteral.TRUE;
         }
 
         return symbol;

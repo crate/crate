@@ -1,6 +1,5 @@
 package io.crate.operator.operator;
 
-import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operator.Input;
 import io.crate.planner.symbol.BooleanLiteral;
@@ -25,12 +24,12 @@ public class OrOperator extends Operator<Boolean> {
 
     @Override
     public Symbol normalizeSymbol(Function function) {
-        Preconditions.checkNotNull(function);
+        assert (function != null);
 
         for (Symbol symbol : function.arguments()) {
             if (symbol.symbolType() == SymbolType.BOOLEAN_LITERAL) {
                 if (((BooleanLiteral)symbol).value()) {
-                    return new BooleanLiteral(true);
+                    return BooleanLiteral.TRUE;
                 }
             }
         }
