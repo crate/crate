@@ -747,7 +747,7 @@ assignmentList
     ;
 
 assignment
-    : qname EQ expr -> ^(ASSIGNMENT qname expr)
+    : subscript EQ expr -> ^(ASSIGNMENT subscript expr)
     ;
 
 nonReserved

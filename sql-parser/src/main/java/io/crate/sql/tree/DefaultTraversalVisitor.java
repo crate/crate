@@ -418,4 +418,16 @@ public abstract class DefaultTraversalVisitor<R, C>
         }
         return null;
     }
+
+    @Override
+    public R visitUpdate(Update node, C context) {
+        process(node.table(), context);
+        for (Assignment assignment : node.assignements()) {
+            process(assignment, context);
+        }
+        if (node.whereClause().isPresent()) {
+            process(node.whereClause().get(), context);
+        }
+        return null;
+    }
 }
