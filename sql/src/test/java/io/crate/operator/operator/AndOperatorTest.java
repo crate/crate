@@ -46,141 +46,22 @@ public class AndOperatorTest {
         assertThat(((BooleanLiteral) symbol).value(), is(false));
     }
 
-    @Test
-    public void testEvaluateTrueTrue() {
+    private Boolean and(Boolean left, Boolean right) {
         AndOperator operator = new AndOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(true),
-                new BooleanInput(true)
-        );
-
-        assertTrue(result);
+        return operator.evaluate(new BooleanInput(left), new BooleanInput(right));
     }
 
     @Test
-    public void testEvaluateTrueFalse() {
-        AndOperator operator = new AndOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(true),
-                new BooleanInput(false)
-        );
-
-        assertFalse(result);
+    public void testEvaluateAndOperator() {
+        assertTrue(and(true, true));
+        assertFalse(and(false, false));
+        assertFalse(and(true, false));
+        assertFalse(and(false, true));
+        assertNull(and(true, null));
+        assertNull(and(null, true));
+        assertFalse(and(false, null));
+        assertFalse(and(null, false));
+        assertNull(and(null, null));
     }
 
-    @Test
-    public void testEvaluateFalseTrue() {
-        AndOperator operator = new AndOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(false),
-                new BooleanInput(true)
-        );
-
-        assertFalse(result);
-    }
-
-    @Test
-    public void testEvaluateTrueUnknown() {
-        AndOperator operator = new AndOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(true),
-                new BooleanInput(null)
-        );
-
-        assertNull(result);
-    }
-
-    @Test
-    public void testEvaluateUnknownTrue() {
-        AndOperator operator = new AndOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(null),
-                new BooleanInput(true)
-        );
-
-        assertNull(result);
-    }
-
-    @Test
-    public void testEvaluateFalseUnknown() {
-        AndOperator operator = new AndOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(false),
-                new BooleanInput(null)
-        );
-
-        assertFalse(result);
-    }
-
-    @Test
-    public void testEvaluateUnknownFalse() {
-        AndOperator operator = new AndOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(null),
-                new BooleanInput(false)
-        );
-
-        assertFalse(result);
-    }
-
-    @Test
-    public void testEvaluateUnknownUnknown() {
-        AndOperator operator = new AndOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(null),
-                new BooleanInput(null)
-        );
-
-        assertNull(result);
-    }
-
-    @Test
-    public void testEvaluateNullTrue() {
-        AndOperator operator = new AndOperator();
-        Boolean result = operator.evaluate(
-                null,
-                new BooleanInput(true)
-        );
-        assertNull(result);
-    }
-
-    @Test
-    public void testEvaluateTrueNull() {
-        AndOperator operator = new AndOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(true),
-                null
-        );
-        assertNull(result);
-    }
-
-    @Test
-    public void testEvaluateNullFalse() {
-        AndOperator operator = new AndOperator();
-        Boolean result = operator.evaluate(
-                null,
-                new BooleanInput(false)
-        );
-        assertFalse(result);
-    }
-
-    @Test
-    public void testEvaluateFalseNull() {
-        AndOperator operator = new AndOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(false),
-                null
-        );
-        assertFalse(result);
-    }
-
-    @Test
-    public void testEvaluateNullNull() {
-        AndOperator operator = new AndOperator();
-        Boolean result = operator.evaluate(
-                null,
-                null
-        );
-        assertNull(result);
-    }
 }
