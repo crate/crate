@@ -26,10 +26,9 @@ import io.crate.operator.Input;
 import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
 import org.cratedb.DataType;
 
-public class AndOperator extends Operator {
+public class AndOperator extends Operator<Boolean> {
 
     public static final String NAME = "op_and";
     public static final FunctionInfo INFO = generateInfo(NAME, DataType.BOOLEAN);
@@ -47,28 +46,49 @@ public class AndOperator extends Operator {
     public Symbol normalizeSymbol(Function function) {
         assert (function != null);
 
+        Boolean result = true;
         for (Symbol symbol : function.arguments()) {
-            if ((symbol.symbolType() != SymbolType.BOOLEAN_LITERAL)) {
+            if (symbol instanceof BooleanLiteral) {
+                result = result && ((BooleanLiteral) symbol).value();
+            } else {
                 return function; // can't optimize -> return unmodified symbol
             }
         }
 
-        BooleanLiteral[] literals = new BooleanLiteral[function.arguments().size()];
-        function.arguments().toArray(literals);
-        return new BooleanLiteral(evaluate(literals));
+        return new BooleanLiteral(result);
     }
 
     @Override
-    public Boolean evaluate(Input<?>... args) {
-        if (args == null) {
-            return false;
+    public Boolean evaluate(Input<Boolean>... args) {
+        assert (args != null);
+        assert (args.length == 2);
+
+        // implement three valued logic.
+        // don't touch anything unless you have a good reason for it! :)
+        // http://en.wikipedia.org/wiki/Three-valued_logic
+        Boolean left = (args[0] == null) ? null : args[0].value();
+        Boolean right = (args[1] == null) ? null : args[1].value();
+
+        if (left == null && right == null) {
+            return null;
         }
-        for (Input<?> input : args) {
-            if (!(Boolean)input.value()) {
+
+        if (left == null) {
+            if (right != null && !right) {
                 return false;
+            } else {
+                return null;
             }
         }
 
-        return true;
+        if (right == null) {
+            if (left != null && !left) {
+                return false;
+            } else {
+                return null;
+            }
+        }
+
+        return left && right;
     }
 }

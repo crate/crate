@@ -1,5 +1,6 @@
 package io.crate.operator.operator;
 
+import io.crate.operator.operator.input.BooleanInput;
 import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
@@ -8,6 +9,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
+import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -45,25 +47,140 @@ public class AndOperatorTest {
     }
 
     @Test
-    public void testEvaluateTrue() {
+    public void testEvaluateTrueTrue() {
         AndOperator operator = new AndOperator();
         Boolean result = operator.evaluate(
-                new BooleanLiteral(true),
-                new BooleanLiteral(true)
+                new BooleanInput(true),
+                new BooleanInput(true)
         );
 
         assertTrue(result);
     }
 
     @Test
-    public void testEvaluateFalse() {
+    public void testEvaluateTrueFalse() {
         AndOperator operator = new AndOperator();
         Boolean result = operator.evaluate(
-                new BooleanLiteral(true),
-                new BooleanLiteral(false),
-                new BooleanLiteral(true)
+                new BooleanInput(true),
+                new BooleanInput(false)
         );
 
         assertFalse(result);
+    }
+
+    @Test
+    public void testEvaluateFalseTrue() {
+        AndOperator operator = new AndOperator();
+        Boolean result = operator.evaluate(
+                new BooleanInput(false),
+                new BooleanInput(true)
+        );
+
+        assertFalse(result);
+    }
+
+    @Test
+    public void testEvaluateTrueUnknown() {
+        AndOperator operator = new AndOperator();
+        Boolean result = operator.evaluate(
+                new BooleanInput(true),
+                new BooleanInput(null)
+        );
+
+        assertNull(result);
+    }
+
+    @Test
+    public void testEvaluateUnknownTrue() {
+        AndOperator operator = new AndOperator();
+        Boolean result = operator.evaluate(
+                new BooleanInput(null),
+                new BooleanInput(true)
+        );
+
+        assertNull(result);
+    }
+
+    @Test
+    public void testEvaluateFalseUnknown() {
+        AndOperator operator = new AndOperator();
+        Boolean result = operator.evaluate(
+                new BooleanInput(false),
+                new BooleanInput(null)
+        );
+
+        assertFalse(result);
+    }
+
+    @Test
+    public void testEvaluateUnknownFalse() {
+        AndOperator operator = new AndOperator();
+        Boolean result = operator.evaluate(
+                new BooleanInput(null),
+                new BooleanInput(false)
+        );
+
+        assertFalse(result);
+    }
+
+    @Test
+    public void testEvaluateUnknownUnknown() {
+        AndOperator operator = new AndOperator();
+        Boolean result = operator.evaluate(
+                new BooleanInput(null),
+                new BooleanInput(null)
+        );
+
+        assertNull(result);
+    }
+
+    @Test
+    public void testEvaluateNullTrue() {
+        AndOperator operator = new AndOperator();
+        Boolean result = operator.evaluate(
+                null,
+                new BooleanInput(true)
+        );
+        assertNull(result);
+    }
+
+    @Test
+    public void testEvaluateTrueNull() {
+        AndOperator operator = new AndOperator();
+        Boolean result = operator.evaluate(
+                new BooleanInput(true),
+                null
+        );
+        assertNull(result);
+    }
+
+    @Test
+    public void testEvaluateNullFalse() {
+        AndOperator operator = new AndOperator();
+        Boolean result = operator.evaluate(
+                null,
+                new BooleanInput(false)
+        );
+        assertFalse(result);
+    }
+
+    @Test
+    public void testEvaluateFalseNull() {
+        AndOperator operator = new AndOperator();
+        Boolean result = operator.evaluate(
+                new BooleanInput(false),
+                null
+        );
+        assertFalse(result);
+    }
+
+    @Test
+    public void testEvaluateNullNull() {
+        AndOperator operator = new AndOperator();
+        Boolean result = operator.evaluate(
+                null,
+                null
+        );
+        assertNull(result);
     }
 }
