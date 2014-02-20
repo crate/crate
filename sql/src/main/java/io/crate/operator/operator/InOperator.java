@@ -76,19 +76,14 @@ public class InOperator extends Operator<Object> {
     public Boolean evaluate(Input<Object>... args) {
         assert (args != null);
         assert (args.length == 2);
-
-        if (args[0] == null) {
-            throw new IllegalArgumentException("<expression> IN <pattern>: arg[0] must not be null");
-        }
-        if (args[1] == null || args[1].value() == null) {
-            throw new IllegalArgumentException("<expression> IN <pattern>: pattern must not be null");
-        }
-        if (!(args[1].value() instanceof Set)) {
-            throw new IllegalArgumentException("<expression> IN <pattern>: pattern must be of type Set");
-        }
+        assert (args[0] != null && args[1] != null);
 
         Object inValue = args[0].value();
         Set<?> inList = (Set<?>)args[1].value();
+
+        if (inValue == null || inList == null || inList.contains(null)) {
+            return null;
+        }
 
         return inList.contains(inValue);
     }

@@ -20,17 +20,14 @@
  */
 package io.crate.operator.operator;
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.operator.operator.input.ObjectInput;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
+import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -208,65 +205,30 @@ public class InOperatorTest {
         assertThat(((BooleanLiteral) result).value(), is(false));
     }
 
-    @Test
-    public void testEvaluateIntegerIncluded() {
-        ObjectInput inValue = new ObjectInput(1);
-        ObjectInput inListValues = new ObjectInput(ImmutableSet.of(1, 2, 4, 8));
+
+    private Boolean in(Object inValue, Object... inList) {
+        Set<Object> inListValues = new HashSet<>();
+        for (Object o : inList) {
+            inListValues.add(o);
+        }
         InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.INTEGER));
-        Boolean result = op.evaluate(inValue, inListValues);
-        assertTrue(result);
+        return op.evaluate(new ObjectInput(inValue), new ObjectInput(inListValues));
     }
 
     @Test
-    public void testEvaluateIntegerNotIncluded() {
-        ObjectInput inValue = new ObjectInput(128);
-        ObjectInput inListValues = new ObjectInput(ImmutableSet.of(1, 2, 4, 8));
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.INTEGER));
-        Boolean result = op.evaluate(inValue, inListValues);
-        assertFalse(result);
-    }
+    public void testEvaluateInOperator() {
+        assertTrue(in(1, 1,2,4,8));
+        assertFalse(in(128, 1, 2, 4, 8));
+        assertTrue(in("charlie", "alpha", "bravo", "charlie", "delta"));
+        assertFalse(in("not included", "alpha", "bravo", "charlie", "delta"));
+        assertNull(in(null, "alpha", "bravo", "charlie", "delta"));
 
-    @Test
-    public void testEvaluateStringIncluded() {
-        ObjectInput inValue = new ObjectInput("charlie");
-        ObjectInput inListValues = new ObjectInput(ImmutableSet.of("alpha", "bravo", "charlie", "delta"));
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.STRING));
-        Boolean result = op.evaluate(inValue, inListValues);
-        assertTrue(result);
-    }
+        // "where 'something' in (null)"
+        assertNull(in("something", new Object[]{null}));
 
-    @Test
-    public void testEvaluateStringNotIncluded() {
-        ObjectInput inValue = new ObjectInput("not included");
-        ObjectInput inListValues = new ObjectInput(ImmutableSet.of("alpha", "bravo", "charlie", "delta"));
+        // "where 'something' in null"
         InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.STRING));
-        Boolean result = op.evaluate(inValue, inListValues);
-        assertFalse(result);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testEvaluateStringNullReference() {
-        ObjectInput inValue = null;
-        ObjectInput inListValues = new ObjectInput(ImmutableSet.of("alpha", "bravo", "charlie", "delta"));
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.STRING));
-        op.evaluate(inValue, inListValues);
-    }
-
-    @Test
-    public void testEvaluateStringNullValue() {
-        ObjectInput inValue = new ObjectInput(null);
-        ObjectInput inListValues = new ObjectInput(ImmutableSet.of("alpha", "bravo", "charlie", "delta"));
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.STRING));
-        Boolean result = op.evaluate(inValue, inListValues);
-        assertFalse(result);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testEvaluateStringNullList() {
-        ObjectInput inValue = new ObjectInput(null);
-        ObjectInput inListValues = null;
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.STRING));
-        op.evaluate(inValue, inListValues);
+        assertNull(op.evaluate(new ObjectInput("something"), new ObjectInput(null)));
     }
 
 }
