@@ -247,89 +247,26 @@ public class LikeOperatorTest {
 
     // test evaluate
 
-    @Test
-    public void testEvaluateTrue() {
+    private Boolean like(String expression, String pattern) {
         LikeOperator op = new LikeOperator(
                 LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
         );
-        Boolean result = op.evaluate(
-                new BytesRefInput("foo%baz"),
-                new BytesRefInput("foobarbaz")
-        );
-        assertTrue(result);
+        return op.evaluate(new BytesRefInput(expression),new BytesRefInput(pattern));
     }
 
     @Test
-    public void testEvaluateFalse() {
+    public void testLikeOperator() {
+        assertTrue(like("foo%baz", "foobarbaz"));
+        assertFalse(like("foo_baz", "foobarbaz"));
+
+        // set the Input.value() to null.
         LikeOperator op = new LikeOperator(
                 LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
         );
-        Boolean result = op.evaluate(
-                new BytesRefInput("foo_baz"),
-                new BytesRefInput("foobarbaz")
-        );
-        assertFalse(result);
+        BytesRef nullValue = null;
+        BytesRefInput brNullValue = new BytesRefInput(nullValue);
+        assertNull(op.evaluate(brNullValue, new BytesRefInput("foobarbaz")));
+        assertNull(op.evaluate(new BytesRefInput("foobarbaz"), brNullValue));
     }
 
-    @Test
-    public void testEvaluateNullBytesRef() {
-        LikeOperator op = new LikeOperator(
-                LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
-        );
-        Boolean result = op.evaluate(
-                null,
-                new BytesRefInput("foobarbaz")
-        );
-        assertFalse(result);
-    }
-
-    @Test
-    public void testEvaluateBytesRefNull() {
-        LikeOperator op = new LikeOperator(
-                LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
-        );
-        Boolean result = op.evaluate(
-                new BytesRefInput("foobarbaz"),
-                null
-        );
-        assertFalse(result);
-    }
-
-    @Test
-    public void testEvaluateNullNull() {
-        LikeOperator op = new LikeOperator(
-                LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
-        );
-        Boolean result = op.evaluate(
-                null,
-                null
-        );
-        assertTrue(result);
-    }
-
-    @Test
-    public void testEvaluateBytesRefNullValue() {
-        LikeOperator op = new LikeOperator(
-                LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
-        );
-        BytesRef value = null;
-        Boolean result = op.evaluate(
-                new BytesRefInput(value),
-                null
-        );
-        assertFalse(result);
-    }
-
-    @Test
-    public void testEvaluateBytesRefNullValue2() {
-        LikeOperator op = new LikeOperator(
-                LikeOperator.generateInfo(LikeOperator.NAME, DataType.STRING)
-        );
-        BytesRef value = null;
-        Boolean result = op.evaluate(
-                null,
-                new BytesRefInput(value)
-        );
-        assertFalse(result);
-    }
 }
