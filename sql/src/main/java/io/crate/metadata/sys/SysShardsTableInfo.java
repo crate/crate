@@ -130,11 +130,6 @@ public class SysShardsTableInfo extends SysTableInfo {
     }
 
     @Override
-    public boolean hasCustomPrimaryKey() {
-        return false;
-    }
-
-    @Override
     public String clusteredBy() {
         return null;
     }
