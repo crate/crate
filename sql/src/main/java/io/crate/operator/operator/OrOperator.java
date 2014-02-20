@@ -3,10 +3,13 @@ package io.crate.operator.operator;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operator.Input;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.BooleanLiteral;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolType;
 import org.cratedb.DataType;
 
-public class OrOperator extends Operator {
+public class OrOperator extends Operator<Boolean> {
 
     public static final String NAME = "op_or";
     public static final FunctionInfo INFO = generateInfo(NAME, DataType.BOOLEAN);
@@ -36,15 +39,37 @@ public class OrOperator extends Operator {
     }
 
     @Override
-    public Boolean evaluate(Input<?>... args) {
-        if (args == null) {
-            return false;
+    public Boolean evaluate(Input<Boolean>... args) {
+        assert (args != null);
+        assert (args.length == 2);
+
+        // implement three valued logic.
+        // don't touch anything unless you have a good reason for it! :)
+        // http://en.wikipedia.org/wiki/Three-valued_logic
+        Boolean left = (args[0] == null) ? null : args[0].value();
+        Boolean right = (args[1] == null) ? null : args[1].value();
+
+        if (left == null && right == null) {
+            return null;
         }
-        for (Input<?> input : args) {
-            if ((Boolean)input.value()) {
+
+        if (left == null) {
+            if (right != null && right) {
                 return true;
+            } else {
+                return null;
             }
         }
-        return false;
+
+        if (right == null) {
+            if (left != null && left) {
+                return true;
+            } else {
+                return null;
+            }
+        }
+
+        return left || right;
     }
+
 }
