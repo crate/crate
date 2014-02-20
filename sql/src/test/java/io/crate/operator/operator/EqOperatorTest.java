@@ -1,7 +1,9 @@
 package io.crate.operator.operator;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.operator.operator.input.ObjectInput;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 import org.junit.Test;
@@ -10,10 +12,13 @@ import java.util.Arrays;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 
 public class EqOperatorTest {
 
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
 
     @Test
     public void testNormalizeSymbol() {
@@ -84,4 +89,39 @@ public class EqOperatorTest {
 
         assertThat(result, instanceOf(Function.class));
     }
+
+    private Boolean eq(Object left, Object right) {
+        EqOperator op = new EqOperator(Operator.generateInfo(EqOperator.NAME, DataType.INTEGER));
+        return op.evaluate(new ObjectInput(left),new ObjectInput(right));
+    }
+
+    @Test
+    public void testEvaluateEqOperator() {
+        assertTrue(eq(1, 1));
+        assertFalse(eq(1L, 2L));
+        assertTrue(eq(
+                ImmutableMap.<String, Object>builder()
+                        .put("int", 1)
+                        .put("boolean", true)
+                        .build(),
+                ImmutableMap.<String, Object>builder()
+                        .put("int", 1)
+                        .put("boolean", true)
+                        .build()
+        ));
+        assertFalse(eq(
+                ImmutableMap.<String, Object>builder()
+                        .put("int", 1)
+                        .put("boolean", true)
+                        .build(),
+                ImmutableMap.<String, Object>builder()
+                        .put("int", 2)
+                        .put("boolean", false)
+                        .build()
+        ));
+        assertNull(eq(null, 1f));
+        assertNull(eq("boing", null));
+        assertNull(eq(null, null));
+    }
+
 }

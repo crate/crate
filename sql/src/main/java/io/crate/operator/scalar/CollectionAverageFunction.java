@@ -32,7 +32,7 @@ import org.cratedb.DataType;
 
 import java.util.Set;
 
-public class CollectionAverageFunction implements Scalar<Double> {
+public class CollectionAverageFunction implements Scalar<Double, Set<Number>> {
 
     public static final String NAME = "collection_avg";
     private final FunctionInfo info;
@@ -51,11 +51,14 @@ public class CollectionAverageFunction implements Scalar<Double> {
     }
 
     @Override
-    public Double evaluate(Input<?>... args) {
+    public Double evaluate(Input<Set<Number>>... args) {
         // NOTE: always returning double ignoring the input type, maybe better implement type safe
+        if (args[0].value() == null) {
+            return null;
+        }
         double sum = 0;
         long count = 0;
-        for (Number value : (Set<Number>)args[0].value()) {
+        for (Number value : args[0].value()) {
             sum += value.doubleValue();
             count++;
         }

@@ -46,17 +46,17 @@ public class SimpleTopNProjectorTest {
     private static final Input<Integer> input = new InputCollectExpression<>(0);
     private static final Object[] row = new Object[]{42};
 
-    private static class TestFunction implements Scalar<Integer> {
+    private static class TestFunction implements Scalar<Integer, Integer> {
 
         public static final String NAME = "signum";
         public static final FunctionInfo INFO = new FunctionInfo(
                 new FunctionIdent(NAME, Arrays.asList(DataType.INTEGER)), DataType.INTEGER);
 
         @Override
-        public Integer evaluate(Input<?>... args) {
+        public Integer evaluate(Input<Integer>... args) {
             Integer result = null;
             if (args != null && args.length > 0) {
-                Integer value = (Integer)args[0].value();
+                Integer value = args[0].value();
                 if (value != null) {
                     result = (int) Math.signum(value);
                 }
@@ -246,7 +246,7 @@ public class SimpleTopNProjectorTest {
 
     @Test
     public void testFunctionExpression() {
-        FunctionExpression<Integer> funcExpr = new FunctionExpression<>(new TestFunction(), new Input<?>[]{input});
+        FunctionExpression<Integer, ?> funcExpr = new FunctionExpression<>(new TestFunction(), new Input[]{input});
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{funcExpr}, new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
         projector.startProjection();
         int i;

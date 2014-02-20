@@ -18,16 +18,17 @@
  * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
-
-package io.crate.metadata;
+package io.crate.operator.operator.input;
 
 import io.crate.operator.Input;
-import io.crate.planner.symbol.Function;
 
-/**
- * evaluatable function implementation
- * @param <T> the class of the returned value
- */
-public interface Scalar<T, I> extends FunctionImplementation<Function> {
-    public T evaluate(Input<I>... args);
+public class ObjectInput implements Input<Object> {
+    private Object object;
+    public ObjectInput(Object object) {
+        this.object = object;
+    }
+    @Override
+    public Object value() {
+        return object;
+    }
 }

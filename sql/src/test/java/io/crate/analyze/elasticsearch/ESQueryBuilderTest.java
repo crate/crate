@@ -135,14 +135,6 @@ public class ESQueryBuilderTest {
         xcontetAssert(whereClause, "{\"query\":{\"term\":{\"name\":\"Marvin\"}}}");
     }
 
-
-    @Test
-    public void testWhereReferenceNotEqStringLiteral() throws Exception {
-        FunctionImplementation impl = functions.get(new FunctionIdent(NotEqOperator.NAME, typeX2(DataType.STRING)));
-        Function whereClause = new Function(impl.info(), Arrays.<Symbol>asList(name_ref, new StringLiteral("Marvin")));
-        xcontetAssert(whereClause, "{\"query\":{\"bool\":{\"must_not\":{\"term\":{\"name\":\"Marvin\"}}}}}");
-    }
-
     @Test
     public void testWhereReferenceEqIntegerLiteral() throws Exception {
         FunctionImplementation eqImpl = functions.get(new FunctionIdent(EqOperator.NAME, typeX2(DataType.INTEGER)));

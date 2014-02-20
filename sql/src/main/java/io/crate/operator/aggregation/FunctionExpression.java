@@ -24,12 +24,12 @@ package io.crate.operator.aggregation;
 import io.crate.metadata.Scalar;
 import io.crate.operator.Input;
 
-public class FunctionExpression<ReturnType> implements Input<ReturnType> {
+public class FunctionExpression<ReturnType, InputType> implements Input<ReturnType> {
 
-    private final Input<?>[] childInputs;
-    private Scalar<ReturnType> functionImplementation;
+    private final Input<InputType>[] childInputs;
+    private Scalar<ReturnType, InputType> functionImplementation;
 
-    public FunctionExpression(Scalar<ReturnType> functionImplementation, Input<?>[] childInputs) {
+    public FunctionExpression(Scalar<ReturnType, InputType> functionImplementation, Input<InputType>[] childInputs) {
         this.functionImplementation = functionImplementation;
         this.childInputs = childInputs;
     }

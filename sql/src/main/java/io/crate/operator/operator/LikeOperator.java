@@ -22,22 +22,23 @@
 package io.crate.operator.operator;
 
 import io.crate.metadata.FunctionInfo;
+import io.crate.operator.Input;
 import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.StringLiteral;
 import io.crate.planner.symbol.Symbol;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 
 import java.util.regex.Pattern;
 
-public class LikeOperator extends Operator {
+public class LikeOperator extends Operator<BytesRef> {
 
     public static final String NAME = "op_like";
 
     private FunctionInfo info;
 
-    private static final String ZERO_OR_MORE = "%";
-    private static final String EXACTLY_ONE = "_";
+    public static final char DEFAULT_ESCAPE = '\\';
 
     public static void register(OperatorModule module) {
         module.registerOperatorFunction(new LikeOperator(generateInfo(NAME, DataType.STRING)));
@@ -64,16 +65,82 @@ public class LikeOperator extends Operator {
         StringLiteral expression = (StringLiteral) symbol.arguments().get(0);
         StringLiteral pattern = (StringLiteral) symbol.arguments().get(1);
 
-        return new BooleanLiteral(matches(expression, pattern));
+        return new BooleanLiteral(evaluate(expression, pattern));
     }
 
-    private boolean matches(StringLiteral expression, StringLiteral pattern) {
-        return Pattern.matches(replaceWildcards(expression), pattern.value().utf8ToString());
+    @Override
+    public Boolean evaluate(Input<BytesRef>... args) {
+        assert (args != null);
+        assert (args.length == 2);
+
+        BytesRef expression = args[0].value();
+        BytesRef pattern = args[1].value();
+        if (expression == null || pattern == null) {
+            return null;
+        }
+
+        return matches(expression.utf8ToString(), pattern.utf8ToString());
     }
 
-    private String replaceWildcards(StringLiteral literal) {
-        String s = literal.value().utf8ToString();
-        return s.replaceAll(ZERO_OR_MORE, ".*").replaceAll(EXACTLY_ONE, ".");
+    private boolean matches(String expression, String pattern) {
+        return Pattern.matches(
+                expressionToRegex(expression, DEFAULT_ESCAPE, true),
+                pattern
+        );
+    }
+
+    protected static String expressionToRegex(StringLiteral expression, char escapeChar, boolean shouldEscape) {
+        return expressionToRegex(expression.value().utf8ToString(), escapeChar, shouldEscape);
+    }
+
+    protected static String expressionToRegex(String patternString, char escapeChar, boolean shouldEscape) {
+        StringBuilder regex = new StringBuilder(patternString.length() * 2);
+
+        regex.append('^');
+        boolean escaped = false;
+        for (char currentChar : patternString.toCharArray()) {
+            if (shouldEscape && !escaped && currentChar == escapeChar) {
+                escaped = true;
+            } else {
+                switch (currentChar) {
+                    case '%':
+                        if (escaped) {
+                            regex.append("%");
+                        } else {
+                            regex.append(".*");
+                        }
+                        escaped = false;
+                        break;
+                    case '_':
+                        if (escaped) {
+                            regex.append("_");
+                        } else {
+                            regex.append('.');
+                        }
+                        escaped = false;
+                        break;
+                    default:
+                        // escape special regex characters
+                        switch (currentChar) {
+                            case '\\':
+                            case '^':
+                            case '$':
+                            case '.':
+                            case '*':
+                            case '[':
+                            case ']':
+                            case '(':
+                            case ')':
+                                regex.append('\\');
+                        }
+
+                        regex.append(currentChar);
+                        escaped = false;
+                }
+            }
+        }
+        regex.append('$');
+        return regex.toString();
     }
 
 }

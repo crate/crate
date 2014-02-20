@@ -134,18 +134,6 @@ public class LuceneQueryBuilder {
             }
         }
 
-        class NotEqQuery extends CmpQuery {
-
-            @Override
-            public Query apply(Function input) {
-                BooleanQuery query = new BooleanQuery();
-                query.add(functions.get(EqOperator.NAME).apply(input), BooleanClause.Occur.MUST_NOT);
-                query.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
-
-                return query;
-            }
-        }
-
         class AndQuery extends FunctionToQuery {
             @Override
             public Query apply(Function input) {
@@ -224,7 +212,6 @@ public class LuceneQueryBuilder {
                     .put(AndOperator.NAME, new AndQuery())
                     .put(OrOperator.NAME, new OrQuery())
                     .put(EqOperator.NAME, new EqQuery())
-                    .put(NotEqOperator.NAME, new NotEqQuery())
                     .put(LtOperator.NAME, new LtQuery())
                     .put(LteOperator.NAME, new LteQuery())
                     .put(GteOperator.NAME, new GteQuery())

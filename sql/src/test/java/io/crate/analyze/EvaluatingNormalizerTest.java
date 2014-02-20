@@ -4,6 +4,8 @@ import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysExpression;
 import io.crate.operator.operator.*;
+import io.crate.operator.predicate.NotPredicate;
+import io.crate.operator.predicate.PredicateModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
@@ -44,7 +46,9 @@ public class EvaluatingNormalizerTest {
             }
         });
 
-        functions = new ModulesBuilder().add(new OperatorModule())
+        functions = new ModulesBuilder()
+                .add(new OperatorModule())
+                .add(new PredicateModule())
                 .createInjector()
                 .getInstance(Functions.class);
 
@@ -76,11 +80,17 @@ public class EvaluatingNormalizerTest {
         ValueSymbol x_literal = new StringLiteral("x");
         ValueSymbol y_literal = new StringLiteral("y");
 
+        Function name_eq_x = new Function(
+                functionInfo(EqOperator.NAME, DataType.STRING), Arrays.<Symbol>asList(name_ref, x_literal));
+
         Function name_neq_x = new Function(
-                functionInfo(NotEqOperator.NAME, DataType.STRING), Arrays.<Symbol>asList(name_ref, x_literal));
+                functionInfo(NotPredicate.NAME, DataType.BOOLEAN, true), Arrays.<Symbol>asList(name_eq_x));
+
+        Function name_eq_y = new Function(
+                functionInfo(EqOperator.NAME, DataType.STRING), Arrays.<Symbol>asList(name_ref, y_literal));
 
         Function name_neq_y = new Function(
-                functionInfo(NotEqOperator.NAME, DataType.STRING), Arrays.<Symbol>asList(name_ref, y_literal));
+                functionInfo(NotPredicate.NAME, DataType.BOOLEAN, true), Arrays.<Symbol>asList(name_eq_y));
 
         Function op_and = new Function(
                 functionInfo(AndOperator.NAME, DataType.BOOLEAN), Arrays.<Symbol>asList(name_neq_x, name_neq_y));
@@ -113,7 +123,17 @@ public class EvaluatingNormalizerTest {
         assertThat(query, instanceOf(Function.class));
     }
 
-    private FunctionInfo functionInfo(String name, DataType aDouble) {
-        return functions.get(new FunctionIdent(name, ImmutableList.of(aDouble, aDouble))).info();
+    private FunctionInfo functionInfo(String name, DataType dataType, boolean isPredicate) {
+        ImmutableList dataTypes = null;
+        if (isPredicate) {
+            dataTypes = ImmutableList.of(dataType);
+        } else {
+            dataTypes = ImmutableList.of(dataType, dataType);
+        }
+        return functions.get(new FunctionIdent(name, dataTypes)).info();
+    }
+
+    private FunctionInfo functionInfo(String name, DataType dataType) {
+        return functionInfo(name, dataType, false);
     }
 }

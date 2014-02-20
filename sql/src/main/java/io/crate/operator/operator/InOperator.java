@@ -23,10 +23,13 @@ package io.crate.operator.operator;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.operator.Input;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 
-public class InOperator extends Operator {
+import java.util.Set;
+
+public class InOperator extends Operator<Object> {
 
     public static final String NAME = "op_in";
 
@@ -58,13 +61,31 @@ public class InOperator extends Operator {
         if (!left.symbolType().isLiteral()) {
             return function;
         }
-        Literal leftLiteral = (Literal) left;
-        SetLiteral literals = (SetLiteral) function.arguments().get(1);
+        Literal inValue = (Literal) left;
+        SetLiteral inList = (SetLiteral) function.arguments().get(1);
 
-        if (literals.contains(leftLiteral)) {
-            return new BooleanLiteral(true);
+        // not in list if data types do not match.
+        if (!inList.contains(inValue)) {
+            return BooleanLiteral.FALSE;
         }
-        return new BooleanLiteral(false);
+
+        return BooleanLiteral.TRUE;
+    }
+
+    @Override
+    public Boolean evaluate(Input<Object>... args) {
+        assert (args != null);
+        assert (args.length == 2);
+        assert (args[0] != null && args[1] != null);
+
+        Object inValue = args[0].value();
+        Set<?> inList = (Set<?>)args[1].value();
+
+        if (inValue == null || inList == null || inList.contains(null)) {
+            return null;
+        }
+
+        return inList.contains(inValue);
     }
 
 }

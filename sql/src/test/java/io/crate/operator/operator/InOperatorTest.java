@@ -20,17 +20,18 @@
  */
 package io.crate.operator.operator;
 
+import io.crate.operator.operator.input.ObjectInput;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
+import static junit.framework.Assert.assertNull;
+import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
 public class InOperatorTest {
@@ -202,6 +203,32 @@ public class InOperatorTest {
 
         assertThat(result, instanceOf(BooleanLiteral.class));
         assertThat(((BooleanLiteral) result).value(), is(false));
+    }
+
+
+    private Boolean in(Object inValue, Object... inList) {
+        Set<Object> inListValues = new HashSet<>();
+        for (Object o : inList) {
+            inListValues.add(o);
+        }
+        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.INTEGER));
+        return op.evaluate(new ObjectInput(inValue), new ObjectInput(inListValues));
+    }
+
+    @Test
+    public void testEvaluateInOperator() {
+        assertTrue(in(1, 1,2,4,8));
+        assertFalse(in(128, 1, 2, 4, 8));
+        assertTrue(in("charlie", "alpha", "bravo", "charlie", "delta"));
+        assertFalse(in("not included", "alpha", "bravo", "charlie", "delta"));
+        assertNull(in(null, "alpha", "bravo", "charlie", "delta"));
+
+        // "where 'something' in (null)"
+        assertNull(in("something", new Object[]{null}));
+
+        // "where 'something' in null"
+        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.STRING));
+        assertNull(op.evaluate(new ObjectInput("something"), new ObjectInput(null)));
     }
 
 }

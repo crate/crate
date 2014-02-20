@@ -234,17 +234,6 @@ public class LuceneQueryBuilderTest {
     }
 
     @Test
-    public void testWhereReferenceNotEqStringLiteral() throws Exception {
-        FunctionImplementation impl = functions.get(new FunctionIdent(NotEqOperator.NAME, typeX2(DataType.STRING)));
-        Function whereClause = new Function(impl.info(), Arrays.<Symbol>asList(name_ref, new StringLiteral("Marvin")));
-        Query query = builder.convert(whereClause);
-
-        assertThat(query, instanceOf(BooleanQuery.class));
-        TopFieldDocs search = indexSeacher.search(query, 5, sort);
-        assertThat(search.totalHits, is(3));
-    }
-
-    @Test
     public void testWhereReferenceEqIntegerLiteral() throws Exception {
         FunctionImplementation eqImpl = functions.get(new FunctionIdent(EqOperator.NAME, typeX2(DataType.INTEGER)));
         Function whereClause = new Function(eqImpl.info(), Arrays.<Symbol>asList(age_ref, new IntegerLiteral(40)));
