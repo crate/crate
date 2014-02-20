@@ -29,6 +29,7 @@ public class DocTableInfoTest {
                 ImmutableList.<String>of(),
                 null,
                 false,
+                true,
                 new String[0],
                 null);
 
@@ -62,6 +63,7 @@ public class DocTableInfoTest {
                 ImmutableList.<String>of(),
                 null,
                 false,
+                true,
                 new String[0],
                 null);
 
