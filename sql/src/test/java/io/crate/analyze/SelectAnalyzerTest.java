@@ -374,6 +374,32 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testRewriteNotEquals() {
+        // should rewrite to:
+        //    not(eq(sys.noes.name, 'something'))
+        ImmutableList<String> statements = ImmutableList.of(
+                "select * from sys.nodes where sys.nodes.name <> 'something'",
+                "select * from sys.nodes where sys.nodes.name != 'something'"
+        );
+        for (String statement : statements) {
+            Analysis analysis = analyze(statement);
+            WhereClause whereClause = analysis.whereClause();
+
+            Function notFunction = whereClause.query();
+            assertThat(notFunction.info().ident().name(), is(NotPredicate.NAME));
+            assertThat(notFunction.arguments().size(), is(1));
+
+            Function eqFunction = (Function) notFunction.arguments().get(0);
+            assertThat(eqFunction.info().ident().name(), is(EqOperator.NAME));
+            assertThat(eqFunction.arguments().size(), is(2));
+
+            List<Symbol> eqArguments = eqFunction.arguments();
+            assertThat(eqArguments.get(0), instanceOf(Reference.class));
+            assertThat(eqArguments.get(1), instanceOf(StringLiteral.class));
+        }
+    }
+
+    @Test
     public void testClusteredBy() throws Exception {
         Analysis analysis = analyze("select name from users where id=1");
         assertEquals(1L, analysis.clusteredByLiteral().value());

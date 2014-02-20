@@ -246,6 +246,22 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
             argumentTypes.set(1, argumentTypes.get(0));
         }
 
+        // rewrite: exp1 != exp2 to: not(eq(exp1, exp2))
+        if (node.getType() == ComparisonExpression.Type.NOT_EQUAL) {
+            String eqOperatorName = "op_" + ComparisonExpression.Type.EQUAL.getValue();
+            List<DataType> eqArgumentTypes = new ArrayList<>(argumentTypes);
+            List<Symbol> eqArguments = new ArrayList<>(arguments);
+            FunctionIdent eqFunctionIdent = new FunctionIdent(eqOperatorName, eqArgumentTypes);
+            FunctionInfo eqFunctionInfo = context.getFunctionInfo(eqFunctionIdent);
+            Function eqFunction = context.allocateFunction(eqFunctionInfo, eqArguments);
+
+            argumentTypes = new ArrayList<>();
+            argumentTypes.add(DataType.BOOLEAN);
+            arguments = new ArrayList<>();
+            arguments.add(eqFunction);
+            operatorName = NotPredicate.NAME;
+        }
+
         FunctionIdent functionIdent = new FunctionIdent(operatorName, argumentTypes);
         FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
         return context.allocateFunction(functionInfo, arguments);
