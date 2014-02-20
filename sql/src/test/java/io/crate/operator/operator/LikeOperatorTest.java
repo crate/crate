@@ -32,7 +32,6 @@ import org.junit.Test;
 
 import static io.crate.operator.operator.LikeOperator.DEFAULT_ESCAPE;
 import static io.crate.operator.operator.LikeOperator.expressionToRegex;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.*;
 
 public class LikeOperatorTest {
@@ -48,157 +47,49 @@ public class LikeOperatorTest {
         return op.normalizeSymbol(function);
     }
 
+    private Boolean likeNormalize(String expression, String pattern) {
+        return ((BooleanLiteral) normalizeSymbol(expression, pattern)).value();
+    }
+
     @Test
     public void testNormalizeSymbolEqual() {
-        Symbol result = normalizeSymbol("foo", "foo");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertTrue(((BooleanLiteral)result).value());
+        assertTrue(likeNormalize("foo", "foo"));
+        assertFalse(likeNormalize("foo", "notFoo"));
     }
 
     @Test
-    public void testNormalizeSymbolNotEqual() {
-        Symbol result = normalizeSymbol("foo", "notFoo");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertFalse(((BooleanLiteral) result).value());
-    }
-
-    // Following tests: wildcard: '%' ... zero or more characters (0...N)
-
-    @Test
-    public void testNormalizeSymbolLikeZeroOrMoreLeftN() {
-        Symbol result = normalizeSymbol("%bar", "foobar");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertTrue(((BooleanLiteral)result).value());
+    public void testNormalizeSymbolLikeZeroOrMore() {
+        // Following tests: wildcard: '%' ... zero or more characters (0...N)
+        assertTrue(likeNormalize("%bar", "foobar"));
+        assertTrue(likeNormalize("%bar", "bar"));
+        assertFalse(likeNormalize("%bar", "ar"));
+        assertTrue(likeNormalize("foo%", "foobar"));
+        assertTrue(likeNormalize("foo%", "foo"));
+        assertFalse(likeNormalize("foo%", "fo"));
+        assertTrue(likeNormalize("%oob%", "foobar"));
     }
 
     @Test
-    public void testNormalizeSymbolLikeZeroOrMoreLeftZero() {
-        Symbol result = normalizeSymbol("%bar", "bar");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertTrue(((BooleanLiteral)result).value());
-    }
-
-    @Test
-    public void testNormalizeSymbolNotLikeZeroOrMoreLeft() {
-        Symbol result = normalizeSymbol("%bar", "ar");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertFalse(((BooleanLiteral) result).value());
-    }
-
-    @Test
-    public void testNormalizeSymbolLikeZeroOrMoreRightN() {
-        Symbol result = normalizeSymbol("foo%", "foobar");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertTrue(((BooleanLiteral)result).value());
-    }
-
-    @Test
-    public void testNormalizeSymbolLikeZeroOrMoreRightZero() {
-        Symbol result = normalizeSymbol("foo%", "foo");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertTrue(((BooleanLiteral)result).value());
-    }
-
-    @Test
-    public void testNormalizeSymbolNotLikeZeroOrMoreRight() {
-        Symbol result = normalizeSymbol("foo%", "fo");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertFalse(((BooleanLiteral) result).value());
-    }
-
-    @Test
-    public void testNormalizeSymbolLikeZeroOrMoreLeftRightN() {
-        Symbol result = normalizeSymbol("%oob%", "foobar");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertTrue(((BooleanLiteral)result).value());
-    }
-
-    // Following tests: wildcard: '_' ... any single character (exactly one)
-
-    @Test
-    public void testNormalizeSymbolLikeSingleLeft() {
-        Symbol result = normalizeSymbol("_ar", "bar");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertTrue(((BooleanLiteral)result).value());
-    }
-
-    @Test
-    public void testNormalizeSymbolNotLikeSingleLeft() {
-        Symbol result = normalizeSymbol("_bar", "bar");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertFalse(((BooleanLiteral) result).value());
-    }
-
-    @Test
-    public void testNormalizeSymbolLikeSingleRight() {
-        Symbol result = normalizeSymbol("fo_", "foo");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertTrue(((BooleanLiteral)result).value());
-    }
-
-    @Test
-    public void testNormalizeSymbolNotLikeSingleRight() {
-        Symbol result = normalizeSymbol("foo_", "foo");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertFalse(((BooleanLiteral) result).value());
-    }
-
-    @Test
-    public void testNormalizeSymbolLikeSingleLeftRight() {
-        Symbol result = normalizeSymbol("_o_", "foo");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertTrue(((BooleanLiteral) result).value());
-    }
-
-    @Test
-    public void testNormalizeSymbolNotLikeSingleLeftRight() {
-        Symbol result = normalizeSymbol("_foobar_", "foobar");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertFalse(((BooleanLiteral) result).value());
+    public void testNormalizeSymbolLikeExactlyOne() {
+        // Following tests: wildcard: '_' ... any single character (exactly one)
+        assertTrue(likeNormalize("_ar", "bar"));
+        assertFalse(likeNormalize("_bar", "bar"));
+        assertTrue(likeNormalize("fo_", "foo"));
+        assertFalse(likeNormalize("foo_", "foo"));
+        assertTrue(likeNormalize("_o_", "foo"));
+        assertFalse(likeNormalize("_foobar_", "foobar"));
     }
 
     // Following tests: mixed wildcards:
 
     @Test
     public void testNormalizeSymbolLikeMixed() {
-        Symbol result = normalizeSymbol("%o_ar", "foobar");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertTrue(((BooleanLiteral)result).value());
-    }
-
-    @Test
-    public void testNormalizeSymbolLikeMixed2() {
-        Symbol result = normalizeSymbol("%a_", "foobar");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertTrue(((BooleanLiteral)result).value());
-    }
-
-    @Test
-    public void testNormalizeSymbolLikeMixedMiddle() {
-        Symbol result = normalizeSymbol("%o_a%", "foobar");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertTrue(((BooleanLiteral) result).value());
-    }
-
-    @Test
-    public void testNormalizeSymbolLikeMixedMiddle2() {
-        Symbol result = normalizeSymbol("%i%m%", "Lorem ipsum dolor...");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertTrue(((BooleanLiteral)result).value());
-    }
-
-    @Test
-    public void testNormalizeSymbolLikeMixedMulti() {
-        Symbol result = normalizeSymbol("%%%sum%%", "Lorem ipsum dolor...");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertTrue(((BooleanLiteral)result).value());
-    }
-
-    @Test
-    public void testNormalizeSymbolNotLikeMixedMiddle() {
-        Symbol result = normalizeSymbol("%i%m", "Lorem ipsum dolor...");
-        assertThat(result, instanceOf(BooleanLiteral.class));
-        assertFalse(((BooleanLiteral) result).value());
+        assertTrue(likeNormalize("%o_ar", "foobar"));
+        assertTrue(likeNormalize("%a_", "foobar"));
+        assertTrue(likeNormalize("%o_a%", "foobar"));
+        assertTrue(likeNormalize("%i%m%", "Lorem ipsum dolor..."));
+        assertTrue(likeNormalize("%%%sum%%", "Lorem ipsum dolor..."));
+        assertFalse(likeNormalize("%i%m", "Lorem ipsum dolor..."));
     }
 
     // Following tests: escaping wildcards
