@@ -288,17 +288,6 @@ public class ESQueryBuilder {
             }
         }
 
-        class NotEqConverter extends CmpConverter {
-            @Override
-            public void convert(Function function, Context context) throws IOException {
-                Tuple<String, Object> tuple = super.prepare(function);
-
-                context.builder.startObject("bool").startObject("must_not");
-                context.builder.startObject("term").field(tuple.v1(), tuple.v2()).endObject();
-                context.builder.endObject().endObject();
-            }
-        }
-
         class NotConverter extends Converter {
 
             @Override
@@ -376,7 +365,6 @@ public class ESQueryBuilder {
                         .put(LteOperator.NAME, new RangeConverter("lte"))
                         .put(GtOperator.NAME, new RangeConverter("gt"))
                         .put(GteOperator.NAME, new RangeConverter("gte"))
-                        .put(NotEqOperator.NAME, new NotEqConverter())
                         .put(LikeOperator.NAME, new LikeConverter())
                         .put(IsNullPredicate.NAME, new IsNullConverter())
                         .put(NotPredicate.NAME, new NotConverter())
