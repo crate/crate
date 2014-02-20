@@ -255,10 +255,8 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
             FunctionInfo eqFunctionInfo = context.getFunctionInfo(eqFunctionIdent);
             Function eqFunction = context.allocateFunction(eqFunctionInfo, eqArguments);
 
-            argumentTypes = new ArrayList<>();
-            argumentTypes.add(DataType.BOOLEAN);
-            arguments = new ArrayList<>();
-            arguments.add(eqFunction);
+            argumentTypes = Arrays.asList(DataType.BOOLEAN);
+            arguments = Arrays.<Symbol>asList(eqFunction);
             operatorName = NotPredicate.NAME;
         }
 
