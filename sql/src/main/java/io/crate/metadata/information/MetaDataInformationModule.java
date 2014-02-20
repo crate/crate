@@ -19,15 +19,20 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.collector;
+package io.crate.metadata.information;
 
-public interface CrateCollector {
+import io.crate.metadata.table.SchemaInfo;
+import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.inject.multibindings.MapBinder;
 
-    public static final CrateCollector NOOP = new CrateCollector() {
-        @Override
-        public void doCollect() {
-        }
-    };
+public class MetaDataInformationModule extends AbstractModule {
 
-    public void doCollect() throws Exception;
+    protected MapBinder<String, SchemaInfo> schemaBinder;
+
+    @Override
+    protected void configure() {
+        schemaBinder = MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
+        schemaBinder.addBinding(InformationSchemaInfo.NAME).to(InformationSchemaInfo.class).asEagerSingleton();
+    }
+
 }

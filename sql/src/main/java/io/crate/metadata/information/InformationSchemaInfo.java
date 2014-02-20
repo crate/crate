@@ -19,38 +19,46 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.sys;
+package io.crate.metadata.information;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.common.inject.Inject;
+import org.cratedb.DataType;
 
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Map;
 
-public class SysSchemaInfo implements SchemaInfo {
+public class InformationSchemaInfo implements SchemaInfo {
 
-    public static final String NAME = "sys";
-    private final Map<String, ? extends TableInfo> tableInfos;
+    public static final String NAME = "information_schema";
 
-    @Inject
-    public SysSchemaInfo(Map<String, SysTableInfo> infos) {
-        tableInfos = infos;
-    }
+    public static final InformationTableInfo TABLE_INFO_TABLES = new InformationTableInfo.Builder("tables")
+            .add("schema_name", DataType.STRING, null)
+            .add("table_name", DataType.STRING, null)
+            // TODO: .add("number_of_shards", DataType.INTEGER, null)
+            // TODO: .add("number_of_replicas", DataType.INTEGER, null)
+            .add("clustered_by", DataType.STRING, null)
+            .addPrimaryKey("table_name")
+            .build();
+
+    public static final ImmutableMap<String, TableInfo> TABLE_INFOS =
+            ImmutableMap.<String, TableInfo>builder()
+                    .put(TABLE_INFO_TABLES.ident().name(), TABLE_INFO_TABLES)
+                    .build();
 
     @Override
     public TableInfo getTableInfo(String name) {
-        return tableInfos.get(name);
+        return TABLE_INFOS.get(name);
     }
 
     @Override
     public Collection<String> tableNames() {
-        return tableInfos.keySet();
+        return TABLE_INFOS.keySet();
     }
 
     @Override
     public Iterator<TableInfo> iterator() {
-        return (Iterator<TableInfo>) tableInfos.values().iterator();
+        return TABLE_INFOS.values().iterator();
     }
 }

@@ -74,7 +74,9 @@ distributions {
         contents {
             into("") {
                 from "$rootDir"
+                include 'LICENSE.txt'
                 include 'NOTICE'
+                include 'README.rst'
                 include 'CHANGES.txt'
             }
             into("docs") {

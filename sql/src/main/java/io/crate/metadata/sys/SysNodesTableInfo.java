@@ -122,11 +122,6 @@ public class SysNodesTableInfo extends SysTableInfo {
     }
 
     @Override
-    public boolean hasCustomPrimaryKey() {
-        return false;
-    }
-
-    @Override
     public String clusteredBy() {
         return null;
     }

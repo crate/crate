@@ -214,6 +214,9 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
             }
         }
 
+        // start the projection
+        projectors.get(0).startProjection(); // finishProjection called in ShardCollectFuture
+
         // start shardCollectors
         for (final CrateCollector shardCollector : shardCollectors) {
             threadPool.executor(ThreadPool.Names.SEARCH).execute(new Runnable() {

@@ -19,15 +19,18 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.collector;
+package io.crate.operator.reference.information;
 
-public interface CrateCollector {
+import org.junit.Test;
 
-    public static final CrateCollector NOOP = new CrateCollector() {
-        @Override
-        public void doCollect() {
-        }
-    };
+public class InformationDocLevelReferenceResolverTest {
 
-    public void doCollect() throws Exception;
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
+    @Test
+    public void testInstance() throws Exception {
+        InformationDocLevelReferenceResolver inst = InformationDocLevelReferenceResolver.INSTANCE;
+    }
 }

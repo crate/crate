@@ -26,15 +26,24 @@ import com.google.common.base.Preconditions;
 
 public class Assignment extends Node {
 
-    private final QualifiedName columnName;
+    private final Expression columnName;
     private final Expression expression;
 
 
-    public Assignment(QualifiedName columnName, Expression expression) {
+    public Assignment(Expression columnName, Expression expression) {
         Preconditions.checkNotNull(columnName, "columnname is null");
         Preconditions.checkNotNull(expression, "expression is null");
         this.columnName = columnName;
         this.expression = expression;
+    }
+
+
+    public Expression columnName() {
+        return columnName;
+    }
+
+    public Expression expression() {
+        return expression;
     }
 
     @Override
@@ -62,5 +71,10 @@ public class Assignment extends Node {
         if (!expression.equals(that.expression)) return false;
 
         return true;
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitAssignment(this, context);
     }
 }

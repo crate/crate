@@ -123,8 +123,6 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         for (LuceneCollectorExpression<?> collectorExpression : collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }
-        downStream.startProjection(); // finishProjection called in ShardCollectFuture
-
         SearchContext.setCurrent(searchContext);
         Query query = searchContext.query();
         if (query == null) {

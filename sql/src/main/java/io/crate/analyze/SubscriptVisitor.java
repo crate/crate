@@ -30,7 +30,7 @@ public class SubscriptVisitor extends AstVisitor<Void, SubscriptContext> {
     @Override
     protected Void visitSubscriptExpression(SubscriptExpression node, SubscriptContext context) {
         Preconditions.checkArgument(
-                node.index() instanceof StringLiteral,
+                node.index() == null || node.index() instanceof StringLiteral,
                 "index of subscript has to be a string literal. Any other index expression is currently not supported"
         );
         Preconditions.checkArgument(
@@ -38,7 +38,9 @@ public class SubscriptVisitor extends AstVisitor<Void, SubscriptContext> {
                 "An expression of type %s cannot have an index accessor ([])",
                 node.getClass()
         );
-        node.index().accept(this, context);
+        if (node.index() != null) {
+            node.index().accept(this, context);
+        }
         node.name().accept(this, context);
         return null;
     }

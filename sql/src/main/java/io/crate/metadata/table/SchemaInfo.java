@@ -23,7 +23,7 @@ package io.crate.metadata.table;
 
 import java.util.Collection;
 
-public interface SchemaInfo {
+public interface SchemaInfo extends Iterable<TableInfo> {
 
     public TableInfo getTableInfo(String name);
 

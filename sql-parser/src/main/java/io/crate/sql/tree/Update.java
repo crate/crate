@@ -42,6 +42,18 @@ public class Update extends Statement {
         this.where = Optional.fromNullable(where);
     }
 
+    public Table table() {
+        return table;
+    }
+
+    public List<Assignment> assignements() {
+        return assignments;
+    }
+
+    public Optional<Expression> whereClause() {
+        return where;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hashCode(table, assignments, where);
@@ -68,5 +80,10 @@ public class Update extends Statement {
         if (where != null ? !where.equals(update.where) : update.where != null) return false;
 
         return true;
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitUpdate(this, context);
     }
 }

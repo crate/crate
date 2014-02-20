@@ -28,6 +28,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
+import io.crate.operator.collector.CrateCollector;
 import io.crate.operator.collector.SimpleOneRowCollector;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.operator.projectors.NoopProjector;
@@ -50,13 +51,17 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
     private final EvaluatingNormalizer clusterNormalizer;
     private final ImplementationSymbolVisitor implementationVisitor;
     private final ProjectionToProjectorVisitor projectorVisitor;
+    private final InformationSchemaCollectService informationSchemaCollectService;
 
     @Inject
     public HandlerSideDataCollectOperation(Functions functions,
-                                           ReferenceResolver referenceResolver) {
+                                           ReferenceResolver referenceResolver,
+                                           InformationSchemaCollectService informationSchemaCollectService) {
+        this.informationSchemaCollectService = informationSchemaCollectService;
         this.clusterNormalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
         this.implementationVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
         this.projectorVisitor = new ProjectionToProjectorVisitor(implementationVisitor);
+
     }
 
     @Override
@@ -64,20 +69,18 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         assert !collectNode.isRouted();
 
         SettableFuture<Object[][]> result = SettableFuture.create();
-        Object[][] collected;
-
-
         if (collectNode.maxRowGranularity() == RowGranularity.DOC) {
             // we assume information schema here
-            collected = handleInformationSchema(collectNode);
+            try {
+                result.set(handleInformationSchema(collectNode));
+            } catch (Exception e) {
+                result.setException(e);
+            }
         } else if (collectNode.maxRowGranularity() == RowGranularity.CLUSTER) {
-            collected = handleCluster(collectNode);
+            result.set(handleCluster(collectNode));
         } else {
             throw new CrateException("unsupported routing");
         }
-
-
-        result.set(collected);
         return result;
     }
 
@@ -119,9 +122,14 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         return collected;
     }
 
-    private Object[][] handleInformationSchema(CollectNode node) {
-        // TODO:
-        return new Object[0][];
+    private Object[][] handleInformationSchema(CollectNode node) throws Exception {
+        List<Projector> projectors = extractProjectors(node);
+        projectors.get(0).startProjection();
+        CrateCollector collector = informationSchemaCollectService.getCollector(node, projectors.get(0));
+        collector.doCollect();
+        projectors.get(0).finishProjection();
+        Object[][] collected = projectors.get(projectors.size() - 1).getRows();
+        return collected;
     }
 
 }

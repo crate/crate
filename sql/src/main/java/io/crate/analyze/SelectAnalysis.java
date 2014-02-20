@@ -21,19 +21,15 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.planner.symbol.IntegerLiteral;
-import io.crate.planner.symbol.LongLiteral;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Query;
 import org.cratedb.sql.AmbiguousAliasException;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 
@@ -48,7 +44,7 @@ public class SelectAnalysis extends Analysis {
     private List<Symbol> sortSymbols;
 
     private Multimap<String, Symbol> aliasMap = ArrayListMultimap.create();
-    private Long version;
+
 
     @Override
     public Type type() {
@@ -134,13 +130,5 @@ public class SelectAnalysis extends Analysis {
         }
 
         return symbols.iterator().next();
-    }
-
-    public void version(Long version) {
-        this.version = version;
-    }
-
-    public Optional<Long> version() {
-        return Optional.fromNullable(this.version);
     }
 }

@@ -28,5 +28,6 @@ public class CollectOperationModule extends AbstractModule {
     protected void configure() {
         bind(MapSideDataCollectOperation.class).asEagerSingleton();
         bind(HandlerSideDataCollectOperation.class).asEagerSingleton();
+        bind(InformationSchemaCollectService.class).asEagerSingleton();
     }
 }

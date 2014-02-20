@@ -640,5 +640,6 @@ assignmentList returns [List<Assignment> value = new ArrayList<>()]
     ;
 
 assignment returns [Assignment value]
-    : ^(ASSIGNMENT qname expr) { $value = new Assignment($qname.value, $expr.value); }
+    : ^(ASSIGNMENT subscript expr) { $value = new Assignment($subscript.value, $expr.value); }
+    | ^(ASSIGNMENT qname expr) { $value = new Assignment(new QualifiedNameReference($qname.value), $expr.value); }
     ;

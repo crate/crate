@@ -1,5 +1,6 @@
 package io.crate.analyze;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
@@ -7,11 +8,15 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
+import org.cratedb.sql.TableUnknownException;
 import org.cratedb.sql.ValidationException;
 import org.elasticsearch.common.Preconditions;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -23,7 +28,8 @@ public abstract class Analysis {
 
     public static enum Type {
         SELECT,
-        INSERT
+        INSERT,
+        UPDATE
     }
 
     public abstract Type type();
@@ -35,7 +41,7 @@ public abstract class Analysis {
 
     private Map<Function, Function> functionSymbols = new HashMap<>();
 
-    protected Map<ReferenceIdent, Reference> referenceSymbols = new IdentityHashMap<>();
+    protected Map<ReferenceIdent, Reference> referenceSymbols = new HashMap<>();
 
     private List<String> outputNames = ImmutableList.of();
     private List<Symbol> outputSymbols = ImmutableList.of();
@@ -47,6 +53,8 @@ public abstract class Analysis {
     protected WhereClause whereClause = WhereClause.MATCH_ALL;
     protected RowGranularity rowGranularity;
     protected boolean hasAggregates = false;
+
+    protected Long version;
 
     public List<Literal> primaryKeyLiterals() {
         return primaryKeyLiterals;
@@ -74,13 +82,24 @@ public abstract class Analysis {
     }
 
     public void table(TableIdent tableIdent) {
-        table = referenceInfos.getTableInfo(tableIdent);
-        Preconditions.checkNotNull(table, "Table not found", tableIdent);
+        TableInfo tableInfo = referenceInfos.getTableInfo(tableIdent);
+        if (tableInfo == null) {
+            throw new TableUnknownException(tableIdent.name());
+        }
+        table = tableInfo;
         updateRowGranularity(table.rowGranularity());
     }
 
     public TableInfo table() {
         return this.table;
+    }
+
+    public void version(Long version) {
+        this.version = version;
+    }
+
+    public Optional<Long> version() {
+        return Optional.fromNullable(this.version);
     }
 
     private Reference allocateReference(ReferenceIdent ident, boolean unique) {
@@ -95,7 +114,7 @@ public abstract class Analysis {
             }
             referenceSymbols.put(info.ident(), reference);
         } else if (unique) {
-            throw new IllegalArgumentException(String.format("reference '%s' repeated", ident));
+            throw new IllegalArgumentException(String.format("reference '%s' repeated", ident.columnIdent().fqn()));
         }
         updateRowGranularity(reference.info().granularity());
         return reference;
@@ -241,8 +260,8 @@ public abstract class Analysis {
             normalized = (Literal) normalizer.process(inputValue, null);
         } catch (ClassCastException e) {
             throw new ValidationException(
-                    reference.info().ident().columnIdent().name(),
-                    String.format("Invalid value '%s'", inputValue.symbolType().name()));
+                        reference.info().ident().columnIdent().name(),
+                        String.format("Invalid value of type '%s'", inputValue.symbolType().name()));
         }
 
         if (reference instanceof DynamicReference) {
