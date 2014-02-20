@@ -21,7 +21,6 @@
 
 package io.crate.operator.predicate;
 
-import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
@@ -61,14 +60,14 @@ public class IsNullPredicate implements FunctionImplementation<Function> {
 
     @Override
     public Symbol normalizeSymbol(Function symbol) {
-        Preconditions.checkNotNull(symbol);
-        Preconditions.checkArgument(symbol.arguments().size() == 1);
+        assert (symbol != null);
+        assert (symbol.arguments().size() == 1);
 
         Symbol arg = symbol.arguments().get(0);
         if (arg.symbolType() == SymbolType.NULL_LITERAL) {
-            return new BooleanLiteral(true);
+            return BooleanLiteral.TRUE;
         } else if (arg.symbolType().isLiteral()) {
-            return new BooleanLiteral(false);
+            return BooleanLiteral.FALSE;
         }
 
         return symbol;
