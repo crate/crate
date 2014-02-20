@@ -28,15 +28,12 @@ import java.util.Map;
 
 public class MapComparator implements Comparator<Map> {
 
-    private static MapComparator instancne;
+    private static final MapComparator instance = new MapComparator();
 
     private MapComparator() {}
 
     public static MapComparator getInstance() {
-        if (instancne == null) {
-            instancne = new MapComparator();
-        }
-        return instancne;
+        return instance;
     }
 
     public static <K, V> int compareMaps(Map<K, V> m1, Map<K, V> m2) {
