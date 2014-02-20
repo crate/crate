@@ -45,11 +45,21 @@ public class AggregationProjection extends Projection {
         }
     };
 
+
+    public AggregationProjection() {
+    }
+
+    public AggregationProjection(List<Aggregation> aggregations) {
+        assert aggregations != null;
+        this.aggregations = aggregations;
+    }
+
     public List<Aggregation> aggregations() {
         return aggregations;
     }
 
     public void aggregations(List<Aggregation> aggregations) {
+        assert aggregations != null;
         this.aggregations = aggregations;
     }
 
