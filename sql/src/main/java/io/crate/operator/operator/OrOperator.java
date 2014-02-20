@@ -42,31 +42,24 @@ public class OrOperator extends Operator<Boolean> {
     public Boolean evaluate(Input<Boolean>... args) {
         assert (args != null);
         assert (args.length == 2);
+        assert (args[0] != null && args[1] != null);
 
         // implement three valued logic.
         // don't touch anything unless you have a good reason for it! :)
         // http://en.wikipedia.org/wiki/Three-valued_logic
-        Boolean left = (args[0] == null) ? null : args[0].value();
-        Boolean right = (args[1] == null) ? null : args[1].value();
+        Boolean left = args[0].value();
+        Boolean right = args[1].value();
 
         if (left == null && right == null) {
             return null;
         }
 
         if (left == null) {
-            if (right != null && right) {
-                return true;
-            } else {
-                return null;
-            }
+            return (right) ? true : null;
         }
 
         if (right == null) {
-            if (left != null && left) {
-                return true;
-            } else {
-                return null;
-            }
+            return (left) ? true : null;
         }
 
         return left || right;

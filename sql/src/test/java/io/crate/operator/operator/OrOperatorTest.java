@@ -13,6 +13,7 @@ import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
 public class OrOperatorTest {
@@ -48,142 +49,22 @@ public class OrOperatorTest {
         assertThat(normalizedSymbol, instanceOf(Function.class));
     }
 
-    @Test
-    public void testEvaluateTrueTrue() {
+    private Boolean or(Boolean left, Boolean right) {
         OrOperator operator = new OrOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(true),
-                new BooleanInput(true)
-        );
-
-        assertTrue(result);
+        return operator.evaluate(new BooleanInput(left), new BooleanInput(right));
     }
 
     @Test
-    public void testEvaluateTrueFalse() {
-        OrOperator operator = new OrOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(true),
-                new BooleanInput(false)
-        );
-
-        assertTrue(result);
-    }
-
-    @Test
-    public void testEvaluateFalseTrue() {
-        OrOperator operator = new OrOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(false),
-                new BooleanInput(true)
-        );
-
-        assertTrue(result);
-    }
-
-    @Test
-    public void testEvaluateTrueUnknown() {
-        OrOperator operator = new OrOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(true),
-                new BooleanInput(null)
-        );
-
-        assertTrue(result);
-    }
-
-    @Test
-    public void testEvaluateUnknownTrue() {
-        OrOperator operator = new OrOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(null),
-                new BooleanInput(true)
-        );
-
-        assertTrue(result);
-    }
-
-    @Test
-    public void testEvaluateFalseUnknown() {
-        OrOperator operator = new OrOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(false),
-                new BooleanInput(null)
-        );
-
-        assertNull(result);
-    }
-
-    @Test
-    public void testEvaluateUnknownFalse() {
-        OrOperator operator = new OrOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(null),
-                new BooleanInput(false)
-        );
-
-        assertNull(result);
-    }
-
-    @Test
-    public void testEvaluateUnknownUnknown() {
-        OrOperator operator = new OrOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(null),
-                new BooleanInput(null)
-        );
-
-        assertNull(result);
-    }
-
-    @Test
-    public void testEvaluateNullTrue() {
-        OrOperator operator = new OrOperator();
-        Boolean result = operator.evaluate(
-                null,
-                new BooleanInput(true)
-        );
-        assertTrue(result);
-    }
-
-    @Test
-    public void testEvaluateTrueNull() {
-        OrOperator operator = new OrOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(true),
-                null
-        );
-        assertTrue(result);
-    }
-
-    @Test
-    public void testEvaluateNullFalse() {
-        OrOperator operator = new OrOperator();
-        Boolean result = operator.evaluate(
-                null,
-                new BooleanInput(false)
-        );
-        assertNull(result);
-    }
-
-    @Test
-    public void testEvaluateFalseNull() {
-        OrOperator operator = new OrOperator();
-        Boolean result = operator.evaluate(
-                new BooleanInput(false),
-                null
-        );
-        assertNull(result);
-    }
-
-    @Test
-    public void testEvaluateNullNull() {
-        OrOperator operator = new OrOperator();
-        Boolean result = operator.evaluate(
-                null,
-                null
-        );
-        assertNull(result);
+    public void testEvaluateAndOperator() {
+        assertTrue(or(true, true));
+        assertFalse(or(false, false));
+        assertTrue(or(true, false));
+        assertTrue(or(false, true));
+        assertTrue(or(true, null));
+        assertTrue(or(null, true));
+        assertNull(or(false, null));
+        assertNull(or(null, false));
+        assertNull(or(null, null));
     }
 
 }
