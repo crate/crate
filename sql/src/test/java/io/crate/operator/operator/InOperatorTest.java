@@ -20,6 +20,8 @@
  */
 package io.crate.operator.operator;
 
+import com.google.common.collect.ImmutableSet;
+import io.crate.operator.operator.input.ObjectInput;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 import org.junit.Test;
@@ -208,19 +210,8 @@ public class InOperatorTest {
 
     @Test
     public void testEvaluateIntegerIncluded() {
-        IntegerLiteral inValue = new IntegerLiteral(1);
-        SetLiteral inListValues = SetLiteral.fromLiterals(
-                DataType.INTEGER,
-                new HashSet<Literal>(
-                        Arrays.asList(
-                                new IntegerLiteral(1),
-                                new IntegerLiteral(2),
-                                new IntegerLiteral(4),
-                                new IntegerLiteral(8)
-                        )
-                )
-        );
-
+        ObjectInput inValue = new ObjectInput(1);
+        ObjectInput inListValues = new ObjectInput(ImmutableSet.of(1, 2, 4, 8));
         InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.INTEGER));
         Boolean result = op.evaluate(inValue, inListValues);
         assertTrue(result);
@@ -228,20 +219,8 @@ public class InOperatorTest {
 
     @Test
     public void testEvaluateIntegerNotIncluded() {
-        IntegerLiteral inValue = new IntegerLiteral(128);
-
-        SetLiteral inListValues = SetLiteral.fromLiterals(
-                DataType.INTEGER,
-                new HashSet<Literal>(
-                        Arrays.asList(
-                                new IntegerLiteral(1),
-                                new IntegerLiteral(2),
-                                new IntegerLiteral(4),
-                                new IntegerLiteral(8)
-                        )
-                )
-        );
-
+        ObjectInput inValue = new ObjectInput(128);
+        ObjectInput inListValues = new ObjectInput(ImmutableSet.of(1, 2, 4, 8));
         InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.INTEGER));
         Boolean result = op.evaluate(inValue, inListValues);
         assertFalse(result);
@@ -249,40 +228,18 @@ public class InOperatorTest {
 
     @Test
     public void testEvaluateStringIncluded() {
-        StringLiteral inValue = new StringLiteral("charlie");
-        SetLiteral inListValues = SetLiteral.fromLiterals(
-                DataType.STRING,
-                new HashSet<Literal>(
-                        Arrays.asList(
-                                new StringLiteral("alpha"),
-                                new StringLiteral("bravo"),
-                                new StringLiteral("charlie"),
-                                new StringLiteral("delta")
-                        )
-                )
-        );
-
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.INTEGER));
+        ObjectInput inValue = new ObjectInput("charlie");
+        ObjectInput inListValues = new ObjectInput(ImmutableSet.of("alpha", "bravo", "charlie", "delta"));
+        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.STRING));
         Boolean result = op.evaluate(inValue, inListValues);
         assertTrue(result);
     }
 
     @Test
     public void testEvaluateStringNotIncluded() {
-        StringLiteral inValue = new StringLiteral("not included");
-        SetLiteral inListValues = SetLiteral.fromLiterals(
-                DataType.STRING,
-                new HashSet<Literal>(
-                        Arrays.asList(
-                                new StringLiteral("alpha"),
-                                new StringLiteral("bravo"),
-                                new StringLiteral("charlie"),
-                                new StringLiteral("delta")
-                        )
-                )
-        );
-
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.INTEGER));
+        ObjectInput inValue = new ObjectInput("not included");
+        ObjectInput inListValues = new ObjectInput(ImmutableSet.of("alpha", "bravo", "charlie", "delta"));
+        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataType.STRING));
         Boolean result = op.evaluate(inValue, inListValues);
         assertFalse(result);
     }

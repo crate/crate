@@ -29,7 +29,7 @@ import org.cratedb.DataType;
 
 import java.util.Set;
 
-public class InOperator extends Operator {
+public class InOperator extends Operator<Object> {
 
     public static final String NAME = "op_in";
 
@@ -61,22 +61,31 @@ public class InOperator extends Operator {
         if (!left.symbolType().isLiteral()) {
             return function;
         }
-        Literal leftLiteral = (Literal) left;
-        SetLiteral literals = (SetLiteral) function.arguments().get(1);
+        Literal inValue = (Literal) left;
+        SetLiteral inList = (SetLiteral) function.arguments().get(1);
 
         // not in list if data types do not match.
-        if (leftLiteral.valueType() != literals.itemType()) {
+        if (!inList.contains(inValue)) {
             return new BooleanLiteral(false);
         }
 
-        return new BooleanLiteral(evaluate(leftLiteral, literals));
+        return new BooleanLiteral(true);
     }
 
     @Override
-    public Boolean evaluate(Input<?>... args) {
+    public Boolean evaluate(Input<Object>... args) {
         assert (args != null);
         assert (args.length == 2);
-        assert (args[1] instanceof SetLiteral);
+
+        if (args[0] == null) {
+            throw new IllegalArgumentException("<expression> IN <pattern>: expression must not be null");
+        }
+        if (args[1] == null) {
+            throw new IllegalArgumentException("<expression> IN <pattern>: expression must not be null");
+        }
+        if (!(args[1].value() instanceof Set)) {
+            throw new IllegalArgumentException("<expression> IN <pattern>: pattern must be of type Set");
+        }
 
         Object inValue = args[0].value();
         Set<?> inList = (Set<?>)args[1].value();
