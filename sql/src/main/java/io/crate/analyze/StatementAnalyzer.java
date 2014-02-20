@@ -28,6 +28,7 @@ import java.util.*;
 abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVisitor<Symbol, T> {
 
     protected static OutputNameFormatter outputNameFormatter = new OutputNameFormatter();
+    protected static PrimaryKeyVisitor primaryKeyVisitor = new PrimaryKeyVisitor();
 
     protected static SubscriptVisitor visitor = new SubscriptVisitor();
     protected static SymbolDataTypeVisitor symbolDataTypeVisitor = new SymbolDataTypeVisitor();
@@ -349,5 +350,29 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
     @Override
     protected Symbol visitNullLiteral(NullLiteral node, T context) {
         return Null.INSTANCE;
+    }
+
+    @Override
+    protected Symbol visitNegativeExpression(NegativeExpression node, T context) {
+        // in statements like "where x = -1" the  positive (expression)IntegerLiteral (1)
+        // is just wrapped inside a negativeExpression
+        // the visitor here swaps it to get -1 in a (symbol)LiteralInteger
+        return negativeLiteralVisitor.process(process(node.getValue(), context), null);
+    }
+
+    protected void processWhereClause(Expression whereExpression, T context) {
+        WhereClause whereClause = context.whereClause(process(whereExpression, context));
+        if (whereClause.hasQuery()){
+            PrimaryKeyVisitor.Context pkc = primaryKeyVisitor.process(context.table(), whereClause.query());
+            if (pkc != null) {
+                if (pkc.noMatch()) {
+                    context.whereClause(WhereClause.NO_MATCH);
+                } else {
+                    context.primaryKeyLiterals(pkc.keyLiterals());
+                }
+                context.version(pkc.version());
+                context.clusteredByLiteral(pkc.clusteredByLiteral());
+            }
+        }
     }
 }

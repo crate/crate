@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import com.carrotsearch.hppc.IntOpenHashSet;
 import com.carrotsearch.hppc.IntSet;
-import com.google.common.base.Preconditions;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
@@ -33,6 +32,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Insert;
+import org.cratedb.sql.TableUnknownException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,8 +60,10 @@ public class InsertAnalysis extends Analysis {
     @Override
     public void table(TableIdent tableIdent) {
         TableInfo t = referenceInfos.getTableInfo(tableIdent);
-        Preconditions.checkNotNull(t, "Table not found", tableIdent);
-        if (t.rowGranularity() != RowGranularity.DOC) {
+        if (t == null) {
+            throw new TableUnknownException(tableIdent.name());
+        }
+        if (t.rowGranularity() != RowGranularity.DOC ) {
             throw new UnsupportedOperationException("cannot insert into system tables");
         }
         table = t;

@@ -35,8 +35,6 @@ import java.util.List;
 
 public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
 
-    private static PrimaryKeyVisitor primaryKeyVisitor = new PrimaryKeyVisitor();
-
     @Override
     protected Symbol visitSelect(Select node, SelectAnalysis context) {
         context.outputSymbols(new ArrayList<Symbol>(node.getSelectItems().size()));
@@ -165,22 +163,6 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
         return null;
     }
 
-    private void processWhereClause(Expression whereExpression, SelectAnalysis context) {
-        WhereClause whereClause = context.whereClause(process(whereExpression, context));
-        if (whereClause.hasQuery()){
-            PrimaryKeyVisitor.Context pkc = primaryKeyVisitor.process(context.table(), whereClause.query());
-            if (pkc != null) {
-                if (pkc.noMatch()) {
-                    context.whereClause(WhereClause.NO_MATCH);
-                } else {
-                    context.primaryKeyLiterals(pkc.keyLiterals());
-                }
-                context.version(pkc.version());
-                context.clusteredByLiteral(pkc.clusteredByLiteral());
-            }
-        }
-    }
-
     private void analyzeGroupBy(List<Expression> groupByExpressions, SelectAnalysis context) {
         List<Symbol> groupBy = new ArrayList<>(groupByExpressions.size());
         for (Expression expression : groupByExpressions) {
@@ -214,14 +196,6 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
         context.groupBy(groupBy);
 
         ensureOutputSymbolsInGroupBy(context);
-    }
-
-    @Override
-    protected Symbol visitNegativeExpression(NegativeExpression node, SelectAnalysis context) {
-        // in statements like "where x = -1" the  positive (expression)IntegerLiteral (1)
-        // is just wrapped inside a negativeExpression
-        // the visitor here swaps it to get -1 in a (symbol)LiteralInteger
-        return negativeLiteralVisitor.process(process(node.getValue(), context), null);
     }
 
     private void ensureOutputSymbolsInGroupBy(SelectAnalysis context) {
