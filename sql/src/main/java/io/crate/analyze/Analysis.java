@@ -13,7 +13,10 @@ import org.cratedb.sql.ValidationException;
 import org.elasticsearch.common.Preconditions;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -257,8 +260,8 @@ public abstract class Analysis {
             normalized = (Literal) normalizer.process(inputValue, null);
         } catch (ClassCastException e) {
             throw new ValidationException(
-                    reference.info().ident().columnIdent().name(),
-                    String.format("Invalid value '%s'", inputValue.symbolType().name()));
+                        reference.info().ident().columnIdent().name(),
+                        String.format("Invalid value of type '%s'", inputValue.symbolType().name()));
         }
 
         if (reference instanceof DynamicReference) {

@@ -29,7 +29,8 @@ import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.Update;
-import org.cratedb.sql.UnsupportedFeatureException;
+
+import java.util.List;
 
 public class UpdateStatementAnalyzer extends StatementAnalyzer<UpdateAnalysis> {
 
@@ -53,25 +54,33 @@ public class UpdateStatementAnalyzer extends StatementAnalyzer<UpdateAnalysis> {
         node.accept(visitor, subscriptContext);
         ReferenceIdent ident = new ReferenceIdent(
                 context.table().ident(), subscriptContext.column(), subscriptContext.parts());
-        return context.allocateUniqueReference(ident);
+        return context.allocateReference(ident);
     }
 
     @Override
     protected Symbol visitQualifiedNameReference(QualifiedNameReference node, UpdateAnalysis context) {
-        ReferenceIdent ident = new ReferenceIdent(context.table().ident(),
-                node.getName().getParts().get(0),
-                node.getName().getParts().subList(1, node.getName().getParts().size()));
-        return context.allocateUniqueReference(ident);
+        ReferenceIdent ident;
+        List<String> parts = node.getName().getParts();
+        switch (parts.size()) {
+            case 1:
+                ident = new ReferenceIdent(context.table().ident(), parts.get(0));
+                break;
+            case 2:
+                if (!context.table().ident().name().equals(parts.get(0))) {
+                    throw new UnsupportedOperationException("unsupported name reference: " + node);
+                }
+                ident = new ReferenceIdent(context.table().ident(), parts.get(1));
+                break;
+            default:
+                throw new UnsupportedOperationException("unsupported name reference: " + node);
+        }
+        return context.allocateReference(ident);
     }
 
     @Override
     public Symbol visitAssignment(Assignment node, UpdateAnalysis context) {
         // unknown columns in strict objects handled in here
         Reference reference = (Reference)process(node.columnName(), context);
-
-        if (node.expression() instanceof QualifiedNameReference || node.expression() instanceof SubscriptExpression) {
-            throw new UnsupportedFeatureException("setting column to value of other column not supported");
-        }
         Symbol value = process(node.expression(), context);
 
         // it's something that we can normalize to a literal

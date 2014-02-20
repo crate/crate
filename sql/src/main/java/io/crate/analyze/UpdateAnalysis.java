@@ -64,17 +64,21 @@ public class UpdateAnalysis extends Analysis {
     }
 
     public void addAssignement(Reference reference, Symbol value) {
+        if (assignments.containsKey(reference)) {
+            throw new IllegalArgumentException(String.format("reference repeated %s", reference.info().ident().columnIdent().fqn()));
+        }
         assignments.put(reference, value);
     }
 
     @Override
     public void table(TableIdent tableIdent) {
         super.table(tableIdent);
+        // TODO: better test when information schema is implemented
         if (table.rowGranularity() != RowGranularity.DOC) {
-            throw new IllegalArgumentException("cannot update system tables");
+            throw new UnsupportedOperationException(String.format("cannot update table '%s'.", tableIdent.name()));
         }
         if (table().isAlias()) {
-            throw new IllegalArgumentException("Table alias not allowed in INSERT statement.");
+            throw new IllegalArgumentException("Table alias not allowed in UPDATE statement.");
         }
     }
 }

@@ -34,7 +34,6 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 import org.cratedb.sql.TableUnknownException;
-import org.cratedb.sql.UnsupportedFeatureException;
 import org.cratedb.sql.ValidationException;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
@@ -97,7 +96,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         analyze("update unknown set name='Prosser'");
     }
 
-    @Test( expected = UnsupportedFeatureException.class)
+    @Test( expected = ValidationException.class)
     public void testUpdateSetColumnToColumnValue() throws Exception {
         analyze("update users set name=name");
     }
@@ -112,7 +111,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         analyze("update users set details['arms']=3, details['arms']=5");
     }
 
-    @Test( expected = IllegalArgumentException.class )
+    @Test( expected = UnsupportedOperationException.class )
     public void testUpdateSysTables() throws Exception {
         analyze("update sys.nodes set fs=?", new Object[]{new HashMap<String, Object>(){{
             put("free", 0);
@@ -191,4 +190,21 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.whereClause().noMatch(), is(false));
     }
 
+    @Test(expected = UnsupportedOperationException.class)
+    public void testWrongQualifiedNameReferenceWithSchema() throws Exception {
+        analyze("update users set sys.nodes.fs=?", new Object[]{new HashMap<String, Object>()});
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testWrongQualifiedNameReference() throws Exception {
+        analyze("update users set unknown.name='Trillian'");
+    }
+
+    @Test
+    public void testQualifiedNameReference() throws Exception {
+        UpdateAnalysis analysis = (UpdateAnalysis)analyze("update users set users.name='Trillian'");
+        Reference ref = analysis.assignments().keySet().iterator().next();
+        assertThat(ref.info().ident().tableIdent().name(), is("users"));
+        assertThat(ref.info().ident().columnIdent().fqn(), is("name"));
+    }
 }

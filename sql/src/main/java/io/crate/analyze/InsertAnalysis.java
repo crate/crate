@@ -63,9 +63,10 @@ public class InsertAnalysis extends Analysis {
         if (t == null) {
             throw new TableUnknownException(tableIdent.name());
         }
-        if (t.rowGranularity() != RowGranularity.DOC ) {
-            throw new UnsupportedOperationException("cannot insert into system tables");
+        if (t.rowGranularity() != RowGranularity.DOC) {
+            throw new UnsupportedOperationException(String.format("cannot insert into table '%s'", tableIdent.name()));
         }
+
         table = t;
         updateRowGranularity(table.rowGranularity());
         super.table(tableIdent);
