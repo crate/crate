@@ -71,7 +71,7 @@ public abstract class CmpOperator extends Operator<Object> {
         if (left instanceof Comparable) {
             return compare(((Comparable)left).compareTo(right));
         } else if (left instanceof Map) {
-            return compare(Objects.compare((Map)left, (Map)right, MapComparator.getInstancne()));
+            return compare(Objects.compare((Map)left, (Map)right, MapComparator.getInstance()));
         } else {
             return null;
         }

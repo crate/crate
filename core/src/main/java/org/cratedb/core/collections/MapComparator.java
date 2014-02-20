@@ -32,7 +32,7 @@ public class MapComparator implements Comparator<Map> {
 
     private MapComparator() {}
 
-    public static MapComparator getInstancne() {
+    public static MapComparator getInstance() {
         if (instancne == null) {
             instancne = new MapComparator();
         }
