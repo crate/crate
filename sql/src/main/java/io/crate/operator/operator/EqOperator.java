@@ -27,7 +27,7 @@ import io.crate.operator.Input;
 import org.cratedb.DataType;
 
 
-public class EqOperator extends CmpOperator implements Scalar<Boolean> {
+public class EqOperator extends CmpOperator implements Scalar<Boolean, Object> {
 
     public static final String NAME = "op_=";
 
@@ -47,7 +47,7 @@ public class EqOperator extends CmpOperator implements Scalar<Boolean> {
     }
 
     @Override
-    public Boolean evaluate(Input<?>... args) {
+    public Boolean evaluate(Input<Object>... args) {
         assert args.length == 2;
         Object left = args[0].value();
         if (left == null){
