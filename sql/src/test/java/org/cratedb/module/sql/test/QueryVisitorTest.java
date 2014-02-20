@@ -1,3 +1,24 @@
+/*
+ * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
+ */
+
 package org.cratedb.module.sql.test;
 
 import com.google.common.collect.ImmutableSet;
@@ -12,7 +33,7 @@ import org.cratedb.action.sql.TableExecutionContext;
 import org.cratedb.index.ColumnDefinition;
 import org.cratedb.service.GlobalExpressionService;
 import org.cratedb.service.SQLParseService;
-import org.cratedb.sql.OrderByAmbiguousException;
+import org.cratedb.sql.AmbiguousAliasException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.ValueNode;
@@ -185,13 +206,13 @@ public class QueryVisitorTest {
 
     @Test
     public void testSelectGroupByOrderByAmbiguousColumn() throws Exception {
-        expectedException.expect(OrderByAmbiguousException.class);
+        expectedException.expect(AmbiguousAliasException.class);
         execStatement("select name, kind as name from locations group by name, kind order by name");
     }
 
     @Test
     public void testSelectOrderByAmbiguousColumn() throws Exception {
-        expectedException.expect(OrderByAmbiguousException.class);
+        expectedException.expect(AmbiguousAliasException.class);
         execStatement("select name, kind as name from locations order by name");
     }
 

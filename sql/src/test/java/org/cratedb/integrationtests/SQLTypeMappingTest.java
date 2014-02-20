@@ -1,3 +1,24 @@
+/*
+ * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
+ */
+
 package org.cratedb.integrationtests;
 
 import org.cratedb.SQLTransportIntegrationTest;
@@ -168,7 +189,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testInsertObjectField() throws Exception {
 
         expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("Nested Column Reference not allowed in INSERT statement");
+        expectedException.expectMessage("line 1:33: mismatched input '[' expecting ')'");
 
         setUpObjectTable();
         execute("insert into test12 (object_field['size']) values (127)");
@@ -279,7 +300,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         execute("insert into t1 (id, string_field, boolean_field, byte_field, short_field, integer_field," +
                 "long_field, float_field, double_field, object_field," +
                 "timestamp_field, ip_field) values " +
-                "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", new Object[]{
+                "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", new Object[]{
                 0, "Blabla", true, 120, 1000, 1200000,
                 120000000000L, 1.4, 3.456789, new HashMap<String, Object>(){{put("inner", "1970-01-01");}},
                 "1970-01-01", "127.0.0.1"

@@ -1,3 +1,24 @@
+/*
+ * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
+ */
+
 package org.cratedb.index;
 
 import com.google.common.base.Joiner;
@@ -28,7 +49,7 @@ public class IndexMetaDataExtractor {
         public final Map<String, String> properties;
 
         protected Index(String tableName, String indexName, String columnName, String method,
-                     List<String> columns, Map<String, String> properties) {
+                        List<String> columns, Map<String, String> properties) {
             this.tableName = tableName;
             this.indexName = indexName;
             this.columnName = columnName;
@@ -39,6 +60,7 @@ public class IndexMetaDataExtractor {
 
         /**
          * returns the expressions over which the index is defined as a comma-separated string
+         *
          * @return the index-expressions as a comma-separated string
          */
         public String getColumnsString() {
@@ -48,7 +70,7 @@ public class IndexMetaDataExtractor {
         /**
          * Returns the properties the index was defined with as a comma-separated string of
          * key-value pairs.
-         *
+         * <p/>
          * E.g. used in information_schema.indices to display the index' properties
          *
          * @return
@@ -60,13 +82,13 @@ public class IndexMetaDataExtractor {
         /**
          * Create an Index from a columnDefinition and further informations.
          *
-         * @param tableName the name of the table this index is defined in
-         * @param indexName the name of the index
-         * @param columnName the name of the column this index indexes (there can be more than
-         *                   one index for a column)
+         * @param tableName        the name of the table this index is defined in
+         * @param indexName        the name of the index
+         * @param columnName       the name of the column this index indexes (there can be more than
+         *                         one index for a column)
          * @param columnProperties the properties of the column this index indexes -
          *                         index attributes are extracted from here
-         * @param indexColumns an empty list that holds state and gets filled while calling
+         * @param indexColumns     an empty list that holds state and gets filled while calling
          *                         this function. Use one map for iterating over all columns of
          *                         a table.
          * @return and Index instance or null if this column is not indexed
@@ -110,6 +132,7 @@ public class IndexMetaDataExtractor {
 
     /**
      * TODO: cache built information
+     *
      * @param metaData
      */
     public IndexMetaDataExtractor(IndexMetaData metaData) {
@@ -159,9 +182,9 @@ public class IndexMetaDataExtractor {
             if (mappingsMap != null) {
                 // if primary key has been set, use this
                 @SuppressWarnings("unchecked")
-                Map<String, Object> metaMap = (Map<String, Object>)mappingsMap.get("_meta");
+                Map<String, Object> metaMap = (Map<String, Object>) mappingsMap.get("_meta");
                 if (metaMap != null) {
-                    primaryKeys.add((String)metaMap.get("primary_keys"));
+                    primaryKeys.add((String) metaMap.get("primary_keys"));
                 }
             }
         }
@@ -179,7 +202,7 @@ public class IndexMetaDataExtractor {
                 if (routingColumnName == null) {
                     try {
                         routingColumnName = getPrimaryKeys().get(0);
-                    } catch(IndexOutOfBoundsException e) {
+                    } catch (IndexOutOfBoundsException e) {
                         // ignore
                     }
                 }
@@ -191,18 +214,17 @@ public class IndexMetaDataExtractor {
     /**
      * extract dataType from given columnProperties
      *
-     *
      * @param columnProperties map of String to Object containing column properties
      * @return dataType of the column with columnProperties
      */
     private DataType getColumnDataType(Map<String, Object> columnProperties) {
-        String typeName = (String)columnProperties.get("type");
+        String typeName = (String) columnProperties.get("type");
         if (typeName == null) {
             if (columnProperties.get("properties") != null) {
                 return DataType.OBJECT;
             }
         } else {
-            switch(typeName.toLowerCase()) {
+            switch (typeName.toLowerCase()) {
                 case "date":
                     return DataType.TIMESTAMP;
                 case "string":
@@ -228,20 +250,20 @@ public class IndexMetaDataExtractor {
                     return DataType.OBJECT;
                 default:
                     return DataType.NOT_SUPPORTED;
-                }
+            }
         }
         return null;
     }
 
     private static Tuple<String, String> getAnalyzer(Map<String, Object> columnProperties) {
-        String index = (String)columnProperties.get("index");
-        String analyzer = (String)columnProperties.get("analyzer");
+        String index = (String) columnProperties.get("index");
+        String analyzer = (String) columnProperties.get("analyzer");
         String method;
 
         if (index != null && index.equals("no")) {
             return new Tuple<String, String>(null, null);
         } else if ((index == null && analyzer == null)
-            || (index != null && index.equals("not_analyzed"))) {
+                || (index != null && index.equals("not_analyzed"))) {
             method = "plain";
         } else {
             method = "fulltext";
@@ -250,7 +272,9 @@ public class IndexMetaDataExtractor {
     }
 
     private String getColumnName(String prefix, String columnName) {
-        if (prefix == null) { return columnName; }
+        if (prefix == null) {
+            return columnName;
+        }
         return String.format("%s.%s", prefix, columnName);
     }
 
@@ -266,7 +290,7 @@ public class IndexMetaDataExtractor {
         List<ColumnDefinition> columns = new ArrayList<>();
         if (hasDefaultMapping()) {
             @SuppressWarnings("unchecked")
-            Map<String, Object> propertiesMap = (Map<String, Object>)getDefaultMappingMap()
+            Map<String, Object> propertiesMap = (Map<String, Object>) getDefaultMappingMap()
                     .get("properties");
 
             if (propertiesMap != null) {
@@ -287,64 +311,64 @@ public class IndexMetaDataExtractor {
      * Extract ColumnDefinitions from the properties of a root-object or object mapping.
      * Collect the results into the columns list parameter and proceed recursively if necessary.
      *
-     * @param indexName the name of the index to which the mapping-properties belong
-     * @param prefix the prefix to prefix the extracted column, if null,
-     *               use the column names from the mapping.
-     * @param columns the result parameter, collecting the nested ColumnDefinitions
+     * @param indexName     the name of the index to which the mapping-properties belong
+     * @param prefix        the prefix to prefix the extracted column, if null,
+     *                      use the column names from the mapping.
+     * @param columns       the result parameter, collecting the nested ColumnDefinitions
      * @param propertiesMap the properties to extract the columnDefinitions from
-     * @param startPos the position of the next field in the current table/index
+     * @param startPos      the position of the next field in the current table/index
      * @return the position of the next field to come
      */
     @SuppressWarnings("unchecked")
-    private int internalExtractColumnDefinitions( String indexName,
-                                                  String prefix,
-                                                  List<ColumnDefinition> columns,
-                                                  Map<String, Object> propertiesMap,
-                                                  int startPos) {
-        for (Map.Entry<String, Object> columnEntry: propertiesMap.entrySet()) {
-            Map<String, Object> columnProperties = (Map)columnEntry.getValue();
+    private int internalExtractColumnDefinitions(String indexName,
+                                                 String prefix,
+                                                 List<ColumnDefinition> columns,
+                                                 Map<String, Object> propertiesMap,
+                                                 int startPos) {
+        for (Map.Entry<String, Object> columnEntry : propertiesMap.entrySet()) {
+            Map<String, Object> columnProperties = (Map) columnEntry.getValue();
 
             DataType columnDataType = getColumnDataType(columnProperties);
             if (columnProperties.get("type") != null
                     && columnProperties.get("type").equals("multi_field")) {
-                for (Map.Entry<String, Object> multiColumnEntry:
-                        ((Map<String, Object>)columnProperties.get("fields")).entrySet()) {
-                    Map<String, Object> multiColumnProperties = (Map)multiColumnEntry.getValue();
+                for (Map.Entry<String, Object> multiColumnEntry :
+                        ((Map<String, Object>) columnProperties.get("fields")).entrySet()) {
+                    Map<String, Object> multiColumnProperties = (Map) multiColumnEntry.getValue();
 
                     if (multiColumnEntry.getKey().equals(columnEntry.getKey())) {
 
                         String columnName = getColumnName(prefix, columnEntry.getKey());
                         columns.add(
-                            new ColumnDefinition(
-                                indexName,
-                                columnName,
-                                getColumnDataType(multiColumnProperties),
-                                getAnalyzer(multiColumnProperties).v2(),
-                                startPos++,
-                                false,
-                                true
-                            )
+                                new ColumnDefinition(
+                                        indexName,
+                                        columnName,
+                                        getColumnDataType(multiColumnProperties),
+                                        getAnalyzer(multiColumnProperties).v2(),
+                                        startPos++,
+                                        false,
+                                        true
+                                )
                         );
                     }
                 }
-            } else if (columnDataType==DataType.OBJECT) {
+            } else if (columnDataType == DataType.OBJECT) {
                 boolean strict = columnProperties.get("dynamic") != null
                         && columnProperties.get("dynamic").equals("strict");
                 boolean dynamic = columnProperties.get("dynamic") == null ||
                         (!strict &&
-                        !columnProperties.get("dynamic").equals(false) &&
-                        !Booleans.isExplicitFalse((String)columnProperties.get("dynamic")));
+                                !columnProperties.get("dynamic").equals(false) &&
+                                !Booleans.isExplicitFalse((String) columnProperties.get("dynamic")));
 
                 String objectColumnName = getColumnName(prefix, columnEntry.getKey());
                 // add object column before child columns
                 ObjectColumnDefinition objectColumnDefinition = new ObjectColumnDefinition(
-                    indexName,
-                    objectColumnName,
-                    columnDataType,
-                    getAnalyzer(columnProperties).v2(),
-                    startPos++,
-                    dynamic,
-                    strict
+                        indexName,
+                        objectColumnName,
+                        columnDataType,
+                        getAnalyzer(columnProperties).v2(),
+                        startPos++,
+                        dynamic,
+                        strict
                 );
                 if (columnProperties.get("properties") != null) {
 
@@ -353,7 +377,7 @@ public class IndexMetaDataExtractor {
                             indexName,
                             objectColumnName,
                             objectColumnDefinition.nestedColumns,
-                            (Map<String, Object>)columnProperties.get("properties"),
+                            (Map<String, Object>) columnProperties.get("properties"),
                             startPos
                     );
                 }
@@ -363,15 +387,15 @@ public class IndexMetaDataExtractor {
             } else {
                 String columnName = getColumnName(prefix, columnEntry.getKey());
                 columns.add(
-                    new ColumnDefinition(
-                        indexName,
-                        columnName,
-                        columnDataType,
-                        getAnalyzer(columnProperties).v2(),
-                        columnDataType==DataType.NOT_SUPPORTED ? -1 : startPos++,
-                        false,
-                        true
-                    )
+                        new ColumnDefinition(
+                                indexName,
+                                columnName,
+                                columnDataType,
+                                getAnalyzer(columnProperties).v2(),
+                                columnDataType == DataType.NOT_SUPPORTED ? -1 : startPos++,
+                                false,
+                                true
+                        )
                 );
             }
         }
@@ -394,19 +418,19 @@ public class IndexMetaDataExtractor {
             String tableName = getIndexName();
             Map<String, List<String>> indicesColumns = new HashMap<>();
 
-            Map<String, Object> propertiesMap = (Map<String, Object>)getDefaultMappingMap().get
+            Map<String, Object> propertiesMap = (Map<String, Object>) getDefaultMappingMap().get
                     ("properties");
             if (propertiesMap != null) {
-                for (Map.Entry<String, Object> columnEntry: propertiesMap.entrySet()) {
-                    Map<String, Object> columnProperties = (Map)columnEntry.getValue();
+                for (Map.Entry<String, Object> columnEntry : propertiesMap.entrySet()) {
+                    Map<String, Object> columnProperties = (Map) columnEntry.getValue();
 
                     DataType columnDataType = getColumnDataType(columnProperties);
 
                     if (columnProperties.get("type") != null
                             && columnProperties.get("type").equals("multi_field")) {
-                        for (Map.Entry<String, Object> multiColumnEntry:
-                                ((Map<String, Object>)columnProperties.get("fields")).entrySet()) {
-                            Map<String, Object> multiColumnProperties = (Map)multiColumnEntry.getValue();
+                        for (Map.Entry<String, Object> multiColumnEntry :
+                                ((Map<String, Object>) columnProperties.get("fields")).entrySet()) {
+                            Map<String, Object> multiColumnProperties = (Map) multiColumnEntry.getValue();
 
                             Index idx = Index.create(tableName,
                                     multiColumnEntry.getKey(),
@@ -444,9 +468,9 @@ public class IndexMetaDataExtractor {
             Object dynamicProperty = getDefaultMappingMap().get("dynamic");
             if (dynamicProperty != null
                     &&
-                ((dynamicProperty instanceof String) && (dynamicProperty.equals("strict") || Booleans.isExplicitFalse((String)dynamicProperty))
-                    ||
-                ((dynamicProperty instanceof Boolean) && dynamicProperty == Boolean.FALSE))) {
+                    ((dynamicProperty instanceof String) && (dynamicProperty.equals("strict") || Booleans.isExplicitFalse((String) dynamicProperty))
+                            ||
+                            ((dynamicProperty instanceof Boolean) && dynamicProperty == Boolean.FALSE))) {
                 dynamic = false;
             }
 

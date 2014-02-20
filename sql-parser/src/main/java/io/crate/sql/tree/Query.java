@@ -1,16 +1,24 @@
 /*
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
  */
+
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
@@ -27,22 +35,26 @@ public class Query
     private final QueryBody queryBody;
     private final List<SortItem> orderBy;
     private final Optional<String> limit;
+    private final Optional<String> offset;
 
     public Query(
             Optional<With> with,
             QueryBody queryBody,
             List<SortItem> orderBy,
-            Optional<String> limit)
+            Optional<String> limit,
+            Optional<String> offset)
     {
         checkNotNull(with, "with is null");
         checkNotNull(queryBody, "queryBody is null");
         checkNotNull(orderBy, "orderBy is null");
         checkNotNull(limit, "limit is null");
+        checkNotNull(offset, "offset is null");
 
         this.with = with;
         this.queryBody = queryBody;
         this.orderBy = orderBy;
         this.limit = limit;
+        this.offset = offset;
     }
 
     public Optional<With> getWith()
@@ -65,6 +77,11 @@ public class Query
         return limit;
     }
 
+    public Optional<String> getOffset()
+    {
+        return offset;
+    }
+
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context)
     {
@@ -79,6 +96,7 @@ public class Query
                 .add("queryBody", queryBody)
                 .add("orderBy", orderBy)
                 .add("limit", limit.orNull())
+                .add("offset", offset.orNull())
                 .omitNullValues()
                 .toString();
     }
@@ -96,12 +114,13 @@ public class Query
         return Objects.equal(with, o.with) &&
                 Objects.equal(queryBody, o.queryBody) &&
                 Objects.equal(orderBy, o.orderBy) &&
-                Objects.equal(limit, o.limit);
+                Objects.equal(limit, o.limit) &&
+                Objects.equal(offset, o.offset);
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hashCode(with, queryBody, orderBy, limit);
+        return Objects.hashCode(with, queryBody, orderBy, limit, offset);
     }
 }

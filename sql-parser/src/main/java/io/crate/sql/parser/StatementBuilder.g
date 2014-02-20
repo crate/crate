@@ -1,15 +1,22 @@
 /*
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
+ * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
 tree grammar StatementBuilder;
@@ -33,7 +40,7 @@ options {
 }
 
 @members {
-    private int parameterPos = 0;
+    private int parameterPos = 1;
 
     @Override
     protected Object recoverFromMismatchedToken(IntStream input, int tokenType, BitSet follow)
@@ -72,6 +79,9 @@ statement returns [Statement value]
     | createAlias               { $value = $createAlias.value; }
     | dropAlias                 { $value = $dropAlias.value; }
     | dropTable                 { $value = $dropTable.value; }
+    | insert                    { $value = $insert.value; }
+    | delete                    { $value = $delete.value; }
+    | update                    { $value = $update.value; }
     ;
 
 query returns [Query value]
@@ -83,11 +93,13 @@ queryExpr returns [Query value]
       queryBody
       orderClause?
       limitClause?
+      offsetClause?
         { $value = new Query(
             Optional.fromNullable($withClause.value),
             $queryBody.value,
             Objects.firstNonNull($orderClause.value, ImmutableList.<SortItem>of()),
-            Optional.fromNullable($limitClause.value));
+            Optional.fromNullable($limitClause.value),
+            Optional.fromNullable($offsetClause.value));
         }
     ;
 
@@ -106,7 +118,8 @@ querySpec returns [QuerySpecification value]
         groupClause?
         havingClause?
         orderClause?
-        limitClause?)
+        limitClause?
+        offsetClause?)
         { $value = new QuerySpecification(
             $selectClause.value,
             $fromClause.value,
@@ -114,7 +127,8 @@ querySpec returns [QuerySpecification value]
             Objects.firstNonNull($groupClause.value, ImmutableList.<Expression>of()),
             Optional.fromNullable($havingClause.value),
             Objects.firstNonNull($orderClause.value, ImmutableList.<SortItem>of()),
-            Optional.fromNullable($limitClause.value));
+            Optional.fromNullable($limitClause.value),
+            Optional.fromNullable($offsetClause.value));
         }
     ;
 
@@ -135,8 +149,10 @@ restrictedSelectStmt returns [Query value]
                 ImmutableList.<Expression>of(),
                 Optional.<Expression>absent(),
                 ImmutableList.<SortItem>of(),
+                Optional.<String>absent(),
                 Optional.<String>absent()),
             ImmutableList.<SortItem>of(),
+            Optional.<String>absent(),
             Optional.<String>absent());
         }
     ;
@@ -216,6 +232,10 @@ nullOrdering returns [SortItem.NullOrdering value]
 
 limitClause returns [String value]
     : ^(LIMIT integer) { $value = $integer.value; }
+    ;
+
+offsetClause returns [String value]
+    : ^(OFFSET integer) { $value = $integer.value; }
     ;
 
 sampleType returns [SampledRelation.Type value]
@@ -325,7 +345,7 @@ exprList returns [List<Expression> value = new ArrayList<>()]
     ;
 
 parameterExpr returns [ParameterExpression value]
-    : ':' integer { $value = new ParameterExpression(Integer.parseInt($integer.value)); }
+    : '$' integer { $value = new ParameterExpression(Integer.parseInt($integer.value)); }
     | '?'         { $value = new ParameterExpression(parameterPos++); }
     ;
 
@@ -337,12 +357,23 @@ qname returns [QualifiedName value]
     : ^(QNAME i=identList) { $value = new QualifiedName($i.value); }
     ;
 
+qnameList returns [List<QualifiedNameReference> value = new ArrayList<>()]
+    : ( qname { $value.add(new QualifiedNameReference($qname.value)); } )+
+    ;
+
 identList returns [List<String> value = new ArrayList<>()]
     : ( ident { $value.add($ident.value); } )+
     ;
 
+/*
+ * case sensitivity like it is in postgres
+ * see also http://www.thenextage.com/wordpress/postgresql-case-sensitivity-part-1-the-ddl/
+ *
+ * unfortunately this has to be done in the parser because afterwards the 
+ * knowledge of the IDENT / QUOTED_IDENT difference is lost
+ */
 ident returns [String value]
-    : i=IDENT        { $value = $i.text; }
+    : i=IDENT        { $value = $i.text.toLowerCase(); }
     | q=QUOTED_IDENT { $value = $q.text; }
     ;
 
@@ -517,12 +548,13 @@ showColumns returns [Statement value]
     ;
 
 showPartitions returns [Statement value]
-    : ^(SHOW_PARTITIONS qname whereClause? orderClause? limitClause?)
+    : ^(SHOW_PARTITIONS qname whereClause? orderClause? limitClause? offsetClause?)
         { $value = new ShowPartitions(
             $qname.value,
             Optional.fromNullable($whereClause.value),
             Objects.firstNonNull($orderClause.value, ImmutableList.<SortItem>of()),
-            Optional.fromNullable($limitClause.value));
+            Optional.fromNullable($limitClause.value),
+            Optional.fromNullable($offsetClause.value));
         }
     ;
 
@@ -561,4 +593,53 @@ forRemote returns [QualifiedName value]
 
 dropTable returns [Statement value]
     : ^(DROP_TABLE qname) { $value = new DropTable($qname.value); }
+    ;
+
+
+insert returns [Statement value]
+    : ^(INSERT namedTable values=insertValues cols=columnsList?)
+        {
+            $value = new Insert($namedTable.value,
+                                $values.value,
+                                Objects.firstNonNull($cols.value, ImmutableList.<QualifiedNameReference>of())
+                                );
+        }
+    ;
+
+insertValues returns [List<ValuesList> value = new ArrayList<>()]
+    : ^(INSERT_VALUES (valuesList { $value.add($valuesList.value); })+)
+    ;
+
+valuesList returns [ValuesList value]
+    : ^(VALUES_LIST exprList) { $value = new ValuesList($exprList.value); }
+    ;
+
+columnsList returns [List<QualifiedNameReference> value]
+    : ^(COLUMN_LIST qnameList) { $value = $qnameList.value; }
+    ;
+
+
+delete returns [Statement value]
+    : ^(DELETE namedTable where=whereClause?)
+        {
+            $value = new Delete($namedTable.value, $where.value);
+        }
+    ;
+
+update returns [Statement value]
+    : ^(UPDATE namedTable assignments=assignmentList where=whereClause?)
+        {
+            $value = new Update($namedTable.value,
+                                $assignments.value,
+                                $where.value);
+        }
+    ;
+
+assignmentList returns [List<Assignment> value = new ArrayList<>()]
+    : ^(ASSIGNMENT_LIST (assignment { $value.add($assignment.value); })+ )
+    ;
+
+assignment returns [Assignment value]
+    : ^(ASSIGNMENT subscript expr) { $value = new Assignment($subscript.value, $expr.value); }
+    | ^(ASSIGNMENT qname expr) { $value = new Assignment(new QualifiedNameReference($qname.value), $expr.value); }
     ;

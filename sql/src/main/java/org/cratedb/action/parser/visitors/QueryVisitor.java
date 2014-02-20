@@ -1,3 +1,24 @@
+/*
+ * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
+ */
+
 package org.cratedb.action.parser.visitors;
 
 import org.apache.lucene.index.Term;
@@ -20,8 +41,8 @@ import org.cratedb.action.sql.OrderByColumnName;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.index.ColumnDefinition;
 import org.cratedb.lucene.fields.LuceneField;
+import org.cratedb.sql.AmbiguousAliasException;
 import org.cratedb.sql.GroupByOnArrayUnsupportedException;
-import org.cratedb.sql.OrderByAmbiguousException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
@@ -255,7 +276,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             idxNames = columnNames.indexOf(columnName);
             idxAliases = aliases.indexOf(columnName);
             if (idxNames > -1 && idxAliases > -1) {
-                throw new OrderByAmbiguousException(columnName);
+                throw new AmbiguousAliasException(columnName);
             } else if (idxAliases > -1 && idxNames < 0) {
                 columnName = stmt.outputFields().get(idxAliases).v2();
             }
@@ -301,7 +322,7 @@ public class QueryVisitor extends BaseVisitor implements Visitor {
             idxAliases = aliases.indexOf(columnName);
 
             if (idxNames > -1 && idxAliases > -1) {
-                throw new OrderByAmbiguousException(columnName);
+                throw new AmbiguousAliasException(columnName);
             } else if (idxNames < 0 && idxAliases < 0) {
                 throw new SQLParseException(
                     "column in order by is also required in the result column list"
