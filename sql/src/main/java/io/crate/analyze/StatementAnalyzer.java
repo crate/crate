@@ -301,6 +301,10 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
         argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(0), context));
         argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(1), context));
 
+        // catch null types, might be null or dynamic reference, which are both not supported
+        if (argumentTypes.get(0) == DataType.NULL){
+            return Null.INSTANCE;
+        }
 
         FunctionInfo functionInfo = null;
         try {
