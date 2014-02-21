@@ -102,7 +102,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
     public void testSearchInformationSchemaTablesRefresh() throws Exception {
         serviceSetup();
 
-        exec("select * from information_schema.tables");
+        execUsingClient("select * from information_schema.tables");
         assertEquals(3L, response.rowCount());
 
         client().execute(SQLAction.INSTANCE,
@@ -112,24 +112,8 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
         // wait until it's rebuild
         Thread.sleep(10);
 
-        exec("select * from information_schema.tables");
+        execUsingClient("select * from information_schema.tables");
         assertEquals(4L, response.rowCount());
-    }
-
-    private void exec(String statement) throws Exception {
-        exec(statement, new Object[0]);
-    }
-
-
-    /**
-     * execUsingClient the statement using the informationSchemaService directly
-     * @param statement
-     * @param args
-     * @throws Exception
-     */
-    private void exec(String statement, Object[] args) throws Exception {
-        ParsedStatement stmt = parseService.parse(statement, args);
-        response = informationSchemaService.execute(stmt, System.currentTimeMillis()).actionGet();
     }
 
     /**
@@ -213,24 +197,6 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
         assertEquals(3, response.rows()[0][1]);
         assertEquals(1, response.rows()[0][2]);
     }
-
-// TODO: uncomment when SchemaInfo has read only marker
-// TODO: insert test
-//    @Test
-//    public void testUpdateInformationSchema() throws Exception {
-//        expectedException.expect(SQLParseException.class);
-//        expectedException.expectMessage(
-//                "INFORMATION_SCHEMA tables are virtual and read-only. Only SELECT statements are supported");
-//        execUsingClient("update INFORMATION_SCHEMA.Tables set table_name = 'x'");
-//    }
-//
-//    @Test
-//    public void testDeleteInformationSchema() throws Exception {
-//        expectedException.expect(SQLParseException.class);
-//        expectedException.expectMessage(
-//                "INFORMATION_SCHEMA tables are virtual and read-only. Only SELECT statements are supported");
-//        execUsingClient("delete from INFORMATION_SCHEMA.Tables");
-//    }
 
     @Test
     public void testSelectStarFromInformationSchemaTableWithOrderByTwoColumnsAndLimit() throws Exception {

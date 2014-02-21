@@ -19,43 +19,31 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.sys;
+package io.crate.analyze;
 
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.common.inject.Inject;
+import com.google.common.base.Preconditions;
+import io.crate.metadata.TableIdent;
+import io.crate.planner.symbol.Symbol;
+import io.crate.sql.tree.Delete;
+import io.crate.sql.tree.Table;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
+public class DeleteStatementAnalyzer extends StatementAnalyzer<DeleteAnalysis> {
 
-public class SysSchemaInfo implements SchemaInfo {
+    @Override
+    public Symbol visitDelete(Delete node, DeleteAnalysis context) {
+        process(node.getTable(), context);
 
-    public static final String NAME = "sys";
-    private final Map<String, ? extends TableInfo> tableInfos;
+        if (node.getWhere().isPresent()) {
+            processWhereClause(node.getWhere().get(), context);
+        }
 
-    @Inject
-    public SysSchemaInfo(Map<String, SysTableInfo> infos) {
-        tableInfos = infos;
+        return null;
     }
 
     @Override
-    public TableInfo getTableInfo(String name) {
-        return tableInfos.get(name);
-    }
-
-    @Override
-    public Collection<String> tableNames() {
-        return tableInfos.keySet();
-    }
-
-    @Override
-    public boolean systemSchema() {
-        return true;
-    }
-
-    @Override
-    public Iterator<TableInfo> iterator() {
-        return (Iterator<TableInfo>) tableInfos.values().iterator();
+    protected Symbol visitTable(Table node, DeleteAnalysis context) {
+        Preconditions.checkState(context.table() == null, "deleting multiple tables is not supported");
+        context.editableTable(TableIdent.of(node));
+        return null;
     }
 }

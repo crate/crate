@@ -26,13 +26,9 @@ import com.carrotsearch.hppc.IntSet;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.TableInfo;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Insert;
-import org.cratedb.sql.TableUnknownException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,21 +53,6 @@ public class InsertAnalysis extends Analysis {
     @Override
     public Type type() {
         return Type.INSERT;
-    }
-
-    @Override
-    public void table(TableIdent tableIdent) {
-        TableInfo t = referenceInfos.getTableInfo(tableIdent);
-        if (t == null) {
-            throw new TableUnknownException(tableIdent.name());
-        }
-        if (t.rowGranularity() != RowGranularity.DOC) {
-            throw new UnsupportedOperationException(String.format("cannot insert into table '%s'", tableIdent.name()));
-        }
-
-        table = t;
-        updateRowGranularity(table.rowGranularity());
-        super.table(tableIdent);
     }
 
     public void visitValues() {

@@ -14,6 +14,7 @@ public class Analyzer {
     private final StatementAnalyzer selectStatementAnalyzer = new SelectStatementAnalyzer();
     private final StatementAnalyzer insertStatementAnalyzer = new InsertStatementAnalyzer();
     private final StatementAnalyzer updateStatementAnalyzer = new UpdateStatementAnalyzer();
+    private final StatementAnalyzer deleteStatementAnalyzer = new DeleteStatementAnalyzer();
 
     @Inject
     public Analyzer(ReferenceInfos referenceInfos, Functions functions, ReferenceResolver referenceResolver) {
@@ -30,9 +31,12 @@ public class Analyzer {
         Analysis analysis;
         StatementAnalyzer statementAnalyzer;
 
-        if (statement instanceof Query || statement instanceof Delete) {
+        if (statement instanceof Query) {
             analysis = new SelectAnalysis(referenceInfos, functions, parameters, referenceResolver);
             statementAnalyzer = selectStatementAnalyzer;
+        } else if (statement instanceof Delete) {
+            analysis = new DeleteAnalysis(referenceInfos, functions, parameters, referenceResolver);
+            statementAnalyzer = deleteStatementAnalyzer;
         } else if (statement instanceof Insert) {
             statementAnalyzer = insertStatementAnalyzer;
             analysis = new InsertAnalysis(referenceInfos, functions, parameters, referenceResolver);

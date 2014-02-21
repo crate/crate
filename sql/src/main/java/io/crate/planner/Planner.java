@@ -26,10 +26,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import io.crate.analyze.Analysis;
-import io.crate.analyze.InsertAnalysis;
-import io.crate.analyze.SelectAnalysis;
-import io.crate.analyze.UpdateAnalysis;
+import io.crate.analyze.*;
 import io.crate.planner.node.*;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
@@ -72,6 +69,9 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             case UPDATE:
                 plan = planUpdate((UpdateAnalysis) analysis);
                 break;
+            case DELETE:
+                plan = planDelete((DeleteAnalysis) analysis);
+                break;
             default:
                 throw new CrateException(String.format("unsupported analysis type '%s'", analysis.type().name()));
         }
@@ -89,7 +89,6 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         } else {
             if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal()
                     && analysis.table().getRouting(analysis.whereClause()).hasLocations()) {
-                if (!analysis.isDelete()) {
                     if (analysis.primaryKeyLiterals() != null
                             && !analysis.primaryKeyLiterals().isEmpty()
                             && !analysis.table().isAlias()) {
@@ -97,13 +96,6 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                     } else {
                         ESSearch(analysis, plan);
                     }
-                } else {
-                    if (analysis.primaryKeyLiterals() != null && !analysis.primaryKeyLiterals().isEmpty()) {
-                        ESDelete(analysis, plan);
-                    } else {
-                        ESDeleteByQuery(analysis, plan);
-                    }
-                }
             } else {
                 normalSelect(analysis, plan);
             }
@@ -111,7 +103,45 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         return plan;
     }
 
-    private void ESDelete(SelectAnalysis analysis, Plan plan) {
+    private Plan planInsert(InsertAnalysis analysis) {
+        Preconditions.checkState(analysis.values().size() >= 1, "no values given");
+        Plan plan = new Plan();
+        ESIndex(analysis, plan);
+        return plan;
+    }
+
+    private Plan planUpdate(UpdateAnalysis analysis) {
+        if (analysis.primaryKeyLiterals().size() > 1) {
+            throw new UnsupportedOperationException("Multi column primary keys are currently not supported");
+        }
+
+        Plan plan = new Plan();
+        ESUpdateNode node = new ESUpdateNode(
+                analysis.table().ident().name(),
+                analysis.assignments(),
+                analysis.whereClause(),
+                analysis.version(),
+                analysis.primaryKeyLiterals()
+        );
+        plan.add(node);
+        plan.expectsAffectedRows(true);
+        return plan;
+    }
+
+    private Plan planDelete(DeleteAnalysis analysis) {
+        if (analysis.primaryKeyLiterals().size() > 1) {
+            throw new UnsupportedOperationException("Multi column primary keys are currently not supported");
+        }
+        Plan plan = new Plan();
+        if (analysis.primaryKeyLiterals() != null && !analysis.primaryKeyLiterals().isEmpty()) {
+            ESDelete(analysis, plan);
+        } else {
+            ESDeleteByQuery(analysis, plan);
+        }
+        return plan;
+    }
+
+    private void ESDelete(DeleteAnalysis analysis, Plan plan) {
         assert analysis.primaryKeyLiterals() != null;
         if (analysis.primaryKeyLiterals().size() > 1) {
             throw new UnsupportedOperationException("Multi column primary keys are currently not supported");
@@ -126,6 +156,14 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 plan.expectsAffectedRows(true);
             }
         }
+    }
+
+    private void ESDeleteByQuery(DeleteAnalysis analysis, Plan plan) {
+        ESDeleteByQueryNode node = new ESDeleteByQueryNode(
+                ImmutableSet.<String>of(analysis.table().ident().name()),
+                analysis.whereClause());
+        plan.add(node);
+        plan.expectsAffectedRows(true);
     }
 
     private void ESGet(SelectAnalysis analysis, Plan plan) {
@@ -214,14 +252,6 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         );
         node.outputTypes(extractDataTypes(analysis.outputSymbols()));
         plan.add(node);
-    }
-
-    private void ESDeleteByQuery(Analysis analysis, Plan plan) {
-        ESDeleteByQueryNode node = new ESDeleteByQueryNode(
-                ImmutableSet.<String>of(analysis.table().ident().name()),
-                analysis.whereClause());
-        plan.add(node);
-        plan.expectsAffectedRows(true);
     }
 
     private void globalAggregates(SelectAnalysis analysis, Plan plan) {
@@ -368,13 +398,6 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         return Lists.newArrayList(analysis.table().getRouting(analysis.whereClause()).nodes());
     }
 
-    private Plan planInsert(InsertAnalysis analysis) {
-        Preconditions.checkState(analysis.values().size() >= 1, "no values given");
-        Plan plan = new Plan();
-        ESIndex(analysis, plan);
-        return plan;
-    }
-
     private void ESIndex(InsertAnalysis analysis, Plan plan) {
         String index = analysis.table().ident().name();
         ESIndexNode indexNode = new ESIndexNode(index,
@@ -385,23 +408,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         plan.expectsAffectedRows(true);
     }
 
-    private Plan planUpdate(UpdateAnalysis analysis) {
-        if (analysis.primaryKeyLiterals().size() > 1) {
-            throw new UnsupportedOperationException("Multi column primary keys are currently not supported");
-        }
 
-        Plan plan = new Plan();
-        ESUpdateNode node = new ESUpdateNode(
-                analysis.table().ident().name(),
-                analysis.assignments(),
-                analysis.whereClause(),
-                analysis.version(),
-                analysis.primaryKeyLiterals()
-        );
-        plan.add(node);
-        plan.expectsAffectedRows(true);
-        return plan;
-    }
 
     static List<DataType> extractDataTypes(List<Symbol> symbols) {
         List<DataType> types = new ArrayList<>(symbols.size());

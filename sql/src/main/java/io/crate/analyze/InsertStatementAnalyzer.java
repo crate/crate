@@ -21,15 +21,14 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Preconditions;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.ValueSymbol;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.Insert;
-import io.crate.sql.tree.QualifiedNameReference;
-import io.crate.sql.tree.ValuesList;
+import io.crate.sql.tree.*;
 import org.cratedb.sql.CrateException;
 
 import java.util.ArrayList;
@@ -88,6 +87,13 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
         return null;
     }
 
+    @Override
+    protected Symbol visitTable(Table node, InsertAnalysis context) {
+        Preconditions.checkState(context.table() == null, "inserting into multiple tables is not supported");
+        context.editableTable(TableIdent.of(node));
+        return null;
+    }
+
     /**
      * visit columns, if given in statement
      */
@@ -97,7 +103,7 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
             // column references not allowed in values, throw an error here
             throw new CrateException("column references not allowed in insert values.");
         }
-        ReferenceIdent ident = new ReferenceIdent(context.table().ident(), node.getSuffix().getSuffix());
+        ReferenceIdent ident = context.getReference(node.getName());
 
         // set primary key index if found
         if (context.table().primaryKey().contains(ident.columnIdent().name())) {

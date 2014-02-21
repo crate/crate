@@ -398,4 +398,10 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
             }
         }
     }
+
+    @Override
+    protected Symbol visitQualifiedNameReference(QualifiedNameReference node, T context) {
+        ReferenceIdent ident = context.getReference(node.getName());
+        return context.allocateReference(ident);
+    }
 }

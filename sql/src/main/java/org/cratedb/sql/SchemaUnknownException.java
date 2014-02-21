@@ -19,43 +19,32 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.sys;
+package org.cratedb.sql;
 
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.rest.RestStatus;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
+public class SchemaUnknownException extends CrateException {
+    private static final String MESSAGE_TMPL = "unknown schema '%s'";
 
-public class SysSchemaInfo implements SchemaInfo {
+    private final String schema;
 
-    public static final String NAME = "sys";
-    private final Map<String, ? extends TableInfo> tableInfos;
-
-    @Inject
-    public SysSchemaInfo(Map<String, SysTableInfo> infos) {
-        tableInfos = infos;
+    public SchemaUnknownException(String schema) {
+        super(String.format(MESSAGE_TMPL, schema));
+        this.schema = schema;
     }
 
     @Override
-    public TableInfo getTableInfo(String name) {
-        return tableInfos.get(name);
+    public int errorCode() {
+        return 4045;
     }
 
     @Override
-    public Collection<String> tableNames() {
-        return tableInfos.keySet();
+    public RestStatus status() {
+        return RestStatus.NOT_FOUND;
     }
 
     @Override
-    public boolean systemSchema() {
-        return true;
-    }
-
-    @Override
-    public Iterator<TableInfo> iterator() {
-        return (Iterator<TableInfo>) tableInfos.values().iterator();
+    public Object[] args() {
+        return new Object[]{schema};
     }
 }

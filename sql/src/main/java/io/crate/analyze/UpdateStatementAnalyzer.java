@@ -21,16 +21,13 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Preconditions;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.sql.tree.Assignment;
-import io.crate.sql.tree.QualifiedNameReference;
-import io.crate.sql.tree.SubscriptExpression;
-import io.crate.sql.tree.Update;
-
-import java.util.List;
+import io.crate.sql.tree.*;
 
 public class UpdateStatementAnalyzer extends StatementAnalyzer<UpdateAnalysis> {
 
@@ -49,31 +46,18 @@ public class UpdateStatementAnalyzer extends StatementAnalyzer<UpdateAnalysis> {
     }
 
     @Override
+    protected Symbol visitTable(Table node, UpdateAnalysis context) {
+        Preconditions.checkState(context.table() == null, "updating multiple tables is not supported");
+        context.editableTable(TableIdent.of(node));
+        return null;
+    }
+
+    @Override
     protected Symbol visitSubscriptExpression(SubscriptExpression node, UpdateAnalysis context) {
         SubscriptContext subscriptContext = new SubscriptContext();
         node.accept(visitor, subscriptContext);
         ReferenceIdent ident = new ReferenceIdent(
                 context.table().ident(), subscriptContext.column(), subscriptContext.parts());
-        return context.allocateReference(ident);
-    }
-
-    @Override
-    protected Symbol visitQualifiedNameReference(QualifiedNameReference node, UpdateAnalysis context) {
-        ReferenceIdent ident;
-        List<String> parts = node.getName().getParts();
-        switch (parts.size()) {
-            case 1:
-                ident = new ReferenceIdent(context.table().ident(), parts.get(0));
-                break;
-            case 2:
-                if (!context.table().ident().name().equals(parts.get(0))) {
-                    throw new UnsupportedOperationException("unsupported name reference: " + node);
-                }
-                ident = new ReferenceIdent(context.table().ident(), parts.get(1));
-                break;
-            default:
-                throw new UnsupportedOperationException("unsupported name reference: " + node);
-        }
         return context.allocateReference(ident);
     }
 

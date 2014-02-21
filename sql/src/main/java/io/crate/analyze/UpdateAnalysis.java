@@ -24,8 +24,6 @@ package io.crate.analyze;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.metadata.TableIdent;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Update;
@@ -67,17 +65,5 @@ public class UpdateAnalysis extends Analysis {
             throw new IllegalArgumentException(String.format("reference repeated %s", reference.info().ident().columnIdent().fqn()));
         }
         assignments.put(reference, value);
-    }
-
-    @Override
-    public void table(TableIdent tableIdent) {
-        super.table(tableIdent);
-        // TODO: better test when information schema is implemented
-        if (table.rowGranularity() != RowGranularity.DOC) {
-            throw new UnsupportedOperationException(String.format("cannot update table '%s'.", tableIdent.name()));
-        }
-        if (table().isAlias()) {
-            throw new IllegalArgumentException("Table alias not allowed in UPDATE statement.");
-        }
     }
 }

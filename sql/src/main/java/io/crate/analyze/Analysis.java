@@ -3,11 +3,14 @@ package io.crate.analyze;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
+import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
+import io.crate.sql.tree.QualifiedName;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
+import org.cratedb.sql.SchemaUnknownException;
 import org.cratedb.sql.TableUnknownException;
 import org.cratedb.sql.ValidationException;
 import org.elasticsearch.common.Preconditions;
@@ -29,7 +32,8 @@ public abstract class Analysis {
     public static enum Type {
         SELECT,
         INSERT,
-        UPDATE
+        UPDATE,
+        DELETE
     }
 
     public abstract Type type();
@@ -37,6 +41,7 @@ public abstract class Analysis {
     protected final ReferenceInfos referenceInfos;
     private final Functions functions;
     protected final Object[] parameters;
+    protected SchemaInfo schema;
     protected TableInfo table;
 
     private Map<Function, Function> functionSymbols = new HashMap<>();
@@ -49,7 +54,6 @@ public abstract class Analysis {
     protected List<Literal> primaryKeyLiterals;
     protected Literal clusteredByLiteral;
 
-    private boolean isDelete = false;
     protected WhereClause whereClause = WhereClause.MATCH_ALL;
     protected RowGranularity rowGranularity;
     protected boolean hasAggregates = false;
@@ -83,10 +87,36 @@ public abstract class Analysis {
     }
 
     public void table(TableIdent tableIdent) {
+        SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
+        if (schemaInfo == null) {
+            throw new SchemaUnknownException(tableIdent.schema());
+        }
         TableInfo tableInfo = referenceInfos.getTableInfo(tableIdent);
         if (tableInfo == null) {
             throw new TableUnknownException(tableIdent.name());
         }
+        schema = schemaInfo;
+        table = tableInfo;
+        updateRowGranularity(table.rowGranularity());
+    }
+
+    public void editableTable(TableIdent tableIdent) throws TableUnknownException,
+                                                            UnsupportedOperationException {
+        SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
+        if (schemaInfo == null) {
+            throw new SchemaUnknownException(tableIdent.schema());
+        } else if (schemaInfo.systemSchema()) {
+            throw new UnsupportedOperationException(
+                    String.format("tables of schema '%s' are read only.", tableIdent.schema()));
+        }
+        TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
+        if (tableInfo == null) {
+            throw new TableUnknownException(tableIdent.name());
+        } else if (tableInfo.isAlias()) {
+            throw new UnsupportedOperationException(
+                    String.format("cannot edit table referenced by alias '%s'", tableIdent.name()));
+        }
+        schema = schemaInfo;
         table = tableInfo;
         updateRowGranularity(table.rowGranularity());
     }
@@ -241,14 +271,6 @@ public abstract class Analysis {
         this.outputSymbols = symbols;
     }
 
-    public boolean isDelete() {
-        return isDelete;
-    }
-
-    public void isDelete(boolean isDelete) {
-        this.isDelete = isDelete;
-    }
-
     /**
      * normalize and validate given value according to the corresponding {@link io.crate.planner.symbol.Reference}
      *
@@ -358,5 +380,40 @@ public abstract class Analysis {
         if (whereClause().hasQuery()) {
             whereClause.normalize(normalizer);
         }
+    }
+
+    /**
+     * get a reference from a given {@link io.crate.sql.tree.QualifiedName}
+     */
+    protected ReferenceIdent getReference(QualifiedName name) {
+        ReferenceIdent ident;
+        List<String> parts = name.getParts();
+        switch (parts.size()) {
+            case 1:
+                ident = new ReferenceIdent(table.ident(), parts.get(0));
+                break;
+            case 2:
+                // make sure tableName matches the tableInfo
+                if (!table.ident().name().equals(parts.get(0))) {
+                    throw new UnsupportedOperationException("unsupported name reference: " + name);
+                }
+                ident = new ReferenceIdent(table.ident(), parts.get(1));
+                break;
+            case 3:
+                TableInfo otherTable = referenceInfos.getTableInfo(new TableIdent(parts.get(0), parts.get(1)));
+
+                // TODO: support select sys.cluster.name, sys.nodes.id, sys.shards.id name from users
+                // check if granularity is higher
+                // extra case for information_schema necessary
+                if (otherTable == null || !table.ident().equals(otherTable.ident())) {
+                    // reference from unknown table or from other table with same rowGranularity
+                    throw new UnsupportedOperationException("unsupported name reference: " + name);
+                }
+                ident = new ReferenceIdent(new TableIdent(parts.get(0), parts.get(1)), parts.get(2));
+                break;
+            default:
+                throw new UnsupportedOperationException("unsupported name reference: " + name);
+        }
+        return ident;
     }
 }

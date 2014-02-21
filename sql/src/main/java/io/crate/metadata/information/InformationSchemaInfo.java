@@ -71,6 +71,11 @@ public class InformationSchemaInfo implements SchemaInfo {
     }
 
     @Override
+    public boolean systemSchema() {
+        return true;
+    }
+
+    @Override
     public Iterator<TableInfo> iterator() {
         return TABLE_INFOS.values().iterator();
     }

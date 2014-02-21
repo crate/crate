@@ -490,7 +490,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         assertThat(rows.length, is(1));
         assertThat((Integer)rows[0][0], is(1));
-        assertThat(((BytesRef)rows[0][1]).utf8ToString(), is("mostly harmless"));
+        assertThat((String)rows[0][1], is("mostly harmless"));
         assertThat((Long)rows[0][2], Matchers.greaterThan(version));
     }
 
@@ -551,10 +551,10 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         assertThat(rows.length, is(2));
         assertThat((Integer)rows[0][0], is(1));
-        assertThat(((BytesRef)rows[0][1]).utf8ToString(), is("mostly harmless"));
+        assertThat((String)rows[0][1], is("mostly harmless"));
 
         assertThat((Integer)rows[1][0], is(3));
-        assertThat(((BytesRef)rows[1][1]).utf8ToString(), is("mostly harmless"));
+        assertThat((String)rows[1][1], is("mostly harmless"));
 
     }
 }
