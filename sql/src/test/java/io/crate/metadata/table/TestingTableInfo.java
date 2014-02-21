@@ -35,7 +35,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class TestingTableInfo implements TableInfo {
+public class TestingTableInfo extends AbstractTableInfo {
 
     private final Routing routing;
     private final String clusteredBy;

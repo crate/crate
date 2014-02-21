@@ -59,6 +59,18 @@ public abstract class InformationTablesExpression<T>
                     }
                 }
             })
+            .add(new InformationTablesExpression<Integer>("number_of_shards") {
+                @Override
+                public Integer value() {
+                    return row.numberOfShards();
+                }
+            })
+            .add(new InformationTablesExpression<Integer>("number_of_replicas") {
+                @Override
+                public Integer value() {
+                    return row.numberOfReplicas();
+                }
+            })
             .build();
 
     protected InformationTablesExpression(String name) {

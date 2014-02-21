@@ -122,11 +122,6 @@ public class SysNodesTableInfo extends SysTableInfo {
     }
 
     @Override
-    public String clusteredBy() {
-        return null;
-    }
-
-    @Override
     public String[] partitions() {
         return PARTITIONS;
     }

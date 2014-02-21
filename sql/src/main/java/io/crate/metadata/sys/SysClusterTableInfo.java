@@ -73,11 +73,6 @@ public class SysClusterTableInfo extends SysTableInfo {
     }
 
     @Override
-    public String clusteredBy() {
-        return null;
-    }
-
-    @Override
     public RowGranularity rowGranularity() {
         return RowGranularity.CLUSTER;
     }
