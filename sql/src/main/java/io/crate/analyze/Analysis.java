@@ -233,9 +233,6 @@ public abstract class Analysis {
     }
 
     public void outputSymbols(List<Symbol> symbols) {
-        for (int i = 0; i < symbols.size(); i++) {
-            symbols.set(i, normalizer.normalize(symbols.get(i)));
-        }
         this.outputSymbols = symbols;
     }
 
