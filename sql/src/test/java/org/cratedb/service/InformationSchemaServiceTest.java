@@ -29,7 +29,6 @@ import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.integrationtests.Setup;
-import org.cratedb.sql.UnsupportedFeatureException;
 import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.*;
@@ -103,7 +102,7 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
     public void testSearchInformationSchemaTablesRefresh() throws Exception {
         serviceSetup();
 
-        exec("select * from information_schema.tables");
+        execUsingClient("select * from information_schema.tables");
         assertEquals(3L, response.rowCount());
 
         client().execute(SQLAction.INSTANCE,
@@ -113,24 +112,8 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
         // wait until it's rebuild
         Thread.sleep(10);
 
-        exec("select * from information_schema.tables");
+        execUsingClient("select * from information_schema.tables");
         assertEquals(4L, response.rowCount());
-    }
-
-    private void exec(String statement) throws Exception {
-        exec(statement, new Object[0]);
-    }
-
-
-    /**
-     * execUsingClient the statement using the informationSchemaService directly
-     * @param statement
-     * @param args
-     * @throws Exception
-     */
-    private void exec(String statement, Object[] args) throws Exception {
-        ParsedStatement stmt = parseService.parse(statement, args);
-        response = informationSchemaService.execute(stmt, System.currentTimeMillis()).actionGet();
     }
 
     /**
@@ -213,28 +196,6 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
         assertEquals("foo", response.rows()[0][0]);
         assertEquals(3, response.rows()[0][1]);
         assertEquals(1, response.rows()[0][2]);
-    }
-
-    @Test
-    public void testInsertInformationSchema() throws Exception {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("tables of schema 'information_schema' are read only.");
-        execUsingClient("insert into INFORMATION_SCHEMA.Tables (table_name, number_of_shards, number_of_replicas) " +
-                "values ('locations', 5, 1)");
-    }
-
-    @Test
-    public void testUpdateInformationSchema() throws Exception {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("tables of schema 'information_schema' are read only.");
-        execUsingClient("update INFORMATION_SCHEMA.Tables set table_name = 'x'");
-    }
-
-    @Test
-    public void testDeleteInformationSchema() throws Exception {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("tables of schema 'information_schema' are read only.");
-        execUsingClient("delete from INFORMATION_SCHEMA.Tables");
     }
 
     @Test
