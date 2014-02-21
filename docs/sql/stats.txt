@@ -1,49 +1,47 @@
-============
-Stats Schema
-============
+=================
+System Statistics
+=================
 
-The stats schema is a special schema that contains virtual tables which
-are read-only and can be queried to get statistical real-time information about the cluster.
+Crate Data provides some useful schemas which contains virtual tables.
+Those tables are read-only and can be queried to get statistical
+real-time information about the cluster, its nodes, and their shards.
+
+Nodes
+=====
+
+To get information about the nodes simply query for `sys.nodes`.
+For basic host data query as follows::
+
+    cr> select id, name, hostname, port from sys.nodes
+    +------------------------+-------+----------------------------+---------------------------------------+
+    | id                     | name  | hostname                   | port                                  |
+    +------------------------+-------+----------------------------+---------------------------------------+
+    | ... | crate            | ...   | {u'http': ..., u'transport': ...}                                  |
+    +------------------------+-------+----------------------------+---------------------------------------+
+    SELECT 1 row in set (... sec)
+
+If you want some stats about the load, memory usage and storage usage,
+query as follows::
+
+    cr> select load, mem, fs from sys.nodes
+    +-...---------+-...------+-...----------+
+    | load        | mem      | fs           |
+    +-...---------+-...------+-...----------+
+    | ...         | ...      | ...          |
+    +-...---------+-...------+-...----------+
+    SELECT 1 row in set (... sec)
+
 
 Shards
 ======
 
-The stats schema contains a table called `shards`.
+Crate Data contains also a table called `sys.shards`.
 This table can be queried for gathering real-time shard statistics of one, multiple or all tables::
 
-    cr> select * from stats.shards where table_name not like 'my_table%' and num_docs > 0
-    ... order by table_name, size
-    +------------------------+-----------+----------+---------+-----------------+----------+------+---------+------------+
-    | node_id                | node_name | num_docs | primary | relocating_node | shard_id | size | state   | table_name |
-    +------------------------+-----------+----------+---------+-----------------+----------+------+---------+------------+
-    | ...                    | crate     | 6        | True    | NULL            | 1        | ...  | STARTED | locations  |
-    | ...                    | crate     | 7        | True    | NULL            | 0        | ...  | STARTED | locations  |
-    | ...                    | crate     | 1        | True    | NULL            | 1        | ...  | STARTED | quotes     |
-    | ...                    | crate     | 2        | True    | NULL            | 0        | ...  | STARTED | quotes     |
-    +------------------------+-----------+----------+---------+-----------------+----------+------+---------+------------+
-    SELECT 4 rows in set (... sec)
-
-
-Aggregate functions are supported with grouping::
-
-    cr> select count(*), table_name from stats.shards where table_name not like 'my_table%'
-    ... group by table_name order by table_name
-    +----------+------------+
-    | COUNT(*) | table_name |
-    +----------+------------+
-    | 10       | documents  |
-    | 2        | locations  |
-    | 6        | myblobs    |
-    | 2        | quotes     |
-    +----------+------------+
-    SELECT 4 rows in set (... sec)
-
-..and without::
-
-    cr> select max(num_docs) from stats.shards where table_name = 'locations' and state = 'STARTED'
-    +---------------+
-    | MAX(num_docs) |
-    +---------------+
-    | 7             |
-    +---------------+
+    cr> select * from sys.shards limit 3
+    +------------+----+----------+---------+-----------------+------+---------+
+    | table_name | id | num_docs | primary | relocating_node | size | state   |
+    +------------+----+----------+---------+-----------------+------+---------+
+    | locations  | 1  | ...      | TRUE    | NULL            | ...  | STARTED |
+    +------------+----+----------+---------+-----------------+------+---------+
     SELECT 1 row in set (... sec)
