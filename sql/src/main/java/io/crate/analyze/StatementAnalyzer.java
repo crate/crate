@@ -242,13 +242,21 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
         argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(0), context));
         argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(1), context));
 
+
         // swap statements like  eq(2, name) to eq(name, 2)
-        if (arguments.get(0).symbolType().isLiteral() && arguments.get(1).symbolType() == SymbolType.REFERENCE) {
+        if (arguments.get(0).symbolType().isLiteral() &&
+                (arguments.get(1).symbolType() == SymbolType.REFERENCE ||
+                        arguments.get(1).symbolType() == SymbolType.DYNAMIC_REFERENCE)) {
             if (swapOperatorTable.containsKey(operatorName)) {
                 operatorName = swapOperatorTable.get(operatorName);
             }
             Collections.reverse(arguments);
             Collections.reverse(argumentTypes);
+        }
+
+        // currently there will be no result for dynamic references, so return here
+        if (arguments.get(0).symbolType() == SymbolType.DYNAMIC_REFERENCE){
+            return Null.INSTANCE;
         }
 
         // try implicit type cast (conversion)
