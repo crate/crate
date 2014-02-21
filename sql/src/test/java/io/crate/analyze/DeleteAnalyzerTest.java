@@ -80,6 +80,10 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
         assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
+    }
 
+    @Test( expected = UnsupportedOperationException.class)
+    public void testDeleteSystemTable() throws Exception {
+        analyze("delete from sys.nodes where name='Trillian'");
     }
 }
