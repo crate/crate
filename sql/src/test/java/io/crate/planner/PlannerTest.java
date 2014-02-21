@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static junit.framework.Assert.assertTrue;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -154,7 +155,7 @@ public class PlannerTest {
     }
 
     private Plan plan(String statement) {
-        return planner.plan(analyzer.analyze(SqlParser.createStatement(statement), statement));
+        return planner.plan(analyzer.analyze(SqlParser.createStatement(statement)));
     }
 
     @Test
@@ -327,7 +328,7 @@ public class PlannerTest {
         String statementString = "select count(name) from users";
         Statement statement = SqlParser.createStatement(statementString);
 
-        Analysis analysis = analyzer.analyze(statement, statementString);
+        Analysis analysis = analyzer.analyze(statement);
         Plan plan = planner.plan(analysis);
         Iterator<PlanNode> iterator = plan.iterator();
 
@@ -512,7 +513,7 @@ public class PlannerTest {
         assertThat(orderBy, instanceOf(InputColumn.class));
 
         // points to the first values() entry of the previous GroupProjection
-        assertThat(((InputColumn)orderBy).index(), is(1));
+        assertThat(((InputColumn) orderBy).index(), is(1));
     }
 
     @Test
@@ -610,5 +611,17 @@ public class PlannerTest {
         assertThat((String)entry.getValue(), is("Vogon lyric fan"));
 
         assertTrue(plan.expectsAffectedRows());
+    }
+
+    @Test
+    public void testESUpdatePlanWithMultiplePrimaryKeyValues() throws Exception {
+        Plan plan = plan("update users set name='Vogon lyric fan' where id in (1,2,3)");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(ESUpdateNode.class));
+
+        ESUpdateNode updateNode = (ESUpdateNode)planNode;
+        assertThat(updateNode.primaryKeyValues().length, is(3));
+        assertThat(updateNode.primaryKeyValues(), arrayContainingInAnyOrder("1", "2", "3"));
     }
 }

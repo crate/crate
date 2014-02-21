@@ -130,7 +130,7 @@ public class AnalysisTest {
     }
 
     public Analysis getAnalysis(String stmt, Object[] args) {
-        SelectAnalysis analysis = new SelectAnalysis(referenceInfos, functions, stmt, args, resolver);
+        SelectAnalysis analysis = new SelectAnalysis(referenceInfos, functions, args, resolver);
         analysis.table(TEST_TABLE_IDENT);
         return analysis;
     }

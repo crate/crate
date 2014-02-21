@@ -386,14 +386,13 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     public void testESUpdateByIdTask() throws Exception {
         insertCharacters();
 
+        // update characters set name='Vogon lyric fan' where id=1
         ESUpdateNode updateNode = new ESUpdateNode("characters",
                 new HashMap<Reference, Symbol>(){{
                     put(name_ref, new StringLiteral("Vogon lyric fan"));
                 }},
                 WhereClause.MATCH_ALL,
                 Optional.<Long>absent(),
-                "update characters set name='Vogon lyric fan' where id=1",
-                new Object[0],
                 Arrays.<Literal>asList(new StringLiteral("1")));
         Plan plan = new Plan();
         plan.add(updateNode);
@@ -419,49 +418,6 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat(objects.length, is(1));
         assertThat((Integer)objects[0][0], is(1));
         assertThat((String)objects[0][1], is("Vogon lyric fan"));
-    }
-
-    @Test
-    public void testESUpdateByQueryTaskNoMatch() throws Exception {
-        insertCharacters();
-        ESUpdateNode updateNode = new ESUpdateNode("characters",
-                new HashMap<Reference, Symbol>(){{
-                    put(name_ref, new StringLiteral("mostly harmless"));
-                }},
-                WhereClause.NO_MATCH, Optional.<Long>absent(),
-                "update characters set name='mostly harmless' where 1=2",
-                new Object[0],
-                ImmutableList.<Literal>of());
-        Plan plan = new Plan();
-        plan.add(updateNode);
-        plan.expectsAffectedRows(true);
-
-        Job job = executor.newJob(plan);
-        assertThat(job.tasks().get(0), instanceOf(ESUpdateByQueryTask.class));
-        List<ListenableFuture<Object[][]>> result = executor.execute(job);
-        Object[][] rows = result.get(0).get();
-        assertThat((Long)rows[0][0], is(0l));
-
-
-        // verify no update happened
-        Function whereClause = new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME, asList(DataType.STRING, DataType.STRING)),
-                DataType.BOOLEAN),
-                Arrays.<Symbol>asList(name_ref, new StringLiteral("mostly harmless")));
-        ESSearchNode node = new ESSearchNode(
-                Arrays.<Symbol>asList(id_ref, name_ref),
-                Arrays.<Reference>asList(name_ref),
-                new boolean[]{false},
-                null, null, new WhereClause(whereClause)
-        );
-        plan = new Plan();
-        plan.add(node);
-        plan.expectsAffectedRows(false);
-
-        job = executor.newJob(plan);
-        result = executor.execute(job);
-        rows = result.get(0).get();
-        assertThat(rows.length, is(0));
     }
 
     @Test
@@ -492,14 +448,13 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                         Arrays.<Symbol>asList(id_ref, new IntegerLiteral(id))
                 )));
 
+        // update characters set name='mostly harmless' where id=1 and "_version"=?
         ESUpdateNode updateNode = new ESUpdateNode("characters",
                 new HashMap<Reference, Symbol>(){{
                     put(name_ref, new StringLiteral("mostly harmless"));
                 }},
                 new WhereClause(whereClause),
                 Optional.of(1l),
-                "update characters set name='mostly harmless' where id=1 and \"_version\"=?",
-                new Object[]{version},
                 ImmutableList.<Literal>of(new StringLiteral("1")));
         Plan plan = new Plan();
         plan.add(updateNode);
@@ -509,7 +464,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat(job.tasks().get(0), instanceOf(ESUpdateByQueryTask.class));
         List<ListenableFuture<Object[][]>> result = executor.execute(job);
         Object[][] rows = result.get(0).get();
-        assertThat((Long)rows[0][0], is(1l));
+        assertThat((Long) rows[0][0], is(1l));
 
         refresh();
 
@@ -524,6 +479,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 new boolean[0],
                 null, null, new WhereClause(searchWhereClause)
         );
+        node.outputTypes(Arrays.asList(id_ref.info().type(), name_ref.info().type(), version_ref.info().type()));
         plan = new Plan();
         plan.add(node);
         plan.expectsAffectedRows(false);
@@ -534,7 +490,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         assertThat(rows.length, is(1));
         assertThat((Integer)rows[0][0], is(1));
-        assertThat((String)rows[0][1], is("mostly harmless"));
+        assertThat(((BytesRef)rows[0][1]).utf8ToString(), is("mostly harmless"));
         assertThat((Long)rows[0][2], Matchers.greaterThan(version));
     }
 
@@ -553,15 +509,13 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                         Arrays.<Symbol>asList(id_ref, new IntegerLiteral(1))
                 )));
 
-
+        // update characters set name='mostly harmless' where id=1 or name='Trillian'
         ESUpdateNode updateNode = new ESUpdateNode("characters",
                 new HashMap<Reference, Symbol>(){{
                     put(name_ref, new StringLiteral("mostly harmless"));
                 }},
                 new WhereClause(whereClause),
                 Optional.<Long>absent(),
-                "update characters set name='mostly harmless' where id=1 or name='Trillian'",
-                new Object[0],
                 ImmutableList.<Literal>of());
         Plan plan = new Plan();
         plan.add(updateNode);
@@ -586,6 +540,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 new boolean[]{false},
                 null, null, new WhereClause(searchWhereClause)
         );
+        node.outputTypes(Arrays.asList(id_ref.info().type(), name_ref.info().type()));
         plan = new Plan();
         plan.add(node);
         plan.expectsAffectedRows(false);
@@ -596,10 +551,10 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         assertThat(rows.length, is(2));
         assertThat((Integer)rows[0][0], is(1));
-        assertThat((String)rows[0][1], is("mostly harmless"));
+        assertThat(((BytesRef)rows[0][1]).utf8ToString(), is("mostly harmless"));
 
         assertThat((Integer)rows[1][0], is(3));
-        assertThat((String)rows[1][1], is("mostly harmless"));
+        assertThat(((BytesRef)rows[1][1]).utf8ToString(), is("mostly harmless"));
 
     }
 }

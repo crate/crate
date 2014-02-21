@@ -21,9 +21,7 @@
 
 package org.cratedb.sql.facet;
 
-import org.cratedb.action.sql.ParsedStatement;
-import org.cratedb.action.sql.parser.SQLXContentSourceContext;
-import org.cratedb.action.sql.parser.SQLXContentSourceParser;
+import com.google.common.base.Optional;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.SQLParseException;
 import org.elasticsearch.action.update.TransportUpdateAction;
@@ -33,10 +31,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.search.facet.FacetExecutor;
 import org.elasticsearch.search.facet.FacetParser;
-import org.elasticsearch.search.facet.FacetPhaseExecutionException;
 import org.elasticsearch.search.internal.SearchContext;
 
 import java.io.IOException;
+import java.util.Map;
 
 
 /**
@@ -75,24 +73,27 @@ public class SQLFacetParser extends AbstractComponent implements FacetParser {
         return FacetExecutor.Mode.COLLECTOR;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public FacetExecutor parse(String facetName, XContentParser parser,
             SearchContext searchContext) throws IOException {
-        SQLXContentSourceContext context = new SQLXContentSourceContext();
-        SQLXContentSourceParser sqlParser = new SQLXContentSourceParser(context);
-        try {
-            sqlParser.parse(parser);
-        } catch (Exception e) {
-            throw new FacetPhaseExecutionException(facetName, "body parse failure", e);
+        Map<String, Object> payload = parser.mapOrderedAndClose();
+        if (!payload.containsKey("doc")) {
+            throw new SQLParseException("update doc missing");
         }
-
-        ParsedStatement stmt;
+        Map<String, Object> doc;
+        Optional<Long> version;
         try {
-            stmt = parseService.parse(context.stmt(), context.args());
-        } catch (SQLParseException e) {
-            throw new FacetPhaseExecutionException(facetName, "sql parse failure", e);
+            doc = (Map<String, Object>)payload.get("doc");
+            Number versionNumber = (Number)payload.get("version");
+            if (versionNumber == null) {
+                version = Optional.absent();
+            } else {
+                version = Optional.of(versionNumber.longValue());
+            }
+        } catch (ClassCastException e) {
+            throw new SQLParseException("invalid update doc");
         }
-
-        return new SQLFacetExecutor(stmt, searchContext, updateAction);
+        return new SQLFacetExecutor(doc, version, searchContext, updateAction);
     }
 }

@@ -153,11 +153,11 @@ public class BaseAnalyzerTest {
     }
 
     protected Analysis analyze(String statement) {
-        return analyzer.analyze(SqlParser.createStatement(statement), statement);
+        return analyzer.analyze(SqlParser.createStatement(statement));
     }
 
     protected Analysis analyze(String statement, Object[] params) {
-        return analyzer.analyze(SqlParser.createStatement(statement), statement, params);
+        return analyzer.analyze(SqlParser.createStatement(statement), params);
     }
 
     protected List<Module> getModules() {

@@ -36,7 +36,6 @@ public abstract class Analysis {
 
     protected final ReferenceInfos referenceInfos;
     private final Functions functions;
-    protected final String statement;
     protected final Object[] parameters;
     protected TableInfo table;
 
@@ -75,11 +74,10 @@ public abstract class Analysis {
     }
 
     public Analysis(ReferenceInfos referenceInfos, Functions functions,
-                    String statement, Object[] parameters,
+                    Object[] parameters,
                     ReferenceResolver referenceResolver) {
         this.referenceInfos = referenceInfos;
         this.functions = functions;
-        this.statement = statement;
         this.parameters = parameters;
         this.normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
     }
@@ -214,10 +212,6 @@ public abstract class Analysis {
         return rowGranularity;
     }
 
-    public String statement() {
-        return statement;
-    }
-
     public Object[] parameters() {
         return parameters;
     }
@@ -278,7 +272,8 @@ public abstract class Analysis {
 
         if (reference instanceof DynamicReference) {
             // guess type for dynamic column
-            DataType type = DataType.forValue(normalized.value(), false);
+            DataType type = DataType.forValue(normalized.value(),
+                    reference.info().objectType() == ReferenceInfo.ObjectType.IGNORED);
             ((DynamicReference) reference).valueType(type);
         }
 

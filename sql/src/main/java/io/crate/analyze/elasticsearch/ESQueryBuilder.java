@@ -24,7 +24,6 @@ package io.crate.analyze.elasticsearch;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.lucene.SQLToLuceneHelper;
@@ -53,23 +52,6 @@ public class ESQueryBuilder {
 
     private final EvaluatingNormalizer normalizer;
     private final static Visitor visitor = new Visitor();
-
-    /**
-     * these fields are ignored in the whereClause
-     * (only applies to Function with 2 arguments and if left == reference and right == literal)
-     */
-    private final static Set<String> filteredFields = ImmutableSet.of("_score");
-
-    /**
-     * key = columnName
-     * value = error message
-     * <p/>
-     * (in the _version case if the primary key is present a GetPlan is built from the planner and
-     * the ESQueryBuilder is never used)
-     */
-    private final static Map<String, String> unsupportedFields = ImmutableMap.<String, String>builder()
-            .put("_version", "\"_version\" column is only valid in the WHERE clause if the primary key column is also present")
-            .build();
 
     /**
      * Create a ESQueryBuilder to convert a whereClause to XContent or a ESSearchNode to XContent
@@ -164,7 +146,7 @@ public class ESQueryBuilder {
         assert node != null;
 
         Context context = new Context();
-        context.versionSupported = true; // will be handed through to SQLFacet
+        context.filteredFields.add("_version"); // will be handed through to SQLFacet
         context.builder = XContentFactory.jsonBuilder().startObject();
         XContentBuilder builder = context.builder;
 
@@ -175,14 +157,14 @@ public class ESQueryBuilder {
         if (node.version().isPresent()) {
             builder.field("version", true);
         }
-        builder.startObject("facets")
-                .startObject("sql")
-                    .startObject("sql")
-                        .field("stmt", node.statement())
-                        .field("args", node.args())
-                    .endObject()
-                .endObject()
-            .endObject();
+        builder.startObject("facets").startObject("sql").startObject("sql");
+
+        builder.field("doc", node.updateDoc());
+        if (node.version().isPresent()) {
+            builder.field("version", node.version().get());
+        }
+
+        builder.endObject().endObject().endObject();
         return builder.bytes();
     }
 
@@ -208,7 +190,23 @@ public class ESQueryBuilder {
     class Context {
         XContentBuilder builder;
         Map<String, Object> ignoredFields = new HashMap<>();
-        public boolean versionSupported = false;
+
+        /**
+         * these fields are ignored in the whereClause
+         * (only applies to Function with 2 arguments and if left == reference and right == literal)
+         */
+        Set<String> filteredFields = new HashSet<String>(){{ add("_score"); }};
+
+        /**
+         * key = columnName
+         * value = error message
+         * <p/>
+         * (in the _version case if the primary key is present a GetPlan is built from the planner and
+         * the ESQueryBuilder is never used)
+         */
+        Map<String, String> unsupportedFields = ImmutableMap.<String, String>builder()
+                .put("_version", "\"_version\" column is only valid in the WHERE clause if the primary key column is also present")
+                .build();
     }
 
     static class Visitor extends SymbolVisitor<Context, Void> {
@@ -402,7 +400,7 @@ public class ESQueryBuilder {
 
         @Override
         public Void visitFunction(Function function, Context context) {
-            Preconditions.checkNotNull(function);
+            assert function != null;
 
             try {
                 if (fieldIgnored(function, context)) {
@@ -429,15 +427,12 @@ public class ESQueryBuilder {
 
                 if (left.symbolType() == SymbolType.REFERENCE && right.symbolType().isLiteral()) {
                     String columnName = ((Reference) left).info().ident().columnIdent().name();
-                    if (filteredFields.contains(columnName)) {
+                    if (context.filteredFields.contains(columnName)) {
                         context.ignoredFields.put(columnName, ((Literal) right).value());
                         return true;
                     }
-                    if (columnName.equals("_version") && context.versionSupported) {
-                        return true; // do not include in query
-                    }
 
-                    String unsupported = unsupportedFields.get(columnName);
+                    String unsupported = context.unsupportedFields.get(columnName);
                     if (unsupported != null) {
                         throw new UnsupportedOperationException(unsupported);
                     }

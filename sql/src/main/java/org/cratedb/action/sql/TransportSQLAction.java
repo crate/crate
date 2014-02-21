@@ -381,7 +381,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private void usePresto(final SQLRequest request, final ActionListener<SQLResponse> listener) {
         try {
             final Statement statement = SqlParser.createStatement(request.stmt());
-            final Analysis analysis = analyzer.analyze(statement, request.stmt(), request.args());
+            final Analysis analysis = analyzer.analyze(statement, request.args());
 
             if (analysis.whereClause().noMatch()){
                 emptyResponse(request, analysis, listener);
@@ -461,10 +461,12 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                     isPresto.set(true);
                     return null;
                 }
-                // use presto for inserts
-                if (((QueryTreeNode) node).getNodeType() == NodeType.INSERT_NODE) {
-                    isPresto.set(true);
-                    return null;
+                // use presto for inserts and updates too
+                switch (((QueryTreeNode) node).getNodeType()) {
+                    case INSERT_NODE:
+                    case UPDATE_NODE:
+                        isPresto.set(true);
+                        break;
                 }
                 return node;
             }

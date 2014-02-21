@@ -27,7 +27,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.node.ESUpdateNode;
 import org.cratedb.Constants;
-import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.facet.InternalSQLFacet;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.SearchRequest;
@@ -37,8 +36,6 @@ import org.elasticsearch.action.search.TransportSearchAction;
 import java.io.IOException;
 
 public class ESUpdateByQueryTask extends AbstractESUpdateTask {
-
-    public static final Object[][] NO_OP_RESULT = new Object[][]{new Object[]{0l}};
 
     static class UpdateByQueryResponseListener implements ActionListener<SearchResponse> {
 
@@ -51,7 +48,7 @@ public class ESUpdateByQueryTask extends AbstractESUpdateTask {
         @Override
         public void onResponse(SearchResponse searchResponse) {
             InternalSQLFacet facet = searchResponse.getFacets().facet(InternalSQLFacet.class, "sql");
-            facet.reduce((ParsedStatement)null);
+            facet.reduce();
             future.set(new Object[][]{new Object[]{facet.rowCount()}});
         }
 
@@ -66,8 +63,6 @@ public class ESUpdateByQueryTask extends AbstractESUpdateTask {
     private final SearchRequest request;
     private final ESQueryBuilder queryBuilder;
 
-    private final boolean noQuery;
-
     public ESUpdateByQueryTask(TransportSearchAction transport,
                                ESUpdateNode node,
                                Functions functions,
@@ -76,9 +71,8 @@ public class ESUpdateByQueryTask extends AbstractESUpdateTask {
         this.transport = transport;
         this.queryBuilder = new ESQueryBuilder(functions, referenceResolver);
 
-        this.noQuery = node.whereClause().noMatch();
-        this.request = noQuery ? null : buildRequest(node);
-        this.listener = noQuery ? null : new UpdateByQueryResponseListener(result);
+        this.request = buildRequest(node);
+        this.listener = new UpdateByQueryResponseListener(result);
     }
 
     private SearchRequest buildRequest(ESUpdateNode node) {
@@ -88,7 +82,7 @@ public class ESUpdateByQueryTask extends AbstractESUpdateTask {
         searchRequest.preference("_primary");
 
         if (node.primaryKeyValues().length > 1) {
-            // multiple primary key values - optimize routing
+            // multiple primary key values ('where pk in (1,2,3)') - optimize routing
             // NOTE: assumes that primary key is used for routing/clustered_by
             searchRequest.routing(node.primaryKeyValues());
         }
@@ -103,10 +97,6 @@ public class ESUpdateByQueryTask extends AbstractESUpdateTask {
 
     @Override
     public void start() {
-        if (noQuery) {
-            result.set(NO_OP_RESULT);
-        } else {
-            transport.execute(this.request, this.listener);
-        }
+        transport.execute(this.request, this.listener);
     }
 }

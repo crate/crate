@@ -29,9 +29,7 @@ import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ESUpdateNode extends AbstractESNode {
 
@@ -44,25 +42,28 @@ public class ESUpdateNode extends AbstractESNode {
     private final String[] primaryKeyValues;
     private final Optional<Long> version;
 
-    private final String statement;
-    private final Object[] args;
 
     public ESUpdateNode(String index,
                         Map<Reference, Symbol> assignments,
                         WhereClause whereClause,
                         Optional<Long> version,
-                        String statement,
-                        Object[] args,
                         @Nullable List<Literal> primaryKeyValues) {
         this.index = index;
         if (primaryKeyValues == null) {
             this.primaryKeyValues = new String[0];
         } else {
-            int i = 0;
-            this.primaryKeyValues = new String[primaryKeyValues.size()];
+            assert primaryKeyValues.size() == 1 : "compound primary keys not supported";
+            List<String> pkList = new ArrayList<>();
             for (Literal pkLiteral : primaryKeyValues) {
-                this.primaryKeyValues[i++] = pkLiteral.valueAsString();
+                if (pkLiteral instanceof SetLiteral) {
+                    for (Object setLiteralItem : (Set<?>)pkLiteral.value()) {
+                        pkList.add(setLiteralItem.toString());
+                    }
+                } else {
+                    pkList.add(pkLiteral.valueAsString());
+                }
             }
+            this.primaryKeyValues = pkList.toArray(new String[pkList.size()]);
         }
         this.version = version;
         updateDoc = new HashMap<>(assignments.size());
@@ -82,9 +83,6 @@ public class ESUpdateNode extends AbstractESNode {
         }
 
         this.whereClause = whereClause;
-
-        this.statement = statement;
-        this.args = args;
     }
 
     public String[] primaryKeyValues() {
@@ -101,14 +99,6 @@ public class ESUpdateNode extends AbstractESNode {
 
     public Optional<Long> version() {
         return version;
-    }
-
-    public String statement() {
-        return statement;
-    }
-
-    public Object[] args() {
-        return args;
     }
 
     @Override

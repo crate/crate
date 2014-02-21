@@ -40,10 +40,9 @@ public class UpdateAnalysis extends Analysis {
 
     public UpdateAnalysis(ReferenceInfos referenceInfos,
                           Functions functions,
-                          String statement,
                           Object[] parameters,
                           ReferenceResolver referenceResolver) {
-        super(referenceInfos, functions, statement, parameters, referenceResolver);
+        super(referenceInfos, functions, parameters, referenceResolver);
     }
 
     @Override

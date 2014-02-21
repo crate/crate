@@ -22,23 +22,23 @@ public class Analyzer {
         this.referenceResolver = referenceResolver;
     }
 
-    public Analysis analyze(Statement statement, String statementString) {
-        return analyze(statement, statementString, new Object[0]);
+    public Analysis analyze(Statement statement) {
+        return analyze(statement, new Object[0]);
     }
 
-    public Analysis analyze(Statement statement, String statementString, Object[] parameters) {
+    public Analysis analyze(Statement statement, Object[] parameters) {
         Analysis analysis;
         StatementAnalyzer statementAnalyzer;
 
         if (statement instanceof Query || statement instanceof Delete) {
-            analysis = new SelectAnalysis(referenceInfos, functions, statementString, parameters, referenceResolver);
+            analysis = new SelectAnalysis(referenceInfos, functions, parameters, referenceResolver);
             statementAnalyzer = selectStatementAnalyzer;
         } else if (statement instanceof Insert) {
             statementAnalyzer = insertStatementAnalyzer;
-            analysis = new InsertAnalysis(referenceInfos, functions, statementString, parameters, referenceResolver);
+            analysis = new InsertAnalysis(referenceInfos, functions, parameters, referenceResolver);
         } else if (statement instanceof Update) {
             statementAnalyzer = updateStatementAnalyzer;
-            analysis = new UpdateAnalysis(referenceInfos, functions, statementString, parameters, referenceResolver);
+            analysis = new UpdateAnalysis(referenceInfos, functions, parameters, referenceResolver);
         } else {
             throw new UnsupportedOperationException(String.format("cannot analyze statement: '%s'", statement));
         }

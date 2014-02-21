@@ -176,7 +176,7 @@ public class SQLResponseBuilder {
     public SQLResponse buildResponse(SearchResponse searchResponse,
                                      InternalSQLFacet facet,
                                      long requestStartedTime) {
-        facet.reduce(stmt);
+        facet.reduce();
         return new SQLResponse(stmt.cols(), facet.rows(), facet.rowCount(), requestStartedTime);
     }
 
