@@ -10,6 +10,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
+import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.metadata.table.SchemaInfo;
@@ -59,6 +60,18 @@ public class PlannerTest {
             .put("nodeTwo", ImmutableMap.<String, Set<Integer>>of())
             .build());
 
+
+    class TestClusterTableInfo extends SysClusterTableInfo {
+
+        // granularity < DOC is already handled different
+        // here we want a table with handlerSideRouting and DOC granularity.
+
+        @Override
+        public RowGranularity rowGranularity() {
+            return RowGranularity.DOC;
+        }
+    }
+
     class TestShardsTableInfo extends SysShardsTableInfo {
 
 
@@ -92,6 +105,8 @@ public class PlannerTest {
                     new TestNodesTableInfo());
             tableInfoBinder.addBinding(TestShardsTableInfo.IDENT.name()).toInstance(
                     new TestShardsTableInfo());
+            tableInfoBinder.addBinding(TestClusterTableInfo.IDENT.name()).toInstance(
+                    new TestClusterTableInfo());
         }
     }
 
@@ -497,6 +512,29 @@ public class PlannerTest {
 
         // points to the first values() entry of the previous GroupProjection
         assertThat(((InputColumn)orderBy).index(), is(1));
+    }
+
+    @Test
+    public void testHandlerSideRouting() throws Exception {
+        Plan plan = plan("select * from sys.cluster");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        // just testing the dispatching here.. making sure it is not a ESSearchNode
+        assertThat(planNode, instanceOf(CollectNode.class));
+    }
+
+    @Test
+    public void testHandlerSideRoutingGroupBy() throws Exception {
+        Plan plan = plan("select count(*) from sys.cluster group by name");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        // just testing the dispatching here.. making sure it is not a ESSearchNode
+        assertThat(planNode, instanceOf(CollectNode.class));
+        planNode = iterator.next();
+        assertThat(planNode, instanceOf(MergeNode.class));
+
+        // no distributed merge, only 1 mergeNode
+        assertFalse(iterator.hasNext());
     }
 
     @Test
