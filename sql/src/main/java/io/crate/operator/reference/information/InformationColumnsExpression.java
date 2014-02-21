@@ -27,42 +27,49 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.information.InformationCollectorExpression;
 import io.crate.metadata.information.InformationSchemaInfo;
-import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
 
 
-public abstract class InformationTablesExpression<T>
-        extends InformationCollectorExpression<TableInfo, T> {
+public abstract class InformationColumnsExpression<T>
+        extends InformationCollectorExpression<ColumnContext, T> {
 
-    public static final ImmutableList<InformationTablesExpression<?>> IMPLEMENTATIONS
-            = ImmutableList.<InformationTablesExpression<?>>builder()
-            .add(new InformationTablesExpression<BytesRef>("schema_name") {
+    public static final ImmutableList<InformationColumnsExpression<?>> IMPLEMENTATIONS
+            = ImmutableList.<InformationColumnsExpression<?>>builder()
+            .add(new InformationColumnsExpression<BytesRef>("schema_name") {
                 @Override
                 public BytesRef value() {
-                    return new BytesRef(Objects.firstNonNull(row.ident().schema(),
+                    return new BytesRef(Objects.firstNonNull(row.info.ident().tableIdent().schema(),
                             DocSchemaInfo.NAME));
                 }
             })
-            .add(new InformationTablesExpression<BytesRef>("table_name") {
+            .add(new InformationColumnsExpression<BytesRef>("table_name") {
                 @Override
                 public BytesRef value() {
-                    return new BytesRef(row.ident().name());
+                    return new BytesRef(row.info.ident().tableIdent().name());
                 }
             })
-            .add(new InformationTablesExpression<BytesRef>("clustered_by") {
+            .add(new InformationColumnsExpression<BytesRef>("column_name") {
                 @Override
                 public BytesRef value() {
-                    if (row.clusteredBy() != null) {
-                        return new BytesRef(row.clusteredBy());
-                    } else {
-                        return null;
-                    }
+                    return new BytesRef(row.info.ident().columnIdent().fqn());
+                }
+            })
+            .add(new InformationColumnsExpression<Short>("ordinal_position") {
+                @Override
+                public Short value() {
+                    return row.ordinal;
+                }
+            })
+            .add(new InformationColumnsExpression<BytesRef>("data_type") {
+                @Override
+                public BytesRef value() {
+                    return new BytesRef(row.info.type().getName());
                 }
             })
             .build();
 
-    protected InformationTablesExpression(String name) {
-        super(InformationSchemaInfo.TABLE_INFO_TABLES.getColumnInfo(new ColumnIdent(name)));
+    protected InformationColumnsExpression(String name) {
+        super(InformationSchemaInfo.TABLE_INFO_COLUMNS.getColumnInfo(new ColumnIdent(name)));
     }
 
 }

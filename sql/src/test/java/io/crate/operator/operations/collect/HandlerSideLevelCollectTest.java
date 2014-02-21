@@ -41,7 +41,11 @@ import org.elasticsearch.common.logging.Loggers;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 
@@ -54,6 +58,31 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     private HandlerSideDataCollectOperation operation;
     private Functions functions;
+
+
+    private String printedTable(Object[][] result) {
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        PrintStream out = new PrintStream(os);
+        for (Object[] row : result) {
+            boolean first = true;
+            for (Object o : row) {
+                if (!first) {
+                    out.print("| ");
+                } else {
+                    first = false;
+                }
+                if (o == null) {
+                    out.print("NULL");
+                } else if (o instanceof BytesRef) {
+                    out.print(((BytesRef) o).utf8ToString());
+                } else {
+                    out.print(o.toString());
+                }
+            }
+            out.println();
+        }
+        return os.toString();
+    }
 
     @Before
     public void prepare() {
@@ -72,29 +101,64 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         collectNode.maxRowGranularity(RowGranularity.CLUSTER);
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(1));
-        assertTrue(((BytesRef)result[0][0]).utf8ToString().startsWith("SUITE"));
+        assertTrue(((BytesRef) result[0][0]).utf8ToString().startsWith("SUITE"));
     }
 
     @Test
-    public void testDocLevel() throws Exception {
+    public void testInformationSchemaTables() throws Exception {
         HandlerSideRouting routing = new HandlerSideRouting(new TableIdent("information_schema", "tables"));
         CollectNode collectNode = new CollectNode("tablesCollect", routing);
-        ReferenceInfo tableName = InformationSchemaInfo.TABLE_INFO_TABLES.getColumnInfo(new ColumnIdent("table_name"));
-        Reference tableNameRef = new Reference(tableName);
+
+        List<Symbol> toCollect = new ArrayList<>();
+        for (ReferenceInfo info : InformationSchemaInfo.TABLE_INFO_TABLES.columns()) {
+            toCollect.add(new Reference(info));
+        }
+        Symbol tableNameRef = toCollect.get(1);
 
         FunctionImplementation eqImpl = functions.get(new FunctionIdent(EqOperator.NAME,
                 ImmutableList.of(DataType.STRING, DataType.STRING)));
         Function whereClause = new Function(eqImpl.info(),
-                ImmutableList.<Symbol>of(tableNameRef, new StringLiteral("shards")));
+                ImmutableList.of(tableNameRef, new StringLiteral("shards")));
 
         collectNode.whereClause(new WhereClause(whereClause));
-        collectNode.toCollect(Arrays.<Symbol>asList(tableNameRef));
+        collectNode.toCollect(toCollect);
+        collectNode.maxRowGranularity(RowGranularity.DOC);
+        Object[][] result = operation.collect(collectNode).get();
+        System.out.println(printedTable(result));
+        assertEquals(printedTable(result), "sys| shards| NULL\n");
+    }
+
+
+    @Test
+    public void testInformationSchemaColumns() throws Exception {
+        HandlerSideRouting routing = new HandlerSideRouting(new TableIdent("information_schema", "columns"));
+        CollectNode collectNode = new CollectNode("columnsCollect", routing);
+
+        List<Symbol> toCollect = new ArrayList<>();
+        for (ReferenceInfo info : InformationSchemaInfo.TABLE_INFO_COLUMNS.columns()) {
+            toCollect.add(new Reference(info));
+        }
+        collectNode.toCollect(toCollect);
         collectNode.maxRowGranularity(RowGranularity.DOC);
         Object[][] result = operation.collect(collectNode).get();
 
-        assertThat(result.length, is(1));
-        assertThat(result[0], is(new Object[]{new BytesRef("shards")}));
-    }
 
+        assertTrue(printedTable(result).startsWith(
+                "sys| cluster| id| 1| string\n" +
+                        "sys| cluster| name| 2| string\n" +
+                        "sys| nodes| id| 1| string\n" +
+                        "sys| nodes| name| 2| string"
+        ));
+
+        // second time - to check if the internal iterator resets
+        System.out.println(printedTable(result));
+        result = operation.collect(collectNode).get();
+        assertTrue(printedTable(result).startsWith(
+                "sys| cluster| id| 1| string\n" +
+                        "sys| cluster| name| 2| string\n" +
+                        "sys| nodes| id| 1| string\n" +
+                        "sys| nodes| name| 2| string"
+        ));
+    }
 
 }

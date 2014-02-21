@@ -39,12 +39,25 @@ public class InformationSchemaInfo implements SchemaInfo {
             // TODO: .add("number_of_shards", DataType.INTEGER, null)
             // TODO: .add("number_of_replicas", DataType.INTEGER, null)
             .add("clustered_by", DataType.STRING, null)
+            .addPrimaryKey("schema_name")
             .addPrimaryKey("table_name")
+            .build();
+
+    public static final InformationTableInfo TABLE_INFO_COLUMNS = new InformationTableInfo.Builder("columns")
+            .add("schema_name", DataType.STRING, null)
+            .add("table_name", DataType.STRING, null)
+            .add("column_name", DataType.STRING, null)
+            .add("ordinal_position", DataType.SHORT, null)
+            .add("data_type", DataType.STRING, null)
+            .addPrimaryKey("schema_name")
+            .addPrimaryKey("table_name")
+            .addPrimaryKey("column_name")
             .build();
 
     public static final ImmutableMap<String, TableInfo> TABLE_INFOS =
             ImmutableMap.<String, TableInfo>builder()
                     .put(TABLE_INFO_TABLES.ident().name(), TABLE_INFO_TABLES)
+                    .put(TABLE_INFO_COLUMNS.ident().name(), TABLE_INFO_COLUMNS)
                     .build();
 
     @Override

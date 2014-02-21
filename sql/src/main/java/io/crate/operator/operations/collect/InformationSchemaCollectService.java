@@ -22,19 +22,20 @@
 package io.crate.operator.operations.collect;
 
 import com.google.common.base.Function;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterators;
 import io.crate.metadata.Functions;
 import io.crate.metadata.HandlerSideRouting;
+import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.information.InformationCollectorExpression;
-import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operator.Input;
 import io.crate.operator.collector.CrateCollector;
 import io.crate.operator.operations.CollectInputSymbolVisitor;
 import io.crate.operator.projectors.Projector;
+import io.crate.operator.reference.information.ColumnContext;
 import io.crate.operator.reference.information.InformationDocLevelReferenceResolver;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.symbol.BooleanLiteral;
@@ -47,42 +48,76 @@ import java.util.List;
 
 public class InformationSchemaCollectService {
 
+    private final Iterable<TableInfo> tablesIterable;
+    private final Iterable<ColumnContext> columnsIterable;
+
     private final CollectInputSymbolVisitor<InformationCollectorExpression<?, ?>> docInputSymbolVisitor;
-    private final InformationSchemaInfo schemaInfo;
-    private final ReferenceInfos referenceInfos;
     private final ImmutableMap<String, Iterable<?>> iterables;
 
     @Inject
-    protected InformationSchemaCollectService(Functions functions, InformationSchemaInfo schemaInfo, ReferenceInfos referenceInfos) {
-        this.schemaInfo = schemaInfo;
-        this.referenceInfos = referenceInfos;
+    protected InformationSchemaCollectService(Functions functions, ReferenceInfos referenceInfos) {
+
         this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions,
                 InformationDocLevelReferenceResolver.INSTANCE);
+
+        tablesIterable = FluentIterable.from(referenceInfos)
+                .transformAndConcat(new Function<SchemaInfo, Iterable<TableInfo>>() {
+                    @Nullable
+                    @Override
+                    public Iterable<TableInfo> apply(@Nullable SchemaInfo input) {
+                        return input;
+                    }
+                });
+        columnsIterable = FluentIterable
+                .from(tablesIterable)
+                .transformAndConcat(new Function<TableInfo, Iterable<ColumnContext>>() {
+                    @Nullable
+                    @Override
+                    public Iterable<ColumnContext> apply(@Nullable TableInfo input) {
+                        return new ColumnsIterator(input);
+                    }
+                });
         this.iterables = ImmutableMap.<String, Iterable<?>>of(
-                "tables", new TablesIterator()
+                "tables", tablesIterable,
+                "columns", columnsIterable
         );
 
     }
 
-    class TablesIterator implements Iterable<TableInfo> {
+    class ColumnsIterator implements Iterator<ColumnContext>, Iterable<ColumnContext> {
 
-        private final Iterator<Iterator<TableInfo>> iterators;
+        private final ColumnContext context = new ColumnContext();
+        private final Iterator<ReferenceInfo> columns;
 
-        TablesIterator() {
-            iterators = Iterators.transform(referenceInfos.iterator(), new Function<SchemaInfo, Iterator<TableInfo>>() {
-                @Nullable
-                @Override
-                public Iterator<TableInfo> apply(@Nullable SchemaInfo input) {
-                    return input.iterator();
-                }
-            });
+        ColumnsIterator(TableInfo ti) {
+            context.ordinal = 0;
+            columns = ti.iterator();
         }
 
         @Override
-        public Iterator<TableInfo> iterator() {
-            return Iterators.concat(iterators);
+        public boolean hasNext() {
+            return columns.hasNext();
         }
+
+        @Override
+        public ColumnContext next() {
+            context.info = columns.next();
+            context.ordinal++;
+            return context;
+        }
+
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("remove not allowed");
+        }
+
+        @Override
+        public Iterator<ColumnContext> iterator() {
+            return this;
+        }
+
     }
+
 
     static class InformationSchemaCollector<R> implements CrateCollector {
 
@@ -110,7 +145,7 @@ public class InformationSchemaCollectService {
                 for (InformationCollectorExpression<R, ?> collectorExpression : collectorExpressions) {
                     collectorExpression.setNextRow(row);
                 }
-                if (!condition.value()){
+                if (!condition.value()) {
                     // no match
                     continue;
                 }
@@ -139,7 +174,7 @@ public class InformationSchemaCollectService {
         CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.process(collectNode);
 
         Input<Boolean> condition;
-        if (collectNode.whereClause().hasQuery()){
+        if (collectNode.whereClause().hasQuery()) {
             // TODO: single arg method
             condition = (Input<Boolean>) docInputSymbolVisitor.process(collectNode.whereClause().query(), ctx);
         } else {
@@ -147,6 +182,6 @@ public class InformationSchemaCollectService {
         }
 
         return new InformationSchemaCollector(
-                ctx.topLevelInputs(),ctx.docLevelExpressions(), downstream, iterator, condition);
+                ctx.topLevelInputs(), ctx.docLevelExpressions(), downstream, iterator, condition);
     }
 }
