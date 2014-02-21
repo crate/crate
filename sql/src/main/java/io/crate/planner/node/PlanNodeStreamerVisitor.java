@@ -141,19 +141,24 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
 
         Projection firstProjection = node.projections().get(0);
         setInputStreamers(node.inputTypes(), firstProjection, context);
-        setOutputStreamers(node.inputTypes(), node.projections(), context);
+        setOutputStreamers(node.outputTypes(), node.inputTypes(), node.projections(), context);
 
         return null;
     }
 
-    private void setOutputStreamers(List<DataType> inputTypes, List<Projection> projections, Context context) {
+    private void setOutputStreamers(List<DataType> outputTypes,
+                                    List<DataType> inputTypes,
+                                    List<Projection> projections, Context context) {
+        final DataType.Streamer<?>[] streamers = new DataType.Streamer[outputTypes.size()];
 
-        Projection projection;
-        projection = projections.get(projections.size() - 1);
-        final DataType.Streamer<?>[] streamers = new DataType.Streamer[projection.outputs().size()];
-
-        for (int colIdx = 0; colIdx < streamers.length; colIdx++) {
-            resolveStreamer(streamers, projections, colIdx, projections.size() - 1, inputTypes);
+        int idx = 0;
+        for (DataType outputType : outputTypes) {
+            if (outputType == DataType.NULL) {
+                resolveStreamer(streamers, projections, idx, projections.size() - 1, inputTypes);
+            } else {
+                streamers[idx] = outputType.streamer();
+            }
+            idx++;
         }
 
         for (DataType.Streamer<?> streamer : streamers) {
@@ -161,7 +166,6 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
                 throw new IllegalStateException("Could not resolve all output streamers");
             }
         }
-
         Collections.addAll(context.outputStreamers, streamers);
     }
 
@@ -182,6 +186,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
             Aggregation aggregation = (Aggregation)symbol;
             streamers[columnIdx] = resolveStreamer(aggregation, aggregation.toStep());
         } else if (symbol.symbolType() == SymbolType.INPUT_COLUMN) {
+            columnIdx = ((InputColumn)symbol).index();
             if (projectionIdx > 0) {
                 projectionIdx--;
                 resolveStreamer(streamers, projections, columnIdx, projectionIdx, inputTypes);
