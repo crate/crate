@@ -27,10 +27,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.Job;
-import io.crate.executor.transport.task.elasticsearch.ESBulkIndexTask;
-import io.crate.executor.transport.task.elasticsearch.ESDeleteByQueryTask;
-import io.crate.executor.transport.task.elasticsearch.ESIndexTask;
-import io.crate.executor.transport.task.elasticsearch.ESSearchTask;
+import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
@@ -379,5 +376,38 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         assertThat((Integer)objects[1][0], is(42));
         assertThat((String)objects[1][1], is("Deep Thought"));
+    }
+
+    @Test
+    public void testESUpdateByIdTask() throws Exception {
+        insertCharacters();
+        // update characters set name='Vogon lyric fan' where id=1
+        ESUpdateNode updateNode = new ESUpdateNode("characters", new HashMap<Reference, Symbol>(){{
+            put(name_ref, new StringLiteral("Vogon lyric fan"));
+        }}, WhereClause.MATCH_ALL, Optional.<Long>absent(), Arrays.<Literal>asList(new StringLiteral("1")));
+        Plan plan = new Plan();
+        plan.add(updateNode);
+        plan.expectsAffectedRows(true);
+
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().get(0), instanceOf(ESUpdateByIdTask.class));
+        List<ListenableFuture<Object[][]>> result = executor.execute(job);
+        Object[][] rows = result.get(0).get();
+
+        assertThat(rows.length, is(1));
+        assertThat((Long)rows[0][0], is(1l));
+
+        // verify update
+        ESGetNode getNode = new ESGetNode("characters", Arrays.asList("1"));
+        getNode.outputs(ImmutableList.<Symbol>of(id_ref, name_ref));
+        plan = new Plan();
+        plan.add(getNode);
+        job = executor.newJob(plan);
+        result = executor.execute(job);
+        Object[][] objects = result.get(0).get();
+
+        assertThat(objects.length, is(1));
+        assertThat((Integer)objects[0][0], is(1));
+        assertThat((String)objects[0][1], is("Vogon lyric fan"));
     }
 }

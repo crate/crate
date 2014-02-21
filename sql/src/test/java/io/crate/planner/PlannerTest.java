@@ -551,4 +551,24 @@ public class PlannerTest {
         assertThat(localTopN, instanceOf(TopNProjection.class));
     }
 
+    public void testESUpdatePlan() throws Exception {
+        Plan plan = plan("update users set name='Vogon lyric fan' where id=1");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(ESUpdateNode.class));
+
+        ESUpdateNode updateNode = (ESUpdateNode)planNode;
+        assertThat(updateNode.index(), is("users"));
+        assertThat(updateNode.primaryKeyValues().size(), is(1));
+        assertThat((Long)updateNode.primaryKeyValues().get(0).value(), is(1l));
+
+        assertThat(updateNode.outputTypes().size(), is(1));
+        assertThat(updateNode.outputTypes().get(0), is(DataType.LONG));
+
+        Map.Entry<String, Object> entry = updateNode.updateDoc().entrySet().iterator().next();
+        assertThat(entry.getKey(), is("name"));
+        assertThat((String)entry.getValue(), is("Vogon lyric fan"));
+
+        assertTrue(plan.expectsAffectedRows());
+    }
 }

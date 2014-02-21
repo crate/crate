@@ -29,6 +29,7 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.InsertAnalysis;
 import io.crate.analyze.SelectAnalysis;
+import io.crate.analyze.UpdateAnalysis;
 import io.crate.planner.node.*;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
@@ -384,6 +385,9 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             case INSERT:
                 plan = planInsert((InsertAnalysis)analysis);
                 break;
+            case UPDATE:
+                plan = planUpdate((UpdateAnalysis) analysis);
+                break;
             default:
                 throw new CrateException(String.format("unsupported analysis type '%s'", analysis.type().name()));
         }
@@ -687,6 +691,21 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 analysis.primaryKeyColumnIndices().toArray());
         plan.add(indexNode);
         plan.expectsAffectedRows(true);
+    }
+
+    private Plan planUpdate(UpdateAnalysis analysis) {
+        Plan plan = new Plan();
+
+        ESUpdateNode node = new ESUpdateNode(
+                analysis.table().ident().name(),
+                analysis.assignments(),
+                analysis.whereClause(),
+                analysis.version(),
+                analysis.primaryKeyLiterals()
+        );
+        plan.add(node);
+        plan.expectsAffectedRows(true);
+        return plan;
     }
 
     private static List<DataType> extractDataTypes(List<Symbol> symbols) {
