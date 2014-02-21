@@ -24,6 +24,7 @@ package io.crate.executor;
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import org.apache.lucene.util.BytesRef;
+import org.cratedb.DataType;
 import org.cratedb.action.sql.SQLResponse;
 
 public class RowsResponseBuilder implements ResponseBuilder {
@@ -38,29 +39,36 @@ public class RowsResponseBuilder implements ResponseBuilder {
     }
 
     @Override
-    public SQLResponse buildResponse(String[] outputNames, Object[][] rows, long requestStartedTime) {
+    public SQLResponse buildResponse(DataType[] dataTypes, String[] outputNames, Object[][] rows, long requestStartedTime) {
         if (convertBytesRefs) {
-            convertBytesRef(rows);
+            convertBytesRef(dataTypes, rows);
         }
         return new SQLResponse(outputNames, rows, rows.length, requestStartedTime);
     }
 
-    private void convertBytesRef(Object[][] rows) {
+    private void convertBytesRef(DataType[] dataTypes, Object[][] rows) {
         if (rows.length == 0) {
             return;
         }
 
+        // NOTE: currently BytesRef inside Maps aren't converted here because
+        // if the map is coming from a ESSearchTask/EsGetTask they already contain strings
+        // and we have no case in which another Task returns a Map with ByteRefs/Strings inside.
         final IntArrayList stringColumns = new IntArrayList();
-
-        for (int c = 0; c < rows[0].length; c++) {
-            if (rows[0][c] instanceof BytesRef) {
-                stringColumns.add(c);
+        int idx = 0;
+        for (DataType dataType : dataTypes) {
+            if (dataType == DataType.STRING) {
+                stringColumns.add(idx);
             }
+            idx++;
         }
 
         for (int r = 0; r < rows.length; r++) {
             for (IntCursor stringColumn : stringColumns) {
-                rows[r][stringColumn.value] = ((BytesRef)rows[r][stringColumn.value]).utf8ToString();
+                Object value = rows[r][stringColumn.value];
+                if (value != null) {
+                    rows[r][stringColumn.value] = ((BytesRef)value).utf8ToString();
+                }
             }
         }
     }

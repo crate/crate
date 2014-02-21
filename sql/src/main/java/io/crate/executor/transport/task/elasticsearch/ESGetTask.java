@@ -28,7 +28,9 @@ import io.crate.planner.node.ESGetNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolVisitor;
+import org.apache.lucene.util.BytesRef;
 import org.cratedb.Constants;
+import org.cratedb.DataType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.get.*;
@@ -58,7 +60,7 @@ public class ESGetTask implements Task<Object[][]> {
             visitor.process(symbol, ctx);
         }
 
-        final FieldExtractor[] extractors = buildExtractors(ctx.fields);
+        final FieldExtractor[] extractors = buildExtractors(ctx.fields, ctx.types);
         final SettableFuture<Object[][]> result = SettableFuture.create();
         results = Arrays.<ListenableFuture<Object[][]>>asList(result);
         if (node.ids().size() > 1) {
@@ -84,7 +86,7 @@ public class ESGetTask implements Task<Object[][]> {
         }
     }
 
-    private FieldExtractor[] buildExtractors(String[] fields) {
+    private FieldExtractor[] buildExtractors(String[] fields, DataType[] types) {
         FieldExtractor[] extractors = new FieldExtractor[fields.length];
         int i = 0;
         for (final String field : fields) {
@@ -99,7 +101,18 @@ public class ESGetTask implements Task<Object[][]> {
                 extractors[i] = new FieldExtractor() {
                     @Override
                     public Object extract(GetResponse response) {
-                        return response.getId();
+                        return new BytesRef(response.getId());
+                    }
+                };
+            } else if (types[i] == DataType.STRING) {
+                extractors[i] = new FieldExtractor() {
+                    @Override
+                    public Object extract(GetResponse response) {
+                        Object value = response.getField(field).getValue();
+                        if (value != null) {
+                            return new BytesRef((String)value);
+                        }
+                        return null;
                     }
                 };
             } else {
@@ -209,16 +222,19 @@ public class ESGetTask implements Task<Object[][]> {
     }
 
     class Context {
+        final DataType[] types;
         final String[] fields;
         int idx;
 
         Context(int size) {
             idx = 0;
             fields = new String[size];
+            types = new DataType[size];
         }
 
-        void add(String field) {
-            fields[idx] = field;
+        void add(Reference reference) {
+            fields[idx] = reference.info().ident().columnIdent().fqn();
+            types[idx] = reference.valueType();
             idx++;
         }
     }
@@ -227,7 +243,7 @@ public class ESGetTask implements Task<Object[][]> {
 
         @Override
         public Void visitReference(Reference symbol, Context context) {
-            context.add(symbol.info().ident().columnIdent().fqn());
+            context.add(symbol);
             return null;
         }
 

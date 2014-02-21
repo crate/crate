@@ -31,14 +31,15 @@ import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolVisitor;
-import org.cratedb.action.sql.SQLFields;
+import org.apache.lucene.util.BytesRef;
+import org.cratedb.DataType;
 import org.cratedb.sql.ExceptionHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.TransportSearchAction;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHitField;
 
 import java.io.IOException;
 import java.util.*;
@@ -73,7 +74,8 @@ public class ESSearchTask implements Task<Object[][]> {
             visitor.process(symbol, ctx);
         }
 
-        final SQLFields fields = new SQLFields(ctx.fields);
+        final FieldExtractor[] extractor = buildExtractor(ctx.outputs);
+        final int numColumns = ctx.outputs.size();
 
         try {
             request.source(queryBuilder.convert(searchNode, ctx.outputs), false);
@@ -92,9 +94,11 @@ public class ESSearchTask implements Task<Object[][]> {
                         final SearchHit[] hits = searchResponse.getHits().getHits();
                         final Object[][] rows = new Object[hits.length][ctx.outputs.size()];
 
-                        for (int i = 0; i < hits.length; i++) {
-                            fields.hit(hits[i]);
-                            rows[i] = fields.getRowValues();
+                        for (int r = 0; r < hits.length; r++) {
+                            rows[r] = new Object[numColumns];
+                            for (int c = 0; c < numColumns; c++) {
+                                rows[r][c] = extractor[c].extract(hits[r]);
+                            }
                         }
 
                         result.set(rows);
@@ -111,6 +115,74 @@ public class ESSearchTask implements Task<Object[][]> {
         }
     }
 
+    private FieldExtractor[] buildExtractor(final List<Reference> outputs) {
+        FieldExtractor[] extractors = new FieldExtractor[outputs.size()];
+        int i = 0;
+        for (Reference output : outputs) {
+            final String fieldName = output.info().ident().columnIdent().fqn();
+            if (fieldName.equals("_version")) {
+                extractors[i] = new FieldExtractor() {
+                    @Override
+                    public Object extract(SearchHit hit) {
+                        return hit.getVersion();
+                    }
+                };
+            } else if (fieldName.equals("_id")) {
+                extractors[i] = new FieldExtractor() {
+                    @Override
+                    public Object extract(SearchHit hit) {
+                        return new BytesRef(hit.getId());
+                    }
+                };
+            } else if (fieldName.equals("_score")) {
+                extractors[i] = new FieldExtractor() {
+                    @Override
+                    public Object extract(SearchHit hit) {
+                        return hit.getScore();
+                    }
+                };
+            } else if (output.valueType() == DataType.STRING) {
+                extractors[i] = new FieldExtractor() {
+                    @Override
+                    public Object extract(SearchHit hit) {
+                        SearchHitField field = hit.getFields().get(fieldName);
+                        Object value = null;
+                        if (field != null && !field.values().isEmpty()) {
+                            if (field.values().size() == 1) {
+                                value = field.value();
+                                if (value != null) {
+                                    value = new BytesRef((String)value);
+                                }
+                            } else {
+                                value = field.values();
+                            }
+                        }
+                        return value;
+                    }
+                };
+            } else {
+                extractors[i] = new FieldExtractor() {
+                    @Override
+                    public Object extract(SearchHit hit) {
+                        SearchHitField field = hit.getFields().get(fieldName);
+                        Object value = null;
+                        if (field != null && !field.values().isEmpty()) {
+                            if (field.values().size() == 1) {
+                                value = field.value();
+                            } else {
+                                value = field.values();
+                            }
+                        }
+                        return value;
+                    }
+                };
+            }
+            i++;
+        }
+
+        return extractors;
+    }
+
     @Override
     public List<ListenableFuture<Object[][]>> result() {
         return results;
@@ -124,19 +196,12 @@ public class ESSearchTask implements Task<Object[][]> {
     class Context {
         final public List<Reference> outputs = new ArrayList<>();
         final public Set<String> indices = new HashSet<>();
-
-        // TODO: these are currently only here so that SQLFields can be re-used
-        // to generate the Object[][] result from the SearchResponse
-        // remove and adjust SQLFields once the akiban stuff is removed.
-        final public List<Tuple<String, String>> fields = new ArrayList<>();
     }
 
     static class Visitor extends SymbolVisitor<Context, Void> {
 
         @Override
         public Void visitReference(Reference symbol, Context context) {
-            final String columnName = symbol.info().ident().columnIdent().fqn();
-            context.fields.add(new Tuple<>(columnName, columnName));
             context.outputs.add(symbol);
             context.indices.add(symbol.info().ident().tableIdent().name());
             return null;
@@ -146,5 +211,9 @@ public class ESSearchTask implements Task<Object[][]> {
         protected Void visitSymbol(Symbol symbol, Context context) {
             throw new UnsupportedOperationException(String.format("Symbol %s not supported", symbol));
         }
+    }
+
+    private interface FieldExtractor {
+        Object extract(SearchHit hit);
     }
 }
