@@ -35,10 +35,13 @@ public class InformationDocLevelReferenceResolver implements DocLevelReferenceRe
 
     public static final InformationDocLevelReferenceResolver INSTANCE = new InformationDocLevelReferenceResolver();
 
-    private static final Map<ReferenceIdent, InformationTablesExpression<?>> implementations = new HashMap<>();
+    private static final Map<ReferenceIdent, InformationCollectorExpression<?, ?>> implementations = new HashMap<>();
 
     static {
-        for (InformationTablesExpression<?> implementation : InformationTablesExpression.IMPLEMENTATIONS) {
+        for (InformationCollectorExpression<?, ?> implementation : InformationTablesExpression.IMPLEMENTATIONS) {
+            implementations.put(implementation.info().ident(), implementation);
+        }
+        for (InformationCollectorExpression<?, ?> implementation : InformationColumnsExpression.IMPLEMENTATIONS) {
             implementations.put(implementation.info().ident(), implementation);
         }
     }

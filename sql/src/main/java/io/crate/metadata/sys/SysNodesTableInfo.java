@@ -41,7 +41,7 @@ public class SysNodesTableInfo extends SysTableInfo {
 
     private static final ImmutableList<String> primaryKey = ImmutableList.of("id");
 
-    public static final Map<ColumnIdent, ReferenceInfo> INFOS = new HashMap<>();
+    public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
 
     static {
@@ -129,5 +129,10 @@ public class SysNodesTableInfo extends SysTableInfo {
     @Override
     public String[] partitions() {
         return PARTITIONS;
+    }
+
+    @Override
+    public Iterator<ReferenceInfo> iterator() {
+        return INFOS.values().iterator();
     }
 }

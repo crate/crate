@@ -147,4 +147,11 @@ public class InformationTableInfo implements TableInfo {
         return null;
     }
 
+    @Override
+    public Iterator<ReferenceInfo> iterator() {
+        return references.values().iterator();
+    }
+
+
+
 }

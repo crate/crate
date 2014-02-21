@@ -39,7 +39,7 @@ public class SysShardsTableInfo extends SysTableInfo {
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "shards");
     private static final String[] PARTITIONS = new String[]{IDENT.name()};
 
-    public static Map<ColumnIdent, ReferenceInfo> INFOS = new HashMap<>(7);
+    public static Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>(7);
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>(7);
 
     private static final ImmutableList<String> primaryKey = ImmutableList.of("table_name", "id");
@@ -137,5 +137,10 @@ public class SysShardsTableInfo extends SysTableInfo {
     @Override
     public String[] partitions() {
         return PARTITIONS;
+    }
+
+    @Override
+    public Iterator<ReferenceInfo> iterator() {
+        return INFOS.values().iterator();
     }
 }
