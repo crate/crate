@@ -95,6 +95,11 @@ public class DataTypeVisitor extends SymbolVisitor<Void, DataType> {
     }
 
     @Override
+    public DataType visitObjectLiteral(ObjectLiteral symbol, Void context) {
+        return symbol.valueType();
+    }
+
+    @Override
     protected DataType visitSymbol(Symbol symbol, Void context) {
         throw new UnsupportedOperationException("Unable to get DataType from symbol: " + symbol);
     }

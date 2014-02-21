@@ -43,6 +43,7 @@ public class Analyzer {
             throw new UnsupportedOperationException(String.format("cannot analyze statement: '%s'", statement));
         }
         statement.accept(statementAnalyzer, analysis);
+        analysis.normalize();
         return analysis;
     }
 
