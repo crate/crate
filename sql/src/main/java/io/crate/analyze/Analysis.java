@@ -43,8 +43,8 @@ public abstract class Analysis {
 
     protected Map<ReferenceIdent, Reference> referenceSymbols = new HashMap<>();
 
-    private List<String> outputNames = ImmutableList.of();
-    private List<Symbol> outputSymbols = ImmutableList.of();
+    protected List<String> outputNames = ImmutableList.of();
+    protected List<Symbol> outputSymbols = ImmutableList.of();
 
     protected List<Literal> primaryKeyLiterals;
     protected Literal clusteredByLiteral;
@@ -122,6 +122,7 @@ public abstract class Analysis {
 
     /**
      * add a reference for the given ident, get from map-cache if already
+     *
      * @param ident
      * @return
      */
@@ -232,6 +233,9 @@ public abstract class Analysis {
     }
 
     public void outputSymbols(List<Symbol> symbols) {
+        for (int i = 0; i < symbols.size(); i++) {
+            symbols.set(i, normalizer.normalize(symbols.get(i)));
+        }
         this.outputSymbols = symbols;
     }
 
@@ -260,8 +264,8 @@ public abstract class Analysis {
             normalized = (Literal) normalizer.process(inputValue, null);
         } catch (ClassCastException e) {
             throw new ValidationException(
-                        reference.info().ident().columnIdent().name(),
-                        String.format("Invalid value of type '%s'", inputValue.symbolType().name()));
+                    reference.info().ident().columnIdent().name(),
+                    String.format("Invalid value of type '%s'", inputValue.symbolType().name()));
         }
 
         if (reference instanceof DynamicReference) {
@@ -317,7 +321,7 @@ public abstract class Analysis {
                 }
             }
             if (info.type() == DataType.OBJECT && entry.getValue() instanceof Map) {
-                value.put(entry.getKey(), normalizeObjectValue((Map<String, Object>)entry.getValue(), nestedInfo));
+                value.put(entry.getKey(), normalizeObjectValue((Map<String, Object>) entry.getValue(), nestedInfo));
             } else {
                 value.put(entry.getKey(), normalizePrimitiveValue(entry.getValue(), nestedInfo));
             }
@@ -341,6 +345,15 @@ public abstract class Analysis {
                             info.type().getName()
                     )
             );
+        }
+    }
+
+    public void normalize() {
+        for (int i = 0; i < outputSymbols().size(); i++) {
+            outputSymbols.set(i, normalizer.normalize(outputSymbols.get(i)));
+        }
+        if (whereClause().hasQuery()) {
+            whereClause.normalize(normalizer);
         }
     }
 }
