@@ -311,7 +311,7 @@ public enum DataType {
             for (int i = 0; i < size; i++) {
                 s.add(streamer.readFrom(in));
             }
-            if (in.readBoolean() == true) {
+            if (in.readBoolean()) {
                 s.add(null);
             }
             return s;
@@ -320,11 +320,10 @@ public enum DataType {
         @Override
         public void writeTo(StreamOutput out, Object v) throws IOException {
             Set<T> s = (Set<T>) v;
-            out.writeVInt(s.size());
-            boolean containsNull = false;
+            boolean containsNull = s.contains(null);
+            out.writeVInt(containsNull ? s.size() - 1 : s.size());
             for (T e : s) {
                 if (e == null) {
-                    containsNull = true;
                     continue;
                 }
                 streamer.writeTo(out, e);
