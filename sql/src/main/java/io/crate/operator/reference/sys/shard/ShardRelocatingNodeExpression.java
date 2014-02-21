@@ -39,6 +39,10 @@ public class ShardRelocatingNodeExpression extends SysShardExpression<BytesRef> 
 
     @Override
     public BytesRef value() {
-        return new BytesRef(indexShard.routingEntry().relocatingNodeId());
+        String relocatingNodeId = indexShard.routingEntry().relocatingNodeId();
+        if (relocatingNodeId != null) {
+            return new BytesRef(relocatingNodeId);
+        }
+        return null;
     }
 }
