@@ -138,7 +138,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(2, response.rowCount());
         assertThat(response.cols()[0], is("sys.shards.id"));
         assertThat((Integer)response.rows()[0][0], isOneOf(0, 1, 2));
-
     }
 
     @Test
@@ -2283,6 +2282,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select * from information_schema.routines");
         assertEquals(103L, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
+    }
+
+    @Test ( expected = UnsupportedFeatureException.class)
+    public void testSelectSysColumnsFromInformationSchema() throws Exception {
+        execute("select sys.nodes.id, table_name, number_of_replicas from information_schema.tables");
     }
 
     private void nonExistingColumnSetup() {
