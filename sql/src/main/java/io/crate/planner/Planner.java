@@ -49,341 +49,23 @@ import java.util.*;
 public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
 
 
-    static class Context {
-
-        final int numGroupKeys;
-        List<Aggregation> aggregations = new ArrayList<>();
-        List<Symbol> groupBy;
-        Aggregation.Step[] steps;
-        int stepIdx = 0;
-        Symbol parent;
-        Map<Symbol, InputColumn> toCollectAllocation = new LinkedHashMap<>();
-        Map<Symbol, Symbol> resolvedSymbols = new HashMap<>();
-        List<Symbol> orderBy = new ArrayList<>();
-        List<Symbol> outputs = new ArrayList<>();
-        List<Symbol> originalGroupBy;
-
-        public Context(int numGroupKeys, int numAggregationSteps) {
-            this.numGroupKeys = numGroupKeys;
-            this.groupBy = new ArrayList<>(numGroupKeys);
-            switch (numAggregationSteps) {
-                case 0:
-                    this.steps = null;
-                    break;
-                case 1:
-                    this.steps = new Aggregation.Step[] {Aggregation.Step.FINAL};
-                    break;
-                case 2:
-                    this.steps = new Aggregation.Step[] {Aggregation.Step.PARTIAL, Aggregation.Step.FINAL};
-                    break;
-                default:
-                    throw new IllegalArgumentException("Invalid number of aggregation steps");
-            }
-        }
-
-        public Aggregation.Step step() {
-            return steps[stepIdx];
-        }
-
-        private Symbol allocateToCollect(Symbol symbol) {
-            InputColumn inputColumn = toCollectAllocation.get(symbol);
-            if (inputColumn == null) {
-                inputColumn = new InputColumn(toCollectAllocation.size());
-                toCollectAllocation.put(symbol, inputColumn);
-            }
-            return inputColumn;
-        }
-    }
-
-    static class ContextBuilder {
-
-        private final Context context;
-        public boolean aggregationsWrappedInScalar;
-
-        public ContextBuilder(int numAggregationSteps, List<Symbol> groupBy) {
-            this.context = new Context(groupBy.size(), numAggregationSteps);
-            context.originalGroupBy = groupBy;
-            for (Symbol symbol : groupBy) {
-                context.groupBy.add(context.allocateToCollect(symbol));
-            }
-        }
-
-        public ContextBuilder() {
-            this.context = new Context(0, 0);
-        }
-
-        public ContextBuilder(int numAggregationSteps) {
-            this.context = new Context(0, numAggregationSteps);
-        }
-
-        public List<Symbol> groupBy() {
-            return context.groupBy;
-        }
-
-        public List<Symbol> toCollect() {
-            return Lists.newArrayList(context.toCollectAllocation.keySet());
-        }
-
-        /**
-         * calcualtes the toCollect symbols and generates the outputs which can be used
-         * for the first TopNProjection
-         *
-         * to build AggregationProjection or GroupProjections use the groupBy or aggregations symbols directly.
-         */
-        public ContextBuilder output(List<Symbol> symbols) {
-            if (context.steps == null) {
-                for (Symbol symbol : symbols) {
-                    context.outputs.add(context.allocateToCollect(symbol));
-                }
-            } else {
-                // need to split on aggregations
-                for (Symbol symbol : symbols) {
-                    context.parent = null;
-                    Symbol splitSymbol = splitter.process(symbol, context);
-                    Symbol resolvedSymbol;
-                    if (context.parent != null && splitSymbol.symbolType() == SymbolType.FUNCTION) {
-                        // found a scalar function with an aggregation underneath.
-                        aggregationsWrappedInScalar = true;
-                        resolvedSymbol = splitSymbol;
-                    } else if (context.numGroupKeys > 0 && splitSymbol.symbolType() != SymbolType.INPUT_COLUMN) {
-                        // in case the symbol was an aggregation function it is replaced directly.
-                        // this wasn't the case so the symbol must be a group by
-                        resolvedSymbol = new InputColumn(context.originalGroupBy.indexOf(splitSymbol));
-                    } else if (splitSymbol.symbolType() == SymbolType.INPUT_COLUMN) {
-                        resolvedSymbol = splitSymbol;
-                    } else {
-                        assert false; // TODO: this case shouldn't happen? verify
-                        resolvedSymbol = context.allocateToCollect(symbol);
-                    }
-
-                    context.resolvedSymbols.put(symbol, resolvedSymbol);
-                    context.outputs.add(resolvedSymbol);
-                }
-            }
-            return this;
-        }
-
-        public List<Aggregation> aggregations() {
-            return Lists.newArrayList(context.aggregations);
-        }
-
-        /**
-         * this can be used after the first GroupProjection or AggregationProjection
-         * it will move the groupBy and aggregations inputColumns to point to the outputs of the previous projection
-         */
-        public void nextStep() {
-            context.stepIdx++;
-            if (context.stepIdx + 1 <= context.steps.length) {
-                // aggregations now take the partial aggregation state as their input.
-                int idx = context.numGroupKeys;
-                int i = 0;
-                for (Aggregation aggregation : context.aggregations) {
-                    context.aggregations.set(i, new Aggregation(
-                            aggregation.functionInfo(),
-                            Arrays.<Symbol>asList(new InputColumn(idx)),
-                            aggregation.toStep(), context.step()));
-                    i++;
-                    idx++;
-                }
-            }
-
-            int idx = 0;
-            for (Symbol symbol : context.groupBy) {
-                context.groupBy.set(idx, new InputColumn(idx));
-            }
-        }
-
-        public List<Symbol> orderBy() {
-            return Lists.newArrayList(context.orderBy);
-        }
-
-        public ContextBuilder orderBy(List<Symbol> symbols) {
-            if (symbols == null) {
-                return this;
-            }
-            if (context.steps == null || context.numGroupKeys == 0) {
-                for (Symbol symbol : symbols) {
-                    context.orderBy.add(context.allocateToCollect(symbol));
-                }
-            } else {
-                for (Symbol symbol : symbols) {
-                    Symbol resolvedSymbol = context.resolvedSymbols.get(symbol);
-
-                    // symbol is already resolved at this point
-                    // because outputs are set first and in the group by case
-                    // every symbol in order by must be present in the outputs
-                    assert resolvedSymbol != null;
-                    context.orderBy.add(resolvedSymbol);
-                }
-            }
-            return this;
-        }
-
-        /**
-         * returns the symbols to be used in the first topN projection
-         *
-         * if their is a second topN projection the {@link #passThroughOutputs()} method should be
-         * used.
-         */
-        public List<Symbol> outputs() {
-            return Lists.newArrayList(context.outputs);
-        }
-
-        /**
-         * use this together with {@link #passThroughOutputs()}
-         * in the topN node
-         * 
-         * if {@link #outputs()} is used use {@link #orderBy()} instead.
-         * @return
-         */
-        public List<Symbol> passThroughOrderBy() {
-            List<Symbol> orderBy = new ArrayList<>();
-            for (Symbol symbol : context.orderBy) {
-                orderBy.add(new InputColumn(context.outputs.indexOf(symbol)));
-            }
-
-            return orderBy;
-        }
-
-        /**
-         * will just take the inputs as they are. No re-ordering or scalar functions are left at this point.
-         * Make sure to use {@link #outputs()} before this is used..
-         */
-        public List<Symbol> passThroughOutputs() {
-            List<Symbol> outputs = new ArrayList<>();
-            for (int i = 0; i < context.outputs.size(); i++) {
-                outputs.add(new InputColumn(i));
-            }
-            return outputs;
-        }
-    }
-
-    static class AggregationSplitter extends SymbolVisitor<Context, Symbol> {
-
-        @Override
-        public Symbol visitFunction(Function function, Context context) {
-            Symbol result = function;
-            if (function.info().isAggregate()) {
-                result = new InputColumn(context.numGroupKeys + context.aggregations.size());
-                Aggregation aggregation = new Aggregation(function.info(), function.arguments(),
-                        Aggregation.Step.ITER, context.step());
-                context.aggregations.add(aggregation);
-                context.parent = aggregation;
-            }
-
-            if (context.parent != null && context.parent.symbolType() == SymbolType.AGGREGATION) {
-                // beneath a aggregation. Just mark everything as to collect
-                int idx = 0;
-                for (Symbol symbol : function.arguments()) {
-                    function.arguments().set(idx, context.allocateToCollect(symbol));
-                    idx++;
-                }
-            } else {
-                int idx = 0;
-                for (Symbol symbol : function.arguments()) {
-                    function.arguments().set(idx, process(symbol, context));
-                    idx++;
-                }
-            }
-            return result;
-        }
-
-        @Override
-        protected Symbol visitSymbol(Symbol symbol, Context context) {
-            return symbol;
-        }
-    }
-
-    private static final AggregationSplitter splitter = new AggregationSplitter();
+    static final PlannerAggregationSplitter splitter = new PlannerAggregationSplitter();
     private static final DataTypeVisitor dataTypeVisitor = new DataTypeVisitor();
-
-    private static class NodeBuilder {
-
-        static CollectNode distributingCollect(Analysis analysis,
-                                               List<Symbol> toCollect,
-                                               List<String> downstreamNodes,
-                                               ImmutableList<Projection> projections) {
-            CollectNode node = new CollectNode("distributing collect", analysis.table().getRouting(analysis.whereClause()));
-            node.whereClause(analysis.whereClause());
-            node.maxRowGranularity(analysis.rowGranularity());
-            node.downStreamNodes(downstreamNodes);
-            node.toCollect(toCollect);
-            node.projections(projections);
-
-            setOutputTypes(node);
-            return node;
-        }
-
-        static MergeNode distributedMerge(CollectNode collectNode,
-                                          ImmutableList<Projection> projections) {
-            MergeNode node = new MergeNode("distributed merge", collectNode.executionNodes().size());
-            node.projections(projections);
-
-            // TODO: all nodes by default?
-            node.executionNodes(collectNode.routing().nodes());
-
-            connectTypes(collectNode, node);
-            return node;
-        }
-
-        static MergeNode localMerge(List<Projection> projections,
-                                    PlanNode previousNode) {
-            MergeNode node = new MergeNode("localMerge", previousNode.executionNodes().size());
-            node.projections(projections);
-            connectTypes(previousNode, node);
-            return node;
-        }
-
-        /**
-         * calculates the outputTypes using the projections and input types.
-         * must be called after projections have been set.
-         */
-        static void setOutputTypes(CollectNode node) {
-            if (node.projections().isEmpty()) {
-                node.outputTypes(extractDataTypes(node.toCollect()));
-            } else {
-                node.outputTypes(extractDataTypes(node.projections(), extractDataTypes(node.toCollect())));
-            }
-        }
-
-        /**
-         * sets the inputTypes from the previousNode's outputTypes
-         * and calculates the outputTypes using the projections and input types.
-         *
-         * must be called after projections have been set
-         */
-        static void connectTypes(PlanNode previousNode, MergeNode nextNode) {
-            nextNode.inputTypes(previousNode.outputTypes());
-            nextNode.outputTypes(extractDataTypes(nextNode.projections(), nextNode.inputTypes()));
-        }
-
-        static CollectNode collect(Analysis analysis,
-                                   List<Symbol> toCollect,
-                                   ImmutableList<Projection> projections) {
-            CollectNode node = new CollectNode("collect", analysis.table().getRouting(analysis.whereClause()));
-            node.whereClause(analysis.whereClause());
-            node.toCollect(toCollect);
-            node.maxRowGranularity(analysis.rowGranularity());
-            node.projections(projections);
-
-            setOutputTypes(node);
-            return node;
-        }
-    }
 
     /**
      * dispatch plan creation based on analysis type
+     *
      * @param analysis analysis to create plan from
      * @return plan
      */
     public Plan plan(Analysis analysis) {
         Plan plan;
-        switch(analysis.type()) {
+        switch (analysis.type()) {
             case SELECT:
-                plan = planSelect((SelectAnalysis)analysis);
+                plan = planSelect((SelectAnalysis) analysis);
                 break;
             case INSERT:
-                plan = planInsert((InsertAnalysis)analysis);
+                plan = planInsert((InsertAnalysis) analysis);
                 break;
             case UPDATE:
                 plan = planUpdate((UpdateAnalysis) analysis);
@@ -471,7 +153,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
     private void normalSelect(SelectAnalysis analysis, Plan plan) {
         // node or shard level normal select
 
-        ContextBuilder contextBuilder = new ContextBuilder()
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
                 .output(analysis.outputSymbols())
                 .orderBy(analysis.sortSymbols());
 
@@ -485,7 +167,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             projections = ImmutableList.<Projection>of();
         }
 
-        CollectNode collectNode = NodeBuilder.collect(analysis, contextBuilder.toCollect(), projections);
+        CollectNode collectNode = PlanNodeBuilder.collect(analysis, contextBuilder.toCollect(), projections);
         plan.add(collectNode);
 
 
@@ -496,7 +178,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 analysis.reverseFlags()
         );
         tnp.outputs(contextBuilder.outputs());
-        plan.add(NodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), collectNode));
+        plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), collectNode));
     }
 
     private void ESSearch(SelectAnalysis analysis, Plan plan) {
@@ -508,7 +190,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 @Override
                 public Reference apply(Symbol input) {
                     Preconditions.checkArgument(input.symbolType() == SymbolType.REFERENCE,
-                        "Unsupported order symbol for ESPlan", input);
+                            "Unsupported order symbol for ESPlan", input);
                     return (Reference) input;
                 }
             });
@@ -538,15 +220,15 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     private void globalAggregates(SelectAnalysis analysis, Plan plan) {
         // global aggregate: collect and partial aggregate on C and final agg on H
-        ContextBuilder contextBuilder = new ContextBuilder(2)
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2)
                 .output(analysis.outputSymbols());
 
         AggregationProjection ap = new AggregationProjection();
         ap.aggregations(contextBuilder.aggregations());
-        CollectNode collectNode = NodeBuilder.collect(
-            analysis,
-            contextBuilder.toCollect(),
-            ImmutableList.<Projection>of(ap)
+        CollectNode collectNode = PlanNodeBuilder.collect(
+                analysis,
+                contextBuilder.toCollect(),
+                ImmutableList.<Projection>of(ap)
         );
         plan.add(collectNode);
 
@@ -561,7 +243,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             topNProjection.outputs(contextBuilder.outputs());
             projections.add(topNProjection);
         }
-        plan.add(NodeBuilder.localMerge(projections, collectNode));
+        plan.add(PlanNodeBuilder.localMerge(projections, collectNode));
     }
 
     private void groupBy(SelectAnalysis analysis, Plan plan) {
@@ -573,13 +255,13 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
     }
 
     private void nonDistributedGroupBy(SelectAnalysis analysis, Plan plan) {
-        ContextBuilder contextBuilder = new ContextBuilder(1, analysis.groupBy())
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(1, analysis.groupBy())
                 .output(analysis.outputSymbols())
                 .orderBy(analysis.sortSymbols());
 
         GroupProjection groupProjection =
                 new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
-        CollectNode collectNode = NodeBuilder.collect(
+        CollectNode collectNode = PlanNodeBuilder.collect(
                 analysis,
                 contextBuilder.toCollect(),
                 ImmutableList.<Projection>of(groupProjection)
@@ -598,25 +280,25 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 analysis.reverseFlags()
         );
         topN.outputs(contextBuilder.outputs());
-        plan.add(NodeBuilder.localMerge(ImmutableList.<Projection>of(groupProjection, topN), collectNode));
+        plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(groupProjection, topN), collectNode));
     }
 
 
     /**
      * distributed collect on mapper nodes
      * with merge on reducer to final (they have row authority)
-     *
+     * <p/>
      * final merge on handler
      */
     private void distributedGroupBy(SelectAnalysis analysis, Plan plan) {
-        ContextBuilder contextBuilder = new ContextBuilder(2, analysis.groupBy())
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, analysis.groupBy())
                 .output(analysis.outputSymbols())
                 .orderBy(analysis.sortSymbols());
 
         // collector
         GroupProjection groupProjection = new GroupProjection(
                 contextBuilder.groupBy(), contextBuilder.aggregations());
-        CollectNode collectNode = NodeBuilder.distributingCollect(
+        CollectNode collectNode = PlanNodeBuilder.distributingCollect(
                 analysis,
                 contextBuilder.toCollect(),
                 nodesFromTable(analysis),
@@ -647,7 +329,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             topN.outputs(contextBuilder.outputs());
             projectionsBuilder.add(topN);
         }
-        MergeNode mergeNode = NodeBuilder.distributedMerge(collectNode, projectionsBuilder.build());
+        MergeNode mergeNode = PlanNodeBuilder.distributedMerge(collectNode, projectionsBuilder.build());
         plan.add(mergeNode);
 
 
@@ -662,13 +344,13 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         }
         // mergeNode handler
         TopNProjection topN = new TopNProjection(
-            Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-            analysis.offset(),
-            orderBy,
-            analysis.reverseFlags()
+                Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                analysis.offset(),
+                orderBy,
+                analysis.reverseFlags()
         );
         topN.outputs(outputs);
-        MergeNode localMergeNode = NodeBuilder.localMerge(ImmutableList.<Projection>of(topN), mergeNode);
+        MergeNode localMergeNode = PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN), mergeNode);
         plan.add(localMergeNode);
     }
 
@@ -708,7 +390,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         return plan;
     }
 
-    private static List<DataType> extractDataTypes(List<Symbol> symbols) {
+    static List<DataType> extractDataTypes(List<Symbol> symbols) {
         List<DataType> types = new ArrayList<>(symbols.size());
         for (Symbol symbol : symbols) {
             types.add(symbol.accept(dataTypeVisitor, null));
@@ -716,7 +398,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         return types;
     }
 
-    private static List<DataType> extractDataTypes(List<Projection> projections, @Nullable List<DataType> inputTypes) {
+    static List<DataType> extractDataTypes(List<Projection> projections, @Nullable List<DataType> inputTypes) {
         int projectionIdx = projections.size() - 1;
         Projection lastProjection = projections.get(projectionIdx);
         List<DataType> types = new ArrayList<>(lastProjection.outputs().size());
@@ -746,74 +428,4 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         return type;
     }
 
-    private static class DataTypeVisitor extends SymbolVisitor<Void, DataType> {
-
-        @Override
-        public DataType visitAggregation(Aggregation symbol, Void context) {
-            if (symbol.toStep() == Aggregation.Step.PARTIAL) {
-                return DataType.NULL; // TODO: change once we have aggregationState types
-            }
-            return symbol.functionInfo().returnType();
-        }
-
-        @Override
-        public DataType visitValue(Value symbol, Void context) {
-            return symbol.valueType();
-        }
-
-        @Override
-        public DataType visitStringLiteral(StringLiteral symbol, Void context) {
-            return symbol.valueType();
-        }
-
-        @Override
-        public DataType visitDoubleLiteral(DoubleLiteral symbol, Void context) {
-            return symbol.valueType();
-        }
-
-        @Override
-        public DataType visitBooleanLiteral(BooleanLiteral symbol, Void context) {
-            return symbol.valueType();
-        }
-
-        @Override
-        public DataType visitIntegerLiteral(IntegerLiteral symbol, Void context) {
-            return symbol.valueType();
-        }
-
-        @Override
-        public DataType visitInputColumn(InputColumn inputColumn, Void context) {
-            return null;
-        }
-
-        @Override
-        public DataType visitNullLiteral(Null symbol, Void context) {
-            return symbol.valueType();
-        }
-
-        @Override
-        public DataType visitLongLiteral(LongLiteral symbol, Void context) {
-            return symbol.valueType();
-        }
-
-        @Override
-        public DataType visitFloatLiteral(FloatLiteral symbol, Void context) {
-            return symbol.valueType();
-        }
-
-        @Override
-        protected DataType visitSymbol(Symbol symbol, Void context) {
-            throw new UnsupportedOperationException("Unsupported Symbol");
-        }
-
-        @Override
-        public DataType visitReference(Reference symbol, Void context) {
-            return symbol.valueType();
-        }
-
-        @Override
-        public DataType visitFunction(Function symbol, Void context) {
-            return symbol.valueType();
-        }
-    }
 }
