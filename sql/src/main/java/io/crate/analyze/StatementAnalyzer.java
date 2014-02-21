@@ -92,7 +92,7 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
 
             // define the outer function which contains the inner function as arugment.
             String nodeName = "collection_" + node.getName().toString();
-            ImmutableList<Symbol> outerArguments = ImmutableList.<Symbol>of(innerFunction);
+            List<Symbol> outerArguments = Arrays.<Symbol>asList(innerFunction);
             ImmutableList<DataType> outerArgumentTypes = ImmutableList.of(DataType.SET_TYPES.get(argumentTypes.get(0).ordinal()));
 
             FunctionIdent ident = new FunctionIdent(nodeName, outerArgumentTypes);

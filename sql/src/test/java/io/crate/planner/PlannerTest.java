@@ -17,9 +17,11 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.operator.OperatorModule;
+import io.crate.operator.scalar.ScalarFunctionModule;
 import io.crate.planner.node.*;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
@@ -130,6 +132,7 @@ public class PlannerTest {
                 .add(new TestModule())
                 .add(new TestSysModule())
                 .add(new AggregationImplModule())
+                .add(new ScalarFunctionModule())
                 .add(new OperatorModule())
                 .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
@@ -144,10 +147,11 @@ public class PlannerTest {
         Plan plan = plan("select count('foo'), name from users group by name");
         Iterator<PlanNode> iterator = plan.iterator();
         CollectNode collectNode = (CollectNode) iterator.next();
-        assertThat(collectNode.toCollect().size(), is(1));
+        // TODO: optimize to not collect literal
+        //assertThat(collectNode.toCollect().size(), is(1));
         GroupProjection groupProjection = (GroupProjection) collectNode.projections().get(0);
         Aggregation aggregation = groupProjection.values().get(0);
-        assertTrue(aggregation.inputs().get(0).symbolType().isLiteral());
+        //assertTrue(aggregation.inputs().get(0).symbolType().isLiteral());
     }
 
     @Test
@@ -284,9 +288,9 @@ public class PlannerTest {
         assertThat(topN.limit(), is(2));
         assertThat(topN.offset(), is(0));
         assertThat(topN.outputs().get(0), instanceOf(InputColumn.class));
-        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(1));
         assertThat(topN.outputs().get(1), instanceOf(InputColumn.class));
-        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
+        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(0));
 
 
         // local merge
@@ -296,9 +300,9 @@ public class PlannerTest {
         assertThat(topN.limit(), is(1));
         assertThat(topN.offset(), is(1));
         assertThat(topN.outputs().get(0), instanceOf(InputColumn.class));
-        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(1));
+        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(0));
         assertThat(topN.outputs().get(1), instanceOf(InputColumn.class));
-        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(0));
+        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
 
         assertFalse(plan.expectsAffectedRows());
     }
@@ -446,4 +450,105 @@ public class PlannerTest {
 
         assertTrue(plan.expectsAffectedRows());
     }
+
+    @Test
+    public void testCountDistinctPlan() throws Exception {
+        Plan plan = plan("select count(distinct name) from users");
+        Iterator<PlanNode> iterator = plan.iterator();
+        CollectNode collectNode = (CollectNode)iterator.next();
+        Projection projection = collectNode.projections().get(0);
+        assertThat(projection, instanceOf(AggregationProjection.class));
+        AggregationProjection aggregationProjection = (AggregationProjection)projection;
+        assertThat(aggregationProjection.aggregations().size(), is(1));
+
+        Aggregation aggregation = aggregationProjection.aggregations().get(0);
+        assertThat(aggregation.toStep(), is(Aggregation.Step.PARTIAL));
+        Symbol aggregationInput = aggregation.inputs().get(0);
+        assertThat(aggregationInput.symbolType(), is(SymbolType.INPUT_COLUMN));
+
+        assertThat(collectNode.toCollect().get(0), instanceOf(Reference.class));
+        assertThat(((Reference)collectNode.toCollect().get(0)).info().ident().columnIdent().name(), is("name"));
+
+        MergeNode mergeNode = (MergeNode)iterator.next();
+        assertThat(mergeNode.projections().size(), is(2));
+        Projection projection1 = mergeNode.projections().get(1);
+        assertThat(projection1, instanceOf(TopNProjection.class));
+        Symbol collection_count = projection1.outputs().get(0);
+        assertThat(collection_count, instanceOf(Function.class));
+    }
+
+    @Test
+    public void testGroupByWithOrderOnAggregate() throws Exception {
+        Plan plan = plan("select count(*), name from users group by name order by count(*)");
+        Iterator<PlanNode> iterator = plan.iterator();
+        CollectNode collectNode = (CollectNode)iterator.next();
+
+        // reducer
+        iterator.next();
+
+        // sort is on handler because there is no limit/offset
+        // handler
+        MergeNode mergeNode = (MergeNode)iterator.next();
+        assertThat(mergeNode.projections().size(), is(1));
+
+        TopNProjection topNProjection = (TopNProjection)mergeNode.projections().get(0);
+        Symbol orderBy = topNProjection.orderBy().get(0);
+        assertThat(orderBy, instanceOf(InputColumn.class));
+
+        // points to the first values() entry of the previous GroupProjection
+        assertThat(((InputColumn)orderBy).index(), is(1));
+    }
+
+    @Test
+    public void testCountDistinctWithGroupBy() throws Exception {
+        Plan plan = plan("select count(distinct id), name from users group by name order by count(distinct id)");
+        Iterator<PlanNode> iterator = plan.iterator();
+
+        // collect
+        CollectNode collectNode = (CollectNode)iterator.next();
+        assertThat(collectNode.toCollect().get(0), instanceOf(Reference.class));
+        assertThat(collectNode.toCollect().size(), is(2));
+        assertThat(((Reference)collectNode.toCollect().get(1)).info().ident().columnIdent().name(), is("id"));
+        assertThat(((Reference)collectNode.toCollect().get(0)).info().ident().columnIdent().name(), is("name"));
+        Projection projection = collectNode.projections().get(0);
+        assertThat(projection, instanceOf(GroupProjection.class));
+        GroupProjection groupProjection = (GroupProjection)projection;
+        Symbol groupKey = groupProjection.keys().get(0);
+        assertThat(groupKey, instanceOf(InputColumn.class));
+        assertThat(((InputColumn)groupKey).index(), is(0));
+        assertThat(groupProjection.values().size(), is(1));
+
+        Aggregation aggregation = groupProjection.values().get(0);
+        assertThat(aggregation.toStep(), is(Aggregation.Step.PARTIAL));
+        Symbol aggregationInput = aggregation.inputs().get(0);
+        assertThat(aggregationInput.symbolType(), is(SymbolType.INPUT_COLUMN));
+
+
+
+        // reducer
+        MergeNode mergeNode = (MergeNode)iterator.next();
+        assertThat(mergeNode.projections().size(), is(2));
+        Projection groupProjection1 = mergeNode.projections().get(0);
+        assertThat(groupProjection1, instanceOf(GroupProjection.class));
+        groupProjection = (GroupProjection)groupProjection1;
+        assertThat(groupProjection.keys().get(0), instanceOf(InputColumn.class));
+        assertThat(((InputColumn)groupProjection.keys().get(0)).index(), is(0));
+
+        assertThat(groupProjection.values().get(0), instanceOf(Aggregation.class));
+        Aggregation aggregationStep2 = groupProjection.values().get(0);
+        assertThat(aggregationStep2.toStep(), is(Aggregation.Step.FINAL));
+
+        TopNProjection topNProjection = (TopNProjection)mergeNode.projections().get(1);
+        Symbol collection_count = topNProjection.outputs().get(0);
+        assertThat(collection_count, instanceOf(Function.class));
+
+
+
+        // handler
+        MergeNode localMergeNode = (MergeNode)iterator.next();
+        assertThat(localMergeNode.projections().size(), is(1));
+        Projection localTopN = localMergeNode.projections().get(0);
+        assertThat(localTopN, instanceOf(TopNProjection.class));
+    }
+
 }

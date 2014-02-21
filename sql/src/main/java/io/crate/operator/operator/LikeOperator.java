@@ -65,7 +65,10 @@ public class LikeOperator extends Operator<BytesRef> {
         StringLiteral expression = (StringLiteral) symbol.arguments().get(0);
         StringLiteral pattern = (StringLiteral) symbol.arguments().get(1);
 
-        return new BooleanLiteral(evaluate(expression, pattern));
+        if (evaluate(expression, pattern)) {
+            return BooleanLiteral.TRUE;
+        }
+        return BooleanLiteral.FALSE;
     }
 
     @Override

@@ -25,15 +25,15 @@ import com.google.common.base.Preconditions;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
+import io.crate.planner.symbol.*;
 import io.crate.sql.tree.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
+
+    private final static AggregationSearcher aggregationSearcher = new AggregationSearcher();
 
     @Override
     protected Symbol visitSelect(Select node, SelectAnalysis context) {
@@ -200,12 +200,13 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
 
     private void ensureOutputSymbolsInGroupBy(SelectAnalysis context) {
         for (Symbol symbol : context.outputSymbols()) {
-            if (symbol.symbolType() == SymbolType.FUNCTION && ((Function) symbol).info().isAggregate()) {
-                continue;
-            }
             if (!context.groupBy().contains(symbol)) {
-                throw new IllegalArgumentException(
-                        String.format("column %s must appear in the GROUP BY clause or be used in an aggregation function", symbol));
+                AggregationSearcherContext searcherContext = new AggregationSearcherContext();
+                aggregationSearcher.process(symbol, searcherContext);
+                if (!searcherContext.found) {
+                    throw new IllegalArgumentException(
+                            String.format("column %s must appear in the GROUP BY clause or be used in an aggregation function", symbol));
+                }
             }
         }
     }
@@ -219,5 +220,30 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
     protected Symbol visitQuery(Query node, SelectAnalysis context) {
         context.query(node);
         return super.visitQuery(node, context);
+    }
+
+    static class AggregationSearcherContext {
+        boolean found = false;
+    }
+
+    static class AggregationSearcher extends SymbolVisitor<AggregationSearcherContext, Void> {
+
+        @Override
+        public Void visitFunction(Function symbol, AggregationSearcherContext context) {
+            if (symbol.info().isAggregate()) {
+                context.found = true;
+            } else {
+                for (Symbol argument : symbol.arguments()) {
+                    process(argument, context);
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitAggregation(Aggregation symbol, AggregationSearcherContext context) {
+            context.found = true;
+            return null;
+        }
     }
 }

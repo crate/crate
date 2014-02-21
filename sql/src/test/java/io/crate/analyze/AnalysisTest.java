@@ -80,7 +80,7 @@ public class AnalysisTest {
             if (args == null || args.length == 0) {
                 return 0.0d;
             }
-            return Math.abs(((Number)args[0].value()).doubleValue());
+            return Math.abs((args[0].value()).doubleValue());
         }
 
         @Override
