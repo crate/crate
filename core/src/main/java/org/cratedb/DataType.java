@@ -210,6 +210,21 @@ public enum DataType {
             IP_SET
     );
 
+    public static final ImmutableList<DataType> ALL_TYPES_INC_NULL = ImmutableList.of(
+            BYTE,
+            SHORT,
+            INTEGER,
+            LONG,
+            FLOAT,
+            DOUBLE,
+            BOOLEAN,
+            STRING,
+            TIMESTAMP,
+            OBJECT,
+            IP,
+            NULL
+    );
+
     private final Streamer streamer;
 
     private String name;

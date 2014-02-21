@@ -27,6 +27,10 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.AggregationState;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.LongLiteral;
+import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -38,18 +42,17 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
     public static final String NAME = "count";
     private final FunctionInfo info;
 
+    private static final FunctionInfo COUNT_STAR_FUNCTION = new FunctionInfo(new FunctionIdent(NAME, ImmutableList.<DataType>of()), DataType.LONG, true);
+
     public static void register(AggregationImplModule mod) {
-        for (DataType t : DataType.ALL_TYPES) {
+        for (DataType t : DataType.ALL_TYPES_INC_NULL) {
             mod.registerAggregateFunction(
                     new CountAggregation(
                             new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), DataType.LONG, true))
             );
         }
         // Register function for 0 inputs (count(*))
-        mod.registerAggregateFunction(
-                new CountAggregation(
-                        new FunctionInfo(new FunctionIdent(NAME, ImmutableList.<DataType>of()), DataType.LONG, true))
-        );
+        mod.registerAggregateFunction(new CountAggregation(COUNT_STAR_FUNCTION));
 
     }
 
@@ -107,5 +110,21 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Override
+    public Symbol normalizeSymbol(Function function) {
+        assert (function.arguments().size() <= 1);
+
+        if (function.arguments().size() == 1) {
+            if (function.arguments().get(0).symbolType().isLiteral()) {
+                if (((Literal)function.arguments().get(0)).valueType() == DataType.NULL) {
+                    return new LongLiteral(0);
+                } else{
+                    return new Function(COUNT_STAR_FUNCTION, ImmutableList.<Symbol>of());
+                }
+            }
+        }
+        return function;
     }
 }

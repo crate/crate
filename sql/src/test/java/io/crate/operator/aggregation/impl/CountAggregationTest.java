@@ -84,10 +84,11 @@ public class CountAggregationTest extends AggregationTest {
         assertEquals(2L, result[0][0]);
     }
 
-
+    @Test
     public void testNoInput() throws Exception {
         // aka. COUNT(*)
         Object[][] result = executeAggregation(null, new Object[][]{{}, {}});
         assertEquals(2L, result[0][0]);
     }
+
 }
