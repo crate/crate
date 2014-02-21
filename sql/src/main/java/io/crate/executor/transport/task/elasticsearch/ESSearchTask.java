@@ -32,7 +32,6 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolVisitor;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
 import org.cratedb.sql.ExceptionHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.SearchRequest;
@@ -139,25 +138,6 @@ public class ESSearchTask implements Task<Object[][]> {
                     @Override
                     public Object extract(SearchHit hit) {
                         return hit.getScore();
-                    }
-                };
-            } else if (output.valueType() == DataType.STRING) {
-                extractors[i] = new FieldExtractor() {
-                    @Override
-                    public Object extract(SearchHit hit) {
-                        SearchHitField field = hit.getFields().get(fieldName);
-                        Object value = null;
-                        if (field != null && !field.values().isEmpty()) {
-                            if (field.values().size() == 1) {
-                                value = field.value();
-                                if (value != null) {
-                                    value = new BytesRef((String)value);
-                                }
-                            } else {
-                                value = field.values();
-                            }
-                        }
-                        return value;
                     }
                 };
             } else {

@@ -66,7 +66,7 @@ public class RowsResponseBuilder implements ResponseBuilder {
         for (int r = 0; r < rows.length; r++) {
             for (IntCursor stringColumn : stringColumns) {
                 Object value = rows[r][stringColumn.value];
-                if (value != null) {
+                if (value != null && value instanceof BytesRef) {
                     rows[r][stringColumn.value] = ((BytesRef)value).utf8ToString();
                 }
             }

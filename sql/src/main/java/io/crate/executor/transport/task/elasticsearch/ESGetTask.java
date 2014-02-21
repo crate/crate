@@ -104,17 +104,6 @@ public class ESGetTask implements Task<Object[][]> {
                         return new BytesRef(response.getId());
                     }
                 };
-            } else if (types[i] == DataType.STRING) {
-                extractors[i] = new FieldExtractor() {
-                    @Override
-                    public Object extract(GetResponse response) {
-                        Object value = response.getField(field).getValue();
-                        if (value != null) {
-                            return new BytesRef((String)value);
-                        }
-                        return null;
-                    }
-                };
             } else {
                 extractors[i] = new FieldExtractor() {
                     @Override
@@ -123,7 +112,6 @@ public class ESGetTask implements Task<Object[][]> {
                     }
                 };
             }
-
             i++;
         }
         return extractors;
