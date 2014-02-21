@@ -103,7 +103,7 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
             // column references not allowed in values, throw an error here
             throw new CrateException("column references not allowed in insert values.");
         }
-        ReferenceIdent ident = context.getReference(node.getName(), true);
+        ReferenceIdent ident = context.getReference(node.getName());
 
         // set primary key index if found
         if (context.table().primaryKey().contains(ident.columnIdent().name())) {

@@ -22,11 +22,9 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Delete;
-import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.Table;
 
 public class DeleteStatementAnalyzer extends StatementAnalyzer<DeleteAnalysis> {
@@ -47,10 +45,5 @@ public class DeleteStatementAnalyzer extends StatementAnalyzer<DeleteAnalysis> {
         Preconditions.checkState(context.table() == null, "deleting multiple tables is not supported");
         context.editableTable(TableIdent.of(node));
         return null;
-    }
-
-    protected Symbol visitQualifiedNameReference(QualifiedNameReference node, DeleteAnalysis context) {
-        ReferenceIdent ident = context.getReference(node.getName(), true);
-        return context.allocateReference(ident);
     }
 }

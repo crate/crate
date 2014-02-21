@@ -62,12 +62,6 @@ public class UpdateStatementAnalyzer extends StatementAnalyzer<UpdateAnalysis> {
     }
 
     @Override
-    protected Symbol visitQualifiedNameReference(QualifiedNameReference node, UpdateAnalysis context) {
-        ReferenceIdent ident = context.getReference(node.getName(), true);
-        return context.allocateReference(ident);
-    }
-
-    @Override
     public Symbol visitAssignment(Assignment node, UpdateAnalysis context) {
         // unknown columns in strict objects handled in here
         Reference reference = (Reference)process(node.columnName(), context);

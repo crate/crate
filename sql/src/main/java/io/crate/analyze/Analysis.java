@@ -380,7 +380,7 @@ public abstract class Analysis {
     /**
      * get a reference from a given {@link io.crate.sql.tree.QualifiedName}
      */
-    protected ReferenceIdent getReference(QualifiedName name, boolean sameTableOnly) {
+    protected ReferenceIdent getReference(QualifiedName name) {
         ReferenceIdent ident;
         List<String> parts = name.getParts();
         switch (parts.size()) {
@@ -397,9 +397,10 @@ public abstract class Analysis {
             case 3:
                 TableInfo otherTable = referenceInfos.getTableInfo(new TableIdent(parts.get(0), parts.get(1)));
 
-                if (otherTable == null
-                        || (!table.ident().equals(otherTable.ident())
-                        && (otherTable.rowGranularity() == table.rowGranularity() || sameTableOnly))) {
+                // TODO: support select sys.cluster.name, sys.nodes.id, sys.shards.id name from users
+                // check if granularity is higher
+                // extra case for information_schema necessary
+                if (otherTable == null || !table.ident().equals(otherTable.ident())) {
                     // reference from unknown table or from other table with same rowGranularity
                     throw new UnsupportedOperationException("unsupported name reference: " + name);
                 }

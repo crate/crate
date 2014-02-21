@@ -127,20 +127,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testWithShardId() throws Exception {
-        execute("create table test (id integer primary key, name string) clustered into 3 shards replicas 0");
-        ensureGreen();
-        execute("insert into test values (1, 'Trillian')");
-        execute("insert into test values (2, 'Arthur')");
-        refresh();
-
-        execute("select sys.shards.id, id, name from test");
-        assertEquals(2, response.rowCount());
-        assertThat(response.cols()[0], is("sys.shards.id"));
-        assertThat((Integer)response.rows()[0][0], isOneOf(0, 1, 2));
-    }
-
-    @Test
     public void testSelectStar() throws Exception {
         execute("create table test (\"firstName\" string, \"lastName\" string)");
         waitForRelocation(ClusterHealthStatus.GREEN);
