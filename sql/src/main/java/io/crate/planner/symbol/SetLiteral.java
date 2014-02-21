@@ -80,7 +80,7 @@ public class SetLiteral extends Literal<Set<?>, SetLiteral> {
     public SetLiteral(DataType itemType, Set<?> values) {
         assert values != null;
         this.itemType = itemType;
-        this.valueType = DataType.SET_TYPES.get(itemType.ordinal());
+        this.valueType = itemType.setType();
         this.values = values;
     }
 
@@ -151,7 +151,7 @@ public class SetLiteral extends Literal<Set<?>, SetLiteral> {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         itemType = DataType.fromStream(in);
-        valueType = DataType.SET_TYPES.get(itemType.ordinal());
+        valueType = itemType.setType();
         values = (Set<Object>) valueType.streamer().readFrom(in);
     }
 

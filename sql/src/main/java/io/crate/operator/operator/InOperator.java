@@ -41,7 +41,7 @@ public class InOperator extends Operator<Object> {
 
     public static void register(OperatorModule module) {
         for (DataType type : DataType.ALL_TYPES) {
-            DataType setType = DataType.SET_TYPES.get(type.ordinal());
+            DataType setType = type.setType();
             FunctionInfo functionInfo = new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(type, setType)), DataType.BOOLEAN);
             module.registerOperatorFunction(new InOperator(functionInfo));
         }

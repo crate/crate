@@ -234,7 +234,7 @@ public class ESQueryBuilder {
                     raiseUnsupported(function);
                 }
 
-                assert left.symbolType() == SymbolType.REFERENCE;
+                assert left.symbolType() == SymbolType.REFERENCE || left.symbolType() == SymbolType.DYNAMIC_REFERENCE;
 
 
                 Object value;
