@@ -27,7 +27,6 @@ import io.crate.analyze.elasticsearch.ESQueryBuilder;
 import io.crate.executor.Task;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
@@ -184,9 +183,7 @@ public class ESSearchTask implements Task<Object[][]> {
         @Override
         public Void visitReference(Reference symbol, Context context) {
             context.outputs.add(symbol);
-            if (symbol.info().granularity() == RowGranularity.DOC) {
-                context.indices.add(symbol.info().ident().tableIdent().name());
-            }
+            context.indices.add(symbol.info().ident().tableIdent().name());
             return null;
         }
 

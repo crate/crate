@@ -10,6 +10,7 @@ import io.crate.planner.symbol.*;
 import io.crate.sql.tree.QualifiedName;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
+import org.cratedb.sql.SchemaUnknownException;
 import org.cratedb.sql.TableUnknownException;
 import org.cratedb.sql.ValidationException;
 import org.elasticsearch.common.Preconditions;
@@ -86,11 +87,15 @@ public abstract class Analysis {
     }
 
     public void table(TableIdent tableIdent) {
+        SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
+        if (schemaInfo == null) {
+            throw new SchemaUnknownException(tableIdent.schema());
+        }
         TableInfo tableInfo = referenceInfos.getTableInfo(tableIdent);
         if (tableInfo == null) {
             throw new TableUnknownException(tableIdent.name());
         }
-        schema = referenceInfos.getSchemaInfo(tableIdent.schema());
+        schema = schemaInfo;
         table = tableInfo;
         updateRowGranularity(table.rowGranularity());
     }
@@ -99,7 +104,7 @@ public abstract class Analysis {
                                                             UnsupportedOperationException {
         SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
         if (schemaInfo == null) {
-            throw new TableUnknownException(tableIdent.name());
+            throw new SchemaUnknownException(tableIdent.schema());
         } else if (schemaInfo.systemSchema()) {
             throw new UnsupportedOperationException(
                     String.format("tables of schema '%s' are read only.", tableIdent.schema()));
