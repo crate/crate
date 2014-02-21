@@ -155,7 +155,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         assertThat(objects.length, is(1));
         assertThat((Integer) objects[0][0], is(2));
-        assertThat((BytesRef) objects[0][1], is(new BytesRef("Ford")));
+        assertThat((String) objects[0][1], is("Ford"));
     }
 
     @Test
@@ -192,13 +192,13 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat(rows.length, is(3));
 
         assertThat((Integer) rows[0][0], is(1));
-        assertThat((BytesRef) rows[0][1], is(new BytesRef("Arthur")));
+        assertThat((String) rows[0][1], is("Arthur"));
 
         assertThat((Integer) rows[1][0], is(2));
-        assertThat((BytesRef) rows[1][1], is(new BytesRef("Ford")));
+        assertThat((String) rows[1][1], is("Ford"));
 
         assertThat((Integer) rows[2][0], is(3));
-        assertThat((BytesRef) rows[2][1], is(new BytesRef("Trillian")));
+        assertThat((String) rows[2][1], is("Trillian"));
     }
 
     @Test
@@ -227,7 +227,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat(rows.length, is(1));
 
         assertThat((Integer) rows[0][0], is(2));
-        assertThat((BytesRef) rows[0][1], is(new BytesRef("Ford")));
+        assertThat((String) rows[0][1], is("Ford"));
     }
 
     @Test
@@ -329,7 +329,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         assertThat(objects.length, is(1));
         assertThat((Integer)objects[0][0], is(99));
-        assertThat((BytesRef)objects[0][1], is(new BytesRef("Marvin")));
+        assertThat((String)objects[0][1], is("Marvin"));
     }
 
     @Test
@@ -372,10 +372,10 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         assertThat(objects.length, is(2));
         assertThat((Integer)objects[0][0], is(99));
-        assertThat((BytesRef)objects[0][1], is(new BytesRef("Marvin")));
+        assertThat((String)objects[0][1], is("Marvin"));
 
         assertThat((Integer)objects[1][0], is(42));
-        assertThat((BytesRef)objects[1][1], is(new BytesRef("Deep Thought")));
+        assertThat((String)objects[1][1], is("Deep Thought"));
     }
 
     @Test
@@ -408,6 +408,6 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         assertThat(objects.length, is(1));
         assertThat((Integer)objects[0][0], is(1));
-        assertThat((BytesRef)objects[0][1], is(new BytesRef("Vogon lyric fan")));
+        assertThat((String)objects[0][1], is("Vogon lyric fan"));
     }
 }
