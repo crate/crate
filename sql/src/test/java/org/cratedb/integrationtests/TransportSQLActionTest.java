@@ -137,7 +137,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select sys.shards.id, id, name from test");
         assertEquals(2, response.rowCount());
         assertThat(response.cols()[0], is("sys.shards.id"));
-        assertThat((Integer)response.rows()[0][0], isOneOf(1, 2));
+        assertThat((Integer)response.rows()[0][0], isOneOf(0, 1, 2));
 
     }
 
