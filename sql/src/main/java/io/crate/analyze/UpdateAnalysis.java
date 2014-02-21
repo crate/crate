@@ -24,8 +24,6 @@ package io.crate.analyze;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Update;
@@ -67,19 +65,5 @@ public class UpdateAnalysis extends Analysis {
             throw new IllegalArgumentException(String.format("reference repeated %s", reference.info().ident().columnIdent().fqn()));
         }
         assignments.put(reference, value);
-    }
-
-    @Override
-    public void table(TableIdent tableIdent) {
-        super.table(tableIdent);
-        SchemaInfo schema = referenceInfos.getSchemaInfo(tableIdent.schema());
-        // null schema already caught by TableUnknownException
-        if (schema != null && schema.systemSchema()) {
-            throw new UnsupportedOperationException(
-                    String.format("tables of schema '%s' are read only.", tableIdent.schema()));
-        }
-        if (table().isAlias()) {
-            throw new IllegalArgumentException("Table alias not allowed in UPDATE statement.");
-        }
     }
 }
