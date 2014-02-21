@@ -32,6 +32,7 @@ import java.util.*;
 public class SysClusterTableInfo extends SysTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "cluster");
+    private static final HandlerSideRouting ROUTING = new HandlerSideRouting(IDENT);
     private static final String[] PARTITIONS = new String[]{IDENT.name()};
 
     public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
@@ -63,8 +64,7 @@ public class SysClusterTableInfo extends SysTableInfo {
 
     @Override
     public Routing getRouting(WhereClause whereClause) {
-        // No routing for cluster level
-        return null;
+        return ROUTING;
     }
 
     @Override
