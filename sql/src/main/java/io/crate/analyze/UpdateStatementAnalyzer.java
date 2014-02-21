@@ -29,8 +29,6 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.*;
 
-import java.util.List;
-
 public class UpdateStatementAnalyzer extends StatementAnalyzer<UpdateAnalysis> {
 
     @Override
@@ -65,21 +63,7 @@ public class UpdateStatementAnalyzer extends StatementAnalyzer<UpdateAnalysis> {
 
     @Override
     protected Symbol visitQualifiedNameReference(QualifiedNameReference node, UpdateAnalysis context) {
-        ReferenceIdent ident;
-        List<String> parts = node.getName().getParts();
-        switch (parts.size()) {
-            case 1:
-                ident = new ReferenceIdent(context.table().ident(), parts.get(0));
-                break;
-            case 2:
-                if (!context.table().ident().name().equals(parts.get(0))) {
-                    throw new UnsupportedOperationException("unsupported name reference: " + node);
-                }
-                ident = new ReferenceIdent(context.table().ident(), parts.get(1));
-                break;
-            default:
-                throw new UnsupportedOperationException("unsupported name reference: " + node);
-        }
+        ReferenceIdent ident = context.getReference(node.getName(), true);
         return context.allocateReference(ident);
     }
 

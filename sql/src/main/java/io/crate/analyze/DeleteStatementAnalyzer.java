@@ -29,8 +29,6 @@ import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.Table;
 
-import java.util.List;
-
 public class DeleteStatementAnalyzer extends StatementAnalyzer<DeleteAnalysis> {
 
     @Override
@@ -52,22 +50,7 @@ public class DeleteStatementAnalyzer extends StatementAnalyzer<DeleteAnalysis> {
     }
 
     protected Symbol visitQualifiedNameReference(QualifiedNameReference node, DeleteAnalysis context) {
-        ReferenceIdent ident;
-        List<String> parts = node.getName().getParts();
-        switch (parts.size()) {
-            case 1:
-                ident = new ReferenceIdent(context.table().ident(), parts.get(0));
-                break;
-            case 2:
-                // make sure tableName matches the tableInfo
-                if (!context.table().ident().name().equals(parts.get(0))) {
-                    throw new UnsupportedOperationException("unsupported name reference: " + node);
-                }
-                ident = new ReferenceIdent(context.table().ident(), parts.get(1));
-                break;
-            default:
-                throw new UnsupportedOperationException("unsupported name reference: " + node);
-        }
+        ReferenceIdent ident = context.getReference(node.getName(), true);
         return context.allocateReference(ident);
     }
 }

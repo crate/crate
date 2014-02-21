@@ -7,6 +7,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
+import io.crate.sql.tree.QualifiedName;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.sql.TableUnknownException;
@@ -371,5 +372,39 @@ public abstract class Analysis {
         if (whereClause().hasQuery()) {
             whereClause.normalize(normalizer);
         }
+    }
+
+    /**
+     * get a reference from a given {@link io.crate.sql.tree.QualifiedName}
+     */
+    protected ReferenceIdent getReference(QualifiedName name, boolean sameTableOnly) {
+        ReferenceIdent ident;
+        List<String> parts = name.getParts();
+        switch (parts.size()) {
+            case 1:
+                ident = new ReferenceIdent(table.ident(), parts.get(0));
+                break;
+            case 2:
+                // make sure tableName matches the tableInfo
+                if (!table.ident().name().equals(parts.get(0))) {
+                    throw new UnsupportedOperationException("unsupported name reference: " + name);
+                }
+                ident = new ReferenceIdent(table.ident(), parts.get(1));
+                break;
+            case 3:
+                TableInfo otherTable = referenceInfos.getTableInfo(new TableIdent(parts.get(0), parts.get(1)));
+
+                if (otherTable == null
+                        || (!table.ident().equals(otherTable.ident())
+                        && (otherTable.rowGranularity() == table.rowGranularity() || sameTableOnly))) {
+                    // reference from unknown table or from other table with same rowGranularity
+                    throw new UnsupportedOperationException("unsupported name reference: " + name);
+                }
+                ident = new ReferenceIdent(new TableIdent(parts.get(0), parts.get(1)), parts.get(2));
+                break;
+            default:
+                throw new UnsupportedOperationException("unsupported name reference: " + name);
+        }
+        return ident;
     }
 }
