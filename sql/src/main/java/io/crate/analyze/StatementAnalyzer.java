@@ -9,15 +9,15 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.TableIdent;
 import io.crate.operator.aggregation.impl.CollectSetAggregation;
+import io.crate.operator.aggregation.impl.CountAggregation;
 import io.crate.operator.operator.*;
-import io.crate.operator.predicate.*;
+import io.crate.operator.predicate.NotPredicate;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.*;
 import io.crate.sql.tree.DoubleLiteral;
-import io.crate.sql.tree.IsNullPredicate;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.StringLiteral;
 import org.apache.lucene.util.BytesRef;
@@ -72,16 +72,27 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
 
     @Override
     protected Symbol visitFunctionCall(FunctionCall node, T context) {
-        List<Symbol> arguments = new ArrayList<>(node.getArguments().size());
-        List<DataType> argumentTypes = new ArrayList<>(node.getArguments().size());
+        List<Symbol> arguments = null;
+        List<DataType> argumentTypes = null;
+        boolean nodeIsAggregation = false;
+        if (node.getName().getSuffix().equals(CountAggregation.NAME)) {
+            nodeIsAggregation = true;
+        }
+        arguments = new ArrayList<>(node.getArguments().size());
+        argumentTypes = new ArrayList<>(node.getArguments().size());
         for (Expression expression : node.getArguments()) {
             ValueSymbol vs = (ValueSymbol) expression.accept(this, context);
-            arguments.add(vs);
-            argumentTypes.add(vs.valueType());
+            if (!nodeIsAggregation || (nodeIsAggregation && !(vs instanceof Literal))) {
+                arguments.add(vs);
+                argumentTypes.add(vs.valueType());
+            }
         }
 
         FunctionInfo functionInfo = null;
         if (node.isDistinct()) {
+            if (argumentTypes.size() == 0) {
+                throw new UnsupportedOperationException("Function(DISTINCT x) requires exactly one non literal argument");
+            }
             if (argumentTypes.size() > 1) {
                 throw new UnsupportedOperationException("Function(DISTINCT x) does not accept more than one argument");
             }
