@@ -65,6 +65,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
         mergeNode.projections(Arrays.asList(groupProjection, topNProjection));
+        mergeNode.outputTypes(Arrays.asList(DataType.STRING, DataType.NULL));
 
         DataType.Streamer<?>[] mapperOutputStreamer = new DataType.Streamer[] {
                 new AggregationStateStreamer(countAggregation),
