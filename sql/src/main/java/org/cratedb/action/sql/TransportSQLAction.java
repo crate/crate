@@ -465,6 +465,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                 switch (((QueryTreeNode) node).getNodeType()) {
                     case INSERT_NODE:
                     case UPDATE_NODE:
+                    case COPY_STATEMENT_NODE:
                         isPresto.set(true);
                         break;
                 }

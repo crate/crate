@@ -428,4 +428,8 @@ public abstract class AstVisitor<R, C>
     public R visitAssignment(Assignment node, C context) {
         return visitNode(node, context);
     }
+
+    public R visitCopyFromStatement(CopyFromStatement node, C context) {
+        return visitNode(node, context);
+    }
 }

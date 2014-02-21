@@ -31,6 +31,7 @@ import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.executor.transport.task.DistributedMergeTask;
 import io.crate.executor.transport.task.RemoteCollectTask;
 import io.crate.executor.transport.task.elasticsearch.*;
+import io.crate.executor.transport.task.inout.ImportTask;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
@@ -38,6 +39,7 @@ import io.crate.operator.operations.collect.HandlerSideDataCollectOperation;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.*;
+import org.cratedb.action.import_.TransportImportAction;
 import org.elasticsearch.action.bulk.TransportBulkAction;
 import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
@@ -68,6 +70,7 @@ public class TransportExecutor implements Executor {
     private final TransportIndexAction transportIndexAction;
     private final TransportBulkAction transportBulkAction;
     private final TransportUpdateAction transportUpdateAction;
+    private final TransportImportAction transportImportAction;
     // operation for handler side collecting
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
 
@@ -85,6 +88,7 @@ public class TransportExecutor implements Executor {
                              TransportIndexAction transportIndexAction,
                              TransportBulkAction transportBulkAction,
                              TransportUpdateAction transportUpdateAction,
+                             TransportImportAction transportImportAction,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation
     ) {
         this.transportGetAction = transportGetAction;
@@ -97,6 +101,7 @@ public class TransportExecutor implements Executor {
         this.transportIndexAction = transportIndexAction;
         this.transportBulkAction = transportBulkAction;
         this.transportUpdateAction = transportUpdateAction;
+        this.transportImportAction = transportImportAction;
 
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.threadPool = threadPool;
@@ -203,6 +208,19 @@ public class TransportExecutor implements Executor {
                 context.addTask(new ESUpdateByQueryTask(transportSearchAction, node, functions, referenceResolver));
             }
             return null;
+        }
+
+        @Override
+        public Void visitCopyNode(CopyNode copyNode, Job context) {
+            switch(copyNode.mode()) {
+                case FROM:
+                    context.addTask(new ImportTask(transportImportAction, copyNode));
+                    break;
+                case INTO:
+                    throw new UnsupportedOperationException("COPY INTO statement not supported yet.");
+            }
+            return null;
+
         }
 
         @Override
