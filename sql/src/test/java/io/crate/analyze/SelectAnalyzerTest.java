@@ -49,10 +49,7 @@ import org.elasticsearch.common.inject.Module;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -508,6 +505,21 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testGranularityWithSingleAggregation() throws Exception {
         Analysis analyze = analyze("select count(*) from sys.nodes");
         assertThat(analyze.rowGranularity(), is(RowGranularity.NODE));
+    }
+
+    @Test
+    public void testRewriteCountLiteral() {
+        Analysis analysis = analyze("select count('id') from sys.nodes");
+        Function[] functions = new Function[analysis.functions().size()];
+        analysis.functions().toArray(functions);
+        assertThat(functions.length, is(1));
+        assertThat(functions[0], instanceOf(Function.class));
+        assertThat(functions[0].arguments().size(), is(0));
+    }
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testRewriteCountDistinctLiteral() {
+        analyze("select count(DISTINCT 'id') from sys.nodes");
     }
 
     @Test
