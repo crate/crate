@@ -90,7 +90,7 @@ public class WhereClause implements Streamable {
     public void readFrom(StreamInput in) throws IOException {
         if (in.readBoolean()) {
             query = new Function();
-            Function.fromStream(in);
+            query.readFrom(in);
         } else {
             noMatch = in.readBoolean();
         }
