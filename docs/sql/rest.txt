@@ -147,8 +147,6 @@ Currently the defined error codes are:
     ----- ---------------------------------------------------------------------
     4044  Unknown type.
     ----- ---------------------------------------------------------------------
-    4045  Unknown schema.
-    ----- ---------------------------------------------------------------------
     4091  A document with the same primary key exists already.
     ----- ---------------------------------------------------------------------
     4092  A VersionConflict. Might be thrown if an attempt was made to update
