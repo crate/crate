@@ -21,16 +21,21 @@
 
 package io.crate.planner.node;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
+import io.crate.operator.aggregation.impl.CountAggregation;
 import io.crate.operator.aggregation.impl.MaximumAggregation;
 import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
+import io.crate.planner.symbol.StringLiteral;
 import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
@@ -47,11 +52,13 @@ import java.util.Set;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertSame;
 
 public class PlanNodeStreamerVisitorTest {
 
     private PlanNodeStreamerVisitor visitor;
     private FunctionInfo maxInfo;
+    private FunctionInfo countInfo;
 
     @Before
     public void prepare() {
@@ -59,6 +66,7 @@ public class PlanNodeStreamerVisitorTest {
         Functions functions = injector.getInstance(Functions.class);
         visitor = new PlanNodeStreamerVisitor(functions);
         maxInfo = new FunctionInfo(new FunctionIdent(MaximumAggregation.NAME, Arrays.asList(DataType.INTEGER)), DataType.INTEGER);
+        countInfo = new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()), DataType.LONG);
     }
 
     @Test
@@ -133,5 +141,45 @@ public class PlanNodeStreamerVisitorTest {
         assertThat(streamers.length, is(2));
         assertThat(streamers[0], instanceOf(AggregationStateStreamer.class));
         assertThat(streamers[1], instanceOf(DataType.TIMESTAMP.streamer().getClass()));
+    }
+
+    @Test
+    public void testOutputStreamerFromGroupByMergeNode() throws Exception {
+        /**
+         * select count(*), name ... group by name limit 2
+         *
+         * the groupProjection has  the outputs
+         *      name, count(*)
+         *
+         * the topN projection swaps the outputs to
+         *
+         *      count(*), name
+         *
+         * so the streamers have to be
+         *
+         *      longStreamer,  stringStreamer
+         */
+
+        MergeNode mergeNode = new MergeNode("mörtsch", 2);
+        mergeNode.inputTypes(Arrays.asList(DataType.STRING, DataType.NULL));
+        GroupProjection groupProjection = new GroupProjection(
+                Arrays.<Symbol>asList(new StringLiteral("key1")),
+                Arrays.asList(new Aggregation(
+                        countInfo,
+                        ImmutableList.<Symbol>of(),
+                        Aggregation.Step.PARTIAL, Aggregation.Step.FINAL))
+        );
+
+        TopNProjection topNProjection = new TopNProjection(2, 0);
+        topNProjection.outputs(Arrays.<Symbol>asList(
+                new InputColumn(1),
+                new InputColumn(0)
+        ));
+
+        mergeNode.projections(Arrays.asList(groupProjection, topNProjection));
+        mergeNode.outputTypes(Arrays.asList(DataType.LONG, DataType.STRING));
+        PlanNodeStreamerVisitor.Context context = visitor.process(mergeNode);
+        assertSame(DataType.STRING.streamer(), context.outputStreamers()[1]);
+        assertSame(DataType.LONG.streamer(), context.outputStreamers()[0]);
     }
 }
