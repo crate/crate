@@ -695,10 +695,12 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     private Plan planUpdate(UpdateAnalysis analysis) {
         Plan plan = new Plan();
+
         ESUpdateNode node = new ESUpdateNode(
                 analysis.table().ident().name(),
                 analysis.assignments(),
                 analysis.whereClause(),
+                analysis.version(),
                 analysis.primaryKeyLiterals()
         );
         plan.add(node);

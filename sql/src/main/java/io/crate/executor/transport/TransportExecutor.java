@@ -196,7 +196,8 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Void visitESUpdateNode(ESUpdateNode node, Job context) {
-            if (node.primaryKeyValues().size() == 0) {
+            // update with _version currently only possible in update by query
+            if (node.primaryKeyValues().size() == 0 || node.version().isPresent()) {
                 throw new UnsupportedOperationException("update by query not supported yet");
             } else if (node.primaryKeyValues().size() == 1) {
                 context.addTask(new ESUpdateByIdTask(transportUpdateAction, node));

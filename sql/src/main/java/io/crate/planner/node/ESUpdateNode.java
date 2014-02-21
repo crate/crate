@@ -22,6 +22,7 @@
 package io.crate.planner.node;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
@@ -43,15 +44,17 @@ public class ESUpdateNode extends PlanNode {
     private final Map<String, Object> updateDoc;
     private final String[] columns;
     private final WhereClause whereClause;
-    private List<Literal> primaryKeyValues;
+    private final List<Literal> primaryKeyValues;
+    private final Optional<Long> version;
 
     public ESUpdateNode(String index,
                         Map<Reference, Symbol> assignments,
                         WhereClause whereClause,
+                        Optional<Long> version,
                         @Nullable List<Literal> primaryKeyValues) {
         this.index = index;
         this.primaryKeyValues = Objects.firstNonNull(primaryKeyValues, ImmutableList.<Literal>of());
-
+        this.version = version;
         updateDoc = new HashMap<>(assignments.size());
         for (Map.Entry<Reference, Symbol> entry: assignments.entrySet()) {
             Object value;
@@ -86,6 +89,10 @@ public class ESUpdateNode extends PlanNode {
 
     public WhereClause whereClause() {
         return whereClause;
+    }
+
+    public Optional<Long> version() {
+        return version;
     }
 
     @Override
