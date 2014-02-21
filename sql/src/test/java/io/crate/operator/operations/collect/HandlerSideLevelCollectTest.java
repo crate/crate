@@ -143,22 +143,18 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Object[][] result = operation.collect(collectNode).get();
 
 
-        assertTrue(printedTable(result).startsWith(
-                "sys| cluster| id| 1| string\n" +
-                        "sys| cluster| name| 2| string\n" +
-                        "sys| nodes| id| 1| string\n" +
-                        "sys| nodes| name| 2| string"
-        ));
+        String expected = "sys| cluster| id| 1| string\n" +
+                "sys| cluster| name| 2| string\n" +
+                "sys| nodes| id| 1| string\n" +
+                "sys| nodes| name| 2| string";
+
+
+        assertTrue(printedTable(result).startsWith(expected));
 
         // second time - to check if the internal iterator resets
         System.out.println(printedTable(result));
         result = operation.collect(collectNode).get();
-        assertTrue(printedTable(result).startsWith(
-                "sys| cluster| id| 1| string\n" +
-                        "sys| cluster| name| 2| string\n" +
-                        "sys| nodes| id| 1| string\n" +
-                        "sys| nodes| name| 2| string"
-        ));
+        assertTrue(printedTable(result).startsWith(expected));
     }
 
 }
