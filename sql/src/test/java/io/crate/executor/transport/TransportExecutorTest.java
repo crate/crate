@@ -384,7 +384,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         // update characters set name='Vogon lyric fan' where id=1
         ESUpdateNode updateNode = new ESUpdateNode("characters", new HashMap<Reference, Symbol>(){{
             put(name_ref, new StringLiteral("Vogon lyric fan"));
-        }}, WhereClause.MATCH_ALL, Arrays.<Literal>asList(new StringLiteral("1")));
+        }}, WhereClause.MATCH_ALL, Optional.<Long>absent(), Arrays.<Literal>asList(new StringLiteral("1")));
         Plan plan = new Plan();
         plan.add(updateNode);
         plan.expectsAffectedRows(true);

@@ -29,8 +29,11 @@ import io.crate.analyze.WhereClause;
 import io.crate.operator.Input;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -111,5 +114,15 @@ public class ESUpdateNode extends PlanNode {
     @Override
     public List<DataType> outputTypes() {
         return OUTPUT_TYPES;
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        throw new UnsupportedOperationException("Must not serialize ESUpdateNodes");
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        throw new UnsupportedOperationException("Must not serialize ESUpdateNodes");
     }
 }
