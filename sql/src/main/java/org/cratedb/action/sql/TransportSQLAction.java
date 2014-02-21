@@ -366,14 +366,31 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
     }
 
+    private void emptyResponse(SQLRequest request, Analysis analysis, final ActionListener<SQLResponse> listener) {
+        SQLResponse response = new SQLResponse(
+                analysis.outputNames().toArray(new String[analysis.outputNames().size()]),
+                Constants.EMPTY_RESULT,
+                0,
+                request.creationTime());
+        listener.onResponse(response);
+    }
+
+
+
     private void usePresto(final SQLRequest request, final ActionListener<SQLResponse> listener) {
         try {
             final Statement statement = SqlParser.createStatement(request.stmt());
             final Analysis analysis = analyzer.analyze(statement, request.args());
+
+            if (analysis.whereClause().noMatch()){
+                emptyResponse(request, analysis, listener);
+                return;
+            }
             final Plan plan = planner.plan(analysis);
+            final ResponseBuilder responseBuilder = getResponseBuilder(plan);
             final Job job = transportExecutor.newJob(plan);
             final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(transportExecutor.execute(job));
-            final ResponseBuilder responseBuilder = getResponseBuilder(plan);
+
             Futures.addCallback(resultFuture, new FutureCallback<List<Object[][]>>() {
                 @Override
                 public void onSuccess(@Nullable List<Object[][]> result) {
@@ -438,14 +455,9 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         Visitor visitor = new Visitor() {
             @Override
             public Visitable visit(Visitable node) throws StandardException {
-                if (((QueryTreeNode)node).getNodeType() == NodeType.FROM_BASE_TABLE) {
-                    TableName tableName = ((FromBaseTable) node).getTableName();
-                    if (tableName.getSchemaName() != null
-                            && tableName.getSchemaName().equalsIgnoreCase("sys")) {
-
-                        isPresto.set(true);
-                        return null;
-                    }
+                if (node instanceof  CursorNode){
+                    isPresto.set(true);
+                    return null;
                 }
                 // use presto for inserts
                 if (((QueryTreeNode) node).getNodeType() == NodeType.INSERT_NODE) {

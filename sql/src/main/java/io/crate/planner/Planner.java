@@ -43,7 +43,9 @@ import org.cratedb.sql.CrateException;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 @Singleton
 public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {

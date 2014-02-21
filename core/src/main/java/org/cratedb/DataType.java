@@ -129,7 +129,7 @@ public enum DataType {
         @SuppressWarnings("unchecked")
         @Override
         public Map<String, Object> readFrom(StreamInput in) throws IOException {
-            return (Map<String, Object>)in.readGenericValue();
+            return (Map<String, Object>) in.readGenericValue();
         }
 
         @Override
@@ -177,10 +177,10 @@ public enum DataType {
     /**
      * Keep the order of the following to Lists (ALL_TYPES, SET_TYPES) in sync
      * with the above 'enum' ordering.
-     *
+     * <p/>
      * This gives you the advantage to get e.g. SET_TYPES more easily:
-     *
-     *      DataType.SET_TYPES.get(DataType.LONG.ordinal());
+     * <p/>
+     * DataType.SET_TYPES.get(DataType.LONG.ordinal());
      */
     public static final ImmutableList<DataType> ALL_TYPES = ImmutableList.of(
             BYTE,
@@ -271,7 +271,7 @@ public enum DataType {
                 if (v == null) {
                     out.writeVInt(0);
                 } else {
-                    BytesRef bytesRef = (BytesRef)v;
+                    BytesRef bytesRef = (BytesRef) v;
                     out.writeVInt(bytesRef.length + 1);
                     out.writeBytes(bytesRef.bytes, bytesRef.offset, bytesRef.length);
                 }
@@ -293,7 +293,7 @@ public enum DataType {
         public Set<T> readFrom(StreamInput in) throws IOException {
             int size = in.readVInt();
             Set<T> s = new HashSet<>(size);
-            for(int i = 0; i < size; i++) {
+            for (int i = 0; i < size; i++) {
                 s.add(streamer.readFrom(in));
             }
             if (in.readBoolean() == true) {
@@ -384,14 +384,21 @@ public enum DataType {
         return forValue(value, true);
     }
 
+    public DataType setType() {
+        if (this == DataType.NULL){
+            return this;
+        } else {
+            return SET_TYPES.get(ordinal());
+        }
+    }
+
     @Nullable
     public static DataType guess(Object value) {
         return forValue(value, false);
     }
 
     /**
-     *
-     * @param value the value to get the type for
+     * @param value  the value to get the type for
      * @param strict if false do not check for timestamp strings
      * @return the datatype for the given value or null if no datatype matches
      */
@@ -404,7 +411,7 @@ public enum DataType {
         } else if (!strict && (value instanceof BytesRef || value instanceof String)) {
             // special treatment for timestamp strings
             if (TimestampFormat.isDateFormat(
-                    (value instanceof BytesRef ? ((BytesRef) value).utf8ToString() : (String)value))
+                    (value instanceof BytesRef ? ((BytesRef) value).utf8ToString() : (String) value))
                     ) {
                 return TIMESTAMP;
             } else {

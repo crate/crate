@@ -93,7 +93,7 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
             // define the outer function which contains the inner function as arugment.
             String nodeName = "collection_" + node.getName().toString();
             List<Symbol> outerArguments = Arrays.<Symbol>asList(innerFunction);
-            ImmutableList<DataType> outerArgumentTypes = ImmutableList.of(DataType.SET_TYPES.get(argumentTypes.get(0).ordinal()));
+            ImmutableList<DataType> outerArgumentTypes = ImmutableList.of(argumentTypes.get(0).setType());
 
             FunctionIdent ident = new FunctionIdent(nodeName, outerArgumentTypes);
             functionInfo = context.getFunctionInfo(ident);
@@ -113,12 +113,23 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
 
         Symbol value = process(node.getValue(), context);
 
+
+
+        DataType valueDataType = symbolDataTypeVisitor.process(value, context);
+        if (valueDataType == DataType.NULL){
+            // dynamic or null values cannot be queried, in scalar use-cases (system tables)
+            // we currently have no dynamics
+            return Null.INSTANCE;
+        }
+
         arguments.add(value);
         arguments.add(process(node.getValueList(), context));
 
-        DataType valueDataType = symbolDataTypeVisitor.process(value, context);
+
+
+
         argumentTypes.add(valueDataType);
-        argumentTypes.add(DataType.SET_TYPES.get(valueDataType.ordinal()));
+        argumentTypes.add(valueDataType.setType());
 
         FunctionIdent functionIdent = new FunctionIdent(InOperator.NAME, argumentTypes);
         FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);

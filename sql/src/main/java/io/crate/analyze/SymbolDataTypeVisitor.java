@@ -87,6 +87,11 @@ public class SymbolDataTypeVisitor extends SymbolVisitor<Analysis, DataType> {
     }
 
     @Override
+    public DataType visitDynamicReference(DynamicReference symbol, Analysis context) {
+        return symbol.valueType();
+    }
+
+    @Override
     protected DataType visitSymbol(Symbol symbol, Analysis context) {
         throw new UnsupportedOperationException("Unsupported symbol type " + symbol.symbolType().toString());
     }
