@@ -177,9 +177,9 @@ public enum DataType {
     /**
      * Keep the order of the following to Lists (ALL_TYPES, SET_TYPES) in sync
      * with the above 'enum' ordering.
-     * <p/>
+     *
      * This gives you the advantage to get e.g. SET_TYPES more easily:
-     * <p/>
+     *
      * DataType.SET_TYPES.get(DataType.LONG.ordinal());
      */
     public static final ImmutableList<DataType> ALL_TYPES = ImmutableList.of(
@@ -385,7 +385,7 @@ public enum DataType {
     }
 
     public DataType setType() {
-        if (this == DataType.NULL){
+        if (this == DataType.NULL) {
             return this;
         } else {
             return SET_TYPES.get(ordinal());
