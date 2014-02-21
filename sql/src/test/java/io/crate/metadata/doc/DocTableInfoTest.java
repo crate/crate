@@ -31,7 +31,9 @@ public class DocTableInfoTest {
                 false,
                 true,
                 new String[0],
-                null);
+                null,
+                5,
+                0);
 
         ReferenceInfo foobar = info.getColumnInfo(new ColumnIdent("foobar"));
         assertNull(foobar);
@@ -65,7 +67,9 @@ public class DocTableInfoTest {
                 false,
                 true,
                 new String[0],
-                null);
+                null,
+                5,
+                0);
 
 
         try {
