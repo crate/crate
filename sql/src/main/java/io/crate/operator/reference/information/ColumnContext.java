@@ -19,37 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.information;
+package io.crate.operator.reference.information;
 
-import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.operator.Input;
 
-/**
- * Base class for information_schema expressions.
- * @param <T> The returnType of the expression
- */
-public abstract class InformationCollectorExpression<R, T> implements ReferenceImplementation, Input<T> {
-
-    protected final ReferenceInfo info;
-    protected R row;
-
-    public InformationCollectorExpression(ReferenceInfo info) {
-        this.info = info;
-    }
-
-    @Override
-    public ReferenceImplementation getChildImplementation(String name) {
-        return null;
-    }
-
-    @Override
-    public ReferenceInfo info() {
-        return info;
-    }
-
-    public void setNextRow(R row) {
-        this.row = row;
-    }
-
+public class ColumnContext {
+    public ReferenceInfo info;
+    public Short ordinal;
 }

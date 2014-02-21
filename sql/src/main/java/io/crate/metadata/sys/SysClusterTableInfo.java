@@ -34,7 +34,7 @@ public class SysClusterTableInfo extends SysTableInfo {
     public static final TableIdent IDENT = new TableIdent(SCHEMA, "cluster");
     private static final String[] PARTITIONS = new String[]{IDENT.name()};
 
-    public static final Map<ColumnIdent, ReferenceInfo> INFOS = new HashMap<>();
+    public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
     private static final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
 
     static {
@@ -90,5 +90,10 @@ public class SysClusterTableInfo extends SysTableInfo {
     @Override
     public String[] partitions() {
         return PARTITIONS;
+    }
+
+    @Override
+    public Iterator<ReferenceInfo> iterator() {
+        return INFOS.values().iterator();
     }
 }

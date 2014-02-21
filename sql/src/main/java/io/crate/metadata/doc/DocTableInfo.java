@@ -227,4 +227,9 @@ public class DocTableInfo implements TableInfo {
     public String[] partitions() {
         return concreteIndices;
     }
+
+    @Override
+    public Iterator<ReferenceInfo> iterator() {
+        return references.values().iterator();
+    }
 }

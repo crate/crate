@@ -31,6 +31,7 @@ import org.cratedb.DataType;
 import org.cratedb.sql.ColumnUnknownException;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -187,4 +188,12 @@ public class TestingTableInfo implements TableInfo {
         }
         return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity());
     }
+
+    @Override
+    public Iterator<ReferenceInfo> iterator() {
+        return references.values().iterator();
+    }
+
+
+
 }
