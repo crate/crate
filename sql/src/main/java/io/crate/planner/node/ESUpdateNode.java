@@ -21,7 +21,6 @@
 
 package io.crate.planner.node;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
@@ -42,16 +41,29 @@ public class ESUpdateNode extends AbstractESNode {
     private final Map<String, Object> updateDoc;
     private final String[] columns;
     private final WhereClause whereClause;
-    private final List<Literal> primaryKeyValues;
+    private final String[] primaryKeyValues;
     private final Optional<Long> version;
+
+    private final String statement;
+    private final Object[] args;
 
     public ESUpdateNode(String index,
                         Map<Reference, Symbol> assignments,
                         WhereClause whereClause,
                         Optional<Long> version,
+                        String statement,
+                        Object[] args,
                         @Nullable List<Literal> primaryKeyValues) {
         this.index = index;
-        this.primaryKeyValues = Objects.firstNonNull(primaryKeyValues, ImmutableList.<Literal>of());
+        if (primaryKeyValues == null) {
+            this.primaryKeyValues = new String[0];
+        } else {
+            int i = 0;
+            this.primaryKeyValues = new String[primaryKeyValues.size()];
+            for (Literal pkLiteral : primaryKeyValues) {
+                this.primaryKeyValues[i++] = pkLiteral.valueAsString();
+            }
+        }
         this.version = version;
         updateDoc = new HashMap<>(assignments.size());
         for (Map.Entry<Reference, Symbol> entry: assignments.entrySet()) {
@@ -70,9 +82,12 @@ public class ESUpdateNode extends AbstractESNode {
         }
 
         this.whereClause = whereClause;
+
+        this.statement = statement;
+        this.args = args;
     }
 
-    public List<Literal> primaryKeyValues() {
+    public String[] primaryKeyValues() {
         return primaryKeyValues;
     }
 
@@ -86,6 +101,14 @@ public class ESUpdateNode extends AbstractESNode {
 
     public Optional<Long> version() {
         return version;
+    }
+
+    public String statement() {
+        return statement;
+    }
+
+    public Object[] args() {
+        return args;
     }
 
     @Override

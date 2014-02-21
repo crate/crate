@@ -49,9 +49,10 @@ public class InsertAnalysis extends Analysis {
 
     public InsertAnalysis(ReferenceInfos referenceInfos,
                           Functions functions,
+                          String statement,
                           Object[] parameters,
                           ReferenceResolver referenceResolver) {
-        super(referenceInfos, functions, parameters, referenceResolver);
+        super(referenceInfos, functions, statement, parameters, referenceResolver);
     }
 
     @Override

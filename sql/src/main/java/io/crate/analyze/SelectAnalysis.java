@@ -59,8 +59,9 @@ public class SelectAnalysis extends Analysis {
         this.query = query;
     }
 
-    public SelectAnalysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters, ReferenceResolver referenceResolver) {
-        super(referenceInfos, functions, parameters, referenceResolver);
+    public SelectAnalysis(ReferenceInfos referenceInfos, Functions functions,
+                          String statement, Object[] parameters, ReferenceResolver referenceResolver) {
+        super(referenceInfos, functions, statement, parameters, referenceResolver);
     }
 
     public void limit(Integer limit) {

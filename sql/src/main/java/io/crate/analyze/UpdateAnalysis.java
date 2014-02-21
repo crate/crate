@@ -38,12 +38,12 @@ public class UpdateAnalysis extends Analysis {
     private Update updateStatement;
     private Map<Reference, Symbol> assignments = new HashMap<>();
 
-
     public UpdateAnalysis(ReferenceInfos referenceInfos,
                           Functions functions,
+                          String statement,
                           Object[] parameters,
                           ReferenceResolver referenceResolver) {
-        super(referenceInfos, functions, parameters, referenceResolver);
+        super(referenceInfos, functions, statement, parameters, referenceResolver);
     }
 
     @Override

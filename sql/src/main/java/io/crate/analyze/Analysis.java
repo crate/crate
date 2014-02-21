@@ -36,7 +36,8 @@ public abstract class Analysis {
 
     protected final ReferenceInfos referenceInfos;
     private final Functions functions;
-    private final Object[] parameters;
+    protected final String statement;
+    protected final Object[] parameters;
     protected TableInfo table;
 
     private Map<Function, Function> functionSymbols = new HashMap<>();
@@ -73,10 +74,12 @@ public abstract class Analysis {
         this.clusteredByLiteral = clusteredByLiteral;
     }
 
-    public Analysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters,
+    public Analysis(ReferenceInfos referenceInfos, Functions functions,
+                    String statement, Object[] parameters,
                     ReferenceResolver referenceResolver) {
         this.referenceInfos = referenceInfos;
         this.functions = functions;
+        this.statement = statement;
         this.parameters = parameters;
         this.normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
     }
@@ -209,6 +212,14 @@ public abstract class Analysis {
 
     public RowGranularity rowGranularity() {
         return rowGranularity;
+    }
+
+    public String statement() {
+        return statement;
+    }
+
+    public Object[] parameters() {
+        return parameters;
     }
 
     public Object parameterAt(int idx) {

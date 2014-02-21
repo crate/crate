@@ -126,11 +126,11 @@ public class AnalysisTest {
     }
 
     public Analysis getAnalysis() {
-        return getAnalysis(new Object[0]);
+        return getAnalysis("", new Object[0]);
     }
 
-    public Analysis getAnalysis(Object[] args) {
-        SelectAnalysis analysis = new SelectAnalysis(referenceInfos, functions, args, resolver);
+    public Analysis getAnalysis(String stmt, Object[] args) {
+        SelectAnalysis analysis = new SelectAnalysis(referenceInfos, functions, stmt, args, resolver);
         analysis.table(TEST_TABLE_IDENT);
         return analysis;
     }

@@ -393,6 +393,8 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 analysis.assignments(),
                 analysis.whereClause(),
                 analysis.version(),
+                analysis.statement(),
+                analysis.parameters(),
                 analysis.primaryKeyLiterals()
         );
         plan.add(node);

@@ -381,7 +381,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private void usePresto(final SQLRequest request, final ActionListener<SQLResponse> listener) {
         try {
             final Statement statement = SqlParser.createStatement(request.stmt());
-            final Analysis analysis = analyzer.analyze(statement, request.args());
+            final Analysis analysis = analyzer.analyze(statement, request.stmt(), request.args());
 
             if (analysis.whereClause().noMatch()){
                 emptyResponse(request, analysis, listener);

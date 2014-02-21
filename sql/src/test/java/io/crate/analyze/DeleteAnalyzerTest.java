@@ -31,8 +31,6 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DoubleLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
-import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.Statement;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
@@ -67,8 +65,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDeleteWhere() throws Exception {
-        Statement statement = SqlParser.createStatement("delete from sys.nodes where load['1'] = 1");
-        SelectAnalysis analysis = (SelectAnalysis) analyzer.analyze(statement);
+        SelectAnalysis analysis = (SelectAnalysis) analyze("delete from sys.nodes where load['1'] = 1");
         assertTrue(analysis.isDelete());
         assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
 

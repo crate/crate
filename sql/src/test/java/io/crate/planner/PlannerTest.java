@@ -154,7 +154,7 @@ public class PlannerTest {
     }
 
     private Plan plan(String statement) {
-        return planner.plan(analyzer.analyze(SqlParser.createStatement(statement)));
+        return planner.plan(analyzer.analyze(SqlParser.createStatement(statement), statement));
     }
 
     @Test
@@ -324,9 +324,10 @@ public class PlannerTest {
 
     @Test
     public void testGlobalAggregationPlan() throws Exception {
-        Statement statement = SqlParser.createStatement("select count(name) from users");
+        String statementString = "select count(name) from users";
+        Statement statement = SqlParser.createStatement(statementString);
 
-        Analysis analysis = analyzer.analyze(statement);
+        Analysis analysis = analyzer.analyze(statement, statementString);
         Plan plan = planner.plan(analysis);
         Iterator<PlanNode> iterator = plan.iterator();
 
@@ -589,6 +590,7 @@ public class PlannerTest {
         assertThat(localTopN, instanceOf(TopNProjection.class));
     }
 
+    @Test
     public void testESUpdatePlan() throws Exception {
         Plan plan = plan("update users set name='Vogon lyric fan' where id=1");
         Iterator<PlanNode> iterator = plan.iterator();
@@ -597,8 +599,8 @@ public class PlannerTest {
 
         ESUpdateNode updateNode = (ESUpdateNode)planNode;
         assertThat(updateNode.index(), is("users"));
-        assertThat(updateNode.primaryKeyValues().size(), is(1));
-        assertThat((Long)updateNode.primaryKeyValues().get(0).value(), is(1l));
+        assertThat(updateNode.primaryKeyValues().length, is(1));
+        assertThat(updateNode.primaryKeyValues()[0], is("1"));
 
         assertThat(updateNode.outputTypes().size(), is(1));
         assertThat(updateNode.outputTypes().get(0), is(DataType.LONG));

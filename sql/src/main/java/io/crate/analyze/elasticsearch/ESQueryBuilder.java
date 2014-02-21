@@ -37,6 +37,7 @@ import io.crate.operator.scalar.MatchFunction;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.ESDeleteByQueryNode;
 import io.crate.planner.node.ESSearchNode;
+import io.crate.planner.node.ESUpdateNode;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
@@ -109,8 +110,8 @@ public class ESQueryBuilder {
      * use to create a full elasticsearch query "statement" including fields, size, etc.
      */
     public BytesReference convert(ESSearchNode node, List<Reference> outputs) throws IOException {
-        Preconditions.checkNotNull(node);
-        Preconditions.checkNotNull(outputs);
+        assert node != null;
+        assert outputs != null;
 
         Context context = new Context();
         context.builder = XContentFactory.jsonBuilder().startObject();
@@ -147,7 +148,7 @@ public class ESQueryBuilder {
      * use to create a full elasticsearch query "statement" used by deleteByQuery actions.
      */
     public BytesReference convert(ESDeleteByQueryNode node) throws IOException {
-        Preconditions.checkNotNull(node);
+        assert node != null;
 
         Context context = new Context();
         context.builder = XContentFactory.jsonBuilder().startObject();
@@ -156,6 +157,32 @@ public class ESQueryBuilder {
         whereClause(context, node.whereClause());
 
         builder.endObject();
+        return builder.bytes();
+    }
+
+    public BytesReference convert(ESUpdateNode node) throws IOException {
+        assert node != null;
+
+        Context context = new Context();
+        context.versionSupported = true; // will be handed through to SQLFacet
+        context.builder = XContentFactory.jsonBuilder().startObject();
+        XContentBuilder builder = context.builder;
+
+        builder.startObject("query");
+        whereClause(context, node.whereClause());
+        builder.endObject();
+
+        if (node.version().isPresent()) {
+            builder.field("version", true);
+        }
+        builder.startObject("facets")
+                .startObject("sql")
+                    .startObject("sql")
+                        .field("stmt", node.statement())
+                        .field("args", node.args())
+                    .endObject()
+                .endObject()
+            .endObject();
         return builder.bytes();
     }
 
@@ -181,6 +208,7 @@ public class ESQueryBuilder {
     class Context {
         XContentBuilder builder;
         Map<String, Object> ignoredFields = new HashMap<>();
+        public boolean versionSupported = false;
     }
 
     static class Visitor extends SymbolVisitor<Context, Void> {
@@ -404,6 +432,9 @@ public class ESQueryBuilder {
                     if (filteredFields.contains(columnName)) {
                         context.ignoredFields.put(columnName, ((Literal) right).value());
                         return true;
+                    }
+                    if (columnName.equals("_version") && context.versionSupported) {
+                        return true; // do not include in query
                     }
 
                     String unsupported = unsupportedFields.get(columnName);
