@@ -39,7 +39,7 @@ public interface SQLFacet extends Facet, PartialSQLResult {
      *
      * @param stmt the parsed statement of the sql query
      */
-    public void reduce(ParsedStatement stmt);
+    public void reduce();
 
 
 }

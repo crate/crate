@@ -59,7 +59,7 @@ public class ESUpdateByIdTask extends AbstractESUpdateTask {
         super(node);
         this.transport = transport;
 
-        assert node.primaryKeyValues().size() == 1;
+        assert node.primaryKeyValues().length == 1;
         this.request = buildUpdateRequest(node);
         listener = new UpdateResponseListener(result);
     }
@@ -71,7 +71,7 @@ public class ESUpdateByIdTask extends AbstractESUpdateTask {
 
     protected UpdateRequest buildUpdateRequest(ESUpdateNode node) {
         UpdateRequest request = new UpdateRequest(node.index(),
-                Constants.DEFAULT_MAPPING_TYPE, node.primaryKeyValues().get(0).valueAsString());
+                Constants.DEFAULT_MAPPING_TYPE, node.primaryKeyValues()[0]);
         request.fields(node.columns());
         request.paths(node.updateDoc());
         request.retryOnConflict(UPDATE_RETRY_ON_CONFLICT);

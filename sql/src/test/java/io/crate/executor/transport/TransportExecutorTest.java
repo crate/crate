@@ -31,7 +31,9 @@ import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.operator.operator.AndOperator;
 import io.crate.operator.operator.EqOperator;
+import io.crate.operator.operator.OrOperator;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.*;
@@ -43,6 +45,7 @@ import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -69,7 +72,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
             new ReferenceIdent(table, "id"), RowGranularity.DOC, DataType.INTEGER));
     Reference name_ref = new Reference(new ReferenceInfo(
             new ReferenceIdent(table, "name"), RowGranularity.DOC, DataType.STRING));
-
+    Reference version_ref = new Reference(new ReferenceInfo(
+            new ReferenceIdent(table, "_version"), RowGranularity.DOC, DataType.LONG));
 
     @Before
     public void transportSetUp() {
@@ -381,10 +385,15 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     @Test
     public void testESUpdateByIdTask() throws Exception {
         insertCharacters();
+
         // update characters set name='Vogon lyric fan' where id=1
-        ESUpdateNode updateNode = new ESUpdateNode("characters", new HashMap<Reference, Symbol>(){{
-            put(name_ref, new StringLiteral("Vogon lyric fan"));
-        }}, WhereClause.MATCH_ALL, Optional.<Long>absent(), Arrays.<Literal>asList(new StringLiteral("1")));
+        ESUpdateNode updateNode = new ESUpdateNode("characters",
+                new HashMap<Reference, Symbol>(){{
+                    put(name_ref, new StringLiteral("Vogon lyric fan"));
+                }},
+                WhereClause.MATCH_ALL,
+                Optional.<Long>absent(),
+                Arrays.<Literal>asList(new StringLiteral("1")));
         Plan plan = new Plan();
         plan.add(updateNode);
         plan.expectsAffectedRows(true);
@@ -409,5 +418,143 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat(objects.length, is(1));
         assertThat((Integer)objects[0][0], is(1));
         assertThat((String)objects[0][1], is("Vogon lyric fan"));
+    }
+
+    @Test
+    public void testUpdateByQueryTaskWithVersion() throws Exception {
+        insertCharacters();
+
+        // get version
+        ESGetNode getNode = new ESGetNode("characters", Arrays.asList("1"));
+        getNode.outputs(ImmutableList.<Symbol>of(id_ref, version_ref));
+        Plan getPlan = new Plan();
+        getPlan.add(getNode);
+        Job getJob = executor.newJob(getPlan);
+        List<ListenableFuture<Object[][]>> getResult = executor.execute(getJob);
+        Object[][] objects = getResult.get(0).get();
+
+        assertThat(objects.length, is(1));
+        Integer id = (Integer)objects[0][0];
+        Long version = (Long)objects[0][1];
+        // do update
+        Function whereClause = new Function(AndOperator.INFO, Arrays.<Symbol>asList(
+                new Function(new FunctionInfo(
+                        new FunctionIdent(EqOperator.NAME, asList(DataType.LONG, DataType.LONG)),
+                        DataType.BOOLEAN),
+                        Arrays.<Symbol>asList(version_ref, new LongLiteral(version))
+                ),
+                new Function(new FunctionInfo(
+                        new FunctionIdent(EqOperator.NAME, asList(DataType.INTEGER, DataType.INTEGER)), DataType.BOOLEAN),
+                        Arrays.<Symbol>asList(id_ref, new IntegerLiteral(id))
+                )));
+
+        // update characters set name='mostly harmless' where id=1 and "_version"=?
+        ESUpdateNode updateNode = new ESUpdateNode("characters",
+                new HashMap<Reference, Symbol>(){{
+                    put(name_ref, new StringLiteral("mostly harmless"));
+                }},
+                new WhereClause(whereClause),
+                Optional.of(1l),
+                ImmutableList.<Literal>of(new StringLiteral("1")));
+        Plan plan = new Plan();
+        plan.add(updateNode);
+        plan.expectsAffectedRows(true);
+
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().get(0), instanceOf(ESUpdateByQueryTask.class));
+        List<ListenableFuture<Object[][]>> result = executor.execute(job);
+        Object[][] rows = result.get(0).get();
+        assertThat((Long) rows[0][0], is(1l));
+
+        refresh();
+
+        // verify update
+        Function searchWhereClause = new Function(new FunctionInfo(
+                new FunctionIdent(EqOperator.NAME, asList(DataType.STRING, DataType.STRING)),
+                DataType.BOOLEAN),
+                Arrays.<Symbol>asList(name_ref, new StringLiteral("mostly harmless")));
+        ESSearchNode node = new ESSearchNode(
+                Arrays.<Symbol>asList(id_ref, name_ref, version_ref),
+                ImmutableList.<Reference>of(),
+                new boolean[0],
+                null, null, new WhereClause(searchWhereClause)
+        );
+        node.outputTypes(Arrays.asList(id_ref.info().type(), name_ref.info().type(), version_ref.info().type()));
+        plan = new Plan();
+        plan.add(node);
+        plan.expectsAffectedRows(false);
+
+        job = executor.newJob(plan);
+        result = executor.execute(job);
+        rows = result.get(0).get();
+
+        assertThat(rows.length, is(1));
+        assertThat((Integer)rows[0][0], is(1));
+        assertThat(((BytesRef)rows[0][1]).utf8ToString(), is("mostly harmless"));
+        assertThat((Long)rows[0][2], Matchers.greaterThan(version));
+    }
+
+    @Test
+    public void testUpdateByQueryTask() throws Exception {
+        insertCharacters();
+
+        Function whereClause = new Function(OrOperator.INFO, Arrays.<Symbol>asList(
+                new Function(new FunctionInfo(
+                        new FunctionIdent(EqOperator.NAME, asList(DataType.STRING, DataType.STRING)),
+                        DataType.BOOLEAN),
+                        Arrays.<Symbol>asList(name_ref, new StringLiteral("Trillian"))
+                ),
+                new Function(new FunctionInfo(
+                        new FunctionIdent(EqOperator.NAME, asList(DataType.INTEGER, DataType.INTEGER)), DataType.BOOLEAN),
+                        Arrays.<Symbol>asList(id_ref, new IntegerLiteral(1))
+                )));
+
+        // update characters set name='mostly harmless' where id=1 or name='Trillian'
+        ESUpdateNode updateNode = new ESUpdateNode("characters",
+                new HashMap<Reference, Symbol>(){{
+                    put(name_ref, new StringLiteral("mostly harmless"));
+                }},
+                new WhereClause(whereClause),
+                Optional.<Long>absent(),
+                ImmutableList.<Literal>of());
+        Plan plan = new Plan();
+        plan.add(updateNode);
+        plan.expectsAffectedRows(true);
+
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().get(0), instanceOf(ESUpdateByQueryTask.class));
+        List<ListenableFuture<Object[][]>> result = executor.execute(job);
+        Object[][] rows = result.get(0).get();
+        assertThat((Long)rows[0][0], is(2l));
+
+        refresh();
+
+        // verify update
+        Function searchWhereClause = new Function(new FunctionInfo(
+                new FunctionIdent(EqOperator.NAME, asList(DataType.STRING, DataType.STRING)),
+                DataType.BOOLEAN),
+                Arrays.<Symbol>asList(name_ref, new StringLiteral("mostly harmless")));
+        ESSearchNode node = new ESSearchNode(
+                Arrays.<Symbol>asList(id_ref, name_ref),
+                ImmutableList.of(id_ref),
+                new boolean[]{false},
+                null, null, new WhereClause(searchWhereClause)
+        );
+        node.outputTypes(Arrays.asList(id_ref.info().type(), name_ref.info().type()));
+        plan = new Plan();
+        plan.add(node);
+        plan.expectsAffectedRows(false);
+
+        job = executor.newJob(plan);
+        result = executor.execute(job);
+        rows = result.get(0).get();
+
+        assertThat(rows.length, is(2));
+        assertThat((Integer)rows[0][0], is(1));
+        assertThat(((BytesRef)rows[0][1]).utf8ToString(), is("mostly harmless"));
+
+        assertThat((Integer)rows[1][0], is(3));
+        assertThat(((BytesRef)rows[1][1]).utf8ToString(), is("mostly harmless"));
+
     }
 }

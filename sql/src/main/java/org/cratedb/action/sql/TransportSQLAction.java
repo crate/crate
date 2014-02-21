@@ -461,10 +461,12 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                     isPresto.set(true);
                     return null;
                 }
-                // use presto for inserts
-                if (((QueryTreeNode) node).getNodeType() == NodeType.INSERT_NODE) {
-                    isPresto.set(true);
-                    return null;
+                // use presto for inserts and updates too
+                switch (((QueryTreeNode) node).getNodeType()) {
+                    case INSERT_NODE:
+                    case UPDATE_NODE:
+                        isPresto.set(true);
+                        break;
                 }
                 return node;
             }

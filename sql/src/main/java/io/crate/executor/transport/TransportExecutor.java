@@ -197,12 +197,10 @@ public class TransportExecutor implements Executor {
         @Override
         public Void visitESUpdateNode(ESUpdateNode node, Job context) {
             // update with _version currently only possible in update by query
-            if (node.primaryKeyValues().size() == 0 || node.version().isPresent()) {
-                throw new UnsupportedOperationException("update by query not supported yet");
-            } else if (node.primaryKeyValues().size() == 1) {
+            if (node.primaryKeyValues().length == 1 && !node.version().isPresent()) {
                 context.addTask(new ESUpdateByIdTask(transportUpdateAction, node));
             } else {
-                throw new UnsupportedOperationException("bulk update not supported yet");
+                context.addTask(new ESUpdateByQueryTask(transportSearchAction, node, functions, referenceResolver));
             }
             return null;
         }

@@ -386,8 +386,11 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
     }
 
     private Plan planUpdate(UpdateAnalysis analysis) {
-        Plan plan = new Plan();
+        if (analysis.primaryKeyLiterals().size() > 1) {
+            throw new UnsupportedOperationException("Multi column primary keys are currently not supported");
+        }
 
+        Plan plan = new Plan();
         ESUpdateNode node = new ESUpdateNode(
                 analysis.table().ident().name(),
                 analysis.assignments(),

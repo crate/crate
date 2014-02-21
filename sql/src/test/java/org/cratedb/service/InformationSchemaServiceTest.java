@@ -29,7 +29,6 @@ import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.integrationtests.Setup;
-import org.cratedb.sql.SQLParseException;
 import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.*;
@@ -215,22 +214,23 @@ public class InformationSchemaServiceTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rows()[0][2]);
     }
 
-    @Test
-    public void testUpdateInformationSchema() throws Exception {
-        expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage(
-                "INFORMATION_SCHEMA tables are virtual and read-only. Only SELECT statements are supported");
-        execUsingClient("update INFORMATION_SCHEMA.Tables set table_name = 'x'");
-    }
-
-    // TODO: enable test
-    //@Test
-    //public void testDeleteInformationSchema() throws Exception {
-    //    expectedException.expect(SQLParseException.class);
-    //    expectedException.expectMessage(
-    //            "INFORMATION_SCHEMA tables are virtual and read-only. Only SELECT statements are supported");
-    //    execUsingClient("delete from INFORMATION_SCHEMA.Tables");
-    //}
+// TODO: uncomment when SchemaInfo has read only marker
+// TODO: insert test
+//    @Test
+//    public void testUpdateInformationSchema() throws Exception {
+//        expectedException.expect(SQLParseException.class);
+//        expectedException.expectMessage(
+//                "INFORMATION_SCHEMA tables are virtual and read-only. Only SELECT statements are supported");
+//        execUsingClient("update INFORMATION_SCHEMA.Tables set table_name = 'x'");
+//    }
+//
+//    @Test
+//    public void testDeleteInformationSchema() throws Exception {
+//        expectedException.expect(SQLParseException.class);
+//        expectedException.expectMessage(
+//                "INFORMATION_SCHEMA tables are virtual and read-only. Only SELECT statements are supported");
+//        execUsingClient("delete from INFORMATION_SCHEMA.Tables");
+//    }
 
     @Test
     public void testSelectStarFromInformationSchemaTableWithOrderByTwoColumnsAndLimit() throws Exception {

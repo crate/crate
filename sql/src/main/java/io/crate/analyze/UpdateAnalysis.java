@@ -38,7 +38,6 @@ public class UpdateAnalysis extends Analysis {
     private Update updateStatement;
     private Map<Reference, Symbol> assignments = new HashMap<>();
 
-
     public UpdateAnalysis(ReferenceInfos referenceInfos,
                           Functions functions,
                           Object[] parameters,

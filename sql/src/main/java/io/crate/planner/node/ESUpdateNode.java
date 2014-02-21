@@ -21,7 +21,6 @@
 
 package io.crate.planner.node;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
@@ -30,9 +29,7 @@ import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 
 import javax.annotation.Nullable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ESUpdateNode extends AbstractESNode {
 
@@ -42,8 +39,9 @@ public class ESUpdateNode extends AbstractESNode {
     private final Map<String, Object> updateDoc;
     private final String[] columns;
     private final WhereClause whereClause;
-    private final List<Literal> primaryKeyValues;
+    private final String[] primaryKeyValues;
     private final Optional<Long> version;
+
 
     public ESUpdateNode(String index,
                         Map<Reference, Symbol> assignments,
@@ -51,7 +49,22 @@ public class ESUpdateNode extends AbstractESNode {
                         Optional<Long> version,
                         @Nullable List<Literal> primaryKeyValues) {
         this.index = index;
-        this.primaryKeyValues = Objects.firstNonNull(primaryKeyValues, ImmutableList.<Literal>of());
+        if (primaryKeyValues == null) {
+            this.primaryKeyValues = new String[0];
+        } else {
+            assert primaryKeyValues.size() == 1 : "compound primary keys not supported";
+            List<String> pkList = new ArrayList<>();
+            for (Literal pkLiteral : primaryKeyValues) {
+                if (pkLiteral instanceof SetLiteral) {
+                    for (Object setLiteralItem : (Set<?>)pkLiteral.value()) {
+                        pkList.add(setLiteralItem.toString());
+                    }
+                } else {
+                    pkList.add(pkLiteral.valueAsString());
+                }
+            }
+            this.primaryKeyValues = pkList.toArray(new String[pkList.size()]);
+        }
         this.version = version;
         updateDoc = new HashMap<>(assignments.size());
         for (Map.Entry<Reference, Symbol> entry: assignments.entrySet()) {
@@ -72,7 +85,7 @@ public class ESUpdateNode extends AbstractESNode {
         this.whereClause = whereClause;
     }
 
-    public List<Literal> primaryKeyValues() {
+    public String[] primaryKeyValues() {
         return primaryKeyValues;
     }
 

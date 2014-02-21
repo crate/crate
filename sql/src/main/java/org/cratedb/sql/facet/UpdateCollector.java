@@ -68,14 +68,15 @@ public class UpdateCollector extends FacetExecutor.Collector {
     }
 
     public UpdateCollector(
-            Map<String, Object> updateDoc,
+            Map<String, Object> doc,
+            Long requiredVersion,
             TransportUpdateAction updateAction,
-            SearchContext context,
-            Long requiredVersion) {
+            SearchContext context
+            ) {
         this.shardId = context.indexShard().shardId();
         this.updateAction = updateAction;
         this.lookup = context.lookup();
-        this.updateDoc = updateDoc;
+        this.updateDoc = doc;
         this.rowCount = 0;
         this.requiredVersion = requiredVersion;
     }

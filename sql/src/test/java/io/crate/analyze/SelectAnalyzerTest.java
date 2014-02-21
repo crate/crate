@@ -40,8 +40,6 @@ import io.crate.operator.scalar.CollectionCountFunction;
 import io.crate.operator.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
-import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.Statement;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.sql.AmbiguousAliasException;
@@ -95,8 +93,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testGroupedSelectMissingOutput() throws Exception {
-        Statement statement = SqlParser.createStatement("select load['5'] from sys.nodes group by load['1']");
-        analyzer.analyze(statement);
+        analyze("select load['5'] from sys.nodes group by load['1']");
     }
 
     @Test
@@ -113,8 +110,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testOrderedSelect() throws Exception {
-        Statement statement = SqlParser.createStatement("select load['1'] from sys.nodes order by load['5'] desc");
-        SelectAnalysis analysis = (SelectAnalysis) analyzer.analyze(statement);
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select load['1'] from sys.nodes order by load['5'] desc");
         assertEquals(analysis.table().ident(), SysNodesTableInfo.IDENT);
         assertNull(analysis.limit());
 
@@ -175,8 +171,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testGroupedSelect() throws Exception {
-        Statement statement = SqlParser.createStatement("select load['1'], count(*) from sys.nodes group by load['1']");
-        SelectAnalysis analysis = (SelectAnalysis) analyzer.analyze(statement);
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select load['1'], count(*) from sys.nodes group by load['1']");
         assertEquals(analysis.table().ident(), SysNodesTableInfo.IDENT);
         assertNull(analysis.limit());
 
@@ -191,8 +186,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSimpleSelect() throws Exception {
-        Statement statement = SqlParser.createStatement("select load['5'] from sys.nodes limit 2");
-        SelectAnalysis analysis = (SelectAnalysis) analyzer.analyze(statement);
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select load['5'] from sys.nodes limit 2");
         assertEquals(analysis.table().ident(), SysNodesTableInfo.IDENT);
         assertEquals(new Integer(2), analysis.limit());
 
@@ -209,8 +203,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAggregationSelect() throws Exception {
-        Statement statement = SqlParser.createStatement("select avg(load['5']) from sys.nodes");
-        SelectAnalysis analysis = (SelectAnalysis) analyzer.analyze(statement);
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select avg(load['5']) from sys.nodes");
         assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
 
         assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
@@ -243,9 +236,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testWhereSelect() throws Exception {
-        Statement statement = SqlParser.createStatement("select load from sys.nodes " +
+        SelectAnalysis analysis = (SelectAnalysis) analyze("select load from sys.nodes " +
                 "where load['1'] = 1.2 or 1 >= load['5']");
-        SelectAnalysis analysis = (SelectAnalysis) analyzer.analyze(statement);
         assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
 
         assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
@@ -269,10 +261,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSelectWithParameters() throws Exception {
-        Statement statement = SqlParser.createStatement("select load from sys.nodes " +
+        Analysis analysis = analyze("select load from sys.nodes " +
                 "where load['1'] = ? or load['5'] <= ? or load['15'] >= ? or load['1'] = ? " +
-                "or load['1'] = ? or name = ?");
-        Analysis analysis = analyzer.analyze(statement, new Object[]{
+                "or load['1'] = ? or name = ?", new Object[]{
                 1.2d,
                 2.4f,
                 2L,
@@ -527,8 +518,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testWhereInSelect() throws Exception {
-        Statement statement = SqlParser.createStatement("select load from sys.nodes where load['1'] in (1, 2, 4, 8, 16)");
-        Analysis analysis = analyzer.analyze(statement);
+        Analysis analysis = analyze("select load from sys.nodes where load['1'] in (1, 2, 4, 8, 16)");
 
         Function whereClause = analysis.whereClause().query();
         assertEquals(InOperator.NAME, whereClause.info().ident().name());
@@ -541,21 +531,18 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testWhereInSelectDifferentDataTypeList() throws Exception {
-        Statement statement = SqlParser.createStatement("select 'found' where 1 in (1.2, 2)");
-        analyzer.analyze(statement);
+        analyze("select 'found' where 1 in (1.2, 2)");
     }
 
     @Test
     public void testWhereInSelectDifferentDataTypeValue() throws Exception {
-        Statement statement = SqlParser.createStatement("select 'found' where 1.2 in (1, 2)");
-        Analysis analysis = analyzer.analyze(statement);
+        Analysis analysis = analyze("select 'found' where 1.2 in (1, 2)");
         assertTrue(analysis.noMatch());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testWhereInSelectDifferentDataTypeValueUncompatibleDataTypes() throws Exception {
-        Statement statement = SqlParser.createStatement("select 'found' where 1 in (1, 'foo', 2)");
-        analyzer.analyze(statement);
+        analyze("select 'found' where 1 in (1, 'foo', 2)");
     }
 
     @Test

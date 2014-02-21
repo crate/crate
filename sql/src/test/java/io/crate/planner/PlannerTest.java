@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static junit.framework.Assert.assertTrue;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
@@ -324,7 +325,8 @@ public class PlannerTest {
 
     @Test
     public void testGlobalAggregationPlan() throws Exception {
-        Statement statement = SqlParser.createStatement("select count(name) from users");
+        String statementString = "select count(name) from users";
+        Statement statement = SqlParser.createStatement(statementString);
 
         Analysis analysis = analyzer.analyze(statement);
         Plan plan = planner.plan(analysis);
@@ -511,7 +513,7 @@ public class PlannerTest {
         assertThat(orderBy, instanceOf(InputColumn.class));
 
         // points to the first values() entry of the previous GroupProjection
-        assertThat(((InputColumn)orderBy).index(), is(1));
+        assertThat(((InputColumn) orderBy).index(), is(1));
     }
 
     @Test
@@ -589,6 +591,7 @@ public class PlannerTest {
         assertThat(localTopN, instanceOf(TopNProjection.class));
     }
 
+    @Test
     public void testESUpdatePlan() throws Exception {
         Plan plan = plan("update users set name='Vogon lyric fan' where id=1");
         Iterator<PlanNode> iterator = plan.iterator();
@@ -597,8 +600,8 @@ public class PlannerTest {
 
         ESUpdateNode updateNode = (ESUpdateNode)planNode;
         assertThat(updateNode.index(), is("users"));
-        assertThat(updateNode.primaryKeyValues().size(), is(1));
-        assertThat((Long)updateNode.primaryKeyValues().get(0).value(), is(1l));
+        assertThat(updateNode.primaryKeyValues().length, is(1));
+        assertThat(updateNode.primaryKeyValues()[0], is("1"));
 
         assertThat(updateNode.outputTypes().size(), is(1));
         assertThat(updateNode.outputTypes().get(0), is(DataType.LONG));
@@ -608,5 +611,17 @@ public class PlannerTest {
         assertThat((String)entry.getValue(), is("Vogon lyric fan"));
 
         assertTrue(plan.expectsAffectedRows());
+    }
+
+    @Test
+    public void testESUpdatePlanWithMultiplePrimaryKeyValues() throws Exception {
+        Plan plan = plan("update users set name='Vogon lyric fan' where id in (1,2,3)");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(ESUpdateNode.class));
+
+        ESUpdateNode updateNode = (ESUpdateNode)planNode;
+        assertThat(updateNode.primaryKeyValues().length, is(3));
+        assertThat(updateNode.primaryKeyValues(), arrayContainingInAnyOrder("1", "2", "3"));
     }
 }

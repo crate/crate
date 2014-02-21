@@ -36,7 +36,7 @@ public abstract class Analysis {
 
     protected final ReferenceInfos referenceInfos;
     private final Functions functions;
-    private final Object[] parameters;
+    protected final Object[] parameters;
     protected TableInfo table;
 
     private Map<Function, Function> functionSymbols = new HashMap<>();
@@ -73,7 +73,8 @@ public abstract class Analysis {
         this.clusteredByLiteral = clusteredByLiteral;
     }
 
-    public Analysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters,
+    public Analysis(ReferenceInfos referenceInfos, Functions functions,
+                    Object[] parameters,
                     ReferenceResolver referenceResolver) {
         this.referenceInfos = referenceInfos;
         this.functions = functions;
@@ -211,6 +212,10 @@ public abstract class Analysis {
         return rowGranularity;
     }
 
+    public Object[] parameters() {
+        return parameters;
+    }
+
     public Object parameterAt(int idx) {
         Preconditions.checkElementIndex(idx, parameters.length);
         return parameters[idx];
@@ -267,7 +272,8 @@ public abstract class Analysis {
 
         if (reference instanceof DynamicReference) {
             // guess type for dynamic column
-            DataType type = DataType.forValue(normalized.value(), false);
+            DataType type = DataType.forValue(normalized.value(),
+                    reference.info().objectType() == ReferenceInfo.ObjectType.IGNORED);
             ((DynamicReference) reference).valueType(type);
         }
 

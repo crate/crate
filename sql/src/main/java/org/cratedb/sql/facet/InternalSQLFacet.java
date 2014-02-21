@@ -135,7 +135,7 @@ public class InternalSQLFacet extends InternalFacet implements SQLFacet {
     }
 
     @Override
-    public void reduce(ParsedStatement stmt) {
+    public void reduce() {
         // Currently only the rowcount gets accumulated
         for (Facet facet : reduceContext.facets()) {
             if (facet != this) {
