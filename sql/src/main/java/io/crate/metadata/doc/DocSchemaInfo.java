@@ -95,6 +95,11 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     }
 
     @Override
+    public boolean systemSchema() {
+        return false;
+    }
+
+    @Override
     public void clusterChanged(ClusterChangedEvent event) {
         if (event.metaDataChanged()) {
             cache.invalidateAll();

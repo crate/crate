@@ -52,7 +52,7 @@ public class ESUpdateNode extends AbstractESNode {
         if (primaryKeyValues == null) {
             this.primaryKeyValues = new String[0];
         } else {
-            assert primaryKeyValues.size() == 1 : "compound primary keys not supported";
+            assert primaryKeyValues.size() <= 1 : "compound primary keys not supported";
             List<String> pkList = new ArrayList<>();
             for (Literal pkLiteral : primaryKeyValues) {
                 if (pkLiteral instanceof SetLiteral) {

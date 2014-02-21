@@ -22,15 +22,15 @@
 package io.crate.analyze;
 
 import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
-import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.metadata.table.SchemaInfo;
 import io.crate.operator.operator.EqOperator;
 import io.crate.operator.operator.OperatorModule;
-import io.crate.operator.reference.sys.node.NodeLoadExpression;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.DoubleLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.StringLiteral;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
@@ -40,14 +40,18 @@ import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DeleteAnalyzerTest extends BaseAnalyzerTest {
 
     static class TestMetaDataModule extends MetaDataModule {
         @Override
-        protected void bindReferences() {
-            super.bindReferences();
-            referenceBinder.addBinding(LOAD_INFO.ident()).to(NodeLoadExpression.class).asEagerSingleton();
+        protected void bindSchemas() {
+            super.bindSchemas();
+            SchemaInfo schemaInfo = mock(SchemaInfo.class);
+            when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
+            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
     }
 
@@ -65,19 +69,17 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDeleteWhere() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis) analyze("delete from sys.nodes where load['1'] = 1");
-        assertTrue(analysis.isDelete());
-        assertEquals(SysNodesTableInfo.IDENT, analysis.table().ident());
+        DeleteAnalysis analysis = (DeleteAnalysis) analyze("delete from users where name='Trillian'");
+        assertEquals(TEST_DOC_TABLE_IDENT, analysis.table().ident());
 
-        assertThat(analysis.rowGranularity(), is(RowGranularity.NODE));
-        assertFalse(analysis.hasGroupBy());
+        assertThat(analysis.rowGranularity(), is(RowGranularity.DOC));
 
         Function whereClause = analysis.whereClause().query();
         assertEquals(EqOperator.NAME, whereClause.info().ident().name());
         assertFalse(whereClause.info().isAggregate());
 
         assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
-        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(DoubleLiteral.class));
+        assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
 
     }
 }

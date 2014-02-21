@@ -3,6 +3,7 @@ package io.crate.analyze;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
+import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
@@ -29,7 +30,8 @@ public abstract class Analysis {
     public static enum Type {
         SELECT,
         INSERT,
-        UPDATE
+        UPDATE,
+        DELETE
     }
 
     public abstract Type type();
@@ -49,7 +51,6 @@ public abstract class Analysis {
     protected List<Literal> primaryKeyLiterals;
     protected Literal clusteredByLiteral;
 
-    private boolean isDelete = false;
     protected WhereClause whereClause = WhereClause.MATCH_ALL;
     protected RowGranularity rowGranularity;
     protected boolean hasAggregates = false;
@@ -86,6 +87,26 @@ public abstract class Analysis {
         TableInfo tableInfo = referenceInfos.getTableInfo(tableIdent);
         if (tableInfo == null) {
             throw new TableUnknownException(tableIdent.name());
+        }
+        table = tableInfo;
+        updateRowGranularity(table.rowGranularity());
+    }
+
+    public void editableTable(TableIdent tableIdent) throws TableUnknownException,
+                                                            UnsupportedOperationException {
+        SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
+        if (schemaInfo == null) {
+            throw new TableUnknownException(tableIdent.name());
+        } else if (schemaInfo.systemSchema()) {
+            throw new UnsupportedOperationException(
+                    String.format("tables of schema '%s' are read only.", tableIdent.schema()));
+        }
+        TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
+        if (tableInfo == null) {
+            throw new TableUnknownException(tableIdent.name());
+        } else if (tableInfo.isAlias()) {
+            throw new UnsupportedOperationException(
+                    String.format("cannot edit table referenced by alias '%s'", tableIdent.name()));
         }
         table = tableInfo;
         updateRowGranularity(table.rowGranularity());
@@ -239,14 +260,6 @@ public abstract class Analysis {
 
     public void outputSymbols(List<Symbol> symbols) {
         this.outputSymbols = symbols;
-    }
-
-    public boolean isDelete() {
-        return isDelete;
-    }
-
-    public void isDelete(boolean isDelete) {
-        this.isDelete = isDelete;
     }
 
     /**

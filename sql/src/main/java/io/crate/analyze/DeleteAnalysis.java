@@ -19,43 +19,20 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.sys;
+package io.crate.analyze;
 
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.common.inject.Inject;
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.ReferenceResolver;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Map;
+public class DeleteAnalysis extends Analysis {
 
-public class SysSchemaInfo implements SchemaInfo {
-
-    public static final String NAME = "sys";
-    private final Map<String, ? extends TableInfo> tableInfos;
-
-    @Inject
-    public SysSchemaInfo(Map<String, SysTableInfo> infos) {
-        tableInfos = infos;
+    public DeleteAnalysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters, ReferenceResolver referenceResolver) {
+        super(referenceInfos, functions, parameters, referenceResolver);
     }
 
     @Override
-    public TableInfo getTableInfo(String name) {
-        return tableInfos.get(name);
-    }
-
-    @Override
-    public Collection<String> tableNames() {
-        return tableInfos.keySet();
-    }
-
-    @Override
-    public boolean systemSchema() {
-        return true;
-    }
-
-    @Override
-    public Iterator<TableInfo> iterator() {
-        return (Iterator<TableInfo>) tableInfos.values().iterator();
+    public Type type() {
+        return Type.DELETE;
     }
 }

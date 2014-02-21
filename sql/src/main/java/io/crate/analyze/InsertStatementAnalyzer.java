@@ -21,15 +21,14 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Preconditions;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.ValueSymbol;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.Insert;
-import io.crate.sql.tree.QualifiedNameReference;
-import io.crate.sql.tree.ValuesList;
+import io.crate.sql.tree.*;
 import org.cratedb.sql.CrateException;
 
 import java.util.ArrayList;
@@ -85,6 +84,13 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
             process(valuesList, context);
         }
 
+        return null;
+    }
+
+    @Override
+    protected Symbol visitTable(Table node, InsertAnalysis context) {
+        Preconditions.checkState(context.table() == null, "inserting into multiple tables is not supported");
+        context.editableTable(TableIdent.of(node));
         return null;
     }
 

@@ -212,7 +212,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         analyze("insert into sys.nodes (id, name) values (666, 'evilNode')");
     }
 
-    @Test( expected = IllegalArgumentException.class)
+    @Test( expected = UnsupportedOperationException.class)
     public void testInsertIntoAliasTable() throws Exception {
         analyze("insert into alias (bla) values ('blubb')");
     }

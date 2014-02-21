@@ -29,4 +29,5 @@ public interface SchemaInfo extends Iterable<TableInfo> {
 
     public Collection<String> tableNames();
 
+    public boolean systemSchema();
 }

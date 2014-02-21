@@ -25,7 +25,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.TableIdent;
-import io.crate.planner.RowGranularity;
+import io.crate.metadata.table.SchemaInfo;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Update;
@@ -72,9 +72,11 @@ public class UpdateAnalysis extends Analysis {
     @Override
     public void table(TableIdent tableIdent) {
         super.table(tableIdent);
-        // TODO: better test when information schema is implemented
-        if (table.rowGranularity() != RowGranularity.DOC) {
-            throw new UnsupportedOperationException(String.format("cannot update table '%s'.", tableIdent.name()));
+        SchemaInfo schema = referenceInfos.getSchemaInfo(tableIdent.schema());
+        // null schema already caught by TableUnknownException
+        if (schema != null && schema.systemSchema()) {
+            throw new UnsupportedOperationException(
+                    String.format("tables of schema '%s' are read only.", tableIdent.schema()));
         }
         if (table().isAlias()) {
             throw new IllegalArgumentException("Table alias not allowed in UPDATE statement.");

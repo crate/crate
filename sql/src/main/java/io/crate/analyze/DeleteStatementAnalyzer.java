@@ -24,47 +24,38 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.TableIdent;
-import io.crate.planner.symbol.Literal;
-import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.Delete;
+import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.Table;
 
 import java.util.List;
 
-public class UpdateStatementAnalyzer extends StatementAnalyzer<UpdateAnalysis> {
+public class DeleteStatementAnalyzer extends StatementAnalyzer<DeleteAnalysis> {
 
     @Override
-    public Symbol visitUpdate(Update node, UpdateAnalysis context) {
-        context.updateStatement(node);
-        process(node.table(), context);
+    public Symbol visitDelete(Delete node, DeleteAnalysis context) {
+        process(node.getTable(), context);
 
-        for (Assignment assignment : node.assignements()) {
-            process(assignment, context);
+        if (context.table().isAlias()) {
+            throw new IllegalArgumentException("Table alias not allowed in DELETE statement.");
         }
-        if (node.whereClause().isPresent()) {
-            processWhereClause(node.whereClause().get(), context);
+
+        if (node.getWhere().isPresent()) {
+            processWhereClause(node.getWhere().get(), context);
         }
+
         return null;
     }
 
     @Override
-    protected Symbol visitTable(Table node, UpdateAnalysis context) {
-        Preconditions.checkState(context.table() == null, "updating multiple tables is not supported");
+    protected Symbol visitTable(Table node, DeleteAnalysis context) {
+        Preconditions.checkState(context.table() == null, "deleting multiple tables is not supported");
         context.editableTable(TableIdent.of(node));
         return null;
     }
 
-    @Override
-    protected Symbol visitSubscriptExpression(SubscriptExpression node, UpdateAnalysis context) {
-        SubscriptContext subscriptContext = new SubscriptContext();
-        node.accept(visitor, subscriptContext);
-        ReferenceIdent ident = new ReferenceIdent(
-                context.table().ident(), subscriptContext.column(), subscriptContext.parts());
-        return context.allocateReference(ident);
-    }
-
-    @Override
-    protected Symbol visitQualifiedNameReference(QualifiedNameReference node, UpdateAnalysis context) {
+    protected Symbol visitQualifiedNameReference(QualifiedNameReference node, DeleteAnalysis context) {
         ReferenceIdent ident;
         List<String> parts = node.getName().getParts();
         switch (parts.size()) {
@@ -72,6 +63,7 @@ public class UpdateStatementAnalyzer extends StatementAnalyzer<UpdateAnalysis> {
                 ident = new ReferenceIdent(context.table().ident(), parts.get(0));
                 break;
             case 2:
+                // make sure tableName matches the tableInfo
                 if (!context.table().ident().name().equals(parts.get(0))) {
                     throw new UnsupportedOperationException("unsupported name reference: " + node);
                 }
@@ -81,17 +73,5 @@ public class UpdateStatementAnalyzer extends StatementAnalyzer<UpdateAnalysis> {
                 throw new UnsupportedOperationException("unsupported name reference: " + node);
         }
         return context.allocateReference(ident);
-    }
-
-    @Override
-    public Symbol visitAssignment(Assignment node, UpdateAnalysis context) {
-        // unknown columns in strict objects handled in here
-        Reference reference = (Reference)process(node.columnName(), context);
-        Symbol value = process(node.expression(), context);
-
-        // it's something that we can normalize to a literal
-        Literal updateValue = context.normalizeInputValue(value, reference);
-        context.addAssignement(reference, updateValue);
-        return null;
     }
 }

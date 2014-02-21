@@ -146,22 +146,6 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
         return null;
     }
 
-    @Override
-    public Symbol visitDelete(Delete node, SelectAnalysis context) {
-        context.isDelete(true);
-
-        process(node.getTable(), context);
-
-        if (context.table().isAlias()) {
-            throw new IllegalArgumentException("Table alias not allowed in DELETE statement.");
-        }
-
-        if (node.getWhere().isPresent()) {
-            processWhereClause(node.getWhere().get(), context);
-        }
-
-        return null;
-    }
 
     private void analyzeGroupBy(List<Expression> groupByExpressions, SelectAnalysis context) {
         List<Symbol> groupBy = new ArrayList<>(groupByExpressions.size());
