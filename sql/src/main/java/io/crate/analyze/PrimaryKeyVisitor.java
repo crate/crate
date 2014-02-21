@@ -23,17 +23,41 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operator.operator.AndOperator;
 import io.crate.operator.operator.EqOperator;
 import io.crate.operator.operator.InOperator;
 import io.crate.operator.operator.OrOperator;
 import io.crate.planner.symbol.*;
+import org.cratedb.DataType;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
+import java.util.*;
 
+/**
+ * Visitor which traverses functions to find primary key columns, _version and clustered by columns
+ *
+ * for each "or" node a new bucket is created which can
+ *  contain its own primary key columns, version and clustered by info
+ *
+ * e.g.
+ *
+ *  where (pkcol1 = 1 and pkcol2 = 2 and _version = 1) or (pkcol = 10 and pkcol2 = 20 and _version = 2)
+ *
+ *  would create two buckets with keyParts  and version set.
+ *
+ *  for backward compatibility the information in the context is exposed in a way that version and clusteredBy
+ *  is only exposed if primary key has only 1 key part.
+ *
+ *  if any column that is neither primary key, nor _version or clustered by column is encountered
+ *  the whole context is invalidated.
+ */
 public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, Void> {
 
+    private static final ImmutableSet<String> logicalBinaryExpressions = ImmutableSet.of(
+            AndOperator.NAME, OrOperator.NAME
+    );
     private static final ImmutableSet<String> PK_COMPARISONS = ImmutableSet.of(
             EqOperator.NAME, InOperator.NAME
     );
@@ -41,36 +65,82 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
     public static class Context {
 
         private final TableInfo table;
-        public Literal[] keyLiterals;
-        public boolean noMatch = false;
-        public int foundKeys = 0;
-        public Literal clusteredByLiteral;
-        Long version;
+        private final ArrayList<KeyBucket> buckets;
 
+        private KeyBucket currentBucket;
+        public boolean invalid = false;
+
+        private List<Literal> keyLiterals;
+        private Long version;
+        private Literal clusteredBy;
+        public boolean noMatch = false;
 
         public Context(TableInfo tableInfo) {
             this.table = tableInfo;
-            this.keyLiterals = new Literal[tableInfo.primaryKey().size()];
+            this.buckets = new ArrayList<>();
+            newBucket();
         }
 
-        public boolean noMatch() {
-            return noMatch;
-        }
-
-        public ArrayList<Literal> keyLiterals() {
-            if (foundKeys == table.primaryKey().size()) {
-                return Lists.newArrayList(keyLiterals);
-            }
-            return null;
-        }
-
-        public Literal clusteredByLiteral() {
-            return clusteredByLiteral;
+        @Nullable
+        public List<Literal> keyLiterals() {
+            return keyLiterals;
         }
 
         @Nullable
         public Long version() {
             return version;
+        }
+
+        public Literal clusteredByLiteral() {
+            return clusteredBy;
+        }
+
+        void newBucket() {
+            currentBucket = new KeyBucket(table.primaryKey().size());
+            buckets.add(currentBucket);
+        }
+
+        void finish() {
+            if (invalid) {
+                return;
+            }
+            if (buckets.size() == 1) {
+                version = currentBucket.version;
+                clusteredBy = currentBucket.clusteredBy;
+
+                if (currentBucket.partsFound == table.primaryKey().size()) {
+                    keyLiterals = Lists.newArrayList(currentBucket.keyParts);
+                }
+            } else if (table.primaryKey().size() == 1) {
+                Set<Literal> keys = new HashSet<>();
+                DataType keyType = DataType.NULL;
+                for (KeyBucket bucket : buckets) {
+                    Literal keyPart = bucket.keyParts[0];
+                    if (keyPart != null) {
+                        keyType = keyPart.valueType();
+                        if (keyPart instanceof SetLiteral) {
+                            keys.addAll(((SetLiteral) keyPart).literals());
+                        } else {
+                            keys.add(keyPart);
+                        }
+                    }
+                }
+                keyLiterals = Arrays.<Literal>asList(SetLiteral.fromLiterals(keyType, keys));
+            } else {
+                // TODO: generate keyLiterals from bucket
+                // if all buckets have partsFound == table.primaryKey().size()
+            }
+        }
+    }
+
+    private static class KeyBucket {
+        private final Literal[] keyParts;
+        Long version;
+        public Literal clusteredBy;
+        public int partsFound = 0;
+
+        KeyBucket(int numKeys) {
+            keyParts = new Literal[numKeys];
         }
     }
 
@@ -79,78 +149,135 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         if (table.primaryKey().size() > 0 || table.clusteredBy() != null) {
             Context context = new Context(table);
             visitFunction(whereClause, context);
+
+            context.finish();
             return context;
         }
         return null;
     }
 
-
     @Override
-    public Void visitFunction(Function symbol, Context context) {
-        // ignore or
-        if (symbol.info().ident().equals(OrOperator.INFO.ident())) {
-            return null;
+    public Void visitFunction(Function function, Context context) {
+        String functionName = function.info().ident().name();
+        if (logicalBinaryExpressions.contains(functionName)) {
+            return continueTraversal(function, context);
         }
-        if (symbol.arguments().size() == 2 &&
-                symbol.arguments().get(0).symbolType() == SymbolType.REFERENCE &&
-                symbol.arguments().get(1).symbolType().isLiteral() &&
-                PK_COMPARISONS.contains(symbol.info().ident().name())) {
+        if (!PK_COMPARISONS.contains(functionName)) {
+            return invalidate(context);
+        }
 
-            Literal right = (Literal)symbol.arguments().get(1);
-            Reference ref = (Reference) symbol.arguments().get(0);
+        assert function.arguments().size() == 2; // pk comparison functions can't have more than 2
+        Symbol left = function.arguments().get(0);
+        Symbol right = function.arguments().get(1);
 
-            if (ref.info().ident().tableIdent().equals(context.table.ident())) {
-                if (ref.info().ident().columnIdent().name().equals("_version")) {
-                    switch (right.symbolType()) {
-                        case LONG_LITERAL:
-                            context.version = ((LongLiteral)right).value();
-                            break;
-                        case INTEGER_LITERAL:
-                            context.version = ((IntegerLiteral)right).value().longValue();
-                            break;
-                        default:
-                            throw new IllegalArgumentException(
-                                "comparison operation on \"_version\" requires a long");
-                    }
+        if (left.symbolType() != SymbolType.REFERENCE || !right.symbolType().isLiteral()) {
+            return invalidate(context);
+        }
+
+        Reference reference = (Reference)left;
+        String columnName = reference.info().ident().columnIdent().name();
+        if (!reference.info().ident().tableIdent().equals(context.table.ident())) {
+            return invalidate(context);
+        }
+
+        boolean clusteredBySet = false;
+        if (functionName.equals(EqOperator.NAME)) {
+            if (columnName.equals("_version") && functionName.equals(EqOperator.NAME)) {
+                setVersion(context, right);
+                return null;
+            } else if (columnName.equals(context.table.clusteredBy())) {
+                setClusterBy(context, (Literal)right);
+                clusteredBySet = true;
+            }
+        }
+
+        int idx = context.table.primaryKey().indexOf(columnName);
+        if (idx < 0 && !clusteredBySet) {
+            return invalidate(context);
+        }
+        setPrimaryKey(context, (Literal)right, idx);
+        return null;
+    }
+
+    private void setPrimaryKey(Context context, Literal right, int idx) {
+        if (context.currentBucket.keyParts[idx] == null) {
+            context.currentBucket.keyParts[idx] = right;
+            context.currentBucket.partsFound++;
+        } else if (!context.currentBucket.keyParts[idx].equals(right)) {
+            if (context.currentBucket.keyParts[idx] instanceof SetLiteral) {
+                SetLiteral intersection;
+                if (right instanceof SetLiteral) {
+                    intersection = ((SetLiteral) context.currentBucket.keyParts[idx]).intersection((SetLiteral) right);
+                } else {
+                    intersection = ((SetLiteral) context.currentBucket.keyParts[idx])
+                            .intersection(SetLiteral.fromLiterals(right.valueType(), Sets.newHashSet(right)));
                 }
 
-                if (symbol.info().ident().name().equals(EqOperator.NAME) &&
-                        ref.info().ident().columnIdent().name().equals(context.table.clusteredBy())) {
-                    if (context.clusteredByLiteral == null) {
-                        context.clusteredByLiteral = right;
-                    } else {
-                        if (!context.clusteredByLiteral.equals(right)) {
-                            // we cannot use the routing, since we have two values
-                            context.clusteredByLiteral = null;
-                        }
-                    }
-                }
-                int idx = context.table.primaryKey().indexOf(ref.info().ident().columnIdent().name());
-                if (idx >= 0) {
-                    if (context.keyLiterals[idx] == null) {
-                        context.foundKeys++;
-                        context.keyLiterals[idx] = right;
-                    } else if (!context.keyLiterals[idx].equals(right)) {
-                        if (context.keyLiterals[idx] instanceof SetLiteral) {
-                            if (right instanceof SetLiteral) {
-                                SetLiteral intersection = ((SetLiteral) context.keyLiterals[idx]).intersection((SetLiteral) right);
-                                if (intersection.size() > 0) {
-                                    context.keyLiterals[idx] = intersection;
-                                } else {
-                                    context.noMatch = true;
-                                }
-                            }
-                        } else {
-                            context.noMatch = true;
-                        }
-                    }
+                if (intersection.size() > 0) {
+                    context.currentBucket.keyParts[idx] = intersection;
+                    return;
                 }
             }
-            return null;
+
+            /**
+             * if we get to this point we've had something like
+             *      where pkCol = 1 and pkCol = 2
+             * or
+             *      where pkCol in (1, 2) and pkCol = 3
+             *
+             * which can never match so the query doesn't need to be executed.
+             */
+            context.noMatch = true;
+        }
+    }
+
+    private void setClusterBy(Context context, Literal right) {
+        if (context.currentBucket.clusteredBy == null) {
+            context.currentBucket.clusteredBy = right;
+        } else if (!context.currentBucket.clusteredBy.equals(right)) {
+            invalidate(context);
+        }
+    }
+
+    private Void invalidate(Context context) {
+        context.invalid = true;
+        return null;
+    }
+
+    private void setVersion(Context context, Symbol right) {
+        Long version;
+        switch (right.symbolType()) {
+            case LONG_LITERAL:
+                version = ((LongLiteral)right).value();
+                break;
+            case INTEGER_LITERAL:
+                version = ((IntegerLiteral)right).value().longValue();
+                break;
+            default:
+                throw new IllegalArgumentException(
+                        "comparison operation on \"_version\" requires a long");
         }
 
+        if (context.currentBucket.version != null && !context.currentBucket.version.equals(version)) {
+            invalidate(context);
+        } else {
+            context.currentBucket.version = version;
+        }
+    }
+
+    private Void continueTraversal(Function symbol, Context context) {
+        String functionName = symbol.info().ident().name();
+
+        boolean newBucket = true;
         for (Symbol argument : symbol.arguments()) {
             process(argument, context);
+            if (context.invalid) {
+                break;
+            }
+            if (newBucket && functionName.equals(OrOperator.NAME)) {
+                newBucket = false;
+                context.newBucket();
+            }
         }
         return null;
     }

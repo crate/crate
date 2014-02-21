@@ -388,13 +388,13 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
         if (whereClause.hasQuery()){
             PrimaryKeyVisitor.Context pkc = primaryKeyVisitor.process(context.table(), whereClause.query());
             if (pkc != null) {
-                if (pkc.noMatch()) {
+                if (pkc.noMatch) {
                     context.whereClause(WhereClause.NO_MATCH);
                 } else {
                     context.primaryKeyLiterals(pkc.keyLiterals());
+                    context.version(pkc.version());
+                    context.clusteredByLiteral(pkc.clusteredByLiteral());
                 }
-                context.version(pkc.version());
-                context.clusteredByLiteral(pkc.clusteredByLiteral());
             }
         }
     }

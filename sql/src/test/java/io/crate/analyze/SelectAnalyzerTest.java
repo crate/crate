@@ -400,8 +400,38 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testPrimaryKeyAndVersion() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze(
             "select name from users where id = 2 and \"_version\" = 1");
-        assertEquals(analysis.primaryKeyLiterals(), ImmutableList.<Literal>of(new LongLiteral(2)));
+        assertEquals(ImmutableList.<Literal>of(new LongLiteral(2)), analysis.primaryKeyLiterals());
         assertThat(analysis.version().get(), is(1L));
+    }
+
+    @Test
+    public void testMultiplePrimaryKeys() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis)analyze(
+            "select name from users where id = 2 or id = 1");
+
+        assertEquals(1, analysis.primaryKeyLiterals().size());
+        SetLiteral sl = (SetLiteral) analysis.primaryKeyLiterals().get(0);
+        assertThat(sl.size(), is(2));
+    }
+
+    @Test
+    public void testMultiplePrimaryKeysAndInvalidColumn() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis)analyze(
+            "select name from users where id = 2 or id = 1 and name = 'foo'");
+        assertNull(analysis.primaryKeyLiterals());
+    }
+
+    @Test
+    public void testNotEqualsDoesntMatchPrimaryKey() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis)analyze("select name from users where id != 1");
+        assertNull(analysis.primaryKeyLiterals());
+    }
+
+    @Test
+    public void testMultipleCompoundPrimaryKeys() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis)analyze(
+            "select * from sys.shards where (id = 1 and table_name = 'foo') or (id = 2 and table_name = 'bla')");
+        assertNull(analysis.primaryKeyLiterals());
     }
 
     @Test
