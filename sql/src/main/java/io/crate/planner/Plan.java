@@ -21,10 +21,13 @@
 
 package io.crate.planner;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.planner.node.PlanNode;
+import org.cratedb.DataType;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 public class Plan implements Iterable<PlanNode> {
 
@@ -46,5 +49,12 @@ public class Plan implements Iterable<PlanNode> {
 
     public boolean expectsAffectedRows() {
         return expectsAffectedRows;
+    }
+
+    public List<DataType> outputTypes() {
+        if (nodes.isEmpty()) {
+            return ImmutableList.of();
+        }
+        return nodes.get(nodes.size() -1).outputTypes();
     }
 }

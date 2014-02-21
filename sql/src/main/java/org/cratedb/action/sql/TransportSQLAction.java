@@ -37,6 +37,7 @@ import io.crate.planner.Planner;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import org.cratedb.Constants;
+import org.cratedb.DataType;
 import org.cratedb.action.DistributedSQLRequest;
 import org.cratedb.action.TransportDistributedSQLAction;
 import org.cratedb.action.import_.ImportRequest;
@@ -403,6 +404,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                     }
 
                     SQLResponse response = responseBuilder.buildResponse(
+                            plan.outputTypes().toArray(new DataType[plan.outputTypes().size()]),
                             analysis.outputNames().toArray(new String[analysis.outputNames().size()]),
                             rows,
                             request.creationTime());

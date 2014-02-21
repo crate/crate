@@ -427,6 +427,9 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         Symbol symbol = projection.outputs().get(columnIdx);
         DataType type = symbol.accept(dataTypeVisitor, null);
         if (type == null) {
+            if (symbol.symbolType() == SymbolType.INPUT_COLUMN) {
+                columnIdx = ((InputColumn)symbol).index();
+            }
             if (projectionIdx > 0) {
                 return resolveType(projections, projectionIdx - 1, columnIdx, inputTypes);
             } else {

@@ -21,8 +21,9 @@
 
 package io.crate.executor;
 
+import org.cratedb.DataType;
 import org.cratedb.action.sql.SQLResponse;
 
 public interface ResponseBuilder {
-    public SQLResponse buildResponse(String[] outputNames, Object[][] rows, long requestStartedTime);
+    public SQLResponse buildResponse(DataType[] dataTypes, String[] outputNames, Object[][] rows, long requestStartedTime);
 }
