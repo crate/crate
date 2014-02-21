@@ -23,11 +23,20 @@ package io.crate.operator.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
 import io.crate.operator.aggregation.AggregationTest;
+import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.StringLiteral;
+import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 import org.junit.Test;
 
+import java.util.List;
+
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 public class CountAggregationTest extends AggregationTest {
 
@@ -84,10 +93,29 @@ public class CountAggregationTest extends AggregationTest {
         assertEquals(2L, result[0][0]);
     }
 
-
+    @Test
     public void testNoInput() throws Exception {
         // aka. COUNT(*)
         Object[][] result = executeAggregation(null, new Object[][]{{}, {}});
         assertEquals(2L, result[0][0]);
     }
+
+    @Test
+    public void testNormalizeSymolRewriteLiterals() {
+        FunctionIdent ident = new FunctionIdent(CountAggregation.NAME, ImmutableList.of(DataType.LONG));
+        FunctionInfo functionInfo = new FunctionInfo(ident, DataType.LONG);
+        CountAggregation op = new CountAggregation(functionInfo);
+        Aggregation.Step fromStep = Aggregation.Step.FINAL;
+        Aggregation.Step toStep = Aggregation.Step.FINAL;
+
+        List<Symbol> inputs = ImmutableList.<Symbol>of(new StringLiteral("foo"));
+        Aggregation aggregation = new Aggregation(op.info(), inputs, fromStep, toStep);
+        Symbol result = op.normalizeSymbol(aggregation);
+
+        assertThat(result, instanceOf(Aggregation.class));
+        Aggregation newAggregation = (Aggregation)result;
+        assertEquals(newAggregation.functionInfo(), aggregation.functionInfo());
+        assertThat(newAggregation.inputs().size(), is(0));
+    }
+
 }

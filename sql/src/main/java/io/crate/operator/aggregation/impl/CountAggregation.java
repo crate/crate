@@ -27,11 +27,15 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.AggregationState;
+import io.crate.planner.symbol.Aggregation;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class CountAggregation extends AggregationFunction<CountAggregation.CountAggState> {
 
@@ -107,5 +111,18 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    @Override
+    public Symbol normalizeSymbol(Aggregation aggregation) {
+        assert (aggregation.inputs().size() == 1);
+
+        for (Symbol s : aggregation.inputs()) {
+            if (s instanceof Literal) {
+                return new Aggregation(aggregation.functionInfo(), new ArrayList<Symbol>(), aggregation.fromStep(), aggregation.toStep());
+            }
+        }
+
+        return aggregation;
     }
 }
