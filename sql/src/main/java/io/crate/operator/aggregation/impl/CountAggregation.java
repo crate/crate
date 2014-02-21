@@ -52,6 +52,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
             );
         }
         // Register function for 0 inputs (count(*))
+        // TODO: use different implementation without null checks
         mod.registerAggregateFunction(new CountAggregation(COUNT_STAR_FUNCTION));
 
     }
@@ -98,7 +99,9 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
 
     @Override
     public boolean iterate(CountAggState state, Input... args) {
-        state.value++;
+        if (args.length > 0 && args[0].value() != null) {
+            state.value++;
+        }
         return true;
     }
 
