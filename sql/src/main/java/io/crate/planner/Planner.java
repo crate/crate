@@ -87,7 +87,8 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         } else if (analysis.hasAggregates()) {
             globalAggregates(analysis, plan);
         } else {
-            if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal()) {
+            if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal()
+                    && analysis.table().getRouting(analysis.whereClause()).hasLocations()) {
                 if (!analysis.isDelete()) {
                     if (analysis.primaryKeyLiterals() != null
                             && !analysis.primaryKeyLiterals().isEmpty()
@@ -154,6 +155,9 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
 
     private void normalSelect(SelectAnalysis analysis, Plan plan) {
         // node or shard level normal select
+
+        // TODO: without locations the localMerge node can be removed and the topN projection
+        // added to the collectNode.
 
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
                 .output(analysis.outputSymbols())
@@ -249,7 +253,8 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
     }
 
     private void groupBy(SelectAnalysis analysis, Plan plan) {
-        if (analysis.rowGranularity().ordinal() < RowGranularity.DOC.ordinal()) {
+        if (analysis.rowGranularity().ordinal() < RowGranularity.DOC.ordinal()
+                || !analysis.table().getRouting(analysis.whereClause()).hasLocations()) {
             nonDistributedGroupBy(analysis, plan);
         } else {
             distributedGroupBy(analysis, plan);
@@ -257,6 +262,9 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
     }
 
     private void nonDistributedGroupBy(SelectAnalysis analysis, Plan plan) {
+        // TODO:  if the routing is HandlerSideRouting or has no locations
+        // the localMergeNode isn't needed but instead the topN projection could be added to the
+        // collectNode
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder(1, analysis.groupBy())
                 .output(analysis.outputSymbols())
                 .orderBy(analysis.sortSymbols());
