@@ -4,8 +4,8 @@ import sys
 import crate_theme.sphinx
 
 
-project = u'Crate DB'
-copyright = u'2013, Crate Technology GmbH'
+project = u'Crate Data'
+copyright = u'2013, CRATE Technology GmbH'
 
 # The suffix of source filenames.
 source_suffix = '.txt'

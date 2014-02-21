@@ -3,8 +3,8 @@ Client Libraries
 ================
 
 
-Crate java client
-===================
+Crate Data java client
+======================
 
 .. toctree::
    :maxdepth: 2
@@ -12,8 +12,8 @@ Crate java client
    clients/java
 
 
-Crate python client
-===================
+Crate Data python client
+========================
 
 .. toctree::
    :maxdepth: 2

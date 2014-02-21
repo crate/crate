@@ -5,7 +5,7 @@ DEVELOPMENT
 Prerequisites
 =============
 
-Crate is developed in Java_, so a working Java_ installation is required.
+Crate Data is developed in Java_, so a working Java_ installation is required.
 The minimum supported JVM version is **1.7**.
 
 Submodules
@@ -79,7 +79,7 @@ This will create the project files.
 Run/Debug Configurations
 ------------------------
 
-It is also possible to run Crate nodes directly from within IntelliJ. But
+It is also possible to run Crate Data nodes directly from within IntelliJ. But
 before that can be done a bit of preparation is necessary::
 
 First create the folders for the configuration and data::

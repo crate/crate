@@ -1,10 +1,10 @@
 First Steps
 ===========
 
-- In order to get Crate up and running take a look at the
+- In order to get Crate Data up and running take a look at the
   :doc:`installation`.
 
-- If you are new to Crate, it is probably the best to say
+- If you are new to Crate Data, it is probably the best to say
   :doc:`hello`.
 
 - Take a look at the :doc:`sql/index`, :doc:`plugins/inout` and

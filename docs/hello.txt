@@ -4,11 +4,11 @@ Hello Crate
 
 .. highlight:: sh
 
-To get started let's have a quick look on how Crate can be accessed
+To get started let's have a quick look on how Crate Data can be accessed
 via the bare HTTP-Endpoints. This tutorial uses the Curl_ command-line
 utility to do the requests.
 
-To check if Crate is running, we can do a GET on the root, which
+To check if Crate Data is running, we can do a GET on the root, which
 displays basic system information::
 
     sh$ curl -sS '127.0.0.1:4200/?pretty=1'
@@ -29,7 +29,7 @@ displays basic system information::
 
 .. note::
 
- The ``pretty`` query parameter used above tells Crate to pretty print
+ The ``pretty`` query parameter used above tells Crate Data to pretty print
  results. This works for every endpoint.
 
 In this guide we want to create a database for quotes. Let's create

@@ -1,13 +1,13 @@
-========
-Crate DB
-========
+==========
+Crate Data
+==========
 
-``"Crate is a shared nothing, fully searchable, document oriented
-cluster database."``
+``"Crate Data is a shared nothing, fully searchable, document oriented
+cluster datastore."``
 
-Crate...
+Crate Data...
 
-- is a document oriented data base.
+- is a document oriented data store.
 
 - has the ability to scale horizontally extremely well.
 
@@ -34,16 +34,16 @@ Installation
 
 - Run ``bin/crate -f`` on unix or ``bin/crate.bat`` on Windows.
 
-- Say hello to Crate ``curl -sS '127.0.0.1:4200/?pretty=1'``
+- Say hello to Crate Data ``curl -sS '127.0.0.1:4200/?pretty=1'``
 
 - Start some more servers to form a cluster and relax.
 
 .. _Download: https://crate.io/download/
 
-Get Crate
-=========
+Get Crate Data
+==============
 
-Crate isn't only easy to use, it's also easy to get. Use the one method which
+Crate Data is not only easy to use, it's also easy to get. Use the one method which
 works best for you.
 
 Binary Archive
@@ -68,7 +68,7 @@ Lync, Saucy Salamander and Precise Pangolin.
 RPM: CentOS, Scientific Linux
 -----------------------------
 
-All CRATE packages are signed with GPG. To verify the packages the public
+All Crate Data packages are signed with GPG. To verify the packages the public
 key must be installed to the system. After that, you can install the .rpm
 containing the YUM repository definition on your system.
 
@@ -77,11 +77,11 @@ containing the YUM repository definition on your system.
 sudo rpm --import https://cdn.crate.io/downloads/yum/RPM-GPG-KEY-crate
 sudo rpm -Uvh https://cdn.crate.io/downloads/yum/6/x86_64/crate-release-6.5-1.noarch.rpm
 
-Then install Crate:
+Then install Crate Data:
 
 ``yum install crate``
 
-The CRATE Testing repository is disabled by default. It contains development builds and is
+The Crate Data Testing repository is disabled by default. It contains development builds and is
 frequently updated. If you want to enable the Testing repo on your server, set ``enabled=1`` in
 ``/etc/yum.repos.d/crate.repo``.
 
@@ -91,10 +91,10 @@ frequently updated. If you want to enable the Testing repo on your server, set `
 Where to go from here?
 ======================
 
-That is certainly not all Crate offers to you. Take a look at the
+That is certainly not all Crate Data offers to you. Take a look at the
 documentation found under the ``docs`` directory or visit
 `https://crate.io/docs/ <https://crate.io/docs/>`_. If you already installed
-Crate you can also use the documentation it was shipped with available via
+Crate Data you can also use the documentation it was shipped with available via
 `http://localhost:4200/_plugin/docs/ <http://localhost:4200/_plugin/docs/>`_.
 
 Managing data
@@ -106,29 +106,29 @@ There are several different ways to manage data in Crate.
 
 - `Python client`_ (see: GitHub_, pypi_, get it: ``pip install crate``)
 
-  - The python client also comes with the `crash`. crash is a command-line
-    util to perform SQL queries,...
+  - The python client also comes with the Crate Shell (`crash`).
+    crash is a command-line util to perform SQL queries,...
 
 - `Java client`_
 
-.. _Python client: https://crate.io/docs/current/clients.html#crate-python-client
-.. _GitHub: https://github.com/crate/crate-python
+.. _Python client: https://crate.io/docs/clients/python/
+.. _GitHub: https://github.com/crate/crate-python/
 .. _pypi: https://pypi.python.org/pypi/crate/
-.. _Java client: https://crate.io/docs/current/clients.html#crate-java-client
+.. _Java client: https://crate.io/docs/clients/java/
 
 Are you a Developer?
 ====================
 
-You can build Crate on your own with the latest version hosted on GitHub.
+You can build Crate Data on your own with the latest version hosted on GitHub.
 To do so, please refer to ``DEVELOP.rst``.
 
 Contributing
 -------------
 
-If you intend to contribute to Crate we need you to agree to our CLA_.
+If you intend to contribute to Crate Data we need you to agree to our CLA_.
 Once that is done, we suggest to continue as follows:
 
-1. Fork this repository of Crate.
+1. Fork this repository of Crate Data.
 
 2. Create a feature branch (``git checkout -b my_feature``)
 

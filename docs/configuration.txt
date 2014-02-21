@@ -1,13 +1,13 @@
 Configuration
 =============
 
-Since Crate has sensible defaults, there is no configuration needed at
-all for basic operation.
+Since Crate Data has sensible defaults, there is no configuration
+needed at all for basic operation.
 
-Crate is mainly configured via a configuration file, which is located
-at ``config/crate.yml``. The vanilla configuration file distributed
-with the package has all available settings as comments in it along
-with the according default value.
+Crate Data is mainly configured via a configuration file, which is
+located at ``config/crate.yml``. The vanilla configuration file
+distributed with the package has all available settings as comments
+in it along with the according default value.
 
 The location of the config file can be specified upon startup like
 this::
@@ -39,7 +39,7 @@ will overwrite the prior one:
 Hosts
 -----
 
-Per default crate will bind itself to the ``0.0.0.0`` address.
+Per default Crate Data will bind itself to the ``0.0.0.0`` address.
 If you want to change this behaviour, adjust the ``network.host`` setting.
 
 This setting sets both the ``network.bind_host`` and ``network.publish_host`` values.
@@ -61,7 +61,7 @@ This resolves to the ip address of this interface. With ``_eth0:ipv{4,6}_`` you 
 Ports
 -----
 
-Per default crate will listen to the first free port in the range of ``4200-4300`` for HTTP Requests.
+Per default Crate Data will listen to the first free port in the range of ``4200-4300`` for HTTP Requests.
 If there is no crate process already running on that machine, it will usually be ``4200``.
 
 You can change the HTTP port range by adjusting the ``http.port`` setting.
@@ -74,7 +74,7 @@ You can change the TCP port range by adjusting the ``transport.tcp.port`` settin
 Logging
 -------
 
-Crate uses the internal logging abstraction of Elasticsearch_ and
+Crate Data uses the internal logging abstraction of Elasticsearch_ and
 comes, out of the box, with Log4j_. It tries to simplify log4j
 configuration by using YAML to configure it. The logging configuration
 file is at ``config/logging.yml``

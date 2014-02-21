@@ -2,8 +2,8 @@
 Blob Support
 ============
 
-Crate includes support to store `binary large objects`_. By utilizing
-Crate's cluster features the files can be replicated and sharded just
+Crate Data includes support to store `binary large objects`_. By utilizing
+Crate Data's cluster features the files can be replicated and sharded just
 like regular data.
 
 Any index can hold blobs if enabled. To enable blobs on an index the

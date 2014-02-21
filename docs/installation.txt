@@ -4,8 +4,8 @@ Installation Instructions
 
 .. highlight:: sh
 
-After downloading the latest stable version of Crate from
-https://download.crate.io/ the package needs to be unpacked::
+After downloading the latest stable version of Crate Data from
+https://crate.io/downloads/ the package needs to be unpacked::
 
    sh$ tar zxf crate-*.tar.gz
 
@@ -18,11 +18,11 @@ in the foreground you can use Control-C to stop the process again.
 
 .. Note::
 
- Crate needs a working Java_ >= 1.7 installation in order to run.
+ Crate Data needs a working Java_ >= 1.7 installation in order to run.
 
 .. seealso::
 
- :doc:`Configuring Crate <configuration>`
+ :doc:`Configuring Crate Data <configuration>`
 
 .. _Java: http://www.oracle.com/technetwork/java/javase/downloads/index.html
 
