@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
+import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.*;
 
@@ -78,7 +79,9 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
             return symbol;
         }
         // support select sys.cluster.name from sys.nodes :)
-        ReferenceIdent ident = context.getReference(node.getName(), false);
+        // but not for information_schema :( - is on DOC level but we can't get any shards and stuff.
+        ReferenceIdent ident = context.getReference(node.getName(),
+                context.table.ident().schema().equals(InformationSchemaInfo.NAME));
         return context.allocateReference(ident);
     }
 

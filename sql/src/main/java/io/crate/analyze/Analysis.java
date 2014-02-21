@@ -40,6 +40,7 @@ public abstract class Analysis {
     protected final ReferenceInfos referenceInfos;
     private final Functions functions;
     protected final Object[] parameters;
+    protected SchemaInfo schema;
     protected TableInfo table;
 
     private Map<Function, Function> functionSymbols = new HashMap<>();
@@ -89,6 +90,7 @@ public abstract class Analysis {
         if (tableInfo == null) {
             throw new TableUnknownException(tableIdent.name());
         }
+        schema = referenceInfos.getSchemaInfo(tableIdent.schema());
         table = tableInfo;
         updateRowGranularity(table.rowGranularity());
     }
@@ -109,6 +111,7 @@ public abstract class Analysis {
             throw new UnsupportedOperationException(
                     String.format("cannot edit table referenced by alias '%s'", tableIdent.name()));
         }
+        schema = schemaInfo;
         table = tableInfo;
         updateRowGranularity(table.rowGranularity());
     }
