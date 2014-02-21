@@ -45,6 +45,7 @@ import org.elasticsearch.action.get.TransportGetAction;
 import org.elasticsearch.action.get.TransportMultiGetAction;
 import org.elasticsearch.action.index.TransportIndexAction;
 import org.elasticsearch.action.search.TransportSearchAction;
+import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -66,7 +67,7 @@ public class TransportExecutor implements Executor {
     private final TransportDeleteAction transportDeleteAction;
     private final TransportIndexAction transportIndexAction;
     private final TransportBulkAction transportBulkAction;
-
+    private final TransportUpdateAction transportUpdateAction;
     // operation for handler side collecting
     private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
 
@@ -83,8 +84,9 @@ public class TransportExecutor implements Executor {
                              ReferenceResolver referenceResolver,
                              TransportIndexAction transportIndexAction,
                              TransportBulkAction transportBulkAction,
+                             TransportUpdateAction transportUpdateAction,
                              HandlerSideDataCollectOperation handlerSideDataCollectOperation
-                             ) {
+    ) {
         this.transportGetAction = transportGetAction;
         this.transportMultiGetAction = transportMultiGetAction;
         this.transportCollectNodeAction = transportCollectNodeAction;
@@ -94,6 +96,7 @@ public class TransportExecutor implements Executor {
         this.transportDeleteAction = transportDeleteAction;
         this.transportIndexAction = transportIndexAction;
         this.transportBulkAction = transportBulkAction;
+        this.transportUpdateAction = transportUpdateAction;
 
         this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
         this.threadPool = threadPool;
@@ -187,6 +190,18 @@ public class TransportExecutor implements Executor {
                 context.addTask(new ESBulkIndexTask(transportBulkAction, node));
             } else {
                 context.addTask(new ESIndexTask(transportIndexAction, node));
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitESUpdateNode(ESUpdateNode node, Job context) {
+            if (node.primaryKeyValues().size() == 0) {
+                throw new UnsupportedOperationException("update by query not supported yet");
+            } else if (node.primaryKeyValues().size() == 1) {
+                context.addTask(new ESUpdateByIdTask(transportUpdateAction, node));
+            } else {
+                throw new UnsupportedOperationException("bulk update not supported yet");
             }
             return null;
         }
