@@ -38,6 +38,7 @@ import java.util.Set;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
@@ -147,7 +148,7 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
     @Test
     public void testClusterTable() throws Exception {
         TableInfo ti = referenceInfos.getTableInfo(new TableIdent("sys", "cluster"));
-        assertNull(ti.getRouting(null));
+        assertThat(ti.getRouting(null), instanceOf(HandlerSideRouting.class));
     }
 
     @Test
