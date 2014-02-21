@@ -10,14 +10,14 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.TableIdent;
 import io.crate.operator.aggregation.impl.CollectSetAggregation;
 import io.crate.operator.operator.*;
-import io.crate.operator.predicate.*;
+import io.crate.operator.predicate.NotPredicate;
+import io.crate.planner.DataTypeVisitor;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.*;
 import io.crate.sql.tree.DoubleLiteral;
-import io.crate.sql.tree.IsNullPredicate;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.StringLiteral;
 import org.apache.lucene.util.BytesRef;
@@ -31,7 +31,7 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
     protected static PrimaryKeyVisitor primaryKeyVisitor = new PrimaryKeyVisitor();
 
     protected static SubscriptVisitor visitor = new SubscriptVisitor();
-    protected static SymbolDataTypeVisitor symbolDataTypeVisitor = new SymbolDataTypeVisitor();
+    protected static DataTypeVisitor symbolDataTypeVisitor = new DataTypeVisitor();
     protected static NegativeLiteralVisitor negativeLiteralVisitor = new NegativeLiteralVisitor();
     private final Map<String, String> swapOperatorTable = ImmutableMap.<String, String>builder()
             .put(GtOperator.NAME, LtOperator.NAME)
@@ -115,7 +115,7 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
 
 
 
-        DataType valueDataType = symbolDataTypeVisitor.process(value, context);
+        DataType valueDataType = symbolDataTypeVisitor.process(value, null);
         if (valueDataType == DataType.NULL){
             // dynamic or null values cannot be queried, in scalar use-cases (system tables)
             // we currently have no dynamics
@@ -139,7 +139,7 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
     @Override
     protected Symbol visitIsNotNullPredicate(IsNotNullPredicate node, T context) {
         Symbol argument = process(node.getValue(), context);
-        DataType argumentType = symbolDataTypeVisitor.process(argument, context);
+        DataType argumentType = symbolDataTypeVisitor.process(argument, null);
 
         FunctionIdent isNullIdent =
                 new FunctionIdent(io.crate.operator.predicate.IsNullPredicate.NAME, ImmutableList.of(argumentType));
@@ -239,8 +239,8 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
 
         // resolve argument types
         List<DataType> argumentTypes = new ArrayList<>(arguments.size());
-        argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(0), context));
-        argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(1), context));
+        argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(0), null));
+        argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(1), null));
 
 
         // swap statements like  eq(2, name) to eq(name, 2)
@@ -298,8 +298,8 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
 
         // resolve argument types
         List<DataType> argumentTypes = new ArrayList<>(arguments.size());
-        argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(0), context));
-        argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(1), context));
+        argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(0), null));
+        argumentTypes.add(symbolDataTypeVisitor.process(arguments.get(1), null));
 
         // catch null types, might be null or dynamic reference, which are both not supported
         if (argumentTypes.get(0) == DataType.NULL){
@@ -362,7 +362,7 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
     protected Symbol visitIsNullPredicate(IsNullPredicate node, T context) {
         ImmutableList<Symbol> arguments = ImmutableList.of(process(node.getValue(), context));
         ImmutableList<DataType> argumentTypes =
-                ImmutableList.of(symbolDataTypeVisitor.process(arguments.get(0), context));
+                ImmutableList.of(symbolDataTypeVisitor.process(arguments.get(0), null));
 
         FunctionIdent functionIdent =
                 new FunctionIdent(io.crate.operator.predicate.IsNullPredicate.NAME, argumentTypes);

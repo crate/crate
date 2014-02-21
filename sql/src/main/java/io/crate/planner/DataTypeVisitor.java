@@ -24,7 +24,7 @@ package io.crate.planner;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 
-class DataTypeVisitor extends SymbolVisitor<Void, DataType> {
+public class DataTypeVisitor extends SymbolVisitor<Void, DataType> {
 
     @Override
     public DataType visitAggregation(Aggregation symbol, Void context) {
@@ -80,11 +80,6 @@ class DataTypeVisitor extends SymbolVisitor<Void, DataType> {
     }
 
     @Override
-    protected DataType visitSymbol(Symbol symbol, Void context) {
-        throw new UnsupportedOperationException("Unsupported Symbol");
-    }
-
-    @Override
     public DataType visitReference(Reference symbol, Void context) {
         return symbol.valueType();
     }
@@ -93,4 +88,15 @@ class DataTypeVisitor extends SymbolVisitor<Void, DataType> {
     public DataType visitFunction(Function symbol, Void context) {
         return symbol.valueType();
     }
+
+    @Override
+    public DataType visitDynamicReference(DynamicReference symbol, Void context) {
+        return symbol.valueType();
+    }
+
+    @Override
+    protected DataType visitSymbol(Symbol symbol, Void context) {
+        throw new UnsupportedOperationException("Unable to get DataType from symbol: " + symbol);
+    }
+
 }
