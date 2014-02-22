@@ -51,7 +51,7 @@ The table schema is as follows:
 |          | is running on.                                 |                        |
 +----------+------------------------------------------------+------------------------+
 | port     | Shows an object with nested                    | Object:                |
-|          | columns containing the                         | 'https': Integer,      |
+|          | columns containing the                         | 'http': Integer,       |
 |          | specified ports for HTTP and                   | 'transport': Integer   |
 |          | binary transport interfaces.                   |                        |
 |          | By default, the object                         |                        |
@@ -61,9 +61,9 @@ The table schema is as follows:
 |          | own custom `configuration`_.                   |                        |
 +----------+------------------------------------------------+------------------------+
 | load     | Contains an object with nested                 | Object                 |
-|          | columns of type of double with average         | '1': Double            |
-|          | load statistic over the                        |                        |
-|          | last 1, 5, and 15 minutes                      |                        |
+|          | columns of type of double with average         | '1': Double,           |
+|          | load statistic over the                        | '5': Double,           |
+|          | last 1, 5, and 15 minutes                      | '15': Double           |
 |          | ranging from 0 as the                          |                        |
 |          | minimum to 10 as the maximum                   |                        |
 |          | Take this as an example:                       |                        |
@@ -153,6 +153,5 @@ You can query for the shards statistics as follows::
     +------------+----+----------+---------+-----------------+------+---------+
     SELECT 4 rows in set (... sec)
 
-.. Define cross references here:
 
 .. _configuration: ../configuration.html
