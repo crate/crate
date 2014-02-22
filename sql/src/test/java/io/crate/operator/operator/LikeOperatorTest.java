@@ -31,7 +31,6 @@ import org.cratedb.DataType;
 import org.junit.Test;
 
 import static io.crate.operator.operator.LikeOperator.DEFAULT_ESCAPE;
-import static io.crate.operator.operator.LikeOperator.expressionToRegex;
 import static org.junit.Assert.*;
 
 public class LikeOperatorTest {
@@ -54,42 +53,42 @@ public class LikeOperatorTest {
     @Test
     public void testNormalizeSymbolEqual() {
         assertTrue(likeNormalize("foo", "foo"));
-        assertFalse(likeNormalize("foo", "notFoo"));
+        assertFalse(likeNormalize("notFoo", "foo"));
     }
 
     @Test
     public void testNormalizeSymbolLikeZeroOrMore() {
         // Following tests: wildcard: '%' ... zero or more characters (0...N)
-        assertTrue(likeNormalize("%bar", "foobar"));
-        assertTrue(likeNormalize("%bar", "bar"));
-        assertFalse(likeNormalize("%bar", "ar"));
-        assertTrue(likeNormalize("foo%", "foobar"));
-        assertTrue(likeNormalize("foo%", "foo"));
-        assertFalse(likeNormalize("foo%", "fo"));
-        assertTrue(likeNormalize("%oob%", "foobar"));
+        assertTrue(likeNormalize("foobar", "%bar"));
+        assertTrue(likeNormalize("bar", "%bar"));
+        assertFalse(likeNormalize("ar", "%bar"));
+        assertTrue(likeNormalize("foobar", "foo%"));
+        assertTrue(likeNormalize("foo", "foo%"));
+        assertFalse(likeNormalize("fo", "foo%"));
+        assertTrue(likeNormalize("foobar", "%oob%"));
     }
 
     @Test
     public void testNormalizeSymbolLikeExactlyOne() {
         // Following tests: wildcard: '_' ... any single character (exactly one)
-        assertTrue(likeNormalize("_ar", "bar"));
-        assertFalse(likeNormalize("_bar", "bar"));
-        assertTrue(likeNormalize("fo_", "foo"));
-        assertFalse(likeNormalize("foo_", "foo"));
-        assertTrue(likeNormalize("_o_", "foo"));
-        assertFalse(likeNormalize("_foobar_", "foobar"));
+        assertTrue(likeNormalize("bar", "_ar"));
+        assertFalse(likeNormalize("bar", "_bar"));
+        assertTrue(likeNormalize("foo", "fo_"));
+        assertFalse(likeNormalize("foo", "foo_"));
+        assertTrue(likeNormalize("foo", "_o_"));
+        assertFalse(likeNormalize("foobar", "_foobar_"));
     }
 
     // Following tests: mixed wildcards:
 
     @Test
     public void testNormalizeSymbolLikeMixed() {
-        assertTrue(likeNormalize("%o_ar", "foobar"));
-        assertTrue(likeNormalize("%a_", "foobar"));
-        assertTrue(likeNormalize("%o_a%", "foobar"));
-        assertTrue(likeNormalize("%i%m%", "Lorem ipsum dolor..."));
-        assertTrue(likeNormalize("%%%sum%%", "Lorem ipsum dolor..."));
-        assertFalse(likeNormalize("%i%m", "Lorem ipsum dolor..."));
+        assertTrue(likeNormalize("foobar", "%o_ar"));
+        assertTrue(likeNormalize("foobar", "%a_"));
+        assertTrue(likeNormalize("foobar", "%o_a%"));
+        assertTrue(likeNormalize("Lorem ipsum dolor...", "%i%m%"));
+        assertTrue(likeNormalize("Lorem ipsum dolor...", "%%%sum%%"));
+        assertFalse(likeNormalize("Lorem ipsum dolor...", "%i%m"));
     }
 
     // Following tests: escaping wildcards
@@ -97,43 +96,43 @@ public class LikeOperatorTest {
     @Test
     public void testExpressionToRegexExactlyOne() {
         String expression = "fo_bar";
-        assertEquals("^fo.bar$", expressionToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo.bar$", LikeOperator.patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
     public void testExpressionToRegexZeroOrMore() {
         String expression = "fo%bar";
-        assertEquals("^fo.*bar$", expressionToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo.*bar$", LikeOperator.patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
     public void testExpressionToRegexEscapingPercent() {
         String expression = "fo\\%bar";
-        assertEquals("^fo%bar$", expressionToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo%bar$", LikeOperator.patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
     public void testExpressionToRegexEscapingUnderline() {
         String expression = "fo\\_bar";
-        assertEquals("^fo_bar$", expressionToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo_bar$", LikeOperator.patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
     public void testExpressionToRegexEscaping() {
         String expression = "fo\\\\_bar";
-        assertEquals("^fo\\\\.bar$", expressionToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo\\\\.bar$", LikeOperator.patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
     public void testExpressionToRegexEscapingMutli() {
         String expression = "%%\\%sum%%";
-        assertEquals("^.*.*%sum.*.*$", expressionToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^.*.*%sum.*.*$", LikeOperator.patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     @Test
     public void testExpressionToRegexMaliciousPatterns() {
         String expression = "fo(ooo)o[asdf]o\\bar^$.*";
-        assertEquals("^fo\\(ooo\\)o\\[asdf\\]obar\\^\\$\\.\\*$", expressionToRegex(expression, DEFAULT_ESCAPE, true));
+        assertEquals("^fo\\(ooo\\)o\\[asdf\\]obar\\^\\$\\.\\*$", LikeOperator.patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
     // test evaluate
@@ -147,8 +146,9 @@ public class LikeOperatorTest {
 
     @Test
     public void testLikeOperator() {
-        assertTrue(like("foo%baz", "foobarbaz"));
-        assertFalse(like("foo_baz", "foobarbaz"));
+        assertTrue(like("foobarbaz", "foo%baz"));
+        assertFalse(like("foobarbaz", "foo_baz"));
+        assertTrue(like("characters", "charac%"));
 
         // set the Input.value() to null.
         LikeOperator op = new LikeOperator(
