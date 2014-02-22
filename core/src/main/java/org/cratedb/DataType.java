@@ -391,6 +391,7 @@ public enum DataType {
             .put(Map.class, DataType.OBJECT)
             .put(String.class, DataType.STRING)
             .put(BytesRef.class, DataType.STRING)
+            .put(Character.class, DataType.STRING)
             .build();
 
     @Nullable

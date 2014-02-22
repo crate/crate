@@ -45,7 +45,7 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
                 if (value instanceof BytesRef) {
                     return new StringLiteral((BytesRef) value);
                 } else {
-                    return new StringLiteral((String) value);
+                    return new StringLiteral(value.toString());
                 }
             case OBJECT:
                 return new ObjectLiteral((Map<String, Object>) value);
