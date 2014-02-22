@@ -720,4 +720,10 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(isNullFunction.arguments().get(0), IsInstanceOf.instanceOf(LongLiteral.class));
         assertTrue(analysis.noMatch());
     }
+
+    @Test
+    public void testIsNullOnDynamicReference() {
+        Analysis analysis = analyze("select \"_id\" from users where invalid is null");
+        assertTrue(analysis.noMatch());
+    }
 }

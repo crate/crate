@@ -284,9 +284,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(2, response.rowCount());
         assertEquals("id2", response.rows()[0][0]);
 
-        // missing field is null
+        // missing field is null returns no match, since we cannot filter by it
         execute("select \"_id\" from test where invalid is null");
-        assertEquals(3, response.rowCount());
+        assertEquals(0, response.rowCount());
 
         execute("select name from test where name is not null and name!=''");
         assertEquals(1, response.rowCount());

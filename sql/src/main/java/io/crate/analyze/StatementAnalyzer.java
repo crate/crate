@@ -360,14 +360,19 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
 
     @Override
     protected Symbol visitIsNullPredicate(IsNullPredicate node, T context) {
-        ImmutableList<Symbol> arguments = ImmutableList.of(process(node.getValue(), context));
-        ImmutableList<DataType> argumentTypes =
-                ImmutableList.of(symbolDataTypeVisitor.process(arguments.get(0), null));
+
+        Symbol value = process(node.getValue(), context);
+
+        // currently there will be no result for dynamic references, so return here
+        if (value.symbolType() == SymbolType.DYNAMIC_REFERENCE){
+            return Null.INSTANCE;
+        }
 
         FunctionIdent functionIdent =
-                new FunctionIdent(io.crate.operator.predicate.IsNullPredicate.NAME, argumentTypes);
+                new FunctionIdent(io.crate.operator.predicate.IsNullPredicate.NAME,
+                        ImmutableList.of(symbolDataTypeVisitor.process(value, null)));
         FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
-        return context.allocateFunction(functionInfo, arguments);
+        return context.allocateFunction(functionInfo, ImmutableList.of(value));
     }
 
     @Override
