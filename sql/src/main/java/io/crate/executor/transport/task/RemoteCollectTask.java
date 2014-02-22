@@ -22,15 +22,19 @@
 package io.crate.executor.transport.task;
 
 import com.google.common.base.Preconditions;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
 import io.crate.executor.transport.NodeCollectRequest;
 import io.crate.executor.transport.NodeCollectResponse;
 import io.crate.executor.transport.TransportCollectNodeAction;
+import io.crate.operator.operations.collect.HandlerSideDataCollectOperation;
 import io.crate.planner.node.CollectNode;
 import org.elasticsearch.action.ActionListener;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,10 +44,14 @@ public class RemoteCollectTask implements Task<Object[][]> {
     private final List<ListenableFuture<Object[][]>> result;
     private final String[] nodeIds;
     private final TransportCollectNodeAction transportCollectNodeAction;
+    private final HandlerSideDataCollectOperation handlerSideDataCollectOperation;
 
-    public RemoteCollectTask(CollectNode collectNode, TransportCollectNodeAction transportCollectNodeAction) {
+    public RemoteCollectTask(CollectNode collectNode,
+                             TransportCollectNodeAction transportCollectNodeAction,
+                             HandlerSideDataCollectOperation handlerSideDataCollectOperation) {
         this.collectNode = collectNode;
         this.transportCollectNodeAction = transportCollectNodeAction;
+        this.handlerSideDataCollectOperation = handlerSideDataCollectOperation;
 
         Preconditions.checkArgument(collectNode.isRouted(),
                 "RemoteCollectTask currently only works for plans with routing"
@@ -66,6 +74,11 @@ public class RemoteCollectTask implements Task<Object[][]> {
         for (int i = 0; i < nodeIds.length; i++) {
             final int resultIdx = i;
 
+            if (nodeIds[i] == null) {
+                handlerSideCollect(resultIdx);
+                continue;
+            }
+
             transportCollectNodeAction.execute(
                     nodeIds[i],
                     request,
@@ -82,6 +95,21 @@ public class RemoteCollectTask implements Task<Object[][]> {
                     }
             );
         }
+    }
+
+    private void handlerSideCollect(final int resultIdx) {
+        ListenableFuture<Object[][]> future = handlerSideDataCollectOperation.collect(collectNode);
+        Futures.addCallback(future, new FutureCallback<Object[][]>() {
+            @Override
+            public void onSuccess(@Nullable Object[][] rows) {
+                ((SettableFuture<Object[][]>)result.get(resultIdx)).set(rows);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                ((SettableFuture<Object[][]>)result.get(resultIdx)).setException(t);
+            }
+        });
     }
 
     @Override

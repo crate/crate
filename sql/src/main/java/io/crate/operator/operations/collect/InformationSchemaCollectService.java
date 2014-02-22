@@ -46,7 +46,7 @@ import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
 
-public class InformationSchemaCollectService {
+public class InformationSchemaCollectService implements CollectService {
 
     private final Iterable<TableInfo> tablesIterable;
     private final Iterable<ColumnContext> columnsIterable;
