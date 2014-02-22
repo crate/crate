@@ -19,6 +19,8 @@ public class DocSysColumns {
             .put(new ColumnIdent("_id"), DataType.STRING)
             .put(new ColumnIdent("_version"), DataType.LONG)
             .put(new ColumnIdent("_score"), DataType.DOUBLE)
+            .put(new ColumnIdent("_uid"), DataType.STRING)
+            .put(new ColumnIdent("_source"), DataType.OBJECT)
             .build();
 
     private static ReferenceInfo newInfo(TableIdent table, ColumnIdent column, DataType dataType) {

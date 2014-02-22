@@ -38,6 +38,8 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.TransportSearchAction;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHitField;
 
@@ -132,6 +134,17 @@ public class ESSearchTask implements Task<Object[][]> {
                     @Override
                     public Object extract(SearchHit hit) {
                         return new BytesRef(hit.getId());
+                    }
+                };
+            } else if (fieldName.equals("_source")) {
+                extractors[i] = new FieldExtractor() {
+                    @Override
+                    public Object extract(SearchHit hit) {
+                        BytesReference s = hit.sourceRef();
+                        if (s!=null){
+                            return XContentHelper.convertToMap(s, false).v2();
+                        }
+                        return null;
                     }
                 };
             } else if (fieldName.equals("_score")) {
