@@ -137,7 +137,7 @@ public class ESGetTask implements Task<Object[][]> {
         public void onResponse(MultiGetResponse responses) {
             List<Object[]> rows = new ArrayList<>(responses.getResponses().length);
             for (MultiGetItemResponse response : responses) {
-                if (response.isFailed()) {
+                if (response.isFailed() || !response.getResponse().isExists()) {
                     continue;
                 }
                 final Object[] row = new Object[fieldExtractor.length];
