@@ -48,6 +48,10 @@ import static org.mockito.Mockito.when;
 
 public class PlannerTest {
 
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
     private Injector injector;
     private Analyzer analyzer;
     private Planner planner = new Planner();

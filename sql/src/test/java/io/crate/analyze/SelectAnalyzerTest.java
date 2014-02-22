@@ -58,6 +58,10 @@ import static org.mockito.Mockito.when;
 
 public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
     static class TestMetaDataModule extends MetaDataModule {
 
         @Override

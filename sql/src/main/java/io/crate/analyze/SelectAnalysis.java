@@ -30,6 +30,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Query;
 import org.cratedb.sql.AmbiguousAliasException;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 
@@ -80,6 +81,7 @@ public class SelectAnalysis extends Analysis {
         this.groupBy = groupBy;
     }
 
+    @Nullable
     public List<Symbol> groupBy() {
         return groupBy;
     }
@@ -100,6 +102,7 @@ public class SelectAnalysis extends Analysis {
         this.sortSymbols = sortSymbols;
     }
 
+    @Nullable
     public List<Symbol> sortSymbols() {
         return sortSymbols;
     }
@@ -131,5 +134,12 @@ public class SelectAnalysis extends Analysis {
         }
 
         return symbols.iterator().next();
+    }
+
+    @Override
+    public void normalize() {
+        super.normalize();
+        normalizer.normalizeInplace(groupBy());
+        normalizer.normalizeInplace(sortSymbols());
     }
 }

@@ -43,6 +43,7 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     private int index;
 
     public InputColumn(int index) {
+        assert index >= 0;
         this.index = index;
     }
 

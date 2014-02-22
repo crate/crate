@@ -375,9 +375,7 @@ public abstract class Analysis {
     }
 
     public void normalize() {
-        for (int i = 0; i < outputSymbols().size(); i++) {
-            outputSymbols.set(i, normalizer.normalize(outputSymbols.get(i)));
-        }
+        normalizer.normalizeInplace(outputSymbols());
         if (whereClause().hasQuery()) {
             whereClause.normalize(normalizer);
         }
@@ -402,15 +400,15 @@ public abstract class Analysis {
                 break;
             case 3:
                 TableInfo otherTable = referenceInfos.getTableInfo(new TableIdent(parts.get(0), parts.get(1)));
-
-                // TODO: support select sys.cluster.name, sys.nodes.id, sys.shards.id name from users
-                // check if granularity is higher
-                // extra case for information_schema necessary
-                if (otherTable == null || !table.ident().equals(otherTable.ident())) {
-                    // reference from unknown table or from other table with same rowGranularity
-                    throw new UnsupportedOperationException("unsupported name reference: " + name);
-                }
                 ident = new ReferenceIdent(new TableIdent(parts.get(0), parts.get(1)), parts.get(2));
+//                // TODO: support select sys.cluster.name, sys.nodes.id, sys.shards.id name from users
+//                // check if granularity is higher
+//                // extra case for information_schema necessary
+//                if (otherTable == null || !table.ident().equals(otherTable.ident())) {
+//                    // reference from unknown table or from other table with same rowGranularity
+//                    throw new UnsupportedOperationException("unsupported name reference: " + name);
+//                }
+
                 break;
             default:
                 throw new UnsupportedOperationException("unsupported name reference: " + name);

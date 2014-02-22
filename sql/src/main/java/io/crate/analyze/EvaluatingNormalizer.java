@@ -127,6 +127,19 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
         return symbols;
     }
 
+    /**
+     * Normalizes all symbols of a List in place
+     *
+     * @param symbols the list to be normalized
+     */
+    public void normalizeInplace(@Nullable List<Symbol> symbols) {
+        if (symbols != null){
+            for (int i = 0; i < symbols.size(); i++) {
+                symbols.set(i, normalize(symbols.get(i)));
+            }
+        }
+    }
+
     public Symbol normalize(@Nullable Symbol symbol) {
         if (symbol == null) {
             return null;
