@@ -41,6 +41,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
 
     public static final String NAME = "count";
     private final FunctionInfo info;
+    private final boolean hasArgs;
 
     private static final FunctionInfo COUNT_STAR_FUNCTION = new FunctionInfo(new FunctionIdent(NAME, ImmutableList.<DataType>of()), DataType.LONG, true);
 
@@ -59,6 +60,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
 
     CountAggregation(FunctionInfo info) {
         this.info = info;
+        this.hasArgs = info.ident().argumentTypes().size() > 0;
     }
 
     public static class CountAggState extends AggregationState<CountAggState> {
@@ -96,10 +98,9 @@ public class CountAggregation extends AggregationFunction<CountAggregation.Count
         }
     }
 
-
     @Override
     public boolean iterate(CountAggState state, Input... args) {
-        if (args.length > 0 && args[0].value() != null) {
+        if (!hasArgs || args[0].value() != null){
             state.value++;
         }
         return true;
