@@ -148,7 +148,11 @@ public class PlannerContextBuilder {
                 // symbol is already resolved at this point
                 // because outputs are set first and in the group by case
                 // every symbol in order by must be present in the outputs
-                assert resolvedSymbol != null;
+
+                if (resolvedSymbol == null) {
+                    throw new UnsupportedOperationException(
+                        String.format("%s must be in the result column list in order to order by it", symbol));
+                }
                 context.orderBy.add(resolvedSymbol);
             }
         }
