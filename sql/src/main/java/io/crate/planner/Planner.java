@@ -308,11 +308,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         );
         plan.add(collectNode);
 
-        contextBuilder.nextStep();
-
         // handler
-        groupProjection =
-                new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
         TopNProjection topN = new TopNProjection(
                 Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                 analysis.offset(),
@@ -320,7 +316,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
                 analysis.reverseFlags()
         );
         topN.outputs(contextBuilder.outputs());
-        plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(groupProjection, topN), collectNode));
+        plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN), collectNode));
     }
 
 

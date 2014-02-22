@@ -371,7 +371,8 @@ public class PlannerTest {
 
         MergeNode mergeNode = (MergeNode) iterator.next();
         assertThat(mergeNode.numUpstreams(), is(2));
-        TopNProjection projection = (TopNProjection) mergeNode.projections().get(1);
+        assertThat(mergeNode.projections().size(), is(1));
+        TopNProjection projection = (TopNProjection) mergeNode.projections().get(0);
         assertThat(((InputColumn) projection.outputs().get(0)).index(), is(1));
         assertThat(((InputColumn) projection.outputs().get(1)).index(), is(0));
 
