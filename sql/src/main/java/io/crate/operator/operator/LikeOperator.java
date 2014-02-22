@@ -87,16 +87,12 @@ public class LikeOperator extends Operator<BytesRef> {
 
     private boolean matches(String expression, String pattern) {
         return Pattern.matches(
-                expressionToRegex(expression, DEFAULT_ESCAPE, true),
-                pattern
+                patternToRegex(pattern, DEFAULT_ESCAPE, true),
+                expression
         );
     }
 
-    protected static String expressionToRegex(StringLiteral expression, char escapeChar, boolean shouldEscape) {
-        return expressionToRegex(expression.value().utf8ToString(), escapeChar, shouldEscape);
-    }
-
-    protected static String expressionToRegex(String patternString, char escapeChar, boolean shouldEscape) {
+    protected static String patternToRegex(String patternString, char escapeChar, boolean shouldEscape) {
         StringBuilder regex = new StringBuilder(patternString.length() * 2);
 
         regex.append('^');
