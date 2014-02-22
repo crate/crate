@@ -93,6 +93,7 @@ tokens {
     VALUES_LIST;
     ASSIGNMENT;
     ASSIGNMENT_LIST;
+    COPY_FROM;
 }
 
 @header {
@@ -175,6 +176,7 @@ statement
     | insertStmt
     | deleteStmt
     | updateStmt
+    | copyStmt
     ;
 
 query
@@ -719,6 +721,7 @@ integer
     : INTEGER_VALUE
     ;
 
+
 insertStmt
     : INSERT INTO table (columns=columnList)? VALUES values=insertValues -> ^(INSERT table $values $columns?)
     ;
@@ -734,9 +737,11 @@ valuesList
     : '(' expr (',' expr)* ')' -> ^(VALUES_LIST expr+)
     ;
 
+
 deleteStmt
     : DELETE FROM table whereClause? -> ^(DELETE table whereClause?)
     ;
+
 
 updateStmt
     : UPDATE table SET assignmentList whereClause? -> ^(UPDATE table assignmentList whereClause?)
@@ -749,6 +754,12 @@ assignmentList
 assignment
     : subscript EQ expr -> ^(ASSIGNMENT subscript expr)
     ;
+
+
+copyStmt
+    : COPY table FROM expr -> ^(COPY_FROM table expr)
+    ;
+
 
 nonReserved
     : SHOW | TABLES | COLUMNS | PARTITIONS | FUNCTIONS | SCHEMAS | CATALOGS
@@ -884,6 +895,7 @@ VALUES: 'VALUES';
 DELETE: 'DELETE';
 UPDATE: 'UPDATE';
 SET: 'SET';
+COPY: 'COPY';
 
 EQ  : '=';
 NEQ : '<>' | '!=';

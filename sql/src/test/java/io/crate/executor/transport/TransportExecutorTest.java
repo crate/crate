@@ -21,13 +21,18 @@
 
 package io.crate.executor.transport;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.analyze.CopyAnalysis;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.Job;
 import io.crate.executor.transport.task.elasticsearch.*;
+import io.crate.executor.transport.task.inout.ImportTask;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
@@ -37,10 +42,13 @@ import io.crate.operator.operator.OrOperator;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.*;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.SQLTransportIntegrationTest;
+import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
@@ -49,6 +57,7 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.util.*;
 
 import static java.util.Arrays.asList;
@@ -66,6 +75,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     private ClusterService clusterService;
     private ClusterName clusterName;
     private TransportExecutor executor;
+    private String copyFilePath = getClass().getResource("/essetup/data/copy").getPath();
 
     TableIdent table = new TableIdent(null, "characters");
     Reference id_ref = new Reference(new ReferenceInfo(
@@ -88,6 +98,40 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         execute("insert into characters (id, name) values (2, 'Ford')");
         execute("insert into characters (id, name) values (3, 'Trillian')");
         refresh();
+    }
+
+    @Test
+    public void testRemoteCollectTaskWithUnassignedShards() throws Exception {
+        Routing routing = new Routing(new HashMap<String, Map<String, Set<Integer>>>() {{
+            put(null, ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(1, 2)));
+        }});
+        CollectNode collectNode = new CollectNode("collect", routing);
+        collectNode.toCollect(Arrays.<Symbol>asList(
+            new Reference(new ReferenceInfo(
+                new ReferenceIdent(new TableIdent("sys", "shards"), "id"), RowGranularity.SHARD, DataType.INTEGER
+            )),
+            new Reference(new ReferenceInfo(
+                new ReferenceIdent(new TableIdent("sys", "shards"), "state"), RowGranularity.SHARD, DataType.STRING
+            ))
+        ));
+        collectNode.whereClause(WhereClause.MATCH_ALL);
+        collectNode.maxRowGranularity(RowGranularity.SHARD);
+        TopNProjection topN = new TopNProjection(10, 0,
+            Arrays.<Symbol>asList(new InputColumn(0)),
+            new boolean[] { false });
+        topN.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
+
+        collectNode.projections(Arrays.<Projection>asList(topN));
+        collectNode.outputTypes(Arrays.<DataType>asList(DataType.INTEGER, DataType.STRING));
+
+        Plan plan = new Plan();
+        plan.add(collectNode);
+        Job job = executor.newJob(plan);
+
+        List<ListenableFuture<Object[][]>> result = executor.execute(job);
+        Object[][] rows = Futures.allAsList(result).get().get(0);
+
+        assertThat(rows.length, is(2));
     }
 
     @Test
@@ -555,6 +599,29 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         assertThat((Integer)rows[1][0], is(3));
         assertThat((String)rows[1][1], is("mostly harmless"));
+
+    }
+
+    @Test
+    public void testImportTask() throws Exception {
+        execute("create table quotes (id int primary key, " +
+                "quote string index using fulltext)");
+        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
+
+        CopyNode copyNode = new CopyNode(filePath, "quotes", CopyAnalysis.Mode.FROM);
+        Plan plan = new Plan();
+        plan.add(copyNode);
+        plan.expectsAffectedRows(true);
+        Job job = executor.newJob(plan);
+        assertThat(job.tasks().get(0), instanceOf(ImportTask.class));
+        List<ListenableFuture<Object[][]>> result = executor.execute(job);
+        Object[][] rows = result.get(0).get();
+        // 2 nodes on same machine resulting in double affected rows
+        assertThat((Long)rows[0][0], is(6l));
+
+        refresh();
+        SQLResponse response = execute("select count(*) from quotes");
+        assertThat((Long)response.rows()[0][0], is(3l));
 
     }
 }

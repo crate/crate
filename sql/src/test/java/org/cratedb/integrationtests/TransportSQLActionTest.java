@@ -60,8 +60,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     private SQLResponse response;
     private Setup setup = new Setup(this);
 
-    private String copyFilePath = TransportSQLActionTest.class.getResource(
-                                            "/essetup/data/copy").getPath();
+    private String copyFilePath = getClass().getResource("/essetup/data/copy").getPath();
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();

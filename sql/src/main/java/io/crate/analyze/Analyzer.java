@@ -15,6 +15,7 @@ public class Analyzer {
     private final StatementAnalyzer insertStatementAnalyzer = new InsertStatementAnalyzer();
     private final StatementAnalyzer updateStatementAnalyzer = new UpdateStatementAnalyzer();
     private final StatementAnalyzer deleteStatementAnalyzer = new DeleteStatementAnalyzer();
+    private final StatementAnalyzer copyStatementAnalyzer = new CopyStatementAnalyzer();
 
     @Inject
     public Analyzer(ReferenceInfos referenceInfos, Functions functions, ReferenceResolver referenceResolver) {
@@ -43,6 +44,9 @@ public class Analyzer {
         } else if (statement instanceof Update) {
             statementAnalyzer = updateStatementAnalyzer;
             analysis = new UpdateAnalysis(referenceInfos, functions, parameters, referenceResolver);
+        } else if (statement instanceof CopyFromStatement) {
+            statementAnalyzer = copyStatementAnalyzer;
+            analysis = new CopyAnalysis(referenceInfos, functions, parameters, referenceResolver);
         } else {
             throw new UnsupportedOperationException(String.format("cannot analyze statement: '%s'", statement));
         }

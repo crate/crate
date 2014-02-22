@@ -367,10 +367,23 @@ public class PlannerTest {
         CollectNode collectNode = (CollectNode) iterator.next();
         assertFalse(collectNode.hasDownstreams());
         assertThat(collectNode.outputTypes().get(0), is(DataType.STRING));
-        assertThat(collectNode.outputTypes().get(1), is(DataType.LONG));
+        assertThat(collectNode.outputTypes().get(1), is(DataType.NULL));
 
         MergeNode mergeNode = (MergeNode) iterator.next();
         assertThat(mergeNode.numUpstreams(), is(2));
+        assertThat(mergeNode.projections().size(), is(2));
+
+        assertThat(mergeNode.outputTypes().get(0), is(DataType.LONG));
+        assertThat(mergeNode.outputTypes().get(1), is(DataType.STRING));
+
+        GroupProjection groupProjection = (GroupProjection) mergeNode.projections().get(0);
+        assertThat(groupProjection.keys().size(), is(1));
+        assertThat(((InputColumn) groupProjection.outputs().get(0)).index(), is(0));
+        assertThat(groupProjection.outputs().get(1), is(instanceOf(Aggregation.class)));
+        assertThat(((Aggregation)groupProjection.outputs().get(1)).functionIdent().name(), is("count"));
+        assertThat(((Aggregation)groupProjection.outputs().get(1)).fromStep(), is(Aggregation.Step.PARTIAL));
+        assertThat(((Aggregation)groupProjection.outputs().get(1)).toStep(), is(Aggregation.Step.FINAL));
+
         TopNProjection projection = (TopNProjection) mergeNode.projections().get(1);
         assertThat(((InputColumn) projection.outputs().get(0)).index(), is(1));
         assertThat(((InputColumn) projection.outputs().get(1)).index(), is(0));
@@ -627,5 +640,17 @@ public class PlannerTest {
         ESUpdateNode updateNode = (ESUpdateNode)planNode;
         assertThat(updateNode.primaryKeyValues().length, is(3));
         assertThat(updateNode.primaryKeyValues(), arrayContainingInAnyOrder("1", "2", "3"));
+    }
+
+    @Test
+    public void testCopyFromPlan() throws Exception {
+        Plan plan = plan("copy users from '/path/to/file.extension'");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(CopyNode.class));
+
+        CopyNode copyNode = (CopyNode)planNode;
+        assertThat(copyNode.index(), is("users"));
+        assertThat(copyNode.path(), is("/path/to/file.extension"));
     }
 }

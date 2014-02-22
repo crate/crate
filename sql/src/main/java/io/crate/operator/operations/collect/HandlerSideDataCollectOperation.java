@@ -36,6 +36,7 @@ import io.crate.operator.projectors.ProjectionToProjectorVisitor;
 import io.crate.operator.projectors.Projector;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.CollectNode;
+import org.apache.lucene.search.CollectionTerminatedException;
 import org.cratedb.Constants;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.common.inject.Inject;
@@ -52,32 +53,44 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
     private final ImplementationSymbolVisitor implementationVisitor;
     private final ProjectionToProjectorVisitor projectorVisitor;
     private final InformationSchemaCollectService informationSchemaCollectService;
+    private final UnassignedShardsCollectService unassignedShardsCollectService;
 
     @Inject
     public HandlerSideDataCollectOperation(Functions functions,
                                            ReferenceResolver referenceResolver,
-                                           InformationSchemaCollectService informationSchemaCollectService) {
+                                           InformationSchemaCollectService informationSchemaCollectService,
+                                           UnassignedShardsCollectService unassignedShardsCollectService) {
         this.informationSchemaCollectService = informationSchemaCollectService;
+        this.unassignedShardsCollectService = unassignedShardsCollectService;
         this.clusterNormalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
         this.implementationVisitor = new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER);
         this.projectorVisitor = new ProjectionToProjectorVisitor(implementationVisitor);
-
     }
 
     @Override
     public ListenableFuture<Object[][]> collect(CollectNode collectNode) {
-        assert !collectNode.isRouted();
+        if (collectNode.isRouted()) {
+            // unassigned shards
+            assert collectNode.routing().locations().containsKey(null)
+                && collectNode.maxRowGranularity() == RowGranularity.SHARD;
+        }
 
         SettableFuture<Object[][]> result = SettableFuture.create();
         if (collectNode.maxRowGranularity() == RowGranularity.DOC) {
             // we assume information schema here
             try {
-                result.set(handleInformationSchema(collectNode));
+                result.set(handleWithService(informationSchemaCollectService, collectNode));
             } catch (Exception e) {
                 result.setException(e);
             }
         } else if (collectNode.maxRowGranularity() == RowGranularity.CLUSTER) {
             result.set(handleCluster(collectNode));
+        } else if (collectNode.maxRowGranularity() == RowGranularity.SHARD) {
+            try {
+                result.set(handleWithService(unassignedShardsCollectService, collectNode));
+            } catch (Exception e) {
+                result.setException(e);
+            }
         } else {
             throw new CrateException("unsupported routing");
         }
@@ -122,14 +135,17 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         return collected;
     }
 
-    private Object[][] handleInformationSchema(CollectNode node) throws Exception {
+    private Object[][] handleWithService(CollectService collectService, CollectNode node) throws Exception {
         List<Projector> projectors = extractProjectors(node);
         projectors.get(0).startProjection();
-        CrateCollector collector = informationSchemaCollectService.getCollector(node, projectors.get(0));
-        collector.doCollect();
+        CrateCollector collector = collectService.getCollector(node, projectors.get(0));
+        try {
+            collector.doCollect();
+        } catch (CollectionTerminatedException ex) {
+            // ignore
+        }
         projectors.get(0).finishProjection();
         Object[][] collected = projectors.get(projectors.size() - 1).getRows();
         return collected;
     }
-
 }

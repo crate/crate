@@ -29,5 +29,6 @@ public class CollectOperationModule extends AbstractModule {
         bind(MapSideDataCollectOperation.class).asEagerSingleton();
         bind(HandlerSideDataCollectOperation.class).asEagerSingleton();
         bind(InformationSchemaCollectService.class).asEagerSingleton();
+        bind(UnassignedShardsCollectService.class).asEagerSingleton();
     }
 }

@@ -111,11 +111,12 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
                 // get streamer for aggregation result
                 try {
                     aggregation = aggregations.get(aggIdx);
+                    if (aggregation != null) {
+                        context.outputStreamers.add(resolveStreamer(aggregation, aggregation.toStep()));
+                    }
                 } catch (IndexOutOfBoundsException e) {
-                    throw new CrateException("invalid output types on CollectNode");
-                }
-                if (aggregation != null) {
-                    context.outputStreamers.add(resolveStreamer(aggregation, aggregation.toStep()));
+                    // assume this is an unknown column
+                    context.outputStreamers.add(DataType.NULL.streamer());
                 }
                 aggIdx++;
             } else {

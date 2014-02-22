@@ -64,6 +64,9 @@ public class UpdateAnalysis extends Analysis {
         if (assignments.containsKey(reference)) {
             throw new IllegalArgumentException(String.format("reference repeated %s", reference.info().ident().columnIdent().fqn()));
         }
+        if (!reference.info().ident().tableIdent().equals(table().ident())) {
+            throw new UnsupportedOperationException("cannot update references from other tables.");
+        }
         assignments.put(reference, value);
     }
 }

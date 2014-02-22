@@ -23,7 +23,9 @@ package org.cratedb.integrationtests;
 
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.sql.CrateException;
 import org.cratedb.sql.SQLParseException;
+import org.cratedb.sql.UnsupportedFeatureException;
 import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -70,14 +72,14 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectGroupByWhereTable() throws Exception {
-        execute("select count(*), num_docs from stats.shards where table_name = 'characters' " +
+        execute("select count(*), num_docs from sys.shards where table_name = 'characters' " +
                 "group by num_docs order by count(*)");
         assertThat(response.rowCount(), greaterThan(0L));
     }
 
     @Test
     public void testSelectGroupByAllTables() throws Exception {
-        execute("select count(*), table_name from stats.shards " +
+        execute("select count(*), table_name from sys.shards " +
                 "group by table_name order by table_name");
         assertEquals(2L, response.rowCount());
         assertEquals(10L, response.rows()[0][0]);
@@ -87,7 +89,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectGroupByWhereNotLike() throws Exception {
-        execute("select count(*), table_name from stats.shards " +
+        execute("select count(*), table_name from sys.shards " +
                 "where table_name not like 'my_table%' group by table_name order by table_name");
         assertEquals(2, response.rowCount());
         assertEquals(10L, response.rows()[0][0]);
@@ -98,74 +100,74 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectWhereTable() throws Exception {
-        execute("select node_id, shard_id, size from stats.shards where table_name = " +
+        execute("select id, sys.nodes.name, size from sys.shards where table_name = " +
                 "'characters'");
         assertEquals(10L, response.rowCount());
     }
 
     @Test
     public void testSelectStarWhereTable() throws Exception {
-        execute("select * from stats.shards where table_name = 'characters'");
+        execute("select * from sys.shards where table_name = 'characters'");
         assertEquals(10L, response.rowCount());
-        assertEquals(9, response.cols().length);
+        assertEquals(7, response.cols().length);
     }
 
     @Test
     public void testSelectStarAllTables() throws Exception {
-        execute("select * from stats.shards");
+        execute("select * from sys.shards");
         assertEquals(20L, response.rowCount());
-        assertEquals(9, response.cols().length);
+        assertEquals(7, response.cols().length);
     }
 
     @Test
     public void testSelectStarLike() throws Exception {
-        execute("select * from stats.shards where table_name like 'charact%'");
+        execute("select * from sys.shards where table_name like 'charact%'");
         assertEquals(10L, response.rowCount());
-        assertEquals(9, response.cols().length);
+        assertEquals(7, response.cols().length);
     }
 
     @Test
     public void testSelectStarNotLike() throws Exception {
-        execute("select * from stats.shards where table_name not like 'quotes%'");
+        execute("select * from sys.shards where table_name not like 'quotes%'");
         assertEquals(10L, response.rowCount());
-        assertEquals(9, response.cols().length);
+        assertEquals(7, response.cols().length);
     }
 
     @Test
     public void testSelectStarIn() throws Exception {
-        execute("select * from stats.shards where table_name in ('characters')");
+        execute("select * from sys.shards where table_name in ('characters')");
         assertEquals(10L, response.rowCount());
-        assertEquals(9, response.cols().length);
+        assertEquals(7, response.cols().length);
     }
 
     @Test
     public void testSelectStarMatch() throws Exception {
-        execute("select * from stats.shards where match(table_name, 'characters')");
+        execute("select * from sys.shards where match(table_name, 'characters')");
         assertEquals(10L, response.rowCount());
-        assertEquals(9, response.cols().length);
+        assertEquals(7, response.cols().length);
     }
 
     @Test
     public void testSelectOrderBy() throws Exception {
-        execute("select * from stats.shards order by table_name");
+        execute("select * from sys.shards order by table_name");
         assertEquals(20L, response.rowCount());
-        assertEquals("characters", response.rows()[0][8]);
-        assertEquals("characters", response.rows()[1][8]);
-        assertEquals("characters", response.rows()[2][8]);
-        assertEquals("characters", response.rows()[3][8]);
-        assertEquals("characters", response.rows()[4][8]);
-        assertEquals("quotes", response.rows()[10][8]);
+        assertEquals("characters", response.rows()[0][0]);
+        assertEquals("characters", response.rows()[1][0]);
+        assertEquals("characters", response.rows()[2][0]);
+        assertEquals("characters", response.rows()[3][0]);
+        assertEquals("characters", response.rows()[4][0]);
+        assertEquals("quotes", response.rows()[10][0]);
     }
 
     @Test
     public void testSelectGreaterThan() throws Exception {
-        execute("select * from stats.shards where num_docs > 0");
+        execute("select * from sys.shards where num_docs > 0");
         assertThat(response.rowCount(), greaterThan(0L));
     }
 
     @Test
     public void testSelectWhereBoolean() throws Exception {
-        execute("select * from stats.shards where \"primary\" = false");
+        execute("select * from sys.shards where \"primary\" = false");
         assertEquals(10L, response.rowCount());
     }
 
@@ -176,9 +178,9 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
 
         client().admin().cluster().prepareHealth("locations").setWaitForYellowStatus().execute().actionGet();
 
-        execute("select * from stats.shards order by state");
+        execute("select * from sys.shards order by state");
         assertEquals(35L, response.rowCount());
-        assertEquals(9, response.cols().length);
+        assertEquals(7, response.cols().length);
     }
 
     @Test
@@ -187,7 +189,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
         refresh();
         ensureYellow();
 
-        execute("select count(*), state from stats.shards " +
+        execute("select count(*), state from sys.shards " +
                 "group by state order by state desc");
         assertThat(response.rowCount(), greaterThanOrEqualTo(2L));
         assertEquals(2, response.cols().length);
@@ -197,7 +199,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectGlobalAggregates() throws Exception {
-        execute("select sum(size), min(size), max(size), avg(size) from stats.shards");
+        execute("select sum(size), min(size), max(size), avg(size) from sys.shards");
         assertEquals(1L, response.rowCount());
         assertEquals(4, response.rows()[0].length);
         assertNotNull(response.rows()[0][0]);
@@ -208,30 +210,22 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectGlobalCount() throws Exception {
-        execute("select count(*) from stats.shards");
+        execute("select count(*) from sys.shards");
         assertEquals(1L, response.rowCount());
         assertEquals(20L, response.rows()[0][0]);
     }
 
     @Test
     public void testSelectGlobalCountAndOthers() throws Exception {
-        execute("select count(*), max(table_name) from stats.shards");
+        execute("select count(*), max(table_name) from sys.shards");
         assertEquals(1L, response.rowCount());
         assertEquals(20L, response.rows()[0][0]);
         assertEquals("quotes", response.rows()[0][1]);
     }
 
     @Test
-    public void testSelectGlobalExpressionGlobalAggregate() throws Exception {
-        execute("select count(distinct table_name), sys.cluster.name from stats.shards");
-        assertEquals(1, response.rowCount());
-        assertEquals(2L, response.rows()[0][0]);
-        assertEquals(cluster().clusterName(), response.rows()[0][1]);
-    }
-
-    @Test
     public void testSelectGlobalExpressionGroupBy() throws Exception {
-        execute("select count(*), table_name, sys.cluster.name from stats.shards " +
+        execute("select count(*), table_name, sys.cluster.name from sys.shards " +
                 "group by sys.cluster.name, table_name order by table_name");
         assertEquals(2, response.rowCount());
         assertEquals(10L, response.rows()[0][0]);
@@ -246,48 +240,35 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     @Test
     public void testGroupByUnknownResultColumn() throws Exception {
         expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("Can only query columns that are listed in group by.");
-        execute("select lol from stats.shards group by table_name");
+        execute("select lol from sys.shards group by table_name");
     }
 
     @Test
     public void testGroupByUnknownGroupByColumn() throws Exception {
-        expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("Unknown column 'lol'");
-        execute("select max(num_docs) from stats.shards group by lol");
+        expectedException.expect(CrateException.class);
+        execute("select max(num_docs) from sys.shards group by lol");
     }
 
-    @Test
     public void testGroupByUnknownOrderBy() throws Exception {
-        expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("column in order by is also required in the result column list");
-        execute("select sum(num_docs), table_name from stats.shards group by table_name order by lol");
-    }
-
-    @Test
-    public void testGroupByUnknownEveryWhere() throws Exception {
-        expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("Unknown column 'lol'");
-        execute("select sum(num_docs), lol from stats.shards group by lol order by lol");
+        expectedException.expect(UnsupportedFeatureException.class);
+        execute("select sum(num_docs), table_name from sys.shards group by table_name order by lol");
     }
 
     @Test
     public void testGroupByUnknownWhere() throws Exception {
-        execute("select sum(num_docs), table_name from stats.shards where lol='funky' group by table_name");
+        execute("select sum(num_docs), table_name from sys.shards where lol='funky' group by table_name");
         assertEquals(0, response.rowCount());
     }
 
     @Test
     public void testGlobalAggregateUnknownWhere() throws Exception {
-        execute("select sum(num_docs) from stats.shards where lol='funky'");
-        assertEquals(1, response.rowCount());
-        assertNull(response.rows()[0][0]);
+        execute("select sum(num_docs) from sys.shards where lol='funky'");
+        assertEquals(0, response.rowCount());
     }
 
     @Test
     public void testGlobalAggregateUnknownOrderBy() throws Exception {
-        expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("column in order by is also required in the result column list");
-        execute("select sum(num_docs) from stats.shards order by lol");
+        // order is ignored because global aggregates return only 1 row
+        execute("select sum(num_docs) from sys.shards order by lol");
     }
 }

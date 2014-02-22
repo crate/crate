@@ -72,11 +72,15 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             case DELETE:
                 plan = planDelete((DeleteAnalysis) analysis);
                 break;
+            case COPY:
+                plan = planCopy((CopyAnalysis) analysis);
+                break;
             default:
                 throw new CrateException(String.format("unsupported analysis type '%s'", analysis.type().name()));
         }
         return plan;
     }
+
 
     private Plan planSelect(SelectAnalysis analysis) {
         Plan plan = new Plan();
@@ -138,6 +142,18 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         } else {
             ESDeleteByQuery(analysis, plan);
         }
+        return plan;
+    }
+
+    private Plan planCopy(CopyAnalysis analysis) {
+        Plan plan = new Plan();
+        if (analysis.mode() == CopyAnalysis.Mode.FROM) {
+            CopyNode copyNode = new CopyNode(analysis.path(), analysis.table().ident().name(), analysis.mode());
+            plan.add(copyNode);
+        } else if (analysis.mode() == CopyAnalysis.Mode.INTO) {
+            throw new UnsupportedOperationException("COPY INTO statement not supported yet");
+        }
+        plan.expectsAffectedRows(true);
         return plan;
     }
 
@@ -204,7 +220,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         ImmutableList<Projection> projections;
         if (analysis.limit() != null) {
             TopNProjection tnp = new TopNProjection(analysis.limit(), analysis.offset(),
-                    analysis.sortSymbols(), analysis.reverseFlags());
+                    contextBuilder.orderBy(), analysis.reverseFlags());
             tnp.outputs(contextBuilder.outputs());
             projections = ImmutableList.<Projection>of(tnp);
         } else {
@@ -218,7 +234,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         TopNProjection tnp = new TopNProjection(
                 Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                 analysis.offset(),
-                analysis.sortSymbols(),
+                contextBuilder.orderBy(),
                 analysis.reverseFlags()
         );
         tnp.outputs(contextBuilder.outputs());
@@ -295,7 +311,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         // TODO:  if the routing is HandlerSideRouting or has no locations
         // the localMergeNode isn't needed but instead the topN projection could be added to the
         // collectNode
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(1, analysis.groupBy())
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, analysis.groupBy())
                 .output(analysis.outputSymbols())
                 .orderBy(analysis.sortSymbols());
 
@@ -312,11 +328,11 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
 
         // handler
         groupProjection =
-                new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
+            new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
         TopNProjection topN = new TopNProjection(
                 Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                 analysis.offset(),
-                analysis.sortSymbols(),
+                contextBuilder.orderBy(),
                 analysis.reverseFlags()
         );
         topN.outputs(contextBuilder.outputs());

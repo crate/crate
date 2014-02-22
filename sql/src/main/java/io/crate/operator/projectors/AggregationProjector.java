@@ -73,6 +73,10 @@ public class AggregationProjector implements Projector {
                     aggregations[i].function(),
                     aggregations[i].inputs()
             );
+
+            // startCollect creates the aggregationState. In case of the AggregationProjector
+            // we only want to have 1 global state not 1 state per node/shard or even document.
+            aggregationCollectors[i].startCollect();
         }
     }
 
@@ -83,9 +87,6 @@ public class AggregationProjector implements Projector {
 
     @Override
     public void startProjection() {
-        for (AggregationCollector collector : aggregationCollectors) {
-            collector.startCollect();
-        }
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.startCollect();
         }

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,23 +19,47 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.shard;
+package io.crate.analyze;
 
-import io.crate.metadata.ReferenceIdent;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.ReferenceResolver;
 
-public class MetaDataShardModule extends AbstractModule {
+public class CopyAnalysis extends Analysis {
 
-    protected MapBinder<ReferenceIdent, ShardReferenceImplementation> referenceBinder;
+    public static enum Mode {
+        FROM,
+        INTO
+    }
+
+    private String path;
+    private Mode mode;
+
+    public CopyAnalysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters, ReferenceResolver referenceResolver) {
+        super(referenceInfos, functions, parameters, referenceResolver);
+    }
+
+    public String path() {
+        return path;
+    }
+
+    public void path(String path) {
+        this.path = path;
+    }
 
     @Override
-    protected void configure() {
-        bindShardReferences();
+    public Type type() {
+        return Type.COPY;
     }
 
-    protected void bindShardReferences() {
-        referenceBinder = MapBinder.newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
-        bind(ShardReferenceResolver.class).asEagerSingleton();
+    public Mode mode() {
+        return mode;
     }
+
+    public void mode(Mode mode) {
+        this.mode = mode;
+    }
+
+
+
 }
