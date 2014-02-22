@@ -32,7 +32,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -76,13 +75,16 @@ public class LocalMergeTask implements Task<Object[][]> {
                 upStreamResult.addListener(new Runnable() {
                     @Override
                     public void run() {
+                        Object[][] upstreamResult;
                         try {
-                            mergeOperation.addRows(upStreamResult.get()); // TODO: apply timeout
-                            if (countDown.decrementAndGet()==0) {
-                                result.set(mergeOperation.result());
-                            }
-                        } catch (InterruptedException | ExecutionException e) {
+                            upstreamResult = upStreamResult.get();
+                        } catch (Exception e) {
                             result.setException(e.getCause());
+                            return;
+                        };
+                        mergeOperation.addRows(upstreamResult);
+                        if (countDown.decrementAndGet()==0) {
+                            result.set(mergeOperation.result());
                         }
                     }
                 }, threadPool.executor(ThreadPool.Names.GENERIC));
