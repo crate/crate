@@ -90,12 +90,20 @@ public class TransportCollectNodeAction {
     private ListenableActionFuture<NodeCollectResponse> nodeOperation(final NodeCollectRequest request) throws CrateException {
         final CollectNode node = request.collectNode();
         final ListenableFuture<Object[][]> collectResult;
-        if (node.hasDownstreams()) {
-            collectResult = distributingCollectOperation.collect(node);
-        } else {
-            collectResult = localDataCollector.collect(node);
-        }
         final PlainListenableActionFuture<NodeCollectResponse> collectResponse = new PlainListenableActionFuture<>(false, threadPool);
+
+        try {
+            if (node.hasDownstreams()) {
+                collectResult = distributingCollectOperation.collect(node);
+            } else {
+                collectResult = localDataCollector.collect(node);
+            }
+        } catch (Exception e){
+            logger.error("Error when creating result futures", e);
+            collectResponse.onFailure(e);
+            return collectResponse;
+        }
+
         Futures.addCallback(collectResult, new FutureCallback<Object[][]>() {
             @Override
             public void onSuccess(@Nullable Object[][] result) {
