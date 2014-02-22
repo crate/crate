@@ -91,6 +91,9 @@ public class DistributedMergeTask implements Task<Object[][]> {
 
                         try {
                             upstreamResultFuture.get(); // trigger exception;
+
+                            // if it doesn't trigger an exception still set the error
+                            result.setException(e);
                         } catch (InterruptedException | ExecutionException e1) {
                             ((SettableFuture<Object[][]>)results.get(resultIdx)).setException(e1.getCause());
                         }

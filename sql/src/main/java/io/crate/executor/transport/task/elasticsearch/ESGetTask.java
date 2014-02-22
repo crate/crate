@@ -35,6 +35,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.index.get.GetField;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -108,7 +109,12 @@ public class ESGetTask implements Task<Object[][]> {
                 extractors[i] = new FieldExtractor() {
                     @Override
                     public Object extract(GetResponse response) {
-                        return response.getField(field).getValue();
+                        GetField getField = response.getField(field);
+                        if (getField != null) {
+                            return getField.getValue();
+                        }
+
+                        return null;
                     }
                 };
             }
