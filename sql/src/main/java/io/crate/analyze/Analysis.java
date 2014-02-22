@@ -60,6 +60,7 @@ public abstract class Analysis {
 
     protected Long version;
 
+    @Nullable
     public List<Literal> primaryKeyLiterals() {
         return primaryKeyLiterals;
     }

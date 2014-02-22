@@ -111,7 +111,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
     }
 
     private Plan planUpdate(UpdateAnalysis analysis) {
-        if (analysis.primaryKeyLiterals().size() > 1) {
+        if (analysis.primaryKeyLiterals() !=null && analysis.primaryKeyLiterals().size() > 1) {
             throw new UnsupportedOperationException("Multi column primary keys are currently not supported");
         }
 
