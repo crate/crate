@@ -22,6 +22,7 @@ import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
 import java.util.*;
@@ -74,7 +75,9 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
 
         NoopListener noopListener = new NoopListener();
 
-        DistributedMergeTask task = new DistributedMergeTask(transportMergeNodeAction, mergeNode);
+
+        DistributedMergeTask task = new DistributedMergeTask(cluster().getInstance(
+                ThreadPool.class), transportMergeNodeAction, mergeNode);
         task.start();
 
         Iterator<String> iterator = nodes.iterator();

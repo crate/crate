@@ -23,19 +23,19 @@ package io.crate.executor.transport.task;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.exceptions.UnknownUpstreamFailure;
 import io.crate.executor.Task;
 import io.crate.executor.transport.merge.NodeMergeRequest;
 import io.crate.executor.transport.merge.NodeMergeResponse;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.planner.node.MergeNode;
+import org.cratedb.sql.CrateException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.Preconditions;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteTransportException;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 public class DistributedMergeTask implements Task<Object[][]> {
 
@@ -43,8 +43,10 @@ public class DistributedMergeTask implements Task<Object[][]> {
     private final TransportMergeNodeAction transportMergeNodeAction;
     private final ArrayList<ListenableFuture<Object[][]>> results;
     private List<ListenableFuture<Object[][]>> upstreamResult;
+    private final ThreadPool threadPool;
 
-    public DistributedMergeTask(TransportMergeNodeAction transportMergeNodeAction, MergeNode mergeNode) {
+    public DistributedMergeTask(ThreadPool threadPool, TransportMergeNodeAction transportMergeNodeAction, MergeNode mergeNode) {
+        this.threadPool = threadPool;
         Preconditions.checkNotNull(mergeNode.executionNodes());
 
         this.transportMergeNodeAction = transportMergeNodeAction;
@@ -60,6 +62,29 @@ public class DistributedMergeTask implements Task<Object[][]> {
     public void start() {
         int i = 0;
         final NodeMergeRequest request = new NodeMergeRequest(mergeNode);
+
+        // if we have an upstream result, we need to register failure handlers here, in order to
+        // handle bootstrapping failures on the data providing side
+        if (upstreamResult != null){
+            // consume the upstream result
+            for (final ListenableFuture<Object[][]> upstreamFuture : upstreamResult) {
+                upstreamFuture.addListener(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            upstreamFuture.get();
+                        } catch (Exception e) {
+                            for (ListenableFuture<Object[][]> result : results) {
+                                //result.cancel(true);
+                            ((SettableFuture<Object[][]>)result).setException(e.getCause());
+                            }
+                            throw new CrateException("Failure in collect result", e);
+                        }
+                    }
+                }, threadPool.executor(ThreadPool.Names.GENERIC));
+            }
+        }
+
         for (String node : mergeNode.executionNodes()) {
             final int resultIdx = i;
             transportMergeNodeAction.startMerge(node, request, new ActionListener<NodeMergeResponse>() {
@@ -75,31 +100,7 @@ public class DistributedMergeTask implements Task<Object[][]> {
                         e = e.getCause();
                     }
                     SettableFuture<Object[][]> result = (SettableFuture<Object[][]>) results.get(resultIdx);
-
-                    /**
-                     * if the upstream task of the merge task throws an exception it sends a
-                     * failure flag to its downstream (the merge task).
-                     * This flag triggers a UnknownUpstreamFailure exception.
-                     *
-                     * If this exception is received here we have to look at the upstreamResult to get the real
-                     * cause of the exception.
-                     **/
-                    if (e instanceof UnknownUpstreamFailure) {
-                        assert upstreamResult != null;
-                        ListenableFuture<Object[][]> upstreamResultFuture = upstreamResult.get(resultIdx);
-                        assert upstreamResultFuture != null;
-
-                        try {
-                            upstreamResultFuture.get(); // trigger exception;
-
-                            // if it doesn't trigger an exception still set the error
-                            result.setException(e);
-                        } catch (InterruptedException | ExecutionException e1) {
-                            ((SettableFuture<Object[][]>)results.get(resultIdx)).setException(e1.getCause());
-                        }
-                    } else {
-                        result.setException(e);
-                    }
+                    result.setException(e);
                 }
             });
 
