@@ -229,6 +229,11 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
     }
 
     @Override
+    protected Symbol visitNotExpression(NotExpression node, T context) {
+        return new Function(NotPredicate.INFO, Arrays.asList(process(node.getValue(), context)));
+    }
+
+    @Override
     protected Symbol visitComparisonExpression(ComparisonExpression node, T context) {
         String operatorName = "op_" + node.getType().getValue();
 

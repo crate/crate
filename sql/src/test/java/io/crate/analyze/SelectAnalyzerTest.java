@@ -726,4 +726,10 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         Analysis analysis = analyze("select \"_id\" from users where invalid is null");
         assertTrue(analysis.noMatch());
     }
+
+    @Test
+    public void testNotPredicate() {
+        Analysis analyze = analyze("select * from users where name not like 'foo%'");
+        assertThat(analyze.whereClause.query().info().ident().name(), is(NotPredicate.NAME));
+    }
 }
