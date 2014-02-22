@@ -37,7 +37,7 @@ public class ModuloBucketingIterator extends BucketingIterator {
         if (row == null || row.length == 0) {
             return 0;
         } else {
-            return row[0].hashCode() % this.numBuckets;
+            return Math.abs(row[0].hashCode()) % this.numBuckets;
         }
     }
 }
