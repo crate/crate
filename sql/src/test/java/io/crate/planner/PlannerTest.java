@@ -367,12 +367,24 @@ public class PlannerTest {
         CollectNode collectNode = (CollectNode) iterator.next();
         assertFalse(collectNode.hasDownstreams());
         assertThat(collectNode.outputTypes().get(0), is(DataType.STRING));
-        assertThat(collectNode.outputTypes().get(1), is(DataType.LONG));
+        assertThat(collectNode.outputTypes().get(1), is(DataType.NULL));
 
         MergeNode mergeNode = (MergeNode) iterator.next();
         assertThat(mergeNode.numUpstreams(), is(2));
-        assertThat(mergeNode.projections().size(), is(1));
-        TopNProjection projection = (TopNProjection) mergeNode.projections().get(0);
+        assertThat(mergeNode.projections().size(), is(2));
+
+        assertThat(mergeNode.outputTypes().get(0), is(DataType.LONG));
+        assertThat(mergeNode.outputTypes().get(1), is(DataType.STRING));
+
+        GroupProjection groupProjection = (GroupProjection) mergeNode.projections().get(0);
+        assertThat(groupProjection.keys().size(), is(1));
+        assertThat(((InputColumn) groupProjection.outputs().get(0)).index(), is(0));
+        assertThat(groupProjection.outputs().get(1), is(instanceOf(Aggregation.class)));
+        assertThat(((Aggregation)groupProjection.outputs().get(1)).functionIdent().name(), is("count"));
+        assertThat(((Aggregation)groupProjection.outputs().get(1)).fromStep(), is(Aggregation.Step.PARTIAL));
+        assertThat(((Aggregation)groupProjection.outputs().get(1)).toStep(), is(Aggregation.Step.FINAL));
+
+        TopNProjection projection = (TopNProjection) mergeNode.projections().get(1);
         assertThat(((InputColumn) projection.outputs().get(0)).index(), is(1));
         assertThat(((InputColumn) projection.outputs().get(1)).index(), is(0));
 
