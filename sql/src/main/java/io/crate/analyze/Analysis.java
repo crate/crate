@@ -33,7 +33,8 @@ public abstract class Analysis {
         SELECT,
         INSERT,
         UPDATE,
-        DELETE
+        DELETE,
+        COPY
     }
 
     public abstract Type type();

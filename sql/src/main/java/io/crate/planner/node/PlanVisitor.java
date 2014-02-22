@@ -86,4 +86,7 @@ public class PlanVisitor<C, R> {
         return visitProjection(projection, context);
     }
 
+    public R visitCopyNode(CopyNode copyNode, C context) {
+        return visitPlanNode(copyNode, context);
+    }
 }

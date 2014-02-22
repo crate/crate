@@ -629,4 +629,16 @@ public class PlannerTest {
         assertThat(updateNode.primaryKeyValues().length, is(3));
         assertThat(updateNode.primaryKeyValues(), arrayContainingInAnyOrder("1", "2", "3"));
     }
+
+    @Test
+    public void testCopyFromPlan() throws Exception {
+        Plan plan = plan("copy users from '/path/to/file.extension'");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(CopyNode.class));
+
+        CopyNode copyNode = (CopyNode)planNode;
+        assertThat(copyNode.index(), is("users"));
+        assertThat(copyNode.path(), is("/path/to/file.extension"));
+    }
 }

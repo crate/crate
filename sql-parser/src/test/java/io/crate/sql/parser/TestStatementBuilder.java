@@ -121,6 +121,10 @@ public class TestStatementBuilder
         printStatement("update schemah.foo set foo.a='b', foo.b=foo.a");
         printStatement("update schemah.foo set foo.a=abs(-6.3334), x=true where x=false");
 
+        printStatement("copy foo from '/folder/file.extension'");
+        printStatement("copy foo from ?");
+        printStatement("copy schemah.foo from '/folder/file.extension'");
+
     }
 
     @Test

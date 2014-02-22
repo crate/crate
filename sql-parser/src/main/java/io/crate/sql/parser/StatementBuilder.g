@@ -82,6 +82,7 @@ statement returns [Statement value]
     | insert                    { $value = $insert.value; }
     | delete                    { $value = $delete.value; }
     | update                    { $value = $update.value; }
+    | copyFrom                  { $value = $copyFrom.value; }
     ;
 
 query returns [Query value]
@@ -642,4 +643,8 @@ assignmentList returns [List<Assignment> value = new ArrayList<>()]
 assignment returns [Assignment value]
     : ^(ASSIGNMENT subscript expr) { $value = new Assignment($subscript.value, $expr.value); }
     | ^(ASSIGNMENT qname expr) { $value = new Assignment(new QualifiedNameReference($qname.value), $expr.value); }
+    ;
+
+copyFrom returns [Statement value]
+    : ^(COPY_FROM namedTable path=expr) { $value = new CopyFromStatement($namedTable.value, $path.value); }
     ;

@@ -72,11 +72,15 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             case DELETE:
                 plan = planDelete((DeleteAnalysis) analysis);
                 break;
+            case COPY:
+                plan = planCopy((CopyAnalysis) analysis);
+                break;
             default:
                 throw new CrateException(String.format("unsupported analysis type '%s'", analysis.type().name()));
         }
         return plan;
     }
+
 
     private Plan planSelect(SelectAnalysis analysis) {
         Plan plan = new Plan();
@@ -138,6 +142,18 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         } else {
             ESDeleteByQuery(analysis, plan);
         }
+        return plan;
+    }
+
+    private Plan planCopy(CopyAnalysis analysis) {
+        Plan plan = new Plan();
+        if (analysis.mode() == CopyAnalysis.Mode.FROM) {
+            CopyNode copyNode = new CopyNode(analysis.path(), analysis.table().ident().name(), analysis.mode());
+            plan.add(copyNode);
+        } else if (analysis.mode() == CopyAnalysis.Mode.INTO) {
+            throw new UnsupportedOperationException("COPY INTO statement not supported yet");
+        }
+        plan.expectsAffectedRows(true);
         return plan;
     }
 

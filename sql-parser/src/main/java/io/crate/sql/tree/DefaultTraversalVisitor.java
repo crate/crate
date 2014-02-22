@@ -430,4 +430,10 @@ public abstract class DefaultTraversalVisitor<R, C>
         }
         return null;
     }
+
+    @Override
+    public R visitCopyFromStatement(CopyFromStatement node, C context) {
+        process(node.table(), context);
+        return null;
+    }
 }
