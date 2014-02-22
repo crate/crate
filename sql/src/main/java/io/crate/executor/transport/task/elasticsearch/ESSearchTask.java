@@ -28,6 +28,7 @@ import io.crate.executor.Task;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.node.ESSearchNode;
+import io.crate.planner.symbol.DynamicReference;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolVisitor;
@@ -180,10 +181,20 @@ public class ESSearchTask implements Task<Object[][]> {
 
     static class Visitor extends SymbolVisitor<Context, Void> {
 
-        @Override
-        public Void visitReference(Reference symbol, Context context) {
+        private void addReference(Reference symbol, Context context) {
             context.outputs.add(symbol);
             context.indices.add(symbol.info().ident().tableIdent().name());
+        }
+
+        @Override
+        public Void visitReference(Reference symbol, Context context) {
+            addReference(symbol, context);
+            return null;
+        }
+
+        @Override
+        public Void visitDynamicReference(DynamicReference symbol, Context context) {
+            addReference(symbol, context);
             return null;
         }
 
