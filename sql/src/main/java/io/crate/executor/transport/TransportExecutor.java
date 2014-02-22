@@ -138,7 +138,10 @@ public class TransportExecutor implements Executor {
         public Void visitCollectNode(CollectNode node, Job context) {
             node.jobId(context.id()); // add jobId to collectNode
             if (node.isRouted()) {
-                context.addTask(new RemoteCollectTask(node, transportCollectNodeAction));
+                context.addTask(new RemoteCollectTask(
+                    node,
+                    transportCollectNodeAction,
+                    handlerSideDataCollectOperation));
             } else {
                 context.addTask(new LocalCollectTask(handlerSideDataCollectOperation, node));
             }

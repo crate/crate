@@ -204,7 +204,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         ImmutableList<Projection> projections;
         if (analysis.limit() != null) {
             TopNProjection tnp = new TopNProjection(analysis.limit(), analysis.offset(),
-                    analysis.sortSymbols(), analysis.reverseFlags());
+                    contextBuilder.orderBy(), analysis.reverseFlags());
             tnp.outputs(contextBuilder.outputs());
             projections = ImmutableList.<Projection>of(tnp);
         } else {
@@ -218,7 +218,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         TopNProjection tnp = new TopNProjection(
                 Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                 analysis.offset(),
-                analysis.sortSymbols(),
+                contextBuilder.orderBy(),
                 analysis.reverseFlags()
         );
         tnp.outputs(contextBuilder.outputs());
@@ -295,7 +295,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         // TODO:  if the routing is HandlerSideRouting or has no locations
         // the localMergeNode isn't needed but instead the topN projection could be added to the
         // collectNode
-        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(1, analysis.groupBy())
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2, analysis.groupBy())
                 .output(analysis.outputSymbols())
                 .orderBy(analysis.sortSymbols());
 
@@ -308,15 +308,19 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         );
         plan.add(collectNode);
 
+        contextBuilder.nextStep();
+
         // handler
+        groupProjection =
+            new GroupProjection(contextBuilder.groupBy(), contextBuilder.aggregations());
         TopNProjection topN = new TopNProjection(
                 Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
                 analysis.offset(),
-                analysis.sortSymbols(),
+                contextBuilder.orderBy(),
                 analysis.reverseFlags()
         );
         topN.outputs(contextBuilder.outputs());
-        plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(topN), collectNode));
+        plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(groupProjection, topN), collectNode));
     }
 
 

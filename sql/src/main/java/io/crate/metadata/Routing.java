@@ -98,7 +98,7 @@ public class Routing implements Streamable {
             int numInner;
             Map<String, Set<Integer>> innerMap;
             for (int i = 0; i < numLocations; i++) {
-                nodeId = in.readString();
+                nodeId = in.readOptionalString();
                 numInner = in.readVInt();
                 innerMap = new HashMap<>(numInner);
 
@@ -123,7 +123,7 @@ public class Routing implements Streamable {
             out.writeVInt(locations.size());
 
             for (Map.Entry<String, Map<String, Set<Integer>>> entry : locations.entrySet()) {
-                out.writeString(entry.getKey());
+                out.writeOptionalString(entry.getKey());
 
                 if (entry.getValue() == null) {
                     out.writeVInt(0);

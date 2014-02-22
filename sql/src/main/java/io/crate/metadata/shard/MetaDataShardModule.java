@@ -38,5 +38,4 @@ public class MetaDataShardModule extends AbstractModule {
         referenceBinder = MapBinder.newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
         bind(ShardReferenceResolver.class).asEagerSingleton();
     }
-
 }

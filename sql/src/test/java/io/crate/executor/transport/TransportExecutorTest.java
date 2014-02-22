@@ -23,7 +23,9 @@ package io.crate.executor.transport;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.executor.Job;
@@ -37,6 +39,8 @@ import io.crate.operator.operator.OrOperator;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.*;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
@@ -88,6 +92,40 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         execute("insert into characters (id, name) values (2, 'Ford')");
         execute("insert into characters (id, name) values (3, 'Trillian')");
         refresh();
+    }
+
+    @Test
+    public void testRemoteCollectTaskWithUnassignedShards() throws Exception {
+        Routing routing = new Routing(new HashMap<String, Map<String, Set<Integer>>>() {{
+            put(null, ImmutableMap.<String, Set<Integer>>of("t1", ImmutableSet.of(1, 2)));
+        }});
+        CollectNode collectNode = new CollectNode("collect", routing);
+        collectNode.toCollect(Arrays.<Symbol>asList(
+            new Reference(new ReferenceInfo(
+                new ReferenceIdent(new TableIdent("sys", "shards"), "id"), RowGranularity.SHARD, DataType.INTEGER
+            )),
+            new Reference(new ReferenceInfo(
+                new ReferenceIdent(new TableIdent("sys", "shards"), "state"), RowGranularity.SHARD, DataType.STRING
+            ))
+        ));
+        collectNode.whereClause(WhereClause.MATCH_ALL);
+        collectNode.maxRowGranularity(RowGranularity.SHARD);
+        TopNProjection topN = new TopNProjection(10, 0,
+            Arrays.<Symbol>asList(new InputColumn(0)),
+            new boolean[] { false });
+        topN.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
+
+        collectNode.projections(Arrays.<Projection>asList(topN));
+        collectNode.outputTypes(Arrays.<DataType>asList(DataType.INTEGER, DataType.STRING));
+
+        Plan plan = new Plan();
+        plan.add(collectNode);
+        Job job = executor.newJob(plan);
+
+        List<ListenableFuture<Object[][]>> result = executor.execute(job);
+        Object[][] rows = Futures.allAsList(result).get().get(0);
+
+        assertThat(rows.length, is(2));
     }
 
     @Test
