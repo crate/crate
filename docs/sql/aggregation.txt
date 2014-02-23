@@ -49,15 +49,6 @@ The return value is always of type ``long``.
     +----------+-------------+
     SELECT 3 rows in set (... sec)
 
-.. note::
-
-    The count() aggregate function can also be called with parameter
-    substitution. But only if the value evaluates to a '*'.
-
-.. seealso::
-
-    :doc:`rest`
-
 count(columnName)
 -----------------
 
@@ -239,7 +230,7 @@ any
 The ``any`` aggregation function returns a single value of a column.
 Which value it returns is not defined.
 It accepts references to columns of all primitive types.
-Using ``any`` on ``Craty`` columns is not supported.
+Using ``any`` on ``Object`` columns is not supported.
 Its return type is the type of its parameter column and can be ``NULL``
 if the column contains ``NULL`` values.
 
