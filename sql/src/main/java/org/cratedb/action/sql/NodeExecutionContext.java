@@ -21,68 +21,37 @@
 
 package org.cratedb.action.sql;
 
-import org.cratedb.action.groupby.aggregate.AggFunction;
-import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.index.ColumnDefinition;
 import org.cratedb.index.IndexMetaDataExtractor;
-import org.cratedb.information_schema.InformationSchemaTableExecutionContext;
-import org.cratedb.information_schema.InformationSchemaTableExecutionContextFactory;
-import org.cratedb.service.GlobalExpressionService;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.TableAliasSchemaException;
 import org.cratedb.sql.TableUnknownException;
-import org.cratedb.sql.types.SQLFieldMapper;
-import org.cratedb.sql.types.SQLFieldMapperFactory;
-import org.cratedb.stats.ShardStatsTableExecutionContext;
 import org.elasticsearch.action.support.IgnoreIndices;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndexMissingException;
-import org.elasticsearch.indices.IndicesService;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
+@Deprecated
 public class NodeExecutionContext {
 
-    private final IndicesService indicesService;
     private final ClusterService clusterService;
     private final AnalyzerService analyzerService;
-    private final QueryPlanner queryPlanner;
-    private final InformationSchemaTableExecutionContextFactory factory;
     private final Settings settings;
-    private final SQLFieldMapperFactory sqlFieldMapperFactory;
-    private final Map<String, AggFunction> availableAggFunctions;
-    private final ShardStatsTableExecutionContext shardStatsTableExecutionContext;
-    private final GlobalExpressionService globalExpressionService;
 
     @Inject
-    public NodeExecutionContext(IndicesService indicesService,
-                                ClusterService clusterService,
+    public NodeExecutionContext(ClusterService clusterService,
                                 AnalyzerService analyzerService,
-                                QueryPlanner queryPlanner,
-                                InformationSchemaTableExecutionContextFactory factory,
-                                Settings settings,
-                                SQLFieldMapperFactory sqlFieldMapperFactory,
-                                ShardStatsTableExecutionContext shardStatsTableExecutionContext,
-                                Map<String, AggFunction> availableAggFunctions,
-                                GlobalExpressionService globalExpressionService
-                               ) {
+                                Settings settings) {
 
-        this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.analyzerService = analyzerService;
-        this.queryPlanner = queryPlanner;
-        this.factory = factory;
         this.settings = settings;
-        this.sqlFieldMapperFactory = sqlFieldMapperFactory;
-        this.availableAggFunctions = availableAggFunctions;
-        this.shardStatsTableExecutionContext = shardStatsTableExecutionContext;
-        this.globalExpressionService = globalExpressionService;
     }
 
     /**
@@ -92,13 +61,6 @@ public class NodeExecutionContext {
      * @return an implementation of ITableExecutionContext or null if no context could be created
      */
     public ITableExecutionContext tableContext(String schema, String table) {
-        if (schema != null && schema.equalsIgnoreCase(InformationSchemaTableExecutionContext.SCHEMA_NAME)) {
-            return factory.create(table);
-        }
-        if (schema != null && schema.equalsIgnoreCase(ShardStatsTableExecutionContext.SCHEMA_NAME)) {
-            return shardStatsTableExecutionContext;
-        }
-
         // resolve aliases to the concreteIndices
         String[] indices = {table};
         String[] concreteIndices;
@@ -126,20 +88,14 @@ public class NodeExecutionContext {
         IndexMetaData indexMetaData = clusterService.state().metaData().index(concreteIndices[0]);
         if (indexMetaData != null) {
             IndexMetaDataExtractor metaDataExtractor = new IndexMetaDataExtractor(indexMetaData);
-            SQLFieldMapper sqlFieldMapper = sqlFieldMapperFactory.create(metaDataExtractor);
 
             return new TableExecutionContext(
                     table,
                     metaDataExtractor,
-                    sqlFieldMapper,
                     tableIsAlias);
         } else {
             return null;
         }
-    }
-
-    public QueryPlanner queryPlanner() {
-        return queryPlanner;
     }
 
     public AnalyzerService analyzerService() {
@@ -193,13 +149,5 @@ public class NodeExecutionContext {
         }
 
         return true;
-    }
-
-    public Map<String, AggFunction> availableAggFunctions() {
-        return this.availableAggFunctions;
-    }
-
-    public GlobalExpressionService globalExpressionService() {
-        return globalExpressionService;
     }
 }

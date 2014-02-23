@@ -27,6 +27,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
 
+@Deprecated
 public class OrderByColumnName extends OrderByColumnIdx implements Streamable {
 
     public String name;

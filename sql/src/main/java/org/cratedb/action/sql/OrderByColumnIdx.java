@@ -28,6 +28,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
 
+@Deprecated
 public class OrderByColumnIdx implements Streamable {
 
     public Integer index;
@@ -66,11 +67,5 @@ public class OrderByColumnIdx implements Streamable {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(index);
         out.writeBoolean(isAsc);
-    }
-
-    public static OrderByColumnIdx readFromStream(StreamInput in) throws IOException {
-        OrderByColumnIdx result = new OrderByColumnIdx();
-        result.readFrom(in);
-        return result;
     }
 }

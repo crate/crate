@@ -23,7 +23,6 @@ package org.cratedb.module.sql.test;
 
 import com.google.common.collect.ImmutableSet;
 import org.cratedb.action.parser.ESRequestBuilder;
-import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.TableExecutionContext;
@@ -36,7 +35,6 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.analysis.IndicesAnalysisService;
 import org.junit.Rule;
 import org.junit.Test;
@@ -115,9 +113,6 @@ public class TableVisitorTest {
                 new IndicesAnalysisService(ImmutableSettings.EMPTY));
         when(nec.analyzerService()).thenReturn(analyzerService);
         // Force enabling query planner
-        Settings settings = ImmutableSettings.builder().put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, true).build();
-        QueryPlanner queryPlanner = new QueryPlanner(settings);
-        when(nec.queryPlanner()).thenReturn(queryPlanner);
         when(nec.tableContext(null, "phrases")).thenReturn(tec);
         when(tec.allCols()).thenReturn(ImmutableSet.of("pk_col", "phrase"));
         when(tec.isRouting("pk_col")).thenReturn(true);

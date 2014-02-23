@@ -23,8 +23,8 @@ package org.cratedb.action.sql.analyzer;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.lucene.analysis.Analyzer;
+import org.cratedb.Constants;
 import org.cratedb.action.parser.visitors.AnalyzerVisitor;
-import org.cratedb.service.SQLService;
 import org.cratedb.sql.AnalyzerInvalidException;
 import org.cratedb.sql.AnalyzerUnknownException;
 import org.cratedb.sql.parser.StandardException;
@@ -143,7 +143,7 @@ public class AnalyzerService {
      */
     public String getCustomAnalyzerSource(String name) {
         return clusterService.state().metaData().persistentSettings().get(
-                String.format("%s.%s.%s.%s", SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX,
+                String.format("%s.%s.%s.%s", Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX,
                         CustomType.ANALYZER.getName(), name, AnalyzerVisitor.SQL_STATEMENT_KEY)
         );
     }
@@ -278,7 +278,7 @@ public class AnalyzerService {
             return null;
         }
         String encodedSettings = clusterService.state().metaData().persistentSettings().get(
-                String.format("%s.%s.%s", SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name)
+                String.format("%s.%s.%s", Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name)
         );
         Settings decoded = null;
         if (encodedSettings != null) {
@@ -293,7 +293,7 @@ public class AnalyzerService {
 
     private Settings getCustomThingies(CustomType type) {
         Map<String, Settings> settingsMap = clusterService.state().metaData().persistentSettings
-                ().getGroups(SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX);
+                ().getGroups(Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX);
         Settings result = settingsMap.get(type.getName());
         return result != null ? result : ImmutableSettings.EMPTY;
     }
@@ -306,7 +306,7 @@ public class AnalyzerService {
      */
     private boolean hasCustomThingy(String name, CustomType type) {
         return clusterService.state().metaData().persistentSettings().getAsMap().containsKey(
-                String.format("%s.%s.%s", SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name));
+                String.format("%s.%s.%s", Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name));
     }
 
     /**

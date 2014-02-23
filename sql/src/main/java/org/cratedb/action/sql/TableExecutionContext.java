@@ -21,15 +21,8 @@
 
 package org.cratedb.action.sql;
 
-import org.cratedb.action.collect.*;
 import org.cratedb.index.ColumnDefinition;
 import org.cratedb.index.IndexMetaDataExtractor;
-import org.cratedb.lucene.LuceneFieldMapper;
-import org.cratedb.sql.SQLParseException;
-import org.cratedb.sql.ValidationException;
-import org.cratedb.sql.parser.parser.NodeType;
-import org.cratedb.sql.parser.parser.ValueNode;
-import org.cratedb.sql.types.SQLFieldMapper;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -38,62 +31,26 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+@Deprecated
 public class TableExecutionContext implements ITableExecutionContext {
 
     private final ESLogger logger = Loggers.getLogger(getClass());
     private final IndexMetaDataExtractor indexMetaDataExtractor;
     public final String tableName;
-    private final Map<String, ColumnDefinition> columnDefinitions;
-    private SQLFieldMapper sqlFieldMapper;
     private boolean tableIsAlias = false;
 
 
 
     public TableExecutionContext(String name, IndexMetaDataExtractor indexMetaDataExtractor,
-                          SQLFieldMapper sqlFieldMapper, boolean tableIsAlias) {
+                                 boolean tableIsAlias) {
         this.indexMetaDataExtractor = indexMetaDataExtractor;
         this.tableName = name;
-        this.sqlFieldMapper = sqlFieldMapper;
         this.tableIsAlias = tableIsAlias;
-        this.columnDefinitions = indexMetaDataExtractor.getColumnDefinitionsMap();
     }
 
 
     protected Map<String, Object> mapping() {
         return indexMetaDataExtractor.getDefaultMappingMap();
-    }
-
-    @Override
-    public SQLFieldMapper mapper() {
-        return sqlFieldMapper;
-    }
-
-    @Override
-    public LuceneFieldMapper luceneFieldMapper() {
-        throw new UnsupportedOperationException("Generic table currently has no " +
-                "LuceneFieldMapper");
-    }
-
-    public boolean isMultiValued(String columnName) {
-        return columnDefinitions.get(columnName) != null
-            && columnDefinitions.get(columnName).isMultiValued();
-    }
-
-    public ColumnDefinition getColumnDefinition(String columnName) {
-        return columnDefinitions.get(columnName);
-    }
-
-    /**
-     *
-     * @param name the name of the column
-     * @param value the value to be mapped
-     * @return the value converted to the proper type
-     */
-    public Object mappedValue(String name, Object value) throws ValidationException {
-        if (sqlFieldMapper == null) {
-            return value;
-        }
-        return sqlFieldMapper.mappedValue(name, value);
     }
 
     /**
@@ -146,12 +103,6 @@ public class TableExecutionContext implements ITableExecutionContext {
         return res;
     }
 
-    @Override
-    public boolean hasCol(String colName) {
-        ColumnDefinition columnDefinition = getColumnDefinition(colName);
-        return columnDefinition != null && columnDefinition.isSupported();
-    }
-
     /**
      * Check if given name is equal to defined routing name.
      *
@@ -174,43 +125,4 @@ public class TableExecutionContext implements ITableExecutionContext {
     public boolean tableIsAlias() {
         return tableIsAlias;
     }
-
-    @Override
-    public Expression getCollectorExpression(ValueNode node) {
-        if (node.getNodeType()!= NodeType.COLUMN_REFERENCE &&
-                node.getNodeType() != NodeType.NESTED_COLUMN_REFERENCE){
-            return null;
-        }
-
-        ColumnDefinition columnDefinition = getColumnDefinition(node.getColumnName());
-        if (columnDefinition == null || !columnDefinition.isSupported()) {
-            throw new SQLParseException(String.format("Unknown column '%s'", node.getColumnName()));
-        }
-        switch (columnDefinition.dataType) {
-            case STRING:
-                return new BytesRefColumnReference(columnDefinition.columnName);
-            case DOUBLE:
-                return new DoubleColumnReference(columnDefinition.columnName);
-            case BOOLEAN:
-                return new BooleanColumnReference(columnDefinition.columnName);
-            case OBJECT:
-                return new ObjectColumnReference(columnDefinition.columnName);
-            case FLOAT:
-                return new FloatColumnReference(columnDefinition.columnName);
-            case SHORT:
-                return new ShortColumnReference(columnDefinition.columnName);
-            case LONG:
-            case TIMESTAMP:
-                return new LongColumnReference(columnDefinition.columnName);
-            case INTEGER:
-                return new IntegerColumnReference(columnDefinition.columnName);
-            default:
-                throw new SQLParseException(
-                        String.format("Invalid column reference type '%s'",
-                                columnDefinition.dataType));
-        }
-    }
 }
-
-
-

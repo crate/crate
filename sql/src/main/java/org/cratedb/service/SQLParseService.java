@@ -21,19 +21,14 @@
 
 package org.cratedb.service;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.DefaultTraversalVisitor;
-import io.crate.sql.tree.QualifiedName;
-import io.crate.sql.tree.Statement;
-import io.crate.sql.tree.Table;
-import org.cratedb.action.parser.visitors.*;
+import org.cratedb.action.parser.visitors.AnalyzerVisitor;
+import org.cratedb.action.parser.visitors.BaseVisitor;
+import org.cratedb.action.parser.visitors.TableVisitor;
 import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
-import org.cratedb.sql.parser.parser.NodeType;
 import org.cratedb.sql.parser.parser.ParameterNode;
 import org.cratedb.sql.parser.parser.SQLParser;
 import org.cratedb.sql.parser.parser.StatementNode;
@@ -133,9 +128,6 @@ public class SQLParseService {
 
         try {
             switch (statementNode.getNodeType()) {
-                case INSERT_NODE:
-                    visitor = new InsertVisitor(context, stmt, args);
-                    break;
                 case CREATE_TABLE_NODE:
                 case DROP_TABLE_NODE:
                     visitor = new TableVisitor(context, stmt, args);
@@ -143,12 +135,8 @@ public class SQLParseService {
                 case CREATE_ANALYZER_NODE:
                     visitor = new AnalyzerVisitor(context, stmt, args);
                     break;
-                case COPY_STATEMENT_NODE:
-                    visitor = new CopyVisitor(context, stmt, args);
-                    break;
                 default:
-                    visitor = new QueryVisitor(context, stmt, args);
-                    break;
+                    throw new UnsupportedOperationException("Can't handle the sql statement");
             }
 
             statementNode.accept(visitor);

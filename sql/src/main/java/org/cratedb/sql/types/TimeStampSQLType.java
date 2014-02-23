@@ -21,7 +21,6 @@
 
 package org.cratedb.sql.types;
 
-import org.elasticsearch.common.Nullable;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.ISODateTimeFormat;
 
@@ -56,18 +55,5 @@ public class TimeStampSQLType extends SQLType {
             return ((Number) value).longValue();
         }
         throw new ConvertException(typeName());
-    }
-
-    @Override
-    public Object toDisplayValue(@Nullable Object value) {
-        Object result = value;
-        try {
-            result = mappedValue(value);
-        } catch (ConvertException e) {
-            // :/
-        }
-        if ( Integer.MIN_VALUE < ((Long)result) && ((Long)result) < Integer.MAX_VALUE){
-            result = ((Number)result).intValue();}
-        return result;
     }
 }

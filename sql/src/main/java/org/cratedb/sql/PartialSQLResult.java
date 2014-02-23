@@ -37,5 +37,4 @@ public interface PartialSQLResult {
      * Returns the number of rows processed.
      */
     public long rowCount();
-
 }
