@@ -288,13 +288,11 @@ public enum DataType {
 
             @Override
             public BytesRef readFrom(StreamInput in) throws IOException {
-                int length = in.readVInt();
-                if (length == 0) {
+                int length = in.readVInt() -1 ;
+                if (length == -1) {
                     return null;
                 }
-                byte[] bytes = new byte[length - 1];
-                in.readBytes(bytes, 0, bytes.length);
-                return new BytesRef(bytes);
+                return in.readBytesRef(length);
             }
 
             @Override
