@@ -26,6 +26,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.*;
+import org.cratedb.sql.SQLParseException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -84,11 +85,14 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
 
     protected Symbol visitQuerySpecification(QuerySpecification node, SelectAnalysis context) {
         // visit the from first, since this qualifies the select
-        if (node.getFrom() != null) {
-            for (Relation relation : node.getFrom()) {
-                process(relation, context);
-            }
+
+        int numTables = node.getFrom()==null? 0 : node.getFrom().size();
+        if (numTables != 1){
+            throw new SQLParseException(
+                    "Only exactly one table is allowed in the from clause, got: " + numTables
+            );
         }
+        process(node.getFrom().get(0), context);
 
         // the parsers sql grammer makes sure that only a integer matches after limit/offset so
         // parseInt can't fail here.

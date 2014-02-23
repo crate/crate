@@ -43,6 +43,7 @@ import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.sql.AmbiguousAliasException;
+import org.cratedb.sql.SQLParseException;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
@@ -565,18 +566,18 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testWhereInSelectDifferentDataTypeList() throws Exception {
-        analyze("select 'found' where 1 in (1.2, 2)");
+        analyze("select 'found' from users where 1 in (1.2, 2)");
     }
 
     @Test
     public void testWhereInSelectDifferentDataTypeValue() throws Exception {
-        Analysis analysis = analyze("select 'found' where 1.2 in (1, 2)");
+        Analysis analysis = analyze("select 'found' from users where 1.2 in (1, 2)");
         assertTrue(analysis.noMatch());
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testWhereInSelectDifferentDataTypeValueUncompatibleDataTypes() throws Exception {
-        analyze("select 'found' where 1 in (1, 'foo', 2)");
+        analyze("select 'found' from users where 1 in (1, 'foo', 2)");
     }
 
     @Test
@@ -738,4 +739,16 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         Analysis analysis = analyze("select * from users where awesome=TRUE");
         assertThat(analysis.whereClause().query().arguments().get(1).symbolType(), is(SymbolType.BOOLEAN_LITERAL));
     }
+
+    @Test(expected = SQLParseException.class)
+    public void testNoFrom() throws Exception {
+        Analysis analysis = analyze("select name");
+    }
+
+    @Test(expected = SQLParseException.class)
+    public void test2From() throws Exception {
+        Analysis analysis = analyze("select name from a, b");
+    }
+
+
 }
