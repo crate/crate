@@ -1,5 +1,6 @@
 package io.crate.analyze;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
@@ -179,7 +180,9 @@ public abstract class Analysis {
     public FunctionInfo getFunctionInfo(FunctionIdent ident) {
         FunctionImplementation implementation = functions.get(ident);
         if (implementation == null) {
-            throw new UnsupportedOperationException("TODO: unknown function? " + ident.toString());
+            throw new UnsupportedOperationException(
+                    String.format("unknown function: %s(%s)", ident.name(),
+                            Joiner.on(", ").join(ident.argumentTypes())));
         }
         return implementation.info();
     }
