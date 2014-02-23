@@ -21,9 +21,15 @@
 
 package org.cratedb.integrationtests;
 
+import io.crate.executor.task.LocalMergeTask;
+import io.crate.executor.transport.DistributedResultRequestHandler;
+import io.crate.executor.transport.merge.TransportMergeNodeAction;
+import io.crate.operator.operations.collect.DistributingCollectOperation;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.action.sql.TransportSQLAction;
 import org.cratedb.sql.SQLParseException;
+import org.elasticsearch.common.logging.Loggers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -43,6 +49,11 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
     @Before
     public void initTestData() {
+        Loggers.getLogger(TransportSQLAction.class).setLevel("TRACE");
+        Loggers.getLogger(LocalMergeTask.class).setLevel("TRACE");
+        Loggers.getLogger(DistributingCollectOperation.DistributingShardCollectFuture.class).setLevel("TRACE");
+        Loggers.getLogger(TransportMergeNodeAction.class).setLevel("TRACE");
+        Loggers.getLogger(DistributedResultRequestHandler.class).setLevel("TRACE");
         if (!setUpDone) {
             this.setup.setUpEmployees();
             setUpDone = true;
@@ -78,7 +89,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
         execute("select min(age), gender from characters group by gender order by gender");
         assertEquals(2L, response.rowCount());
-        assertEquals("MIN(age)", response.cols()[0]);
+        assertEquals("min(age)", response.cols()[0]);
         assertEquals(32.0f, response.rows()[0][0]);
         assertEquals(34.0f, response.rows()[1][0]);
     }
@@ -289,7 +300,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         this.setup.groupBySetup("integer");
 
         execute("select max(age), gender from characters group by gender order by gender");
-        assertArrayEquals(new String[]{"MAX(age)", "gender"}, response.cols());
+        assertArrayEquals(new String[]{"max(age)", "gender"}, response.cols());
         assertEquals(2L, response.rowCount());
         assertEquals("female", response.rows()[0][1]);
         assertEquals(43, response.rows()[0][0]);
@@ -304,7 +315,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
         execute("select max(age), gender from characters group by gender order by gender");
         assertEquals(2L, response.rowCount());
-        assertEquals("MAX(age)", response.cols()[0]);
+        assertEquals("max(age)", response.cols()[0]);
         assertEquals(43.0f, response.rows()[0][0]);
         assertEquals(112.0f, response.rows()[1][0]);
     }
@@ -349,23 +360,24 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         assertEquals("male", response.rows()[1][1]);
         assertEquals(112.0d, response.rows()[1][0]);
     }
+
     @Test
     public void testGroupByAggSumDouble() throws Exception {
 
         execute("select sum(income), department from employees group by department order by sum(income) asc");
         assertEquals(4, response.rowCount());
 
-        assertEquals("internship", response.rows()[0][1]);
-        assertNull(response.rows()[0][0]);
+        assertEquals("engineering", response.rows()[0][1]);
+        assertEquals(10000.0, response.rows()[0][0]);
 
-        assertEquals("engineering", response.rows()[1][1]);
-        assertEquals(10000.0, response.rows()[1][0]);
+        assertEquals("HR", response.rows()[1][1]);
+        assertEquals(1000000000.49, response.rows()[1][0]);
 
-        assertEquals("HR", response.rows()[2][1]);
-        assertEquals(1000000000.49, response.rows()[2][0]);
+        assertEquals("management", response.rows()[2][1]);
+        assertEquals(Double.MAX_VALUE, response.rows()[2][0]);
 
-        assertEquals("management", response.rows()[3][1]);
-        assertEquals(Double.MAX_VALUE, response.rows()[3][0]);
+        assertEquals("internship", response.rows()[3][1]);
+        assertNull(response.rows()[3][0]);
     }
 
     @Test
@@ -577,7 +589,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         this.setup.groupBySetup();
         execute("select race, count(details['job']) from characters group by race order by count(details['job']) desc limit 1");
         assertEquals(1, response.rowCount());
-        assertArrayEquals(new String[]{"race", "COUNT(details['job'])"}, response.cols());
+        assertArrayEquals(new String[]{"race", "count(details['job'])"}, response.cols());
         assertEquals("Human", response.rows()[0][0]);
         assertEquals(2L, response.rows()[0][1]);
     }
@@ -597,7 +609,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public void testGroupByUnknownResultColumn() throws Exception {
         this.setup.groupBySetup();
         expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("Can only query columns that are listed in group by.");
+        expectedException.expectMessage("column 'lol' must appear in the GROUP BY clause or be used in an aggregation function");
         execute("select lol from characters group by race");
     }
 
@@ -605,7 +617,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public void testGroupByUnknownGroupByColumn() throws Exception {
         this.setup.groupBySetup();
         expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("Unknown column 'lol'");
+        expectedException.expectMessage("unknown column 'lol' not allowed in GROUP BY");
         execute("select max(birthdate) from characters group by lol");
     }
 
