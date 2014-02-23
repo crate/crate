@@ -129,7 +129,7 @@ Get info about memory statistics::
     +---------...-+---------...-+---------------------+---------------------+
     SELECT 1 row in set (... sec)
 
-Get infor about file system statistics::
+Get info about file system statistics::
 
     cr> select fs['total'], fs['free'], fs['used'], fs['free_percent'], fs['used_percent'] from sys.nodes
     +---------...-+--------...-+--------...-+--------------------+--------------------+
