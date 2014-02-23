@@ -189,11 +189,14 @@ public class AnyAggregation<T extends Comparable<T>> extends AggregationFunction
 
                     @Override
                     public void readFrom(StreamInput in) throws IOException {
-                        setValue(in.readOptionalBoolean());
+                        if (!in.readBoolean()) {
+                            setValue(in.readOptionalBoolean());
+                        }
                     }
 
                     @Override
                     public void writeTo(StreamOutput out) throws IOException {
+                        out.writeBoolean(isEmpty());
                         out.writeOptionalBoolean((Boolean)value());
                     }
                 };
@@ -206,20 +209,28 @@ public class AnyAggregation<T extends Comparable<T>> extends AggregationFunction
     public static abstract class AnyAggState<T extends Comparable<T>> extends AggregationState<AnyAggState<T>> {
 
         private T value = null;
+        private boolean empty = true;
 
         @Override
         public Object value() {
             return value;
         }
 
+        public boolean isEmpty() {
+            return empty;
+        }
+
         @Override
         public void reduce(AnyAggState<T> other) {
-            this.value = other.value;
+            if (!other.empty) {
+                this.value = other.value;
+            }
         }
 
         @Override
         public int compareTo(AnyAggState<T> o) {
             if (o == null) return 1;
+            if (empty != o.empty) { return empty ? 1 : -1; }
             if (value == null) return (o.value == null ? 0 : -1);
             if (o.value == null) return 1;
 
@@ -228,16 +239,18 @@ public class AnyAggregation<T extends Comparable<T>> extends AggregationFunction
 
         public void add(T otherValue) {
             value = otherValue;
+            empty = false;
         }
 
         public void setValue(T value) {
             this.value = value;
+            empty = false;
         }
 
 
         @Override
         public String toString() {
-            return "<AnyAggState \"" + value + "\"";
+            return "<AnyAggState \"" + (empty ? "EMPTY" : value) + "\">";
         }
     }
 
