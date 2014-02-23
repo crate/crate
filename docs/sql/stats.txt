@@ -98,13 +98,14 @@ The table schema is as follows:
 
 For basic host data query as follows::
 
-    cr> select id, name, hostname, port['http'], port['transport'] from sys.nodes
-    +----...-+-------+--------...-----+--------------+-------------------+
-    | id     | name  | hostname       | port['http'] | port['transport'] |
-    +----...-+-------+--------...-----+--------------+-------------------+
-    | ...    | crate | ...            | 44200        | 44300             |
-    +----...-+-------+--------...-----+--------------+-------------------+
+    cr> select id, name, port['http'], port['transport'] from sys.nodes
+    +-...---+-------+--------------+-------------------+
+    | id    | name  | port['http'] | port['transport'] |
+    +-...---+-------+--------------+-------------------+
+    | ...   | crate | 44200        | 44300             |
+    +-...---+-------+--------------+-------------------+
     SELECT 1 row in set (... sec)
+
 
 If you want some stats about the load, memory usage and storage usage,
 you could query as follows:
