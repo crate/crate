@@ -44,6 +44,7 @@ ext {
     plugin_head_version = '3b6740cfd0a79c60516ce8fbd78f018c1f38e08e'
     plugin_bigdesk_version = '2.2.2c'
     plugin_segmentspy_version = '0.2.0'
+    plugin_crateadmin_version = '0.0.1'
 }
 
 evaluationDependsOn(':es')
@@ -95,9 +96,6 @@ distributions {
             into("plugins/docs/_site") {
                 from "${docsDir}/out/html"
             }
-            into('plugins/crate-admin/_site'){
-                from new File(project(":admin-ui").projectDir, 'crate-admin/dist')
-            }
             into('plugins') {
                 from 'plugins'
             }
@@ -122,7 +120,14 @@ def download (String url, String name){
 def extractTopfolder(File src, String trg){
     copy {
         includeEmptyDirs = false
-        from(zipTree(src)) {
+        FileTree ft
+        if(src.name.endsWith('.zip')) {
+            ft = zipTree(src)
+        }
+        if(src.name.endsWith('.tar.gz')) {
+            ft = tarTree(src)
+        }
+        from(ft) {
             eachFile { details ->
                 details.path =
                     details.path.substring(details.relativePath.segments[0].length())
@@ -147,6 +152,11 @@ task downloadPlugins << {
             "segementspy_${plugin_segmentspy_version}.zip"
     )
     extractTopfolder(dest, 'plugins/segmentspy')
+    dest = download(
+            "https://cdn.crate.io/downloads/releases/crate-admin-${plugin_crateadmin_version}.tar.gz",
+            "crate-admin-${plugin_crateadmin_version}.tar.gz"
+    )
+    extractTopfolder(dest, 'plugins/crate-admin/_site')
 }
 
 processResources.dependsOn downloadPlugins
