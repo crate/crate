@@ -23,7 +23,13 @@ the ``sys.cluster`` table:
 
 ::
 
-  select id, name from sys.cluster
+    cr> select id, name from sys.cluster
+    +--------------------------------------+--------------+
+    | ...                                  | Testing44200 |
+    +--------------------------------------+--------------+
+    SELECT 1 row in set (... sec)
+
+
 
 Nodes
 =====
@@ -92,12 +98,47 @@ The table schema is as follows:
 
 For basic host data query as follows::
 
-    select id, name, hostname, port from sys.nodes
+    cr> select id, name, hostname, port['http'], port['transport'] from sys.nodes
+    +------------------------+-------+--------...-----+--------------+-------------------+
+    | id                     | name  | hostname       | port['http'] | port['transport'] |
+    +------------------------+-------+--------...-----+--------------+-------------------+
+    | ...                    | crate | ...            | 44200        | 44300             |
+    +------------------------+-------+--------...-----+--------------+-------------------+
+    SELECT 1 row in set (... sec)
 
 If you want some stats about the load, memory usage and storage usage,
-query as follows::
+you could query as follows:
 
-    select load, mem, fs from sys.nodes
+Get info about the current load::
+
+    cr> select load['1'], load['5'], load['15'] from sys.nodes
+    +-------...-+-------...-+--------...-+
+    | load['1'] | load['5'] | load['15'] |
+    +-------...-+-------...-+--------...-+
+    | ...       | ...       | ...        |
+    +-------...-+-------...-+--------...-+
+    SELECT 1 row in set (... sec)
+
+Get info about memory statistics::
+
+    cr> select mem['free'], mem['used'], mem['free_percent'], mem['used_percent'] from sys.nodes
+    +---------...-+---------...-+---------------------+---------------------+
+    | mem['free'] | mem['used'] | mem['free_percent'] | mem['used_percent'] |
+    +---------...-+---------...-+---------------------+---------------------+
+    | ...         | ...         | ...                 | ...                 |
+    +---------...-+---------...-+---------------------+---------------------+
+    SELECT 1 row in set (... sec)
+
+Get info about file system statistics::
+
+    cr> select fs['total'], fs['free'], fs['used'], fs['free_percent'], fs['used_percent'] from sys.nodes
+    +---------...-+--------...-+--------...-+--------------------+--------------------+
+    | fs['total'] | fs['free'] | fs['used'] | fs['free_percent'] | fs['used_percent'] |
+    +---------...-+--------...-+--------...-+--------------------+--------------------+
+    | ...         | ...        | ...        | ...                | ...                |
+    +---------...-+--------...-+--------...-+--------------------+--------------------+
+    SELECT 1 row in set (... sec)
+
 
 Shards
 ======
@@ -142,7 +183,7 @@ The table schema is as follows:
 
 For example, you can query shards like this::
 
-    cr> select * from sys.shards where num_docs>0
+    cr> select * from sys.shards where num_docs > 0
     +------------+----+----------+---------+-----------------+------+---------+
     | table_name | id | num_docs | primary | relocating_node | size | state   |
     +------------+----+----------+---------+-----------------+------+---------+
