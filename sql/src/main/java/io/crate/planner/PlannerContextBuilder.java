@@ -81,6 +81,9 @@ public class PlannerContextBuilder {
                     // found a scalar function with an aggregation underneath.
                     aggregationsWrappedInScalar = true;
                     resolvedSymbol = splitSymbol;
+                } else if (context.resolvedSymbols.containsKey(splitSymbol)) {
+                    // could be a re-occurring "count(distinct <col>)"
+                    resolvedSymbol = splitSymbol;
                 } else if (context.numGroupKeys > 0 && splitSymbol.symbolType() != SymbolType.INPUT_COLUMN) {
                     // in case the symbol was an aggregation function it is replaced directly.
                     // this wasn't the case so the symbol must be a group by
