@@ -51,7 +51,7 @@ public abstract class ShardCollectFuture extends AbstractFuture<Object[][]> {
     protected void shardFailure(Throwable t) {
         lastException.set(t);
         onAllShardsFinished();
-        super.setException(t);
+        setException(t);
     }
 
     public int numShards() {
