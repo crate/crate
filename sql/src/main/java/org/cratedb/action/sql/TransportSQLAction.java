@@ -385,7 +385,9 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             final Statement statement = SqlParser.createStatement(request.stmt());
             final Analysis analysis = analyzer.analyze(statement, request.args());
 
-            if (analysis.whereClause().noMatch()){
+            if (analysis.whereClause().noMatch() &&
+                    !(analysis.type() == Analysis.Type.SELECT && ((SelectAnalysis)analysis).hasAggregates() && !((SelectAnalysis)analysis).hasGroupBy())){
+                // do execute global aggregate statements - they always return one row
                 emptyResponse(request, analysis, listener);
                 return;
             }
