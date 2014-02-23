@@ -38,7 +38,6 @@ import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.StringLiteral;
 import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
-import org.cratedb.sql.CrateException;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
@@ -49,6 +48,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import static junit.framework.Assert.assertEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -81,12 +81,14 @@ public class PlanNodeStreamerVisitorTest {
         assertThat(streamers[2], instanceOf(DataType.OBJECT.streamer().getClass()));
     }
 
-    @Test(expected= CrateException.class)
+    @Test
     public void testGetOutputStreamersFromCollectNodeWithWrongNull() throws Exception {
         // null means we expect an aggstate here
         CollectNode collectNode = new CollectNode("bla", new Routing(new HashMap<String, Map<String, Set<Integer>>>()));
         collectNode.outputTypes(Arrays.asList(DataType.BOOLEAN, null, DataType.OBJECT));
-        visitor.process(collectNode);
+        PlanNodeStreamerVisitor.Context ctx = visitor.process(collectNode);
+        // assume an unknown column
+        assertEquals(DataType.NULL.streamer(), ctx.outputStreamers()[1]);
     }
 
     @Test

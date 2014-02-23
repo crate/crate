@@ -110,10 +110,10 @@ public class CollectSetAggregationTest extends AggregationTest {
     @Test
     public void testNullValue() throws Exception {
         Object[][] result = executeAggregation(DataType.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {null}});
-
+        // null values currently ignored
         assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(3, ((Set)result[0][0]).size());
-        assertTrue(((Set)result[0][0]).contains(null));
+        assertEquals(2, ((Set)result[0][0]).size());
+        assertFalse(((Set)result[0][0]).contains(null));
     }
 
 }

@@ -21,15 +21,10 @@
 
 package org.cratedb.integrationtests;
 
-import io.crate.executor.task.LocalMergeTask;
-import io.crate.executor.transport.DistributedResultRequestHandler;
-import io.crate.executor.transport.merge.TransportMergeNodeAction;
-import io.crate.operator.operations.collect.DistributingCollectOperation;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.action.sql.TransportSQLAction;
 import org.cratedb.sql.SQLParseException;
-import org.elasticsearch.common.logging.Loggers;
+import org.cratedb.sql.UnsupportedFeatureException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -49,11 +44,11 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
     @Before
     public void initTestData() {
-        Loggers.getLogger(TransportSQLAction.class).setLevel("TRACE");
-        Loggers.getLogger(LocalMergeTask.class).setLevel("TRACE");
-        Loggers.getLogger(DistributingCollectOperation.DistributingShardCollectFuture.class).setLevel("TRACE");
-        Loggers.getLogger(TransportMergeNodeAction.class).setLevel("TRACE");
-        Loggers.getLogger(DistributedResultRequestHandler.class).setLevel("TRACE");
+//        Loggers.getLogger(TransportSQLAction.class).setLevel("TRACE");
+//        Loggers.getLogger(LocalMergeTask.class).setLevel("TRACE");
+//        Loggers.getLogger(DistributingCollectOperation.DistributingShardCollectFuture.class).setLevel("TRACE");
+//        Loggers.getLogger(TransportMergeNodeAction.class).setLevel("TRACE");
+//        Loggers.getLogger(DistributedResultRequestHandler.class).setLevel("TRACE");
         if (!setUpDone) {
             this.setup.setUpEmployees();
             setUpDone = true;
@@ -639,8 +634,8 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     @Test
     public void testAggregateNonExistingColumn() throws Exception {
         this.setup.groupBySetup();
-        expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("Unknown column 'lol'");
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("unknown function: max(null)"); // TODO: better exception
         execute("select max(lol), race from characters group by race");
     }
 
