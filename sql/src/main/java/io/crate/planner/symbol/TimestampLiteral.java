@@ -24,10 +24,6 @@ package io.crate.planner.symbol;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.TimestampFormat;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
 
 public class TimestampLiteral extends LongLiteral {
 
@@ -49,17 +45,12 @@ public class TimestampLiteral extends LongLiteral {
     }
 
     @Override
+    public SymbolType symbolType() {
+        return SymbolType.TIMESTAMP_LITERAL;
+    }
+
+    @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitTimestampLiteral(this, context);
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-
     }
 }

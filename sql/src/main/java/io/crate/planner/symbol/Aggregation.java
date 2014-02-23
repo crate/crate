@@ -127,4 +127,9 @@ public class Aggregation extends Symbol {
             Symbol.toStream(input, out);
         }
     }
+
+    @Override
+    public String humanReadableName() {
+        return functionIdent().name();
+    }
 }
