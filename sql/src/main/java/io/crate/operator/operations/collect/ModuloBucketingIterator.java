@@ -34,7 +34,7 @@ public class ModuloBucketingIterator extends BucketingIterator {
      */
     @Override
     protected int getBucket(@Nullable Object[] row) {
-        if (row == null || row.length == 0) {
+        if (row == null || row.length == 0 || row[0] == null) {
             return 0;
         } else {
             return Math.abs(row[0].hashCode()) % this.numBuckets;
