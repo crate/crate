@@ -148,12 +148,11 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
 
                     @Override
                     public void handleException(TransportException exp) {
-                        if (logger.isTraceEnabled()) {
-                            logger.trace("[{}] Exception sending distributing collect request to {}",
-                                    exp,
-                                    jobId.toString(),
-                                    node.id());
-                        }
+                        logger.error("[{}] Exception sending distributing collect request to {}",
+                                exp,
+                                jobId.toString(),
+                                node.id());
+                        setException(exp.getCause());
                     }
 
                     @Override
