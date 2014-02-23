@@ -103,15 +103,9 @@ GET parameter can be specified to return the stack trace::
       "error_trace" : {
         "message" : "Only exactly one table is allowed in the from clause, got: 0",
         "at" : {
-          "class" : "...BaseVisitor",
-          "method" : "visit",
-          "file" : "BaseVisitor.java",
-          "line" : ...
-        },
-        "at" : {
-          "class" : "...QueryVisitor",
-          "method" : "visit",
-          "file" : "QueryVisitor.java",
+          "class" : "...",
+          "method" : "...",
+          "file" : "....java",
           "line" : ...
         },
     ...
