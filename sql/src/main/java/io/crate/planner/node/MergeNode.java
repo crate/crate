@@ -21,6 +21,7 @@
 
 package io.crate.planner.node;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -136,5 +137,18 @@ public class MergeNode extends PlanNode {
                 out.writeString(node);
             }
         }
+    }
+
+    @Override
+    public String toString() {
+        return Objects.toStringHelper(this)
+                .add("id", id())
+                .add("projections", projections)
+                .add("outputTypes", outputTypes)
+                .add("contextId", contextId)
+                .add("numUpstreams", numUpstreams)
+                .add("executionNodes", executionNodes)
+                .add("inputTypes", inputTypes)
+                .toString();
     }
 }

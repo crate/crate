@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Objects;
 import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
@@ -119,5 +120,18 @@ public class WhereClause implements Streamable {
 
     public boolean noMatch() {
         return noMatch;
+    }
+
+    @Override
+    public String toString() {
+        Objects.ToStringHelper helper = Objects.toStringHelper(this);
+        if (noMatch()) {
+            helper.add("NO_MATCH", true);
+        } else if (!hasQuery()) {
+            helper.add("MATCH_ALL", true);
+        } else {
+            helper.add("query", query);
+        }
+        return helper.toString();
     }
 }
