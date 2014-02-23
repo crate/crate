@@ -732,4 +732,10 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         Analysis analyze = analyze("select * from users where name not like 'foo%'");
         assertThat(analyze.whereClause.query().info().ident().name(), is(NotPredicate.NAME));
     }
+
+    @Test
+    public void testFilterByLiteralBoolean() throws Exception {
+        Analysis analysis = analyze("select * from users where awesome=TRUE");
+        assertThat(analysis.whereClause().query().arguments().get(1).symbolType(), is(SymbolType.BOOLEAN_LITERAL));
+    }
 }
