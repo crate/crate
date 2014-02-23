@@ -118,7 +118,7 @@ public class ImplementationSymbolVisitor extends
             }
             context.setMaxGranularity(symbol.info().granularity());
         } else {
-            throw new CrateException(String.format("Cannot handle Reference %s", symbol.toString()));
+            throw new CrateException(String.format("Cannot handle Reference %s", symbol.humanReadableName()));
         }
         return result;
     }
@@ -128,7 +128,7 @@ public class ImplementationSymbolVisitor extends
         FunctionImplementation impl = functions.get(symbol.functionIdent());
         if (impl == null) {
             throw new UnsupportedOperationException(
-                    String.format("Can't load aggregation impl for symbol %s", symbol));
+                    String.format("Can't load aggregation impl for symbol %s", symbol.humanReadableName()));
         }
 
         AggregationContext aggregationContext = new AggregationContext((AggregationFunction) impl, symbol);

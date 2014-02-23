@@ -22,12 +22,14 @@
 package io.crate.operator.operations.collect;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.Functions;
 import io.crate.metadata.HandlerSideRouting;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.information.InformationCollectorExpression;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -40,6 +42,7 @@ import io.crate.operator.reference.information.InformationDocLevelReferenceResol
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.symbol.BooleanLiteral;
 import org.apache.lucene.search.CollectionTerminatedException;
+import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
@@ -91,7 +94,14 @@ public class InformationSchemaCollectService implements CollectService {
 
         ColumnsIterator(TableInfo ti) {
             context.ordinal = 0;
-            columns = ti.iterator();
+            columns = FluentIterable.from(ti).filter(new Predicate<ReferenceInfo>() {
+                    @Override
+                    public boolean apply(@Nullable ReferenceInfo input) {
+                        return input != null
+                                && !DocSysColumns.columnIdents.containsKey(input.ident().columnIdent())
+                                && input.type() != DataType.NOT_SUPPORTED;
+                    }
+                }).iterator();
         }
 
         @Override

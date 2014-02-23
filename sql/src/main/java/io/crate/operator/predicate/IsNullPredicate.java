@@ -22,8 +22,9 @@
 package io.crate.operator.predicate;
 
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
+import io.crate.operator.Input;
 import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
@@ -32,7 +33,7 @@ import org.cratedb.DataType;
 
 import java.util.Arrays;
 
-public class IsNullPredicate implements FunctionImplementation<Function> {
+public class IsNullPredicate<T> implements Scalar<Boolean, T> {
 
     public static final String NAME = "op_isnull";
     private final FunctionInfo info;
@@ -71,5 +72,11 @@ public class IsNullPredicate implements FunctionImplementation<Function> {
         }
 
         return symbol;
+    }
+
+    @Override
+    public Boolean evaluate(Input<T>... args) {
+        assert args.length == 1;
+        return args[0] == null;
     }
 }
