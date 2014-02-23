@@ -54,7 +54,7 @@ public class SumAggregation extends AggregationFunction<SumAggregation.SumAggSta
 
     public static class SumAggState extends AggregationState<SumAggState> {
 
-        private double value = 0.0;
+        private Double value = null; // sum that aggregates nothing returns null, not 0.0
 
         @Override
         public Object value() {
@@ -63,31 +63,38 @@ public class SumAggregation extends AggregationFunction<SumAggregation.SumAggSta
 
         @Override
         public void reduce(SumAggState other) {
-            value += other.value;
+            add(other.value);
         }
 
         public void add(Object value) {
-            if (value == null) {
-                return;
+            if (value != null) {
+                this.value = (this.value == null ? 0.0 : this.value) + ((Number)value).doubleValue();
             }
-            this.value += ((Number)value).doubleValue();
         }
 
         @Override
         public int compareTo(SumAggState o) {
             if (o == null) return 1;
+            if (value == null) return o.value == null ? 0 : -1;
+            if (o.value == null) return 1;
+
             return Double.compare(value, o.value);
         }
 
         @Override
         @SuppressWarnings("unchecked")
         public void readFrom(StreamInput in) throws IOException {
-            value = in.readDouble();
+            if (!in.readBoolean()) {
+                value = in.readDouble();
+            }
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            out.writeDouble(value);
+            out.writeBoolean(value == null);
+            if (value != null) {
+                out.writeDouble(value);
+            }
         }
     }
 
