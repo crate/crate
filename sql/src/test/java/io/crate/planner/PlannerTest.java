@@ -653,4 +653,18 @@ public class PlannerTest {
         assertThat(copyNode.index(), is("users"));
         assertThat(copyNode.path(), is("/path/to/file.extension"));
     }
+
+    @Test
+    public void testShardSelect() throws Exception {
+        Plan plan = plan("select table_name from sys.shards");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(CollectNode.class));
+        CollectNode collectNode = (CollectNode) planNode;
+        assertTrue(collectNode.isRouted());
+        assertThat(collectNode.maxRowGranularity(), is(RowGranularity.SHARD));
+    }
+
+
+
 }
