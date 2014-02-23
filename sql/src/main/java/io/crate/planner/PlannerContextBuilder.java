@@ -61,7 +61,7 @@ public class PlannerContextBuilder {
     }
 
     /**
-     * calcualtes the toCollect symbols and generates the outputs which can be used
+     * calculates the toCollect symbols and generates the outputs which can be used
      * for the first TopNProjection
      * <p/>
      * to build AggregationProjection or GroupProjections use the groupBy or aggregations symbols directly.

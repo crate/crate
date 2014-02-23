@@ -54,7 +54,7 @@ import java.util.UUID;
  */
 public class DistributingCollectOperation extends MapSideDataCollectOperation {
 
-    private static class DistributingShardCollectFuture extends ShardCollectFuture {
+    public static class DistributingShardCollectFuture extends ShardCollectFuture {
 
         private final ESLogger logger = Loggers.getLogger(getClass());
 
@@ -189,7 +189,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
 
     @Override
     protected ListenableFuture<Object[][]> handleShardCollect(CollectNode collectNode) {
-        Preconditions.checkArgument(collectNode.hasDownstreams(), "no downstreams");
+        assert collectNode.hasDownstreams() : "no downstreams";
         return super.handleShardCollect(collectNode);
     }
 
