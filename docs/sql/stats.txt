@@ -140,18 +140,16 @@ The table schema is as follows:
 |                 | CLOSED                          |                   |
 +-----------------+---------------------------------+-------------------+
 
-You can query for the shards statistics as follows::
+For example, you can query shards like this::
 
-    cr> select * from sys.shards
+    cr> select * from sys.shards where num_docs>0
     +------------+----+----------+---------+-----------------+------+---------+
     | table_name | id | num_docs | primary | relocating_node | size | state   |
     +------------+----+----------+---------+-----------------+------+---------+
-    | locations  | ...| ...      | TRUE    | NULL            | ...  | STARTED |
-    | locations  | ...| ...      | TRUE    | NULL            | ...  | STARTED |
-    | quotes     | ...| ...      | TRUE    | NULL            | ...  | STARTED |
-    | quotes     | ...| ...      | TRUE    | NULL            | ...  | STARTED |
+    | locations  | 1  | 6        | TRUE    | NULL            | 6063 | STARTED |
+    | locations  | 0  | 7        | TRUE    | NULL            | 6826 | STARTED |
     +------------+----+----------+---------+-----------------+------+---------+
-    SELECT 4 rows in set (... sec)
+    SELECT 2 rows in set (... sec)
 
 
 .. _configuration: ../configuration.html
