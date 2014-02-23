@@ -68,24 +68,24 @@ public class SortingTopNProjector extends AbstractProjector {
     class ColOrdering extends Ordering<Object[]> {
 
         private final int col;
-        private final boolean reverse;
         private final Ordering<Comparable> ordering;
 
         ColOrdering(int col, boolean reverse) {
             this.col = col;
-            this.reverse = reverse;
 
             // note, that we are reverse for the queue so this conditional is by intent
             if (reverse) {
-                ordering = Ordering.natural();
+                ordering = Ordering.natural().nullsLast();
             } else {
-                ordering = Ordering.natural().reverse();
+                ordering = Ordering.natural().reverse().nullsFirst();
             }
         }
 
         @Override
         public int compare(@Nullable Object[] left, @Nullable Object[] right) {
-            return ordering.compare((Comparable) left[col], (Comparable) right[col]);
+            Comparable l = left != null ? (Comparable) left[col] : null;
+            Comparable r = right != null ? (Comparable) right[col] : null;
+            return ordering.compare(l, r);
         }
     }
 
@@ -100,14 +100,13 @@ public class SortingTopNProjector extends AbstractProjector {
     private Object[][] result = Constants.EMPTY_RESULT;
 
     /**
-     *
-     * @param inputs contains output {@link io.crate.operator.Input}s and orderBy {@link io.crate.operator.Input}s
+     * @param inputs             contains output {@link io.crate.operator.Input}s and orderBy {@link io.crate.operator.Input}s
      * @param collectExpressions gathered from outputs and orderBy inputs
-     * @param numOutputs <code>inputs</code> contains this much output {@link io.crate.operator.Input}s starting form index 0
-     * @param orderBy indices of {@link io.crate.operator.Input}s in parameter <code>inputs</code> we sort by
-     * @param reverseFlags for every index orderBy a boolean indicates ascending (<code>false</code>) or descending (<code>true</code>) order
-     * @param limit the number of rows to gather, pass to upStream
-     * @param offset the initial offset, this number of rows are skipped
+     * @param numOutputs         <code>inputs</code> contains this much output {@link io.crate.operator.Input}s starting form index 0
+     * @param orderBy            indices of {@link io.crate.operator.Input}s in parameter <code>inputs</code> we sort by
+     * @param reverseFlags       for every index orderBy a boolean indicates ascending (<code>false</code>) or descending (<code>true</code>) order
+     * @param limit              the number of rows to gather, pass to upStream
+     * @param offset             the initial offset, this number of rows are skipped
      */
     public SortingTopNProjector(Input<?>[] inputs, CollectExpression<?>[] collectExpressions,
                                 int numOutputs,
@@ -115,7 +114,7 @@ public class SortingTopNProjector extends AbstractProjector {
                                 int limit, int offset) {
         super(inputs, collectExpressions);
         Preconditions.checkArgument(limit >= TopN.NO_LIMIT, "invalid limit");
-        Preconditions.checkArgument(offset>=0, "invalid offset");
+        Preconditions.checkArgument(offset >= 0, "invalid offset");
         this.start = offset;
         if (limit == TopN.NO_LIMIT) {
             limit = Constants.DEFAULT_SELECT_LIMIT;
@@ -146,7 +145,7 @@ public class SortingTopNProjector extends AbstractProjector {
         }
         Object[] evaluatedRow = new Object[inputs.length];
         int i = 0;
-        for (Input<?> input: inputs) {
+        for (Input<?> input : inputs) {
             evaluatedRow[i++] = input.value();
         }
         pq.insertWithOverflow(evaluatedRow);
