@@ -24,10 +24,8 @@ package io.crate.operator.operations;
 import io.crate.metadata.Functions;
 import io.crate.operator.Input;
 import io.crate.operator.reference.DocLevelReferenceResolver;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Reference;
 import org.cratedb.sql.CrateException;
-import org.cratedb.sql.UnsupportedFeatureException;
 
 import java.util.ArrayList;
 
@@ -63,10 +61,6 @@ public class CollectInputSymbolVisitor<E extends Input<?>>
     public Input<?> visitReference(Reference symbol, Context context) {
         // only doc level references are allowed here, since other granularities
         // should have been resolved by other visitors already
-
-        if (symbol.info().granularity() != RowGranularity.DOC){
-            throw new UnsupportedFeatureException("Unable to handle granularity of symbol: " + symbol.info().ident());
-        }
         E docLevelExpression = referenceResolver.getImplementation(symbol.info());
         if (docLevelExpression == null) {
             throw new CrateException(String.format("Cannot handle Reference %s", symbol.toString()));
