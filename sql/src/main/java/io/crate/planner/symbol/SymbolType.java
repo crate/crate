@@ -36,6 +36,7 @@ public enum SymbolType {
     NULL_LITERAL(Null.FACTORY),
     OBJECT_LITERAL(ObjectLiteral.FACTORY),
     SET_LITERAL(SetLiteral.FACTORY),
+    TIMESTAMP_LITERAL(TimestampLiteral.FACTORY),
     INPUT_COLUMN(InputColumn.FACTORY),
     DYNAMIC_REFERENCE(DynamicReference.FACTORY);
 

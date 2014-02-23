@@ -31,6 +31,7 @@ import io.crate.planner.symbol.Symbol;
 import org.cratedb.Constants;
 import org.elasticsearch.common.Nullable;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class ESSearchNode extends AbstractESNode {
@@ -85,6 +86,17 @@ public class ESSearchNode extends AbstractESNode {
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitESSearchNode(this, context);
+    }
+
+    @Override
+    public String toString() {
+        return Objects.toStringHelper(this)
+                .add("offset", offset())
+                .add("limit", limit())
+                .add("orderBy", orderBy())
+                .add("reverseFlags", Arrays.toString(reverseFlags()))
+                .add("whereClause", whereClause())
+                .toString();
     }
 }
 

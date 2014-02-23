@@ -31,8 +31,6 @@ import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolVisitor;
 
-import java.util.Arrays;
-
 import static java.lang.String.format;
 
 public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
@@ -141,13 +139,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
 
     @Override
     public Void visitESSearchNode(ESSearchNode node, PrintContext context) {
-        context.print(Objects.toStringHelper(node)
-                .add("offset", node.offset())
-                .add("limit", node.limit())
-                .add("orderBy", node.orderBy())
-                .add("reverseFlags", Arrays.toString(node.reverseFlags()))
-                .add("whereClause", node.whereClause())
-                .toString());
+        context.print(node.toString());
         context.indent();
         context.print("outputs:");
         for (Symbol symbol : node.outputs()) {
@@ -168,6 +160,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
         for (Symbol symbol : node.toCollect()) {
             symbolPrinter.process(symbol, context);
         }
+        context.print("whereClause %s", node.whereClause().toString());
 
         processProjections(node, context);
         context.dedent();
@@ -177,6 +170,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
 
     private void processProjections(PlanNode node, PrintContext context) {
         if (node.hasProjections()) {
+            context.print(node.toString());
             context.indent();
             context.print("projections: ");
             for (Projection projection : node.projections()) {

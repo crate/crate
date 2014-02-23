@@ -61,7 +61,7 @@ public class PlannerContextBuilder {
     }
 
     /**
-     * calcualtes the toCollect symbols and generates the outputs which can be used
+     * calculates the toCollect symbols and generates the outputs which can be used
      * for the first TopNProjection
      * <p/>
      * to build AggregationProjection or GroupProjections use the groupBy or aggregations symbols directly.
@@ -80,6 +80,9 @@ public class PlannerContextBuilder {
                 if (context.parent != null && splitSymbol.symbolType() == SymbolType.FUNCTION) {
                     // found a scalar function with an aggregation underneath.
                     aggregationsWrappedInScalar = true;
+                    resolvedSymbol = splitSymbol;
+                } else if (context.resolvedSymbols.containsKey(splitSymbol)) {
+                    // could be a re-occurring "count(distinct <col>)"
                     resolvedSymbol = splitSymbol;
                 } else if (context.numGroupKeys > 0 && splitSymbol.symbolType() != SymbolType.INPUT_COLUMN) {
                     // in case the symbol was an aggregation function it is replaced directly.

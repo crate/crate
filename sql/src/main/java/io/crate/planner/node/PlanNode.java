@@ -21,6 +21,7 @@
 
 package io.crate.planner.node;
 
+import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.projection.Projection;
@@ -141,5 +142,14 @@ public abstract class PlanNode implements Streamable {
     @Override
     public int hashCode() {
         return id != null ? id.hashCode() : 0;
+    }
+
+    @Override
+    public String toString() {
+        return Objects.toStringHelper(this)
+                .add("id", id)
+                .add("projections", projections)
+                .add("outputTypes", outputTypes)
+                .toString();
     }
 }

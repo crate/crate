@@ -21,6 +21,9 @@
 
 package io.crate.executor.task;
 
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
@@ -28,8 +31,11 @@ import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.operator.operations.merge.MergeOperation;
 import io.crate.planner.node.MergeNode;
 import org.cratedb.Constants;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,6 +44,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * merging rows locally on the handler
  */
 public class LocalMergeTask implements Task<Object[][]> {
+
+    private final ESLogger logger = Loggers.getLogger(getClass());
 
     private final MergeNode mergeNode;
     private final ImplementationSymbolVisitor symbolVisitor;
@@ -75,14 +83,27 @@ public class LocalMergeTask implements Task<Object[][]> {
                 upStreamResult.addListener(new Runnable() {
                     @Override
                     public void run() {
-                        Object[][] upstreamResult;
+                        Object[][] rows;
                         try {
-                            upstreamResult = upStreamResult.get();
+                            rows = upStreamResult.get();
+                            if (logger.isTraceEnabled()) {
+                                String result = Joiner.on(", ").join(Collections2.transform(Arrays.asList(rows),
+                                        new Function<Object[], String>() {
+                                            @Nullable
+                                            @Override
+                                            public String apply(@Nullable Object[] input) {
+                                                return Arrays.toString(input);
+                                            }
+                                        })
+                                );
+                                logger.trace(String.format("received result: %s", result));
+                            }
+
                         } catch (Exception e) {
                             result.setException(e.getCause());
                             return;
-                        };
-                        mergeOperation.addRows(upstreamResult);
+                        }
+                        mergeOperation.addRows(rows); // TODO: apply timeout
                         if (countDown.decrementAndGet()==0) {
                             result.set(mergeOperation.result());
                         }

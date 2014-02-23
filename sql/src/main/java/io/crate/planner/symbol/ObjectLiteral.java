@@ -21,6 +21,7 @@
 
 package io.crate.planner.symbol;
 
+import com.google.common.base.Joiner;
 import org.cratedb.DataType;
 import org.cratedb.core.collections.MapComparator;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -88,5 +89,11 @@ public class ObjectLiteral extends Literal<Map<String, Object>, ObjectLiteral> {
     @Override
     public Literal convertTo(DataType type) {
         return super.convertTo(type);
+    }
+
+    @Override
+    public String humanReadableName() {
+        return String.format("{%s}",
+                Joiner.on(", ").withKeyValueSeparator(": ").join(value.entrySet()));
     }
 }

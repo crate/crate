@@ -216,7 +216,6 @@ public abstract class CollectSetAggregation<T extends Comparable<T>> extends Agg
 
     @Override
     public boolean iterate(CollectSetAggState<T> state, Input... args) {
-        // TODO: ignore null values?
         state.add((T) args[0].value());
         return true;
     }
@@ -236,7 +235,10 @@ public abstract class CollectSetAggregation<T extends Comparable<T>> extends Agg
         }
 
         void add(T otherValue) {
-            value.add(otherValue);
+            // ignore null values? yes
+            if (otherValue != null) {
+                value.add(otherValue);
+            }
         }
 
         public void setValue(Object value) {

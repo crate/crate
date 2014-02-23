@@ -35,6 +35,10 @@ public abstract class Symbol implements Streamable {
 
     public abstract SymbolType symbolType();
 
+    public String humanReadableName() {
+        return symbolType().name();
+    }
+
     public abstract <C, R> R accept(SymbolVisitor<C, R> visitor, C context);
 
     public static void toStream(Symbol symbol, StreamOutput out) throws IOException {

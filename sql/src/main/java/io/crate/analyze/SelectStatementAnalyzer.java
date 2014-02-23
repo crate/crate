@@ -153,8 +153,10 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
                             String.format("GROUP BY position %s is not in select list", idx));
                 }
             }
-
-            if (s.symbolType() == SymbolType.FUNCTION && ((Function) s).info().isAggregate()) {
+            if (s.symbolType() == SymbolType.DYNAMIC_REFERENCE) {
+                throw new IllegalArgumentException(
+                        String.format("unknown column '%s' not allowed in GROUP BY", s.humanReadableName()));
+            } else if (s.symbolType() == SymbolType.FUNCTION && ((Function) s).info().isAggregate()) {
                 throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
             }
 
@@ -172,7 +174,8 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
                 aggregationSearcher.process(symbol, searcherContext);
                 if (!searcherContext.found) {
                     throw new IllegalArgumentException(
-                            String.format("column %s must appear in the GROUP BY clause or be used in an aggregation function", symbol));
+                            String.format("column '%s' must appear in the GROUP BY clause or be used in an aggregation function",
+                                    symbol.humanReadableName()));
                 }
             }
         }

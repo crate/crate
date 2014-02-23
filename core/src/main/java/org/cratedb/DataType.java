@@ -34,95 +34,118 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+// NOTE: all streamers must support null values, there for we do check for null with an additional byte
+// maybe we find a better way to handle NULL values?
 public enum DataType {
 
     BYTE("byte", new Streamer<Byte>() {
         @Override
         public Byte readFrom(StreamInput in) throws IOException {
-            return in.readByte();
+            return in.readBoolean() ? null : in.readByte();
         }
 
         @Override
         public void writeTo(StreamOutput out, Object v) throws IOException {
-            out.writeByte((Byte) v);
+            out.writeBoolean(v == null);
+            if (v != null) {
+                out.writeByte((Byte) v);
+            }
         }
     }),
     SHORT("short", new Streamer<Short>() {
         @Override
         public Short readFrom(StreamInput in) throws IOException {
-            return in.readShort();
+            return in.readBoolean() ? null : in.readShort();
         }
 
         @Override
         public void writeTo(StreamOutput out, Object v) throws IOException {
-            out.writeShort((Short) v);
+            out.writeBoolean(v == null);
+            if (v != null) {
+                out.writeShort((Short) v);
+            }
         }
     }),
     INTEGER("integer", new Streamer<Integer>() {
         @Override
         public Integer readFrom(StreamInput in) throws IOException {
-            return in.readVInt();
+            return in.readBoolean() ? null : in.readInt(); // readVInt does not support negative values
         }
 
         @Override
         public void writeTo(StreamOutput out, Object v) throws IOException {
-            out.writeVInt((Integer) v);
+            out.writeBoolean(v == null);
+            if (v != null) {
+                out.writeInt((Integer) v);
+            }
         }
     }),
     LONG("long", new Streamer<Long>() {
         @Override
         public Long readFrom(StreamInput in) throws IOException {
-            return in.readVLong();
+            return in.readBoolean() ? null : in.readVLong();
         }
 
         @Override
         public void writeTo(StreamOutput out, Object v) throws IOException {
-            out.writeVLong((Long) v);
+            out.writeBoolean(v == null);
+            if (v != null) {
+                out.writeVLong((Long) v);
+            }
         }
     }),
     FLOAT("float", new Streamer<Float>() {
         @Override
         public Float readFrom(StreamInput in) throws IOException {
-            return in.readFloat();
+            return in.readBoolean() ? null : in.readFloat();
         }
 
         @Override
         public void writeTo(StreamOutput out, Object v) throws IOException {
-            out.writeFloat((Float) v);
+            out.writeBoolean(v == null);
+            if (v != null) {
+                out.writeFloat((Float) v);
+            }
         }
     }),
     DOUBLE("double", new Streamer<Double>() {
         @Override
         public Double readFrom(StreamInput in) throws IOException {
-            return in.readDouble();
+            return in.readBoolean() ? null : in.readDouble();
         }
 
         @Override
         public void writeTo(StreamOutput out, Object v) throws IOException {
-            out.writeDouble((Double) v);
+            out.writeBoolean(v == null);
+            if (v != null) {
+                out.writeDouble((Double) v);
+            }
         }
     }),
     BOOLEAN("boolean", new Streamer<Boolean>() {
         @Override
         public Boolean readFrom(StreamInput in) throws IOException {
-            return in.readBoolean();
+            return in.readOptionalBoolean();
         }
 
         @Override
         public void writeTo(StreamOutput out, Object v) throws IOException {
-            out.writeBoolean((Boolean) v);
+            out.writeOptionalBoolean((Boolean) v);
         }
     }),
     STRING("string", Streamer.BYTES_REF),
     TIMESTAMP("timestamp", new Streamer<Long>() {
         @Override
         public Long readFrom(StreamInput in) throws IOException {
-            return in.readLong();
+            return in.readBoolean() ? null : in.readLong();
         }
 
         @Override
         public void writeTo(StreamOutput out, Object v) throws IOException {
-            out.writeLong((Long) v);
+            out.writeBoolean(v == null);
+            if (v != null) {
+                out.writeLong((Long) v);
+            }
         }
     }),
     OBJECT("object", new Streamer<Map<String, Object>>() {

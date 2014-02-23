@@ -27,12 +27,14 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.SelectAnalysis;
 import io.crate.executor.AffectedRowsResponseBuilder;
 import io.crate.executor.Job;
 import io.crate.executor.ResponseBuilder;
 import io.crate.executor.RowsResponseBuilder;
 import io.crate.executor.transport.TransportExecutor;
 import io.crate.planner.Plan;
+import io.crate.planner.PlanPrinter;
 import io.crate.planner.Planner;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
@@ -383,11 +385,17 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             final Statement statement = SqlParser.createStatement(request.stmt());
             final Analysis analysis = analyzer.analyze(statement, request.args());
 
-            if (analysis.whereClause().noMatch()){
+            if (analysis.whereClause().noMatch() &&
+                    !(analysis.type() == Analysis.Type.SELECT && ((SelectAnalysis)analysis).hasAggregates() && !((SelectAnalysis)analysis).hasGroupBy())){
+                // do execute global aggregate statements - they always return one row
                 emptyResponse(request, analysis, listener);
                 return;
             }
             final Plan plan = planner.plan(analysis);
+            if (logger.isTraceEnabled()) {
+                PlanPrinter printer = new PlanPrinter();
+                logger.trace(printer.print(plan));
+            }
             final ResponseBuilder responseBuilder = getResponseBuilder(plan);
             final Job job = transportExecutor.newJob(plan);
             final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(transportExecutor.execute(job));
