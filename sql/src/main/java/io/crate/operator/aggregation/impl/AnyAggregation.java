@@ -27,7 +27,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.AggregationState;
-import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -66,163 +65,28 @@ public class AnyAggregation<T extends Comparable<T>> extends AggregationFunction
 
     @Override
     public AnyAggState newState() {
-        switch (info.ident().argumentTypes().get(0)) {
-            case STRING:
-            case IP:
-                return new AnyAggState<BytesRef>() {
-
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public void readFrom(StreamInput in) throws IOException {
-                        if (!in.readBoolean()) {
-                            setValue(in.readBytesRef());
-                        }
-                    }
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        BytesRef value = (BytesRef) value();
-                        out.writeBoolean(value == null);
-                        out.writeBytesRef(value);
-                    }
-                };
-            case DOUBLE:
-                return new AnyAggState<Double>() {
-
-                    @Override
-                    public void readFrom(StreamInput in) throws IOException {
-                        if (!in.readBoolean()) {
-                            setValue(in.readDouble());
-                        }
-                    }
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        Double value = (Double) value();
-                        out.writeBoolean(value == null);
-                        if (value != null) {
-                            out.writeDouble(value);
-                        }
-                    }
-                };
-            case FLOAT:
-                return new AnyAggState<Float>() {
-
-                    @Override
-                    public void readFrom(StreamInput in) throws IOException {
-                        if (!in.readBoolean()) {
-                            setValue(in.readFloat());
-                        }
-                    }
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        Float value = (Float) value();
-                        out.writeBoolean(value == null);
-                        if (value != null) {
-                            out.writeFloat(value);
-                        }
-                    }
-                };
-            case LONG:
-            case TIMESTAMP:
-                return new AnyAggState<Long>() {
-                    @Override
-                    public void readFrom(StreamInput in) throws IOException {
-                        if (!in.readBoolean()) {
-                            setValue(in.readLong());
-                        }
-                    }
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        Long value = (Long) value();
-                        out.writeBoolean(value == null);
-                        if (value != null) {
-                            out.writeLong(value);
-                        }
-                    }
-                };
-            case SHORT:
-                return new AnyAggState<Short>() {
-                    @Override
-                    public void readFrom(StreamInput in) throws IOException {
-                        if (!in.readBoolean()) {
-                            setValue(in.readShort());
-                        }
-                    }
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        Short value = (Short) value();
-                        out.writeBoolean(value == null);
-                        if (value != null) {
-                            out.writeShort(value);
-                        }
-                    }
-                };
-            case INTEGER:
-                return new AnyAggState<Integer>() {
-                    @Override
-                    public void readFrom(StreamInput in) throws IOException {
-                        if (!in.readBoolean()) {
-                            setValue(in.readInt());
-                        }
-                    }
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        Integer value = (Integer) value();
-                        out.writeBoolean(value == null);
-                        if (value != null) {
-                            out.writeInt(value);
-                        }
-                    }
-                };
-            case BOOLEAN:
-                return new AnyAggState<Boolean>() {
-
-                    public void add(String otherValue) {
-                        // this is how lucene stores the truth
-                        setValue(otherValue.charAt(0) == 'T');
-                    }
-
-                    @Override
-                    public void readFrom(StreamInput in) throws IOException {
-                        if (!in.readBoolean()) {
-                            setValue(in.readOptionalBoolean());
-                        }
-                    }
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        out.writeBoolean(isEmpty());
-                        out.writeOptionalBoolean((Boolean)value());
-                    }
-                };
-            default:
-                throw new IllegalArgumentException("Illegal ParameterInfo for ANY");
-        }
+        return new AnyAggState(info.ident().argumentTypes().get(0).streamer());
     }
 
 
-    public static abstract class AnyAggState<T extends Comparable<T>> extends AggregationState<AnyAggState<T>> {
+    public static class AnyAggState<T extends Comparable<T>> extends AggregationState<AnyAggState<T>> {
 
+
+        DataType.Streamer<T> streamer;
         private T value = null;
-        private boolean empty = true;
+
+        AnyAggState(DataType.Streamer<T> streamer) {
+            this.streamer = streamer;
+        }
 
         @Override
         public Object value() {
             return value;
         }
 
-        public boolean isEmpty() {
-            return empty;
-        }
-
         @Override
         public void reduce(AnyAggState<T> other) {
-            if (!other.empty) {
+            if (this.value == null){
                 this.value = other.value;
             }
         }
@@ -230,7 +94,6 @@ public class AnyAggregation<T extends Comparable<T>> extends AggregationFunction
         @Override
         public int compareTo(AnyAggState<T> o) {
             if (o == null) return 1;
-            if (empty != o.empty) { return empty ? 1 : -1; }
             if (value == null) return (o.value == null ? 0 : -1);
             if (o.value == null) return 1;
 
@@ -239,18 +102,26 @@ public class AnyAggregation<T extends Comparable<T>> extends AggregationFunction
 
         public void add(T otherValue) {
             value = otherValue;
-            empty = false;
         }
 
         public void setValue(T value) {
             this.value = value;
-            empty = false;
         }
 
 
         @Override
         public String toString() {
-            return "<AnyAggState \"" + (empty ? "EMPTY" : value) + "\">";
+            return "<AnyAggState \"" + (value) + "\">";
+        }
+
+        @Override
+        public void readFrom(StreamInput in) throws IOException {
+            setValue(streamer.readFrom(in));
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            streamer.writeTo(out, value);
         }
     }
 
