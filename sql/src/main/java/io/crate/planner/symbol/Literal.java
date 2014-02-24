@@ -23,7 +23,7 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
             case SHORT:
                 return new ShortLiteral(((Number) value).intValue());
             case INTEGER:
-                return new IntegerLiteral((Integer) value);
+                return new IntegerLiteral(((Number) value).longValue());
             case TIMESTAMP:
                 if (value instanceof BytesRef) {
                     return new TimestampLiteral((BytesRef) value);
@@ -35,9 +35,9 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
             case LONG:
                 return new LongLiteral((Long) value);
             case FLOAT:
-                return new FloatLiteral((Float) value);
+                return new FloatLiteral(((Number) value).floatValue());
             case DOUBLE:
-                return new DoubleLiteral((Double) value);
+                return new DoubleLiteral(((Number) value).doubleValue());
             case BOOLEAN:
                 return new BooleanLiteral((Boolean) value);
             case IP:

@@ -205,7 +205,7 @@ public class DocIndexMetaData {
                     // walk nested
                     internalExtractColumnDefinitions(newIdent, (Map<String, Object>) columnProperties.get("properties"));
                 }
-            } else {
+            } else if (columnDataType != DataType.NOT_SUPPORTED) {
                 ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());
                 //String columnName = getColumnName(prefix, columnEntry.getKey());
                 add(newIdent, columnDataType);
