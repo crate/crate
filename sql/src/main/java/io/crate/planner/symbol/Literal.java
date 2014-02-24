@@ -19,9 +19,9 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
 
         switch (type) {
             case BYTE:
-                return new ByteLiteral(((Number) value).intValue());
+                return new ByteLiteral(((Number) value).longValue());
             case SHORT:
-                return new ShortLiteral(((Number) value).intValue());
+                return new ShortLiteral(((Number) value).longValue());
             case INTEGER:
                 return new IntegerLiteral(((Number) value).longValue());
             case TIMESTAMP:
