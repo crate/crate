@@ -82,6 +82,9 @@ public class DistributedMergeTask implements Task<Object[][]> {
 
                     @Override
                     public void onFailure(Throwable t) {
+                        if (t instanceof RemoteTransportException){
+                            t = t.getCause();
+                        }
                         for (ListenableFuture<Object[][]> result : results) {
                             ((SettableFuture<Object[][]>)result).setException(t);
                         }
