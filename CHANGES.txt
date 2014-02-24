@@ -5,6 +5,26 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/02/24 0.23.0
+=================
+
+ - NOTE: this is a pre-release.
+
+ - changed the sql-parser from a javacc/akiban derived parser to a presto
+   derived antrl based parser.
+
+ - added sys.nodes and sys.cluster tables which can be queried to get
+   information about the cluster and nodes.
+
+ - BREAKING: the core data types are now more strict and so it is for example
+   no longer possible to save a string array into a string field.
+
+   This functionality will be added back later with explicit multi value
+   types.
+
+2014/01/29 0.22.2
+=================
+
  - updated .gitignore and renamed heading in README.rst
 
 2014/01/29 0.22.2
