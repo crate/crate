@@ -23,9 +23,6 @@ package org.cratedb.service;
 
 import org.cratedb.SQLCrateNodesTest;
 import org.cratedb.action.sql.ParsedStatement;
-import org.cratedb.sql.TableUnknownException;
-import org.elasticsearch.common.settings.ImmutableSettings;
-import org.elasticsearch.node.internal.InternalNode;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,9 +45,8 @@ public class SQLParseServiceTest extends SQLCrateNodesTest {
         sqlParseService = null;
     }
 
-    @Test(expected = TableUnknownException.class)
     public void testParse() throws Exception {
-        ParsedStatement stmt = sqlParseService.parse("select mycol from mytable where mycol = 1");
+        ParsedStatement stmt = sqlParseService.parse("create table t1 (c1 int)");
 
         // this test just ensures that the ParseService calls a Visitor and begins to parse the statement
         // the actual result isn't really enforced. Feel free to change the expected TableUnknownException

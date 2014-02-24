@@ -37,11 +37,9 @@ import io.crate.operator.reference.sys.node.SysNodeExpressionModule;
 import io.crate.operator.reference.sys.shard.SysShardExpressionModule;
 import io.crate.operator.scalar.ScalarFunctionModule;
 import io.crate.planner.PlanModule;
+import org.cratedb.Constants;
 import org.cratedb.module.SQLModule;
 import org.cratedb.rest.action.RestSQLAction;
-import org.cratedb.service.InformationSchemaService;
-import org.cratedb.service.SQLService;
-import org.cratedb.service.StatsService;
 import org.cratedb.sql.facet.SQLFacetParser;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettingsModule;
 import org.elasticsearch.common.component.LifecycleComponent;
@@ -87,14 +85,6 @@ public class SQLPlugin extends AbstractPlugin {
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> services() {
-        if (!settings.getAsBoolean("node.client", false)) {
-            Collection<Class<? extends LifecycleComponent>> services = newArrayList();
-            services.add(SQLService.class);
-            services.add(InformationSchemaService.class);
-            services.add(StatsService.class);
-            return services;
-        }
-
         return super.services();
     }
 
@@ -142,7 +132,6 @@ public class SQLPlugin extends AbstractPlugin {
 
     public void onModule(ClusterDynamicSettingsModule clusterDynamicSettingsModule) {
         // add our dynamic cluster settings
-        clusterDynamicSettingsModule.addDynamicSettings(SQLService.CUSTOM_ANALYSIS_SETTINGS_PREFIX + "*");
+        clusterDynamicSettingsModule.addDynamicSettings(Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX + "*");
     }
-
 }

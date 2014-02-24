@@ -49,8 +49,4 @@ public abstract class SQLType {
     }
 
     protected abstract Object doMapValue(Object value) throws ConvertException;
-
-    public Object toDisplayValue(@Nullable Object value) {
-        return value;
-    }
 }

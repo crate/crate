@@ -22,7 +22,6 @@
 package org.cratedb.integrationtests;
 
 import org.cratedb.SQLTransportIntegrationTest;
-import org.cratedb.action.sql.ParsedStatement;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
@@ -215,19 +214,6 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                 }}
 
         });
-    }
-
-    @Test
-    public void testWhereClause() throws Exception {
-        setUpSimple();
-        ParsedStatement stmt = parseService.parse("select * from t1 where " +
-                "timestamp_field='1970-01-01T00:00:00'");
-        assertEquals(
-                "{\"fields\":[\"boolean_field\",\"byte_field\",\"double_field\"," +
-                        "\"float_field\",\"id\",\"integer_field\",\"ip_field\",\"long_field\"," +
-                        "\"object_field\",\"short_field\",\"string_field\",\"timestamp_field\"]," +
-                        "\"query\":{\"term\":{\"timestamp_field\":0}},\"size\":10000}",
-                stmt.xcontent.toUtf8());
     }
 
     @Test

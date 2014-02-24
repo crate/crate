@@ -28,7 +28,6 @@ import io.crate.planner.node.ESGetNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolVisitor;
-import org.apache.lucene.util.BytesRef;
 import org.cratedb.Constants;
 import org.cratedb.DataType;
 import org.elasticsearch.action.ActionListener;
@@ -102,7 +101,7 @@ public class ESGetTask implements Task<Object[][]> {
                 extractors[i] = new FieldExtractor() {
                     @Override
                     public Object extract(GetResponse response) {
-                        return new BytesRef(response.getId());
+                        return response.getId();
                     }
                 };
             } else {
@@ -181,10 +180,6 @@ public class ESGetTask implements Task<Object[][]> {
                 /**
                  * NOTE: mapping isn't applied. So if an Insert was done using the ES Rest Endpoint
                  * the data might be returned in the wrong format (date as string instead of long)
-                 *
-                 * see {@link org.cratedb.action.parser.SQLResponseBuilder#buildResponse(org.elasticsearch.action.get.GetResponse, long)}
-                 * for the old logic
-                 *
                  */
                 rows[0][c] = extractor.extract(response);
                 c++;

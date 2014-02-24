@@ -22,7 +22,6 @@
 package org.cratedb.module.sql.benchmark;
 
 import junit.framework.TestCase;
-import org.cratedb.action.parser.QueryPlanner;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
@@ -153,14 +152,6 @@ public class BenchmarkBase extends TestCase {
 
     public Settings getNodeSettings(int nodeId) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder().put("index.store.type", "memory");
-        switch (nodeId) {
-            case 1:
-                builder.put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, true);
-                break;
-            case 2:
-                builder.put(QueryPlanner.SETTINGS_OPTIMIZE_PK_QUERIES, false);
-                break;
-        }
         return builder.build();
     }
 

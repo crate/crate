@@ -21,14 +21,12 @@
 
 package io.crate.operator.reference.doc;
 
-import org.cratedb.action.FieldLookup;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.search.internal.SearchContext;
 
 public class CollectorContext {
 
     private SearchContext searchContext;
-    private FieldLookup fieldLookup;
     private CacheRecycler cacheRecycler;
 
     public CollectorContext() {
@@ -43,15 +41,6 @@ public class CollectorContext {
         if (searchContext().cacheRecycler()!=null){
             this.cacheRecycler(searchContext.cacheRecycler());
         }
-        return this;
-    }
-
-    public FieldLookup fieldLookup() {
-        return fieldLookup;
-    }
-
-    public CollectorContext fieldLookup(FieldLookup fieldLookup) {
-        this.fieldLookup = fieldLookup;
         return this;
     }
 
