@@ -232,8 +232,8 @@ public class DocIndexMetaDataTest {
         });
 
         assertThat(fqns, Matchers.<List<String>>is(
-                ImmutableList.of("content", "datum", "id", "nested", "nested.inner_nested",
-                        "person", "person.birthday", "person.first_name", "title", "_id", "_version", "_score", "_uid", "_source")));
+                ImmutableList.of("_id", "_score", "_source", "_uid", "_version", "content", "datum", "id", "nested", "nested.inner_nested",
+                        "person", "person.birthday", "person.first_name", "title")));
 
     }
 

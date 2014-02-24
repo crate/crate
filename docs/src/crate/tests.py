@@ -8,7 +8,7 @@ import shutil
 
 from crate.client.crash import CrateCmd
 cmd = CrateCmd()
-cmd.do_connect("127.0.0.1:44200")
+
 
 here = os.path.dirname(__file__)
 
@@ -46,7 +46,13 @@ crash_parser = zc.customdoctests.DocTestParser(
     ps1='cr>', comment_prefix='#', transform=crash_transform)
 
 
-empty_layer = CrateLayer('crate',
+class ConnectingCrateLayer(CrateLayer):
+
+    def start(self):
+        super(ConnectingCrateLayer, self).start()
+        cmd.do_connect(self.crate_servers[0])
+
+empty_layer = ConnectingCrateLayer('crate',
                          crate_home=crate_path(),
                          crate_exec=crate_path('bin', 'crate'),
                          port=44200,

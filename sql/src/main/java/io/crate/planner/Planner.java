@@ -219,7 +219,9 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
 
         ImmutableList<Projection> projections;
         if (analysis.limit() != null) {
-            TopNProjection tnp = new TopNProjection(analysis.limit(), analysis.offset(),
+            // if we have an offset we have to get as much docs from every node as we have offset+limit
+            // otherwise results will be wrong
+            TopNProjection tnp = new TopNProjection(analysis.offset() + analysis.limit(), 0,
                     contextBuilder.orderBy(), analysis.reverseFlags());
             tnp.outputs(contextBuilder.outputs());
             projections = ImmutableList.<Projection>of(tnp);
@@ -249,7 +251,8 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             orderBy = Lists.transform(analysis.sortSymbols(), new com.google.common.base.Function<Symbol, Reference>() {
                 @Override
                 public Reference apply(Symbol input) {
-                    Preconditions.checkArgument(input.symbolType() == SymbolType.REFERENCE,
+                    Preconditions.checkArgument(input.symbolType() == SymbolType.REFERENCE
+                            || input.symbolType() == SymbolType.DYNAMIC_REFERENCE,
                             "Unsupported order symbol for ESPlan", input);
                     return (Reference) input;
                 }

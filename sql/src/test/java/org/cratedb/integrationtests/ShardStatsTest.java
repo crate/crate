@@ -263,7 +263,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     @Test
     public void testGlobalAggregateUnknownWhere() throws Exception {
         execute("select sum(num_docs) from sys.shards where lol='funky'");
-        assertEquals(0, response.rowCount());
+        assertEquals(1, response.rowCount()); // global aggregate always returns one row
     }
 
     @Test

@@ -11,6 +11,7 @@ import io.crate.planner.symbol.*;
 import io.crate.sql.tree.QualifiedName;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
+import org.cratedb.sql.ColumnUnknownException;
 import org.cratedb.sql.SchemaUnknownException;
 import org.cratedb.sql.TableUnknownException;
 import org.cratedb.sql.ValidationException;
@@ -142,6 +143,9 @@ public abstract class Analysis {
             ReferenceInfo info = getReferenceInfo(ident);
             if (info == null) {
                 reference = table.getDynamic(ident.columnIdent());
+                if (reference == null) {
+                    throw new ColumnUnknownException(ident.tableIdent().name(), ident.columnIdent().fqn());
+                }
                 info = reference.info();
             } else {
                 reference = new Reference(info);

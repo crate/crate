@@ -15,7 +15,7 @@ import java.util.Map;
 
 public class DocSysColumns {
 
-    private static ImmutableMap<ColumnIdent, DataType> columnIdents = ImmutableMap.<ColumnIdent, DataType>builder()
+    public static ImmutableMap<ColumnIdent, DataType> columnIdents = ImmutableMap.<ColumnIdent, DataType>builder()
             .put(new ColumnIdent("_id"), DataType.STRING)
             .put(new ColumnIdent("_version"), DataType.LONG)
             .put(new ColumnIdent("_score"), DataType.DOUBLE)
