@@ -282,6 +282,8 @@ public class DocIndexMetaData {
         if (this == other) return true;
         if (other == null) return false;
 
+        // TODO: when analyzers are exposed in the info, equality has to be checked on them
+        // see: TransportSQLActionTest.testSelectTableAliasSchemaExceptionColumnDefinition
         if (columns != null ? !columns.equals(other.columns) : other.columns != null) return false;
         if (primaryKey != null ? !primaryKey.equals(other.primaryKey) : other.primaryKey != null) return false;
         if (references != null ? !references.equals(other.references) : other.references != null) return false;
