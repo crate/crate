@@ -83,6 +83,7 @@ public class LocalMergeTask implements Task<Object[][]> {
                 upStreamResult.addListener(new Runnable() {
                     @Override
                     public void run() {
+                        boolean last = countDown.decrementAndGet() == 0;
                         Object[][] rows;
                         try {
                             rows = upStreamResult.get();
@@ -98,14 +99,29 @@ public class LocalMergeTask implements Task<Object[][]> {
                                 );
                                 logger.trace(String.format("received result: %s", result));
                             }
-
                         } catch (Exception e) {
+                            logger.error("Failure getting upstream Result: ", e);
                             result.setException(e.getCause());
                             return;
                         }
-                        mergeOperation.addRows(rows); // TODO: apply timeout
-                        if (countDown.decrementAndGet()==0) {
-                            result.set(mergeOperation.result());
+                        try {
+                            mergeOperation.addRows(rows); // TODO: apply timeout
+                        } catch (Exception e) {
+                            result.setException(e);
+                            logger.error("Failed to add rows", e);
+                            return;
+                        }
+                        if (last) {
+                            Object[][] mergeResult = null;
+                            try {
+                                mergeResult = mergeOperation.result();
+                            } catch (Exception e) {
+                                result.setException(e);
+                                logger.error("Failed to get merge result", e);
+                                return;
+                            }
+                            assert mergeResult != null;
+                            result.set(mergeResult);
                         }
                     }
                 }, threadPool.executor(ThreadPool.Names.GENERIC));

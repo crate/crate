@@ -49,7 +49,7 @@ public class MergeOperation implements DownstreamOperation {
         this.numUpstreams = mergeNode.numUpstreams();
     }
 
-    public boolean addRows(Object[][] rows) {
+    public boolean addRows(Object[][] rows) throws Exception{
         for (int i=0, length=rows.length; i< length && wantMore.get(); i++) {
             // assume that all projectors .setNextRow(...) methods are threadsafe
             if(!firstProjector.setNextRow(rows[i])) {
@@ -64,7 +64,7 @@ public class MergeOperation implements DownstreamOperation {
         return numUpstreams;
     }
 
-    public Object[][] result()  {
+    public Object[][] result() throws Exception  {
         firstProjector.finishProjection();
         return projectors.get(projectors.size()-1).getRows();
     }
