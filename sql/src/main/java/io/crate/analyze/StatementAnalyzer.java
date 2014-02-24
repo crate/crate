@@ -124,9 +124,11 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
 
         arguments.add(value);
         SetLiteral inListSymbol = (SetLiteral) process(node.getValueList(), context);
+
         if (inListSymbol.itemType() != valueDataType) {
+            // TODO: implement implicit type casting for set values to valueDataType
             throw new IllegalArgumentException(String.format("invalid type in IN LIST '%s', expected '%s'",
-                    inListSymbol.valueType().getName(), valueDataType.getName()));
+                    inListSymbol.itemType().getName(), valueDataType.getName()));
         }
         arguments.add(inListSymbol);
 

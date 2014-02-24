@@ -28,7 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class ByteLiteral extends NumberLiteral<Byte, ByteLiteral> {
+public class ByteLiteral extends NumberLiteral<Integer, ByteLiteral> {
 
     public static final SymbolFactory FACTORY = new SymbolFactory() {
         @Override
@@ -72,8 +72,8 @@ public class ByteLiteral extends NumberLiteral<Byte, ByteLiteral> {
     }
 
     @Override
-    public Byte value() {
-        return value;
+    public Integer value() {
+        return (int)value;
     }
 
     @Override

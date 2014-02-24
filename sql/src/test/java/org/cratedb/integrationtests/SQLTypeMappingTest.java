@@ -243,7 +243,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testInvalidWhereInWhereClause() throws Exception {
         expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("invalid type in IN LIST 'string_set', expected 'byte'");
+        expectedException.expectMessage("invalid type in IN LIST 'string', expected 'byte'");
 
         setUpSimple();
         execute("update t1 set byte_field=0 where byte_field in ('a')");
@@ -447,7 +447,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testUnknownTypesSelectGlobalAggregate() throws Exception {
         expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("unknown function: any(NOT SUPPORTED)");
+        expectedException.expectMessage("unknown function: any(null)");
 
         this.setup.setUpObjectMappingWithUnknownTypes();
         execute("select any(location) from ut");
@@ -455,8 +455,8 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUnknownTypesSelectGroupBy() throws Exception {
-        expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column 'location' unknown");
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("unknown column 'location' not allowed in GROUP BY");
 
         this.setup.setUpObjectMappingWithUnknownTypes();
         execute("select count(*) from ut group by location");

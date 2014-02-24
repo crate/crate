@@ -28,7 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class ShortLiteral extends NumberLiteral<Short, ShortLiteral> {
+public class ShortLiteral extends NumberLiteral<Integer, ShortLiteral> {
     public static final SymbolFactory FACTORY = new SymbolFactory() {
         @Override
         public Symbol newInstance() {
@@ -71,8 +71,8 @@ public class ShortLiteral extends NumberLiteral<Short, ShortLiteral> {
     }
 
     @Override
-    public Short value() {
-        return value;
+    public Integer value() {
+        return (int)value;
     }
 
     @Override

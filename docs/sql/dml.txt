@@ -294,7 +294,7 @@ Some Examples::
 
     cr> select count(*) from locations
     +----------+
-    | COUNT(*) |
+    | count(*) |
     +----------+
     | 13       |
     +----------+
@@ -302,7 +302,7 @@ Some Examples::
 
     cr> select count(*) from locations where kind='Planet'
     +----------+
-    | COUNT(*) |
+    | count(*) |
     +----------+
     | 5        |
     +----------+
@@ -310,7 +310,7 @@ Some Examples::
 
     cr> select count(name), count(*) from locations
     +-------------+----------+
-    | COUNT(name) | COUNT(*) |
+    | count(name) | count(*) |
     +-------------+----------+
     | 12          | 13       |
     +-------------+----------+
@@ -318,7 +318,7 @@ Some Examples::
 
     cr> select max(name) from locations
     +-------------------+
-    | MAX(name)         |
+    | max(name)         |
     +-------------------+
     | Outer Eastern Rim |
     +-------------------+
@@ -326,7 +326,7 @@ Some Examples::
 
     cr> select min(date) from locations
     +--------------+
-    | MIN(date)    |
+    | min(date)    |
     +--------------+
     | 308534400000 |
     +--------------+
@@ -334,7 +334,7 @@ Some Examples::
 
     cr> select count(*), kind from locations group by kind order by kind asc
     +----------+-------------+
-    | COUNT(*) | kind        |
+    | count(*) | kind        |
     +----------+-------------+
     | 4        | Galaxy      |
     | 5        | Planet      |
@@ -344,7 +344,7 @@ Some Examples::
 
     cr> select max(position), kind from locations group by kind order by max(position) desc
     +---------------+-------------+
-    | MAX(position) | kind        |
+    | max(position) | kind        |
     +---------------+-------------+
     | 6             | Galaxy      |
     | 5             | Planet      |
@@ -354,7 +354,7 @@ Some Examples::
 
     cr> select min(name), kind from locations group by kind order by min(name) asc
     +------------------------------------+-------------+
-    | MIN(name)                          | kind        |
+    | min(name)                          | kind        |
     +------------------------------------+-------------+
     |                                    | Planet      |
     | Aldebaran                          | Star System |
@@ -364,7 +364,7 @@ Some Examples::
 
     cr> select count(*), min(name), kind from locations group by kind order by kind
     +----------+------------------------------------+-------------+
-    | COUNT(*) | MIN(name)                          | kind        |
+    | count(*) | min(name)                          | kind        |
     +----------+------------------------------------+-------------+
     | 4        | Galactic Sector QQ7 Active J Gamma | Galaxy      |
     | 5        |                                    | Planet      |
@@ -395,7 +395,7 @@ This is useful if used in conjunction with aggregation functions::
 
     cr> select count(*), kind from locations group by kind order by count(*) desc, kind asc
     +----------+-------------+
-    | COUNT(*) | kind        |
+    | count(*) | kind        |
     +----------+-------------+
     | 5        | Planet      |
     | 4        | Galaxy      |
