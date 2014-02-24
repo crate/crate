@@ -97,7 +97,7 @@ public abstract class AbstractImplementationSymbolVisitor<C extends AbstractImpl
             return new FunctionExpression<>((Scalar<?, ?>) functionImplementation, argumentInputs);
         } else {
             throw new IllegalArgumentException(
-                    String.format("Cannot find implementation for function %s", function));
+                    String.format("Cannot find implementation for function %s", function.humanReadableName()));
         }
     }
 
@@ -108,6 +108,6 @@ public abstract class AbstractImplementationSymbolVisitor<C extends AbstractImpl
 
     @Override
     protected Input<?> visitSymbol(Symbol symbol, C context) {
-        throw new UnsupportedOperationException(String.format("Can't handle Symbol %s", symbol));
+        throw new UnsupportedOperationException(String.format("Can't handle Symbol %s", symbol.humanReadableName()));
     }
 }

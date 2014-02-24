@@ -21,6 +21,8 @@
 
 package io.crate.planner.node;
 
+import com.google.common.base.Objects;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -51,5 +53,14 @@ public class ESGetNode extends AbstractESNode {
 
     public List<String> ids() {
         return ids;
+    }
+
+    @Override
+    public String toString() {
+        return Objects.toStringHelper(this)
+                .add("index", index)
+                .add("ids", ids)
+                .add("outputs", outputs)
+                .toString();
     }
 }

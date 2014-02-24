@@ -138,6 +138,18 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
     }
 
     @Override
+    public Void visitESGetNode(ESGetNode node, PrintContext context) {
+        context.print(node.toString());
+        context.indent();
+        context.print("outputs:");
+        for (Symbol symbol : node.outputs()) {
+            symbolPrinter.process(symbol, context);
+        }
+        context.dedent();
+        return null;
+    }
+
+    @Override
     public Void visitESSearchNode(ESSearchNode node, PrintContext context) {
         context.print(node.toString());
         context.indent();

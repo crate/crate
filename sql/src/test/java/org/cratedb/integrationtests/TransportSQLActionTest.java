@@ -28,6 +28,7 @@ import com.google.common.collect.Ordering;
 import org.cratedb.Constants;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLResponse;
+import org.cratedb.action.sql.TransportSQLAction;
 import org.cratedb.sql.*;
 import org.cratedb.sql.types.TimeStampSQLType;
 import org.cratedb.test.integration.CrateIntegrationTest;
@@ -35,9 +36,11 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -64,6 +67,12 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
+
+
+    @Before
+    public void prepare() {
+        Loggers.getLogger(TransportSQLAction.class).setLevel("TRACE");
+    }
 
 
 
@@ -145,21 +154,29 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGroupByOnAnalyzedColumn() throws Exception {
-        expectedException.expect(GroupByOnArrayUnsupportedException.class);
-
         execute("create table test1 (col1 string index using fulltext)");
+        ensureGreen();
+
+        // error not throws, because no values present
+        execute("select count(col1) from test1 group by col1");
+
+        execute("insert into test1 values ('foo bar')");
         refresh();
 
-        execute("select count(*) from test1 group by col1");
+        // error not throws, because no multiple values present
+        execute("select count(col1) from test1 group by col1");
+
+        // TODO: error only thrown on actual collect of multiple values, throw it earlier
+        execute("insert into test1 values ('foo bar')");
+        refresh();
+
+        execute("select count(col1) from test1 group by col1");
+
     }
 
     @Test
     public void testSelectStarWithOther() throws Exception {
-        prepareCreate("test")
-                .addMapping("default",
-                        "firstName", "type=string",
-                        "lastName", "type=string")
-                .execute().actionGet();
+        execute("create table test (\"firstName\" string, \"lastName\" string)");
         client().prepareIndex("test", "default", "id1").setRefresh(true)
                 .setSource("{\"firstName\":\"Youri\",\"lastName\":\"Zoon\"}")
                 .execute().actionGet();
