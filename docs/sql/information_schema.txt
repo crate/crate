@@ -7,14 +7,7 @@ The Information Schema is a special schema that contains virtual tables which
 are read-only and can be queried to get information about the state of the
 cluster.
 
-.. note::
-
-    The information schema tables currently only support a limited subset of
-    the otherwise supported DML statements.
-
-    Currently unsupported are:
-
-        - using aggregate functions without group by.
+.. note:: currently only the tables ``tables`` and ``columns`` are implemented.
 
 Tables
 ======
@@ -25,16 +18,19 @@ This table can be queried to get a list of all available tables and their
 settings like the number of shards or number of replicas::
 
     cr> select * from information_schema.tables 
-    ... where table_name not like 'my_table%' order by table_name asc
-    +------------+------------------+--------------------+----------------+
-    | table_name | number_of_shards | number_of_replicas | routing_column |
-    +------------+------------------+--------------------+----------------+
-    | documents  | 5                | 1                  | _id            |
-    | locations  | 2                | 0                  | id             |
-    | myblobs    | 3                | 1                  | _id            |
-    | quotes     | 2                | 0                  | id             |
-    +------------+------------------+--------------------+----------------+
-    SELECT 4 rows in set (... sec)
+    ... where table_name not like 'my_table%' order by schema_name asc, table_name asc
+    +--------------------+------------+------------------+--------------------+--------------+
+    | schema_name        | table_name | number_of_shards | number_of_replicas | clustered_by |
+    +--------------------+------------+------------------+--------------------+--------------+
+    | doc                | locations  | 2                | 0                  | id           |
+    | doc                | quotes     | 2                | 0                  | id           |
+    | information_schema | columns    | 1                | 0                  | NULL         |
+    | information_schema | tables     | 1                | 0                  | NULL         |
+    | sys                | cluster    | 1                | 0                  | NULL         |
+    | sys                | nodes      | 1                | 0                  | NULL         |
+    | sys                | shards     | 1                | 0                  | NULL         |
+    +--------------------+------------+------------------+--------------------+--------------+
+    SELECT 7 rows in set (... sec)
 
 
 Columns
@@ -44,26 +40,41 @@ This table can be queried to get a list of all available columns of all tables a
 definition like data type and ordinal position inside the table::
 
     cr> select * from information_schema.columns
-    ... where table_name not like 'my_table%' order by table_name asc, column_name asc
-    +------------+------------------+------------------+-----------+
-    | table_name | column_name      | ordinal_position | data_type |
-    +------------+------------------+------------------+-----------+
-    | documents  | body             | 1                | string    |
-    | documents  | title            | 2                | string    |
-    | locations  | date             | 1                | timestamp |
-    | locations  | description      | 2                | string    |
-    | locations  | id               | 3                | string    |
-    | locations  | kind             | 4                | string    |
-    | locations  | name             | 5                | string    |
-    | locations  | position         | 6                | integer   |
-    | locations  | race             | 7                | object    |
-    | locations  | race.description | 8                | string    |
-    | locations  | race.interests   | 9                | string    |
-    | locations  | race.name        | 10               | string    |
-    | quotes     | id               | 1                | integer   |
-    | quotes     | quote            | 2                | string    |
-    +------------+------------------+------------------+-----------+
-    SELECT 14 rows in set (... sec)
+    ... where schema_name='doc' and table_name not like 'my_table%'
+    ... order by table_name asc, column_name asc
+    +-------------+------------+------------------+------------------+-----------+
+    | schema_name | table_name | column_name      | ordinal_position | data_type |
+    +-------------+------------+------------------+------------------+-----------+
+    | doc         | locations  | date             | 1                | timestamp |
+    | doc         | locations  | description      | 2                | string    |
+    | doc         | locations  | id               | 3                | string    |
+    | doc         | locations  | kind             | 4                | string    |
+    | doc         | locations  | name             | 5                | string    |
+    | doc         | locations  | position         | 6                | integer   |
+    | doc         | locations  | race             | 7                | object    |
+    | doc         | locations  | race.description | 8                | string    |
+    | doc         | locations  | race.interests   | 9                | string    |
+    | doc         | locations  | race.name        | 10               | string    |
+    | doc         | quotes     | id               | 1                | integer   |
+    | doc         | quotes     | quote            | 2                | string    |
+    +-------------+------------+------------------+------------------+-----------+
+    SELECT 12 rows in set (... sec)
+
+
+You can even query this tables' own columns (attention: this might lead to infinite recursion of your mind, beware!)::
+
+    cr> select column_name, data_type, ordinal_position from information_schema.columns
+    ... where schema_name = 'information_schema' and table_name = 'columns' order by ordinal_position asc
+    +------------------+-----------+------------------+
+    | column_name      | data_type | ordinal_position |
+    +------------------+-----------+------------------+
+    | schema_name      | string    | 1                |
+    | table_name       | string    | 2                |
+    | column_name      | string    | 3                |
+    | ordinal_position | short     | 4                |
+    | data_type        | string    | 5                |
+    +------------------+-----------+------------------+
+    SELECT 5 rows in set (... sec)
 
 .. note::
 
@@ -75,6 +86,8 @@ definition like data type and ordinal position inside the table::
 Table Constraints
 =================
 
+.. note:: currently not implemented
+
 This table can be queries to get a list of all defined table constraints,
 their type, name and which table they are defined in.
 
@@ -84,7 +97,7 @@ their type, name and which table they are defined in.
 
 ::
 
-    cr> select * from information_schema.table_constraints order by table_name desc limit 10
+    cr> select * from information_schema.table_constraints order by table_name desc limit 10  #doctest: +SKIP
     +------------+-----------------+-----------------+
     | table_name | constraint_name | constraint_type |
     +------------+-----------------+-----------------+
@@ -102,13 +115,15 @@ their type, name and which table they are defined in.
 Indices
 =======
 
+.. note:: currently not implemented
+
 This table can be queried to get a list of all defined indices of all columns and their
 definition like index method, expression list and property list.
 Using a :ref:`plain index <sql_ddl_index_plain>` for every column is the default
 behaviour at Crate, so almost all columns are listed as an index as well::
 
     cr> select * from information_schema.indices
-    ... where table_name not like 'my_table%' order by table_name asc, index_name asc
+    ... where table_name not like 'my_table%' order by table_name asc, index_name asc  #doctest: +SKIP
     +------------+---------------------+----------+---------------------------+------------------+
     | table_name | index_name          | method   | columns                   | properties       |
     +------------+---------------------+----------+---------------------------+------------------+
@@ -132,6 +147,8 @@ behaviour at Crate, so almost all columns are listed as an index as well::
 Routines
 ========
 
+.. note:: currently not implemented
+
 The routines table contains all custom analyzers, tokenizers, token-filters and char-filters
 and all custom analyzers created by ``CREATE ANALYZER`` statements
 (see :ref:`sql-ddl-custom-analyzer`).
@@ -140,7 +157,7 @@ The column ``routine_definition`` contains the string ``BUILTIN`` for all builti
 For custom analyzers it contains the SQL statements used for their creation.
 ::
 
-    cr> select * from information_schema.routines where routine_definition != 'BUILTIN' order by routine_name asc
+    cr> select * from information_schema.routines where routine_definition != 'BUILTIN' order by routine_name asc  #doctest: +SKIP
     +-----------------+--------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     | routine_name    | routine_type | routine_definition                                                                                                                                                                                       |
     +-----------------+--------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -154,7 +171,7 @@ You can use this table to see e.g. what builtin tokenizers exist::
 
     cr> select routine_name from information_schema.routines
     ... where routine_type='TOKENIZER' and  routine_definition='BUILTIN'
-    ... order by routine_name asc
+    ... order by routine_name asc  #doctest: +SKIP
     +----------------+
     | routine_name   |
     +----------------+
@@ -175,7 +192,7 @@ You can use this table to see e.g. what builtin tokenizers exist::
     SELECT 13 rows in set (... sec)
 
     cr> select count(*), routine_type from information_schema.routines
-    ... group by routine_type order by routine_type
+    ... group by routine_type order by routine_type  #doctest: +SKIP
     +----------+--------------+
     | COUNT(*) | routine_type |
     +----------+--------------+
@@ -186,7 +203,7 @@ You can use this table to see e.g. what builtin tokenizers exist::
     +----------+--------------+
     SELECT 4 rows in set (... sec)
 
-    cr> select count(distinct routine_type) as distinct_routines from information_schema.routines
+    cr> select count(distinct routine_type) as distinct_routines from information_schema.routines  #doctest: +SKIP
     +-------------------+
     | distinct_routines |
     +-------------------+

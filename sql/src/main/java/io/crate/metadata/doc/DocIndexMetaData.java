@@ -24,6 +24,7 @@ package io.crate.metadata.doc;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
@@ -53,7 +54,9 @@ public class DocIndexMetaData {
     private final Map<String, Object> defaultMappingMap;
 
     private final ImmutableList.Builder<ReferenceInfo> columnsBuilder = ImmutableList.builder();
-    private final ImmutableMap.Builder<ColumnIdent, ReferenceInfo> referencesBuilder = ImmutableMap.builder();
+
+    // columns should be ordered
+    private final ImmutableMap.Builder<ColumnIdent, ReferenceInfo> referencesBuilder = ImmutableSortedMap.naturalOrder();
 
     private final TableIdent ident;
     private final int numberOfShards;

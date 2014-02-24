@@ -50,14 +50,11 @@ public class MergeOperation implements DownstreamOperation {
     }
 
     public boolean addRows(Object[][] rows) {
-        int i = rows.length-1;
-        while (wantMore.get() && i>=0) {
-
+        for (int i=0, length=rows.length; i< length && wantMore.get(); i++) {
             // assume that all projectors .setNextRow(...) methods are threadsafe
             if(!firstProjector.setNextRow(rows[i])) {
                 wantMore.set(false);
             }
-            i--;
         }
         return wantMore.get();
     }
