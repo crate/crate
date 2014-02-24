@@ -11,10 +11,7 @@ import io.crate.planner.symbol.*;
 import io.crate.sql.tree.QualifiedName;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
-import org.cratedb.sql.ColumnUnknownException;
-import org.cratedb.sql.SchemaUnknownException;
-import org.cratedb.sql.TableUnknownException;
-import org.cratedb.sql.ValidationException;
+import org.cratedb.sql.*;
 import org.elasticsearch.common.Preconditions;
 
 import javax.annotation.Nullable;
@@ -118,7 +115,7 @@ public abstract class Analysis {
             throw new TableUnknownException(tableIdent.name());
         } else if (tableInfo.isAlias()) {
             throw new UnsupportedOperationException(
-                    String.format("cannot edit table referenced by alias '%s'", tableIdent.name()));
+                    String.format("aliases are read only cannot modify \"%s\"", tableIdent.name()));
         }
         schema = schemaInfo;
         table = tableInfo;
@@ -412,15 +409,10 @@ public abstract class Analysis {
                 break;
             case 3:
                 TableInfo otherTable = referenceInfos.getTableInfo(new TableIdent(parts.get(0), parts.get(1)));
+                if (otherTable==null){
+                    throw new TableUnknownException(parts.get(0) + "." + parts.get(1));
+                }
                 ident = new ReferenceIdent(new TableIdent(parts.get(0), parts.get(1)), parts.get(2));
-//                // TODO: support select sys.cluster.name, sys.nodes.id, sys.shards.id name from users
-//                // check if granularity is higher
-//                // extra case for information_schema necessary
-//                if (otherTable == null || !table.ident().equals(otherTable.ident())) {
-//                    // reference from unknown table or from other table with same rowGranularity
-//                    throw new UnsupportedOperationException("unsupported name reference: " + name);
-//                }
-
                 break;
             default:
                 throw new UnsupportedOperationException("unsupported name reference: " + name);
