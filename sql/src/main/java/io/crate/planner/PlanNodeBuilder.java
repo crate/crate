@@ -22,6 +22,7 @@
 package io.crate.planner;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.Analysis;
 import io.crate.planner.node.CollectNode;
 import io.crate.planner.node.MergeNode;
@@ -53,9 +54,8 @@ class PlanNodeBuilder {
         MergeNode node = new MergeNode("distributed merge", collectNode.executionNodes().size());
         node.projections(projections);
 
-        // TODO: all nodes by default?
-        node.executionNodes(collectNode.routing().nodes());
-
+        assert collectNode.downStreamNodes()!=null && collectNode.downStreamNodes().size()>0;
+        node.executionNodes(ImmutableSet.copyOf(collectNode.downStreamNodes()));
         connectTypes(collectNode, node);
         return node;
     }
