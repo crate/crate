@@ -44,7 +44,7 @@ ext {
     plugin_head_version = '3b6740cfd0a79c60516ce8fbd78f018c1f38e08e'
     plugin_bigdesk_version = '2.2.2c'
     plugin_segmentspy_version = '0.2.0'
-    plugin_crateadmin_version = '0.0.1'
+    plugin_crateadmin_version = '0.0.4'
 }
 
 evaluationDependsOn(':es')

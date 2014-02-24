@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - use crate-admin 0.0.4
+
 2014/02/24 0.23.0.Beta0
 =======================
 
