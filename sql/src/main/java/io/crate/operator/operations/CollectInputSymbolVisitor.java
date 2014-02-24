@@ -24,6 +24,7 @@ package io.crate.operator.operations;
 import io.crate.metadata.Functions;
 import io.crate.operator.Input;
 import io.crate.operator.reference.DocLevelReferenceResolver;
+import io.crate.planner.symbol.DynamicReference;
 import io.crate.planner.symbol.Reference;
 import org.cratedb.sql.CrateException;
 
@@ -69,4 +70,8 @@ public class CollectInputSymbolVisitor<E extends Input<?>>
         return docLevelExpression;
     }
 
+    @Override
+    public Input<?> visitDynamicReference(DynamicReference symbol, Context context) {
+        return visitReference(symbol, context);
+    }
 }

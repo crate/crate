@@ -191,6 +191,10 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             Literal literal = analysis.primaryKeyLiterals().get(0);
             List<String> ids;
 
+            PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
+                    .output(analysis.outputSymbols())
+                    .orderBy(analysis.sortSymbols());
+
             if (literal.symbolType() == SymbolType.SET_LITERAL) {
                 Set<Literal> literals = ((SetLiteral) literal).literals();
                 ids = new ArrayList<>(literals.size());
@@ -202,8 +206,22 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             }
 
             ESGetNode getNode = new ESGetNode(analysis.table().ident().name(), ids);
-            getNode.outputs(analysis.outputSymbols());
+           getNode.outputs(contextBuilder.toCollect());
+            getNode.outputTypes(extractDataTypes(analysis.outputSymbols()));
             plan.add(getNode);
+
+            // handle sorting, limit and offset
+            if (analysis.isSorted() || analysis.limit() != null || analysis.offset() > 0 ) {
+                TopNProjection tnp = new TopNProjection(
+                        Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                        analysis.offset(),
+                        contextBuilder.orderBy(),
+                        analysis.reverseFlags()
+                );
+                tnp.outputs(contextBuilder.outputs());
+                plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), getNode));
+            }
+
         }
     }
 
