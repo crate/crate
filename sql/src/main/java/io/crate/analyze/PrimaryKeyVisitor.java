@@ -281,9 +281,6 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         boolean newBucket = true;
         for (Symbol argument : symbol.arguments()) {
             process(argument, context);
-//            if (context.invalid) {
-//                break;
-//            }
             if (newBucket && functionName.equals(OrOperator.NAME)) {
                 newBucket = false;
                 context.newBucket();
