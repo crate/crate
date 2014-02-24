@@ -69,4 +69,9 @@ public class UpdateAnalysis extends Analysis {
         }
         assignments.put(reference, value);
     }
+
+    @Override
+    public boolean hasNoResult() {
+        return noMatch();
+    }
 }

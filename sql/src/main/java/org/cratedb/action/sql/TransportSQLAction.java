@@ -26,7 +26,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
-import io.crate.analyze.SelectAnalysis;
 import io.crate.executor.AffectedRowsResponseBuilder;
 import io.crate.executor.Job;
 import io.crate.executor.ResponseBuilder;
@@ -141,9 +140,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             Analysis analysis = analyzer.analyze(statement, request.args());
             final String[] outputNames = analysis.outputNames().toArray(new String[analysis.outputNames().size()]);
 
-            if (analysis.whereClause().noMatch() &&
-                !(analysis.type() == Analysis.Type.SELECT && ((SelectAnalysis)analysis).hasAggregates() && !((SelectAnalysis)analysis).hasGroupBy())){
-                // do execute global aggregate statements - they always return one row
+            if (analysis.hasNoResult()) {
                 emptyResponse(request, analysis, listener);
                 return;
             }

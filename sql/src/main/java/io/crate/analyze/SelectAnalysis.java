@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Objects;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 import io.crate.metadata.Functions;
@@ -100,6 +101,18 @@ public class SelectAnalysis extends Analysis {
 
     public void sortSymbols(List<Symbol> sortSymbols) {
         this.sortSymbols = sortSymbols;
+    }
+
+    @Override
+    public boolean hasNoResult() {
+        if (globalAggregate()) {
+            return Objects.firstNonNull(limit(), 1) < 1 || offset() > 0;
+        }
+        return noMatch() || (limit() != null && limit() == 0);
+    }
+
+    private boolean globalAggregate() {
+        return hasAggregates() && !hasGroupBy();
     }
 
     @Nullable
