@@ -5,10 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
-2014/02/24 0.23.0
-=================
-
- - NOTE: this is a pre-release.
+2014/02/24 0.23.0.Beta0
+=======================
 
  - changed the sql-parser from a javacc/akiban derived parser to a presto
    derived antrl based parser.
