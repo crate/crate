@@ -29,6 +29,7 @@ import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.ColumnUnknownException;
 import org.cratedb.sql.SQLParseException;
+import org.cratedb.sql.UnsupportedFeatureException;
 import org.cratedb.sql.ValidationException;
 import org.elasticsearch.client.Client;
 import org.junit.AfterClass;
@@ -232,20 +233,20 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testInvalidWhereClause() throws Exception {
 
-        expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("Validation failed for byte_field: Invalid byte: out of bounds");
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("invalid byte literal 129");
 
         setUpSimple();
-        ParsedStatement stmt = parseService.parse("delete from t1 where byte_field=129");
+        execute("delete from t1 where byte_field=129");
     }
 
     @Test
     public void testInvalidWhereInWhereClause() throws Exception {
-        expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("Validation failed for byte_field: Invalid byte");
+        expectedException.expect(SQLParseException.class);
+        expectedException.expectMessage("invalid type in IN LIST 'string_set', expected 'byte'");
 
         setUpSimple();
-        ParsedStatement stmt = parseService.parse("update t1 set byte_field=0 where byte_field in ('0')");
+        execute("update t1 set byte_field=0 where byte_field in ('a')");
     }
 
     @Test
@@ -445,17 +446,17 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUnknownTypesSelectGlobalAggregate() throws Exception {
-        expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("Unknown column 'location'");
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("unknown function: any(NOT SUPPORTED)");
 
         this.setup.setUpObjectMappingWithUnknownTypes();
-        SQLResponse response = execute("select any(location) from ut");
+        execute("select any(location) from ut");
     }
 
     @Test
     public void testUnknownTypesSelectGroupBy() throws Exception {
-        expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("Unknown column 'location'");
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column 'location' unknown");
 
         this.setup.setUpObjectMappingWithUnknownTypes();
         execute("select count(*) from ut group by location");

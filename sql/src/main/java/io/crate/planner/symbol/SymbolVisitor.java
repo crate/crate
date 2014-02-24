@@ -103,5 +103,13 @@ public class SymbolVisitor<C, R> {
     public R visitTimestampLiteral(TimestampLiteral symbol, C context) {
         return visitLiteral(symbol, context);
     }
+
+    public R visitByteLiteral(ByteLiteral symbol, C context) {
+        return visitLiteral(symbol, context);
+    }
+
+    public R visitShortLiteral(ShortLiteral symbol, C context) {
+        return visitLiteral(symbol, context);
+    }
 }
 

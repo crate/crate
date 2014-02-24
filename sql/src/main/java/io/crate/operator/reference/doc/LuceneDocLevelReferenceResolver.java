@@ -43,6 +43,7 @@ public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolve
                 return new ByteColumnReference(colName);
             case SHORT:
                 return new ShortColumnReference(colName);
+            case IP:
             case STRING:
                 return new BytesRefColumnReference(colName);
             case DOUBLE:
