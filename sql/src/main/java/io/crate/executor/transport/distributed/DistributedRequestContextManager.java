@@ -211,6 +211,7 @@ public class DistributedRequestContextManager {
         } catch (IOException e) {
             ctx.addFailure(e);
             logger.error("unable to deserialize upstream result", e);
+            return;
         }
         assert rows != null;
         ctx.add(rows);
