@@ -2003,8 +2003,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
         refresh();
 
-        execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
-                new Object[]{"already in panic", 1, 1});
+        execute("update test set col2 = ? where col2 = ? and \"_version\" = ?",
+                new Object[]{"already in panic", "ok now panic", 1});
         assertEquals(0, response.rowCount());
 
         // Validate that the row is really NOT updated
