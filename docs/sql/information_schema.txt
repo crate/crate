@@ -22,7 +22,9 @@ settings like the number of shards or number of replicas::
     +--------------------+------------+------------------+--------------------+--------------+
     | schema_name        | table_name | number_of_shards | number_of_replicas | clustered_by |
     +--------------------+------------+------------------+--------------------+--------------+
+    | doc                | documents  | 5                | 1                  | _id          |
     | doc                | locations  | 2                | 0                  | id           |
+    | doc                | myblobs    | 3                | 1                  | _id          |
     | doc                | quotes     | 2                | 0                  | id           |
     | information_schema | columns    | 1                | 0                  | NULL         |
     | information_schema | tables     | 1                | 0                  | NULL         |
@@ -30,7 +32,7 @@ settings like the number of shards or number of replicas::
     | sys                | nodes      | 1                | 0                  | NULL         |
     | sys                | shards     | 1                | 0                  | NULL         |
     +--------------------+------------+------------------+--------------------+--------------+
-    SELECT 7 rows in set (... sec)
+    SELECT 9 rows in set (... sec)
 
 
 Columns
@@ -45,6 +47,8 @@ definition like data type and ordinal position inside the table::
     +-------------+------------+------------------+------------------+-----------+
     | schema_name | table_name | column_name      | ordinal_position | data_type |
     +-------------+------------+------------------+------------------+-----------+
+    | doc         | documents  | body             | 1                | string    |
+    | doc         | documents  | title            | 2                | string    |
     | doc         | locations  | date             | 1                | timestamp |
     | doc         | locations  | description      | 2                | string    |
     | doc         | locations  | id               | 3                | string    |
@@ -58,7 +62,7 @@ definition like data type and ordinal position inside the table::
     | doc         | quotes     | id               | 1                | integer   |
     | doc         | quotes     | quote            | 2                | string    |
     +-------------+------------+------------------+------------------+-----------+
-    SELECT 12 rows in set (... sec)
+    SELECT 14 rows in set (... sec)
 
 
 You can even query this tables' own columns (attention: this might lead to infinite recursion of your mind, beware!)::
