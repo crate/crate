@@ -102,36 +102,35 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         }
 
         void finish() {
-            if (!versionInvalid) {
+            if (!versionInvalid && buckets.size() == 1) {
                 version = currentBucket.version;
             }
-            if (invalid) {
-                return;
-            }
-            if (buckets.size() == 1) {
-                clusteredBy = currentBucket.clusteredBy;
+            if (!invalid) {
+                if (buckets.size() == 1) {
+                    clusteredBy = currentBucket.clusteredBy;
 
-                if (currentBucket.partsFound == table.primaryKey().size()) {
-                    keyLiterals = Lists.newArrayList(currentBucket.keyParts);
-                }
-            } else if (table.primaryKey().size() == 1) {
-                Set<Literal> keys = new HashSet<>();
-                DataType keyType = DataType.NULL;
-                for (KeyBucket bucket : buckets) {
-                    Literal keyPart = bucket.keyParts[0];
-                    if (keyPart != null) {
-                        keyType = keyPart.valueType();
-                        if (keyPart instanceof SetLiteral) {
-                            keys.addAll(((SetLiteral) keyPart).literals());
-                        } else {
-                            keys.add(keyPart);
+                    if (currentBucket.partsFound == table.primaryKey().size()) {
+                        keyLiterals = Lists.newArrayList(currentBucket.keyParts);
+                    }
+                } else if (table.primaryKey().size() == 1) {
+                    Set<Literal> keys = new HashSet<>();
+                    DataType keyType = DataType.NULL;
+                    for (KeyBucket bucket : buckets) {
+                        Literal keyPart = bucket.keyParts[0];
+                        if (keyPart != null) {
+                            keyType = keyPart.valueType();
+                            if (keyPart instanceof SetLiteral) {
+                                keys.addAll(((SetLiteral) keyPart).literals());
+                            } else {
+                                keys.add(keyPart);
+                            }
                         }
                     }
+                    keyLiterals = Arrays.<Literal>asList(SetLiteral.fromLiterals(keyType, keys));
+                } else {
+                    // TODO: generate keyLiterals from bucket
+                    // if all buckets have partsFound == table.primaryKey().size()
                 }
-                keyLiterals = Arrays.<Literal>asList(SetLiteral.fromLiterals(keyType, keys));
-            } else {
-                // TODO: generate keyLiterals from bucket
-                // if all buckets have partsFound == table.primaryKey().size()
             }
         }
     }
