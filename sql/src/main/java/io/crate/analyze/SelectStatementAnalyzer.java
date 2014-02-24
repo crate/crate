@@ -26,6 +26,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.*;
+import org.cratedb.DataType;
 import org.cratedb.sql.SQLParseException;
 
 import java.util.ArrayList;
@@ -65,9 +66,12 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
     protected Symbol visitAllColumns(AllColumns node, SelectAnalysis context) {
         Symbol symbol;
         for (ReferenceInfo referenceInfo : context.table().columns()) {
-            symbol = context.allocateReference(referenceInfo.ident());
-            context.outputSymbols().add(symbol);
-            context.addAlias(referenceInfo.ident().columnIdent().name(), symbol);
+            // ignore NOT_SUPPORTED columns
+            if (referenceInfo.type() != DataType.NOT_SUPPORTED) {
+                symbol = context.allocateReference(referenceInfo.ident());
+                context.outputSymbols().add(symbol);
+                context.addAlias(referenceInfo.ident().columnIdent().name(), symbol);
+            }
         }
 
         return null;

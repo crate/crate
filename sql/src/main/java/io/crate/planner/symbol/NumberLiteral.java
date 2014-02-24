@@ -33,7 +33,7 @@ public abstract class NumberLiteral<ValueType extends Number, LiteralType> exten
                 convertedValue = value().longValue();
                 break;
             case INTEGER:
-                convertedValue = value().intValue();
+                convertedValue = value().longValue();
                 break;
             case DOUBLE:
                 convertedValue = value().doubleValue();
@@ -42,10 +42,10 @@ public abstract class NumberLiteral<ValueType extends Number, LiteralType> exten
                 convertedValue = value().floatValue();
                 break;
             case SHORT:
-                convertedValue = value().shortValue();
+                convertedValue = value().longValue();
                 break;
             case BYTE:
-                convertedValue = value().byteValue();
+                convertedValue = value().longValue();
                 break;
             case STRING:
                 convertedValue = value().toString();

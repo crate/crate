@@ -55,6 +55,16 @@ public class DataTypeVisitor extends SymbolVisitor<Void, DataType> {
     }
 
     @Override
+    public DataType visitByteLiteral(ByteLiteral symbol, Void context) {
+        return symbol.valueType();
+    }
+
+    @Override
+    public DataType visitShortLiteral(ShortLiteral symbol, Void context) {
+        return symbol.valueType();
+    }
+
+    @Override
     public DataType visitIntegerLiteral(IntegerLiteral symbol, Void context) {
         return symbol.valueType();
     }

@@ -92,12 +92,12 @@ public class ShardCollectService {
      * get a collector
      *
      * @param collectNode describes the collectOperation
-     * @param upStream    every returned collector should call {@link io.crate.operator.projectors.Projector#setNextRow(Object...)}
-     *                    on this upStream Projector if a row is produced.
+     * @param downStream    every returned collector should call {@link io.crate.operator.projectors.Projector#setNextRow(Object...)}
+     *                    on this downStream Projector if a row is produced.
      * @return collector wrapping different collect implementations, call {@link CrateCollector#doCollect()} to start
      * collecting with this collector
      */
-    public CrateCollector getCollector(CollectNode collectNode, Projector upStream) throws Exception {
+    public CrateCollector getCollector(CollectNode collectNode, Projector downStream) throws Exception {
 
         collectNode = collectNode.normalize(shardNormalizer);
 
@@ -113,11 +113,11 @@ public class ShardCollectService {
                         docCtx.topLevelInputs(),
                         docCtx.docLevelExpressions(),
                         querySource,
-                        upStream);
+                        downStream);
 
             } else if (granularity == RowGranularity.SHARD) {
                 ImplementationSymbolVisitor.Context shardCtx = shardInputSymbolVisitor.process(collectNode);
-                return new SimpleOneRowCollector(shardCtx.topLevelInputs(), shardCtx.collectExpressions(), upStream);
+                return new SimpleOneRowCollector(shardCtx.topLevelInputs(), shardCtx.collectExpressions(), downStream);
             }
             throw new CrateException(String.format("Granularity %s not supported", granularity.name()));
         }
