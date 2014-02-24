@@ -25,20 +25,23 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.UnknownUpstreamFailure;
 import io.crate.operator.operations.merge.DownstreamOperation;
 import org.cratedb.DataType;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import javax.annotation.Nullable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class DownstreamOperationContext {
+
+    private final ESLogger logger = Loggers.getLogger(getClass());
 
     private final AtomicInteger mergeOperationsLeft;
     private final DownstreamOperation downstreamOperation;
     private final SettableFuture<Object[][]> listener;
     private final DataType.Streamer<?>[] streamers;
     private final DistributedRequestContextManager.DoneCallback doneCallback;
-    private boolean canContinue = true;
+    private boolean needsMoreRows = true;
     private final Object lock = new Object();
-    private AtomicBoolean listenerSet = new AtomicBoolean(false);
 
     public DownstreamOperationContext(DownstreamOperation downstreamOperation,
                                       SettableFuture<Object[][]> listener,
@@ -51,29 +54,55 @@ public class DownstreamOperationContext {
         this.doneCallback = doneCallback;
     }
 
-    public void addFailure() {
-        if (!listenerSet.get()) {
-            listener.setException(new UnknownUpstreamFailure());
+    public void addFailure(@Nullable Throwable failure) {
+        boolean last = mergeOperationsLeft.decrementAndGet() == 0;
+        if (failure != null) {
+            logger.error("addFailure local", failure);
+        } else {
+            failure = new UnknownUpstreamFailure();
         }
-
-        if (mergeOperationsLeft.decrementAndGet() == 0) {
-            doneCallback.finished();
+        try {
+            boolean firstFailure = listener.setException(failure);
+            logger.trace("addFailure first: {}", firstFailure);
+        } finally {
+            if (last) {
+                doneCallback.finished();
+            }
         }
     }
 
     public void add(Object[][] rows) {
+        boolean last = mergeOperationsLeft.decrementAndGet() == 0;
+        assert rows != null;
+        logger.trace("add rows.size: {}", rows.length);
         synchronized (lock) {
-            if (canContinue) {
-                canContinue = downstreamOperation.addRows(rows);
+            if (needsMoreRows) {
+                try {
+                    needsMoreRows = downstreamOperation.addRows(rows);
+                } catch (Exception e) {
+                    logger.error("failed to add rows to downstreamOperation", e);
+                    listener.setException(e);
+                    if (last) {
+                        doneCallback.finished();
+                    }
+                }
             }
         }
-
-        if (mergeOperationsLeft.decrementAndGet() == 0) {
-            if (!listenerSet.get()) {
-                listener.set(downstreamOperation.result());
+        if (last) {
+            Object[][] downstreamResult = null;
+            try {
+                downstreamResult = downstreamOperation.result();
+            } catch (Exception e) {
+                logger.error("failed to get downstreamOperation result", e);
+                listener.setException(e);
+                doneCallback.finished();
+                return;
             }
+            assert downstreamResult != null;
+            listener.set(downstreamResult);
             doneCallback.finished();
         }
+
     }
 
     public DataType.Streamer<?>[] streamers() {

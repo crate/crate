@@ -85,6 +85,7 @@ public class TransportMergeNodeAction {
     }
 
     public void startMerge(String node, NodeMergeRequest request, ActionListener<NodeMergeResponse> listener) {
+        logger.trace("startMerge: {}", node);
         new AsyncMergeStartAction(node, request, listener).start();
     }
 
@@ -156,6 +157,7 @@ public class TransportMergeNodeAction {
 
         public void start() {
             if (nodeId.equals("_local") || nodeId.equals(clusterService.state().nodes().localNode().getId())) {
+                logger.trace("AsyncMergeStartAction.start local node: {} {}", this, nodeId);
                 threadPool.executor(executorName()).execute(new Runnable() {
                     @Override
                     public void run() {
@@ -163,20 +165,24 @@ public class TransportMergeNodeAction {
                             contextManager.createContext(request.mergeNode(), new ActionListener<NodeMergeResponse>() {
                                 @Override
                                 public void onResponse(NodeMergeResponse nodeMergeResponse) {
+                                    logger.trace("createContext.onRespnose", nodeId);
                                     listener.onResponse(nodeMergeResponse);
                                 }
 
                                 @Override
                                 public void onFailure(Throwable e) {
+                                    logger.trace("createContext.onFailure", nodeId);
                                     listener.onFailure(e);
                                 }
                             });
                         } catch (IOException e) {
+                            logger.error("createContext.catched local exception node: {}", nodeId, e);
                             listener.onFailure(e);
                         }
                     }
                 });
             } else {
+                logger.trace("AsyncMergeStartAction.start remote node: {} {}", this, nodeId);
                 transportService.sendRequest(
                         node,
                         startMergeAction,
@@ -189,11 +195,13 @@ public class TransportMergeNodeAction {
 
                             @Override
                             public void handleResponse(NodeMergeResponse response) {
+                                logger.trace("NodeMergeResponse.handleResponse: {}", nodeId);
                                 listener.onResponse(response);
                             }
 
                             @Override
                             public void handleException(TransportException exp) {
+                                logger.error("NodeMergeResponse.handleException {}", exp);
                                 listener.onFailure(exp);
                             }
 

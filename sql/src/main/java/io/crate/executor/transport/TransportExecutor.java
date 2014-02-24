@@ -162,7 +162,7 @@ public class TransportExecutor implements Executor {
                         new ImplementationSymbolVisitor(referenceResolver, functions, RowGranularity.CLUSTER),
                         node));
             } else {
-                context.addTask(new DistributedMergeTask(threadPool, transportMergeNodeAction, node));
+                context.addTask(new DistributedMergeTask(transportMergeNodeAction, node));
             }
 
             return null;
