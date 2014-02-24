@@ -189,7 +189,6 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testInsertObjectField() throws Exception {
 
         expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("line 1:33: mismatched input '[' expecting ')'");
 
         setUpObjectTable();
         execute("insert into test12 (object_field['size']) values (127)");

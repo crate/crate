@@ -21,6 +21,7 @@
 
 package org.cratedb.action.sql;
 
+import com.google.common.base.Objects;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -197,6 +198,9 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             stmt = sqlParseService.parse(request.stmt(), request.args());
         } catch (SQLParseException e) {
             listener.onFailure(e);
+            return;
+        } catch (UnsupportedOperationException e) {
+            listener.onFailure(Objects.firstNonNull(ex, e));
             return;
         }
 
