@@ -35,4 +35,9 @@ public class DeleteAnalysis extends Analysis {
     public Type type() {
         return Type.DELETE;
     }
+
+    @Override
+    public boolean hasNoResult() {
+        return noMatch();
+    }
 }

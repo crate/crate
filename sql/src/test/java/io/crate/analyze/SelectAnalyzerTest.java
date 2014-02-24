@@ -752,4 +752,28 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     }
 
 
+    @Test
+    public void testHasNoResult() {
+        Analysis analysis = analyze("select count(*) from users limit 1 offset 1");
+        assertTrue(analysis.hasNoResult());
+
+        analysis = analyze("select count(*) from users limit 5 offset 1");
+        assertTrue(analysis.hasNoResult());
+
+        analysis = analyze("select count(*) from users limit 1");
+        assertFalse(analysis.hasNoResult());
+
+        analysis = analyze("select count(*) from users limit 0");
+        assertTrue(analysis.hasNoResult());
+
+        analysis = analyze("select name from users limit 0");
+        assertTrue(analysis.hasNoResult());
+
+        analysis = analyze("select name from users where false");
+        assertTrue(analysis.hasNoResult());
+
+        analysis = analyze("select name from users limit 10 offset 10");
+        assertFalse(analysis.hasNoResult());
+    }
+
 }

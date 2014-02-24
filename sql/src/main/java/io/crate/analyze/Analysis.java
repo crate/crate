@@ -220,6 +220,10 @@ public abstract class Analysis {
         return whereClause().noMatch();
     }
 
+    public boolean hasNoResult() {
+        return false;
+    }
+
     public WhereClause whereClause(WhereClause whereClause) {
         this.whereClause = whereClause.normalize(normalizer);
         return this.whereClause;
