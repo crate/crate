@@ -31,6 +31,8 @@ public enum SymbolType {
     DOUBLE_LITERAL(DoubleLiteral.FACTORY),
     FLOAT_LITERAL(FloatLiteral.FACTORY),
     BOOLEAN_LITERAL(BooleanLiteral.FACTORY),
+    BYTE_LITERAL(ByteLiteral.FACTORY),
+    SHORT_LITERAL(ShortLiteral.FACTORY),
     INTEGER_LITERAL(IntegerLiteral.FACTORY),
     LONG_LITERAL(LongLiteral.FACTORY),
     NULL_LITERAL(Null.FACTORY),

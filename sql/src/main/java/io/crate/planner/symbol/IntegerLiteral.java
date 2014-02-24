@@ -20,8 +20,11 @@ public class IntegerLiteral extends NumberLiteral<Integer, IntegerLiteral> {
 
     IntegerLiteral() {}
 
-    public IntegerLiteral(int value) {
-        this.value = value;
+    public IntegerLiteral(long value) {
+        if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException(String.format("invalid integer literal %s", value));
+        }
+        this.value = (int)value;
     }
 
     @Override
