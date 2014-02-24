@@ -22,9 +22,12 @@
 package org.cratedb.service;
 
 import org.cratedb.SQLTransportIntegrationTest;
+import org.cratedb.action.sql.SQLAction;
+import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.node.internal.InternalNode;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
