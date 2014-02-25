@@ -47,11 +47,6 @@ public class Function extends ValueSymbol implements Cloneable {
     }
 
     @Override
-    public String humanReadableName() {
-        return String.format("%s(%s)", info.ident().name(), Joiner.on(", ").join(info.ident().argumentTypes()));
-    }
-
-    @Override
     public DataType valueType() {
         return info.returnType();
     }

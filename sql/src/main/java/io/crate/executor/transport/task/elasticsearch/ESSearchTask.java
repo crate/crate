@@ -28,10 +28,7 @@ import io.crate.executor.Task;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.node.ESSearchNode;
-import io.crate.planner.symbol.DynamicReference;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolVisitor;
+import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.sql.ExceptionHelper;
 import org.elasticsearch.action.ActionListener;
@@ -213,7 +210,7 @@ public class ESSearchTask implements Task<Object[][]> {
 
         @Override
         protected Void visitSymbol(Symbol symbol, Context context) {
-            throw new UnsupportedOperationException(String.format("Symbol %s not supported", symbol));
+            throw new UnsupportedOperationException(SymbolFormatter.format("Symbol %s not supported", symbol));
         }
     }
 

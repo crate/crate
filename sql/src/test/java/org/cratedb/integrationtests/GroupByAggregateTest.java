@@ -609,7 +609,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public void testGroupByUnknownResultColumn() throws Exception {
         this.setup.groupBySetup();
         expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("column 'lol' must appear in the GROUP BY clause or be used in an aggregation function");
+        expectedException.expectMessage("column 'characters.lol' must appear in the GROUP BY clause or be used in an aggregation function");
         execute("select lol from characters group by race");
     }
 
@@ -617,7 +617,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public void testGroupByUnknownGroupByColumn() throws Exception {
         this.setup.groupBySetup();
         expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("unknown column 'lol' not allowed in GROUP BY");
+        expectedException.expectMessage("unknown column 'characters.lol' not allowed in GROUP BY");
         execute("select max(birthdate) from characters group by lol");
     }
 

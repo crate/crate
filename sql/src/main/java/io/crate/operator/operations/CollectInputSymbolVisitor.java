@@ -26,6 +26,7 @@ import io.crate.operator.Input;
 import io.crate.operator.reference.DocLevelReferenceResolver;
 import io.crate.planner.symbol.DynamicReference;
 import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.SymbolFormatter;
 import org.cratedb.sql.CrateException;
 
 import java.util.ArrayList;
@@ -64,7 +65,7 @@ public class CollectInputSymbolVisitor<E extends Input<?>>
         // should have been resolved by other visitors already
         E docLevelExpression = referenceResolver.getImplementation(symbol.info());
         if (docLevelExpression == null) {
-            throw new CrateException(String.format("Cannot handle Reference %s", symbol.toString()));
+            throw new CrateException(SymbolFormatter.format("Cannot handle Reference %s", symbol));
         }
         context.docLevelExpressions.add(docLevelExpression);
         return docLevelExpression;

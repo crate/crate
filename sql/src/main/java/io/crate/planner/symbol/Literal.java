@@ -103,9 +103,4 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
     public int hashCode() {
         return Objects.hashCode(value());
     }
-
-    @Override
-    public String humanReadableName() {
-        return valueAsString();
-    }
 }

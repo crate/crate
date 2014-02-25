@@ -30,6 +30,7 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.node.ESDeleteByQueryNode;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.SymbolFormatter;
 import io.crate.planner.symbol.SymbolVisitor;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
@@ -111,7 +112,7 @@ public class ESDeleteByQueryTask implements Task<Object[][]> {
 
         @Override
         protected Void visitSymbol(Symbol symbol, Context context) {
-            throw new UnsupportedOperationException(String.format("Symbol %s not supported", symbol));
+            throw new UnsupportedOperationException(SymbolFormatter.format("Symbol %s not supported", symbol));
         }
     }
 }
