@@ -50,12 +50,10 @@ public class ESDeleteByQueryTask implements Task<Object[][]> {
     private final Visitor visitor = new Visitor();
 
     public ESDeleteByQueryTask(ESDeleteByQueryNode deleteByQueryNode,
-                               TransportDeleteByQueryAction transportDeleteByQueryAction,
-                               Functions functions,
-                               ReferenceResolver referenceResolver) {
+                               TransportDeleteByQueryAction transportDeleteByQueryAction) {
         this.deleteByQueryNode = deleteByQueryNode;
         this.transportDeleteByQueryAction = transportDeleteByQueryAction;
-        this.queryBuilder = new ESQueryBuilder(functions, referenceResolver);
+        this.queryBuilder = new ESQueryBuilder();
 
         result = SettableFuture.create();
         results = Arrays.<ListenableFuture<Object[][]>>asList(result);

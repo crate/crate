@@ -170,7 +170,7 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Void visitESSearchNode(ESSearchNode node, Job context) {
-            context.addTask(new ESSearchTask(node, transportSearchAction, functions, referenceResolver));
+            context.addTask(new ESSearchTask(node, transportSearchAction));
             return null;
         }
 
@@ -182,7 +182,7 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Void visitESDeleteByQueryNode(ESDeleteByQueryNode node, Job context) {
-            context.addTask(new ESDeleteByQueryTask(node, transportDeleteByQueryAction, functions, referenceResolver));
+            context.addTask(new ESDeleteByQueryTask(node, transportDeleteByQueryAction));
             return null;
         }
 
@@ -208,7 +208,7 @@ public class TransportExecutor implements Executor {
             if (node.primaryKeyValues().length == 1 && !node.version().isPresent()) {
                 context.addTask(new ESUpdateByIdTask(transportUpdateAction, node));
             } else {
-                context.addTask(new ESUpdateByQueryTask(transportSearchAction, node, functions, referenceResolver));
+                context.addTask(new ESUpdateByQueryTask(transportSearchAction, node));
             }
             return null;
         }

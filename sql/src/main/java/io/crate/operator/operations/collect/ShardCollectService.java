@@ -24,7 +24,6 @@ package io.crate.operator.operations.collect;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.elasticsearch.ESQueryBuilder;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceResolver;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.operator.collector.CrateCollector;
 import io.crate.operator.collector.LuceneDocCollector;
@@ -54,8 +53,6 @@ public class ShardCollectService {
     private final IndexService indexService;
     private final ScriptService scriptService;
     private final CacheRecycler cacheRecycler;
-    private final Functions functions;
-    private final ReferenceResolver referenceResolver;
     private final SQLXContentQueryParser sqlxContentQueryParser;
     private final ESQueryBuilder queryBuilder;
     private final ImplementationSymbolVisitor shardInputSymbolVisitor;
@@ -76,13 +73,11 @@ public class ShardCollectService {
         this.scriptService = scriptService;
         this.cacheRecycler = cacheRecycler;
         this.sqlxContentQueryParser = sqlxContentQueryParser;
-        this.functions = functions;
-        this.referenceResolver = referenceResolver;
         this.shardInputSymbolVisitor = new ImplementationSymbolVisitor(
                 referenceResolver, functions, RowGranularity.SHARD);
         this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(
                 functions, LuceneDocLevelReferenceResolver.INSTANCE);
-        this.queryBuilder = new ESQueryBuilder(functions, referenceResolver);
+        this.queryBuilder = new ESQueryBuilder();
         this.shardNormalizer = new EvaluatingNormalizer(functions, RowGranularity.SHARD, referenceResolver);
 
 

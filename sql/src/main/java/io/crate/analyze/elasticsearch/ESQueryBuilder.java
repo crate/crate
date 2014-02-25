@@ -24,16 +24,12 @@ package io.crate.analyze.elasticsearch;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.lucene.SQLToLuceneHelper;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceResolver;
 import io.crate.operator.operator.*;
 import io.crate.operator.predicate.IsNullPredicate;
 import io.crate.operator.predicate.NotPredicate;
 import io.crate.operator.scalar.MatchFunction;
-import io.crate.planner.RowGranularity;
 import io.crate.planner.node.ESDeleteByQueryNode;
 import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.node.ESUpdateNode;
@@ -48,21 +44,12 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import java.io.IOException;
 import java.util.*;
 
+/**
+ * ESQueryBuilder: Use to convert a whereClause to XContent or a ESSearchNode to XContent
+ */
 public class ESQueryBuilder {
 
-    private final EvaluatingNormalizer normalizer;
     private final static Visitor visitor = new Visitor();
-
-    /**
-     * Create a ESQueryBuilder to convert a whereClause to XContent or a ESSearchNode to XContent
-     *
-     * @param functions         needs to contain at least the Operator functions
-     * @param referenceResolver is only required if the outputs() of the ESSearchNode contains
-     *                          INFOS with CLUSTER RowGranularity.
-     */
-    public ESQueryBuilder(Functions functions, ReferenceResolver referenceResolver) {
-        normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
-    }
 
     /**
      * adds the "query" part to the XContentBuilder

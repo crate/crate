@@ -25,8 +25,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.elasticsearch.ESQueryBuilder;
 import io.crate.executor.Task;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.node.ESSearchNode;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
@@ -53,12 +51,10 @@ public class ESSearchTask implements Task<Object[][]> {
     private final Visitor visitor = new Visitor();
 
     public ESSearchTask(ESSearchNode searchNode,
-                        TransportSearchAction transportSearchAction,
-                        Functions functions,
-                        ReferenceResolver referenceResolver) {
+                        TransportSearchAction transportSearchAction) {
         this.searchNode = searchNode;
         this.transportSearchAction = transportSearchAction;
-        this.queryBuilder = new ESQueryBuilder(functions, referenceResolver);
+        this.queryBuilder = new ESQueryBuilder();
 
         result = SettableFuture.create();
         results = Arrays.<ListenableFuture<Object[][]>>asList(result);
