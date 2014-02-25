@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - use crate-admin 0.0.7
+
  - added missing state description in docs/sql/stats
 
 2014/02/25 0.23.1
