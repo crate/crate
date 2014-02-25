@@ -24,6 +24,8 @@ package io.crate.executor.task;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
@@ -76,58 +78,68 @@ public class LocalMergeTask implements Task<Object[][]> {
      */
     @Override
     public void start() {
-        if (upstreamResults != null) {
-            final MergeOperation mergeOperation = new MergeOperation(symbolVisitor, mergeNode);
-            final AtomicInteger countDown = new AtomicInteger(upstreamResults.size());
-            for (final ListenableFuture<Object[][]> upStreamResult : upstreamResults) {
-                upStreamResult.addListener(new Runnable() {
-                    @Override
-                    public void run() {
-                        boolean last = countDown.decrementAndGet() == 0;
-                        Object[][] rows;
-                        try {
-                            rows = upStreamResult.get();
-                            if (logger.isTraceEnabled()) {
-                                String result = Joiner.on(", ").join(Collections2.transform(Arrays.asList(rows),
-                                        new Function<Object[], String>() {
-                                            @Nullable
-                                            @Override
-                                            public String apply(@Nullable Object[] input) {
-                                                return Arrays.toString(input);
-                                            }
-                                        })
-                                );
-                                logger.trace(String.format("received result: %s", result));
-                            }
-                        } catch (Exception e) {
-                            logger.error("Failure getting upstream Result: ", e);
-                            result.setException(e.getCause());
-                            return;
+        if (upstreamResults == null) {
+            result.set(Constants.EMPTY_RESULT);
+            return;
+        }
+
+        final MergeOperation mergeOperation = new MergeOperation(symbolVisitor, mergeNode);
+        final AtomicInteger countDown = new AtomicInteger(upstreamResults.size());
+
+        for (final ListenableFuture<Object[][]> upstreamResult : upstreamResults) {
+            Futures.addCallback(upstreamResult, new FutureCallback<Object[][]>() {
+                @Override
+                public void onSuccess(@Nullable Object[][] rows) {
+                    assert rows != null;
+                    boolean last = countDown.decrementAndGet() == 0;
+
+                    traceLogResult(rows);
+
+                    try {
+                        synchronized (mergeOperation) {
+                            mergeOperation.addRows(rows);
                         }
+                    } catch (Exception ex) {
+                        result.setException(ex);
+                        logger.error("Failed to add rows", ex);
+                        return;
+                    }
+
+                    if (last) {
+                        Object[][] mergeResult;
                         try {
-                            mergeOperation.addRows(rows); // TODO: apply timeout
+                            mergeResult = mergeOperation.result();
                         } catch (Exception e) {
                             result.setException(e);
-                            logger.error("Failed to add rows", e);
+                            logger.error("Failed to get merge result", e);
                             return;
                         }
-                        if (last) {
-                            Object[][] mergeResult = null;
-                            try {
-                                mergeResult = mergeOperation.result();
-                            } catch (Exception e) {
-                                result.setException(e);
-                                logger.error("Failed to get merge result", e);
-                                return;
-                            }
-                            assert mergeResult != null;
-                            result.set(mergeResult);
-                        }
+
+                        assert mergeResult != null;
+                        result.set(mergeResult);
                     }
-                }, threadPool.executor(ThreadPool.Names.GENERIC));
-            }
-        } else {
-            result.set(Constants.EMPTY_RESULT);
+                }
+
+                @Override
+                public void onFailure(Throwable t) {
+                    result.setException(t);
+                }
+            }, threadPool.executor(ThreadPool.Names.GENERIC));
+        }
+    }
+
+    private void traceLogResult(Object[][] rows) {
+        if (logger.isTraceEnabled()) {
+            String result = Joiner.on(", ").join(Collections2.transform(Arrays.asList(rows),
+                new Function<Object[], String>() {
+                    @Nullable
+                    @Override
+                    public String apply(@Nullable Object[] input) {
+                        return Arrays.toString(input);
+                    }
+                })
+            );
+            logger.trace(String.format("received result: %s", result));
         }
     }
 
