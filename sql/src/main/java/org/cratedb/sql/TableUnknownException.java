@@ -28,12 +28,12 @@ public class TableUnknownException extends CrateException {
     private String tableName;
 
     public TableUnknownException(String tableName, Throwable e) {
-        super("Unknown table", e);
+        super(tableName, e);
         this.tableName = tableName;
     }
 
     public TableUnknownException(String tableName) {
-        super("Unknown table");
+        super(tableName);
         this.tableName = tableName;
     }
 
