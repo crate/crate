@@ -5,6 +5,15 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/02/25 0.23.1
+=================
+
+ - improved error handling and fixed an error that caused group by to hang
+   sometimes.
+
+ - added back support for parameter substitution for the LIMIT and OFFSET
+   clause
+
  - use crate-admin 0.0.4
 
 2014/02/24 0.23.0.Beta0

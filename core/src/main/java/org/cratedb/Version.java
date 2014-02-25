@@ -37,41 +37,6 @@ public class Version {
     // AA values below 50 are beta builds, and below 99 are RC builds, with 99 indicating a release
     // the (internal) format of the id is there so we can easily do after/before checks on the id
 
-    public static final int V_0_19_5_ID = /*00*/190599;
-    public static final Version V_0_19_5 = new Version(V_0_19_5_ID, false,
-            org.elasticsearch.Version.V_0_90_5);
-    public static final int V_0_19_6_ID = /*00*/190699;
-    public static final Version V_0_19_6 = new Version(V_0_19_6_ID, false,
-            org.elasticsearch.Version.V_0_90_5);
-    public static final int V_0_19_7_ID = /*00*/190799;
-    public static final Version V_0_19_7 = new Version(V_0_19_7_ID, false,
-            org.elasticsearch.Version.V_0_90_5);
-    public static final int V_0_19_8_ID = /*00*/190899;
-    public static final Version V_0_19_8 = new Version(V_0_19_8_ID, false,
-            org.elasticsearch.Version.V_0_90_5);
-    public static final int V_0_19_9_ID = /*00*/190999;
-    public static final Version V_0_19_9 = new Version(V_0_19_9_ID, false,
-        org.elasticsearch.Version.V_0_90_7);
-    public static final int V_0_19_10_ID = /*00*/191099;
-    public static final Version V_0_19_10 = new Version(V_0_19_10_ID, false,
-        org.elasticsearch.Version.V_0_90_7);
-
-    public static final int V_0_19_11_ID = /*00*/191199;
-    public static final Version V_0_19_11 = new Version(V_0_19_11_ID, false,
-        org.elasticsearch.Version.V_0_90_7);
-
-    public static final int V_0_19_12_ID = /*00*/191299;
-    public static final Version V_0_19_12 = new Version(V_0_19_12_ID, false,
-        org.elasticsearch.Version.V_0_90_7);
-
-    public static final int V_0_19_13_ID = /*00*/191399;
-    public static final Version V_0_19_13 = new Version(V_0_19_13_ID, false,
-            org.elasticsearch.Version.V_0_90_7);
-
-    public static final int V_0_19_14_ID = /*00*/191499;
-    public static final Version V_0_19_14 = new Version(V_0_19_14_ID, false,
-            org.elasticsearch.Version.V_0_90_7);
-
     public static final int V_0_20_00_ID = /*00*/200099;
     public static final Version V_0_20_00 = new Version(V_0_20_00_ID, false,
         org.elasticsearch.Version.V_0_90_7);
@@ -116,7 +81,11 @@ public class Version {
     public static final Version V_0_23_00 = new Version(V_0_23_00_ID, false,
             org.elasticsearch.Version.V_0_90_11);
 
-    public static final Version CURRENT = V_0_23_00;
+    public static final int V_0_23_01_ID = /*00*/230199;
+    public static final Version V_0_23_01 = new Version(V_0_23_01_ID, false,
+            org.elasticsearch.Version.V_0_90_11);
+
+    public static final Version CURRENT = V_0_23_01;
 
     static {
         assert CURRENT.esVersion == org.elasticsearch.Version.CURRENT : "Version must be " +
@@ -130,26 +99,6 @@ public class Version {
 
     public static Version fromId(int id) {
         switch (id) {
-            case V_0_19_5_ID:
-                return V_0_19_5;
-            case V_0_19_6_ID:
-                return V_0_19_6;
-            case V_0_19_7_ID:
-                return V_0_19_7;
-            case V_0_19_8_ID:
-                return V_0_19_8;
-            case V_0_19_9_ID:
-                return V_0_19_9;
-            case V_0_19_10_ID:
-                return V_0_19_10;
-            case V_0_19_11_ID:
-                return V_0_19_11;
-            case V_0_19_12_ID:
-                return V_0_19_12;
-            case V_0_19_13_ID:
-                return V_0_19_13;
-            case V_0_19_14_ID:
-                return V_0_19_14;
             case V_0_20_00_ID:
                 return V_0_20_00;
             case V_0_20_01_ID:
@@ -170,6 +119,8 @@ public class Version {
                 return V_0_22_01;
             case V_0_22_02_ID:
                 return V_0_22_02;
+            case V_0_23_00_ID:
+                return V_0_23_00;
             default:
                 return new Version(id, null, org.elasticsearch.Version.CURRENT);
         }
