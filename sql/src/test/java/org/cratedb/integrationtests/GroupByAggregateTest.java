@@ -82,11 +82,16 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public void selectGroupByAggregateMinFloat() throws Exception {
         this.setup.groupBySetup("float");
 
+        execute("select age, gender from characters order by gender");
+        System.out.println(printedTable(response.rows()));
+
         execute("select min(age), gender from characters group by gender order by gender");
-        assertEquals(2L, response.rowCount());
+        System.out.println(printedTable(response.rows()));
+
+        String expected = "32.0| female\n34.0| male\n";
+
         assertEquals("min(age)", response.cols()[0]);
-        assertEquals(32.0f, response.rows()[0][0]);
-        assertEquals(34.0f, response.rows()[1][0]);
+        assertEquals(expected, printedTable(response.rows()));
     }
 
     @Test
