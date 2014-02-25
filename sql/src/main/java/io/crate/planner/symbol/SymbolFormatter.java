@@ -33,16 +33,15 @@ import java.util.TreeMap;
 
 public class SymbolFormatter extends SymbolVisitor<Void, String> {
 
-    public static SymbolFormatter INSTANCE = new SymbolFormatter();
+    private static SymbolFormatter INSTANCE = new SymbolFormatter();
 
     private static Joiner argJoiner = Joiner.on(", ");
-    private static Joiner dotJoiner = Joiner.on(".");
 
     private SymbolFormatter() {}
 
     public static String format(String messageTmpl, Symbol ... symbols) {
         String[] formattedSymbols = new String[symbols.length];
-        for (int i = 0, length=symbols.length; i<length; i++) {
+        for (int i = 0; i < symbols.length; i++) {
             formattedSymbols[i] = symbols[i].accept(INSTANCE, null);
         }
         return String.format(Locale.ENGLISH, messageTmpl, formattedSymbols);

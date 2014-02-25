@@ -57,11 +57,7 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
     }
 
     public String valueAsString() {
-        if (value() == null) {
-            return "NULL";
-        } else {
-            return value().toString();
-        }
+        return value().toString();
     }
 
     public static Literal forValue(Object value) {
