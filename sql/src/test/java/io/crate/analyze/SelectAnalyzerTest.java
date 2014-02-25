@@ -44,11 +44,15 @@ import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.sql.AmbiguousAliasException;
 import org.cratedb.sql.SQLParseException;
+import org.cratedb.sql.UnsupportedFeatureException;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -776,4 +780,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertFalse(analysis.hasNoResult());
     }
 
+    @Test(expected = UnsupportedFeatureException.class)
+    public void testQueryRequiresScalar() throws Exception {
+        // only scalar functions are allowed on system tables because we have no lucene queries
+        analyze("select * from sys.shards where match(table_name, 'characters')");
+    }
 }

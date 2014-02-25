@@ -27,6 +27,7 @@ import java.util.Map;
 public abstract class Analysis {
 
     protected final EvaluatingNormalizer normalizer;
+    private boolean onlyScalarsAllowed;
 
     public static enum Type {
         SELECT,
@@ -96,7 +97,9 @@ public abstract class Analysis {
         if (tableInfo == null) {
             throw new TableUnknownException(tableIdent.name());
         }
+        // if we have a system schema, queries require scalar functions, since those are not using lucene
         schema = schemaInfo;
+        onlyScalarsAllowed = schemaInfo.systemSchema();
         table = tableInfo;
         updateRowGranularity(table.rowGranularity());
     }
@@ -197,14 +200,14 @@ public abstract class Analysis {
     }
 
     public Function allocateFunction(FunctionInfo info, List<Symbol> arguments) {
-        if (info.isAggregate()) {
-            hasAggregates = true;
-        }
         Function function = new Function(info, arguments);
         Function existing = functionSymbols.get(function);
         if (existing != null) {
             return existing;
         } else {
+            if (info.isAggregate()){
+                hasAggregates = true;
+            }
             functionSymbols.put(function, function);
         }
         return function;
@@ -387,6 +390,14 @@ public abstract class Analysis {
         normalizer.normalizeInplace(outputSymbols());
         if (whereClause().hasQuery()) {
             whereClause.normalize(normalizer);
+            if (onlyScalarsAllowed && whereClause().hasQuery()){
+                for (Function function : functionSymbols.keySet()) {
+                    if (!function.info().isAggregate() && !(functions.get(function.info().ident()) instanceof Scalar)){
+                        throw new UnsupportedFeatureException(
+                                "function not supported on system tables: " +  function.info().ident());
+                    }
+                }
+            }
         }
     }
 
