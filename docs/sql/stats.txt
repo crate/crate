@@ -123,22 +123,22 @@ Get info about the current load::
 Get info about memory statistics::
 
     cr> select mem['free'], mem['used'] from sys.nodes
-    +-------------+-------------+
+    +---------...-+---------...-+
     | mem['free'] | mem['used'] |
-    +-------------+-------------+
+    +---------...-+---------...-+
     | ...         | ...         |
-    +-------------+-------------+
+    +---------...-+---------...-+
     SELECT 1 row in set (... sec)
 
 
 Get info about file system statistics::
 
     cr> select fs['total'], fs['free'] from sys.nodes
-    +--------------+--------------+
+    +----------...-+----------...-+
     | fs['total']  | fs['free']   |
-    +--------------+--------------+
+    +----------...-+----------...-+
     | ...          | ...          |
-    +--------------+--------------+
+    +----------...-+----------...-+
     SELECT 1 row in set (... sec)
 
 Shards
@@ -178,8 +178,9 @@ The table schema is as follows:
 |                 | RECOVERING,                     |                   |
 |                 | POST_RECOVERY,                  |                   |
 |                 | STARTED,                        |                   |
-|                 | RELOCATED.                      |                   |
-|                 | CLOSED                          |                   |
+|                 | RELOCATED,                      |                   |
+|                 | CLOSED,                         |                   |
+|                 | UNASSIGNED                      |                   |
 +-----------------+---------------------------------+-------------------+
 
 For example, you can query shards like this::
