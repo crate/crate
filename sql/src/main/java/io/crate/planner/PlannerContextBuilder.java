@@ -26,6 +26,7 @@ import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
+import org.cratedb.sql.CrateException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -90,9 +91,11 @@ public class PlannerContextBuilder {
                     resolvedSymbol = new InputColumn(context.originalGroupBy.indexOf(splitSymbol));
                 } else if (splitSymbol.symbolType() == SymbolType.INPUT_COLUMN) {
                     resolvedSymbol = splitSymbol;
+                } else if(symbol.symbolType().isLiteral()){
+                    resolvedSymbol = symbol;
                 } else {
-                    assert false; // TODO: this case shouldn't happen? verify
-                    resolvedSymbol = context.allocateToCollect(symbol);
+                    throw new CrateException(
+                            "Unexpected result column symbol: " + symbol);
                 }
 
                 context.resolvedSymbols.put(symbol, resolvedSymbol);
