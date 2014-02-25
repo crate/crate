@@ -143,7 +143,7 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
                 return ((IntegerLiteral)symbol).value();
             default:
                 throw new IllegalArgumentException(String.format(
-                        "The parameter %s that was passed to %s has an invalid type", symbol, clauseName));
+                        "The parameter %s that was passed to %s has an invalid type", SymbolFormatter.format(symbol), clauseName));
         }
     }
 
@@ -173,7 +173,7 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
             }
             if (s.symbolType() == SymbolType.DYNAMIC_REFERENCE) {
                 throw new IllegalArgumentException(
-                        String.format("unknown column '%s' not allowed in GROUP BY", s.humanReadableName()));
+                        SymbolFormatter.format("unknown column '%s' not allowed in GROUP BY", s));
             } else if (s.symbolType() == SymbolType.FUNCTION && ((Function) s).info().isAggregate()) {
                 throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
             }
@@ -192,8 +192,8 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
                 aggregationSearcher.process(symbol, searcherContext);
                 if (!searcherContext.found) {
                     throw new IllegalArgumentException(
-                            String.format("column '%s' must appear in the GROUP BY clause or be used in an aggregation function",
-                                    symbol.humanReadableName()));
+                            SymbolFormatter.format("column '%s' must appear in the GROUP BY clause or be used in an aggregation function",
+                                    symbol));
                 }
             }
         }

@@ -111,7 +111,7 @@ public class DataTypeVisitor extends SymbolVisitor<Void, DataType> {
 
     @Override
     protected DataType visitSymbol(Symbol symbol, Void context) {
-        throw new UnsupportedOperationException("Unable to get DataType from symbol: " + symbol);
+        throw new UnsupportedOperationException(SymbolFormatter.format("Unable to get DataType from symbol: %s", symbol));
     }
 
 }

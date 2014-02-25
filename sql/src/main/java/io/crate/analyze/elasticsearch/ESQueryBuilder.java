@@ -443,7 +443,7 @@ public class ESQueryBuilder {
 
         private Void raiseUnsupported(Function function) {
             throw new UnsupportedOperationException(
-                    String.format("Cannot convert function <%s> into a query", function));
+                    SymbolFormatter.format("Cannot convert function <%s> into a query", function));
         }
     }
 }

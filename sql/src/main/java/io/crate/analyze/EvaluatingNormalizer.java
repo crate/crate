@@ -55,7 +55,7 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
         if (impl != null) {
             return impl.normalizeSymbol(function);
         }
-        logger.warn("No implementation found for function {}", function);
+        logger.warn(SymbolFormatter.format("No implementation found for function %s", function));
         return function;
     }
 
@@ -70,7 +70,7 @@ public class EvaluatingNormalizer extends SymbolVisitor<Void, Symbol> {
             return Literal.forType(symbol.info().type(), input.value());
         }
 
-        logger.warn("Can't resolve reference {}", symbol);
+        logger.warn(SymbolFormatter.format("Can't resolve reference %s", symbol));
         return symbol;
     }
 

@@ -72,11 +72,6 @@ public class Reference extends ValueSymbol {
     }
 
     @Override
-    public String humanReadableName() {
-        return info().ident().columnIdent().fqn();
-    }
-
-    @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitReference(this, context);
     }

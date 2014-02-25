@@ -443,7 +443,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testUnknownTypesSelectGroupBy() throws Exception {
         expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("unknown column 'location' not allowed in GROUP BY");
+        expectedException.expectMessage("unknown column 'ut.location' not allowed in GROUP BY");
 
         this.setup.setUpObjectMappingWithUnknownTypes();
         execute("select count(*) from ut group by location");

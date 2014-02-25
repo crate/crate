@@ -57,7 +57,11 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
     }
 
     public String valueAsString() {
-        return value().toString();
+        if (value() == null) {
+            return "NULL";
+        } else {
+            return value().toString();
+        }
     }
 
     public static Literal forValue(Object value) {
@@ -102,10 +106,5 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
     @Override
     public int hashCode() {
         return Objects.hashCode(value());
-    }
-
-    @Override
-    public String humanReadableName() {
-        return valueAsString();
     }
 }

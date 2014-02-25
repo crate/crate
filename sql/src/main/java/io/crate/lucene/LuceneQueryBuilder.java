@@ -233,7 +233,7 @@ public class LuceneQueryBuilder {
 
         private Query raiseUnsupported(Function function) {
             throw new UnsupportedOperationException(
-                    String.format("Cannot convert function <%s> into a query", function));
+                    SymbolFormatter.format("Cannot convert function %s into a query", function));
         }
 
 
@@ -266,7 +266,8 @@ public class LuceneQueryBuilder {
 
         @Override
         protected Query visitSymbol(Symbol symbol, Void context) {
-            throw new UnsupportedOperationException("Can't build query from symbol " + symbol);
+            throw new UnsupportedOperationException(
+                    SymbolFormatter.format("Can't build query from symbol %s", symbol));
         }
     }
 }
