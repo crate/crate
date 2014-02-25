@@ -21,7 +21,7 @@
 
 package org.cratedb.blob;
 
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.support.replication.TransportShardReplicationOperationAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
@@ -102,7 +102,7 @@ public class TransportStartBlobAction extends TransportShardReplicationOperation
     }
 
     @Override
-    protected ShardIterator shards(ClusterState clusterState, StartBlobRequest request) throws ElasticSearchException {
+    protected ShardIterator shards(ClusterState clusterState, StartBlobRequest request) throws ElasticsearchException {
         return clusterService.operationRouting()
                 .indexShards(clusterService.state(),
                         request.index(),

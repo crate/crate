@@ -21,30 +21,18 @@
 
 package org.cratedb.export;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Scorer;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.cratedb.action.export.ExportContext;
 import org.elasticsearch.common.text.StringAndBytesText;
 import org.elasticsearch.common.text.Text;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.fieldvisitor.CustomFieldsVisitor;
-import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
-import org.elasticsearch.index.fieldvisitor.JustUidFieldsVisitor;
-import org.elasticsearch.index.fieldvisitor.UidAndSourceFieldsVisitor;
+import org.elasticsearch.index.fieldvisitor.*;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.FieldMappers;
 import org.elasticsearch.index.mapper.internal.SourceFieldMapper;
@@ -53,7 +41,9 @@ import org.elasticsearch.search.fetch.FetchSubPhase;
 import org.elasticsearch.search.internal.InternalSearchHit;
 import org.elasticsearch.search.internal.InternalSearchHitField;
 
-import org.cratedb.action.export.ExportContext;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.*;
 
 import static com.google.common.collect.Lists.newArrayList;
 
@@ -67,7 +57,7 @@ public class ExportCollector extends Collector {
 
     private List<String> extractFieldNames;
     boolean sourceRequested;
-    private final ExportFields exportFields;
+    private ExportFields exportFields;
     private final OutputStream out;
     private AtomicReaderContext arc;
     private final FetchSubPhase[] fetchSubPhases;
@@ -120,11 +110,7 @@ public class ExportCollector extends Collector {
                 }
             }
             if (loadAllStored) {
-                if (sourceRequested || extractFieldNames != null) {
-                    fieldsVisitor = new CustomFieldsVisitor(true, true); // load everything, including _source
-                } else {
-                    fieldsVisitor = new CustomFieldsVisitor(true, false);
-                }
+                fieldsVisitor = new AllFieldsVisitor(); // load everything, including _source
             } else if (fieldNames != null) {
                 boolean loadSource = extractFieldNames != null || sourceRequested;
                 fieldsVisitor = new CustomFieldsVisitor(fieldNames, loadSource);
@@ -158,6 +144,7 @@ public class ExportCollector extends Collector {
     @Override
     public void collect(int doc) throws IOException {
         fieldsVisitor.reset();
+        exportFields = new ExportFields(context.fieldNames());
         currentReader.document(doc, fieldsVisitor);
 
         Map<String, SearchHitField> searchFields = null;
@@ -179,8 +166,10 @@ public class ExportCollector extends Collector {
 
         InternalSearchHit searchHit = new InternalSearchHit(doc,
                 fieldsVisitor.uid().id(), typeText,
-                sourceRequested ? fieldsVisitor.source() : null,
                 searchFields);
+        if(sourceRequested) {
+            searchHit.sourceRef(fieldsVisitor.source());
+        }
 
         for (FetchSubPhase fetchSubPhase : fetchSubPhases) {
             FetchSubPhase.HitContext hitContext = new FetchSubPhase.HitContext();

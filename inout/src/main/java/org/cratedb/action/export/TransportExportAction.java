@@ -24,6 +24,7 @@ package org.cratedb.action.export;
 import org.cratedb.action.export.parser.ExportParser;
 import org.cratedb.export.Exporter;
 import org.elasticsearch.cache.recycler.CacheRecycler;
+import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -43,9 +44,10 @@ public class TransportExportAction extends AbstractTransportExportAction {
     public TransportExportAction(Settings settings, ThreadPool threadPool, ClusterService clusterService,
                                  TransportService transportService, IndicesService indicesService,
                                  ScriptService scriptService, CacheRecycler cacheRecycler,
+                                 PageCacheRecycler pageRecycler,
                                  ExportParser exportParser, Exporter exporter, NodeEnvironment nodeEnv) {
         super(settings, threadPool, clusterService, transportService, indicesService, scriptService,
-            cacheRecycler, exportParser, exporter, nodeEnv);
+            cacheRecycler, pageRecycler, exportParser, exporter, nodeEnv);
     }
 
     @Override

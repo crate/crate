@@ -32,6 +32,8 @@ import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.mapper.FieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.indices.fielddata.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.fielddata.breaker.DummyCircuitBreakerService;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.internal.ShardSearchRequest;
 import org.junit.After;
@@ -51,9 +53,17 @@ public abstract class DocLevelExpressionsTest {
 
     @Before
     public void prepare() throws Exception {
-        ifd = new IndexFieldDataService(new Index("test"));
+        CircuitBreakerService circuitBreakerService = new DummyCircuitBreakerService();
+        ifd = new IndexFieldDataService(new Index("test"), circuitBreakerService);
 
-        IndexFieldData<?> fieldData = ifd.getForField(fieldName(), fieldType());
+        MapperService mapperService = mock(MapperService.class);
+        FieldMapper fieldMapper = mock(FieldMapper.class);
+        when(fieldMapper.names()).thenReturn(fieldName());
+        when(fieldMapper.fieldDataType()).thenReturn(fieldType());
+        when(mapperService.smartNameFieldMapper(anyString(), Matchers.<String[]>any())).thenReturn(fieldMapper);
+
+
+        IndexFieldData<?> fieldData = ifd.getForField(fieldMapper);
         writer = new IndexWriter(new RAMDirectory(),
                 new IndexWriterConfig(Lucene.VERSION, new StandardAnalyzer(Lucene.VERSION))
                         .setMergePolicy(new LogByteSizeMergePolicy()));
@@ -65,12 +75,6 @@ public abstract class DocLevelExpressionsTest {
 
         ShardSearchRequest request = new ShardSearchRequest();
         request.types(new String[]{Constants.DEFAULT_MAPPING_TYPE});
-
-        MapperService mapperService = mock(MapperService.class);
-        FieldMapper fieldMapper = mock(FieldMapper.class);
-        when(fieldMapper.names()).thenReturn(fieldName());
-        when(fieldMapper.fieldDataType()).thenReturn(fieldType());
-        when(mapperService.smartNameFieldMapper(anyString(), Matchers.<String[]>any())).thenReturn(fieldMapper);
 
         SearchContext searchContext = mock(SearchContext.class);
         when(searchContext.mapperService()).thenReturn(mapperService);

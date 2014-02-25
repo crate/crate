@@ -60,6 +60,8 @@ import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.engine.DocumentMissingException;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BaseTransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
@@ -289,7 +291,6 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             return ThreadPool.Names.SAME;
         }
     }
-
 
     private class CreateIndexResponseListener extends ESResponseToSQLResponseListener<CreateIndexResponse> {
 

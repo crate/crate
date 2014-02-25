@@ -27,7 +27,8 @@ import org.cratedb.index.IndexMetaDataExtractor;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.TableAliasSchemaException;
 import org.cratedb.sql.TableUnknownException;
-import org.elasticsearch.action.support.IgnoreIndices;
+import org.elasticsearch.action.support.IndicesOptions;
+
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Inject;
@@ -67,7 +68,7 @@ public class NodeExecutionContext {
         boolean tableIsAlias = false;
         try {
             concreteIndices = clusterService.state().metaData().concreteIndices(
-                    indices, IgnoreIndices.NONE, true
+                    indices, IndicesOptions.strict()
             );
         } catch (IndexMissingException ex) {
             throw new TableUnknownException(table, ex);

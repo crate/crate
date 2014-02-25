@@ -21,7 +21,7 @@
 
 package org.cratedb.common;
 
-import org.elasticsearch.ElasticSearchIllegalStateException;
+import org.elasticsearch.ElasticsearchIllegalStateException;
 
 public class Hex {
 
@@ -92,16 +92,16 @@ public class Hex {
         return new String(encodeHex(data));
     }
 
-    public static byte[] decodeHex(String data) throws ElasticSearchIllegalStateException {
+    public static byte[] decodeHex(String data) throws ElasticsearchIllegalStateException {
         return decodeHex(data.toCharArray());
     }
 
-    public static byte[] decodeHex(char[] data) throws ElasticSearchIllegalStateException {
+    public static byte[] decodeHex(char[] data) throws ElasticsearchIllegalStateException {
 
         int len = data.length;
 
         if ((len & 0x01) != 0) {
-            throw new ElasticSearchIllegalStateException("Odd number of characters.");
+            throw new ElasticsearchIllegalStateException("Odd number of characters.");
         }
 
         byte[] out = new byte[len >> 1];
@@ -118,10 +118,10 @@ public class Hex {
         return out;
     }
 
-    protected static int toDigit(char ch, int index) throws ElasticSearchIllegalStateException {
+    protected static int toDigit(char ch, int index) throws ElasticsearchIllegalStateException {
         int digit = Character.digit(ch, 16);
         if (digit == -1) {
-            throw new ElasticSearchIllegalStateException("Illegal hexadecimal character " + ch + " at index " + index);
+            throw new ElasticsearchIllegalStateException("Illegal hexadecimal character " + ch + " at index " + index);
         }
         return digit;
     }

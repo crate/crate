@@ -23,7 +23,7 @@ package org.cratedb.action.import_;
 
 import org.cratedb.action.import_.parser.IImportParser;
 import org.cratedb.import_.Importer;
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.support.nodes.TransportNodesOperationAction;
 import org.elasticsearch.cluster.ClusterName;
@@ -132,7 +132,7 @@ public abstract class AbstractTransportImportAction extends TransportNodesOperat
 
     @Override
     protected NodeImportResponse nodeOperation(NodeImportRequest request)
-            throws ElasticSearchException {
+            throws ElasticsearchException {
         ImportContext context = new ImportContext(nodePath, nodeEnvironment.nodeName(),
                 clusterName.value(), request.index());
 

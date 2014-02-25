@@ -24,7 +24,7 @@ package io.crate.metadata.doc;
 import io.crate.metadata.TableIdent;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.TableUnknownException;
-import org.elasticsearch.action.support.IgnoreIndices;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.indices.IndexMissingException;
@@ -49,7 +49,7 @@ public class DocTableInfoBuilder {
     public DocIndexMetaData docIndexMetaData() {
         DocIndexMetaData docIndexMetaData;
         try {
-            concreteIndices = metaData.concreteIndices(new String[]{ident.name()}, IgnoreIndices.NONE, true);
+            concreteIndices = metaData.concreteIndices(new String[]{ident.name()}, IndicesOptions.strict());
         } catch (IndexMissingException ex) {
             throw new TableUnknownException(ident.name(), ex);
         }

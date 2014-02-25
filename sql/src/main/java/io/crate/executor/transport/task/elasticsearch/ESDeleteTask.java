@@ -27,7 +27,6 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
 import io.crate.planner.node.ESDeleteNode;
 import org.cratedb.Constants;
-import org.cratedb.sql.VersionConflictException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
@@ -71,7 +70,7 @@ public class ESDeleteTask implements Task<Object[][]> {
 
         @Override
         public void onResponse(DeleteResponse response) {
-            if (response.isNotFound()) {
+            if (!response.isFound()) {
                 result.set(Constants.EMPTY_RESULT);
             } else {
                 result.set(new Object[][] { new Object[] {1L}});

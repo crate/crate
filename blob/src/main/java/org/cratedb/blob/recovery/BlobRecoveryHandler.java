@@ -26,7 +26,7 @@ import org.cratedb.blob.BlobTransferTarget;
 import org.cratedb.blob.v2.BlobIndices;
 import org.cratedb.blob.v2.BlobShard;
 import org.cratedb.common.Hex;
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
@@ -37,8 +37,11 @@ import org.elasticsearch.index.shard.service.InternalIndexShard;
 import org.elasticsearch.indices.recovery.*;
 import org.elasticsearch.transport.*;
 
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -100,7 +103,7 @@ public class BlobRecoveryHandler {
         try {
             syncVarFiles(lastException);
         } catch (InterruptedException ex) {
-            throw new ElasticSearchException("blob recovery phase1 failed", ex);
+            throw new ElasticsearchException("blob recovery phase1 failed", ex);
         }
 
         if (lastException.get() != null) {
@@ -136,7 +139,7 @@ public class BlobRecoveryHandler {
             stopWatch.totalTime());
     }
 
-    public void phase2() throws ElasticSearchException {
+    public void phase2() throws ElasticsearchException {
     }
 
     private void syncVarFiles(AtomicReference<Exception> lastException) throws InterruptedException {
@@ -184,7 +187,7 @@ public class BlobRecoveryHandler {
         ).txGet();
     }
 
-    public void phase3() throws ElasticSearchException {
+    public void phase3() throws ElasticsearchException {
     }
 
     private void sendFinalizeRecoveryRequest() {

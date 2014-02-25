@@ -106,7 +106,7 @@ public class DeleteBenchmark extends BenchmarkBase {
 
     public DeleteByQueryRequest getDeleteApiByQueryRequest() throws Exception {
 
-        return new DeleteByQueryRequest(INDEX_NAME).query(
+        return new DeleteByQueryRequest(INDEX_NAME).source(
                 XContentFactory.jsonBuilder()
                         .startObject()
                         .startObject("term")
@@ -121,7 +121,7 @@ public class DeleteBenchmark extends BenchmarkBase {
     public void testDeleteApiById() throws Exception {
         for (int i=0; i<NUM_REQUESTS_PER_TEST; i++) {
             DeleteResponse response = getClient(false).execute(DeleteAction.INSTANCE, getDeleteApiByIdRequest()).actionGet();
-            assertFalse(response.isNotFound());
+            assertTrue(response.isFound());
         }
     }
 

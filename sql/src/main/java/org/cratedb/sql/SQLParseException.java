@@ -21,7 +21,7 @@
 
 package org.cratedb.sql;
 
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.rest.RestStatus;
 
 public class SQLParseException extends CrateException {

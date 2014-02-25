@@ -21,11 +21,11 @@
 
 package org.cratedb.blob.pending_transfer;
 
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 
 import java.util.UUID;
 
-public class TransferRestoreException extends ElasticSearchException{
+public class TransferRestoreException extends ElasticsearchException {
 
     public UUID transferId;
 

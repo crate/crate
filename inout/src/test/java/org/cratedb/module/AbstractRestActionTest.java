@@ -21,18 +21,6 @@
 
 package org.cratedb.module;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.zip.GZIPInputStream;
-
-
 import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -44,6 +32,11 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.junit.After;
 import org.junit.Before;
 
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.zip.GZIPInputStream;
 
 import static org.cratedb.test.integration.PathAccessor.stringFromPath;
 
@@ -77,6 +70,7 @@ public abstract class AbstractRestActionTest extends CrateIntegrationTest {
 
     @After
     public void cleanUpSecondNode() throws Exception {
+        wipeIndices("_all");
         if (node2 != null) {
             cluster().stopNode(node2);
         }
@@ -100,7 +94,6 @@ public abstract class AbstractRestActionTest extends CrateIntegrationTest {
      */
     protected String setUpSecondNode() {
         node2 = cluster().startNode();
-        cluster().client(node2).admin().indices().prepareDelete().execute().actionGet();
         waitForRelocation(ClusterHealthStatus.GREEN);
         return node2;
     }

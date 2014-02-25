@@ -59,7 +59,7 @@ public class ExceptionHelper {
         } else if (e instanceof IndexAlreadyExistsException) {
             return new TableAlreadyExistsException(((IndexAlreadyExistsException)e).index().name(), e);
         } else if ((e instanceof InvalidIndexNameException)) {
-            if (e.getMessage().contains("an alias with the same name already exists")) {
+            if (e.getMessage().contains("already exists as alias")) {
                 // treat an alias like a table as aliases are not officially supported
                 return new TableAlreadyExistsException(((InvalidIndexNameException)e).index().getName(),
                         e);
@@ -71,7 +71,7 @@ public class ExceptionHelper {
             /**
              * For update or search requests we use upstream ES SearchRequests
              * These requests are executed using the transportSearchAction.
-             *
+             *e
              * The transportSearchAction (or the more specific QueryThenFetch/../ Action inside it
              * executes the TransportSQLAction.SearchResponseListener onResponse/onFailure
              * but adds its own error handling around it.
@@ -125,7 +125,7 @@ public class ExceptionHelper {
                     Constants.DEFAULT_MAPPING_TYPE,
                     "1", // dummy id since we cannot know it here, not used anywhere so its' ok
                     ex.getCurrentVersion(),
-                    true);
+                    false);
         }
         return deleteResponse;
     }

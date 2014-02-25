@@ -23,7 +23,7 @@ package org.cratedb.node;
 
 import junit.framework.TestCase;
 import org.cratedb.Constants;
-import org.elasticsearch.ElasticSearchIllegalArgumentException;
+import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -96,7 +96,7 @@ public class NodeSettingsTest extends TestCase {
     /**
      * Deleting all indexes must be deactivated by default
      */
-    @Test(expected = ElasticSearchIllegalArgumentException.class)
+    @Test(expected = ElasticsearchIllegalArgumentException.class)
     public void testDeleteAll() throws IOException {
         doSetup();
         client.admin().indices().prepareDelete().execute();

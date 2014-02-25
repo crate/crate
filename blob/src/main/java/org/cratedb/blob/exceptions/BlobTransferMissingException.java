@@ -21,9 +21,9 @@
 
 package org.cratedb.blob.exceptions;
 
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 
-public class BlobTransferMissingException extends ElasticSearchException {
+public class BlobTransferMissingException extends ElasticsearchException {
 
     public BlobTransferMissingException(long transferId) {
         super(Long.toString(transferId));

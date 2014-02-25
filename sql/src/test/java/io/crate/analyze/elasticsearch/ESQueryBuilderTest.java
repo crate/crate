@@ -259,7 +259,7 @@ public class ESQueryBuilderTest {
         BytesReference bytesReference = generator.convert(node, ImmutableList.<Reference>of());
 
         assertThat(bytesReference.toUtf8(),
-                is("{\"fields\":[],\"query\":{\"match_all\":{}},\"min_score\":0.4,\"from\":0,\"size\":10000}"));
+                is("{\"query\":{\"match_all\":{}},\"min_score\":0.4,\"from\":0,\"size\":10000}"));
     }
 
     @Test
@@ -276,7 +276,7 @@ public class ESQueryBuilderTest {
 
         BytesReference reference = generator.convert(searchNode, ImmutableList.<Reference>of(name_ref));
         String actual = reference.toUtf8();
-        assertThat(actual, is("{\"fields\":[\"name\"],\"query\":{\"term\":{\"name\":\"Marvin\"}},\"from\":0,\"size\":10000}"));
+        assertThat(actual, is("{\"_source\":[\"name\"],\"query\":{\"term\":{\"name\":\"Marvin\"}},\"from\":0,\"size\":10000}"));
     }
 
     @Test (expected = UnsupportedOperationException.class)
@@ -300,7 +300,7 @@ public class ESQueryBuilderTest {
 
         BytesReference reference = generator.convert(deleteByQueryNode);
         String actual = reference.toUtf8();
-        assertThat(actual, is("{\"term\":{\"name\":\"Marvin\"}}"));
+        assertThat(actual, is("{\"query\":{\"term\":{\"name\":\"Marvin\"}}}"));
 
     }
 }

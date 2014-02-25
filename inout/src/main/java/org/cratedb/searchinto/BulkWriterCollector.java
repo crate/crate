@@ -22,7 +22,7 @@
 package org.cratedb.searchinto;
 
 import org.cratedb.action.searchinto.SearchIntoContext;
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkProcessor;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -192,7 +192,7 @@ public class BulkWriterCollector extends WriterCollector {
         logger.debug("close()");
         try {
             bulkProcessor.close();
-        } catch (ElasticSearchException e) {
+        } catch (ElasticsearchException e) {
             closeClient();
             throw new WriterException(context,
                     "BulkListener interrupted on " + "close", e);

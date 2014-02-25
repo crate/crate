@@ -22,13 +22,12 @@
 package org.cratedb.blob;
 
 import org.cratedb.common.Hex;
-import org.elasticsearch.ElasticSearchIllegalArgumentException;
+import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.handler.codec.http.HttpResponseStatus;
 
 import java.util.UUID;
 
@@ -71,7 +70,7 @@ public class RemoteDigestBlob {
                 case 4:
                     return FAILED;
             }
-            throw new ElasticSearchIllegalArgumentException("No status match for [" + id + "]");
+            throw new ElasticsearchIllegalArgumentException("No status match for [" + id + "]");
 
         }
     }

@@ -55,12 +55,9 @@ public class DocTest extends DoctestTestCase {
                 .build();
 
         node1 = cluster().startNode(s1);
-        client(node1).admin().indices().prepareDelete().execute().actionGet();
         client(node1).admin().indices().prepareCreate("users").setSettings(
             ImmutableSettings.builder().loadFromClasspath("essetup/settings/test_b.json").build())
             .addMapping("d", stringFromPath("/essetup/mappings/test_b.json", getClass())).execute().actionGet();
-
-        waitForRelocation(ClusterHealthStatus.GREEN);
 
         loadBulk(client(node1), "/essetup/data/test_b.json", getClass());
         client(node1).admin().indices().prepareRefresh("users").execute().actionGet();
@@ -73,11 +70,13 @@ public class DocTest extends DoctestTestCase {
                 .put("index.number_of_replicas", 0)
                 .build();
         node2 = cluster().startNode(s2);
-        client(node2).admin().indices().prepareDelete().execute().actionGet();
+
+        waitForRelocation(ClusterHealthStatus.GREEN);
     }
 
     @After
     public void tearDownNodes() throws Exception {
+        client(node1).admin().indices().prepareDelete("users").execute().actionGet();
         cluster().stopNode(node1);
         cluster().stopNode(node2);
     }

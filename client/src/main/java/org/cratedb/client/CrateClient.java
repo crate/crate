@@ -23,7 +23,7 @@ package org.cratedb.client;
 
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.cluster.ClusterNameModule;
@@ -51,7 +51,7 @@ public class CrateClient {
 
 
     public CrateClient(Settings pSettings, boolean loadConfigSettings) throws
-            ElasticSearchException {
+            ElasticsearchException {
         ImmutableSettings.Builder settingsBuilder = settingsBuilder();
 
         Tuple<Settings, Environment> tuple = InternalSettingsPreparer.prepareSettings(

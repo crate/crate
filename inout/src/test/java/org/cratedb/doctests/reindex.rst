@@ -21,8 +21,7 @@ Create an index 'test' with a custom analyzer with the stop word 'guy'::
     ...                           "number_of_replicas":0,
     ...                           "analysis": {"analyzer": {"myan": {"type": "stop", "stopwords": ["guy"]}}}}}})
     {
-        "acknowledged": true, 
-        "ok": true
+        "acknowledged": true
     }
 
 Create the mapping for type 'a' and use the custom analyzer as index analyzer
@@ -30,8 +29,7 @@ and use a simple search analyzer::
 
     >>> ep.ppost("/test/a/_mapping", {"a": {"properties": {"name": {"type": "string", "index_analyzer": "myan", "search_analyzer": "simple", "store": "yes"}}}})
     {
-        "acknowledged": true, 
-        "ok": true
+        "acknowledged": true
     }
 
 Add a document::
@@ -39,14 +37,14 @@ Add a document::
     >>> ep.ppost("/test/a/1", {"name": "a nice guy"})
     {
         ...
-        "ok": true
+        "created": true
     }
 
     >>> ep.refresh()
 
 Querying for a non stop word term delivers a result::
 
-    >>> ep.ppost("/test/a/_search?pretty", {"query": {"text": {"name": "nice"}}})
+    >>> ep.ppost("/test/a/_search?pretty", {"query": {"match": {"name": "nice"}}})
     {
         ...
         "hits": {
@@ -58,7 +56,7 @@ Querying for a non stop word term delivers a result::
 
 Querying for a stop word delivers no results::
 
-    >>> ep.ppost("/test/a/_search?pretty", {"query": {"text": {"name": "guy"}}})
+    >>> ep.ppost("/test/a/_search?pretty", {"query": {"match": {"name": "guy"}}})
     {
         ...
         "hits": {
@@ -73,20 +71,17 @@ be closed first and then reopened::
 
     >>> ep.ppost("/test/_close", {})
     {
-        "acknowledged": true, 
-        "ok": true
+        "acknowledged": true
     }
 
     >>> ep.pput("/test/_settings", {"analysis": {"analyzer": {"myan": {"type": "stop", "stopwords": ["nice"]}}}})
     {
-        "acknowledged": true, 
-        "ok": true
+        "acknowledged": true
     }
 
     >>> ep.ppost("/test/_open", {})
     {
-        "acknowledged": true, 
-        "ok": true
+        "acknowledged": true
     }
 
     >>> ep.refresh()
@@ -94,7 +89,7 @@ be closed first and then reopened::
 As the index has not been reindexed yet, the query for 'nice' still delivers
 a result::
 
-    >>> ep.ppost("/test/a/_search?pretty", {"query": {"text": {"name": "nice"}}})
+    >>> ep.ppost("/test/a/_search?pretty", {"query": {"match": {"name": "nice"}}})
     {
         ...
         "hits": {
@@ -132,7 +127,7 @@ Now do a reindex on the index 'test'::
 
 No more result when querying for the new stop word 'nice'::
 
-    >>> ep.ppost("/test/a/_search?pretty", {"query": {"text": {"name": "nice"}}})
+    >>> ep.ppost("/test/a/_search?pretty", {"query": {"match": {"name": "nice"}}})
     {
         ...
         "hits": {
@@ -144,7 +139,7 @@ No more result when querying for the new stop word 'nice'::
 
 The removed stop word 'guy' now delivers a result::
 
-    >>> ep.ppost("/test/a/_search?pretty", {"query": {"text": {"name": "guy"}}})
+    >>> ep.ppost("/test/a/_search?pretty", {"query": {"match": {"name": "guy"}}})
     {
         ...
         "hits": {

@@ -39,6 +39,7 @@ import io.crate.planner.node.CollectNode;
 import org.cratedb.action.SQLXContentQueryParser;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.cache.recycler.CacheRecycler;
+import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
@@ -54,6 +55,7 @@ public class ShardCollectService {
     private final IndexService indexService;
     private final ScriptService scriptService;
     private final CacheRecycler cacheRecycler;
+    private final PageCacheRecycler pageCacheRecycler;
     private final Functions functions;
     private final ReferenceResolver referenceResolver;
     private final SQLXContentQueryParser sqlxContentQueryParser;
@@ -67,6 +69,7 @@ public class ShardCollectService {
                                IndexService indexService,
                                ScriptService scriptService,
                                CacheRecycler cacheRecycler,
+                               PageCacheRecycler pageCacheRecycler,
                                SQLXContentQueryParser sqlxContentQueryParser,
                                Functions functions,
                                ShardReferenceResolver referenceResolver) {
@@ -75,6 +78,7 @@ public class ShardCollectService {
         this.indexService = indexService;
         this.scriptService = scriptService;
         this.cacheRecycler = cacheRecycler;
+        this.pageCacheRecycler = pageCacheRecycler;
         this.sqlxContentQueryParser = sqlxContentQueryParser;
         this.functions = functions;
         this.referenceResolver = referenceResolver;
@@ -109,7 +113,7 @@ public class ShardCollectService {
                 CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.process(collectNode);
                 BytesReference querySource = queryBuilder.convert(collectNode.whereClause());
                 return new LuceneDocCollector(clusterService, shardId, indexService,
-                        scriptService, cacheRecycler, sqlxContentQueryParser,
+                        scriptService, cacheRecycler, pageCacheRecycler,sqlxContentQueryParser,
                         docCtx.topLevelInputs(),
                         docCtx.docLevelExpressions(),
                         querySource,

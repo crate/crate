@@ -30,6 +30,7 @@ import org.apache.lucene.search.*;
 import org.cratedb.Constants;
 import org.cratedb.action.SQLXContentQueryParser;
 import org.elasticsearch.cache.recycler.CacheRecycler;
+import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.index.service.IndexService;
@@ -37,6 +38,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.SearchShardTarget;
+import org.elasticsearch.search.internal.DefaultSearchContext;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.internal.ShardSearchRequest;
 
@@ -58,6 +60,7 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
                               IndexService indexService,
                               ScriptService scriptService,
                               CacheRecycler cacheRecycler,
+                              PageCacheRecycler pageCacheRecycler,
                               SQLXContentQueryParser sqlxContentQueryParser,
                               List<Input<?>> inputs,
                               List<LuceneCollectorExpression<?>> collectorExpressions,
@@ -74,13 +77,14 @@ public class LuceneDocCollector extends Collector implements CrateCollector {
         shardSearchRequest.types(new String[]{Constants.DEFAULT_MAPPING_TYPE});
         shardSearchRequest.source(querySource);
         IndexShard indexShard = indexService.shardSafe(shardId.id());
-        searchContext = new SearchContext(0, shardSearchRequest,
+        searchContext = new DefaultSearchContext(0, shardSearchRequest,
                 searchShardTarget,
                 indexShard.acquireSearcher("search"),
                 indexService,
                 indexShard,
                 scriptService,
-                cacheRecycler
+                cacheRecycler,
+                pageCacheRecycler
         );
         sqlxContentQueryParser.parse(searchContext, querySource);
     }

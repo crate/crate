@@ -23,7 +23,7 @@ package org.cratedb.blob.stats;
 
 import org.cratedb.blob.v2.BlobIndices;
 import org.cratedb.blob.v2.BlobShard;
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.broadcast.BroadcastShardOperationFailedException;
@@ -121,7 +121,7 @@ public class TransportBlobStatsAction extends
     }
 
     @Override
-    protected BlobStatsShardResponse shardOperation(BlobStatsShardRequest request) throws ElasticSearchException {
+    protected BlobStatsShardResponse shardOperation(BlobStatsShardRequest request) throws ElasticsearchException {
         BlobShard blobShard = blobIndicesService.blobShardSafe(request.index(), request.shardId());
         return new BlobStatsShardResponse(request.index(), request.shardId(), blobShard.blobStats(),
             blobShard.shardRouting());

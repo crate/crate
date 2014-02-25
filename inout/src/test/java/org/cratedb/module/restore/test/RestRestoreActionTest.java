@@ -55,10 +55,9 @@ public class RestRestoreActionTest extends AbstractRestActionTest {
     @Test
     public void testRestoreDumpedData() throws Exception {
         deleteDefaultDir();
+        deleteAll();
         setUpSecondNode();
         // create sample data
-        deleteAll();
-
         prepareCreate("users").setSettings(
             ImmutableSettings.builder().loadFromClasspath("essetup/settings/test_b.json").build()
         ).addMapping("d", stringFromPath("/essetup/mappings/test_b.json", getClass())).execute().actionGet();
@@ -88,9 +87,9 @@ public class RestRestoreActionTest extends AbstractRestActionTest {
         assertTrue(existsWithField("1", "name", "item1", "users", "d"));
         assertTrue(existsWithField("2", "name", "item2", "users", "d"));
 
-        ClusterStateRequest clusterStateRequest = Requests.clusterStateRequest().filteredIndices("users");
+        ClusterStateRequest clusterStateRequest = Requests.clusterStateRequest().metaData(true).indices("users");
         IndexMetaData metaData = client().admin().cluster().state(clusterStateRequest).actionGet().getState().metaData().index("users");
-        assertEquals("{\"d\":{\"properties\":{\"name\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"store\":true,\"norms\":{\"enabled\":false},\"index_options\":\"docs\"}}}}",
+        assertEquals("{\"d\":{\"properties\":{\"name\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"store\":true}}}}",
                 metaData.mappings().get("d").source().toString());
         assertEquals(2, metaData.numberOfShards());
         assertEquals(0, metaData.numberOfReplicas());
