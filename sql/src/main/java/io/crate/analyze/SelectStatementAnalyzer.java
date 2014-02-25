@@ -133,17 +133,17 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
     }
 
     private Integer extractIntegerFromNode(Expression expression, String clauseName, SelectAnalysis context) {
-        Symbol limitSymbol = process(expression, context);
-        assert limitSymbol.symbolType().isLiteral(); // due to parser this must be a parameterNode or integer
-        switch (limitSymbol.symbolType()) {
+        Symbol symbol = process(expression, context);
+        assert symbol.symbolType().isLiteral(); // due to parser this must be a parameterNode or integer
+        switch (symbol.symbolType()) {
             case LONG_LITERAL:
-                return ((LongLiteral)limitSymbol).value().intValue();
+                return ((LongLiteral)symbol).value().intValue();
             case INTEGER_LITERAL:
-                assert limitSymbol instanceof IntegerLiteral;
-                return ((IntegerLiteral)limitSymbol).value();
+                assert symbol instanceof IntegerLiteral;
+                return ((IntegerLiteral)symbol).value();
             default:
                 throw new IllegalArgumentException(String.format(
-                        "The parameter %s that was passed to %s has an invalid type", limitSymbol, clauseName));
+                        "The parameter %s that was passed to %s has an invalid type", symbol, clauseName));
         }
     }
 
