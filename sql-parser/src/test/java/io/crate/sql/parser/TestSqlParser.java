@@ -90,11 +90,11 @@ public class TestSqlParser
                                 ImmutableList.<Expression>of(),
                                 Optional.<Expression>absent(),
                                 ImmutableList.<SortItem>of(),
-                                Optional.<String>absent(),
-                                Optional.<String>absent()),
+                                Optional.<Expression>absent(),
+                                Optional.<Expression>absent()),
                         ImmutableList.<SortItem>of(),
-                        Optional.<String>absent(),
-                        Optional.<String>absent()));
+                        Optional.<Expression>absent(),
+                        Optional.<Expression>absent()));
     }
 
     @Test(expectedExceptions = ParsingException.class, expectedExceptionsMessageRegExp = "line 1:1: no viable alternative at input '<EOF>'")

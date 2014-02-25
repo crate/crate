@@ -785,4 +785,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         // only scalar functions are allowed on system tables because we have no lucene queries
         analyze("select * from sys.shards where match(table_name, 'characters')");
     }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void testLimitWithWrongArgument() throws Exception {
+        analyze("select * from sys.shards limit ?", new Object[] { "invalid" });
+    }
 }

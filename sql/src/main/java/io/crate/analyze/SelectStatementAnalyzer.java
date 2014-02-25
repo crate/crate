@@ -25,6 +25,7 @@ import com.google.common.base.Preconditions;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.LongLiteral;
 import io.crate.sql.tree.*;
 import org.cratedb.DataType;
 import org.cratedb.sql.SQLParseException;
@@ -98,13 +99,11 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
         }
         process(node.getFrom().get(0), context);
 
-        // the parsers sql grammer makes sure that only a integer matches after limit/offset so
-        // parseInt can't fail here.
         if (node.getLimit().isPresent()) {
-            context.limit(Integer.parseInt(node.getLimit().get()));
+            context.limit(extractIntegerFromNode(node.getLimit().get(), "limit", context));
         }
         if (node.getOffset().isPresent()) {
-            context.offset(Integer.parseInt(node.getOffset().get()));
+            context.offset(extractIntegerFromNode(node.getOffset().get(), "offset", context));
         }
 
         if (node.getWhere().isPresent()) {
@@ -131,6 +130,21 @@ public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
             context.sortSymbols(sortSymbols);
         }
         return null;
+    }
+
+    private Integer extractIntegerFromNode(Expression expression, String clauseName, SelectAnalysis context) {
+        Symbol symbol = process(expression, context);
+        assert symbol.symbolType().isLiteral(); // due to parser this must be a parameterNode or integer
+        switch (symbol.symbolType()) {
+            case LONG_LITERAL:
+                return ((LongLiteral)symbol).value().intValue();
+            case INTEGER_LITERAL:
+                assert symbol instanceof IntegerLiteral;
+                return ((IntegerLiteral)symbol).value();
+            default:
+                throw new IllegalArgumentException(String.format(
+                        "The parameter %s that was passed to %s has an invalid type", symbol, clauseName));
+        }
     }
 
 
