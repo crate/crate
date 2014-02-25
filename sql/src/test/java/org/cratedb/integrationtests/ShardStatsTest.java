@@ -46,8 +46,8 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     @Override
     public Settings indexSettings() {
         return ImmutableSettings.builder()
-            .put("number_of_replicas", 1)
-            .put("number_of_shards", 5).build();
+                .put("number_of_replicas", 1)
+                .put("number_of_shards", 5).build();
     }
 
     @Rule
@@ -63,7 +63,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     }
 
     @Before
-    public void initTestData() throws Exception{
+    public void initTestData() throws Exception {
         setup.groupBySetup();
         execute("create table quotes (id integer primary key, quote string) replicas 1");
         ensureGreen();
@@ -140,11 +140,9 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
         assertEquals(7, response.cols().length);
     }
 
-    @Test
+    @Test(expected = UnsupportedFeatureException.class)
     public void testSelectStarMatch() throws Exception {
         execute("select * from sys.shards where match(table_name, 'characters')");
-        assertEquals(10L, response.rowCount());
-        assertEquals(7, response.cols().length);
     }
 
     @Test
@@ -193,7 +191,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
                 "group by state order by state desc");
         assertThat(response.rowCount(), greaterThanOrEqualTo(2L));
         assertEquals(2, response.cols().length);
-        assertThat((Long)response.rows()[0][0], greaterThanOrEqualTo(5L));
+        assertThat((Long) response.rows()[0][0], greaterThanOrEqualTo(5L));
         assertEquals("UNASSIGNED", response.rows()[0][1]);
     }
 

@@ -30,6 +30,9 @@ import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
 import org.elasticsearch.common.inject.Inject;
 
+/**
+ * The match function is oly used to generate lucene queries from.
+  */
 public class MatchFunction implements FunctionImplementation<Function> {
 
     public static final String NAME = "match";
