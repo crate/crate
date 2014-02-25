@@ -226,6 +226,7 @@ public class DigestBlob {
             FileOutputStream outputStream = new FileOutputStream(digestBlob.file, true);
             digestBlob.fileChannel = outputStream.getChannel();
         } catch (IOException ex) {
+            logger.error("error resuming transfer of {}, id: {}", ex, digest, transferId);
             return null;
         }
 

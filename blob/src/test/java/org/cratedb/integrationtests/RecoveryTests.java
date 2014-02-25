@@ -41,7 +41,6 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.shard.ShardId;
-import org.junit.After;
 import org.junit.Test;
 
 import java.security.MessageDigest;
