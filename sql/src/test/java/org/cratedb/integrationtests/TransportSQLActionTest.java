@@ -1727,7 +1727,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         // generated using sqlalchemy
         // session.query(func.count('*')).filter(Test.name == 'foo').scalar()
 
-        execute("create table test (col1 integer primary key, col2 string)");
+        execute("create table test (col1 integer primary key, col2 string) replicas 0");
+        ensureGreen();
         execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
         execute("insert into test values (?, ?)", new Object[]{2, "bar"});
         refresh();
@@ -1744,7 +1745,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         // generated using sqlalchemy
         // session.query(Test.col1).filter(Test.col2 == 'foo').scalar()
 
-        execute("create table test (col1 integer primary key, col2 string)");
+        execute("create table test (col1 integer primary key, col2 string) replicas 0");
+        ensureGreen();
         execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
         execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
         refresh();
@@ -1761,7 +1763,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         // generated using sqlalchemy
         // session.query(func.count('*'), Test.col2).group_by(Test.col2).order_by(desc(func.count('*'))).all()
 
-        execute("create table test (col1 integer primary key, col2 string)");
+        execute("create table test (col1 integer primary key, col2 string) replicas 0");
+        ensureGreen();
         execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
         execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
         execute("insert into test values (?, ?)", new Object[]{3, "foo"});
@@ -1782,7 +1785,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         // session.query(func.count(Test.col1), Test.col2).group_by(Test.col2).order_by(desc(func.count(Test.col1))).all()
 
 
-        execute("create table test (col1 integer primary key, col2 string)");
+        execute("create table test (col1 integer primary key, col2 string) replicas 0");
+        ensureGreen();
         execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
         execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
         execute("insert into test values (?, ?)", new Object[] { 3, "foo" });
@@ -1926,7 +1930,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select * from test where col1 = 1");
         assertEquals(0, response.rowCount());
-
     }
 
     @Test
