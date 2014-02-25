@@ -23,8 +23,6 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.elasticsearch.ESQueryBuilder;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.node.ESUpdateNode;
 import org.cratedb.Constants;
 import org.cratedb.sql.facet.InternalSQLFacet;
@@ -63,13 +61,10 @@ public class ESUpdateByQueryTask extends AbstractESUpdateTask {
     private final SearchRequest request;
     private final ESQueryBuilder queryBuilder;
 
-    public ESUpdateByQueryTask(TransportSearchAction transport,
-                               ESUpdateNode node,
-                               Functions functions,
-                               ReferenceResolver referenceResolver) {
+    public ESUpdateByQueryTask(TransportSearchAction transport, ESUpdateNode node) {
         super(node);
         this.transport = transport;
-        this.queryBuilder = new ESQueryBuilder(functions, referenceResolver);
+        this.queryBuilder = new ESQueryBuilder();
 
         this.request = buildRequest(node);
         this.listener = new UpdateByQueryResponseListener(result);
