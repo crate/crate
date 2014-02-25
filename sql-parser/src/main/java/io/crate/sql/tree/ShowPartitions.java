@@ -35,10 +35,14 @@ public class ShowPartitions
     private final QualifiedName table;
     private final Optional<Expression> where;
     private final List<SortItem> orderBy;
-    private final Optional<String> limit;
-    private final Optional<String> offset;
+    private final Optional<Expression> limit;
+    private final Optional<Expression> offset;
 
-    public ShowPartitions(QualifiedName table, Optional<Expression> where, List<SortItem> orderBy, Optional<String> limit, Optional<String> offset)
+    public ShowPartitions(QualifiedName table,
+                          Optional<Expression> where,
+                          List<SortItem> orderBy,
+                          Optional<Expression> limit,
+                          Optional<Expression> offset)
     {
         this.table = checkNotNull(table, "table is null");
         this.where = checkNotNull(where, "where is null");
@@ -62,12 +66,12 @@ public class ShowPartitions
         return orderBy;
     }
 
-    public Optional<String> getLimit()
+    public Optional<Expression> getLimit()
     {
         return limit;
     }
 
-    public Optional<String> getOffset()
+    public Optional<Expression> getOffset()
     {
         return offset;
     }

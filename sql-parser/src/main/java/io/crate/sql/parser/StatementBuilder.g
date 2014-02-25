@@ -150,11 +150,11 @@ restrictedSelectStmt returns [Query value]
                 ImmutableList.<Expression>of(),
                 Optional.<Expression>absent(),
                 ImmutableList.<SortItem>of(),
-                Optional.<String>absent(),
-                Optional.<String>absent()),
+                Optional.<Expression>absent(),
+                Optional.<Expression>absent()),
             ImmutableList.<SortItem>of(),
-            Optional.<String>absent(),
-            Optional.<String>absent());
+            Optional.<Expression>absent(),
+            Optional.<Expression>absent());
         }
     ;
 
@@ -231,12 +231,14 @@ nullOrdering returns [SortItem.NullOrdering value]
     |       { $value = SortItem.NullOrdering.UNDEFINED; }
     ;
 
-limitClause returns [String value]
-    : ^(LIMIT integer) { $value = $integer.value; }
+limitClause returns [Expression value]
+    : ^(LIMIT integer) { $value = new LongLiteral($integer.value); }
+    | ^(LIMIT parameterExpr) { $value = $parameterExpr.value; }
     ;
 
-offsetClause returns [String value]
-    : ^(OFFSET integer) { $value = $integer.value; }
+offsetClause returns [Expression value]
+    : ^(OFFSET integer) { $value = new LongLiteral($integer.value); }
+    | ^(OFFSET parameterExpr) { $value = $parameterExpr.value; }
     ;
 
 sampleType returns [SampledRelation.Type value]

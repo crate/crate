@@ -1535,7 +1535,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testCountWithGroupByOrderOnAggAscFuncAndLimit() throws Exception {
         this.setup.groupBySetup();
 
-        execute("select count(*), race from characters group by race order by count(*) asc limit 2");
+        execute("select count(*), race from characters group by race order by count(*) asc limit ?",
+                new Object[] { 2 });
 
         assertEquals(2, response.rowCount());
         assertEquals(1L, response.rows()[0][0]);

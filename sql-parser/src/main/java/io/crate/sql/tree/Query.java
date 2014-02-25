@@ -34,15 +34,15 @@ public class Query
     private final Optional<With> with;
     private final QueryBody queryBody;
     private final List<SortItem> orderBy;
-    private final Optional<String> limit;
-    private final Optional<String> offset;
+    private final Optional<Expression> limit;
+    private final Optional<Expression> offset;
 
     public Query(
             Optional<With> with,
             QueryBody queryBody,
             List<SortItem> orderBy,
-            Optional<String> limit,
-            Optional<String> offset)
+            Optional<Expression> limit,
+            Optional<Expression> offset)
     {
         checkNotNull(with, "with is null");
         checkNotNull(queryBody, "queryBody is null");
@@ -72,12 +72,12 @@ public class Query
         return orderBy;
     }
 
-    public Optional<String> getLimit()
+    public Optional<Expression> getLimit()
     {
         return limit;
     }
 
-    public Optional<String> getOffset()
+    public Optional<Expression> getOffset()
     {
         return offset;
     }

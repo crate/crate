@@ -39,8 +39,8 @@ public class QuerySpecification
     private final List<Expression> groupBy;
     private final Optional<Expression> having;
     private final List<SortItem> orderBy;
-    private final Optional<String> limit;
-    private final Optional<String> offset;
+    private final Optional<Expression> limit;
+    private final Optional<Expression> offset;
 
     public QuerySpecification(
             Select select,
@@ -49,8 +49,8 @@ public class QuerySpecification
             List<Expression> groupBy,
             Optional<Expression> having,
             List<SortItem> orderBy,
-            Optional<String> limit,
-            Optional<String> offset)
+            Optional<Expression> limit,
+            Optional<Expression> offset)
     {
         checkNotNull(select, "select is null");
         checkNotNull(where, "where is null");
@@ -100,12 +100,12 @@ public class QuerySpecification
         return orderBy;
     }
 
-    public Optional<String> getLimit()
+    public Optional<Expression> getLimit()
     {
         return limit;
     }
 
-    public Optional<String> getOffset()
+    public Optional<Expression> getOffset()
     {
         return offset;
     }

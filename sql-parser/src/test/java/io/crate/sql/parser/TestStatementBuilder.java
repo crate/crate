@@ -169,6 +169,12 @@ public class TestStatementBuilder
     }
 
     @Test
+    public void testParameterExpressionLimitOffset() throws Exception {
+        // ORMs like SQLAlchemy generate these kind of queries.
+        printStatement("select * from foo limit ? offset ?");
+    }
+
+    @Test
     public void testCaseSensitivity() throws Exception {
         Expression expression = SqlParser.createExpression("\"firstName\" = 'myName'");
         QualifiedNameReference nameRef = (QualifiedNameReference)((ComparisonExpression)expression).getLeft();

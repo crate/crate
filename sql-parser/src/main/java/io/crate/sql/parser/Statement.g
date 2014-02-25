@@ -259,10 +259,12 @@ orderClause
 
 limitClause
     : LIMIT integer -> ^(LIMIT integer)
+    | LIMIT parameterExpr -> ^(LIMIT parameterExpr)
     ;
 
 offsetClause
     : OFFSET integer -> ^(OFFSET integer)
+    | OFFSET parameterExpr -> ^(OFFSET parameterExpr)
     ;
 
 withList
