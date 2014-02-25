@@ -54,6 +54,7 @@ public class LocalMergeTask implements Task<Object[][]> {
     private final ThreadPool threadPool;
     private final SettableFuture<Object[][]> result;
     private final List<ListenableFuture<Object[][]>> resultList;
+    private final Object lock = new Object();
 
     private List<ListenableFuture<Object[][]>> upstreamResults;
 
@@ -92,11 +93,10 @@ public class LocalMergeTask implements Task<Object[][]> {
                 public void onSuccess(@Nullable Object[][] rows) {
                     assert rows != null;
                     boolean last = countDown.decrementAndGet() == 0;
-
                     traceLogResult(rows);
 
                     try {
-                        synchronized (mergeOperation) {
+                        synchronized (lock) {
                             mergeOperation.addRows(rows);
                         }
                     } catch (Exception ex) {
@@ -124,7 +124,7 @@ public class LocalMergeTask implements Task<Object[][]> {
                 public void onFailure(Throwable t) {
                     result.setException(t);
                 }
-            }, threadPool.executor(ThreadPool.Names.GENERIC));
+            });
         }
     }
 
