@@ -41,8 +41,6 @@ import org.elasticsearch.common.logging.Loggers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -59,30 +57,6 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
     private HandlerSideDataCollectOperation operation;
     private Functions functions;
 
-
-    private String printedTable(Object[][] result) {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        PrintStream out = new PrintStream(os);
-        for (Object[] row : result) {
-            boolean first = true;
-            for (Object o : row) {
-                if (!first) {
-                    out.print("| ");
-                } else {
-                    first = false;
-                }
-                if (o == null) {
-                    out.print("NULL");
-                } else if (o instanceof BytesRef) {
-                    out.print(((BytesRef) o).utf8ToString());
-                } else {
-                    out.print(o.toString());
-                }
-            }
-            out.println();
-        }
-        return os.toString();
-    }
 
     @Before
     public void prepare() {
