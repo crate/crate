@@ -69,6 +69,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
 
         private KeyBucket currentBucket;
         public boolean invalid = false;
+        public boolean versionInvalid = false;
 
         private List<Literal> keyLiterals;
         private Long version;
@@ -101,34 +102,35 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         }
 
         void finish() {
-            if (invalid) {
-                return;
-            }
-            if (buckets.size() == 1) {
+            if (!versionInvalid && buckets.size() == 1) {
                 version = currentBucket.version;
-                clusteredBy = currentBucket.clusteredBy;
+            }
+            if (!invalid) {
+                if (buckets.size() == 1) {
+                    clusteredBy = currentBucket.clusteredBy;
 
-                if (currentBucket.partsFound == table.primaryKey().size()) {
-                    keyLiterals = Lists.newArrayList(currentBucket.keyParts);
-                }
-            } else if (table.primaryKey().size() == 1) {
-                Set<Literal> keys = new HashSet<>();
-                DataType keyType = DataType.NULL;
-                for (KeyBucket bucket : buckets) {
-                    Literal keyPart = bucket.keyParts[0];
-                    if (keyPart != null) {
-                        keyType = keyPart.valueType();
-                        if (keyPart instanceof SetLiteral) {
-                            keys.addAll(((SetLiteral) keyPart).literals());
-                        } else {
-                            keys.add(keyPart);
+                    if (currentBucket.partsFound == table.primaryKey().size()) {
+                        keyLiterals = Lists.newArrayList(currentBucket.keyParts);
+                    }
+                } else if (table.primaryKey().size() == 1) {
+                    Set<Literal> keys = new HashSet<>();
+                    DataType keyType = DataType.NULL;
+                    for (KeyBucket bucket : buckets) {
+                        Literal keyPart = bucket.keyParts[0];
+                        if (keyPart != null) {
+                            keyType = keyPart.valueType();
+                            if (keyPart instanceof SetLiteral) {
+                                keys.addAll(((SetLiteral) keyPart).literals());
+                            } else {
+                                keys.add(keyPart);
+                            }
                         }
                     }
+                    keyLiterals = Arrays.<Literal>asList(SetLiteral.fromLiterals(keyType, keys));
+                } else {
+                    // TODO: generate keyLiterals from bucket
+                    // if all buckets have partsFound == table.primaryKey().size()
                 }
-                keyLiterals = Arrays.<Literal>asList(SetLiteral.fromLiterals(keyType, keys));
-            } else {
-                // TODO: generate keyLiterals from bucket
-                // if all buckets have partsFound == table.primaryKey().size()
             }
         }
     }
@@ -193,9 +195,11 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
 
         int idx = context.table.primaryKey().indexOf(columnName);
         if (idx < 0 && !clusteredBySet) {
-            return invalidate(context);
+            // do not return here, as we might be searching for version
+            invalidate(context);
+        } else {
+            setPrimaryKey(context, (Literal)right, idx);
         }
-        setPrimaryKey(context, (Literal)right, idx);
         return null;
     }
 
@@ -244,6 +248,11 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         return null;
     }
 
+    private Void invalidateVersion(Context context) {
+        context.versionInvalid = true;
+        return null;
+    }
+
     private void setVersion(Context context, Symbol right) {
         Long version;
         switch (right.symbolType()) {
@@ -259,7 +268,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         }
 
         if (context.currentBucket.version != null && !context.currentBucket.version.equals(version)) {
-            invalidate(context);
+            invalidateVersion(context);
         } else {
             context.currentBucket.version = version;
         }
@@ -271,9 +280,6 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         boolean newBucket = true;
         for (Symbol argument : symbol.arguments()) {
             process(argument, context);
-            if (context.invalid) {
-                break;
-            }
             if (newBucket && functionName.equals(OrOperator.NAME)) {
                 newBucket = false;
                 context.newBucket();

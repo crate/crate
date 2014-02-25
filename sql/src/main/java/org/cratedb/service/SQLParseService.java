@@ -136,7 +136,7 @@ public class SQLParseService {
                     visitor = new AnalyzerVisitor(context, stmt, args);
                     break;
                 default:
-                    throw new UnsupportedOperationException("Can't handle the sql statement");
+                    throw new UnsupportedOperationException();
             }
 
             statementNode.accept(visitor);

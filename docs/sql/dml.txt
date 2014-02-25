@@ -105,24 +105,6 @@ For details please refer to the `Apache Lucene`_ site.
 
 .. _`Apache Lucene`: http://lucene.apache.org/core/4_0_0/core/org/apache/lucene/search/Query.html
 
-
-In most SQL databases there is a distinction between `NULL` and empty string.
-Since Crate is a schemaless document oriented database there is the third
-possibility that a row doesn't contain a field. Due to this `is null` will
-return all rows where the fields value is `NULL` or where the field doesn't
-exist at all. `is not null` also behaves this way. E.g. the following query
-returns 2 rows since the `is null` filter matches all rows and a limit is
-specified::
-
-    cr> select name from locations where missing is null order by id limit 2
-    +-------------------+
-    | name              |
-    +-------------------+
-    | North West Ripple |
-    | Arkintoofle Minor |
-    +-------------------+
-    SELECT 2 rows in set (... sec)
-
 Number and date field comparison behave as expected from standard SQL.
 The following example uses one of the supported ISO date formats::
 
