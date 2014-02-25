@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
 import io.crate.planner.node.ESGetNode;
+import io.crate.planner.symbol.DynamicReference;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolVisitor;
@@ -237,8 +238,15 @@ public class ESGetTask implements Task<Object[][]> {
         }
 
         @Override
+        public Void visitDynamicReference(DynamicReference symbol, Context context) {
+            context.add(symbol);
+            return null;
+        }
+
+        @Override
         protected Void visitSymbol(Symbol symbol, Context context) {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException(
+                    String.format("Get operation not supported with symbol %s in the result column list", symbol));
         }
     }
 

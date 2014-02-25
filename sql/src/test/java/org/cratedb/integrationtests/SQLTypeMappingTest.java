@@ -83,7 +83,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                 " ip_field ip" +
                 ") clustered by (id) into %d shards replicas 0", numShards);
         execute(stmt);
-
+        ensureGreen();
     }
 
     @Test
