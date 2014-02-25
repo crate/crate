@@ -207,6 +207,24 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testESGetTaskWithDynamicReference() throws Exception {
+        insertCharacters();
+
+        ESGetNode node = new ESGetNode("characters", "2");
+        node.outputs(ImmutableList.<Symbol>of(id_ref, new DynamicReference(
+                new ReferenceIdent(new TableIdent(null, "characters"), "foo"), RowGranularity.DOC)));
+        Plan plan = new Plan();
+        plan.add(node);
+        Job job = executor.newJob(plan);
+        List<ListenableFuture<Object[][]>> result = executor.execute(job);
+        Object[][] objects = result.get(0).get();
+
+        assertThat(objects.length, is(1));
+        assertThat((Integer) objects[0][0], is(2));
+        assertNull(objects[0][1]);
+    }
+
+    @Test
     public void testESMultiGet() throws Exception {
         insertCharacters();
         ESGetNode node = new ESGetNode("characters", asList("1", "2"));
