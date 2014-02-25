@@ -5,7 +5,18 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fixed a synchronization issue that could cause invalid results
+ 
+ - cleaned up exception messages to be more useful for the users.
+
+ - fixed a bug that caused an exception in case the request was "primary key
+   optimized" and the cluster state wasn't yet fully synchronized.
+
  - added missing state description in docs/sql/stats
+
+ - closed tables are now longer shown in the information schema.
+
+ - fixed various random test failures that were caused by a flaky test setup.
 
 2014/02/25 0.23.1
 =================
