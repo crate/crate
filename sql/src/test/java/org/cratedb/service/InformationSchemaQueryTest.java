@@ -25,6 +25,7 @@ import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.TableUnknownException;
 import org.cratedb.test.integration.CrateIntegrationTest;
+import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -210,19 +211,19 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
         exec("select * from information_schema.non_existent");
     }
 
-    // TODO: information schema shouldn't list closed tables
+    @Test
+    public void testIgnoreClosedTables() throws Exception {
+        execute("drop table t1");
+        execute("drop table t2");
+        execute("create table t1 (col1 integer, col2 string) replicas 0");
+        client().admin().indices().close(new CloseIndexRequest("t3"));
+        ensureGreen();
+        exec("select * from information_schema.tables where schema_name = 'doc'");
+        assertEquals(1L, response.rowCount());
+        exec("select * from information_schema.columns where table_name = 't3'");
+        assertEquals(0, response.rowCount());
 
-    //@Test
-    //public void testIgnoreClosedTables() throws Exception {
-    //    execute("drop table t1");
-    //    execute("drop table t2");
-    //    execute("create table t1 (col1 integer, col2 string) replicas 0");
-    //    client().admin().indices().close(new CloseIndexRequest("t3"));
-    //    ensureGreen();
-    //    exec("select * from information_schema.tables where schema_name = 'doc'");
-    //    assertEquals(1L, response.rowCount());
-    //    exec("select * from information_schema.columns where table_name = 't3'");
-    //    assertEquals(0, response.rowCount());
-    //}
-
+        exec("select * from sys.shards");
+        assertEquals(5L, response.rowCount()); // t3 isn't included
+    }
 }

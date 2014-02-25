@@ -91,7 +91,9 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     @Override
     public Collection<String> tableNames() {
-        return Arrays.asList(clusterService.state().metaData().concreteAllIndices());
+        // TODO: once we support closing/opening tables change this to concreteIndices()
+        // and add  state info to the TableInfo.
+        return Arrays.asList(clusterService.state().metaData().concreteAllOpenIndices());
     }
 
     @Override
