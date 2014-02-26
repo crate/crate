@@ -25,10 +25,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
 import io.crate.planner.node.ESGetNode;
-import io.crate.planner.symbol.DynamicReference;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolVisitor;
+import io.crate.planner.symbol.*;
 import org.cratedb.Constants;
 import org.cratedb.DataType;
 import org.elasticsearch.action.ActionListener;
@@ -246,7 +243,7 @@ public class ESGetTask implements Task<Object[][]> {
         @Override
         protected Void visitSymbol(Symbol symbol, Context context) {
             throw new UnsupportedOperationException(
-                    String.format("Get operation not supported with symbol %s in the result column list", symbol));
+                    SymbolFormatter.format("Get operation not supported with symbol %s in the result column list", symbol));
         }
     }
 

@@ -24,6 +24,7 @@ package org.cratedb.sql.parser.unparser;
 import org.cratedb.sql.parser.StandardException;
 import org.cratedb.sql.parser.parser.*;
 
+import java.util.Locale;
 import java.util.Map;
 
 public class NodeToString
@@ -955,7 +956,7 @@ public class NodeToString
 
     protected String rowNumberFunctionNode(RowNumberFunctionNode node)
             throws StandardException {
-        return node.getOperator().toUpperCase() + "()" +
+        return node.getOperator().toUpperCase(Locale.ROOT) + "()" +
             " OVER " + toString(node.getWindow());
     }
 
@@ -1019,7 +1020,7 @@ public class NodeToString
 
     protected String extractOperatorNode(ExtractOperatorNode node) 
             throws StandardException {
-        return node.getOperator().substring("EXTRACT ".length()).toUpperCase() + "(" +
+        return node.getOperator().substring("EXTRACT ".length()).toUpperCase(Locale.ROOT) + "(" +
             toString(node.getOperand()) + ")";
     }
 
@@ -1054,7 +1055,7 @@ public class NodeToString
             if (value == null)
                 str.append("UNKNOWN");
             else
-                str.append(value.toString().toUpperCase());
+                str.append(value.toString().toUpperCase(Locale.ROOT));
         }
         else
             str.append(maybeParens(rightOperand));
@@ -1071,7 +1072,7 @@ public class NodeToString
     protected String likeEscapeOperatorNode(LikeEscapeOperatorNode node) 
             throws StandardException {
         String like = maybeParens(node.getReceiver()) +
-            " " + node.getOperator().toUpperCase() + " " +
+            " " + node.getOperator().toUpperCase(Locale.ROOT) + " " +
             maybeParens(node.getLeftOperand());
         if (node.getRightOperand() != null)
             like += " ESCAPE " + maybeParens(node.getRightOperand());
@@ -1080,7 +1081,7 @@ public class NodeToString
 
     protected String ternaryOperatorNode(TernaryOperatorNode node)
             throws StandardException {
-        StringBuilder str = new StringBuilder(node.getOperator().toUpperCase());
+        StringBuilder str = new StringBuilder(node.getOperator().toUpperCase(Locale.ROOT));
         str.append("(");
         str.append(toString(node.getReceiver()));
         str.append(", ");
@@ -1124,7 +1125,7 @@ public class NodeToString
             interval = "MICROSECOND>";
             break;
         }
-        return node.getOperator().toUpperCase() + "(" +
+        return node.getOperator().toUpperCase(Locale.ROOT) + "(" +
             interval + ", " +
             toString(node.getLeftOperand()) + ", " +
             toString(node.getRightOperand()) + ")";
@@ -1134,7 +1135,7 @@ public class NodeToString
             throws StandardException {
         if ((node.getRightOperand() instanceof ConstantNode) &&
             " ".equals(((ConstantNode)node.getRightOperand()).getValue())) {
-            return node.getOperator().toUpperCase() + "(" +
+            return node.getOperator().toUpperCase(Locale.ROOT) + "(" +
                 toString(node.getLeftOperand()) + ")";
         }
         else {
@@ -1224,34 +1225,34 @@ public class NodeToString
         else if (value instanceof Double)
             return String.format("%e", value);
         else if (value instanceof Boolean)
-            return value.toString().toUpperCase();
+            return value.toString().toUpperCase(Locale.ROOT);
         else
             return value.toString();
     }
 
     protected String prefixUnary(UnaryOperatorNode node) throws StandardException {
-        return node.getOperator().toUpperCase() + " " +
+        return node.getOperator().toUpperCase(Locale.ROOT) + " " +
             maybeParens(node.getOperand());
     }
 
     protected String suffixUnary(UnaryOperatorNode node) throws StandardException {
         return maybeParens(node.getOperand()) + " " +
-            node.getOperator().toUpperCase();
+            node.getOperator().toUpperCase(Locale.ROOT);
     }
 
     protected String functionUnary(UnaryOperatorNode node) throws StandardException {
-        return node.getOperator().toUpperCase() + "(" +
+        return node.getOperator().toUpperCase(Locale.ROOT) + "(" +
             toString(node.getOperand()) + ")";
     }
 
     protected String infixBinary(BinaryOperatorNode node) throws StandardException {
         return maybeParens(node.getLeftOperand()) +
-            " " + node.getOperator().toUpperCase() + " " +
+            " " + node.getOperator().toUpperCase(Locale.ROOT) + " " +
             maybeParens(node.getRightOperand());
     }
     
     protected String functionBinary(BinaryOperatorNode node) throws StandardException {
-        return node.getOperator().toUpperCase() + "(" +
+        return node.getOperator().toUpperCase(Locale.ROOT) + "(" +
             toString(node.getLeftOperand()) + ", " +
             toString(node.getRightOperand()) + ")";
     }
@@ -1293,7 +1294,7 @@ public class NodeToString
     protected String hexConstant(byte[] value) {
         StringBuilder str = new StringBuilder("X'");
         for (byte b : value) {
-            str.append(Integer.toString((int)b & 0xFF, 16).toUpperCase());
+            str.append(Integer.toString((int)b & 0xFF, 16).toUpperCase(Locale.ROOT));
         }
         str.append("'");
         return str.toString();

@@ -21,8 +21,8 @@
 
 package io.crate.executor.task;
 
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.metadata.*;
 import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
@@ -32,6 +32,7 @@ import io.crate.operator.projectors.TopN;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.MergeNode;
 import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
@@ -76,56 +77,55 @@ public class LocalMergeTaskTest {
     }
 
     private ListenableFuture<Object[][]> getUpstreamResult(int numRows) {
-        SettableFuture<Object[][]> upstreamResult = SettableFuture.create();
         Object[][] resultRows = new Object[numRows][];
         for (int i=0; i<numRows; i++) {
             double d = (double)numRows*i;
             MinimumAggregation.MinimumAggState<Double> aggState = minAggFunction.newState();
             aggState.setValue(d);
             resultRows[i] = new Object[]{
-                    d%4,
+                    d % 4,
                     aggState
             };
         }
-        upstreamResult.set(resultRows);
-        return upstreamResult;
+        return Futures.immediateFuture(resultRows);
     }
 
     @Test
     public void testLocalMerge() throws Exception {
-        TopNProjection topNProjection = new TopNProjection(3, TopN.NO_OFFSET, Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)), new boolean[]{true, true});
-        topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
+        for (int run = 0; run < 100; run++) {
+            TopNProjection topNProjection = new TopNProjection(3, TopN.NO_OFFSET, Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)), new boolean[]{true, true});
+            topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
-        MergeNode mergeNode = new MergeNode("merge", 2);
-        mergeNode.projections(Arrays.asList(
-                groupProjection,
-                topNProjection
-        ));
-        List<ListenableFuture<Object[][]>> upstreamResults = new ArrayList<>(1);
-        for (int i=1; i<14; i++) {
-            upstreamResults.add(getUpstreamResult(i));
+            MergeNode mergeNode = new MergeNode("merge", 2);
+            mergeNode.projections(Arrays.<Projection>asList(
+                    groupProjection,
+                    topNProjection
+            ));
+            List<ListenableFuture<Object[][]>> upstreamResults = new ArrayList<>(1);
+            for (int i=1; i<14; i++) {
+                upstreamResults.add(getUpstreamResult(i));
+            }
+
+            ThreadPool threadPool = new ThreadPool();
+
+            LocalMergeTask localMergeTask = new LocalMergeTask(threadPool, symbolVisitor, mergeNode);
+            localMergeTask.upstreamResult(upstreamResults);
+            localMergeTask.start();
+
+            ListenableFuture<List<Object[][]>> allAsList = Futures.allAsList(localMergeTask.result());
+            Object[][] result = allAsList.get().get(0);
+
+            assertThat(result.length, is(3));
+            assertThat(result[0].length, is(2));
+
+            assertThat((Double)result[0][0], is(3.0));
+            assertThat((Double)result[0][1], is(3.0));
+
+            assertThat((Double)result[1][0], is(2.0));
+            assertThat((Double)result[1][1], is(2.0));
+
+            assertThat((Double)result[2][0], is(1.0));
+            assertThat((Double)result[2][1], is(5.0));
         }
-
-        ThreadPool threadPool = new ThreadPool();
-
-        LocalMergeTask localMergeTask = new LocalMergeTask(threadPool, symbolVisitor, mergeNode);
-        localMergeTask.upstreamResult(upstreamResults);
-        localMergeTask.start();
-
-        List<ListenableFuture<Object[][]>> localMergeResults = localMergeTask.result();
-
-        assertThat(localMergeResults.size(), is(1));
-        Object[][] result = localMergeResults.get(0).get();
-        assertThat(result.length, is(3));
-        assertThat(result[0].length, is(2));
-
-        assertThat((Double)result[0][0], is(3.0));
-        assertThat((Double)result[0][1], is(3.0));
-
-        assertThat((Double)result[1][0], is(2.0));
-        assertThat((Double)result[1][1], is(2.0));
-
-        assertThat((Double)result[2][0], is(1.0));
-        assertThat((Double)result[2][1], is(5.0));
     }
 }

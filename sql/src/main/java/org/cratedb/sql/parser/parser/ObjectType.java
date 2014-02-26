@@ -21,6 +21,8 @@
 
 package org.cratedb.sql.parser.parser;
 
+import java.util.Locale;
+
 /**
  * Object Type for Object Columns
  */
@@ -30,6 +32,6 @@ public enum ObjectType {
     IGNORED;
 
     public static ObjectType getByName(String name) {
-        return ObjectType.valueOf(name.toUpperCase());
+        return ObjectType.valueOf(name.toUpperCase(Locale.ROOT));
     }
 }

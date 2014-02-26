@@ -85,10 +85,13 @@ public class Version {
     public static final Version V_0_23_01 = new Version(V_0_23_01_ID, false,
             org.elasticsearch.Version.V_0_90_11);
 
+    public static final int V_0_23_02_ID = /*00*/230299;
+    public static final Version V_0_23_02 = new Version(V_0_23_02_ID, false,
+            org.elasticsearch.Version.V_0_90_11);
+
     public static final int V_0_24_00_ID = /*00*/240099;
     public static final Version V_0_24_00 = new Version(V_0_24_00_ID, false,
             org.elasticsearch.Version.V_1_0_1);
-
 
     public static final Version CURRENT = V_0_24_00;
 

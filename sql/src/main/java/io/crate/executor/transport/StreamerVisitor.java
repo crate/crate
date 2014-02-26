@@ -38,6 +38,6 @@ public class StreamerVisitor extends SymbolVisitor<Void, DataType.Streamer> {
 
     @Override
     protected DataType.Streamer visitSymbol(Symbol symbol, Void context) {
-        throw new UnsupportedOperationException("Can't get a streamer for symbol " + symbol);
+        throw new UnsupportedOperationException(SymbolFormatter.format("Can't get a streamer for symbol %s", symbol));
     }
 }

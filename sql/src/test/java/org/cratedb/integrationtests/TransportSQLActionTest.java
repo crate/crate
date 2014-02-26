@@ -108,7 +108,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectCountStar() throws Exception {
-        execute("create table test (\"type\" string)");
+        execute("create table test (\"type\" string) replicas 0");
+        ensureGreen();
         execute("insert into test (name) values (?)", new Object[]{"Arthur"});
         execute("insert into test (name) values (?)", new Object[]{"Trillian"});
         refresh();
@@ -119,7 +120,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectCountStarWithWhereClause() throws Exception {
-        execute("create table test (\"type\" string)");
+        execute("create table test (\"type\" string) replicas 0");
+        ensureGreen();
         execute("insert into test (name) values (?)", new Object[]{"Arthur"});
         execute("insert into test (name) values (?)", new Object[]{"Trillian"});
         refresh();

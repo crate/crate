@@ -207,6 +207,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
                         authorMap
                 });
         refresh();
+        ensureGreen(); // ensure mapping change is distributed
         execute("select author from ot where author['dead']=true");
         assertEquals(1, response.rowCount());
         assertEquals(authorMap, response.rows()[0][0]);

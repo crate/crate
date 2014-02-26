@@ -85,7 +85,7 @@ public class ESQueryBuilderTest {
                 .add(new PredicateModule())
                 .add(new ScalarFunctionModule())
                 .createInjector().getInstance(Functions.class);
-        generator = new ESQueryBuilder(functions, null);
+        generator = new ESQueryBuilder();
     }
 
     private void xcontetAssert(Function whereClause, String expected) throws IOException {

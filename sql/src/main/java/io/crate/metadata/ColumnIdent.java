@@ -26,6 +26,7 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
+import org.cratedb.core.StringUtils;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -101,6 +102,10 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
             return name;
         }
         return pathJoiner.join(name, pathJoiner.join(path));
+    }
+
+    public String sqlFqn() {
+        return StringUtils.dottedToSqlPath(fqn());
     }
 
     public List<String> path() {

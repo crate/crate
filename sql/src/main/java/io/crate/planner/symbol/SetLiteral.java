@@ -20,7 +20,6 @@
  */
 package io.crate.planner.symbol;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
@@ -190,10 +189,5 @@ public class SetLiteral extends Literal<Set<?>, SetLiteral> {
                 .add("itemType", itemType)
                 .add("numValues", values.size())
                 .toString();
-    }
-
-    @Override
-    public String humanReadableName() {
-        return String.format("{%s}", Joiner.on(", ").join(values)) ;
     }
 }

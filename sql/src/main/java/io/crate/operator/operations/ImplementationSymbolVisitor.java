@@ -30,10 +30,7 @@ import io.crate.operator.InputCollectExpression;
 import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.Aggregation;
-import io.crate.planner.symbol.InputColumn;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.*;
 import org.cratedb.sql.CrateException;
 
 import java.util.*;
@@ -118,7 +115,7 @@ public class ImplementationSymbolVisitor extends
             }
             context.setMaxGranularity(symbol.info().granularity());
         } else {
-            throw new CrateException(String.format("Cannot handle Reference %s", symbol.humanReadableName()));
+            throw new CrateException(SymbolFormatter.format("Cannot handle Reference %s", symbol));
         }
         return result;
     }
@@ -128,7 +125,7 @@ public class ImplementationSymbolVisitor extends
         FunctionImplementation impl = functions.get(symbol.functionIdent());
         if (impl == null) {
             throw new UnsupportedOperationException(
-                    String.format("Can't load aggregation impl for symbol %s", symbol.humanReadableName()));
+                    SymbolFormatter.format("Can't load aggregation impl for symbol %s", symbol));
         }
 
         AggregationContext aggregationContext = new AggregationContext((AggregationFunction) impl, symbol);

@@ -39,11 +39,6 @@ public class Null extends Literal<Void, Null> {
         return null;
     }
 
-    @Override
-    public String humanReadableName() {
-        return "NULL";
-    }
-
     /**
      * null literals can occur anywhere
      * @param type

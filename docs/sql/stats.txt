@@ -189,7 +189,7 @@ For example, you can query shards like this::
   +------------+----+----------+---------+-----------------+------+---------+
   | table_name | id | num_docs | primary | relocating_node | size | state   |
   +------------+----+----------+---------+-----------------+------+---------+
-  | locations  | 1  | 6        | TRUE    | NULL            | 6063 | STARTED |
+  | locations  | 1  | 6        | TRUE    | NULL            | ...  | STARTED |
   +------------+----+----------+---------+-----------------+------+---------+
   SELECT 1 row in set (... sec)
 

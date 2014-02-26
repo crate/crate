@@ -25,8 +25,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.elasticsearch.ESQueryBuilder;
 import io.crate.executor.Task;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.node.ESDeleteByQueryNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
@@ -46,12 +44,10 @@ public class ESDeleteByQueryTask implements Task<Object[][]> {
     private final ESQueryBuilder queryBuilder;
 
     public ESDeleteByQueryTask(ESDeleteByQueryNode deleteByQueryNode,
-                               TransportDeleteByQueryAction transportDeleteByQueryAction,
-                               Functions functions,
-                               ReferenceResolver referenceResolver) {
+                               TransportDeleteByQueryAction transportDeleteByQueryAction) {
         this.deleteByQueryNode = deleteByQueryNode;
         this.transportDeleteByQueryAction = transportDeleteByQueryAction;
-        this.queryBuilder = new ESQueryBuilder(functions, referenceResolver);
+        this.queryBuilder = new ESQueryBuilder();
 
         result = SettableFuture.create();
         results = Arrays.<ListenableFuture<Object[][]>>asList(result);
