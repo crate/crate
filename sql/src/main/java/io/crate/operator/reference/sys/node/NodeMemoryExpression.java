@@ -55,13 +55,13 @@ public class NodeMemoryExpression extends SysNodeObjectReference<Object> {
         childImplementations.put(FREE, new MemoryExpression(FREE) {
             @Override
             public Long value() {
-                return osService.stats().mem().free().bytes();
+                return osService.stats().mem().actualFree().bytes();
             }
         });
         childImplementations.put(USED, new MemoryExpression(USED) {
             @Override
             public Long value() {
-                return osService.stats().mem().used().bytes();
+                return osService.stats().mem().actualUsed().bytes();
             }
         });
         childImplementations.put(FREE_PERCENT, new MemoryExpression(FREE_PERCENT) {

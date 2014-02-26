@@ -44,7 +44,7 @@ public enum DataType {
         public void writeTo(StreamOutput out, Object v) throws IOException {
             out.writeBoolean(v == null);
             if (v != null) {
-                out.writeByte((Byte) v);
+                out.writeByte(((Number) v).byteValue());
             }
         }
     }),
@@ -58,7 +58,7 @@ public enum DataType {
         public void writeTo(StreamOutput out, Object v) throws IOException {
             out.writeBoolean(v == null);
             if (v != null) {
-                out.writeShort((Short) v);
+                out.writeShort(((Number) v).shortValue());
             }
         }
     }),
@@ -72,7 +72,7 @@ public enum DataType {
         public void writeTo(StreamOutput out, Object v) throws IOException {
             out.writeBoolean(v == null);
             if (v != null) {
-                out.writeInt((Integer) v);
+                out.writeInt(((Number) v).intValue());
             }
         }
     }),
@@ -86,7 +86,7 @@ public enum DataType {
         public void writeTo(StreamOutput out, Object v) throws IOException {
             out.writeBoolean(v == null);
             if (v != null) {
-                out.writeVLong((Long) v);
+                out.writeVLong(((Number) v).longValue());
             }
         }
     }),
@@ -100,7 +100,7 @@ public enum DataType {
         public void writeTo(StreamOutput out, Object v) throws IOException {
             out.writeBoolean(v == null);
             if (v != null) {
-                out.writeFloat((Float) v);
+                out.writeFloat(((Number) v).floatValue());
             }
         }
     }),
@@ -114,7 +114,7 @@ public enum DataType {
         public void writeTo(StreamOutput out, Object v) throws IOException {
             out.writeBoolean(v == null);
             if (v != null) {
-                out.writeDouble((Double) v);
+                out.writeDouble(((Number) v).doubleValue());
             }
         }
     }),

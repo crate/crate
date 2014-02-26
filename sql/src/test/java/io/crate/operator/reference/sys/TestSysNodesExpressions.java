@@ -74,7 +74,6 @@ public class TestSysNodesExpressions {
             OsStats osStats = mock(OsStats.class);
             when(osService.stats()).thenReturn(osStats);
             when(osStats.loadAverage()).thenReturn(new double[]{1, 5, 15});
-
             ByteSizeValue byteSizeValue = mock(ByteSizeValue.class);
             when(byteSizeValue.bytes()).thenReturn(12345342234L);
             when(byteSizeValue.toString()).thenReturn("11.4gb");
