@@ -22,8 +22,10 @@
 package org.cratedb.import_;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
+import com.google.common.collect.Collections2;
 import org.cratedb.action.import_.ImportContext;
 import org.cratedb.action.import_.NodeImportRequest;
 import org.elasticsearch.ElasticSearchException;
@@ -44,6 +46,8 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.ImmutableSettings.Builder;
 import org.elasticsearch.common.settings.Settings;
@@ -70,6 +74,8 @@ import java.util.zip.GZIPInputStream;
 
 public class Importer {
 
+    private final ESLogger logger = Loggers.getLogger(getClass());
+
     private Client client;
     private final Injector injector;
     private final ClusterService clusterService;
@@ -85,6 +91,10 @@ public class Importer {
     }
 
     public Result execute(ImportContext context, NodeImportRequest request) {
+        if (logger.isTraceEnabled()) {
+            logger.trace("[{}] executing import request \n{}",
+                    clusterService.localNode().id(), request.source().toUtf8());
+        }
         if (this.client == null) {
             // Inject here to avoid injection loop in constructor
             this.client = injector.getInstance(Client.class);
@@ -126,11 +136,30 @@ public class Importer {
             files = new File[1];
             files[0] = path;
         } else {
+            logger.trace("[{}] path is neither file nor directory: '{}'",
+                    clusterService.localNode().id(),
+                    path.getAbsolutePath());
             return result;
         }
         if (files.length == 0) {
+            logger.trace("[{}] no files found for '{}'",
+                    clusterService.localNode().id(),
+                    path.getAbsolutePath());
             return result;
         }
+
+        if (logger.isTraceEnabled()) {
+            logger.trace("[{}] importing into index '{}' from '{}'",
+                    clusterService.localNode().id(),
+                    request.index(),
+                    Collections2.transform(Arrays.asList(files), new Function<File, String>() {
+                        @Override
+                        public String apply(File input) {
+                            return input.getAbsolutePath();
+                        }
+                    }));
+        }
+
         // import settings according to the given data file pattern
         try {
         if (context.settings()) {
@@ -153,6 +182,8 @@ public class Importer {
             }
         }
         } catch (Exception e) {
+            logger.trace("[{}] error during import of setting and mappings", e,
+                    clusterService.localNode().id());
             throw new ElasticSearchException("::" ,e);
         }
         // import data according to the given data file pattern
@@ -216,16 +247,23 @@ public class Importer {
             } catch (FileNotFoundException e) {
                 // Ignore not existing files, actually they should exist, as they are filtered before.
             } catch (IOException e) {
+                logger.trace("[{}] error during file import of {} into index {}",
+                        clusterService.localNode().id(),
+                        file.getAbsolutePath(),
+                        index);
             } finally {
                 bulkProcessor.close();
             }
             try {
                 bulkListener.get();
-            } catch (InterruptedException e1) {
-            } catch (ExecutionException e1) {
+            } catch (InterruptedException|ExecutionException e1) {
+                logger.trace("[{}] error waiting for ImportBulkListener", e1, clusterService.localNode().id());
             }
             return bulkListener.importCounts();
+        } else {
+            logger.trace("[{}] file '{}' not readable", clusterService.localNode().id(), file.getAbsolutePath());
         }
+
         return null;
     }
 
