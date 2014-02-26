@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.exceptions.UnknownUpstreamFailure;
 import io.crate.executor.Task;
 import io.crate.executor.transport.merge.NodeMergeRequest;
 import io.crate.executor.transport.merge.NodeMergeResponse;
@@ -39,6 +40,8 @@ import org.elasticsearch.transport.RemoteTransportException;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class DistributedMergeTask implements Task<Object[][]> {
 
@@ -66,10 +69,14 @@ public class DistributedMergeTask implements Task<Object[][]> {
         logger.trace("start");
         int i = 0;
         final NodeMergeRequest request = new NodeMergeRequest(mergeNode);
+        final CountDownLatch countDownLatch;
 
         // if we have an upstream result, we need to register failure handlers here, in order to
         // handle bootstrapping failures on the data providing side
-        if (upstreamResult != null){
+        if (upstreamResult == null){
+            countDownLatch = new CountDownLatch(0);
+        } else  {
+            countDownLatch = new CountDownLatch(upstreamResult.size());
             logger.trace("upstreamResult.size: " + upstreamResult.size());
             // consume the upstream result
             for (final ListenableFuture<Object[][]> upstreamFuture : upstreamResult) {
@@ -78,6 +85,7 @@ public class DistributedMergeTask implements Task<Object[][]> {
                     public void onSuccess(@Nullable Object[][] result) {
                         assert result != null;
                         logger.trace("successful collect Future size: " + result.length);
+                        countDownLatch.countDown();
                     }
 
                     @Override
@@ -85,6 +93,7 @@ public class DistributedMergeTask implements Task<Object[][]> {
                         if (t instanceof RemoteTransportException){
                             t = t.getCause();
                         }
+                        countDownLatch.countDown();
                         for (ListenableFuture<Object[][]> result : results) {
                             ((SettableFuture<Object[][]>)result).setException(t);
                         }
@@ -110,6 +119,14 @@ public class DistributedMergeTask implements Task<Object[][]> {
                     logger.trace("startMerge.onFailure: {} of {}", node, mergeNode.executionNodes().size());
                     if (e instanceof RemoteTransportException) {
                         e = e.getCause();
+                    }
+                    if (e instanceof UnknownUpstreamFailure) {
+                        // prioritize the upstreams original exception over the UnknownUpstreamFailure
+                        try {
+                            countDownLatch.await(1, TimeUnit.SECONDS);
+                        } catch (InterruptedException e1) {
+                            logger.error("Interrupted waiting for upstream exception", e1);
+                        }
                     }
                     SettableFuture<Object[][]> result = (SettableFuture<Object[][]>) results.get(resultIdx);
                     result.setException(e);
