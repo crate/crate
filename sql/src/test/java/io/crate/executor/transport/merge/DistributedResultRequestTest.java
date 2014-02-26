@@ -36,6 +36,7 @@ import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
+import org.cratedb.Streamer;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -87,7 +88,7 @@ public class DistributedResultRequestTest {
     @Test
     public void testSerializationWithLateContext() throws Exception {
         // sender
-        DataType.Streamer<?>[] streamers = new DataType.Streamer[2];
+        Streamer<?>[] streamers = new Streamer[2];
         streamers[0] = DataType.INTEGER.streamer();
         streamers[1] = DataType.STRING.streamer();
 
@@ -152,7 +153,7 @@ public class DistributedResultRequestTest {
 
         contextManager.createContext(dummyMergeNode, new NoopActionListener());
 
-        DataType.Streamer<?>[] streamers = new DataType.Streamer[2];
+        Streamer<?>[] streamers = new Streamer[2];
         streamers[0] = DataType.INTEGER.streamer();
         streamers[1] = DataType.STRING.streamer();
 

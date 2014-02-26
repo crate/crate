@@ -118,43 +118,49 @@ public class StringLiteral extends Literal<BytesRef, StringLiteral> {
         return Ordering.natural().compare(value, o.value);
     }
 
-    @Override
-    public Literal convertTo(DataType type) {
-        Object convertedValue;
+    public Object convertValueTo(DataType type, String value) {
         switch (type) {
             case LONG:
-                convertedValue = new Long(value().utf8ToString());
-                break;
+                return new Long(value);
             case TIMESTAMP:
-                convertedValue = TimestampFormat.parseTimestampString(value().utf8ToString());
-                break;
+                return TimestampFormat.parseTimestampString(value);
             case INTEGER:
-                convertedValue = new Integer(value().utf8ToString());
-                break;
+                return new Integer(value);
             case DOUBLE:
-                convertedValue = new Double(value().utf8ToString());
-                break;
+                return new Double(value);
             case FLOAT:
-                convertedValue = new Float(value().utf8ToString());
-                break;
+                return new Float(value);
             case SHORT:
-                convertedValue = new Short(value().utf8ToString());
-                break;
+                return new Short(value);
             case BYTE:
-                convertedValue = new Byte(value().utf8ToString());
-                break;
+                return new Byte(value);
             case IP:
-                convertedValue = value;
-                break;
+            case STRING:
+                return value;
             case BOOLEAN:
-                convertedValue = booleanMap.get(value().utf8ToString().toLowerCase());
+                Boolean convertedValue = booleanMap.get(value.toLowerCase());
                 if (convertedValue == null) {
-                    super.convertTo(type);
+                    return super.convertTo(type);
                 }
-                break;
+                return convertedValue;
             default:
-                return super.convertTo(type);
+                return super.convertValueTo(type, new BytesRef(value));
         }
-        return Literal.forType(type, convertedValue);
+    }
+
+    @Override
+    public Object convertValueTo(DataType type, BytesRef value) {
+        if (valueType() == type) {
+            return value;
+        }
+        return convertValueTo(type, value.utf8ToString());
+    }
+
+    @Override
+    public Literal convertTo(DataType type) {
+        if (valueType() == type) {
+            return this;
+        }
+        return Literal.forType(type, convertValueTo(type));
     }
 }

@@ -19,53 +19,48 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package org.cratedb;
 
-import org.cratedb.Streamer;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
 
-public class NodeCollectResponse extends TransportResponse {
+public interface Streamer<T> {
 
-    private Object[][] rows;
-    private final Streamer<?>[] streamers;
+    public T readFrom(StreamInput in) throws IOException;
 
+    public void writeTo(StreamOutput out, Object v) throws IOException;
 
-    public NodeCollectResponse(Streamer<?>[] streamers) {
-        this.streamers = streamers;
-    }
+    public static final Streamer<BytesRef> BYTES_REF = new Streamer<BytesRef>() {
 
-    public void rows(Object[][] rows) {
-        this.rows = rows;
-    }
+        @Override
+        public BytesRef readFrom(StreamInput in) throws IOException {
+            int length = in.readVInt() -1 ;
+            if (length == -1) {
+                return null;
+            }
+            return in.readBytesRef(length);
+        }
 
-    public Object[][] rows() {
-        return rows;
-    }
+        @Override
+        public void writeTo(StreamOutput out, Object v) throws IOException {
+            // .writeBytesRef isn't used here because it will convert null values to empty bytesRefs
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        rows = new Object[in.readVInt()][];
-        for (int r = 0; r < rows.length; r++) {
-            rows[r] = new Object[streamers.length];
-            for (int c = 0; c < rows[r].length; c++) {
-                rows[r][c] = streamers[c].readFrom(in);
+            // to distinguish between null and an empty bytesRef
+            // 1 is always added to the length so that
+            // 0 is null
+            // 1 is 0
+            // ...
+            if (v == null) {
+                out.writeVInt(0);
+            } else {
+                BytesRef bytesRef = (BytesRef) v;
+                out.writeVInt(bytesRef.length + 1);
+                out.writeBytes(bytesRef.bytes, bytesRef.offset, bytesRef.length);
             }
         }
-    }
+    };
 
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeVInt(rows.length);
-        for (Object[] row : rows) {
-            for (int c = 0; c < streamers.length; c++) {
-                streamers[c].writeTo(out, row[c]);
-            }
-        }
-    }
 }

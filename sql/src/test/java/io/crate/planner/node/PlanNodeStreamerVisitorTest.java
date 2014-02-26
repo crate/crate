@@ -40,6 +40,7 @@ import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.StringLiteral;
 import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;
+import org.cratedb.Streamer;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
@@ -76,7 +77,7 @@ public class PlanNodeStreamerVisitorTest {
         CollectNode collectNode = new CollectNode("bla", new Routing(new HashMap<String, Map<String, Set<Integer>>>()));
         collectNode.outputTypes(Arrays.asList(DataType.BOOLEAN, DataType.FLOAT, DataType.OBJECT));
         PlanNodeStreamerVisitor.Context ctx = visitor.process(collectNode);
-        DataType.Streamer<?>[] streamers = ctx.outputStreamers();
+        Streamer<?>[] streamers = ctx.outputStreamers();
         assertThat(streamers.length, is(3));
         assertThat(streamers[0], instanceOf(DataType.BOOLEAN.streamer().getClass()));
         assertThat(streamers[1], instanceOf(DataType.FLOAT.streamer().getClass()));
@@ -104,7 +105,7 @@ public class PlanNodeStreamerVisitorTest {
         ));
         collectNode.projections(Arrays.<Projection>asList(aggregationProjection));
         PlanNodeStreamerVisitor.Context ctx = visitor.process(collectNode);
-        DataType.Streamer<?>[] streamers = ctx.outputStreamers();
+        Streamer<?>[] streamers = ctx.outputStreamers();
         assertThat(streamers.length, is(4));
         assertThat(streamers[0], instanceOf(DataType.BOOLEAN.streamer().getClass()));
         assertThat(streamers[1], instanceOf(DataType.INTEGER.streamer().getClass()));
@@ -117,7 +118,7 @@ public class PlanNodeStreamerVisitorTest {
         MergeNode mergeNode = new MergeNode("mörtsch", 2);
         mergeNode.inputTypes(Arrays.asList(DataType.BOOLEAN, DataType.SHORT, DataType.TIMESTAMP));
         PlanNodeStreamerVisitor.Context ctx = visitor.process(mergeNode);
-        DataType.Streamer<?>[] streamers = ctx.inputStreamers();
+        Streamer<?>[] streamers = ctx.inputStreamers();
         assertThat(streamers.length, is(3));
         assertThat(streamers[0], instanceOf(DataType.BOOLEAN.streamer().getClass()));
         assertThat(streamers[1], instanceOf(DataType.SHORT.streamer().getClass()));
@@ -141,7 +142,7 @@ public class PlanNodeStreamerVisitorTest {
         ));
         mergeNode.projections(Arrays.<Projection>asList(aggregationProjection));
         PlanNodeStreamerVisitor.Context ctx = visitor.process(mergeNode);
-        DataType.Streamer<?>[] streamers = ctx.inputStreamers();
+        Streamer<?>[] streamers = ctx.inputStreamers();
         assertThat(streamers.length, is(2));
         assertThat(streamers[0], instanceOf(AggregationStateStreamer.class));
         assertThat(streamers[1], instanceOf(DataType.TIMESTAMP.streamer().getClass()));

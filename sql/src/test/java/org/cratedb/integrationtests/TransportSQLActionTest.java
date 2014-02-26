@@ -23,6 +23,7 @@ package org.cratedb.integrationtests;
 
 import com.carrotsearch.randomizedtesting.annotations.Seed;
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
 import org.cratedb.Constants;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLResponse;
@@ -42,6 +43,7 @@ import org.skyscreamer.jsonassert.JSONAssert;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.*;
 
 import static com.google.common.collect.Maps.newHashMap;
@@ -654,42 +656,119 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals("Youri", response.rows()[1][7]);
     }
 
-    /* TODO: this feature has been disabled. currently one cannot add multiple values for one field
-             as array parameter
     @Test
     @SuppressWarnings("unchecked")
-    public void testInsertCoreTypesAsArrayAndObject() throws Exception {
-        XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
-            .startObject("default")
-                .startObject("properties")
-                    .startObject("boolean").field("type", "boolean").endObject()
-                    .startObject("datetime").field("type", "date").endObject()
-                    .startObject("double").field("type", "double").endObject()
-                    .startObject("float").field("type", "float").endObject()
-                    .startObject("integer").field("type", "integer").endObject()
-                    .startObject("long").field("type", "long").endObject()
-                    .startObject("object_field")
-                        .field("type", "object")
-                        .startObject("properties")
-                            .startObject("s").field("type", "string").endObject()
-                            .startObject("d1").field("type", "date").endObject()
-                            .startObject("d2").field("type", "date").endObject()
-                        .endObject()
-                    .endObject()
-                    .startObject("short").field("type", "short").endObject()
-                    .startObject("string").field("type", "string").endObject()
-                .endObject()
-            .endObject()
-            .endObject();
-        prepareCreate("test")
-            .addMapping("default", mapping)
-            .execute().actionGet();
+    public void testArraySupport() throws Exception {
+        execute("create table t1 (id int primary key, strings array(string), integers array(integer)) replicas 0");
+        ensureGreen();
 
-        Map<String, Object> object = new HashMap<>();
-        object.put("s", new String[] { "foo", "bar"});
-        object.put("d1", new String[] { "2013-09-10T21:51:43", null});
-        object.put("d2", "2013-09-10T21:51:43");
-        execute("insert into test values(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        execute("insert into t1 (id, strings, integers) values (?, ?, ?)",
+                new Object[] {
+                        1,
+                        new String[] {"foo", "bar"},
+                        new Integer[] {1, 2, 3}
+                }
+        );
+        refresh();
+
+        execute("select id, strings, integers from t1");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Integer)response.rows()[0][0], is(1));
+        assertThat(((List<String>)response.rows()[0][1]).get(0), is("foo"));
+        assertThat(((List<String>)response.rows()[0][1]).get(1), is("bar"));
+        assertThat(((List<Integer>)response.rows()[0][2]).get(0), is(1));
+        assertThat(((List<Integer>)response.rows()[0][2]).get(1), is(2));
+        assertThat(((List<Integer>)response.rows()[0][2]).get(2), is(3));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testArrayInsideObject() throws Exception {
+        execute("create table t1 (id int primary key, details object as (names array(string))) replicas 0");
+        ensureGreen();
+
+        Map<String, Object> details = new HashMap<>();
+        details.put("names", new Object[]{"Arthur", "Trillian"});
+        execute("insert into t1 (id, details) values (?, ?)", new Object[] { 1,  details});
+        refresh();
+
+        execute("select details['names'] from t1");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(((List<String>)response.rows()[0][0]).get(0), is("Arthur"));
+        assertThat(((List<String>)response.rows()[0][0]).get(1), is("Trillian"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testArraySupportWithNullValues() throws Exception {
+        execute("create table t1 (id int primary key, strings array(string)) replicas 0");
+        ensureGreen();
+
+        execute("insert into t1 (id, strings) values (?, ?)",
+                new Object[] {
+                        1,
+                        new String[] {"foo", null, "bar"},
+                }
+        );
+        refresh();
+
+        execute("select id, strings, integers from t1");
+        assertThat(response.rowCount(), is(1L));
+        assertThat((Integer)response.rows()[0][0], is(1));
+        assertThat(((List<String>)response.rows()[0][1]).get(0), is("foo"));
+        assertThat(((List<String>)response.rows()[0][1]).get(1), is((String)null));
+        assertThat(((List<String>)response.rows()[0][1]).get(2), is("bar"));
+    }
+
+    @Test
+    public void testObjectArrayInsertAndSelect() throws Exception {
+        execute("create table t1 (id int primary key, objects array(object as (name string, age int))) replicas 0");
+        ensureGreen();
+
+        ImmutableMap<String, ? extends Serializable> obj1 = ImmutableMap.of("name", "foo", "age", 1);
+        ImmutableMap<String, ? extends Serializable> obj2 = ImmutableMap.of("name", "bar", "age", 2);
+
+        Object[] args = new Object[] { 1, new Object[] {obj1, obj2 }};
+        execute("insert into t1 (id, objects) values (?, ?)", args);
+        refresh();
+
+        execute("select objects from t1");
+        assertThat(response.rowCount(), is(1L));
+
+        List<Map<String, Object>> objResults = (List<Map<String, Object>>) response.rows()[0][0];
+        Map<String, Object> obj1Result = objResults.get(0);
+        assertThat((String) obj1Result.get("name"), is("foo"));
+        assertThat((Integer) obj1Result.get("age"), is(1));
+
+        Map<String, Object> obj2Result = objResults.get(1);
+        assertThat((String) obj2Result.get("name"), is("bar"));
+        assertThat((Integer) obj2Result.get("age"), is(2));
+
+        execute("select objects['name'] from t1");
+        assertThat(response.rowCount(), is(1L));
+
+        List<String> names = (List<String>)response.rows()[0][0];
+        assertThat(names.get(0), is("foo"));
+        assertThat(names.get(1), is("bar"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testInsertCoreTypesAsArray() throws Exception {
+         execute("create table test (" +
+                    "\"boolean\" array(boolean), " +
+                    "\"datetime\" array(timestamp), " +
+                    "\"double\" array(double), " +
+                    "\"float\" array(float), " +
+                    "\"integer\" array(integer), " +
+                    "\"long\" array(long), " +
+                    "\"short\" array(short), " +
+                    "\"string\" array(string) " +
+                ") replicas 0"
+        );
+        ensureGreen();
+
+        execute("insert into test values(?, ?, ?, ?, ?, ?, ?, ?)",
             new Object[] {
                 new Boolean[] {true, false},
                 new String[] {"2013-09-10T21:51:43", "2013-11-10T21:51:43"},
@@ -697,7 +776,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 new Float[] {3.402f, 3.403f, null },
                 new Integer[] {2147483647, 234583},
                 new Long[] { 9223372036854775807L, 4L },
-                object,
                 new Short[] {32767, 2 },
                 new String[] {"Youri", "Juri"}
             }
@@ -724,29 +802,12 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat( ((List<Long>)response.rows()[0][5]).get(0), is(9223372036854775807L));
         assertThat( ((List<Integer>)response.rows()[0][5]).get(1), is(4));
 
-        assertEquals("foo",
-                ((List<String>)((Map<String, Object>)response.rows()[0][6]).get("s")).get(0));
-        assertEquals("bar",
-                ((List<String>)((Map<String, Object>)response.rows()[0][6]).get("s")).get(1));
-        assertThat(
-                ((List<Long>)((Map<String, Object>)response.rows()[0][6]).get("d1")).get(0),
-                is(1378849903000L)
-        );
-        assertThat(
-                ((List<Long>)((Map<String, Object>)response.rows()[0][6]).get("d1")).get(1),
-                nullValue()
-        );
-        assertThat(
-                (Long)((Map<String, Object>)response.rows()[0][6]).get("d2"),
-                is(1378849903000L)
-        );
+        assertThat( ((List<Integer>)response.rows()[0][6]).get(0), is(32767));
+        assertThat( ((List<Integer>)response.rows()[0][6]).get(1), is(2));
 
-        assertThat( ((List<Integer>)response.rows()[0][7]).get(0), is(32767));
-        assertThat( ((List<Integer>)response.rows()[0][7]).get(1), is(2));
-
-        assertThat( ((List<String>)response.rows()[0][8]).get(0), is("Youri"));
-        assertThat( ((List<String>)response.rows()[0][8]).get(1), is("Juri"));
-    }*/
+        assertThat( ((List<String>)response.rows()[0][7]).get(0), is("Youri"));
+        assertThat( ((List<String>)response.rows()[0][7]).get(1), is("Juri"));
+    }
 
     @Test
     public void testInsertMultipleRows() throws Exception {
@@ -1058,11 +1119,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test(expected = SQLParseException.class)
     public void testUpdateWithNestedObjectArrayIdxAccess() throws Exception {
-        prepareCreate("test")
-            .addMapping("default",
-                    "coolness", "type=float,index=not_analyzed")
-            .execute().actionGet();
-
+        execute("create table test (coolness array(float)) replicas 0");
+        ensureGreen();
         execute("insert into test values (?)", new Object[]{new Object[]{2.2, 2.3, 2.4}});
         assertEquals(1, response.rowCount());
         refresh();
@@ -1684,11 +1742,12 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .actionGet().isExists());
 
         String expectedMapping = "{\"default\":{" +
-                "\"_meta\":{\"primary_keys\":[\"col1\"],\"columns\":{\"col1\":{},\"col2\":{}},\"indices\":{}}," +
+                "\"_meta\":{\"primary_keys\":[\"col1\"]," +
+                "\"columns\":{\"col1\":{},\"col2\":{}},\"indices\":{}}," +
                 "\"_all\":{\"enabled\":false}," +
                 "\"properties\":{" +
-                    "\"col1\":{\"type\":\"integer\"}," +
-                    "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}" +
+                    "\"col1\":{\"type\":\"integer\",\"doc_values\":true}," +
+                    "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"doc_values\":true}" +
                 "}}}";
 
         String expectedSettings = "{\"test\":{" +

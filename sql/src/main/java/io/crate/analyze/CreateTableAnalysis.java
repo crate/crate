@@ -53,7 +53,7 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
      *  _meta : {
      *      columns: {
      *          "someColumn": {
-     *              "array": true
+     *              "collection_type": [array | set | null]
      *          }
      *      },
      *      indices: {
@@ -67,6 +67,7 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
     private final AnalyzerService analyzerService;
 
     private String currentColumnName;
+    private Map<String, Object> currentMetaColumnDefinition = new HashMap<>();
 
     public CreateTableAnalysis(ReferenceInfos referenceInfos,
                                AnalyzerService analyzerService,
@@ -144,7 +145,8 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
 
     public void addColumnDefinition(String columnName,
                                     Map<String, Object> columnDefinition) {
-        metaColumns.put(columnName, new HashMap<>());
+        currentMetaColumnDefinition = new HashMap<>();
+        metaColumns.put(columnName, currentMetaColumnDefinition);
         currentColumnName = columnName;
         currentColumnDefinition().put(columnName, columnDefinition);
         propertiesStack.push(columnDefinition);
@@ -161,6 +163,10 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
                     String.format("the index name \"%s\" is already in use!", name));
         }
         metaIndices.put(name, new HashMap<>());
+    }
+
+    public Map<String, Object> currentMetaColumnDefinition() {
+        return currentMetaColumnDefinition;
     }
 
     public Map<String, Object> currentColumnDefinition() {
@@ -188,6 +194,10 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
 
     public Map<String, Object> mapping() {
         return mapping;
+    }
+
+    public Map<String, Object> metaMapping() {
+        return crateMeta;
     }
 
     public Stack<Map<String, Object>> propertiesStack() {
