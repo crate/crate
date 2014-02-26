@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/02/26 0.23.2
+=================
+
  - fixed a synchronization issue that could cause invalid results
  
  - cleaned up exception messages to be more useful for the users.
