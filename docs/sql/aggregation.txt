@@ -244,7 +244,9 @@ Example::
     +---------------+
     SELECT 1 row in set (... sec)
 
-    cr> select any(name), kind from locations group by kind order by kind desc
+    cr> select any(name), kind from locations
+    ... where name != ''
+    ... group by kind order by kind desc
     +-...------------+-------------+
     | any(name)      | kind        |
     +-...------------+-------------+
