@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fixed several issues with certain locales 
+
 2014/02/26 0.23.2
 =================
 

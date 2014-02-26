@@ -34,6 +34,7 @@ options {
 
     import java.util.ArrayList;
     import java.util.List;
+    import java.util.Locale;
     import com.google.common.collect.ImmutableList;
     import com.google.common.base.Objects;
     import com.google.common.base.Optional;
@@ -376,7 +377,7 @@ identList returns [List<String> value = new ArrayList<>()]
  * knowledge of the IDENT / QUOTED_IDENT difference is lost
  */
 ident returns [String value]
-    : i=IDENT        { $value = $i.text.toLowerCase(); }
+    : i=IDENT        { $value = $i.text.toLowerCase(Locale.ENGLISH); }
     | q=QUOTED_IDENT { $value = $q.text; }
     ;
 

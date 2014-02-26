@@ -122,7 +122,7 @@ public class TableVisitor extends BaseVisitor {
         Map<String, Object> columnDefinition;
         columnDefinition = safeColumnDefinition(columnName, mapping);
 
-        String columnType = node.getType().getTypeName().toLowerCase();
+        String columnType = node.getType().getTypeName().toLowerCase(Locale.ENGLISH);
         if (!allowedColumnTypes.contains(columnType)) {
             throw new SQLParseException(String.format("Unsupported type: '%s'", columnType));
         }
