@@ -96,9 +96,7 @@ public class LocalMergeTask implements Task<Object[][]> {
                     boolean shouldContinue;
 
                     try {
-                        synchronized (lock) {
-                            shouldContinue = mergeOperation.addRows(rows);
-                        }
+                        shouldContinue = mergeOperation.addRows(rows);
                     } catch (Exception ex) {
                         result.setException(ex);
                         logger.error("Failed to add rows", ex);
