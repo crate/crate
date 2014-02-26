@@ -21,11 +21,11 @@
 
 package org.cratedb.blob;
 
+import com.google.common.util.concurrent.SettableFuture;
 import org.cratedb.blob.exceptions.DigestMismatchException;
 import org.cratedb.blob.pending_transfer.*;
 import org.cratedb.blob.v2.BlobIndices;
 import org.cratedb.blob.v2.BlobShard;
-import org.cratedb.core.futures.GenericBaseFuture;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.component.AbstractComponent;
@@ -47,7 +47,7 @@ public class BlobTransferTarget extends AbstractComponent {
     private final TransportService transportService;
     private final ClusterService clusterService;
     private CountDownLatch getHeadRequestLatch;
-    private GenericBaseFuture<CountDownLatch> getHeadRequestLatchFuture;
+    private SettableFuture<CountDownLatch> getHeadRequestLatchFuture;
     private final ConcurrentLinkedQueue activePutHeadChunkTransfers;
     private CountDownLatch activePutHeadChunkTransfersLatch;
 
@@ -58,7 +58,7 @@ public class BlobTransferTarget extends AbstractComponent {
         this.blobIndices = blobIndices;
         this.transportService = transportService;
         this.clusterService = clusterService;
-        this.getHeadRequestLatchFuture = new GenericBaseFuture<CountDownLatch>();
+        this.getHeadRequestLatchFuture = SettableFuture.create();
         this.activePutHeadChunkTransfers = new ConcurrentLinkedQueue();
     }
 
