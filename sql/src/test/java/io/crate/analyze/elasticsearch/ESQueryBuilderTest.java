@@ -259,7 +259,7 @@ public class ESQueryBuilderTest {
         BytesReference bytesReference = generator.convert(node, ImmutableList.<Reference>of());
 
         assertThat(bytesReference.toUtf8(),
-                is("{\"query\":{\"match_all\":{}},\"min_score\":0.4,\"from\":0,\"size\":10000}"));
+                is("{\"_source\":false,\"query\":{\"match_all\":{}},\"min_score\":0.4,\"from\":0,\"size\":10000}"));
     }
 
     @Test
@@ -276,7 +276,8 @@ public class ESQueryBuilderTest {
 
         BytesReference reference = generator.convert(searchNode, ImmutableList.<Reference>of(name_ref));
         String actual = reference.toUtf8();
-        assertThat(actual, is("{\"_source\":[\"name\"],\"query\":{\"term\":{\"name\":\"Marvin\"}},\"from\":0,\"size\":10000}"));
+        assertThat(actual, is(
+                "{\"_source\":{\"include\":[\"name\"]},\"query\":{\"term\":{\"name\":\"Marvin\"}},\"from\":0,\"size\":10000}"));
     }
 
     @Test (expected = UnsupportedOperationException.class)
@@ -301,6 +302,22 @@ public class ESQueryBuilderTest {
         BytesReference reference = generator.convert(deleteByQueryNode);
         String actual = reference.toUtf8();
         assertThat(actual, is("{\"query\":{\"term\":{\"name\":\"Marvin\"}}}"));
+    }
 
+    @Test
+    public void testSelect_OnlyVersion() throws Exception {
+        Reference version_ref = TestingHelpers.createReference("_version", DataType.INTEGER);
+        ESSearchNode searchNode = new ESSearchNode(
+                ImmutableList.<Symbol>of(version_ref),
+                null,
+                null,
+                null,
+                null,
+                WhereClause.MATCH_ALL);
+
+        BytesReference reference = generator.convert(searchNode, ImmutableList.of(version_ref));
+        String actual = reference.toUtf8();
+        assertThat(actual, is(
+                "{\"version\":true,\"_source\":false,\"query\":{\"match_all\":{}},\"from\":0,\"size\":10000}"));
     }
 }
