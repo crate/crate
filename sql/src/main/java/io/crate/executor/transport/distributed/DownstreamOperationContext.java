@@ -55,7 +55,6 @@ public class DownstreamOperationContext {
     }
 
     public void addFailure(@Nullable Throwable failure) {
-        boolean last = mergeOperationsLeft.decrementAndGet() == 0;
         if (failure != null) {
             logger.error("addFailure local", failure);
         } else {
@@ -65,14 +64,13 @@ public class DownstreamOperationContext {
             boolean firstFailure = listener.setException(failure);
             logger.trace("addFailure first: {}", firstFailure);
         } finally {
-            if (last) {
+            if (mergeOperationsLeft.decrementAndGet() == 0) {
                 doneCallback.finished();
             }
         }
     }
 
     public void add(Object[][] rows) {
-        boolean last = mergeOperationsLeft.decrementAndGet() == 0;
         assert rows != null;
         logger.trace("add rows.size: {}", rows.length);
         synchronized (lock) {
@@ -82,27 +80,19 @@ public class DownstreamOperationContext {
                 } catch (Exception e) {
                     logger.error("failed to add rows to downstreamOperation", e);
                     listener.setException(e);
-                    if (last) {
-                        doneCallback.finished();
-                    }
                 }
             }
         }
-        if (last) {
-            Object[][] downstreamResult = null;
+
+        if (mergeOperationsLeft.decrementAndGet() == 0) {
+            doneCallback.finished();
             try {
-                downstreamResult = downstreamOperation.result();
+                listener.set(downstreamOperation.result());
             } catch (Exception e) {
                 logger.error("failed to get downstreamOperation result", e);
                 listener.setException(e);
-                doneCallback.finished();
-                return;
             }
-            assert downstreamResult != null;
-            listener.set(downstreamResult);
-            doneCallback.finished();
         }
-
     }
 
     public DataType.Streamer<?>[] streamers() {
