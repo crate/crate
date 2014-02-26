@@ -21,8 +21,8 @@
 
 package org.cratedb.module;
 
+import com.google.common.util.concurrent.SettableFuture;
 import org.cratedb.ClusterIdService;
-import org.cratedb.core.futures.GenericBaseFuture;
 import org.cratedb.rest.CrateRestMainAction;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.TypeLiteral;
@@ -70,9 +70,9 @@ public class CrateCoreModule extends AbstractModule {
 
     private class RestMainActionListener implements TypeListener {
 
-        private final GenericBaseFuture<CrateRestMainAction> instanceFuture;
+        private final SettableFuture<CrateRestMainAction> instanceFuture;
 
-        public RestMainActionListener(GenericBaseFuture<CrateRestMainAction> instanceFuture) {
+        public RestMainActionListener(SettableFuture<CrateRestMainAction> instanceFuture) {
             this.instanceFuture = instanceFuture;
         }
 
@@ -108,10 +108,10 @@ public class CrateCoreModule extends AbstractModule {
 
     private class CrateRestMainActionListener implements TypeListener {
 
-        private final GenericBaseFuture<CrateRestMainAction> instanceFuture;
+        private final SettableFuture<CrateRestMainAction> instanceFuture;
 
         public CrateRestMainActionListener() {
-            this.instanceFuture = new GenericBaseFuture<>();
+            this.instanceFuture = SettableFuture.create();
 
         }
 
