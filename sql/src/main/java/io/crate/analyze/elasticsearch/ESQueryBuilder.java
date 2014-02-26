@@ -102,18 +102,31 @@ public class ESQueryBuilder {
         context.builder = XContentFactory.jsonBuilder().startObject();
         XContentBuilder builder = context.builder;
 
-        Set<String> fields = new HashSet<>();
+        Set<String> fields = new HashSet<>(outputs.size());
+        boolean needWholeSource = false;
         for (Reference output : outputs) {
-            fields.add(output.info().ident().columnIdent().fqn());
-        }
-        if (fields.size() > 0) {
-            builder.field("_source", fields);
+            String name = output.info().ident().columnIdent().fqn();
+            if (name.startsWith("_")){
+                if ("_version".equals(name)){
+                    builder.field("version", true);
+                }
+                if ("_source".equals(name)){
+                    needWholeSource = true;
+                }
+            } else {
+                fields.add(output.info().ident().columnIdent().fqn());
+            }
         }
 
-        if (fields.contains("_version")) {
-            builder.field("version", true);
+        if (!needWholeSource){
+            if (fields.size() > 0){
+                builder.startObject("_source");
+                builder.field("include", fields);
+                builder.endObject();
+            } else {
+                builder.field("_source", false);
+            }
         }
-
         whereClause(context, node.whereClause());
 
         if (context.ignoredFields.containsKey("_score")) {

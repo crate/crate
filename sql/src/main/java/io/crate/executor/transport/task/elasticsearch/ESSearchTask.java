@@ -38,8 +38,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.TransportSearchAction;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHitField;
 
@@ -140,11 +138,7 @@ public class ESSearchTask implements Task<Object[][]> {
                 extractors[i] = new FieldExtractor() {
                     @Override
                     public Object extract(SearchHit hit) {
-                        BytesReference s = hit.sourceRef();
-                        if (s!=null){
-                            return XContentHelper.convertToMap(s, false).v2();
-                        }
-                        return null;
+                        return hit.getSource();
                     }
                 };
             } else if (fieldName.equals("_score")) {
@@ -158,15 +152,8 @@ public class ESSearchTask implements Task<Object[][]> {
                 extractors[i] = new FieldExtractor() {
                     @Override
                     public Object extract(SearchHit hit) {
-                        SearchHitField field = hit.getFields().get(fieldName);
-                        Object value = null;
-                        if (field != null && !field.values().isEmpty()) {
-                            if (field.values().size() == 1) {
-                                value = field.value();
-                            } else {
-                                value = field.values();
-                            }
-                        }
+                        SearchHitField field = null;
+                        Object value = hit.getSource().get(fieldName);
                         return value;
                     }
                 };

@@ -525,7 +525,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                             .endObject()
                         .endObject().endObject())
                 .execute().actionGet();
-
+        ensureGreen();
         client().prepareIndex("test", "default", "id1")
                 .setSource("{\"date\": " +
                         new TimeStampSQLType().mappedValue("2013-10-01") + "}")
@@ -547,6 +547,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .addMapping("default",
                         "date", "type=date")
                 .execute().actionGet();
+        ensureGreen();
         client().prepareIndex("test", "default", "id1")
                 .setSource("{\"date\": " +
                         new TimeStampSQLType().mappedValue("2013-10-01") + "}")
@@ -568,6 +569,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .addMapping("default",
                         "i", "type=long")
                 .execute().actionGet();
+        ensureGreen();
         client().prepareIndex("test", "default", "id1")
                 .setSource("{\"i\":10}")
                 .execute().actionGet();
@@ -591,7 +593,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         "firstName", "type=string,store=true,index=not_analyzed",
                         "lastName", "type=string,store=true,index=not_analyzed")
                 .execute().actionGet();
-
+        ensureGreen();
         execute("insert into test (\"firstName\", \"lastName\") values('Youri', 'Zoon')");
         assertEquals(1, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
@@ -614,7 +616,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         "firstName", "type=string,store=true,index=not_analyzed",
                         "lastName", "type=string,store=true,index=not_analyzed")
                 .execute().actionGet();
-
+        ensureGreen();
         execute("insert into test values('Youri', 'Zoon')");
         assertEquals(1, response.rowCount());
         refresh();
@@ -1693,6 +1695,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testCreateTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
+        ensureGreen();
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());
 
@@ -1708,7 +1711,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"settings\":{" +
                 "\"index.number_of_replicas\":\"1\"," +
                 "\"index.number_of_shards\":\"5\"," +
-                "\"index.version.created\":\"1000099\"" +
+                "\"index.version.created\":\"1000199\"" +
                 "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
@@ -1825,7 +1828,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "\"settings\":{" +
                     "\"index.number_of_replicas\":\"2\"," +
                     "\"index.number_of_shards\":\"10\"," +
-                    "\"index.version.created\":\"1000099\"" +
+                    "\"index.version.created\":\"1000199\"" +
                 "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));

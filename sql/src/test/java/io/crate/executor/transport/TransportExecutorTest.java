@@ -94,6 +94,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     private void insertCharacters() {
         execute("create table characters (id int primary key, name string)");
+        ensureGreen();
         execute("insert into characters (id, name) values (1, 'Arthur')");
         execute("insert into characters (id, name) values (2, 'Ford')");
         execute("insert into characters (id, name) values (3, 'Trillian')");
