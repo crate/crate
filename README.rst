@@ -120,29 +120,8 @@ Are you a Developer?
 ====================
 
 You can build Crate Data on your own with the latest version hosted on GitHub.
-To do so, please refer to ``DEVELOP.rst``.
-
-Contributing
--------------
-
-If you intend to contribute to Crate Data we need you to agree to our CLA_.
-Once that is done, we suggest to continue as follows:
-
-1. Fork this repository of Crate Data.
-
-2. Create a feature branch (``git checkout -b my_feature``)
-
-3. Add your contributions (``git commit -am "Added feature"``)
-
-4. Commit and publish your feature branch to your own fork
-   (``git push -u origin my_feature``).
-
-5. Create a `pull requests <https://help.github.com/articles/using-pull-requests>`_
-   specifying the Crate repository as the destination.
-
-6. Lay back and relax while waiting for our response.
-
-.. _CLA: https://crate.io/legal/contribute/
+To do so, please refer to ``DEVELOP.rst`` and ``CONTRIBUTING.rst`` for further
+information.
 
 Help & Contact
 ==============
