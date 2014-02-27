@@ -5,13 +5,15 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - fixed several issues with certain locales 
+ - upgraded elasticsearch to 1.0.1
+
+ - fixed several issues with certain locales
 
 2014/02/26 0.23.2
 =================
 
  - fixed a synchronization issue that could cause invalid results
- 
+
  - cleaned up exception messages to be more useful for the users.
 
  - fixed a bug that caused an exception in case the request was "primary key
