@@ -113,6 +113,8 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
 
         Symbol value = process(node.getValue(), context);
 
+
+
         DataType valueDataType = symbolDataTypeVisitor.process(value, null);
         if (valueDataType == DataType.NULL){
             // dynamic or null values cannot be queried, in scalar use-cases (system tables)

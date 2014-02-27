@@ -125,9 +125,7 @@ def test_suite():
                                  doctest.ELLIPSIS)
         s.layer = empty_layer
         suite.addTest(s)
-    for fn in ('sql/dml.txt', 'sql/occ.txt', 'sql/ddl.txt',
-               'sql/information_schema.txt', 'sql/aggregation.txt',
-               'sql/scalar.txt', 'sql/stats.txt'):
+    for fn in ('sql/dml.txt', 'sql/occ.txt', 'sql/ddl.txt', 'sql/information_schema.txt', 'sql/aggregation.txt', 'sql/stats.txt'):
         s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
                                  setUp=setUpLocationsAndQuotes,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |

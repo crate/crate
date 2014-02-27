@@ -5,12 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - added scalar function date_trunc
-
  - upgraded elasticsearch to 1.0.1
 
  - fixed several issues with certain locales
-
 
 2014/02/26 0.23.2
 =================
