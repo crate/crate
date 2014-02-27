@@ -373,6 +373,7 @@ public class RestImportActionTest extends AbstractRestActionTest {
         ClusterStateRequest clusterStateRequest = Requests.clusterStateRequest().metaData(true).indices("index1");
         ImmutableOpenMap<String, MappingMetaData> mappings = new ImmutableOpenMap.Builder<>(
                 client().admin().cluster().state(clusterStateRequest).actionGet().getState().metaData().index("index1").getMappings()).build();
+        assertTrue(mappings.size()>0);
         assertEquals("{\"1\":{\"_timestamp\":{\"enabled\":true,\"store\":true},\"_ttl\":{\"enabled\":true,\"default\":86400000},\"properties\":{\"name\":{\"type\":\"string\",\"store\":true}}}}",
                 mappings.get("1").source().toString());
     }

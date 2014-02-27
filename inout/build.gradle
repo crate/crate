@@ -18,6 +18,9 @@ sourceSets {
             srcDir 'src/test/java'
             include '**/*.rst'
             include '**/*.json'
+            include '**/*.json.gz'
+            include '**/*.mapping'
+            include '**/*.settings'
         }
     }
 }
