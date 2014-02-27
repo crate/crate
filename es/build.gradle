@@ -36,7 +36,8 @@ dependencies {
     compile 'org.apache.lucene:lucene-sandbox:4.6.1'
     compile 'org.apache.lucene:lucene-spatial:4.6.1'
     compile 'org.apache.lucene:lucene-suggest:4.6.1'
-    compile 'org.fusesource:sigar:1.6.4'
+    // keep sigar out, see below
+    // compile 'org.fusesource:sigar:1.6.4'
     compile 'org.joda:joda-convert:1.2'
     compile 'org.mvel:mvel2:2.1.5.Final'
     compile 'org.slf4j:slf4j-api:1.6.2'
