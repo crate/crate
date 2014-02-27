@@ -41,15 +41,19 @@ public class ESSearchNode extends AbstractESNode {
     private final int offset;
     private final boolean[] reverseFlags;
     private final WhereClause whereClause;
+    private final String indexName;
 
-    public ESSearchNode(List<Symbol> outputs,
+    public ESSearchNode(String indexName,
+                        List<Symbol> outputs,
                         @Nullable List<Reference> orderBy,
                         @Nullable boolean[] reverseFlags,
                         @Nullable Integer limit,
                         @Nullable Integer offset,
                         WhereClause whereClause) {
+        assert indexName != null;
         assert outputs != null;
         assert whereClause != null;
+        this.indexName = indexName;
         this.orderBy = Objects.firstNonNull(orderBy, ImmutableList.<Reference>of());
         this.reverseFlags = Objects.firstNonNull(reverseFlags, new boolean[0]);
         Preconditions.checkArgument(this.orderBy.size() == this.reverseFlags.length,
@@ -61,6 +65,15 @@ public class ESSearchNode extends AbstractESNode {
         // TODO: move constant to some other location?
         this.limit = Objects.firstNonNull(limit, Constants.DEFAULT_SELECT_LIMIT);
         this.offset = Objects.firstNonNull(offset, 0);
+    }
+
+    public String indexName(){
+        return indexName;
+    }
+
+    @Override
+    public List<? extends Reference> outputs() {
+        return (List<? extends Reference>) super.outputs();
     }
 
     public int limit() {

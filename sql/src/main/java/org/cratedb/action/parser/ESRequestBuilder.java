@@ -30,6 +30,7 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
 import java.io.IOException;
 
@@ -65,24 +66,5 @@ public class ESRequestBuilder {
         ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
         request.persistentSettings(stmt.createAnalyzerSettings);
         return request;
-    }
-
-    public ImportRequest buildImportRequest() {
-        ImportRequest importRequest = new ImportRequest();
-
-        BytesReference source = null;
-        try {
-            XContentBuilder jsonBuilder = XContentFactory.jsonBuilder();
-            source = jsonBuilder.startObject()
-                    .field("path", stmt.importPath)
-                    .endObject().bytes();
-        } catch (IOException e) {
-        }
-        importRequest.source(source, false);
-
-        importRequest.index(stmt.indices()[0]);
-        importRequest.type(Constants.DEFAULT_MAPPING_TYPE);
-
-        return importRequest;
     }
 }

@@ -32,13 +32,13 @@ import java.util.Set;
 
 public abstract class AbstractESNode extends PlanNode {
 
-    protected List<Symbol> outputs;
+    protected List<? extends Symbol> outputs;
 
-    public List<Symbol> outputs() {
+    public List<? extends Symbol> outputs() {
         return outputs;
     }
 
-    public void outputs(List<Symbol> outputs) {
+    public void outputs(List<? extends Symbol> outputs) {
         this.outputs = outputs;
     }
 

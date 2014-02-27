@@ -26,6 +26,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
 import io.crate.lucene.SQLToLuceneHelper;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operator.operator.*;
 import io.crate.operator.predicate.IsNullPredicate;
 import io.crate.operator.predicate.NotPredicate;
@@ -54,12 +56,17 @@ public class ESQueryBuilder {
     /**
      * adds the "query" part to the XContentBuilder
      */
+
     private void whereClause(Context context, WhereClause whereClause) throws IOException {
+        context.builder.startObject("query");
         if (whereClause.hasQuery()) {
             visitor.process(whereClause.query(), context);
         } else {
             context.builder.field("match_all", new HashMap<>());
+
         }
+        context.builder.endObject();
+
     }
 
     /**
@@ -68,37 +75,70 @@ public class ESQueryBuilder {
     public BytesReference convert(WhereClause whereClause) throws IOException {
         Context context = new Context();
         context.builder = XContentFactory.jsonBuilder().startObject();
-        context.builder.startObject("query");
         whereClause(context, whereClause);
         context.builder.endObject();
-        context.builder.endObject();
         return context.builder.bytes();
+    }
+
+    static Set<String> commonAncestors(List<String> fields){
+        int idx = 0;
+        String previous = null;
+
+        Collections.sort(fields);
+        Set<String> result = new HashSet<>(fields.size());
+        for (String field : fields) {
+            if (idx>0){
+                if (!field.startsWith(previous + '.')){
+                    previous = field;
+                    result.add(field);
+                }
+            } else {
+                result.add(field);
+                previous = field;
+            }
+            idx++;
+        }
+        return result;
     }
 
     /**
      * use to create a full elasticsearch query "statement" including fields, size, etc.
      */
-    public BytesReference convert(ESSearchNode node, List<Reference> outputs) throws IOException {
+    public BytesReference convert(ESSearchNode node) throws IOException {
         assert node != null;
-        assert outputs != null;
+        List<? extends Reference> outputs;
 
+        outputs = node.outputs();
         Context context = new Context();
         context.builder = XContentFactory.jsonBuilder().startObject();
         XContentBuilder builder = context.builder;
 
-        Set<String> fields = new HashSet<>();
+        List<String> fields = new ArrayList<>(outputs.size());
+        boolean needWholeSource = false;
         for (Reference output : outputs) {
-            fields.add(output.info().ident().columnIdent().fqn());
+            ColumnIdent columnIdent = output.info().ident().columnIdent();
+            if (columnIdent.isSystemColumn()){
+                if (DocSysColumns.VERSION.equals(columnIdent)){
+                    builder.field("version", true);
+                }
+                else if (DocSysColumns.SOURCE.equals(columnIdent)){
+                    needWholeSource = true;
+                }
+            } else {
+                fields.add(columnIdent.fqn());
+            }
         }
-        builder.field("fields", fields);
 
-        if (fields.contains("_version")) {
-            builder.field("version", true);
+        if (!needWholeSource){
+            if (fields.size() > 0){
+                builder.startObject("_source");
+                builder.field("include", commonAncestors(fields));
+                builder.endObject();
+            } else {
+                builder.field("_source", false);
+            }
         }
-
-        builder.startObject("query");
         whereClause(context, node.whereClause());
-        builder.endObject();
 
         if (context.ignoredFields.containsKey("_score")) {
             builder.field("min_score", ((Number) context.ignoredFields.get("_score")).doubleValue());
@@ -137,9 +177,7 @@ public class ESQueryBuilder {
         context.builder = XContentFactory.jsonBuilder().startObject();
         XContentBuilder builder = context.builder;
 
-        builder.startObject("query");
         whereClause(context, node.whereClause());
-        builder.endObject();
 
         if (node.version().isPresent()) {
             builder.field("version", true);

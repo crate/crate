@@ -32,7 +32,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.support.TransportAction;
-import org.elasticsearch.index.get.GetField;
+import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,7 +57,7 @@ public class ESGetTask implements Task<Object[][]> {
         for (Symbol symbol : node.outputs()) {
             visitor.process(symbol, ctx);
         }
-
+        final FetchSourceContext fsc = new FetchSourceContext(ctx.fields);
         final FieldExtractor[] extractors = buildExtractors(ctx.fields, ctx.types);
         final SettableFuture<Object[][]> result = SettableFuture.create();
         results = Arrays.<ListenableFuture<Object[][]>>asList(result);
@@ -65,7 +65,7 @@ public class ESGetTask implements Task<Object[][]> {
             MultiGetRequest multiGetRequest = new MultiGetRequest();
             for (String id : node.ids()) {
                 MultiGetRequest.Item item = new MultiGetRequest.Item(node.index(), Constants.DEFAULT_MAPPING_TYPE, id);
-                item.fields(ctx.fields);
+                item.fetchSourceContext(fsc);
                 multiGetRequest.add(item);
             }
             multiGetRequest.realtime(true);
@@ -75,7 +75,7 @@ public class ESGetTask implements Task<Object[][]> {
             listener = new MultiGetResponseListener(result, extractors);
         } else {
             GetRequest getRequest = new GetRequest(node.index(), Constants.DEFAULT_MAPPING_TYPE, node.ids().get(0));
-            getRequest.fields(ctx.fields);
+            getRequest.fetchSourceContext(fsc);
             getRequest.realtime(true);
 
             transportAction = getAction;
@@ -106,12 +106,9 @@ public class ESGetTask implements Task<Object[][]> {
                 extractors[i] = new FieldExtractor() {
                     @Override
                     public Object extract(GetResponse response) {
-                        GetField getField = response.getField(field);
-                        if (getField != null) {
-                            return getField.getValue();
-                        }
-
-                        return null;
+                        assert response.getSourceAsMap() != null;
+                        Object value = response.getSourceAsMap().get(field);
+                        return value;
                     }
                 };
             }

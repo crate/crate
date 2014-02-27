@@ -264,9 +264,11 @@ public class RestImportActionTest extends AbstractRestActionTest {
      */
     @Test
     public void testImportRelativeFilename() throws Exception {
+
         setUpSecondNode();
+        wipeIndices("users");
+
         // create sample data
-        deleteAll();
         prepareCreate("users").setSettings(
             ImmutableSettings.builder().loadFromClasspath("/essetup/settings/test_b.json").build()
         ).addMapping("d", stringFromPath("/essetup/mappings/test_b.json", getClass())).execute().actionGet();
@@ -284,7 +286,7 @@ public class RestImportActionTest extends AbstractRestActionTest {
         ExportResponse exportResponse = client().execute(ExportAction.INSTANCE, exportRequest).actionGet();
         assertEquals(0, exportResponse.getFailedShards());
 
-        deleteAll();
+        wipeIndices("users");
         prepareCreate("users").setSettings(
             ImmutableSettings.builder().loadFromClasspath("/essetup/settings/test_b.json").build()
         ).addMapping("d", stringFromPath("/essetup/mappings/test_b.json", getClass())).execute().actionGet();
@@ -349,7 +351,7 @@ public class RestImportActionTest extends AbstractRestActionTest {
         String path = getClass().getResource("/importdata/import_9").getPath();
         executeImportRequest("{\"directory\": \"" + path + "\", \"settings\": true}");
 
-        ClusterStateRequest clusterStateRequest = Requests.clusterStateRequest().filteredIndices("index1");
+        ClusterStateRequest clusterStateRequest = Requests.clusterStateRequest().metaData(true).indices("index1");
         IndexMetaData stats = client().admin().cluster().state(clusterStateRequest).actionGet().getState().metaData().index("index1");
         assertEquals(2, stats.numberOfShards());
         assertEquals(1, stats.numberOfReplicas());
@@ -379,7 +381,7 @@ public class RestImportActionTest extends AbstractRestActionTest {
         String path = getClass().getResource("/importdata/import_9").getPath();
         executeImportRequest("{\"directory\": \"" + path + "\", \"mappings\": true}");
 
-        ClusterStateRequest clusterStateRequest = Requests.clusterStateRequest().filteredIndices("index1");
+        ClusterStateRequest clusterStateRequest = Requests.clusterStateRequest().metaData(true).indices("index1");
         ImmutableOpenMap<String, MappingMetaData> mappings = new ImmutableOpenMap.Builder<>(
                 client().admin().cluster().state(clusterStateRequest).actionGet().getState().metaData().index("index1").getMappings()).build();
         assertEquals("{\"1\":{\"_timestamp\":{\"enabled\":true,\"store\":true},\"_ttl\":{\"enabled\":true,\"default\":86400000},\"properties\":{\"name\":{\"type\":\"string\",\"store\":true}}}}",
@@ -481,7 +483,6 @@ public class RestImportActionTest extends AbstractRestActionTest {
         settingsBuilder.put("node.name", "import-test-with-path-vars");
 
         String node3 = cluster().startNode(settingsBuilder);
-        client(node3).admin().indices().prepareDelete().execute().actionGet();
         client(node3).admin().cluster().prepareHealth().setWaitForGreenStatus().execute().actionGet();
 
         String path = getClass().getResource("/importdata/import_10").getPath();

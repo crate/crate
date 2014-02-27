@@ -22,6 +22,7 @@
 package org.cratedb.action.reindex;
 
 import org.elasticsearch.cache.recycler.CacheRecycler;
+import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -37,11 +38,12 @@ public class TransportReindexAction extends AbstractTransportSearchIntoAction {
 
     @Inject
     public TransportReindexAction(Settings settings, ThreadPool threadPool,
-            ClusterService clusterService, TransportService transportService, CacheRecycler cacheRecycler,
+            ClusterService clusterService, TransportService transportService,
+            CacheRecycler cacheRecycler, PageCacheRecycler pageRecycler,
             IndicesService indicesService, ScriptService scriptService,
             ReindexParser parser, Writer writer) {
-        super(settings, threadPool, clusterService, transportService, cacheRecycler, indicesService,
-                scriptService, parser, writer);
+        super(settings, threadPool, clusterService, transportService, cacheRecycler, pageRecycler,
+                indicesService, scriptService, parser, writer);
     }
 
     @Override

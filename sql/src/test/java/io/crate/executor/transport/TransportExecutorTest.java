@@ -94,6 +94,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     private void insertCharacters() {
         execute("create table characters (id int primary key, name string)");
+        ensureGreen();
         execute("insert into characters (id, name) values (1, 'Arthur')");
         execute("insert into characters (id, name) values (2, 'Ford')");
         execute("insert into characters (id, name) values (3, 'Trillian')");
@@ -243,6 +244,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         insertCharacters();
 
         ESSearchNode node = new ESSearchNode(
+                "characters",
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Reference>asList(name_ref),
                 new boolean[]{false},
@@ -277,6 +279,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 Arrays.<Symbol>asList(name_ref, new StringLiteral("Ford")));
 
         ESSearchNode node = new ESSearchNode(
+                "characters",
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Reference>asList(name_ref),
                 new boolean[]{false},
@@ -319,6 +322,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         // verify deletion
         ESSearchNode searchNode = new ESSearchNode(
+                "characters",
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 Arrays.<Reference>asList(name_ref),
                 new boolean[]{false},
@@ -536,6 +540,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 DataType.BOOLEAN),
                 Arrays.<Symbol>asList(name_ref, new StringLiteral("mostly harmless")));
         ESSearchNode node = new ESSearchNode(
+                "characters",
                 Arrays.<Symbol>asList(id_ref, name_ref, version_ref),
                 ImmutableList.<Reference>of(),
                 new boolean[0],
@@ -597,6 +602,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 DataType.BOOLEAN),
                 Arrays.<Symbol>asList(name_ref, new StringLiteral("mostly harmless")));
         ESSearchNode node = new ESSearchNode(
+                "characters",
                 Arrays.<Symbol>asList(id_ref, name_ref),
                 ImmutableList.of(id_ref),
                 new boolean[]{false},
@@ -624,6 +630,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     public void testImportTask() throws Exception {
         execute("create table quotes (id int primary key, " +
                 "quote string index using fulltext)");
+        ensureGreen();
         String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
 
         CopyNode copyNode = new CopyNode(filePath, "quotes", CopyAnalysis.Mode.FROM);

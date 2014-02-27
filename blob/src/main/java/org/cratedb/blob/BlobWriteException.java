@@ -21,9 +21,9 @@
 
 package org.cratedb.blob;
 
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 
-public class BlobWriteException extends ElasticSearchException {
+public class BlobWriteException extends ElasticsearchException {
 
     public BlobWriteException(String digest, long size, Throwable cause) {
         super(String.format("digest: {} size:{}", digest, size), cause);

@@ -27,15 +27,22 @@ import org.cratedb.DataType;
 
 public class TestingHelpers {
 
+
+
     public static Reference createReference(String columnName, DataType dataType) {
-        return createReference("dummyTable", columnName, dataType);
+        return createReference("dummyTable", new ColumnIdent(columnName), dataType);
     }
 
-    public static Reference createReference(String tableName, String columnName, DataType dataType) {
+    public static Reference createReference(ColumnIdent columnIdent, DataType dataType) {
+        return createReference("dummyTable", columnIdent, dataType);
+    }
+
+    public static Reference createReference(String tableName, ColumnIdent columnIdent, DataType dataType) {
         return new Reference(new ReferenceInfo(
-                new ReferenceIdent(new TableIdent(null, tableName), columnName),
+                new ReferenceIdent(new TableIdent(null, tableName), columnIdent),
                 RowGranularity.DOC,
                 dataType
         ));
     }
+
 }

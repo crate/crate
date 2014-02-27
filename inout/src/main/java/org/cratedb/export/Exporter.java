@@ -140,9 +140,10 @@ public class Exporter {
             client = injector.getInstance(ClusterAdminClient.class);
         }
         ClusterStateRequest clusterStateRequest = Requests.clusterStateRequest()
-                .filterRoutingTable(true)
-                .filterNodes(true)
-                .filteredIndices(context.shardTarget().index());
+                .routingTable(false)
+                .nodes(false)
+                .metaData(true)
+                .indices(context.shardTarget().index());
 
         clusterStateRequest.listenerThreaded(false);
 

@@ -290,7 +290,6 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
     }
 
-
     private class CreateIndexResponseListener extends ESResponseToSQLResponseListener<CreateIndexResponse> {
 
         public CreateIndexResponseListener(ParsedStatement stmt,

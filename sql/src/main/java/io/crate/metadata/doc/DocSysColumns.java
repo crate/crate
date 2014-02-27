@@ -15,12 +15,19 @@ import java.util.Map;
 
 public class DocSysColumns {
 
+
+    public static final ColumnIdent ID = new ColumnIdent("_id");
+    public static final ColumnIdent VERSION = new ColumnIdent("_version");
+    public static final ColumnIdent SCORE = new ColumnIdent("_score");
+    public static final ColumnIdent UID = new ColumnIdent("_uid");
+    public static final ColumnIdent SOURCE = new ColumnIdent("_source");
+
     public static ImmutableMap<ColumnIdent, DataType> columnIdents = ImmutableMap.<ColumnIdent, DataType>builder()
-            .put(new ColumnIdent("_id"), DataType.STRING)
-            .put(new ColumnIdent("_version"), DataType.LONG)
-            .put(new ColumnIdent("_score"), DataType.DOUBLE)
-            .put(new ColumnIdent("_uid"), DataType.STRING)
-            .put(new ColumnIdent("_source"), DataType.OBJECT)
+            .put(ID, DataType.STRING)
+            .put(VERSION, DataType.LONG)
+            .put(SCORE, DataType.DOUBLE)
+            .put(UID, DataType.STRING)
+            .put(SOURCE, DataType.OBJECT)
             .build();
 
     private static ReferenceInfo newInfo(TableIdent table, ColumnIdent column, DataType dataType) {

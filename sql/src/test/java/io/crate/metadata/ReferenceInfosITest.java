@@ -83,9 +83,10 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
     public void testTableAlias() throws Exception {
         execute("create table terminator (model string, good boolean, actor object)");
         IndicesAliasesRequest request = new IndicesAliasesRequest();
-        request.addAlias("terminator", "entsafter");
+        request.addAlias("entsafter", "terminator");
         client().admin().indices().aliases(request).actionGet();
         ensureGreen();
+
         TableInfo terminatorTable = referenceInfos.getTableInfo(new TableIdent(null, "terminator"));
         TableInfo entsafterTable = referenceInfos.getTableInfo(new TableIdent(null, "entsafter"));
         assertNotNull(terminatorTable);
@@ -100,8 +101,8 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
         execute("create table terminator (model string, good boolean, actor object)");
         execute("create table transformer (model string, good boolean, actor object)");
         IndicesAliasesRequest request = new IndicesAliasesRequest();
-        request.addAlias("terminator", "entsafter");
-        request.addAlias("transformer", "entsafter");
+        request.addAlias("entsafter", "terminator");
+        request.addAlias("entsafter", "transformer");
         client().admin().indices().aliases(request).actionGet();
         ensureGreen();
 

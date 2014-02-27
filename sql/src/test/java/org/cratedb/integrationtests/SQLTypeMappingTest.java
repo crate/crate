@@ -125,7 +125,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                 "  dynamic_again object(dynamic) as (field timestamp)" +
                 " )" +
                 ") clustered into 2 shards replicas 0");
-        refresh();
+        ensureGreen();
     }
 
     @Test
@@ -153,8 +153,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         });
         refresh();
 
-        SQLResponse response = execute("select object_field, strict_field, " +
-                "no_dynamic_field from test12");
+        SQLResponse response = execute("select object_field, strict_field, no_dynamic_field from test12");
         assertEquals(1, response.rowCount());
         assertThat(response.rows()[0][0], instanceOf(Map.class));
         @SuppressWarnings("unchecked")

@@ -21,9 +21,9 @@
 
 package org.cratedb.blob.pending_transfer;
 
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 
-public class HeadChunkFileTooSmallException extends ElasticSearchException {
+public class HeadChunkFileTooSmallException extends ElasticsearchException {
 
     public HeadChunkFileTooSmallException(String msg) {
         super(msg);

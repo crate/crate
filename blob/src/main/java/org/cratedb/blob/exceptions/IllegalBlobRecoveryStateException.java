@@ -21,9 +21,9 @@
 
 package org.cratedb.blob.exceptions;
 
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 
-public class IllegalBlobRecoveryStateException extends ElasticSearchException {
+public class IllegalBlobRecoveryStateException extends ElasticsearchException {
 
     public IllegalBlobRecoveryStateException(String msg) {
         super(msg);

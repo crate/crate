@@ -88,9 +88,10 @@ public class SQLTransportIntegrationTest extends CrateIntegrationTest {
      */
     protected String getIndexMapping(String index) throws IOException {
         ClusterStateRequest request = Requests.clusterStateRequest()
-                .filterRoutingTable(true)
-                .filterNodes(true)
-                .filteredIndices(index);
+                .routingTable(false)
+                .nodes(false)
+                .metaData(true)
+                .indices(index);
         ClusterStateResponse response = client().admin().cluster().state(request)
                 .actionGet();
 
@@ -116,9 +117,10 @@ public class SQLTransportIntegrationTest extends CrateIntegrationTest {
      */
     protected String getIndexSettings(String index) throws IOException {
         ClusterStateRequest request = Requests.clusterStateRequest()
-                .filterRoutingTable(true)
-                .filterNodes(true)
-                .filteredIndices(index);
+                .routingTable(false)
+                .nodes(false)
+                .metaData(true)
+                .indices(index);
         ClusterStateResponse response = client().admin().cluster().state(request)
                 .actionGet();
 

@@ -28,8 +28,8 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
 import org.cratedb.action.import_.ImportContext;
 import org.cratedb.action.import_.NodeImportRequest;
-import org.elasticsearch.ElasticSearchException;
-import org.elasticsearch.ElasticSearchParseException;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -184,7 +184,7 @@ public class Importer {
         } catch (Exception e) {
             logger.trace("[{}] error during import of setting and mappings", e,
                     clusterService.localNode().id());
-            throw new ElasticSearchException("::" ,e);
+            throw new ElasticsearchException("::" ,e);
         }
         // import data according to the given data file pattern
         for (File file : files) {
@@ -345,7 +345,7 @@ public class Importer {
                 indexRequest.source(sourceBuilder);
             }
             return indexRequest;
-        } catch (ElasticSearchParseException e) {
+        } catch (ElasticsearchParseException e) {
             throw new ObjectImportException(e);
         } catch (IOException e) {
             throw new ObjectImportException(e);
@@ -460,9 +460,10 @@ public class Importer {
 
     private ImmutableOpenMap<String, IndexMetaData> getIndexMetaData(Set<String> indexes) {
         ClusterStateRequest clusterStateRequest = Requests.clusterStateRequest()
-                .filterRoutingTable(true)
-                .filterNodes(true)
-                .filteredIndices(indexes.toArray(new String[indexes.size()]));
+                .routingTable(false)
+                .nodes(false)
+                .metaData(true)
+                .indices(indexes.toArray(new String[indexes.size()]));
         clusterStateRequest.listenerThreaded(false);
         ClusterStateResponse response = client.admin().cluster().state(clusterStateRequest).actionGet();
         return ImmutableOpenMap.builder(response.getState().metaData().indices()).build();
@@ -482,7 +483,7 @@ public class Importer {
         return parser.map();
     }
 
-    class MappingImportException extends ElasticSearchException {
+    class MappingImportException extends ElasticsearchException {
 
         private static final long serialVersionUID = 683146198427799700L;
 
@@ -495,7 +496,7 @@ public class Importer {
         }
     }
 
-    class SettingsImportException extends ElasticSearchException {
+    class SettingsImportException extends ElasticsearchException {
 
         private static final long serialVersionUID = -3697101419212831353L;
 
@@ -508,7 +509,7 @@ public class Importer {
         }
     }
 
-    static class ObjectImportException extends ElasticSearchException {
+    static class ObjectImportException extends ElasticsearchException {
 
         private static final long serialVersionUID = 2405764408378929056L;
 

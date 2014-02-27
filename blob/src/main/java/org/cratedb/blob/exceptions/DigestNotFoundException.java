@@ -21,9 +21,9 @@
 
 package org.cratedb.blob.exceptions;
 
-import org.elasticsearch.ElasticSearchException;
+import org.elasticsearch.ElasticsearchException;
 
-public class DigestNotFoundException extends ElasticSearchException {
+public class DigestNotFoundException extends ElasticsearchException {
 
     public DigestNotFoundException(String digest) {
         super(digest);

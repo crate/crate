@@ -21,15 +21,18 @@
 
 package org.cratedb.test.integration;
 
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.randomizedtesting.SeedUtils;
 import com.google.common.base.Joiner;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.ElasticsearchIllegalArgumentException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequestBuilder;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.elasticsearch.action.admin.indices.flush.FlushResponse;
@@ -42,11 +45,12 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.ClearScrollResponse;
-import org.elasticsearch.action.support.IgnoreIndices;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.collect.Tuple;
@@ -56,6 +60,7 @@ import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.indices.IndexMissingException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
+import org.elasticsearch.repositories.RepositoryMissingException;
 import org.elasticsearch.test.ElasticsearchIntegrationTest;
 import org.elasticsearch.test.ElasticsearchTestCase;
 import org.junit.After;
@@ -120,7 +125,7 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
     }
 
     public static void deleteAll() {
-        cluster().client().admin().indices().prepareDelete().execute().actionGet();
+        wipeIndices("_all");
     }
 
     public Client client(String nodeName) {
@@ -168,7 +173,7 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
                 assert false : "Unknonw Scope: [" + currentClusterScope + "]";
         }
         currentCluster.beforeTest(getRandom());
-        wipeIndices();
+        wipeIndices("_all");
         wipeTemplates();
         logger.info("[{}#{}]: before test", getTestClass().getSimpleName(), getTestName());
     }
@@ -211,9 +216,10 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
                 //     .persistentSettings().getAsMap().size(), equalTo(0));
 
             }
-            wipeIndices(); // wipe after to make sure we fail in the test that
+            wipeIndices("_all"); // wipe after to make sure we fail in the test that
             // didn't ack the delete
             wipeTemplates();
+            wipeRepositories();
             ensureAllSearchersClosed();
             ensureAllFilesClosed();
             logger.info("[{}#{}]: cleaned up after test", getTestClass().getSimpleName(), getTestName());
@@ -247,16 +253,31 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
     public Settings indexSettings() {
         return ImmutableSettings.EMPTY;
     }
+
     /**
      * Deletes the given indices from the tests cluster. If no index name is passed to this method
      * all indices are removed.
      */
-    public static void wipeIndices(String... names) {
+    public static void wipeIndices(String... indices) {
+        assert indices != null && indices.length > 0;
         if (cluster().size() > 0) {
             try {
-                assertAcked(client().admin().indices().prepareDelete(names));
+                assertAcked(client().admin().indices().prepareDelete(indices));
             } catch (IndexMissingException e) {
                 // ignore
+            } catch (ElasticsearchIllegalArgumentException e) {
+                // Happens if `action.destructive_requires_name` is set to true
+                // which is the case in the CloseIndexDisableCloseAllTests
+                if ("_all".equals(indices[0])) {
+                    ClusterStateResponse clusterStateResponse = client().admin().cluster().prepareState().execute().actionGet();
+                    ObjectArrayList<String> concreteIndices = new ObjectArrayList<String>();
+                    for (IndexMetaData indexMetaData : clusterStateResponse.getState().metaData()) {
+                        concreteIndices.add(indexMetaData.getIndex());
+                    }
+                    if (!concreteIndices.isEmpty()) {
+                        assertAcked(client().admin().indices().prepareDelete(concreteIndices.toArray(String.class)));
+                    }
+                }
             }
         }
     }
@@ -275,6 +296,25 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
                 try {
                     client().admin().indices().prepareDeleteTemplate(template).execute().actionGet();
                 } catch (IndexTemplateMissingException e) {
+                    // ignore
+                }
+            }
+        }
+    }
+
+    /**
+     * Deletes repositories, supports wildcard notation.
+     */
+    public static void wipeRepositories(String... repositories) {
+        if (cluster().size() > 0) {
+            // if nothing is provided, delete all
+            if (repositories.length == 0) {
+                repositories = new String[]{"*"};
+            }
+            for (String repository : repositories) {
+                try {
+                    client().admin().cluster().prepareDeleteRepository(repository).execute().actionGet();
+                } catch (RepositoryMissingException ex) {
                     // ignore
                 }
             }
@@ -586,11 +626,11 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
                 indexRequestBuilder.execute(new PayloadLatchedActionListener<IndexResponse, IndexRequestBuilder>(indexRequestBuilder, latch, errors));
                 if (rarely()) {
                     if (rarely()) {
-                        client().admin().indices().prepareRefresh(indices).setIgnoreIndices(IgnoreIndices.MISSING).execute(new LatchedActionListener<RefreshResponse>(newLatch(latches)));
+                        client().admin().indices().prepareRefresh(indices).setIndicesOptions(IndicesOptions.lenient()).execute(new LatchedActionListener<RefreshResponse>(newLatch(latches)));
                     } else if (rarely()) {
-                        client().admin().indices().prepareFlush(indices).setIgnoreIndices(IgnoreIndices.MISSING).execute(new LatchedActionListener<FlushResponse>(newLatch(latches)));
+                        client().admin().indices().prepareFlush(indices).setIndicesOptions(IndicesOptions.lenient()).execute(new LatchedActionListener<FlushResponse>(newLatch(latches)));
                     } else if (rarely()) {
-                        client().admin().indices().prepareOptimize(indices).setIgnoreIndices(IgnoreIndices.MISSING).setMaxNumSegments(between(1, 10)).setFlush(random.nextBoolean()).execute(new LatchedActionListener<OptimizeResponse>(newLatch(latches)));
+                        client().admin().indices().prepareOptimize(indices).setIndicesOptions(IndicesOptions.lenient()).setMaxNumSegments(between(1, 10)).setFlush(random.nextBoolean()).execute(new LatchedActionListener<OptimizeResponse>(newLatch(latches)));
                     }
                 }
             }
@@ -601,11 +641,11 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
                 indexRequestBuilder.execute().actionGet();
                 if (rarely()) {
                     if (rarely()) {
-                        client().admin().indices().prepareRefresh(indices).setIgnoreIndices(IgnoreIndices.MISSING).execute(new LatchedActionListener<RefreshResponse>(newLatch(latches)));
+                        client().admin().indices().prepareRefresh(indices).setIndicesOptions(IndicesOptions.lenient()).execute(new LatchedActionListener<RefreshResponse>(newLatch(latches)));
                     } else if (rarely()) {
-                        client().admin().indices().prepareFlush(indices).setIgnoreIndices(IgnoreIndices.MISSING).execute(new LatchedActionListener<FlushResponse>(newLatch(latches)));
+                        client().admin().indices().prepareFlush(indices).setIndicesOptions(IndicesOptions.lenient()).execute(new LatchedActionListener<FlushResponse>(newLatch(latches)));
                     } else if (rarely()) {
-                        client().admin().indices().prepareOptimize(indices).setIgnoreIndices(IgnoreIndices.MISSING).setMaxNumSegments(between(1, 10)).setFlush(random.nextBoolean()).execute(new LatchedActionListener<OptimizeResponse>(newLatch(latches)));
+                        client().admin().indices().prepareOptimize(indices).setIndicesOptions(IndicesOptions.lenient()).setMaxNumSegments(between(1, 10)).setFlush(random.nextBoolean()).execute(new LatchedActionListener<OptimizeResponse>(newLatch(latches)));
                     }
                 }
             }
@@ -631,7 +671,7 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
         }
         assertThat(actualErrors, emptyIterable());
         if (forceRefresh) {
-            assertNoFailures(client().admin().indices().prepareRefresh(indices).setIgnoreIndices(IgnoreIndices.MISSING).execute().get());
+            assertNoFailures(client().admin().indices().prepareRefresh(indices).setIndicesOptions(IndicesOptions.lenient()).execute().get());
         }
     }
 

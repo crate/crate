@@ -28,7 +28,7 @@ import org.cratedb.action.sql.ParsedStatement;
 import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
-import org.elasticsearch.common.lucene.uid.UidField;
+import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.index.fielddata.ScriptDocValues;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.mapper.internal.UidFieldMapper;
@@ -103,11 +103,10 @@ public class UpdateCollector extends FacetExecutor.Collector {
         lookup.setNextDocId(doc);
         Uid uid = Uid.createUid(((ScriptDocValues.Strings) lookup.doc().get("_uid")).getValue());
         if (requiredVersion != null) {
-            Long currentVersion = UidField.loadVersion(
-                    currentReaderContext,
+            Long currentVersion = Versions.loadVersion(
+                    currentReaderContext.reader(),
                     new Term(UidFieldMapper.NAME, uid.toBytesRef())
             );
-
             if (!currentVersion.equals(requiredVersion)) {
                 return;
             }

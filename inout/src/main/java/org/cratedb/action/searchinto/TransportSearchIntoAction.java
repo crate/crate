@@ -22,6 +22,7 @@
 package org.cratedb.action.searchinto;
 
 import org.elasticsearch.cache.recycler.CacheRecycler;
+import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -43,10 +44,11 @@ public class TransportSearchIntoAction extends AbstractTransportSearchIntoAction
     public TransportSearchIntoAction(Settings settings,
             ThreadPool threadPool, ClusterService clusterService,
             TransportService transportService, CacheRecycler cacheRecycler,
+            PageCacheRecycler pageCacheRecycler,
             IndicesService indicesService, ScriptService scriptService,
             SearchIntoParser parser, Writer writer) {
-        super(settings, threadPool, clusterService, transportService, cacheRecycler, indicesService,
-            scriptService, parser, writer);
+        super(settings, threadPool, clusterService, transportService, cacheRecycler,
+                pageCacheRecycler, indicesService, scriptService, parser, writer);
     }
 
     @Override

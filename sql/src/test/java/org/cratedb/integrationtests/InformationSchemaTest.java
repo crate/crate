@@ -36,6 +36,7 @@ import org.junit.rules.ExpectedException;
 
 import java.util.HashMap;
 
+
 @CrateIntegrationTest.ClusterScope(numNodes = 2, scope = CrateIntegrationTest.Scope.SUITE)
 public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
@@ -73,10 +74,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @After
     public void cleanUp() throws Exception {
-        client().admin().indices()
-                .prepareDelete() // empty delete == delete all indices
-                .execute()
-                .actionGet();
+        wipeIndices("_all");
     }
 
     @Test

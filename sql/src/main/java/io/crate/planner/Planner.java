@@ -280,6 +280,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             orderBy = null;
         }
         ESSearchNode node = new ESSearchNode(
+                analysis.table().ident().name(),
                 analysis.outputSymbols(),
                 orderBy,
                 analysis.reverseFlags(),

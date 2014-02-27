@@ -21,19 +21,16 @@
 
 package org.cratedb.searchinto;
 
-import org.cratedb.action.searchinto.SearchIntoContext;
-import org.cratedb.searchinto.mapping.MappedFields;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.Scorer;
+import org.cratedb.action.searchinto.SearchIntoContext;
+import org.cratedb.searchinto.mapping.MappedFields;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.text.StringAndBytesText;
 import org.elasticsearch.common.text.Text;
-import org.elasticsearch.index.fieldvisitor.CustomFieldsVisitor;
-import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
-import org.elasticsearch.index.fieldvisitor.JustUidFieldsVisitor;
-import org.elasticsearch.index.fieldvisitor.UidAndSourceFieldsVisitor;
+import org.elasticsearch.index.fieldvisitor.*;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.FieldMappers;
 import org.elasticsearch.index.mapper.internal.SourceFieldMapper;
@@ -100,7 +97,10 @@ public abstract class WriterCollector extends Collector {
 
         InternalSearchHit searchHit = new InternalSearchHit(doc,
                 fieldsVisitor.uid().id(), typeText,
-                sourceRequested ? fieldsVisitor.source() : null, searchFields);
+                searchFields);
+        if (sourceRequested) {
+            searchHit.sourceRef(fieldsVisitor.source());
+        }
 
         // it looks like it is safe to reuse the HitContext,
         // the cache is only used by the highlighter which we do not use.
@@ -166,15 +166,7 @@ public abstract class WriterCollector extends Collector {
                 }
             }
             if (loadAllStored) {
-                if (sourceRequested || extractFieldNames != null) {
-                    fieldsVisitor = new CustomFieldsVisitor(true,
-                            true); // load
-                    // everything,
-                    // including
-                    // _source
-                } else {
-                    fieldsVisitor = new CustomFieldsVisitor(true, false);
-                }
+                fieldsVisitor = new AllFieldsVisitor(); // load everything, including _source
             } else if (fieldNames != null) {
                 boolean loadSource = extractFieldNames != null ||
                         sourceRequested;
