@@ -543,7 +543,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         List<Symbol> outputSymbols = analysis.outputSymbols;
         assertThat(outputSymbols.size(), is(1));
         assertThat(outputSymbols.get(0), instanceOf(Function.class));
-        assertThat(((Function)outputSymbols.get(0)).arguments().size(), is(0));
+        assertThat(((Function) outputSymbols.get(0)).arguments().size(), is(0));
     }
 
     @Test
@@ -790,4 +790,5 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testLimitWithWrongArgument() throws Exception {
         analyze("select * from sys.shards limit ?", new Object[] { "invalid" });
     }
+
 }

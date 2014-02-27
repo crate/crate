@@ -13,6 +13,7 @@ For general information about SQL please refer to `Wikipedia SQL`_.
    ddl
    dml
    aggregation
+   scalar
    occ
    rest
    analyzer
