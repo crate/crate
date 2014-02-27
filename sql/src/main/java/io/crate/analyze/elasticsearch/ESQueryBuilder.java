@@ -81,10 +81,11 @@ public class ESQueryBuilder {
     /**
      * use to create a full elasticsearch query "statement" including fields, size, etc.
      */
-    public BytesReference convert(ESSearchNode node, List<Reference> outputs) throws IOException {
+    public BytesReference convert(ESSearchNode node) throws IOException {
         assert node != null;
-        assert outputs != null;
+        List<? extends Reference> outputs;
 
+        outputs = node.outputs();
         Context context = new Context();
         context.builder = XContentFactory.jsonBuilder().startObject();
         XContentBuilder builder = context.builder;

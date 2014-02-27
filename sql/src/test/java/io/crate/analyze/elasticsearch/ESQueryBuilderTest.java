@@ -254,9 +254,9 @@ public class ESQueryBuilderTest {
                 DataType.BOOLEAN),
                 Arrays.<Symbol>asList(minScore_ref, new DoubleLiteral(0.4))
         );
-        ESSearchNode node = new ESSearchNode(
+        ESSearchNode node = new ESSearchNode("something",
                 ImmutableList.<Symbol>of(), null, null, null, null, new WhereClause(whereClause));
-        BytesReference bytesReference = generator.convert(node, ImmutableList.<Reference>of());
+        BytesReference bytesReference = generator.convert(node);
 
         assertThat(bytesReference.toUtf8(),
                 is("{\"_source\":false,\"query\":{\"match_all\":{}},\"min_score\":0.4,\"from\":0,\"size\":10000}"));
@@ -267,14 +267,16 @@ public class ESQueryBuilderTest {
         FunctionImplementation eqImpl = functions.get(new FunctionIdent(EqOperator.NAME, typeX2(DataType.STRING)));
         Function whereClause = new Function(eqImpl.info(), Arrays.<Symbol>asList(name_ref, new StringLiteral("Marvin")));
 
-        ESSearchNode searchNode = new ESSearchNode(ImmutableList.<Symbol>of(name_ref),
+        ESSearchNode searchNode = new ESSearchNode(
+                characters.name(),
+                ImmutableList.<Symbol>of(name_ref),
                 ImmutableList.<Reference>of(),
                 new boolean[0],
                 null,
                 null,
                 new WhereClause(whereClause));
 
-        BytesReference reference = generator.convert(searchNode, ImmutableList.<Reference>of(name_ref));
+        BytesReference reference = generator.convert(searchNode);
         String actual = reference.toUtf8();
         assertThat(actual, is(
                 "{\"_source\":{\"include\":[\"name\"]},\"query\":{\"term\":{\"name\":\"Marvin\"}},\"from\":0,\"size\":10000}"));
@@ -308,6 +310,7 @@ public class ESQueryBuilderTest {
     public void testSelect_OnlyVersion() throws Exception {
         Reference version_ref = TestingHelpers.createReference("_version", DataType.INTEGER);
         ESSearchNode searchNode = new ESSearchNode(
+                characters.name(),
                 ImmutableList.<Symbol>of(version_ref),
                 null,
                 null,
@@ -315,7 +318,7 @@ public class ESQueryBuilderTest {
                 null,
                 WhereClause.MATCH_ALL);
 
-        BytesReference reference = generator.convert(searchNode, ImmutableList.of(version_ref));
+        BytesReference reference = generator.convert(searchNode);
         String actual = reference.toUtf8();
         assertThat(actual, is(
                 "{\"version\":true,\"_source\":false,\"query\":{\"match_all\":{}},\"from\":0,\"size\":10000}"));

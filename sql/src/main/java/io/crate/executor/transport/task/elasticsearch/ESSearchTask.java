@@ -25,8 +25,10 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.elasticsearch.ESQueryBuilder;
 import io.crate.executor.Task;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.node.ESSearchNode;
-import io.crate.planner.symbol.*;
+import io.crate.planner.symbol.Reference;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.sql.ExceptionHelper;
 import org.elasticsearch.action.ActionListener;
@@ -34,10 +36,10 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.search.TransportSearchAction;
 import org.elasticsearch.search.SearchHit;
-import org.elasticsearch.search.SearchHitField;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
 
 public class ESSearchTask implements Task<Object[][]> {
 
@@ -46,7 +48,6 @@ public class ESSearchTask implements Task<Object[][]> {
     private final SettableFuture<Object[][]> result;
     private final List<ListenableFuture<Object[][]>> results;
     private final ESQueryBuilder queryBuilder;
-    private final Visitor visitor = new Visitor();
 
     public ESSearchTask(ESSearchNode searchNode,
                         TransportSearchAction transportSearchAction) {
@@ -60,19 +61,14 @@ public class ESSearchTask implements Task<Object[][]> {
 
     @Override
     public void start() {
-        final Context ctx = new Context();
         final SearchRequest request = new SearchRequest();
 
-        for (Symbol symbol : searchNode.outputs()) {
-            visitor.process(symbol, ctx);
-        }
-
-        final FieldExtractor[] extractor = buildExtractor(ctx.outputs);
-        final int numColumns = ctx.outputs.size();
+        final ESFieldExtractor[] extractor = buildExtractor(searchNode.outputs());
+        final int numColumns = searchNode.outputs().size();
 
         try {
-            request.source(queryBuilder.convert(searchNode, ctx.outputs), false);
-            request.indices(ctx.indices.toArray(new String[ctx.indices.size()]));
+            request.source(queryBuilder.convert(searchNode), false);
+            request.indices(new String[]{searchNode.indexName()});
 
             transportSearchAction.execute(request, new ActionListener<SearchResponse>() {
                 @Override
@@ -85,7 +81,7 @@ public class ESSearchTask implements Task<Object[][]> {
                         }
                     } else {
                         final SearchHit[] hits = searchResponse.getHits().getHits();
-                        final Object[][] rows = new Object[hits.length][ctx.outputs.size()];
+                        final Object[][] rows = new Object[hits.length][numColumns];
 
                         for (int r = 0; r < hits.length; r++) {
                             rows[r] = new Object[numColumns];
@@ -108,52 +104,44 @@ public class ESSearchTask implements Task<Object[][]> {
         }
     }
 
-    private FieldExtractor[] buildExtractor(final List<Reference> outputs) {
-        FieldExtractor[] extractors = new FieldExtractor[outputs.size()];
+    private ESFieldExtractor[] buildExtractor(final List<? extends Reference> outputs) {
+        ESFieldExtractor[] extractors = new ESFieldExtractor[outputs.size()];
         int i = 0;
-        for (Reference output : outputs) {
-            final String fieldName = output.info().ident().columnIdent().fqn();
-            if (fieldName.equals("_version")) {
-                extractors[i] = new FieldExtractor() {
+        for (Reference reference : outputs) {
+            final ColumnIdent columnIdent = reference.info().ident().columnIdent();
+            if (DocSysColumns.VERSION.equals(columnIdent)) {
+                extractors[i] = new ESFieldExtractor() {
                     @Override
                     public Object extract(SearchHit hit) {
                         return hit.getVersion();
                     }
                 };
-            } else if (fieldName.equals("_id")) {
-                extractors[i] = new FieldExtractor() {
+            } else if (DocSysColumns.ID.equals(columnIdent)) {
+                extractors[i] = new ESFieldExtractor() {
                     @Override
                     public Object extract(SearchHit hit) {
                         return new BytesRef(hit.getId());
                     }
                 };
-            } else if (fieldName.equals("_source")) {
-                extractors[i] = new FieldExtractor() {
+            } else if (DocSysColumns.SOURCE.equals(columnIdent)) {
+                extractors[i] = new ESFieldExtractor() {
                     @Override
                     public Object extract(SearchHit hit) {
                         return hit.getSource();
                     }
                 };
-            } else if (fieldName.equals("_score")) {
-                extractors[i] = new FieldExtractor() {
+            } else if (DocSysColumns.SCORE.equals(columnIdent)) {
+                extractors[i] = new ESFieldExtractor() {
                     @Override
                     public Object extract(SearchHit hit) {
                         return hit.getScore();
                     }
                 };
             } else {
-                extractors[i] = new FieldExtractor() {
-                    @Override
-                    public Object extract(SearchHit hit) {
-                        SearchHitField field = null;
-                        Object value = hit.getSource().get(fieldName);
-                        return value;
-                    }
-                };
+                extractors[i] = new ESFieldExtractor.Source(columnIdent);
             }
             i++;
         }
-
         return extractors;
     }
 
@@ -167,37 +155,4 @@ public class ESSearchTask implements Task<Object[][]> {
         throw new UnsupportedOperationException("Can't have upstreamResults");
     }
 
-    class Context {
-        final public List<Reference> outputs = new ArrayList<>();
-        final public Set<String> indices = new HashSet<>();
-    }
-
-    static class Visitor extends SymbolVisitor<Context, Void> {
-
-        private void addReference(Reference symbol, Context context) {
-            context.outputs.add(symbol);
-            context.indices.add(symbol.info().ident().tableIdent().name());
-        }
-
-        @Override
-        public Void visitReference(Reference symbol, Context context) {
-            addReference(symbol, context);
-            return null;
-        }
-
-        @Override
-        public Void visitDynamicReference(DynamicReference symbol, Context context) {
-            addReference(symbol, context);
-            return null;
-        }
-
-        @Override
-        protected Void visitSymbol(Symbol symbol, Context context) {
-            throw new UnsupportedOperationException(SymbolFormatter.format("Symbol %s not supported", symbol));
-        }
-    }
-
-    private interface FieldExtractor {
-        Object extract(SearchHit hit);
-    }
 }
