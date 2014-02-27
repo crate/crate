@@ -588,8 +588,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertWithColumnNames() throws Exception {
-//            ESLogger logger = Loggers.getLogger("org.elasticsearch.org.cratedb");
-//            logger.setLevel("DEBUG");
         prepareCreate("test")
                 .addMapping("default",
                         "firstName", "type=string,store=true,index=not_analyzed",
@@ -601,10 +599,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
         refresh();
 
-        //execute("select * from test where \"firstName\" = 'Youri'");
-        execute("select * from test");
-
-        System.out.println(printedTable(response.rows()));
+        execute("select * from test where \"firstName\" = 'Youri'");
 
         assertEquals(1, response.rowCount());
         assertEquals("Youri", response.rows()[0][0]);

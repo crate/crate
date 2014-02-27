@@ -71,7 +71,7 @@ public class ExceptionHelper {
             /**
              * For update or search requests we use upstream ES SearchRequests
              * These requests are executed using the transportSearchAction.
-             *e
+             *
              * The transportSearchAction (or the more specific QueryThenFetch/../ Action inside it
              * executes the TransportSQLAction.SearchResponseListener onResponse/onFailure
              * but adds its own error handling around it.

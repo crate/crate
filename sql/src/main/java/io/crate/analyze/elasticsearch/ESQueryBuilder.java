@@ -26,6 +26,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
 import io.crate.lucene.SQLToLuceneHelper;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operator.operator.*;
 import io.crate.operator.predicate.IsNullPredicate;
 import io.crate.operator.predicate.NotPredicate;
@@ -82,7 +83,6 @@ public class ESQueryBuilder {
         int idx = 0;
         String previous = null;
 
-        //Collections.sort(fields, Collections.reverseOrder());
         Collections.sort(fields);
         Set<String> result = new HashSet<>(fields.size());
         for (String field : fields) {
@@ -117,10 +117,10 @@ public class ESQueryBuilder {
         for (Reference output : outputs) {
             String name = output.info().ident().columnIdent().fqn();
             if (name.startsWith("_")){
-                if ("_version".equals(name)){
+                if (DocSysColumns.VERSION.equals(name)){
                     builder.field("version", true);
                 }
-                if ("_source".equals(name)){
+                else if (DocSysColumns.SOURCE.equals(name)){
                     needWholeSource = true;
                 }
             } else {

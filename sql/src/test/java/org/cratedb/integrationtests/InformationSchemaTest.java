@@ -21,8 +21,6 @@
 
 package org.cratedb.integrationtests;
 
-import com.google.common.base.Joiner;
-
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
@@ -37,12 +35,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.HashMap;
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.contains;
 
 
 @CrateIntegrationTest.ClusterScope(numNodes = 2, scope = CrateIntegrationTest.Scope.SUITE)
