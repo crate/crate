@@ -566,10 +566,6 @@ showFunctions returns [Statement value]
     : SHOW_FUNCTIONS { $value = new ShowFunctions(); }
     ;
 
-createTable returns [Statement value]
-    : ^(CREATE_TABLE qname query) { $value = new CreateTable($qname.value, $query.value); }
-    ;
-
 createMaterializedView returns [Statement value]
     : ^(CREATE_MATERIALIZED_VIEW qname refresh=viewRefresh? select=restrictedSelectStmt)
         { $value = new CreateMaterializedView($qname.value, Optional.fromNullable($refresh.value), $select.value); }
@@ -601,7 +597,7 @@ dropTable returns [Statement value]
 
 
 insert returns [Statement value]
-    : ^(INSERT namedTable values=insertValues cols=columnsList?)
+    : ^(INSERT namedTable values=insertValues cols=insertColumnsList?)
         {
             $value = new Insert($namedTable.value,
                                 $values.value,
@@ -618,7 +614,7 @@ valuesList returns [ValuesList value]
     : ^(VALUES_LIST exprList) { $value = new ValuesList($exprList.value); }
     ;
 
-columnsList returns [List<QualifiedNameReference> value]
+insertColumnsList returns [List<QualifiedNameReference> value]
     : ^(COLUMN_LIST qnameList) { $value = $qnameList.value; }
     ;
 
@@ -650,4 +646,112 @@ assignment returns [Assignment value]
 
 copyFrom returns [Statement value]
     : ^(COPY_FROM namedTable path=expr) { $value = new CopyFromStatement($namedTable.value, $path.value); }
+    ;
+
+
+createTable returns [Statement value]
+    : ^(CREATE_TABLE namedTable tableElementList clusteredBy? replicas?)
+        {
+            $value = new CreateTable($namedTable.value, $tableElementList.value, $clusteredBy.value, $replicas.value);
+        }
+    ;
+
+tableElementList returns [List<TableElement> value = new ArrayList<>()]
+    : ^(TABLE_ELEMENT_LIST (tableElement { $value.add($tableElement.value); } )+ )
+    ;
+
+tableElement returns [TableElement value]
+    : columnDefinition { $value = $columnDefinition.value; }
+    | indexDefinition  { $value = $indexDefinition.value; }
+    | primaryKeyConstraint { $value = $primaryKeyConstraint.value; }
+    ;
+
+columnDefinition returns [ColumnDefinition value]
+    : ^(COLUMN_DEF ident dataType columnConstraints)
+        {
+            $value = new ColumnDefinition($ident.value, $dataType.value, $columnConstraints.value);
+        }
+    ;
+
+dataType returns [ColumnType value]
+    : type=(BOOLEAN | BYTE | SHORT | INT | INTEGER | LONG | FLOAT | DOUBLE | TIMESTAMP | STRING_TYPE | IP )
+      {
+        $value = new ColumnType($type.text.toLowerCase(Locale.ENGLISH));
+      }
+    | objectTypeDefinition { $value = $objectTypeDefinition.value; }
+    ;
+
+objectTypeDefinition returns [ObjectColumnType value]
+    : ^(OBJECT type=objectType? columnDefinitionList?)
+        {
+            $value = new ObjectColumnType($type.value, $columnDefinitionList.value);
+        }
+    ;
+
+objectType returns [String value]
+    : type=(DYNAMIC|STRICT|IGNORED) { $value = $type.text.toLowerCase(Locale.ENGLISH); }
+    ;
+
+columnDefinitionList returns [List<ColumnDefinition> value = new ArrayList<>()]
+    : ^(OBJECT_COLUMNS ( columnDefinition { $value.add($columnDefinition.value); } )+ )
+    ;
+
+columnConstraints returns [List<ColumnConstraint> value = new ArrayList<>()]
+    : (^(CONSTRAINT columnConstraint) { $value.add($columnConstraint.value); } )*
+    ;
+
+columnConstraint returns [ColumnConstraint value]
+    : PRIMARY_KEY { $value = new PrimaryKeyColumnConstraint(); }
+    | INDEX_OFF   { $value = IndexColumnConstraint.OFF; }
+    | ^(INDEX indexMethod=ident genericProperties?)
+        {
+            $value = new IndexColumnConstraint($indexMethod.value, $genericProperties.value);
+        }
+    ;
+
+genericProperties returns [GenericProperties value = new GenericProperties()]
+    : ^( GENERIC_PROPERTIES ( genericProperty { $value.add($genericProperty.value); } )+ )
+    ;
+
+genericProperty returns [GenericProperty value]
+    : ^(GENERIC_PROPERTY key=ident expr) { $value = new GenericProperty($key.value, ImmutableList.of($expr.value)); }
+    | ^(GENERIC_PROPERTY key=ident literalList) { $value = new GenericProperty($key.value, $literalList.value); }
+    ;
+
+literalList returns [List<Expression> value]
+    : ^(LITERAL_LIST exprList) { $value=$exprList.value; }
+    ;
+
+indexDefinition returns [IndexDefinition value]
+    : ^(INDEX indexName=ident indexMethod=ident indexColumns genericProperties?)
+        {
+            $value = new IndexDefinition($indexName.value, $indexMethod.value, $indexColumns.value, $genericProperties.value);
+        }
+    ;
+
+indexColumns returns [List<Expression> value]
+    : ^(INDEX_COLUMNS columnList) { $value = $columnList.value; }
+    ;
+
+columnList returns [List<Expression> value = new ArrayList<>()]
+    : ( columnListElement { $value.add($columnListElement.value); } )+
+    ;
+
+columnListElement returns [Expression value]
+    : subscript { $value = $subscript.value; }
+    | qname { $value = new QualifiedNameReference($qname.value); }
+    ;
+
+primaryKeyConstraint returns [PrimaryKeyConstraint value]
+    : ^(PRIMARY_KEY columnList) { $value = new PrimaryKeyConstraint($columnList.value); }
+    ;
+
+clusteredBy returns [ClusteredBy value]
+    : ^(CLUSTERED integer) { $value = new ClusteredBy(null, $integer.value); }
+    | ^(CLUSTERED subscript integer?) { $value = new ClusteredBy($subscript.value, $integer.value); }
+    | ^(CLUSTERED qname integer?) { $value = new ClusteredBy(new QualifiedNameReference($qname.value), $integer.value); }
+    ;
+
+replicas returns [Integer value]
+    : ^(REPLICAS integer) { $value = Integer.parseInt($integer.value); }
     ;

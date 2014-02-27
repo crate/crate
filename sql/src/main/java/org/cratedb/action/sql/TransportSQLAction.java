@@ -37,6 +37,7 @@ import io.crate.planner.PlanPrinter;
 import io.crate.planner.Planner;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.Statement;
 import org.cratedb.Constants;
@@ -129,7 +130,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         try {
             try {
                 statement = SqlParser.createStatement(request.stmt());
-                if (statement instanceof DropTable) {
+                if (statement instanceof DropTable || statement instanceof CreateTable) {
                     fallback(request, listener, null);
                     return;
                 }
@@ -138,6 +139,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                 fallback(request, listener, ex);
                 return;
             }
+
+
             Analysis analysis = analyzer.analyze(statement, request.args());
             final String[] outputNames = analysis.outputNames().toArray(new String[analysis.outputNames().size()]);
 
