@@ -10,11 +10,12 @@ configurations { lucenetest }
 // mvn dependency:tree|grep -o ' .- .*:compile'|cut -d ' ' -f 3|sort|gsed "s/\(.*\):jar:\(.*\):compile/compile '\1:\2'/g"
 // TODO: excludes e.g. xerces
 dependencies {
+
     compile 'com.carrotsearch:hppc:0.5.3'
     compile 'com.fasterxml.jackson.core:jackson-core:2.3.0'
     compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-smile:2.3.0'
     compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.3.0'
-    compile 'com.google.guava:guava:15.0'
+    compile 'com.google.guava:guava:16.0'
     compile 'com.ning:compress-lzf:0.9.6'
     compile 'com.spatial4j:spatial4j:0.3'
     compile 'com.vividsolutions:jts:1.12'
@@ -22,25 +23,22 @@ dependencies {
     compile 'joda-time:joda-time:2.3'
     compile 'log4j:log4j:1.2.17'
     compile 'net.java.dev.jna:jna:3.3.0'
-    compile 'org.antlr:antlr-runtime:3.5'
-    compile 'org.apache.lucene:lucene-analyzers-common:4.6.0'
-    compile 'org.apache.lucene:lucene-codecs:4.6.0'
-    compile 'org.apache.lucene:lucene-core:4.6.0'
-    compile 'org.apache.lucene:lucene-expressions:4.6.0'
-    compile 'org.apache.lucene:lucene-grouping:4.6.0'
-    compile 'org.apache.lucene:lucene-highlighter:4.6.0'
-    compile 'org.apache.lucene:lucene-join:4.6.0'
-    compile 'org.apache.lucene:lucene-memory:4.6.0'
-    compile 'org.apache.lucene:lucene-misc:4.6.0'
-    compile 'org.apache.lucene:lucene-queries:4.6.0'
-    compile 'org.apache.lucene:lucene-queryparser:4.6.0'
-    compile 'org.apache.lucene:lucene-sandbox:4.6.0'
-    compile 'org.apache.lucene:lucene-spatial:4.6.0'
-    compile 'org.apache.lucene:lucene-suggest:4.6.0'
+    compile 'org.apache.lucene:lucene-analyzers-common:4.6.1'
+    compile 'org.apache.lucene:lucene-codecs:4.6.1'
+    compile 'org.apache.lucene:lucene-core:4.6.1'
+    compile 'org.apache.lucene:lucene-grouping:4.6.1'
+    compile 'org.apache.lucene:lucene-highlighter:4.6.1'
+    compile 'org.apache.lucene:lucene-join:4.6.1'
+    compile 'org.apache.lucene:lucene-memory:4.6.1'
+    compile 'org.apache.lucene:lucene-misc:4.6.1'
+    compile 'org.apache.lucene:lucene-queries:4.6.1'
+    compile 'org.apache.lucene:lucene-queryparser:4.6.1'
+    compile 'org.apache.lucene:lucene-sandbox:4.6.1'
+    compile 'org.apache.lucene:lucene-spatial:4.6.1'
+    compile 'org.apache.lucene:lucene-suggest:4.6.1'
+    compile 'org.fusesource:sigar:1.6.4'
     compile 'org.joda:joda-convert:1.2'
     compile 'org.mvel:mvel2:2.1.5.Final'
-    compile 'org.ow2.asm:asm-commons:4.1'
-    compile 'org.ow2.asm:asm:4.1'
     compile 'org.slf4j:slf4j-api:1.6.2'
 
     // we add the sigar libs as system dep since it is checked in
@@ -52,10 +50,10 @@ dependencies {
     lucenetest 'junit:junit:4.11'
     testCompile 'junit:junit:4.11'
     // somehow this must be duplicated to work
-    testCompile ('org.apache.lucene:lucene-test-framework:4.6.0') {
+    testCompile ('org.apache.lucene:lucene-test-framework:4.6.1') {
         exclude group: 'junit', module: 'junit'
     }
-    lucenetest ('org.apache.lucene:lucene-test-framework:4.6.0') {
+    lucenetest ('org.apache.lucene:lucene-test-framework:4.6.1') {
         exclude group: 'junit', module: 'junit'
     }
 
