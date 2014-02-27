@@ -78,7 +78,7 @@ public class ESUpdateByQueryTask extends AbstractESUpdateTask {
 
         if (node.primaryKeyValues().length > 1) {
             // multiple primary key values ('where pk in (1,2,3)') - optimize routing
-            // NOTE: assumes that primary key is used for routing/clustered_by
+            // TODO: assumes that primary key is used for routing/clustered_by
             searchRequest.routing(node.primaryKeyValues());
         }
         try {
