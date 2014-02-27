@@ -40,7 +40,7 @@ public class SymbolFormatter extends SymbolVisitor<Void, String> {
     private SymbolFormatter() {}
 
     public static String format(String messageTmpl, Symbol ... symbols) {
-        String[] formattedSymbols = new String[symbols.length];
+        Object[] formattedSymbols = new String[symbols.length];
         for (int i = 0; i < symbols.length; i++) {
             formattedSymbols[i] = symbols[i].accept(INSTANCE, null);
         }
