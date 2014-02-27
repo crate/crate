@@ -49,7 +49,8 @@ import java.io.IOException;
 import java.util.*;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 public class ESQueryBuilderTest {
 
@@ -323,4 +324,39 @@ public class ESQueryBuilderTest {
         assertThat(actual, is(
                 "{\"version\":true,\"_source\":false,\"query\":{\"match_all\":{}},\"from\":0,\"size\":10000}"));
     }
+
+    @Test
+    public void testCommonAncestors() throws Exception {
+        assertEquals(ImmutableSet.of("a"), ESQueryBuilder.commonAncestors(Arrays.asList("a", "a.b")));
+
+        assertEquals(ImmutableSet.of("d", "a", "b"),
+                ESQueryBuilder.commonAncestors(Arrays.asList("a.c", "b", "b.c.d", "a", "a.b", "d")));
+
+        assertEquals(ImmutableSet.of("d", "a", "b.c"),
+                ESQueryBuilder.commonAncestors(Arrays.asList("a.c", "b.c", "b.c.d", "a", "a.b", "d")));
+
+
+    }
+
+    @Test
+    public void testSelect_WholeObjectAndPartial() throws Exception {
+        Reference author = TestingHelpers.createReference("author", DataType.OBJECT);
+        Reference age = TestingHelpers.createReference(
+                ColumnIdent.getChild(author.info().ident().columnIdent(), "age"), DataType.INTEGER);
+
+        ESSearchNode searchNode = new ESSearchNode(
+                characters.name(),
+                ImmutableList.<Symbol>of(author, age),
+                null,
+                null,
+                null,
+                null,
+                WhereClause.MATCH_ALL);
+
+        BytesReference reference = generator.convert(searchNode);
+        String actual = reference.toUtf8();
+        assertThat(actual, is(
+                "{\"_source\":{\"include\":[\"author\"]},\"query\":{\"match_all\":{}},\"from\":0,\"size\":10000}"));
+    }
+
 }

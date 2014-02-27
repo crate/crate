@@ -78,6 +78,28 @@ public class ESQueryBuilder {
         return context.builder.bytes();
     }
 
+    static Set<String> commonAncestors(List<String> fields){
+        int idx = 0;
+        String previous = null;
+
+        //Collections.sort(fields, Collections.reverseOrder());
+        Collections.sort(fields);
+        Set<String> result = new HashSet<>(fields.size());
+        for (String field : fields) {
+            if (idx>0){
+                if (!field.startsWith(previous + '.')){
+                    previous = field;
+                    result.add(field);
+                }
+            } else {
+                result.add(field);
+                previous = field;
+            }
+            idx++;
+        }
+        return result;
+    }
+
     /**
      * use to create a full elasticsearch query "statement" including fields, size, etc.
      */
@@ -90,7 +112,7 @@ public class ESQueryBuilder {
         context.builder = XContentFactory.jsonBuilder().startObject();
         XContentBuilder builder = context.builder;
 
-        Set<String> fields = new HashSet<>(outputs.size());
+        List<String> fields = new ArrayList<>(outputs.size());
         boolean needWholeSource = false;
         for (Reference output : outputs) {
             String name = output.info().ident().columnIdent().fqn();
@@ -109,7 +131,7 @@ public class ESQueryBuilder {
         if (!needWholeSource){
             if (fields.size() > 0){
                 builder.startObject("_source");
-                builder.field("include", fields);
+                builder.field("include", commonAncestors(fields));
                 builder.endObject();
             } else {
                 builder.field("_source", false);
