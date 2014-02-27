@@ -39,7 +39,6 @@ import org.cratedb.DataType;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.logging.Loggers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -65,7 +64,6 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Before
     public void prepare() {
-        Loggers.getLogger(MapSideDataCollectOperation.class).setLevel("TRACE");
         operation = cluster().getInstance(MapSideDataCollectOperation.class);
         functions = cluster().getInstance(Functions.class);
 

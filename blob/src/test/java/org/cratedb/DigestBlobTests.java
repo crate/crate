@@ -24,7 +24,6 @@ package org.cratedb;
 import org.cratedb.blob.BlobContainer;
 import org.cratedb.blob.DigestBlob;
 import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.logging.Loggers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,7 +48,6 @@ public class DigestBlobTests {
     @Before
     public void prepare() throws Exception {
         tmpDir = Files.createTempDirectory(getClass().getName());
-        Loggers.getLogger(DigestBlob.class).setLevel("TRACE");
     }
 
     @After

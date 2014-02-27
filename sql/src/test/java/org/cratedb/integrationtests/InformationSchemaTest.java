@@ -25,11 +25,8 @@ import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.action.sql.TransportSQLAction;
 import org.cratedb.test.integration.CrateIntegrationTest;
-import org.elasticsearch.common.logging.Loggers;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -65,11 +62,6 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute(
             "create table t3 (col1 integer, col2 string) replicas 8");
         refresh();
-    }
-
-    @Before
-    public void informationSchemaServiceSetup() throws Exception {
-        Loggers.getLogger(TransportSQLAction.class).setLevel("TRACE");
     }
 
     @After

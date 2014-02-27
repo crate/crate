@@ -29,10 +29,8 @@ import org.cratedb.action.import_.ImportAction;
 import org.cratedb.action.import_.ImportRequest;
 import org.cratedb.action.import_.ImportResponse;
 import org.cratedb.action.import_.NodeImportResponse;
-import org.cratedb.export.Exporter;
 import org.cratedb.import_.Importer;
 import org.cratedb.module.AbstractRestActionTest;
-import org.cratedb.searchinto.Writer;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.get.GetRequestBuilder;
@@ -42,9 +40,7 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ImmutableSettings;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
@@ -57,13 +53,6 @@ import java.util.Map;
 import static org.cratedb.test.integration.PathAccessor.stringFromPath;
 
 public class RestImportActionTest extends AbstractRestActionTest {
-
-    @BeforeClass
-    public static void prepareClass() {
-        Loggers.getLogger(Exporter.class).setLevel("TRACE");
-        Loggers.getLogger(Importer.class).setLevel("TRACE");
-        Loggers.getLogger(Writer.class).setLevel("TRACE");
-    }
 
     /**
      * An import directory must be specified in the post data of the request, otherwise

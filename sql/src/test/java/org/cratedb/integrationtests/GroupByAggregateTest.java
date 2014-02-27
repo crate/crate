@@ -44,11 +44,6 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
     @Before
     public void initTestData() {
-//        Loggers.getLogger(TransportSQLAction.class).setLevel("TRACE");
-//        Loggers.getLogger(LocalMergeTask.class).setLevel("TRACE");
-//        Loggers.getLogger(DistributingCollectOperation.DistributingShardCollectFuture.class).setLevel("TRACE");
-//        Loggers.getLogger(TransportMergeNodeAction.class).setLevel("TRACE");
-//        Loggers.getLogger(DistributedResultRequestHandler.class).setLevel("TRACE");
         if (!setUpDone) {
             this.setup.setUpEmployees();
             setUpDone = true;

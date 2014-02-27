@@ -37,7 +37,6 @@ import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.test.integration.CrateIntegrationTest;
-import org.elasticsearch.common.logging.Loggers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -60,7 +59,6 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Before
     public void prepare() {
-        Loggers.getLogger(HandlerSideDataCollectOperation.class).setLevel("TRACE");
         operation = cluster().getInstance(HandlerSideDataCollectOperation.class);
         functions = cluster().getInstance(Functions.class);
     }

@@ -32,8 +32,6 @@ import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.common.logging.ESLoggerFactory;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -67,16 +65,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-
-
-    @BeforeClass
-    public static void setLogLevel(){
-        Loggers.enableConsoleLogging();
-        ESLoggerFactory.getRootLogger().setLevel("TRACE");
-        Loggers.getLogger("org.cratedb.*").setLevel("TRACE");
-        Loggers.getLogger("io.crate.*").setLevel("TRACE");
-        //Loggers.getLogger("root").setLevel("TRACE");
-    }
 
     /**
      * override execute to store response in property for easier access
