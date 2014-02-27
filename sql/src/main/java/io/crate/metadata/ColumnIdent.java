@@ -82,6 +82,13 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Streamable {
     }
 
     /**
+     * returns true if this is a system column
+     */
+    public boolean isSystemColumn(){
+        return name.startsWith("_");
+    }
+
+    /**
      * person['addresses']['street'] --> person
      * <p>
      * person --> person
