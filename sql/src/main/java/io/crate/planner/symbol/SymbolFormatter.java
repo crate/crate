@@ -119,6 +119,7 @@ public class SymbolFormatter extends SymbolVisitor<Void, String> {
         return formatValue(value, new StringBuilder()).toString();
     }
 
+    @SuppressWarnings("unchecked")
     private StringBuilder formatValue(Object value, StringBuilder builder) {
         if (value == null) {
             builder.append("NULL");
