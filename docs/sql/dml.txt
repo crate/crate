@@ -426,7 +426,7 @@ In order to get the match score of the fulltext search, an internal system colum
     +-----------+------------+
     SELECT 2 rows in set (... sec)
 
-The results of a ``match(...)` query are sorted by :ref:`_score <sql_ddl_system_column_score>`
+The results of a ``match(...)`` query are sorted by :ref:`_score <sql_ddl_system_column_score>`
 in a descending order by default.
 Of course it is possible to change it to use an ascending order instead::
 
