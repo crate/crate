@@ -187,9 +187,6 @@ public class BlobRecoveryHandler {
         ).txGet();
     }
 
-    public void phase3() throws ElasticsearchException {
-    }
-
     private void sendFinalizeRecoveryRequest() {
         transportService.submitRequest(request.targetNode(),
             BlobRecoveryTarget.Actions.FINALIZE_RECOVERY,

@@ -99,7 +99,7 @@ public class RemoteDigestBlob {
     }
 
     public boolean delete() {
-        logger.info("delete");
+        logger.trace("delete");
         assert (transferId == null);
         DeleteBlobRequest request = new DeleteBlobRequest(
                 index,

@@ -50,24 +50,24 @@ public class TransportStartBlobAction extends TransportShardReplicationOperation
             BlobTransferTarget transferTarget) {
         super(settings, transportService, clusterService, indicesService, threadPool, shardStateAction);
         this.transferTarget = transferTarget;
-        logger.info("Constructor");
+        logger.trace("Constructor");
     }
 
     @Override
     protected StartBlobRequest newRequestInstance() {
-        logger.info("newRequestInstance");
+        logger.trace("newRequestInstance");
         return new StartBlobRequest();
     }
 
     @Override
     protected StartBlobRequest newReplicaRequestInstance() {
-        logger.info("newReplicaRequestInstance");
+        logger.trace("newReplicaRequestInstance");
         return new StartBlobRequest();
     }
 
     @Override
     protected StartBlobResponse newResponseInstance() {
-        logger.info("newResponseInstance");
+        logger.trace("newResponseInstance");
         return new StartBlobResponse();
     }
 
@@ -84,7 +84,7 @@ public class TransportStartBlobAction extends TransportShardReplicationOperation
     @Override
     protected PrimaryResponse<StartBlobResponse, StartBlobRequest> shardOperationOnPrimary(ClusterState clusterState,
             PrimaryOperationRequest shardRequest) {
-        logger.info("shardOperationOnPrimary {}", shardRequest);
+        logger.trace("shardOperationOnPrimary {}", shardRequest);
         final StartBlobRequest request = shardRequest.request;
         final StartBlobResponse response = newResponseInstance();
         transferTarget.startTransfer(shardRequest.shardId, request, response);

@@ -53,7 +53,7 @@ public class TransportDeleteBlobAction extends TransportShardReplicationOperatio
                                     ) {
         super(settings, transportService, clusterService, indicesService, threadPool, shardStateAction);
         this.blobIndices = blobIndices;
-        logger.info("Constructor");
+        logger.trace("Constructor");
     }
 
     @Override
@@ -84,7 +84,7 @@ public class TransportDeleteBlobAction extends TransportShardReplicationOperatio
     @Override
     protected PrimaryResponse<DeleteBlobResponse, DeleteBlobRequest> shardOperationOnPrimary(ClusterState clusterState,
             PrimaryOperationRequest shardRequest) {
-        logger.info("shardOperationOnPrimary {}", shardRequest);
+        logger.trace("shardOperationOnPrimary {}", shardRequest);
         final DeleteBlobRequest request = shardRequest.request;
         BlobShard blobShard = blobIndices.blobShardSafe(shardRequest.request.index(), shardRequest.shardId);
         boolean deleted = blobShard.delete(request.id());

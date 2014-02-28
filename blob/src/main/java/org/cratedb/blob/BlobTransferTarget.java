@@ -67,7 +67,7 @@ public class BlobTransferTarget extends AbstractComponent {
     }
 
     public void startTransfer(int shardId, StartBlobRequest request, StartBlobResponse response) {
-        logger.info("startTransfer {} {}", request.transferId(), request.isLast());
+        logger.debug("startTransfer {} {}", request.transferId(), request.isLast());
 
         BlobShard blobShard = blobIndices.blobShardSafe(request.index(), shardId);
         File existing = blobShard.blobContainer().getFile(request.id());
@@ -97,7 +97,7 @@ public class BlobTransferTarget extends AbstractComponent {
             activeTransfers.put(request.transferId(), status);
             response.status(RemoteDigestBlob.Status.PARTIAL);
         }
-        logger.info("startTransfer finished {} {}", response.status(), response.size());
+        logger.debug("startTransfer finished {} {}", response.status(), response.size());
     }
 
     public void continueTransfer(PutChunkReplicaRequest request, PutChunkResponse response, int shardId) {
@@ -193,7 +193,7 @@ public class BlobTransferTarget extends AbstractComponent {
             } finally {
                 activeTransfers.remove(status.transferId());
             }
-            logger.info("transfer finished digest:{} status:{} size:{} chunks:{}",
+            logger.debug("transfer finished digest:{} status:{} size:{} chunks:{}",
                 status.transferId(), response.status(), response.size(), digestBlob.chunks());
         } else {
             response.status(RemoteDigestBlob.Status.PARTIAL);

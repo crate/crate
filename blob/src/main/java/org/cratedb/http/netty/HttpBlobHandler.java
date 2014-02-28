@@ -92,7 +92,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
                 return true;
             }
             if (redirectAddress != null) {
-                logger.info("redirectAddress: {}", redirectAddress);
+                logger.trace("redirectAddress: {}", redirectAddress);
                 sendRedirect(request, redirectAddress);
                 return true;
             }
@@ -130,8 +130,8 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
             String index = matcher.group(1);
             String digest = matcher.group(2);
 
-            logger.info("matches index:{} digest:{}", index, digest);
-            logger.info("HTTPMessage:\n{}", msg);
+            logger.trace("matches index:{} digest:{}", index, digest);
+            logger.trace("HTTPMessage:\n{}", msg);
 
             if (possibleRedirect(request, index, digest)) {
                 reset();
@@ -317,7 +317,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
         HttpResponse response = new DefaultHttpResponse(HTTP_1_1, OK);
         HttpHeaders.setContentLength(response, raf.length());
         setDefaultGetHeaders(response);
-        logger.info("HttpResponse: {}", response);
+        logger.trace("HttpResponse: {}", response);
         ctx.getChannel().write(response);
         ChannelFuture writeFuture = transferFile(digest, raf, 0, raf.length());
         if (!HttpHeaders.isKeepAlive(request)) {
@@ -339,7 +339,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
             @Override
             public void operationComplete(ChannelFuture future) throws Exception {
                 region.releaseExternalResources();
-                logger.info("file transfer completed");
+                logger.trace("file transfer completed");
             }
         });
         return writeFuture;

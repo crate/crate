@@ -34,7 +34,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServer;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.recovery.BlobRecoverySource;
 
 import java.util.HashSet;
@@ -44,21 +43,15 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
 
 
     private final Injector injector;
-    private final IndicesService indicesService;
     private final BlobHeadRequestHandler blobHeadRequestHandler;
-
-    @Inject
-    private BlobRecoverySource blobRecoverySource;
-
 
     private final ClusterService clusterService;
 
     @Inject
     public BlobService(Settings settings,
             ClusterService clusterService, Injector injector,
-            IndicesService indicesService, BlobHeadRequestHandler blobHeadRequestHandler) {
+            BlobHeadRequestHandler blobHeadRequestHandler) {
         super(settings);
-        this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.injector = injector;
         this.blobHeadRequestHandler = blobHeadRequestHandler;
@@ -75,7 +68,7 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
     @Override
     protected void doStart() throws ElasticsearchException {
         logger.info("BlobService.doStart() {}", this);
-        blobRecoverySource.registerHandler();
+        injector.getInstance(BlobRecoverySource.class).registerHandler();
         blobHeadRequestHandler.registerHandler();
 
         // by default the http server is started after the discovery service.
@@ -92,12 +85,10 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
 
     @Override
     protected void doStop() throws ElasticsearchException {
-        //TODO: implement
     }
 
     @Override
     protected void doClose() throws ElasticsearchException {
-        //TODO: implement
     }
 
     /**
@@ -110,7 +101,7 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
                 clusterService.state(), index, null, null, digest, "_local");
 
         ShardRouting shard;
-        Set<String> nodeIds = new HashSet<String>();
+        Set<String> nodeIds = new HashSet<>();
 
         // check if one of the shards is on the current node;
         while ((shard = shards.nextOrNull()) != null) {
