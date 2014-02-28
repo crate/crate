@@ -23,22 +23,22 @@ package io.crate.analyze;
 
 import io.crate.sql.tree.*;
 
-public class BindingRewritingTraversal extends AstVisitor<Expression, Analysis> {
+public class BindingRewritingTraversal extends AstVisitor<Expression, AbstractDataAnalysis> {
 
-    private final AstVisitor<Expression, Analysis> rewriter;
+    private final AstVisitor<Expression, AbstractDataAnalysis> rewriter;
 
-    public BindingRewritingTraversal(AstVisitor<Expression, Analysis> rewriter) {
+    public BindingRewritingTraversal(AstVisitor<Expression, AbstractDataAnalysis> rewriter) {
         this.rewriter = rewriter;
     }
 
     @Override
-    protected Expression visitQuery(Query node, Analysis context) {
+    protected Expression visitQuery(Query node, AbstractDataAnalysis context) {
         process(node.getQueryBody(), context);
         return null;
     }
 
     @Override
-    protected Expression visitQuerySpecification(QuerySpecification node, Analysis context) {
+    protected Expression visitQuerySpecification(QuerySpecification node, AbstractDataAnalysis context) {
         process(node.getSelect(), context);
         if (node.getFrom() != null) {
             for (Relation relation : node.getFrom()) {
@@ -66,7 +66,7 @@ public class BindingRewritingTraversal extends AstVisitor<Expression, Analysis> 
     }
 
     @Override
-    protected Expression visitSelect(Select node, Analysis context) {
+    protected Expression visitSelect(Select node, AbstractDataAnalysis context) {
         for (SelectItem item : node.getSelectItems()) {
             process(item, context);
         }
@@ -74,13 +74,13 @@ public class BindingRewritingTraversal extends AstVisitor<Expression, Analysis> 
     }
 
     @Override
-    protected Expression visitSingleColumn(SingleColumn node, Analysis context) {
+    protected Expression visitSingleColumn(SingleColumn node, AbstractDataAnalysis context) {
         node.accept(rewriter, context);
         return null;
     }
 
     @Override
-    protected Expression visitAllColumns(AllColumns node, Analysis context) {
+    protected Expression visitAllColumns(AllColumns node, AbstractDataAnalysis context) {
         return super.visitAllColumns(node, context);
     }
 }

@@ -53,7 +53,7 @@ import java.util.List;
 import java.util.Set;
 
 @Singleton
-public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
+public class Planner extends DefaultTraversalVisitor<Symbol, AbstractDataAnalysis> {
 
 
     static final PlannerAggregationSplitter splitter = new PlannerAggregationSplitter();

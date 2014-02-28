@@ -2490,7 +2490,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         String tableAlias = tableAliasSetup();
 
         expectedException.expect(TableAlreadyExistsException.class);
-        expectedException.expectMessage("A table with the same name already exists");
+        expectedException.expectMessage("The table 'mytablealias' already exists.");
 
         execute(String.format("create table %s (content string index off)", tableAlias));
     }

@@ -30,7 +30,7 @@ import io.crate.planner.symbol.Symbol;
 import java.util.HashMap;
 import java.util.Map;
 
-public class UpdateAnalysis extends Analysis {
+public class UpdateAnalysis extends AbstractDataAnalysis {
 
     private Map<Reference, Symbol> assignments = new HashMap<>();
 

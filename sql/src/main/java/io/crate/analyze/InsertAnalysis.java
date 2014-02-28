@@ -32,7 +32,7 @@ import io.crate.planner.symbol.Symbol;
 import java.util.ArrayList;
 import java.util.List;
 
-public class InsertAnalysis extends Analysis {
+public class InsertAnalysis extends AbstractDataAnalysis {
 
     // TODO: change this to Map<Reference, Symbol> like in UpdateAnalysis
     // at all these are assignments too
