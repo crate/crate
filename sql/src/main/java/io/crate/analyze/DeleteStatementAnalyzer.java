@@ -27,7 +27,7 @@ import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.Table;
 
-public class DeleteStatementAnalyzer extends StatementAnalyzer<DeleteAnalysis> {
+public class DeleteStatementAnalyzer extends DataStatementAnalyzer<DeleteAnalysis> {
 
     @Override
     public Symbol visitDelete(Delete node, DeleteAnalysis context) {

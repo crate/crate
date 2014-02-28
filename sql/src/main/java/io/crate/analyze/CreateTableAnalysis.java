@@ -21,32 +21,47 @@
 
 package io.crate.analyze;
 
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.planner.symbol.StringLiteral;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
-import io.crate.sql.tree.CopyFromStatement;
-import io.crate.sql.tree.Table;
+import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
+import org.cratedb.sql.TableAlreadyExistsException;
 
-public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
+public class CreateTableAnalysis extends AbstractDDLAnalysis {
+
+    private TableIdent tableIdent;
+    private final ReferenceInfos referenceInfos;
+
+    public CreateTableAnalysis(ReferenceInfos referenceInfos, Object[] params) {
+        super(params);
+        this.referenceInfos = referenceInfos;
+    }
 
     @Override
-    public Symbol visitCopyFromStatement(CopyFromStatement node, CopyAnalysis context) {
-        context.mode(CopyAnalysis.Mode.FROM);
-        process(node.table(), context);
-        Symbol pathSymbol = process(node.path(), context);
-        if (pathSymbol.symbolType() == SymbolType.STRING_LITERAL) {
-            // ParameterExpression and StringLiteral only allowed inputs
-            context.path(((StringLiteral) pathSymbol).valueAsString());
-        } else {
-            throw new IllegalArgumentException("Invalid COPY FROM statement");
+    public Type type() {
+        return Type.CREATE_TABLE;
+    }
+
+    @Override
+    public void table(TableIdent tableIdent) {
+        if (referenceInfos.getTableInfo(tableIdent) != null) {
+            throw new TableAlreadyExistsException(tableIdent.name());
         }
+        super.table(tableIdent);
+    }
+
+    @Override
+    public TableInfo table() {
         return null;
     }
 
     @Override
-    protected Symbol visitTable(Table node, CopyAnalysis context) {
-        context.editableTable(TableIdent.of(node));
+    public SchemaInfo schema() {
         return null;
+    }
+
+    @Override
+    public void normalize() {
+
     }
 }

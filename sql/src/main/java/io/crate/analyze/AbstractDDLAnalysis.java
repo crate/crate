@@ -22,31 +22,22 @@
 package io.crate.analyze;
 
 import io.crate.metadata.TableIdent;
-import io.crate.planner.symbol.StringLiteral;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
-import io.crate.sql.tree.CopyFromStatement;
-import io.crate.sql.tree.Table;
 
-public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
+public abstract class AbstractDDLAnalysis extends Analysis {
 
-    @Override
-    public Symbol visitCopyFromStatement(CopyFromStatement node, CopyAnalysis context) {
-        context.mode(CopyAnalysis.Mode.FROM);
-        process(node.table(), context);
-        Symbol pathSymbol = process(node.path(), context);
-        if (pathSymbol.symbolType() == SymbolType.STRING_LITERAL) {
-            // ParameterExpression and StringLiteral only allowed inputs
-            context.path(((StringLiteral) pathSymbol).valueAsString());
-        } else {
-            throw new IllegalArgumentException("Invalid COPY FROM statement");
-        }
-        return null;
+    private TableIdent tableIdent;
+
+    protected AbstractDDLAnalysis(Object[] parameters) {
+        super(parameters);
     }
 
     @Override
-    protected Symbol visitTable(Table node, CopyAnalysis context) {
-        context.editableTable(TableIdent.of(node));
-        return null;
+    public void table(TableIdent tableIdent) {
+        this.tableIdent = tableIdent;
+    }
+
+    @Override
+    public boolean hasNoResult() {
+        return false;
     }
 }

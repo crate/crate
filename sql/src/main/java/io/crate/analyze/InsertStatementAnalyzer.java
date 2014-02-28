@@ -34,7 +34,7 @@ import org.cratedb.sql.CrateException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
+public class InsertStatementAnalyzer extends DataStatementAnalyzer<InsertAnalysis> {
 
     @Override
     public Symbol visitInsert(Insert node, InsertAnalysis context) {

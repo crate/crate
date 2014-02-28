@@ -33,7 +33,7 @@ import io.crate.sql.tree.Insert;
 import java.util.ArrayList;
 import java.util.List;
 
-public class InsertAnalysis extends Analysis {
+public class InsertAnalysis extends AbstractDataAnalysis {
 
     private Insert insertStatement;
     // TODO: change this to Map<Reference, Symbol> like in UpdateAnalysis

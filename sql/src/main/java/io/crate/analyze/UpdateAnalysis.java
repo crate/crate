@@ -31,7 +31,7 @@ import io.crate.sql.tree.Update;
 import java.util.HashMap;
 import java.util.Map;
 
-public class UpdateAnalysis extends Analysis {
+public class UpdateAnalysis extends AbstractDataAnalysis {
 
     private Update updateStatement;
     private Map<Reference, Symbol> assignments = new HashMap<>();

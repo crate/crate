@@ -25,7 +25,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
 
-public class DeleteAnalysis extends Analysis {
+public class DeleteAnalysis extends AbstractDataAnalysis {
 
     public DeleteAnalysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters, ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameters, referenceResolver);
