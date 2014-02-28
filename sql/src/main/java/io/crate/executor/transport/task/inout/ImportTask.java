@@ -24,7 +24,7 @@ package io.crate.executor.transport.task.inout;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
-import io.crate.planner.node.CopyNode;
+import io.crate.planner.node.dml.CopyNode;
 import org.cratedb.Constants;
 import org.cratedb.action.import_.ImportRequest;
 import org.cratedb.action.import_.ImportResponse;

@@ -19,19 +19,13 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node;
+package io.crate.planner.node.dml;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.CopyAnalysis;
-import org.cratedb.DataType;
+import io.crate.planner.node.PlanVisitor;
 
-import java.util.List;
-import java.util.Set;
+public class CopyNode extends DMLPlanNode {
 
-public class CopyNode extends DQLPlanNode {
-
-    private static final List<DataType> OUTPUT_TYPES = ImmutableList.of(DataType.LONG);
 
     private final CopyAnalysis.Mode mode;
     private final String path;
@@ -56,17 +50,7 @@ public class CopyNode extends DQLPlanNode {
     }
 
     @Override
-    public Set<String> executionNodes() {
-        return ImmutableSet.of();
-    }
-
-    @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitCopyNode(this, context);
-    }
-
-    @Override
-    public List<DataType> outputTypes() {
-        return OUTPUT_TYPES;
     }
 }

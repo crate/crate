@@ -24,7 +24,7 @@ package io.crate.operator.operations.merge;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.operator.projectors.ProjectionToProjectorVisitor;
 import io.crate.operator.projectors.Projector;
-import io.crate.planner.node.MergeNode;
+import io.crate.planner.node.dql.MergeNode;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;

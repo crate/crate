@@ -23,7 +23,7 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.elasticsearch.ESQueryBuilder;
-import io.crate.planner.node.ESUpdateNode;
+import io.crate.planner.node.dml.ESUpdateNode;
 import org.cratedb.Constants;
 import org.cratedb.sql.facet.InternalSQLFacet;
 import org.elasticsearch.action.ActionListener;

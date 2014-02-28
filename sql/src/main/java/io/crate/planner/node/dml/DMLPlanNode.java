@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,42 +19,56 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node;
+package io.crate.planner.node.dml;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.WhereClause;
+import com.google.common.collect.ImmutableSet;
+import io.crate.planner.node.dql.DQLPlanNode;
+import io.crate.planner.projection.Projection;
 import org.cratedb.DataType;
 
 import java.util.List;
 import java.util.Set;
 
-public class ESDeleteByQueryNode extends ESDQLPlanNode {
+public abstract class DMLPlanNode implements DQLPlanNode {
 
-    private final Set<String> indices;
-    private final WhereClause whereClause;
-    private final List<DataType> outputTypes = ImmutableList.of(DataType.LONG);
+    // output just contains the affectedRows in most cases (at least until the RETURNING clause is supported)
+    private static final List<DataType> OUTPUT_TYPES = ImmutableList.of(DataType.LONG);
 
-    public ESDeleteByQueryNode(Set<String> indices, WhereClause whereClause) {
-        assert whereClause != null;
-        this.indices = indices;
-        this.whereClause = whereClause;
-    }
+    protected List<DataType> inputTypes = ImmutableList.of();
 
-    public Set<String> indices() {
-        return indices;
-    }
-
-    public WhereClause whereClause() {
-        return whereClause;
+    @Override
+    public boolean hasProjections() {
+        return false;
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitESDeleteByQueryNode(this, context);
+    public List<Projection> projections() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public Set<String> executionNodes() {
+        return ImmutableSet.of();
+    }
+
+    @Override
+    public List<DataType> inputTypes() {
+        return inputTypes;
+    }
+
+    @Override
+    public void inputTypes(List<DataType> dataTypes) {
+        inputTypes = dataTypes;
     }
 
     @Override
     public List<DataType> outputTypes() {
-        return outputTypes;
+        return OUTPUT_TYPES;
+    }
+
+    @Override
+    public void outputTypes(List<DataType> outputTypes) {
+        throw new UnsupportedOperationException("outputTypes cannot be modified on DMLPlanNodes");
     }
 }

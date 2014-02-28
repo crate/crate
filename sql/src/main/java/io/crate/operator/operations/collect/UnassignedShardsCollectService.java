@@ -33,7 +33,7 @@ import io.crate.operator.operations.CollectInputSymbolVisitor;
 import io.crate.operator.projectors.Projector;
 import io.crate.operator.reference.DocLevelReferenceResolver;
 import io.crate.operator.reference.sys.shard.unassigned.UnassignedShardsReferenceResolver;
-import io.crate.planner.node.CollectNode;
+import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.BooleanLiteral;
 import org.apache.lucene.search.CollectionTerminatedException;
 import org.elasticsearch.common.inject.Inject;

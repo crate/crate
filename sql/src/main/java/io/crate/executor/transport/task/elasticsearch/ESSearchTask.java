@@ -27,7 +27,7 @@ import io.crate.analyze.elasticsearch.ESQueryBuilder;
 import io.crate.executor.Task;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.planner.node.ESSearchNode;
+import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.symbol.Reference;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.sql.ExceptionHelper;

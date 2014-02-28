@@ -21,7 +21,7 @@
 
 package io.crate.executor.transport;
 
-import io.crate.planner.node.CollectNode;
+import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;

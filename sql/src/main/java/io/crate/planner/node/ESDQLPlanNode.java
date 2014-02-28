@@ -21,18 +21,21 @@
 
 package io.crate.planner.node;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.crate.planner.node.dql.DQLPlanNode;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import org.cratedb.DataType;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-public abstract class AbstractESNode extends DQLPlanNode {
+public abstract class ESDQLPlanNode implements DQLPlanNode {
 
     protected List<? extends Symbol> outputs;
+    private List<DataType> inputTypes;
+    private List<DataType> outputTypes;
 
     public List<? extends Symbol> outputs() {
         return outputs;
@@ -43,18 +46,37 @@ public abstract class AbstractESNode extends DQLPlanNode {
     }
 
     @Override
+    public boolean hasProjections() {
+        return false;
+    }
+
+    @Override
+    public List<Projection> projections() {
+        return ImmutableList.of();
+    }
+
+    @Override
+    public void inputTypes(List<DataType> dataTypes) {
+        this.inputTypes = dataTypes;
+    }
+
+    @Override
+    public List<DataType> inputTypes() {
+        return inputTypes;
+    }
+
+    @Override
     public Set<String> executionNodes() {
-        // always runs local (aka handler) since it uses its own routing internally
         return ImmutableSet.of();
     }
 
     @Override
-    public final void readFrom(StreamInput in) throws IOException {
-        throw new UnsupportedOperationException("ESNode has no serialization support");
+    public void outputTypes(List<DataType> outputTypes) {
+        this.outputTypes = outputTypes;
     }
 
     @Override
-    public final void writeTo(StreamOutput out) throws IOException {
-        throw new UnsupportedOperationException("ESNode has no serialization support");
+    public List<DataType> outputTypes() {
+        return outputTypes;
     }
 }

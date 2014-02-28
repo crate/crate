@@ -27,7 +27,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.metadata.Routing;
 import io.crate.operator.operations.collect.CollectOperation;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.CollectNode;
+import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.IntegerLiteral;
 import io.crate.planner.symbol.Symbol;
 import org.junit.Test;

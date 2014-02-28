@@ -20,6 +20,11 @@ import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.operator.OperatorModule;
 import io.crate.operator.scalar.ScalarFunctionModule;
 import io.crate.planner.node.*;
+import io.crate.planner.node.dml.CopyNode;
+import io.crate.planner.node.dml.ESDeleteNode;
+import io.crate.planner.node.dml.ESIndexNode;
+import io.crate.planner.node.dml.ESUpdateNode;
+import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
@@ -165,7 +170,7 @@ public class PlannerTest {
     @Test
     public void testGroupByWithAggregationStringLiteralArguments() {
         Plan plan = plan("select count('foo'), name from users group by name");
-        Iterator<DQLPlanNode> iterator = plan.iterator();
+        Iterator<PlanNode> iterator = plan.iterator();
         CollectNode collectNode = (CollectNode) iterator.next();
         // TODO: optimize to not collect literal
         //assertThat(collectNode.toCollect().size(), is(1));
@@ -180,9 +185,9 @@ public class PlannerTest {
         PlanPrinter pp = new PlanPrinter();
         System.out.println(pp.print(plan));
 
-        Iterator<DQLPlanNode> iterator = plan.iterator();
+        Iterator<PlanNode> iterator = plan.iterator();
 
-        DQLPlanNode planNode = iterator.next();
+        PlanNode planNode = iterator.next();
         // distributed collect
         assertThat(planNode, instanceOf(CollectNode.class));
         CollectNode collectNode = (CollectNode) planNode;
@@ -242,7 +247,7 @@ public class PlannerTest {
     @Test
     public void testGetPlan() throws Exception {
         Plan plan = plan("select name from users where id = 1");
-        Iterator<DQLPlanNode> iterator = plan.iterator();
+        Iterator<PlanNode> iterator = plan.iterator();
         ESGetNode node = (ESGetNode) iterator.next();
         assertThat(node.index(), is("users"));
         assertThat(node.ids().get(0), is("1"));
@@ -253,7 +258,7 @@ public class PlannerTest {
     @Test
     public void testGetPlanStringLiteral() throws Exception {
         Plan plan = plan("select name from characters where id = 'one'");
-        Iterator<DQLPlanNode> iterator = plan.iterator();
+        Iterator<PlanNode> iterator = plan.iterator();
         ESGetNode node = (ESGetNode) iterator.next();
         assertThat(node.index(), is("characters"));
         assertThat(node.ids().get(0), is("one"));
@@ -264,7 +269,7 @@ public class PlannerTest {
     @Test
     public void testMultiGetPlan() throws Exception {
         Plan plan = plan("select name from users where id in (1, 2)");
-        Iterator<DQLPlanNode> iterator = plan.iterator();
+        Iterator<PlanNode> iterator = plan.iterator();
         ESGetNode node = (ESGetNode) iterator.next();
         assertThat(node.index(), is("users"));
         assertThat(node.ids().size(), is(2));
@@ -275,7 +280,7 @@ public class PlannerTest {
     @Test
     public void testDeletePlan() throws Exception {
         Plan plan = plan("delete from users where id = 1");
-        Iterator<DQLPlanNode> iterator = plan.iterator();
+        Iterator<PlanNode> iterator = plan.iterator();
         ESDeleteNode node = (ESDeleteNode) iterator.next();
         assertThat(node.index(), is("users"));
         assertThat(node.id(), is("1"));
@@ -285,16 +290,16 @@ public class PlannerTest {
     @Test
     public void testMultiDeletePlan() throws Exception {
         Plan plan = plan("delete from users where id in (1, 2)");
-        Iterator<DQLPlanNode> iterator = plan.iterator();
+        Iterator<PlanNode> iterator = plan.iterator();
         assertThat(iterator.next(), instanceOf(ESDeleteByQueryNode.class));
     }
 
     @Test
     public void testGroupByWithAggregationAndLimit() throws Exception {
         Plan plan = plan("select count(*), name from users group by name limit 1 offset 1");
-        Iterator<DQLPlanNode> iterator = plan.iterator();
+        Iterator<PlanNode> iterator = plan.iterator();
 
-        DQLPlanNode planNode = iterator.next();
+        PlanNode planNode = iterator.next();
         planNode = iterator.next();
 
         // distributed merge
@@ -314,9 +319,9 @@ public class PlannerTest {
 
 
         // local merge
-        planNode = iterator.next();
-        assertThat(planNode.projections().get(0), instanceOf(TopNProjection.class));
-        topN = (TopNProjection) planNode.projections().get(0);
+        DQLPlanNode dqlPlanNode = (DQLPlanNode)iterator.next();
+        assertThat(dqlPlanNode.projections().get(0), instanceOf(TopNProjection.class));
+        topN = (TopNProjection) dqlPlanNode.projections().get(0);
         assertThat(topN.limit(), is(1));
         assertThat(topN.offset(), is(1));
         assertThat(topN.outputs().get(0), instanceOf(InputColumn.class));
@@ -334,9 +339,9 @@ public class PlannerTest {
 
         Analysis analysis = analyzer.analyze(statement);
         Plan plan = planner.plan(analysis);
-        Iterator<DQLPlanNode> iterator = plan.iterator();
+        Iterator<PlanNode> iterator = plan.iterator();
 
-        DQLPlanNode planNode = iterator.next();
+        PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(CollectNode.class));
         CollectNode collectNode = (CollectNode) planNode;
 
@@ -362,7 +367,7 @@ public class PlannerTest {
     public void testGroupByOnNodeLevel() throws Exception {
         Plan plan = plan("select count(*), name from sys.nodes group by name");
 
-        Iterator<DQLPlanNode> iterator = plan.iterator();
+        Iterator<PlanNode> iterator = plan.iterator();
 
         CollectNode collectNode = (CollectNode) iterator.next();
         assertFalse(collectNode.hasDownstreams());
@@ -398,8 +403,8 @@ public class PlannerTest {
         Plan plan = plan("select id from sys.shards order by id limit 10");
         // TODO: add where clause
 
-        Iterator<DQLPlanNode> iterator = plan.iterator();
-        DQLPlanNode planNode = iterator.next();
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(CollectNode.class));
         CollectNode collectNode = (CollectNode) planNode;
 
@@ -426,8 +431,8 @@ public class PlannerTest {
     @Test
     public void testESSearchPlan() throws Exception {
         Plan plan = plan("select name from users where name = 'x' order by id limit 10");
-        Iterator<DQLPlanNode> iterator = plan.iterator();
-        DQLPlanNode planNode = iterator.next();
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(ESSearchNode.class));
         ESSearchNode searchNode = (ESSearchNode) planNode;
 
@@ -441,8 +446,8 @@ public class PlannerTest {
     @Test
     public void testESIndexPlan() throws Exception {
         Plan plan = plan("insert into users (id, name) values (42, 'Deep Thought')");
-        Iterator<DQLPlanNode> iterator = plan.iterator();
-        DQLPlanNode planNode = iterator.next();
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(ESIndexNode.class));
 
         ESIndexNode indexNode = (ESIndexNode) planNode;
@@ -466,8 +471,8 @@ public class PlannerTest {
     @Test
     public void testESIndexPlanMultipleValues() throws Exception {
         Plan plan = plan("insert into users (id, name) values (42, 'Deep Thought'), (99, 'Marvin')");
-        Iterator<DQLPlanNode> iterator = plan.iterator();
-        DQLPlanNode planNode = iterator.next();
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(ESIndexNode.class));
 
         ESIndexNode indexNode = (ESIndexNode) planNode;
@@ -488,7 +493,7 @@ public class PlannerTest {
     @Test
     public void testCountDistinctPlan() throws Exception {
         Plan plan = plan("select count(distinct name) from users");
-        Iterator<DQLPlanNode> iterator = plan.iterator();
+        Iterator<PlanNode> iterator = plan.iterator();
         CollectNode collectNode = (CollectNode)iterator.next();
         Projection projection = collectNode.projections().get(0);
         assertThat(projection, instanceOf(AggregationProjection.class));
@@ -514,7 +519,7 @@ public class PlannerTest {
     @Test
     public void testGroupByWithOrderOnAggregate() throws Exception {
         Plan plan = plan("select count(*), name from users group by name order by count(*)");
-        Iterator<DQLPlanNode> iterator = plan.iterator();
+        Iterator<PlanNode> iterator = plan.iterator();
         CollectNode collectNode = (CollectNode)iterator.next();
 
         // reducer
@@ -536,8 +541,8 @@ public class PlannerTest {
     @Test
     public void testHandlerSideRouting() throws Exception {
         Plan plan = plan("select * from sys.cluster");
-        Iterator<DQLPlanNode> iterator = plan.iterator();
-        DQLPlanNode planNode = iterator.next();
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
         // just testing the dispatching here.. making sure it is not a ESSearchNode
         assertThat(planNode, instanceOf(CollectNode.class));
     }
@@ -545,8 +550,8 @@ public class PlannerTest {
     @Test
     public void testHandlerSideRoutingGroupBy() throws Exception {
         Plan plan = plan("select count(*) from sys.cluster group by name");
-        Iterator<DQLPlanNode> iterator = plan.iterator();
-        DQLPlanNode planNode = iterator.next();
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
         // just testing the dispatching here.. making sure it is not a ESSearchNode
         assertThat(planNode, instanceOf(CollectNode.class));
         planNode = iterator.next();
@@ -559,7 +564,7 @@ public class PlannerTest {
     @Test
     public void testCountDistinctWithGroupBy() throws Exception {
         Plan plan = plan("select count(distinct id), name from users group by name order by count(distinct id)");
-        Iterator<DQLPlanNode> iterator = plan.iterator();
+        Iterator<PlanNode> iterator = plan.iterator();
 
         // collect
         CollectNode collectNode = (CollectNode)iterator.next();
@@ -611,8 +616,8 @@ public class PlannerTest {
     @Test
     public void testESUpdatePlan() throws Exception {
         Plan plan = plan("update users set name='Vogon lyric fan' where id=1");
-        Iterator<DQLPlanNode> iterator = plan.iterator();
-        DQLPlanNode planNode = iterator.next();
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(ESUpdateNode.class));
 
         ESUpdateNode updateNode = (ESUpdateNode)planNode;
@@ -633,8 +638,8 @@ public class PlannerTest {
     @Test
     public void testESUpdatePlanWithMultiplePrimaryKeyValues() throws Exception {
         Plan plan = plan("update users set name='Vogon lyric fan' where id in (1,2,3)");
-        Iterator<DQLPlanNode> iterator = plan.iterator();
-        DQLPlanNode planNode = iterator.next();
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(ESUpdateNode.class));
 
         ESUpdateNode updateNode = (ESUpdateNode)planNode;
@@ -645,8 +650,8 @@ public class PlannerTest {
     @Test
     public void testCopyFromPlan() throws Exception {
         Plan plan = plan("copy users from '/path/to/file.extension'");
-        Iterator<DQLPlanNode> iterator = plan.iterator();
-        DQLPlanNode planNode = iterator.next();
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(CopyNode.class));
 
         CopyNode copyNode = (CopyNode)planNode;
@@ -657,8 +662,8 @@ public class PlannerTest {
     @Test
     public void testShardSelect() throws Exception {
         Plan plan = plan("select table_name from sys.shards");
-        Iterator<DQLPlanNode> iterator = plan.iterator();
-        DQLPlanNode planNode = iterator.next();
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
         assertThat(planNode, instanceOf(CollectNode.class));
         CollectNode collectNode = (CollectNode) planNode;
         assertTrue(collectNode.isRouted());

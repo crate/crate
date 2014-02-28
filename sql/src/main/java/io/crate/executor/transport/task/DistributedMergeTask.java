@@ -30,7 +30,7 @@ import io.crate.executor.Task;
 import io.crate.executor.transport.merge.NodeMergeRequest;
 import io.crate.executor.transport.merge.NodeMergeResponse;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
-import io.crate.planner.node.MergeNode;
+import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.logging.ESLogger;

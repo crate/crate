@@ -35,7 +35,7 @@ import io.crate.operator.operator.EqOperator;
 import io.crate.operator.operator.OperatorModule;
 import io.crate.operator.reference.sys.shard.SysShardExpression;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.CollectNode;
+import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
