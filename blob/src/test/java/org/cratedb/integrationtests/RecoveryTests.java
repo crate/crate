@@ -21,6 +21,9 @@
 
 package org.cratedb.integrationtests;
 
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
 import org.cratedb.blob.PutChunkAction;
 import org.cratedb.blob.PutChunkRequest;
 import org.cratedb.blob.StartBlobAction;
@@ -29,10 +32,6 @@ import org.cratedb.blob.stats.BlobStatsAction;
 import org.cratedb.blob.stats.BlobStatsRequest;
 import org.cratedb.blob.stats.BlobStatsResponse;
 import org.cratedb.common.Hex;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
 import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
@@ -48,6 +47,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
@@ -58,6 +58,9 @@ public class RecoveryTests extends CrateIntegrationTest {
 
     private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(25, TimeUnit.MINUTES);
 
+    // the time to sleep between chunk requests in upload
+    private AtomicInteger timeBetweenChunks = new AtomicInteger();
+
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
 
@@ -66,18 +69,18 @@ public class RecoveryTests extends CrateIntegrationTest {
 
         logger = Logger.getLogger(
                 "org.elasticsearch.org.cratedb.blob.recovery.BlobRecoveryHandler");
-        logger.setLevel(Level.DEBUG);
+        //logger.setLevel(Level.TRACE);
         consoleAppender = new ConsoleAppender(new PatternLayout("%r [%t] %-5p %c %x - %m\n"));
         logger.addAppender(consoleAppender);
 
         logger = Logger.getLogger("org.elasticsearch.org.cratedb.blob.DigestBlob");
-        logger.setLevel(Level.TRACE);
+        //logger.setLevel(Level.TRACE);
         consoleAppender = new ConsoleAppender(new PatternLayout("%r [%t] %-5p %c %x - %m\n"));
         logger.addAppender(consoleAppender);
 
         logger = Logger.getLogger(
                 "org.elasticsearch.org.cratedb.integrationtests.RecoveryTests");
-        logger.setLevel(Level.INFO);
+        //logger.setLevel(Level.TRACE);
         consoleAppender = new ConsoleAppender(new PatternLayout("%r [%t] %-5p %c %x - %m\n"));
         logger.addAppender(consoleAppender);
     }
@@ -97,7 +100,7 @@ public class RecoveryTests extends CrateIntegrationTest {
     private void uploadFile(Client client, String content) {
         byte[] digest = getDigest(content);
         byte[] contentBytes = content.getBytes();
-        logger.info("Uploading {} digest {}", content, Hex.encodeHexString(digest));
+        logger.trace("Uploading {} digest {}", content, Hex.encodeHexString(digest));
         BytesArray bytes = new BytesArray(new byte[]{contentBytes[0]});
         if (content.length() == 1) {
             client.execute(StartBlobAction.INSTANCE, new StartBlobRequest("test", digest, bytes,
@@ -107,7 +110,7 @@ public class RecoveryTests extends CrateIntegrationTest {
             client.execute(StartBlobAction.INSTANCE, startBlobRequest).actionGet();
             for (int i = 1; i < contentBytes.length; i++) {
                 try {
-                    Thread.sleep(200);
+                    Thread.sleep(timeBetweenChunks.get());
                 } catch (InterruptedException ex) {
                 }
                 bytes = new BytesArray(new byte[]{contentBytes[i]});
@@ -115,9 +118,11 @@ public class RecoveryTests extends CrateIntegrationTest {
                         new PutChunkRequest(
                                 "test", digest, startBlobRequest.transferId(), bytes, i,
                                 (i + 1) == content.length())
-                              ).actionGet();
+                ).actionGet();
             }
         }
+        logger.trace("Upload finished {} digest {}", content, Hex.encodeHexString(digest));
+
     }
 
 
@@ -142,21 +147,18 @@ public class RecoveryTests extends CrateIntegrationTest {
 
         final String node1 = cluster().startNode();
 
-        logger.info("--> creating test index ...");
+        logger.trace("--> creating test index ...");
         cluster().client(node1).admin().indices().prepareCreate("test")
                 .setSettings(settingsBuilder()
                         .put("index.number_of_shards", 1)
                         .put("index.number_of_replicas", 0)
                         .put("blobs.enabled", true)
-                            ).execute().actionGet();
+                ).execute().actionGet();
 
-        logger.info("--> starting [node2] ...");
+        logger.trace("--> starting [node2] ...");
         final String node2 = cluster().startNode();
 
-        cluster().client(node1).admin().cluster().prepareHealth(
-                "test").setWaitForGreenStatus().execute().actionGet();
-        cluster().client(node2).admin().cluster().prepareHealth(
-                "test").setWaitForGreenStatus().execute().actionGet();
+        ensureGreen();
 
         final AtomicLong idGenerator = new AtomicLong();
         final AtomicLong indexCounter = new AtomicLong();
@@ -164,20 +166,20 @@ public class RecoveryTests extends CrateIntegrationTest {
         Thread[] writers = new Thread[numberOfWriters];
         final CountDownLatch stopLatch = new CountDownLatch(writers.length);
 
-        logger.info("--> starting {} blob upload threads", writers.length);
+        logger.trace("--> starting {} blob upload threads", writers.length);
         for (int i = 0; i < writers.length; i++) {
             final int indexerId = i;
             writers[i] = new Thread() {
                 @Override
                 public void run() {
                     try {
-                        logger.info("**** starting blob upload thread {}", indexerId);
+                        logger.trace("**** starting blob upload thread {}", indexerId);
                         while (!stop.get()) {
                             long id = idGenerator.incrementAndGet();
                             uploadFile(cluster().client(node1), genFile(id));
                             indexCounter.incrementAndGet();
                         }
-                        logger.info("**** done indexing thread {}", indexerId);
+                        logger.trace("**** done indexing thread {}", indexerId);
                     } catch (Exception e) {
                         logger.warn("**** failed indexing thread {}", e, indexerId);
                     } finally {
@@ -188,19 +190,22 @@ public class RecoveryTests extends CrateIntegrationTest {
             writers[i].start();
         }
 
-        logger.info("--> waiting for 2 blobs to be uploaded ...");
+        logger.trace("--> waiting for 2 blobs to be uploaded ...");
         while (cluster().client(node1).execute(BlobStatsAction.INSTANCE, new BlobStatsRequest().indices(
                 "test"))
                 .actionGet().blobShardStats()[0].blobStats().count() < 2) {
             Thread.sleep(10);
         }
-        logger.info("--> 2 blobs uploaded");
+        logger.trace("--> 2 blobs uploaded");
 
-        logger.info("--> starting relocations...");
+        // increase time between chunks in order to make sure that the upload is taking place while relocating
+        timeBetweenChunks.set(10);
+        stop.set(true);
+        logger.trace("--> starting relocations...");
         for (int i = 0; i < numberOfRelocations; i++) {
             String fromNode = (i % 2 == 0) ? node1 : node2;
             String toNode = node1.equals(fromNode) ? node2 : node1;
-            logger.info("--> START relocate the shard from {} to {}", fromNode, toNode);
+            logger.trace("--> START relocate the shard from {} to {}", fromNode, toNode);
             cluster().client(node1).admin().cluster().prepareReroute()
                     .add(new MoveAllocationCommand(new ShardId("test", 0), fromNode, toNode))
                     .execute().actionGet();
@@ -217,21 +222,23 @@ public class RecoveryTests extends CrateIntegrationTest {
                     .setWaitForRelocatingShards(0)
                     .setTimeout(ACCEPTABLE_RELOCATION_TIME).execute().actionGet();
             assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
-            logger.info("--> DONE relocate the shard from {} to {}", fromNode, toNode);
+            logger.trace("--> DONE relocate the shard from {} to {}", fromNode, toNode);
         }
-        logger.info("--> done relocations");
+        logger.trace("--> done relocations");
 
-        logger.info("--> marking and waiting for upload threads to stop ...");
+        logger.trace("--> marking and waiting for upload threads to stop ...");
+        timeBetweenChunks.set(0);
         stop.set(true);
-        stopLatch.await();
-        logger.info("--> uploading threads stopped");
+        stopLatch.await(60, TimeUnit.SECONDS);
+        logger.trace("--> uploading threads stopped");
 
         BlobStatsResponse response = cluster().client(node2)
                 .execute(BlobStatsAction.INSTANCE, new BlobStatsRequest().indices(
                         "test")).actionGet();
+        assertTrue(response.blobShardStats().length > 0);
         long numBlobs = response.blobShardStats()[0].blobStats().count();
         long uploadedDocs = indexCounter.get();
-        logger.info("--> expected {} got {}", uploadedDocs, numBlobs);
+        logger.trace("--> expected {} got {}", uploadedDocs, numBlobs);
         assertEquals(uploadedDocs, numBlobs);
     }
 }
