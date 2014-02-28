@@ -24,7 +24,7 @@ package io.crate.executor.transport.task.elasticsearch;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
-import io.crate.planner.node.ESGetNode;
+import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.symbol.*;
 import org.cratedb.Constants;
 import org.cratedb.DataType;

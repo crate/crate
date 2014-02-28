@@ -22,7 +22,7 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.planner.node.ESIndexNode;
+import io.crate.planner.node.dml.ESIndexNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexResponse;

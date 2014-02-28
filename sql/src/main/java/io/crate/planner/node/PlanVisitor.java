@@ -21,6 +21,16 @@
 
 package io.crate.planner.node;
 
+import io.crate.planner.node.ddl.DDLPlanNode;
+import io.crate.planner.node.ddl.ESCreateTableNode;
+import io.crate.planner.node.dml.CopyNode;
+import io.crate.planner.node.dml.ESDeleteNode;
+import io.crate.planner.node.dml.ESIndexNode;
+import io.crate.planner.node.dml.ESUpdateNode;
+import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.ESGetNode;
+import io.crate.planner.node.dql.ESSearchNode;
+import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.common.Nullable;
 
 public class PlanVisitor<C, R> {
@@ -67,5 +77,13 @@ public class PlanVisitor<C, R> {
 
     public R visitCopyNode(CopyNode copyNode, C context) {
         return visitPlanNode(copyNode, context);
+    }
+
+    public R visitESCreateTableNode(ESCreateTableNode esCreateTableNode, C context) {
+        return visitDDLPlanNode(esCreateTableNode, context);
+    }
+
+    private R visitDDLPlanNode(DDLPlanNode node, C context) {
+        return visitPlanNode(node, context);
     }
 }

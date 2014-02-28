@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.metadata.*;
 import io.crate.operator.aggregation.impl.CountAggregation;
+import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;

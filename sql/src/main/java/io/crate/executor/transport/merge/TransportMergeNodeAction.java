@@ -32,7 +32,7 @@ import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.operator.operations.merge.DownstreamOperation;
 import io.crate.operator.operations.merge.MergeOperation;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.MergeNode;
+import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import org.cratedb.DataType;
 import org.elasticsearch.action.ActionListener;

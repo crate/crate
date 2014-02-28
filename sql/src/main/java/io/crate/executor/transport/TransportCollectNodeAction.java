@@ -27,7 +27,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.operator.operations.collect.DistributingCollectOperation;
 import io.crate.operator.operations.collect.MapSideDataCollectOperation;
-import io.crate.planner.node.CollectNode;
+import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;

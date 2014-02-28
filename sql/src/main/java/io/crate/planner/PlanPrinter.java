@@ -24,6 +24,7 @@ package io.crate.planner;
 import com.google.common.base.Objects;
 import com.google.common.base.Strings;
 import io.crate.planner.node.*;
+import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.ProjectionVisitor;
@@ -61,8 +62,6 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
             }
             output.append(Strings.repeat("  ", indent)).append(value).append('\n');
         }
-
-
     }
 
 
@@ -121,7 +120,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
     public String print(Plan plan) {
         StringBuilder output = new StringBuilder();
         PrintContext context = new PrintContext(output);
-        for (DQLPlanNode node : plan) {
+        for (PlanNode node : plan) {
             process(node, context);
         }
         return output.toString();
@@ -158,7 +157,6 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
             symbolPrinter.process(symbol, context);
         }
 
-        processProjections(node, context);
         context.dedent();
         return null;
     }

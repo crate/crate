@@ -35,7 +35,7 @@ import io.crate.operator.projectors.NoopProjector;
 import io.crate.operator.projectors.ProjectionToProjectorVisitor;
 import io.crate.operator.projectors.Projector;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.CollectNode;
+import io.crate.planner.node.dql.CollectNode;
 import org.cratedb.Constants;
 import org.cratedb.sql.CrateException;
 import org.cratedb.sql.TableUnknownException;
@@ -124,7 +124,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
     /**
      * collect data on node level only - one row per node expected
      *
-     * @param collectNode {@link io.crate.planner.node.CollectNode} instance containing routing information and symbols to collect
+     * @param collectNode {@link io.crate.planner.node.dql.CollectNode} instance containing routing information and symbols to collect
      * @return the collect result from this node, one row only so return value is <code>Object[1][]</code>
      */
     protected ListenableFuture<Object[][]> handleNodeCollect(CollectNode collectNode) {
@@ -168,8 +168,8 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
      * collects data from each shard in a separate thread,
      * collecting the data into a single state through an {@link java.util.concurrent.ArrayBlockingQueue}.
      *
-     * @param collectNode {@link io.crate.planner.node.CollectNode} containing routing information and symbols to collect
-     * @return the collect results from all shards on this node that were given in {@link io.crate.planner.node.CollectNode#routing}
+     * @param collectNode {@link io.crate.planner.node.dql.CollectNode} containing routing information and symbols to collect
+     * @return the collect results from all shards on this node that were given in {@link io.crate.planner.node.dql.CollectNode#routing}
      */
     protected ListenableFuture<Object[][]> handleShardCollect(CollectNode collectNode) {
 

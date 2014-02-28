@@ -19,20 +19,22 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node;
+package io.crate.planner.node.dml;
 
 import com.google.common.base.Optional;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import com.google.common.collect.ImmutableList;
+import io.crate.planner.node.PlanVisitor;
+import org.cratedb.DataType;
 
-import java.io.IOException;
-import java.util.Set;
+import java.util.List;
 
-public class ESDeleteNode extends DQLPlanNode {
+public class ESDeleteNode extends DMLPlanNode {
 
     private String index;
     private String id;
     private Optional<Long> version;
+
+    private static final List<DataType> OUTPUT_TYPES = ImmutableList.of(DataType.LONG);
 
     public ESDeleteNode(String index, String id, Optional<Long> version) {
         this.index = index;
@@ -44,11 +46,6 @@ public class ESDeleteNode extends DQLPlanNode {
         return index;
     }
 
-    @Override
-    public Set<String> executionNodes() {
-        return null;
-    }
-
     public String id() {
         return id;
     }
@@ -58,17 +55,12 @@ public class ESDeleteNode extends DQLPlanNode {
         return visitor.visitESDeleteNode(this, context);
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        throw new UnsupportedOperationException("Must not serialize ESDeleteNodes");
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        throw new UnsupportedOperationException("Must not serialize ESDeleteNodes");
-    }
-
     public Optional<Long> version() {
         return version;
+    }
+
+    @Override
+    public List<DataType> outputTypes() {
+        return OUTPUT_TYPES;
     }
 }

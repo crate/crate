@@ -22,9 +22,9 @@
 package io.crate.operator.operations;
 
 import io.crate.operator.operations.merge.DownstreamOperation;
-import io.crate.planner.node.DQLPlanNode;
+import io.crate.planner.node.dql.AbstractDQLPlanNode;
 
-public interface DownstreamOperationFactory<TPlanNode extends DQLPlanNode> {
+public interface DownstreamOperationFactory<TPlanNode extends AbstractDQLPlanNode> {
 
     public DownstreamOperation create(TPlanNode node);
 }

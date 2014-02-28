@@ -24,7 +24,7 @@ package io.crate.executor.task;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.Task;
 import io.crate.operator.operations.collect.CollectOperation;
-import io.crate.planner.node.CollectNode;
+import io.crate.planner.node.dql.CollectNode;
 
 import java.util.ArrayList;
 import java.util.List;

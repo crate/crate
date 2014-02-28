@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node;
+package io.crate.planner.node.dql;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
@@ -28,6 +28,7 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.planner.RowGranularity;
+import io.crate.planner.node.PlanVisitor;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -43,7 +44,7 @@ import java.util.UUID;
 /**
  * A plan node which collects data.
  */
-public class CollectNode extends DQLPlanNode {
+public class CollectNode extends AbstractDQLPlanNode {
 
     private Optional<UUID> jobId = Optional.absent();
     private Routing routing;

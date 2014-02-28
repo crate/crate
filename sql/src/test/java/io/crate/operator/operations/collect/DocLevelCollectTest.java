@@ -29,7 +29,7 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operator.operator.EqOperator;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.CollectNode;
+import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.IntegerLiteral;
 import io.crate.planner.symbol.Reference;

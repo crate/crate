@@ -25,6 +25,9 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.Functions;
 import io.crate.operator.aggregation.AggregationFunction;
+import io.crate.planner.node.dql.AbstractDQLPlanNode;
+import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
@@ -34,7 +37,7 @@ import org.elasticsearch.common.inject.Inject;
 import java.util.*;
 
 /**
- * get input and output {@link org.cratedb.DataType.Streamer}s for {@link DQLPlanNode}s
+ * get input and output {@link org.cratedb.DataType.Streamer}s for {@link io.crate.planner.node.dql.AbstractDQLPlanNode}s
  */
 public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor.Context, Void> {
 
@@ -85,7 +88,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
         return streamer;
     }
 
-    public Context process(DQLPlanNode planNode) {
+    public Context process(AbstractDQLPlanNode planNode) {
         Context ctx = new Context();
         process(planNode, ctx);
         return ctx;

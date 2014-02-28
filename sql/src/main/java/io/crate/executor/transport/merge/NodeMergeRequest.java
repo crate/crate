@@ -21,7 +21,7 @@
 
 package io.crate.executor.transport.merge;
 
-import io.crate.planner.node.MergeNode;
+import io.crate.planner.node.dql.MergeNode;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
