@@ -5,7 +5,7 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - use crate-admin 0.1.0
+ - use crate-admin 0.1.1
 
  - added scalar function date_trunc
 
