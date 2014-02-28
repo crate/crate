@@ -51,6 +51,7 @@ public class SQLTransportIntegrationTest extends CrateIntegrationTest {
     }
 
     protected long responseDuration;
+    protected SQLResponse response;
 
     @Override
     public Settings indexSettings() {
@@ -66,7 +67,8 @@ public class SQLTransportIntegrationTest extends CrateIntegrationTest {
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt, Object[] args) {
-        return client().execute(SQLAction.INSTANCE, new SQLRequest(stmt, args)).actionGet();
+        response = client().execute(SQLAction.INSTANCE, new SQLRequest(stmt, args)).actionGet();
+        return response;
     }
 
     /**
