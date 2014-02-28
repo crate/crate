@@ -44,7 +44,7 @@ the author of the quote and the quote itself::
     {
       "cols" : [ ],
       "rows" : [ ],
-      "rowcount" : 0,
+      "rowcount" : 1,
       "duration" : ...
     }
 

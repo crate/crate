@@ -44,6 +44,18 @@ public class IndexDefinition extends TableElement {
         return ident;
     }
 
+    public String method() {
+        return method;
+    }
+
+    public List<Expression> columns() {
+        return columns;
+    }
+
+    public GenericProperties properties() {
+        return properties;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hashCode(ident, method, columns, properties);

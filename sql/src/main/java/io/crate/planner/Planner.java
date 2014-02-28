@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.analyze.*;
+import io.crate.planner.node.ddl.ESCreateIndexNode;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.ddl.ESDeleteIndexNode;
 import io.crate.planner.node.dml.CopyNode;
@@ -159,7 +160,16 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
 
     @Override
     protected Plan visitCreateTableAnalysis(CreateTableAnalysis analysis, Void context) {
-        throw new UnsupportedOperationException("planning create table analysis not supported yet");
+        Plan plan = new Plan();
+        ESCreateIndexNode node = new ESCreateIndexNode(
+                analysis.tableName(),
+                analysis.indexSettings(),
+                analysis.mapping()
+        );
+
+        plan.add(node);
+        plan.expectsAffectedRows(true);
+        return plan;
     }
 
     private void ESDelete(DeleteAnalysis analysis, Plan plan) {

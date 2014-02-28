@@ -37,6 +37,14 @@ public class IndexColumnConstraint extends ColumnConstraint {
         this.properties = Objects.firstNonNull(properties, GenericProperties.EMPTY);
     }
 
+    public String indexMethod() {
+        return indexMethod;
+    }
+
+    public GenericProperties properties() {
+        return properties;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hashCode(indexMethod, properties);

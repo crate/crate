@@ -24,6 +24,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.sql.tree.*;
+import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.elasticsearch.common.inject.Inject;
 
 public class Analyzer {
@@ -31,8 +32,13 @@ public class Analyzer {
     private final AnalyzerDispatcher dispatcher;
 
     @Inject
-    public Analyzer(ReferenceInfos referenceInfos, Functions functions, ReferenceResolver referenceResolver) {
-        this.dispatcher = new AnalyzerDispatcher(referenceInfos, functions, referenceResolver);
+    public Analyzer(ReferenceInfos referenceInfos,
+                    Functions functions,
+                    ReferenceResolver referenceResolver,
+                    AnalyzerService analyzerService) {
+
+        this.dispatcher = new AnalyzerDispatcher(
+                referenceInfos, functions, referenceResolver, analyzerService);
     }
 
     public Analysis analyze(Statement statement) {
@@ -63,6 +69,7 @@ public class Analyzer {
         private final ReferenceInfos referenceInfos;
         private final Functions functions;
         private final ReferenceResolver referenceResolver;
+        private final AnalyzerService analyzerService;
 
         private final AbstractStatementAnalyzer selectStatementAnalyzer = new SelectStatementAnalyzer();
         private final AbstractStatementAnalyzer insertStatementAnalyzer = new InsertStatementAnalyzer();
@@ -70,14 +77,16 @@ public class Analyzer {
         private final AbstractStatementAnalyzer deleteStatementAnalyzer = new DeleteStatementAnalyzer();
         private final AbstractStatementAnalyzer copyStatementAnalyzer = new CopyStatementAnalyzer();
         private final AbstractStatementAnalyzer dropTableStatementAnalyzer = new DropTableStatementAnalyzer();
-        //private final StatementAnalyzer createTableStatementAnalyzer = new CreateTableStatementAnalyzer();
+        private final AbstractStatementAnalyzer createTableStatementAnalyzer = new CreateTableStatementAnalyzer();
 
         public AnalyzerDispatcher(ReferenceInfos referenceInfos,
                                   Functions functions,
-                                  ReferenceResolver referenceResolver) {
+                                  ReferenceResolver referenceResolver,
+                                  AnalyzerService analyzerService) {
             this.referenceInfos = referenceInfos;
             this.functions = functions;
             this.referenceResolver = referenceResolver;
+            this.analyzerService = analyzerService;
         }
 
         @Override
@@ -121,14 +130,13 @@ public class Analyzer {
             return dropTableStatementAnalyzer;
         }
 
-        //@Override
-        //public StatementAnalyzer visitCreateTable(CreateTable node, Context context) {
-        //    context.analysis = new CreateTableAnalysis();
-        //    return createTableStatementAnalyzer;
-        //}
+        public AbstractStatementAnalyzer visitCreateTable(CreateTable node, Context context) {
+            context.analysis = new CreateTableAnalysis(referenceInfos, analyzerService, context.parameters);
+            return createTableStatementAnalyzer;
+        }
 
         @Override
-        protected DataStatementAnalyzer visitNode(Node node, Context context) {
+        protected AbstractStatementAnalyzer visitNode(Node node, Context context) {
             throw new UnsupportedOperationException(String.format("cannot analyze statement: '%s'", node));
         }
     }

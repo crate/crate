@@ -32,6 +32,7 @@ import io.crate.planner.symbol.*;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import org.cratedb.DataType;
+import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -124,6 +125,8 @@ public class PlannerTest {
         @Override
         protected void configure() {
             ClusterService clusterService = mock(ClusterService.class);
+            AnalyzerService analyzerService = mock(AnalyzerService.class);
+            bind(AnalyzerService.class).toInstance(analyzerService);
             bind(ClusterService.class).toInstance(clusterService);
             super.configure();
         }

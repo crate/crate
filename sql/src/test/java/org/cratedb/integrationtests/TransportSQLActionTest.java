@@ -1684,7 +1684,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .actionGet().isExists());
 
         String expectedMapping = "{\"default\":{" +
-                "\"_meta\":{\"primary_keys\":\"col1\"}," +
+                "\"_meta\":{\"primary_keys\":[\"col1\"],\"columns\":{\"col1\":{},\"col2\":{}},\"indices\":{}}," +
                 "\"_all\":{\"enabled\":false}," +
                 "\"properties\":{" +
                     "\"col1\":{\"type\":\"integer\"}," +
