@@ -1,3 +1,3 @@
 [submodule "es/upstream"]
 	path = es/upstream
-	url = git@github.com:crate/crate-elasticsearch.git
+	url = git@github.com:crate/elasticsearch.git
