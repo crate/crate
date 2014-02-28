@@ -476,4 +476,8 @@ public abstract class AstVisitor<R, C>
     public R visitIndexDefinition(IndexDefinition node, C context) {
         return visitNode(node, context);
     }
+
+    public R visitCollectionColumnType(CollectionColumnType node, C context) {
+        return visitNode(node, context);
+    }
 }

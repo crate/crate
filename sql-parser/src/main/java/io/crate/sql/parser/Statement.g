@@ -755,11 +755,22 @@ dataType
     | TIMESTAMP
     | IP
     | objectTypeDefinition
+    | arrayTypeDefinition
+    | setTypeDefinition
     ;
 
 objectTypeDefinition
     : OBJECT ( '(' objectType ')' )? objectColumns? -> ^(OBJECT objectType? objectColumns? )
     ;
+
+arrayTypeDefinition
+    : ARRAY '(' dataType ')' -> ^(ARRAY dataType)
+    ;
+
+setTypeDefinition
+    : SET '(' dataType ')' -> ^(SET dataType)
+    ;
+
 
 objectType
     : DYNAMIC
@@ -968,6 +979,9 @@ INDEX: 'INDEX';
 DYNAMIC: 'DYNAMIC';
 STRICT: 'STRICT';
 IGNORED: 'IGNORED';
+
+ARRAY: 'ARRAY';
+
 
 EQ  : '=';
 NEQ : '<>' | '!=';
