@@ -29,7 +29,7 @@ import org.cratedb.DataType;
 import java.util.List;
 import java.util.Set;
 
-public class CopyNode extends PlanNode {
+public class CopyNode extends DQLPlanNode {
 
     private static final List<DataType> OUTPUT_TYPES = ImmutableList.of(DataType.LONG);
 

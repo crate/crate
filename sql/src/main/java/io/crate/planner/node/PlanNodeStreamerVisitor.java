@@ -34,7 +34,7 @@ import org.elasticsearch.common.inject.Inject;
 import java.util.*;
 
 /**
- * get input and output {@link org.cratedb.DataType.Streamer}s for {@link io.crate.planner.node.PlanNode}s
+ * get input and output {@link org.cratedb.DataType.Streamer}s for {@link DQLPlanNode}s
  */
 public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor.Context, Void> {
 
@@ -85,7 +85,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
         return streamer;
     }
 
-    public Context process(PlanNode planNode) {
+    public Context process(DQLPlanNode planNode) {
         Context ctx = new Context();
         process(planNode, ctx);
         return ctx;

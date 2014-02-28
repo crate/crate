@@ -121,7 +121,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
     public String print(Plan plan) {
         StringBuilder output = new StringBuilder();
         PrintContext context = new PrintContext(output);
-        for (PlanNode node : plan) {
+        for (DQLPlanNode node : plan) {
             process(node, context);
         }
         return output.toString();
@@ -180,7 +180,7 @@ public class PlanPrinter extends PlanVisitor<PlanPrinter.PrintContext, Void> {
         return null;
     }
 
-    private void processProjections(PlanNode node, PrintContext context) {
+    private void processProjections(DQLPlanNode node, PrintContext context) {
         if (node.hasProjections()) {
             context.print(node.toString());
             context.indent();

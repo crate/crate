@@ -21,10 +21,6 @@
 
 package io.crate.planner.node;
 
-import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.GroupProjection;
-import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.TopNProjection;
 import org.elasticsearch.common.Nullable;
 
 public class PlanVisitor<C, R> {
@@ -34,11 +30,6 @@ public class PlanVisitor<C, R> {
     }
 
     protected R visitPlanNode(PlanNode node, C context) {
-        return null;
-    }
-
-    private R visitProjection(Projection projection, C context) {
-        // TODO: we should probably add a super interface to projections and plan nodes
         return null;
     }
 
@@ -72,18 +63,6 @@ public class PlanVisitor<C, R> {
 
     public R visitESUpdateNode(ESUpdateNode node, C context) {
         return visitPlanNode(node, context);
-    }
-
-    public R visitAggregationProjection(AggregationProjection projection, C context) {
-        return visitProjection(projection, context);
-    }
-
-    public R visitGroupProjection(GroupProjection projection, C context) {
-        return visitProjection(projection, context);
-    }
-
-    public R visitTopNProjection(TopNProjection projection, C context) {
-        return visitProjection(projection, context);
     }
 
     public R visitCopyNode(CopyNode copyNode, C context) {

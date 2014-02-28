@@ -28,7 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.Set;
 
-public class ESDeleteNode extends PlanNode {
+public class ESDeleteNode extends DQLPlanNode {
 
     private String index;
     private String id;

@@ -43,7 +43,7 @@ import java.util.UUID;
 /**
  * A plan node which collects data.
  */
-public class CollectNode extends PlanNode {
+public class CollectNode extends DQLPlanNode {
 
     private Optional<UUID> jobId = Optional.absent();
     private Routing routing;
