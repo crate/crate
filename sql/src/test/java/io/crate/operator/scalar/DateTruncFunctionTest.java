@@ -28,8 +28,6 @@ import io.crate.operator.Input;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -42,8 +40,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 public class DateTruncFunctionTest {
-
-    private static final ESLogger LOGGER = Loggers.getLogger(DateTruncFunctionTest.class);
 
     // timestamp for Do Feb 25 13:38:01.123 CET 1999
     private static final Long TIMESTAMP = 919946281123L;
@@ -62,17 +58,11 @@ public class DateTruncFunctionTest {
     private static TimeZone systemDefaultTimeZone = TimeZone.getDefault();
     @BeforeClass
     public static void setTimeZone() {
-        LOGGER.info("Preparing to change default time zone of the system");
-        LOGGER.info("Current time zone is: " + systemDefaultTimeZone.getID());
-        String newTimeZone = "Europe/Vienna";
-        LOGGER.info("Setting time zone to '" + newTimeZone + "'");
-        TimeZone.setDefault(TimeZone.getTimeZone(newTimeZone));
+        TimeZone.setDefault(TimeZone.getTimeZone("Europe/Vienna"));
     }
 
     @AfterClass
     public static void restoreTimeZone() {
-        LOGGER.info("Restoring previous time zone from: '" + System.getProperty("user.timezone")
-                + " to '" + systemDefaultTimeZone.getID() + "'");
         TimeZone.setDefault(systemDefaultTimeZone);
     }
 
