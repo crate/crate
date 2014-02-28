@@ -515,7 +515,7 @@ The JSON response of an import may look like this::
 .. hint::
 
     - ``imports``: List of successful imports
-    - ``node_id'': The node id where the import happened
+    - ``node_id``: The node id where the import happened
     - ``took``: Operation time of all imports on the node in milliseconds
     - ``imported_files``: List of imported files in the import directory of the node's file system
     - ``file_name``: File name of the handled file

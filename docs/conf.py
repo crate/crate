@@ -17,7 +17,7 @@ nitpicky = True
 html_show_sourcelink = False
 html_favicon = 'favicon.png'
 
-exclude_trees = ['pyenv', 'tmp', 'out', 'crate-python/tmp']
+exclude_trees = ['pyenv', 'tmp', 'out', 'crate-python/tmp', 'parts']
 
 extensions = ['sphinx.ext.autodoc']
 

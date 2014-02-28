@@ -7,8 +7,7 @@ First Steps
 - If you are new to Crate Data, it is probably the best to say
   :doc:`hello`.
 
-- Take a look at the :doc:`sql/index`, :doc:`plugins/inout` and
-  :doc:`3rd-party-plugins`
+- For details about working with Crate Data, see :doc:`sql/index`.
 
 Contents
 ========
@@ -21,6 +20,5 @@ Contents
    configuration
    sql/index
    blob
-   3rd-party-plugins
    udc
    clients
