@@ -28,7 +28,11 @@ import io.crate.operator.Input;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.util.TimeZone;
 
 import static junit.framework.Assert.assertSame;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -49,6 +53,17 @@ public class DateTruncFunctionTest {
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
+    private static TimeZone systemDefaultTimeZone = TimeZone.getDefault();
+    @BeforeClass
+    public static void setTimeZone() {
+        TimeZone.setDefault(TimeZone.getTimeZone("Europe/Vienna"));
+    }
+
+    @AfterClass
+    public static void restoreTimeZone() {
+        TimeZone.setDefault(systemDefaultTimeZone);
     }
 
     protected class DateTruncInput implements Input<Object> {
@@ -107,9 +122,6 @@ public class DateTruncFunctionTest {
 
     @Test
     public void testEvaluate() throws Exception {
-        // TODO: set time zone to CET for test purpose and reset it to the default after the tests are done
-        // if not, the tests most probably would fail on a JVM with a different time zone than CET
-        // reason: we use TimeZone.getDefault() in the implementation!
         assertTruncated("second", TIMESTAMP, 919946281000L);     // Thu Feb 25 13:38:01.000 CET 1999
         assertTruncated("minute", TIMESTAMP, 919946280000L);     // Thu Feb 25 13:38:00.000 CET 1999
         assertTruncated("hour", TIMESTAMP, 919944000000L);       // Thu Feb 25 13:00:00.000 CET 1999
