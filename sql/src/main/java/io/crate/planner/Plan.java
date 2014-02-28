@@ -22,24 +22,24 @@
 package io.crate.planner;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.planner.node.PlanNode;
+import io.crate.planner.node.DQLPlanNode;
 import org.cratedb.DataType;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class Plan implements Iterable<PlanNode> {
+public class Plan implements Iterable<DQLPlanNode> {
 
-    private ArrayList<PlanNode> nodes = new ArrayList<>();
+    private ArrayList<DQLPlanNode> nodes = new ArrayList<>();
     private boolean expectsAffectedRows = false;
 
-    public void add(PlanNode node) {
+    public void add(DQLPlanNode node) {
         nodes.add(node);
     }
 
     @Override
-    public Iterator<PlanNode> iterator() {
+    public Iterator<DQLPlanNode> iterator() {
         return nodes.iterator();
     }
 

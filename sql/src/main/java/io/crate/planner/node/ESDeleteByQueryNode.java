@@ -26,7 +26,7 @@ import io.crate.analyze.WhereClause;
 
 import java.util.Set;
 
-public class ESDeleteByQueryNode extends PlanNode {
+public class ESDeleteByQueryNode extends DQLPlanNode {
 
     private final Set<String> indices;
     private final WhereClause whereClause;

@@ -33,7 +33,7 @@ import java.util.*;
 /**
  * A plan node which merges results from upstreams
  */
-public class MergeNode extends PlanNode {
+public class MergeNode extends DQLPlanNode {
 
     private List<DataType> inputTypes;
     private int numUpstreams;

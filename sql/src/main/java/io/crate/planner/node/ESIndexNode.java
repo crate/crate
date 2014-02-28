@@ -35,7 +35,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-public class ESIndexNode extends PlanNode {
+public class ESIndexNode extends DQLPlanNode {
 
     private static final List<DataType> OUTPUT_TYPES = ImmutableList.of(DataType.LONG);
     private String index;

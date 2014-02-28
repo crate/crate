@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-public abstract class AbstractESNode extends PlanNode {
+public abstract class AbstractESNode extends DQLPlanNode {
 
     protected List<? extends Symbol> outputs;
 
