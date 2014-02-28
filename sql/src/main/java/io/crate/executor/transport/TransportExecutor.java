@@ -39,6 +39,7 @@ import io.crate.operator.operations.collect.HandlerSideDataCollectOperation;
 import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.*;
+import io.crate.planner.node.ddl.ESCreateTableNode;
 import io.crate.planner.node.dml.CopyNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
@@ -48,6 +49,7 @@ import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.node.dql.MergeNode;
 import org.cratedb.action.import_.TransportImportAction;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.bulk.TransportBulkAction;
 import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
@@ -75,6 +77,7 @@ public class TransportExecutor implements Executor {
     private final TransportMultiGetAction transportMultiGetAction;
     private final TransportDeleteByQueryAction transportDeleteByQueryAction;
     private final TransportDeleteAction transportDeleteAction;
+    private final TransportCreateIndexAction transportCreateIndexAction;
     private final TransportIndexAction transportIndexAction;
     private final TransportBulkAction transportBulkAction;
     private final TransportUpdateAction transportUpdateAction;
@@ -90,6 +93,7 @@ public class TransportExecutor implements Executor {
                              TransportMultiGetAction transportMultiGetAction,
                              TransportDeleteByQueryAction transportDeleteByQueryAction,
                              TransportDeleteAction transportDeleteAction,
+                             TransportCreateIndexAction transportCreateIndexAction,
                              ThreadPool threadPool,
                              Functions functions,
                              ReferenceResolver referenceResolver,
@@ -106,6 +110,7 @@ public class TransportExecutor implements Executor {
         this.transportSearchAction = transportSearchAction;
         this.transportDeleteByQueryAction = transportDeleteByQueryAction;
         this.transportDeleteAction = transportDeleteAction;
+        this.transportCreateIndexAction = transportCreateIndexAction;
         this.transportIndexAction = transportIndexAction;
         this.transportBulkAction = transportBulkAction;
         this.transportUpdateAction = transportUpdateAction;
@@ -197,6 +202,12 @@ public class TransportExecutor implements Executor {
         @Override
         public Void visitESDeleteNode(ESDeleteNode node, Job context) {
             context.addTask(new ESDeleteTask(transportDeleteAction, node));
+            return null;
+        }
+
+        @Override
+        public Void visitESCreateTableNode(ESCreateTableNode node, Job context) {
+            context.addTask(new ESCreateIndexTask(node, transportCreateIndexAction));
             return null;
         }
 
