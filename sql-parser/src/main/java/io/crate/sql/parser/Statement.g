@@ -626,7 +626,7 @@ showFunctionsStmt
     ;
 
 dropTableStmt
-    : DROP TABLE qname -> ^(DROP_TABLE qname)
+    : DROP TABLE table -> ^(DROP_TABLE table)
     ;
 
 createMaterializedViewStmt

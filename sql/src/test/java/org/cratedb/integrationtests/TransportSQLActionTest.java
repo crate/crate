@@ -1868,6 +1868,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .actionGet().isExists());
 
         execute("drop table test");
+        assertThat(response.rowCount(), is(1L));
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
         assertFalse(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());
@@ -2498,7 +2499,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testDropTableWithTableAlias() throws Exception {
         String tableAlias = tableAliasSetup();
-        expectedException.expect(SQLParseException.class);
+        expectedException.expect(UnsupportedFeatureException.class);
         expectedException.expectMessage("Table alias not allowed in DROP TABLE statement.");
         execute(String.format("drop table %s", tableAlias));
     }

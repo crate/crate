@@ -32,12 +32,12 @@ public class DeleteAnalysis extends AbstractDataAnalysis {
     }
 
     @Override
-    public Type type() {
-        return Type.DELETE;
+    public boolean hasNoResult() {
+        return noMatch();
     }
 
     @Override
-    public boolean hasNoResult() {
-        return noMatch();
+    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
+        return analysisVisitor.visitDeleteAnalysis(this, context);
     }
 }

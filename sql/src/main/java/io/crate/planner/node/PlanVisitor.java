@@ -23,6 +23,7 @@ package io.crate.planner.node;
 
 import io.crate.planner.node.ddl.DDLPlanNode;
 import io.crate.planner.node.ddl.ESCreateTableNode;
+import io.crate.planner.node.ddl.ESDeleteIndexNode;
 import io.crate.planner.node.dml.CopyNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
@@ -84,6 +85,10 @@ public class PlanVisitor<C, R> {
     }
 
     private R visitDDLPlanNode(DDLPlanNode node, C context) {
+        return visitPlanNode(node, context);
+    }
+
+    public R visitESDeleteIndexNode(ESDeleteIndexNode node, C context) {
         return visitPlanNode(node, context);
     }
 }

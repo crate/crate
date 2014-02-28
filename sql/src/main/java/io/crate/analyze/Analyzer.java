@@ -40,7 +40,7 @@ public class Analyzer {
     }
 
     public Analysis analyze(Statement statement, Object[] parameters) {
-        DataStatementAnalyzer statementAnalyzer;
+        AbstractStatementAnalyzer statementAnalyzer;
 
         Context ctx = new Context(parameters);
         statementAnalyzer = dispatcher.process(statement, ctx);
@@ -60,17 +60,18 @@ public class Analyzer {
         }
     }
 
-    private static class AnalyzerDispatcher extends AstVisitor<DataStatementAnalyzer, Context> {
+    private static class AnalyzerDispatcher extends AstVisitor<AbstractStatementAnalyzer, Context> {
 
         private final ReferenceInfos referenceInfos;
         private final Functions functions;
         private final ReferenceResolver referenceResolver;
 
-        private final DataStatementAnalyzer selectStatementAnalyzer = new SelectStatementAnalyzer();
-        private final DataStatementAnalyzer insertStatementAnalyzer = new InsertStatementAnalyzer();
-        private final DataStatementAnalyzer updateStatementAnalyzer = new UpdateStatementAnalyzer();
-        private final DataStatementAnalyzer deleteStatementAnalyzer = new DeleteStatementAnalyzer();
-        private final DataStatementAnalyzer copyStatementAnalyzer = new CopyStatementAnalyzer();
+        private final AbstractStatementAnalyzer selectStatementAnalyzer = new SelectStatementAnalyzer();
+        private final AbstractStatementAnalyzer insertStatementAnalyzer = new InsertStatementAnalyzer();
+        private final AbstractStatementAnalyzer updateStatementAnalyzer = new UpdateStatementAnalyzer();
+        private final AbstractStatementAnalyzer deleteStatementAnalyzer = new DeleteStatementAnalyzer();
+        private final AbstractStatementAnalyzer copyStatementAnalyzer = new CopyStatementAnalyzer();
+        private final AbstractStatementAnalyzer dropTableStatementAnalyzer = new DropTableStatementAnalyzer();
         //private final StatementAnalyzer createTableStatementAnalyzer = new CreateTableStatementAnalyzer();
 
         public AnalyzerDispatcher(ReferenceInfos referenceInfos,
@@ -82,38 +83,44 @@ public class Analyzer {
         }
 
         @Override
-        protected DataStatementAnalyzer visitQuery(Query node, Context context) {
+        protected AbstractStatementAnalyzer visitQuery(Query node, Context context) {
             context.analysis = new SelectAnalysis(
                     referenceInfos, functions, context.parameters, referenceResolver);
             return selectStatementAnalyzer;
         }
 
         @Override
-        public DataStatementAnalyzer visitDelete(Delete node, Context context) {
+        public AbstractStatementAnalyzer visitDelete(Delete node, Context context) {
             context.analysis = new DeleteAnalysis(
                     referenceInfos, functions, context.parameters, referenceResolver);
             return deleteStatementAnalyzer;
         }
 
         @Override
-        public DataStatementAnalyzer visitInsert(Insert node, Context context) {
+        public AbstractStatementAnalyzer visitInsert(Insert node, Context context) {
             context.analysis = new InsertAnalysis(
                     referenceInfos, functions, context.parameters, referenceResolver);
             return insertStatementAnalyzer;
         }
 
         @Override
-        public DataStatementAnalyzer visitUpdate(Update node, Context context) {
+        public AbstractStatementAnalyzer visitUpdate(Update node, Context context) {
             context.analysis = new UpdateAnalysis(
                     referenceInfos, functions, context.parameters, referenceResolver);
             return updateStatementAnalyzer;
         }
 
         @Override
-        public DataStatementAnalyzer visitCopyFromStatement(CopyFromStatement node, Context context) {
+        public AbstractStatementAnalyzer visitCopyFromStatement(CopyFromStatement node, Context context) {
             context.analysis = new CopyAnalysis(
                     referenceInfos, functions, context.parameters, referenceResolver);
             return copyStatementAnalyzer;
+        }
+
+        @Override
+        public AbstractStatementAnalyzer visitDropTable(DropTable node, Context context) {
+            context.analysis = new DropTableAnalysis(referenceInfos);
+            return dropTableStatementAnalyzer;
         }
 
         //@Override

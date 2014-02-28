@@ -31,25 +31,12 @@ import java.util.List;
 
 public abstract class Analysis {
 
-    public static enum Type {
-        SELECT,
-        INSERT,
-        UPDATE,
-        DELETE,
-        COPY,
-        CREATE_TABLE,
-        DROP_TABLE,
-        CREATE_ANALYZER
-    }
-
     private List<String> outputNames = ImmutableList.of();
     private final Object[] parameters;
 
     protected Analysis(Object[] parameters) {
         this.parameters = parameters;
     }
-
-    public abstract Type type();
 
     public abstract void table(TableIdent tableIdent);
 
@@ -82,5 +69,7 @@ public abstract class Analysis {
         return parameters[idx];
     }
 
-
+    public <C, R> R accept(AnalysisVisitor<C,R> analysisVisitor, C context) {
+        return analysisVisitor.visitAnalysis(this, context);
+    }
 }

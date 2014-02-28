@@ -47,12 +47,6 @@ public class SelectAnalysis extends AbstractDataAnalysis {
 
     private Multimap<String, Symbol> aliasMap = ArrayListMultimap.create();
 
-
-    @Override
-    public Type type() {
-        return Type.SELECT;
-    }
-
     public Query query() {
         return query;
     }
@@ -154,5 +148,10 @@ public class SelectAnalysis extends AbstractDataAnalysis {
         super.normalize();
         normalizer.normalizeInplace(groupBy());
         normalizer.normalizeInplace(sortSymbols());
+    }
+
+    @Override
+    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
+        return analysisVisitor.visitSelectAnalysis(this, context);
     }
 }

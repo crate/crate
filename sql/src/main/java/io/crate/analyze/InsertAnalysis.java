@@ -50,11 +50,6 @@ public class InsertAnalysis extends AbstractDataAnalysis {
         super(referenceInfos, functions, parameters, referenceResolver);
     }
 
-    @Override
-    public Type type() {
-        return Type.INSERT;
-    }
-
     public void visitValues() {
         this.visitingValues = true;
     }
@@ -113,4 +108,8 @@ public class InsertAnalysis extends AbstractDataAnalysis {
         this.primaryKeyColumnIndices.add(primaryKeyColumnIdx);
     }
 
+    @Override
+    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
+        return analysisVisitor.visitInsertAnalysis(this, context);
+    }
 }

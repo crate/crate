@@ -19,44 +19,25 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.planner.node.ddl;
 
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceInfos;
-import io.crate.metadata.ReferenceResolver;
+import io.crate.planner.node.PlanVisitor;
 
-public class CopyAnalysis extends AbstractDataAnalysis {
+public class ESDeleteIndexNode extends DDLPlanNode {
 
-    public static enum Mode {
-        FROM,
-        INTO
+    private final String index;
+
+    public ESDeleteIndexNode(String index) {
+        assert index != null : "index is null";
+        this.index = index;
     }
 
-    private String path;
-    private Mode mode;
-
-    public CopyAnalysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters, ReferenceResolver referenceResolver) {
-        super(referenceInfos, functions, parameters, referenceResolver);
-    }
-
-    public String path() {
-        return path;
-    }
-
-    public void path(String path) {
-        this.path = path;
-    }
-
-    public Mode mode() {
-        return mode;
-    }
-
-    public void mode(Mode mode) {
-        this.mode = mode;
+    public String index() {
+        return index;
     }
 
     @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitCopyAnalysis(this, context);
+    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+        return visitor.visitESDeleteIndexNode(this, context);
     }
 }

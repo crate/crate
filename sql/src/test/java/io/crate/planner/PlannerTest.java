@@ -21,6 +21,7 @@ import io.crate.operator.operator.OperatorModule;
 import io.crate.operator.scalar.ScalarFunctionModule;
 import io.crate.planner.node.ESDeleteByQueryNode;
 import io.crate.planner.node.PlanNode;
+import io.crate.planner.node.ddl.ESDeleteIndexNode;
 import io.crate.planner.node.dml.CopyNode;
 import io.crate.planner.node.dml.ESDeleteNode;
 import io.crate.planner.node.dml.ESIndexNode;
@@ -671,6 +672,15 @@ public class PlannerTest {
         assertThat(collectNode.maxRowGranularity(), is(RowGranularity.SHARD));
     }
 
+    @Test
+    public void testDropTable() throws Exception {
+        Plan plan = plan("drop table users");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(ESDeleteIndexNode.class));
 
+        ESDeleteIndexNode node = (ESDeleteIndexNode) planNode;
+        assertThat(node.index(), is("users"));
+    }
 
 }

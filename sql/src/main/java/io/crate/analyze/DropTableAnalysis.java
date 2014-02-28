@@ -21,38 +21,61 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Joiner;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import org.cratedb.sql.TableAlreadyExistsException;
+import org.cratedb.sql.SchemaUnknownException;
+import org.cratedb.sql.TableUnknownException;
 
-public class CreateTableAnalysis extends AbstractDDLAnalysis {
+import javax.annotation.Nullable;
 
-    private TableIdent tableIdent;
+public class DropTableAnalysis extends AbstractDDLAnalysis {
+
+    private TableInfo tableInfo;
     private final ReferenceInfos referenceInfos;
 
-    public CreateTableAnalysis(ReferenceInfos referenceInfos, Object[] params) {
-        super(params);
+    public DropTableAnalysis(ReferenceInfos referenceInfos) {
+        super(new Object[0]);
         this.referenceInfos = referenceInfos;
+    }
+
+    public String index() {
+        return tableIdent.name();
     }
 
     @Override
     public void table(TableIdent tableIdent) {
-        if (referenceInfos.getTableInfo(tableIdent) != null) {
-            throw new TableAlreadyExistsException(tableIdent.name());
+        SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
+        if (schemaInfo == null) {
+            throw new SchemaUnknownException(tableIdent.schema());
         }
-        super.table(tableIdent);
+        if (schemaInfo.systemSchema()) {
+            throw new UnsupportedOperationException(
+                    String.format("cannot delete '%s'.", Joiner.on('.').join(tableIdent.schema(), tableIdent.name())));
+        }
+        TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
+        if (tableInfo == null) {
+            throw new TableUnknownException(tableIdent.name());
+        } else if (tableInfo.isAlias()) {
+            throw new UnsupportedOperationException("Table alias not allowed in DROP TABLE statement.");
+        }
+        this.tableIdent = tableIdent;
+        this.tableInfo = tableInfo;
     }
 
     @Override
+    @Nullable
     public TableInfo table() {
-        return null;
+        return tableInfo;
     }
 
     @Override
+    @Nullable
     public SchemaInfo schema() {
-        return null;
+        if (tableIdent == null) { return null; }
+        return referenceInfos.getSchemaInfo(tableIdent.schema());
     }
 
     @Override
@@ -62,6 +85,6 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
 
     @Override
     public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitCreateTableAnalysis(this, context);
+        return analysisVisitor.visitDropTableAnalysis(this, context);
     }
 }
