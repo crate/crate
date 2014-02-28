@@ -107,8 +107,6 @@ public class TestStatementBuilder
         printStatement("select * from foo limit 100 offset 20");
         printStatement("select * from foo offset 20");
 
-        printStatement("create table foo as select * from abc");
-
         printStatement("insert into foo (id, name) values ('string', 1.2)");
         printStatement("insert into foo values ('string', NULL)");
         printStatement("insert into foo (id, name) values ('string', 1.2), (abs(-4), 4+?)");
@@ -125,6 +123,44 @@ public class TestStatementBuilder
         printStatement("copy foo from ?");
         printStatement("copy schemah.foo from '/folder/file.extension'");
 
+
+        printStatement("create table t (id integer primary key, name string)");
+        printStatement("create table t (id integer primary key, name string) clustered into 3 shards");
+        printStatement("create table t (id integer primary key, name string) clustered by (id)");
+        printStatement("create table t (id integer primary key, name string) clustered by (id) into 4 shards");
+        printStatement("create table t (id integer primary key, name string) replicas 4");
+        printStatement("create table t (id integer primary key, name string) clustered by (id) replicas 4");
+        printStatement("create table t (id integer primary key, name string) clustered by (id) into 999 shards replicas 4");
+        printStatement("create table t (o object(dynamic) as (i integer, d double))");
+        printStatement("create table t (id integer, name string, primary key (id))");
+        printStatement("create table t (" +
+                "  \"_i\" integer, " +
+                "  \"Name\" string, " +
+                "  bo boolean," +
+                "  \"by\" byte," +
+                "  sh short," +
+                "  lo long," +
+                "  fl float," +
+                "  do double," +
+                "  \"ip_\" ip," +
+                "  ti timestamp," +
+                "  ob object" +
+                ")");
+        printStatement("create table \"TABLE\" (o object(dynamic))");
+        printStatement("create table \"TABLE\" (o object(strict))");
+        printStatement("create table \"TABLE\" (o object(ignored))");
+        printStatement("create table \"TABLE\" (o object(strict) as (inner_col object as (sub_inner_col timestamp, another_inner_col string)))");
+
+        printStatement("create table t (" +
+                "name string index off, " +
+                "another string index using plain, " +
+                "\"full\" string index using fulltext," +
+                "analyzed string index using fulltext with (analyzer='german', param=?, list=[1,2,3])" +
+                ")");
+        printStatement("create table test (col1 string, col2 string," +
+                "index \"_col1_ft\" using fulltext(col1))");
+         printStatement("create table test (col1 string, col2 string," +
+                 "index col1_col2_ft using fulltext(col1, col2))");
     }
 
     @Test

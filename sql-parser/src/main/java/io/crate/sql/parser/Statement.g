@@ -94,6 +94,12 @@ tokens {
     ASSIGNMENT;
     ASSIGNMENT_LIST;
     COPY_FROM;
+    INDEX_COLUMNS;
+    GENERIC_PROPERTIES;
+    GENERIC_PROPERTY;
+    LITERAL_LIST;
+    OBJECT_COLUMNS;
+    INDEX_OFF;
 }
 
 @header {
@@ -440,9 +446,22 @@ qnameOrFunction
       )?
     ;
 
+numericLiteral
+    : '+'? number
+    | '-' number
+    ;
+
 parameterExpr
     : '$' integer
     | '?'
+    ;
+
+literalOrParameter
+    : NULL
+    | numericLiteral
+    | parameterExpr
+    | bool
+    | STRING
     ;
 
 
@@ -504,16 +523,9 @@ specialFunction
     | CURRENT_TIMESTAMP ('(' integer ')')?         -> ^(CURRENT_TIMESTAMP integer?)
     | SUBSTRING '(' expr FROM expr (FOR expr)? ')' -> ^(FUNCTION_CALL ^(QNAME IDENT["substr"]) expr expr expr?)
     | EXTRACT '(' ident FROM expr ')'              -> ^(EXTRACT ident expr)
-    | CAST '(' expr AS type ')'                    -> ^(CAST expr IDENT[$type.text])
+    | CAST '(' expr AS ident ')'                    -> ^(CAST expr ident)
     ;
 
-// TODO: this should be 'dataType', which supports arbitrary type specifications. For now we constrain to simple types
-type
-    : VARCHAR
-    | BIGINT
-    | DOUBLE
-    | BOOLEAN
-    ;
 
 caseExpression
     : NULLIF '(' expr ',' expr ')'          -> ^(NULLIF expr expr)
@@ -641,62 +653,8 @@ forRemote
     : FOR qname -> ^(FOR qname)
     ;
 
-createTableStmt
-    : CREATE TABLE qname s=tableContentsSource -> ^(CREATE_TABLE qname $s)
-    ;
-
 tableContentsSource
     : AS query -> query
-    ;
-
-tableElementList
-    : '(' tableElement (',' tableElement)* ')' -> ^(TABLE_ELEMENT_LIST tableElement+)
-    ;
-
-tableElement
-    : ident dataType columnConstDef* -> ^(COLUMN_DEF ident dataType columnConstDef*)
-    ;
-
-dataType
-    : charType
-    | exactNumType
-    | dateType
-    ;
-
-charType
-    : CHAR charlen?              -> ^(CHAR charlen?)
-    | CHARACTER charlen?         -> ^(CHAR charlen?)
-    | VARCHAR charlen?           -> ^(VARCHAR charlen?)
-    | CHAR VARYING charlen?      -> ^(VARCHAR charlen?)
-    | CHARACTER VARYING charlen? -> ^(VARCHAR charlen?)
-    ;
-
-charlen
-    : '(' integer ')' -> integer
-    ;
-
-exactNumType
-    : NUMERIC numlen? -> ^(NUMERIC numlen?)
-    | DECIMAL numlen? -> ^(NUMERIC numlen?)
-    | DEC numlen?     -> ^(NUMERIC numlen?)
-    | INTEGER         -> ^(INTEGER)
-    | INT             -> ^(INTEGER)
-    ;
-
-numlen
-    : '(' p=integer (',' s=integer)? ')' -> $p $s?
-    ;
-
-dateType
-    : DATE -> ^(DATE)
-    ;
-
-columnConstDef
-    : columnConst -> ^(CONSTRAINT columnConst)
-    ;
-
-columnConst
-    : NOT NULL -> NOT_NULL
     ;
 
 qname
@@ -763,6 +721,103 @@ copyStmt
     ;
 
 
+createTableStmt
+    : CREATE TABLE table
+      tableElementList
+      clusteredBy? replicas? -> ^(CREATE_TABLE table tableElementList clusteredBy? replicas?)
+    ;
+
+tableElementList
+    : '(' tableElement (',' tableElement)* ')' -> ^(TABLE_ELEMENT_LIST tableElement+)
+    ;
+
+
+tableElement
+    :   columnDefinition
+    |   indexDefinition
+    |   primaryKeyConstraint
+    ;
+
+columnDefinition
+    : ident dataType columnConstDef* -> ^(COLUMN_DEF ident dataType columnConstDef*)
+    ;
+
+dataType
+    : STRING_TYPE
+    | BOOLEAN
+    | BYTE
+    | SHORT
+    | INT
+    | INTEGER
+    | LONG
+    | FLOAT
+    | DOUBLE
+    | TIMESTAMP
+    | IP
+    | objectTypeDefinition
+    ;
+
+objectTypeDefinition
+    : OBJECT ( '(' objectType ')' )? objectColumns? -> ^(OBJECT objectType? objectColumns? )
+    ;
+
+objectType
+    : DYNAMIC
+    | STRICT
+    | IGNORED
+    ;
+
+objectColumns
+    : AS '(' columnDefinition ( ',' columnDefinition )* ')' -> ^(OBJECT_COLUMNS columnDefinition+)
+    ;
+
+columnConstDef
+    : columnConst -> ^(CONSTRAINT columnConst)
+    ;
+
+columnConst
+    : PRIMARY_KEY
+    | columnIndexConstraint
+    ;
+
+columnIndexConstraint
+    : INDEX USING indexMethod=ident (WITH '(' genericProperties ')' )? -> ^(INDEX $indexMethod genericProperties?)
+    | INDEX OFF                                                        -> INDEX_OFF
+    ;
+
+indexDefinition
+    : INDEX ident USING indexMethod=ident indexColumns (WITH '(' genericProperties ')' )? -> ^(INDEX ident $indexMethod indexColumns genericProperties?)
+    ;
+
+indexColumns
+    : ( '(' subscript  ( ',' subscript )* ')' ) -> ^(INDEX_COLUMNS subscript+)
+    ;
+
+genericProperties
+    :  genericProperty ( ',' genericProperty )* -> ^(GENERIC_PROPERTIES genericProperty+)
+    ;
+
+genericProperty
+    : ident EQ literalOrParameter -> ^(GENERIC_PROPERTY ident literalOrParameter)
+    | ident EQ literalList -> ^(GENERIC_PROPERTY ident literalList)
+    ;
+
+literalList
+    : '[' literalOrParameter (',' literalOrParameter)* ']' -> ^(LITERAL_LIST literalOrParameter+)
+    ;
+
+primaryKeyConstraint
+    : PRIMARY_KEY '(' subscript  ( ',' subscript )* ')' -> ^(PRIMARY_KEY subscript+)
+    ;
+
+clusteredBy
+    : CLUSTERED (BY '(' subscript ')' )? (INTO integer SHARDS)? -> ^(CLUSTERED subscript? integer?)
+    ;
+
+replicas
+    : REPLICAS integer -> ^(REPLICAS integer)
+    ;
+
 nonReserved
     : SHOW | TABLES | COLUMNS | PARTITIONS | FUNCTIONS | SCHEMAS | CATALOGS
     | OVER | PARTITION | RANGE | ROWS | PRECEDING | FOLLOWING | CURRENT | ROW
@@ -771,6 +826,9 @@ nonReserved
     | YEAR | MONTH | DAY | HOUR | MINUTE | SECOND
     | EXPLAIN | FORMAT | TYPE | TEXT | GRAPHVIZ | LOGICAL | DISTRIBUTED
     | TABLESAMPLE | SYSTEM | BERNOULLI
+    | DYNAMIC | STRICT | IGNORED
+    | PLAIN | FULLTEXT | OFF
+    | REPLICAS | SHARDS | CLUSTERED | COPY
     ;
 
 SELECT: 'SELECT';
@@ -806,7 +864,6 @@ SUBSTRING: 'SUBSTRING';
 FOR: 'FOR';
 DATE: 'DATE';
 TIME: 'TIME';
-TIMESTAMP: 'TIMESTAMP';
 INTERVAL: 'INTERVAL';
 YEAR: 'YEAR';
 MONTH: 'MONTH';
@@ -849,19 +906,20 @@ WITH: 'WITH';
 RECURSIVE: 'RECURSIVE';
 CREATE: 'CREATE';
 TABLE: 'TABLE';
-CHAR: 'CHAR';
-CHARACTER: 'CHARACTER';
-VARYING: 'VARYING';
-VARCHAR: 'VARCHAR';
-NUMERIC: 'NUMERIC';
-NUMBER: 'NUMBER';
-DECIMAL: 'DECIMAL';
-DEC: 'DEC';
+
+BOOLEAN: 'BOOLEAN';
+BYTE: 'BYTE';
+SHORT: 'SHORT';
 INTEGER: 'INTEGER';
 INT: 'INT';
+LONG: 'LONG';
+FLOAT: 'FLOAT';
 DOUBLE: 'DOUBLE';
-BIGINT: 'BIGINT';
-BOOLEAN: 'BOOLEAN';
+TIMESTAMP: 'TIMESTAMP';
+IP: 'IP';
+OBJECT: 'OBJECT';
+STRING_TYPE: 'STRING';
+
 CONSTRAINT: 'CONSTRAINT';
 DESCRIBE: 'DESCRIBE';
 EXPLAIN: 'EXPLAIN';
@@ -898,6 +956,18 @@ DELETE: 'DELETE';
 UPDATE: 'UPDATE';
 SET: 'SET';
 COPY: 'COPY';
+CLUSTERED: 'CLUSTERED';
+SHARDS: 'SHARDS';
+REPLICAS: 'REPLICAS';
+PRIMARY_KEY: 'PRIMARY KEY';
+OFF: 'OFF';
+FULLTEXT: 'FULLTEXT';
+PLAIN: 'PLAIN';
+INDEX: 'INDEX';
+
+DYNAMIC: 'DYNAMIC';
+STRICT: 'STRICT';
+IGNORED: 'IGNORED';
 
 EQ  : '=';
 NEQ : '<>' | '!=';

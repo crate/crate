@@ -22,29 +22,43 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Optional;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import javax.annotation.Nullable;
+import java.util.List;
 
-public class CreateTable
-        extends Statement
-{
-    private final QualifiedName name;
-    private final Query query;
+public class CreateTable extends Statement {
 
-    public CreateTable(QualifiedName name, Query query)
+    private final Table name;
+    private final List<TableElement> tableElements;
+    private final Optional<ClusteredBy> clusteredBy;
+    private final Optional<Integer> replicas;
+
+    public CreateTable(Table name,
+                       List<TableElement> tableElements,
+                       @Nullable ClusteredBy clusteredBy,
+                       @Nullable Integer replicas)
     {
-        this.name = checkNotNull(name, "name is null");
-        this.query = checkNotNull(query, "query is null");
+        this.name = name;
+        this.tableElements = tableElements;
+        this.clusteredBy = Optional.fromNullable(clusteredBy);
+        this.replicas = Optional.fromNullable(replicas);
     }
 
-    public QualifiedName getName()
-    {
+    public Table name() {
         return name;
     }
 
-    public Query getQuery()
-    {
-        return query;
+    public List<TableElement> tableElements() {
+        return tableElements;
+    }
+
+    public Optional<ClusteredBy> clusteredBy() {
+        return clusteredBy;
+    }
+
+    public Optional<Integer> replicas() {
+        return replicas;
     }
 
     @Override
@@ -56,21 +70,22 @@ public class CreateTable
     @Override
     public int hashCode()
     {
-        return Objects.hashCode(name, query);
+        return Objects.hashCode(name, tableElements, clusteredBy, replicas);
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
-        if (this == obj) {
-            return true;
-        }
-        if ((obj == null) || (getClass() != obj.getClass())) {
-            return false;
-        }
-        CreateTable o = (CreateTable) obj;
-        return Objects.equal(name, o.name)
-                && Objects.equal(query, o.query);
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        CreateTable that = (CreateTable) o;
+
+        if (replicas != that.replicas) return false;
+        if (!clusteredBy.equals(that.clusteredBy)) return false;
+        if (!name.equals(that.name)) return false;
+        if (!tableElements.equals(that.tableElements)) return false;
+
+        return true;
     }
 
     @Override
@@ -78,7 +93,8 @@ public class CreateTable
     {
         return Objects.toStringHelper(this)
                 .add("name", name)
-                .add("query", query)
-                .toString();
+                .add("tableElements", tableElements)
+                .add("clustered by", clusteredBy)
+                .add("replicas", replicas).toString();
     }
 }

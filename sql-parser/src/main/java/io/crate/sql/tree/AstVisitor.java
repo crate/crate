@@ -376,11 +376,6 @@ public abstract class AstVisitor<R, C>
         return visitNode(node, context);
     }
 
-    protected R visitCreateTable(CreateTable node, C context)
-    {
-        return visitNode(node, context);
-    }
-
     protected R visitCreateMaterializedView(CreateMaterializedView node, C context)
     {
         return visitNode(node, context);
@@ -430,6 +425,55 @@ public abstract class AstVisitor<R, C>
     }
 
     public R visitCopyFromStatement(CopyFromStatement node, C context) {
+        return visitNode(node, context);
+    }
+
+    public R visitCreateTable(CreateTable node, C context)
+    {
+        return visitStatement(node, context);
+    }
+
+    public R visitTableElement(TableElement node, C context) {
+        return visitNode(node, context);
+    }
+
+    public R visitClusteredBy(ClusteredBy node, C context) {
+        return visitNode(node, context);
+    }
+
+    public R visitColumnDefinition(ColumnDefinition node, C context) {
+        return visitNode(node, context);
+    }
+
+    public R visitColumnType(ColumnType node, C context) {
+        return visitNode(node, context);
+    }
+
+    public R visitObjectColumnType(ObjectColumnType node, C context) {
+        return visitNode(node, context);
+    }
+
+    public R visitColumnConstraint(ColumnConstraint node, C context) {
+        return visitNode(node, context);
+    }
+
+    public R visitPrimaryKeyColumnConstraint(PrimaryKeyColumnConstraint node, C context) {
+        return visitNode(node, context);
+    }
+
+    public R visitIndexColumnConstraint(IndexColumnConstraint node, C context) {
+        return visitNode(node, context);
+    }
+
+    public R visitGenericProperties(GenericProperties node, C context) {
+        return visitNode(node, context);
+    }
+
+    public R visitPrimaryKeyConstraint(PrimaryKeyConstraint node, C context) {
+        return visitNode(node, context);
+    }
+
+    public R visitIndexDefinition(IndexDefinition node, C context) {
         return visitNode(node, context);
     }
 }

@@ -11,6 +11,8 @@ Unreleased
 
  - fixed several issues with certain locales
 
+ - create table support for new parser
+
 2014/02/26 0.23.2
 =================
 
