@@ -678,7 +678,9 @@ dataType returns [ColumnType value]
       {
         $value = new ColumnType($type.text.toLowerCase(Locale.ENGLISH));
       }
-    | objectTypeDefinition { $value = $objectTypeDefinition.value; }
+    | objectTypeDefinition  { $value = $objectTypeDefinition.value; }
+    | ^(ARRAY innerType=dataType)     { $value = CollectionColumnType.array($innerType.value); }
+    | ^(SET innerType=dataType)       { $value = CollectionColumnType.set($innerType.value); }
     ;
 
 objectTypeDefinition returns [ObjectColumnType value]

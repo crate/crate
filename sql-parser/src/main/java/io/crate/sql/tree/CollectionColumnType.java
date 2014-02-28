@@ -23,49 +23,46 @@ package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
 
-public class ColumnType extends Node {
+import java.util.Locale;
 
-    public static enum Type {
-        PRIMITIVE,
-        ARRAY,
-        SET
+/**
+ * columntype that contains many values of a single type
+ */
+public class CollectionColumnType extends ColumnType {
+
+    private final ColumnType innerType;
+
+    public static CollectionColumnType array(ColumnType innerType) {
+        return new CollectionColumnType(innerType, Type.ARRAY);
     }
 
-    protected final String name;
-    protected final Type type;
-
-    public ColumnType(String name) {
-        this.name = name;
-        this.type = Type.PRIMITIVE;
+    public static CollectionColumnType set(ColumnType innerType) {
+        return new CollectionColumnType(innerType, Type.SET);
     }
 
-    protected ColumnType(String name, Type type) {
-        this.name = name;
-        this.type = type;
+    private CollectionColumnType(ColumnType innerType, Type type) {
+        super(type.name().toLowerCase(Locale.ENGLISH), type);
+        this.innerType = innerType;
     }
 
-    public String name() {
-        return name;
-    }
-
-    public Type type() {
-        return type;
+    public ColumnType innerType() {
+        return innerType;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(name, type);
+        return Objects.hashCode(name, type, innerType);
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
 
-        ColumnType that = (ColumnType) o;
+        CollectionColumnType that = (CollectionColumnType) o;
 
-        if (!name.equals(that.name)) return false;
-        if (!type.equals(that.type)) return false;
+        if (!innerType.equals(that.innerType)) return false;
 
         return true;
     }
@@ -75,11 +72,12 @@ public class ColumnType extends Node {
         return Objects.toStringHelper(this)
                 .add("name", name)
                 .add("type", type)
+                .add("innerType", innerType)
                 .toString();
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitColumnType(this, context);
+        return visitor.visitCollectionColumnType(this, context);
     }
 }
