@@ -28,7 +28,13 @@ import io.crate.operator.Input;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.util.TimeZone;
 
 import static junit.framework.Assert.assertSame;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -36,6 +42,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 public class DateTruncFunctionTest {
+
+    private static final ESLogger LOGGER = Loggers.getLogger(DateTruncFunctionTest.class);
 
     // timestamp for Do Feb 25 13:38:01.123 CET 1999
     private static final Long TIMESTAMP = 919946281123L;
@@ -49,6 +57,23 @@ public class DateTruncFunctionTest {
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
+    private static TimeZone systemDefaultTimeZone = TimeZone.getDefault();
+    @BeforeClass
+    public static void setTimeZone() {
+        LOGGER.info("Preparing to change default time zone of the system");
+        LOGGER.info("Current time zone is: " + systemDefaultTimeZone.getID());
+        String newTimeZone = "Europe/Vienna";
+        LOGGER.info("Setting time zone to '" + newTimeZone + "'");
+        TimeZone.setDefault(TimeZone.getTimeZone(newTimeZone));
+    }
+
+    @AfterClass
+    public static void restoreTimeZone() {
+        LOGGER.info("Restoring previous time zone from: '" + System.getProperty("user.timezone")
+                + " to '" + systemDefaultTimeZone.getID() + "'");
+        TimeZone.setDefault(systemDefaultTimeZone);
     }
 
     protected class DateTruncInput implements Input<Object> {
@@ -107,9 +132,6 @@ public class DateTruncFunctionTest {
 
     @Test
     public void testEvaluate() throws Exception {
-        // TODO: set time zone to CET for test purpose and reset it to the default after the tests are done
-        // if not, the tests most probably would fail on a JVM with a different time zone than CET
-        // reason: we use TimeZone.getDefault() in the implementation!
         assertTruncated("second", TIMESTAMP, 919946281000L);     // Thu Feb 25 13:38:01.000 CET 1999
         assertTruncated("minute", TIMESTAMP, 919946280000L);     // Thu Feb 25 13:38:00.000 CET 1999
         assertTruncated("hour", TIMESTAMP, 919944000000L);       // Thu Feb 25 13:00:00.000 CET 1999
