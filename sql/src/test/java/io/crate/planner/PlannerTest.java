@@ -19,12 +19,10 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.operator.OperatorModule;
 import io.crate.operator.scalar.ScalarFunctionModule;
-import io.crate.planner.node.ESDeleteByQueryNode;
+import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.PlanNode;
-import io.crate.planner.node.dml.CopyNode;
-import io.crate.planner.node.dml.ESDeleteNode;
-import io.crate.planner.node.dml.ESIndexNode;
-import io.crate.planner.node.dml.ESUpdateNode;
+import io.crate.planner.node.ddl.*;
+import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
@@ -671,6 +669,15 @@ public class PlannerTest {
         assertThat(collectNode.maxRowGranularity(), is(RowGranularity.SHARD));
     }
 
+    @Test
+    public void testDropTable() throws Exception {
+        Plan plan = plan("drop table users");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(ESDeleteIndexNode.class));
 
+        ESDeleteIndexNode node = (ESDeleteIndexNode) planNode;
+        assertThat(node.index(), is("users"));
+    }
 
 }

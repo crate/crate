@@ -1,19 +1,17 @@
 package io.crate.planner.node.ddl;
 
 import io.crate.planner.node.PlanVisitor;
-import org.cratedb.DataType;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.List;
 import java.util.Map;
 
-public class ESCreateTableNode extends DDLPlanNode {
+public class ESCreateIndexNode extends DDLPlanNode {
 
     private final String tableName;
     private final Settings indexSettings;
     private final Map indexMapping;
 
-    public ESCreateTableNode(String tableName,
+    public ESCreateIndexNode(String tableName,
                              Settings indexSettings,
                              Map indexMapping) {
         this.tableName = tableName;
@@ -35,6 +33,6 @@ public class ESCreateTableNode extends DDLPlanNode {
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitESCreateTableNode(this, context);
+        return visitor.visitESCreateIndexNode(this, context);
     }
 }

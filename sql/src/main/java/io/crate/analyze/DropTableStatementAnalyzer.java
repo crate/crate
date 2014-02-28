@@ -21,47 +21,14 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
-import org.cratedb.sql.TableAlreadyExistsException;
+import io.crate.sql.tree.DropTable;
 
-public class CreateTableAnalysis extends AbstractDDLAnalysis {
-
-    private TableIdent tableIdent;
-    private final ReferenceInfos referenceInfos;
-
-    public CreateTableAnalysis(ReferenceInfos referenceInfos, Object[] params) {
-        super(params);
-        this.referenceInfos = referenceInfos;
-    }
+public class DropTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, DropTableAnalysis> {
 
     @Override
-    public void table(TableIdent tableIdent) {
-        if (referenceInfos.getTableInfo(tableIdent) != null) {
-            throw new TableAlreadyExistsException(tableIdent.name());
-        }
-        super.table(tableIdent);
-    }
-
-    @Override
-    public TableInfo table() {
+    public Void visitDropTable(DropTable node, DropTableAnalysis context) {
+        context.table(TableIdent.of(node.table()));
         return null;
-    }
-
-    @Override
-    public SchemaInfo schema() {
-        return null;
-    }
-
-    @Override
-    public void normalize() {
-
-    }
-
-    @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitCreateTableAnalysis(this, context);
     }
 }

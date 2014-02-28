@@ -41,11 +41,6 @@ public class UpdateAnalysis extends AbstractDataAnalysis {
         super(referenceInfos, functions, parameters, referenceResolver);
     }
 
-    @Override
-    public Type type() {
-        return Type.UPDATE;
-    }
-
     public Map<Reference, Symbol> assignments() {
         return assignments;
     }
@@ -63,5 +58,10 @@ public class UpdateAnalysis extends AbstractDataAnalysis {
     @Override
     public boolean hasNoResult() {
         return noMatch();
+    }
+
+    @Override
+    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
+        return analysisVisitor.visitUpdateAnalysis(this, context);
     }
 }

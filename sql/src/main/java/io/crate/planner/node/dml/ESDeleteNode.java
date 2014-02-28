@@ -22,19 +22,13 @@
 package io.crate.planner.node.dml;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import io.crate.planner.node.PlanVisitor;
-import org.cratedb.DataType;
-
-import java.util.List;
 
 public class ESDeleteNode extends DMLPlanNode {
 
     private String index;
     private String id;
     private Optional<Long> version;
-
-    private static final List<DataType> OUTPUT_TYPES = ImmutableList.of(DataType.LONG);
 
     public ESDeleteNode(String index, String id, Optional<Long> version) {
         this.index = index;
@@ -57,10 +51,5 @@ public class ESDeleteNode extends DMLPlanNode {
 
     public Optional<Long> version() {
         return version;
-    }
-
-    @Override
-    public List<DataType> outputTypes() {
-        return OUTPUT_TYPES;
     }
 }

@@ -32,7 +32,7 @@ import io.crate.operator.operator.*;
 import io.crate.operator.predicate.IsNullPredicate;
 import io.crate.operator.predicate.NotPredicate;
 import io.crate.operator.scalar.MatchFunction;
-import io.crate.planner.node.ESDeleteByQueryNode;
+import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.symbol.*;

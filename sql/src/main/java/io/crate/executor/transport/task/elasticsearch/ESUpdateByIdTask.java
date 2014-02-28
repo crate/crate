@@ -46,7 +46,7 @@ public class ESUpdateByIdTask extends AbstractESUpdateTask {
 
         @Override
         public void onResponse(UpdateResponse updateResponse) {
-            future.set(new Object[][]{new Object[]{updateResponse.getGetResult().isExists() ? 1l : 0l}});
+            future.set(new Object[][]{new Object[]{updateResponse.getGetResult().isExists() ? 1L : 0L}});
         }
 
         @Override

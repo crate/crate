@@ -4,7 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
-import io.crate.planner.node.ddl.ESCreateTableNode;
+import io.crate.planner.node.ddl.ESCreateIndexNode;
 import org.cratedb.Constants;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -20,7 +20,7 @@ public class ESCreateIndexTask implements Task<Object[][]> {
     private final List<ListenableFuture<Object[][]>> results;
     private final CreateIndexListener listener;
 
-    public ESCreateIndexTask(ESCreateTableNode node, TransportCreateIndexAction transportCreateIndexAction) {
+    public ESCreateIndexTask(ESCreateIndexNode node, TransportCreateIndexAction transportCreateIndexAction) {
         this.transport = transportCreateIndexAction;
         this.request = buildRequest(node);
         SettableFuture<Object[][]> result = SettableFuture.create();
@@ -40,7 +40,7 @@ public class ESCreateIndexTask implements Task<Object[][]> {
 
     @Override
     public void upstreamResult(List<ListenableFuture<Object[][]>> result) {
-        throw new  UnsupportedOperationException("CreateIndexTask doesn't support upstream results");
+        throw new UnsupportedOperationException("CreateIndexTask doesn't support upstream results");
     }
 
     private static class CreateIndexListener implements ActionListener<CreateIndexResponse> {
@@ -66,7 +66,7 @@ public class ESCreateIndexTask implements Task<Object[][]> {
         }
     }
 
-    private CreateIndexRequest buildRequest(ESCreateTableNode node) {
+    private CreateIndexRequest buildRequest(ESCreateIndexNode node) {
         CreateIndexRequest request = new CreateIndexRequest(node.tableName(), node.indexSettings());
         request.mapping(Constants.DEFAULT_MAPPING_TYPE, node.indexMapping());
         return request;

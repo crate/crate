@@ -26,28 +26,28 @@ import com.google.common.base.Objects;
 public class DropTable
         extends Statement
 {
-    private final QualifiedName tableName;
+    private final Table table;
 
-    public DropTable(QualifiedName tableName)
+    public DropTable(Table table)
     {
-        this.tableName = tableName;
+        this.table = table;
     }
 
-    public QualifiedName getTableName()
+    public Table table()
     {
-        return tableName;
+        return table;
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context)
     {
-        return visitor.visitStatement(this, context);
+        return visitor.visitDropTable(this, context);
     }
 
     @Override
     public int hashCode()
     {
-        return Objects.hashCode(tableName);
+        return Objects.hashCode(table);
     }
 
     @Override
@@ -60,14 +60,14 @@ public class DropTable
             return false;
         }
         DropTable o = (DropTable) obj;
-        return Objects.equal(tableName, o.tableName);
+        return Objects.equal(table, o.table);
     }
 
     @Override
     public String toString()
     {
         return Objects.toStringHelper(this)
-                .add("tableName", tableName)
+                .add("table", table)
                 .toString();
     }
 }

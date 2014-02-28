@@ -4,7 +4,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.Job;
 import io.crate.planner.Plan;
-import io.crate.planner.node.ddl.ESCreateTableNode;
+import io.crate.planner.node.ddl.ESCreateIndexNode;
+import io.crate.planner.node.ddl.ESDeleteIndexNode;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -34,7 +35,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
     public void testCreateIndexTask() throws Exception {
         Map indexMapping = new HashMap<String, Object>();
 
-        ESCreateTableNode createTableNode = new ESCreateTableNode(
+        ESCreateIndexNode createTableNode = new ESCreateIndexNode(
                 "test",
                 ImmutableSettings.settingsBuilder()
                     .put("number_of_replicas", 0)
@@ -53,5 +54,55 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         execute("select * from information_schema.tables where table_name = 'test' and number_of_replicas = 0 and number_of_shards = 2");
         assertThat(response.rowCount(), Matchers.is(1L));
+    }
+
+    @Test
+    public void testDeleteIndexTask() throws Exception {
+        execute("create table t (id integer primary key, name string)");
+        ensureGreen();
+
+        execute("select * from information_schema.tables where table_name = 't'");
+        assertThat(response.rowCount(), Matchers.is(1L));
+
+        ESDeleteIndexNode deleteIndexNode = new ESDeleteIndexNode("t");
+        Plan plan = new Plan();
+        plan.add(deleteIndexNode);
+        plan.expectsAffectedRows(true);
+
+        Job job = executor.newJob(plan);
+        List<ListenableFuture<Object[][]>> futures = executor.execute(job);
+        ListenableFuture<List<Object[][]>> listenableFuture = Futures.allAsList(futures);
+        Object[][] objects = listenableFuture.get().get(0);
+        assertThat((Long)objects[0][0], Matchers.is(1L));
+
+        execute("select * from information_schema.tables where table_name = 't'");
+        assertThat(response.rowCount(), Matchers.is(0L));
+    }
+
+    /**
+     * this case should not happen as closed indices aren't listed as TableInfo
+     * but if it does maby because of stale cluster state - validate behaviour here
+     *
+     * cannot prevent this task from deleting closed indices.
+     */
+    @Test
+    public void testDeleteIndexTaskClosed() throws Exception {
+        execute("create table t (id integer primary key, name string)");
+        ensureGreen();
+        assertTrue(client().admin().indices().prepareClose("t").execute().actionGet().isAcknowledged());
+
+        ESDeleteIndexNode deleteIndexNode = new ESDeleteIndexNode("t");
+        Plan plan = new Plan();
+        plan.add(deleteIndexNode);
+        plan.expectsAffectedRows(true);
+
+        Job job = executor.newJob(plan);
+        List<ListenableFuture<Object[][]>> futures = executor.execute(job);
+        ListenableFuture<List<Object[][]>> listenableFuture = Futures.allAsList(futures);
+        Object[][] objects = listenableFuture.get().get(0);
+        assertThat((Long) objects[0][0], Matchers.is(1L));
+
+        execute("select * from information_schema.tables where table_name = 't'");
+        assertThat(response.rowCount(), Matchers.is(0L));
     }
 }

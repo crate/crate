@@ -22,11 +22,9 @@
 package io.crate.planner.node;
 
 import io.crate.planner.node.ddl.DDLPlanNode;
-import io.crate.planner.node.ddl.ESCreateTableNode;
-import io.crate.planner.node.dml.CopyNode;
-import io.crate.planner.node.dml.ESDeleteNode;
-import io.crate.planner.node.dml.ESIndexNode;
-import io.crate.planner.node.dml.ESUpdateNode;
+import io.crate.planner.node.ddl.ESCreateIndexNode;
+import io.crate.planner.node.ddl.ESDeleteIndexNode;
+import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.dql.ESSearchNode;
@@ -79,11 +77,15 @@ public class PlanVisitor<C, R> {
         return visitPlanNode(copyNode, context);
     }
 
-    public R visitESCreateTableNode(ESCreateTableNode esCreateTableNode, C context) {
+    public R visitESCreateIndexNode(ESCreateIndexNode esCreateTableNode, C context) {
         return visitDDLPlanNode(esCreateTableNode, context);
     }
 
     private R visitDDLPlanNode(DDLPlanNode node, C context) {
+        return visitPlanNode(node, context);
+    }
+
+    public R visitESDeleteIndexNode(ESDeleteIndexNode node, C context) {
         return visitPlanNode(node, context);
     }
 }

@@ -19,11 +19,10 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node;
+package io.crate.planner.node.dql;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
 import org.cratedb.DataType;

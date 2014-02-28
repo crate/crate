@@ -22,14 +22,13 @@
 package io.crate.planner.node.dql;
 
 import com.google.common.base.Objects;
-import io.crate.planner.node.ESDQLPlanNode;
 import io.crate.planner.node.PlanVisitor;
 
 import java.util.Arrays;
 import java.util.List;
 
 
-public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode{
+public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
 
     private String index;
     private List<String> ids;

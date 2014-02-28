@@ -25,7 +25,7 @@ import io.crate.metadata.TableIdent;
 
 public abstract class AbstractDDLAnalysis extends Analysis {
 
-    private TableIdent tableIdent;
+    protected TableIdent tableIdent;
 
     protected AbstractDDLAnalysis(Object[] parameters) {
         super(parameters);

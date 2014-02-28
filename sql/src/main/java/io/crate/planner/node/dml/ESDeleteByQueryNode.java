@@ -19,20 +19,17 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node;
+package io.crate.planner.node.dml;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
-import org.cratedb.DataType;
+import io.crate.planner.node.PlanVisitor;
 
-import java.util.List;
 import java.util.Set;
 
-public class ESDeleteByQueryNode extends ESDQLPlanNode {
+public class ESDeleteByQueryNode extends DMLPlanNode {
 
     private final Set<String> indices;
     private final WhereClause whereClause;
-    private final List<DataType> outputTypes = ImmutableList.of(DataType.LONG);
 
     public ESDeleteByQueryNode(Set<String> indices, WhereClause whereClause) {
         assert whereClause != null;
@@ -51,10 +48,5 @@ public class ESDeleteByQueryNode extends ESDQLPlanNode {
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitESDeleteByQueryNode(this, context);
-    }
-
-    @Override
-    public List<DataType> outputTypes() {
-        return outputTypes;
     }
 }
