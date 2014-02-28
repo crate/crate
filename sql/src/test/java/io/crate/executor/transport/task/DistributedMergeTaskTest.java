@@ -9,7 +9,7 @@ import io.crate.metadata.Functions;
 import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.impl.CountAggregation;
 import io.crate.planner.node.AggregationStateStreamer;
-import io.crate.planner.node.MergeNode;
+import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;

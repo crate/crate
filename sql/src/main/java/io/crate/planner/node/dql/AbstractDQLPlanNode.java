@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node;
+package io.crate.planner.node.dql;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
@@ -33,21 +33,19 @@ import org.elasticsearch.common.io.stream.Streamable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
-public abstract class DQLPlanNode implements PlanNode, Streamable {
+public abstract class AbstractDQLPlanNode implements DQLPlanNode, Streamable {
 
     private String id;
     protected List<Projection> projections = ImmutableList.of();
     protected List<DataType> outputTypes = ImmutableList.of();
+    private List<DataType> inputTypes;
 
-    public DQLPlanNode() {
+    public AbstractDQLPlanNode() {
 
     }
 
-    public abstract Set<String> executionNodes();
-
-    protected DQLPlanNode(String id) {
+    protected AbstractDQLPlanNode(String id) {
         this.id = id;
     }
 
@@ -83,6 +81,15 @@ public abstract class DQLPlanNode implements PlanNode, Streamable {
         return outputTypes;
     }
 
+    @Override
+    public void inputTypes(List<DataType> dataTypes) {
+        this.inputTypes = dataTypes;
+    }
+
+    @Override
+    public List<DataType> inputTypes() {
+        return inputTypes;
+    }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
@@ -131,7 +138,7 @@ public abstract class DQLPlanNode implements PlanNode, Streamable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        DQLPlanNode node = (DQLPlanNode) o;
+        AbstractDQLPlanNode node = (AbstractDQLPlanNode) o;
 
         if (id != null ? !id.equals(node.id) : node.id != null) return false;
 

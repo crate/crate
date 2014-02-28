@@ -30,7 +30,7 @@ import io.crate.operator.aggregation.impl.MinimumAggregation;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.operator.projectors.TopN;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.MergeNode;
+import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;

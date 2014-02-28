@@ -24,9 +24,9 @@ package io.crate.planner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.Analysis;
-import io.crate.planner.node.CollectNode;
-import io.crate.planner.node.DQLPlanNode;
-import io.crate.planner.node.MergeNode;
+import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
 
@@ -86,7 +86,7 @@ class PlanNodeBuilder {
      * <p/>
      * must be called after projections have been set
      */
-    static void connectTypes(DQLPlanNode previousNode, MergeNode nextNode) {
+    static void connectTypes(DQLPlanNode previousNode, DQLPlanNode nextNode) {
         nextNode.inputTypes(previousNode.outputTypes());
         nextNode.outputTypes(Planner.extractDataTypes(nextNode.projections(), nextNode.inputTypes()));
     }

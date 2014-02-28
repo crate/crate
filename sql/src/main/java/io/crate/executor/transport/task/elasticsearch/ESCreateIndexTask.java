@@ -4,7 +4,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
-import io.crate.planner.node.ESCreateTableNode;
+import io.crate.planner.node.ddl.ESCreateTableNode;
 import org.cratedb.Constants;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;

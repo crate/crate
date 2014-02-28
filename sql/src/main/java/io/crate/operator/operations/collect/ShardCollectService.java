@@ -34,7 +34,7 @@ import io.crate.operator.projectors.Projector;
 import io.crate.operator.reference.doc.LuceneCollectorExpression;
 import io.crate.operator.reference.doc.LuceneDocLevelReferenceResolver;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.CollectNode;
+import io.crate.planner.node.dql.CollectNode;
 import org.cratedb.action.SQLXContentQueryParser;
 import org.cratedb.sql.CrateException;
 import org.elasticsearch.cache.recycler.CacheRecycler;

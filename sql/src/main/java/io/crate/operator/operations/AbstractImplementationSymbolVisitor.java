@@ -26,7 +26,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.FunctionExpression;
-import io.crate.planner.node.CollectNode;
+import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.*;
 
 import java.util.ArrayList;

@@ -33,7 +33,7 @@ import io.crate.operator.scalar.MatchFunction;
 import io.crate.operator.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.ESDeleteByQueryNode;
-import io.crate.planner.node.ESSearchNode;
+import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;

@@ -24,7 +24,7 @@ package io.crate.executor.transport.task.elasticsearch;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
-import io.crate.planner.node.ESUpdateNode;
+import io.crate.planner.node.dml.ESUpdateNode;
 
 import java.util.Arrays;
 import java.util.List;

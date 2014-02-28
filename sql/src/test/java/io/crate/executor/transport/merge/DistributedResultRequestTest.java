@@ -29,7 +29,7 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.operator.operations.DownstreamOperationFactory;
 import io.crate.operator.operations.merge.DownstreamOperation;
-import io.crate.planner.node.MergeNode;
+import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.InputColumn;

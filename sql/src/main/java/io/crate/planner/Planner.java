@@ -28,6 +28,14 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.analyze.*;
 import io.crate.planner.node.*;
+import io.crate.planner.node.dml.CopyNode;
+import io.crate.planner.node.dml.ESDeleteNode;
+import io.crate.planner.node.dml.ESIndexNode;
+import io.crate.planner.node.dml.ESUpdateNode;
+import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.ESGetNode;
+import io.crate.planner.node.dql.ESSearchNode;
+import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
@@ -206,7 +214,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             }
 
             ESGetNode getNode = new ESGetNode(analysis.table().ident().name(), ids);
-           getNode.outputs(contextBuilder.toCollect());
+            getNode.outputs(contextBuilder.toCollect());
             getNode.outputTypes(extractDataTypes(analysis.outputSymbols()));
             plan.add(getNode);
 

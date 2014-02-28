@@ -29,7 +29,7 @@ import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operator.projectors.Projector;
-import io.crate.planner.node.CollectNode;
+import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import org.cratedb.Constants;
 import org.cratedb.DataType;
