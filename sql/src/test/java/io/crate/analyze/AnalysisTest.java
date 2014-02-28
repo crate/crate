@@ -125,11 +125,11 @@ public class AnalysisTest {
         functions = injector.getInstance(Functions.class);
     }
 
-    public Analysis getAnalysis() {
+    public AbstractDataAnalysis getAnalysis() {
         return getAnalysis("", new Object[0]);
     }
 
-    public Analysis getAnalysis(String stmt, Object[] args) {
+    public AbstractDataAnalysis getAnalysis(String stmt, Object[] args) {
         SelectAnalysis analysis = new SelectAnalysis(referenceInfos, functions, args, resolver);
         analysis.table(TEST_TABLE_IDENT);
         return analysis;
@@ -137,7 +137,7 @@ public class AnalysisTest {
 
     @Test
     public void testNormalizePrimitiveLiteral() throws Exception {
-        Analysis analysis = getAnalysis();
+        AbstractDataAnalysis analysis = getAnalysis();
         ReferenceInfo info = ReferenceInfo.builder()
                 .granularity(RowGranularity.DOC)
                 .type(DataType.BOOLEAN)
@@ -151,7 +151,7 @@ public class AnalysisTest {
 
     @Test
     public void testNormalizeScalar() throws Exception {
-        Analysis analysis = getAnalysis();
+        AbstractDataAnalysis analysis = getAnalysis();
         ReferenceInfo info = ReferenceInfo.builder()
                 .granularity(RowGranularity.DOC)
                 .type(DataType.DOUBLE)
@@ -162,7 +162,7 @@ public class AnalysisTest {
 
     @Test
     public void testNormalizeDynamicEmptyObjectLiteral() throws Exception {
-        Analysis analysis = getAnalysis();
+        AbstractDataAnalysis analysis = getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("dyn_empty"));
         Map<String, Object> map = new HashMap<>();
         map.put("time", "2014-02-16T00:00:01");
@@ -174,7 +174,7 @@ public class AnalysisTest {
 
     @Test( expected = ValidationException.class)
     public void testNormalizeObjectLiteralInvalidNested() throws Exception {
-        Analysis analysis = getAnalysis();
+        AbstractDataAnalysis analysis = getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<>();
         map.put("d", "2014-02-16T00:00:01");
@@ -183,7 +183,7 @@ public class AnalysisTest {
 
     @Test
     public void testNormalizeObjectLiteralConvertFromString() throws Exception {
-        Analysis analysis = getAnalysis();
+        AbstractDataAnalysis analysis = getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<>();
         map.put("d", "2.9");
@@ -195,7 +195,7 @@ public class AnalysisTest {
 
     @Test
     public void testNormalizeObjectLiteral() throws Exception {
-        Analysis analysis = getAnalysis();
+        AbstractDataAnalysis analysis = getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<String, Object>() {{
             put("d", 2.9d);
@@ -217,7 +217,7 @@ public class AnalysisTest {
 
     @Test
     public void testNormalizeDynamicObjectLiteralWithAdditionalColumn() throws Exception {
-        Analysis analysis = getAnalysis();
+        AbstractDataAnalysis analysis = getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<>();
         map.put("d", 2.9d);
@@ -228,7 +228,7 @@ public class AnalysisTest {
 
     @Test(expected = ColumnUnknownException.class)
     public void testNormalizeStrictObjectLiteralWithAdditionalColumn() throws Exception {
-        Analysis analysis = getAnalysis();
+        AbstractDataAnalysis analysis = getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("strict"));
         Map<String, Object> map = new HashMap<>();
         map.put("inner_d", 2.9d);
@@ -238,7 +238,7 @@ public class AnalysisTest {
 
     @Test(expected = ColumnUnknownException.class)
     public void testNormalizeStrictObjectLiteralWithAdditionalNestedColumn() throws Exception {
-        Analysis analysis = getAnalysis();
+        AbstractDataAnalysis analysis = getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("strict"));
         Map<String, Object> map = new HashMap<>();
         map.put("inner_d", 2.9d);
@@ -250,7 +250,7 @@ public class AnalysisTest {
 
     @Test(expected = ColumnUnknownException.class)
     public void testNormalizeNestedStrictObjectLiteralWithAdditionalColumn() throws Exception {
-        Analysis analysis = getAnalysis();
+        AbstractDataAnalysis analysis = getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("dyn"));
 
         Map<String, Object> map = new HashMap<>();
@@ -264,7 +264,7 @@ public class AnalysisTest {
 
     @Test
     public void testNormalizeDynamicNewColumnTimestamp() throws Exception {
-        Analysis analysis = getAnalysis();
+        AbstractDataAnalysis analysis = getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<String, Object>() {{
             put("time", "1970-01-01T00:00:00");
@@ -275,7 +275,7 @@ public class AnalysisTest {
 
     @Test
     public void testNormalizeIgnoredNewColumnTimestamp() throws Exception {
-        Analysis analysis = getAnalysis();
+        AbstractDataAnalysis analysis = getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("ignored"));
         Map<String, Object> map = new HashMap<String, Object>() {{
             put("time", "1970-01-01T00:00:00");
@@ -286,7 +286,7 @@ public class AnalysisTest {
 
     @Test
     public void testNormalizeDynamicNewColumnNoTimestamp() throws Exception {
-        Analysis analysis = getAnalysis();
+        AbstractDataAnalysis analysis = getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("ignored"));
         Map<String, Object> map = new HashMap<String, Object>() {{
             put("no_time", "1970");
@@ -297,7 +297,7 @@ public class AnalysisTest {
 
     @Test
     public void testNormalizeStringToNumberColumn() throws Exception {
-        Analysis analysis = getAnalysis();
+        AbstractDataAnalysis analysis = getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("d"));
         StringLiteral stringDoubleLiteral = new StringLiteral("298.444");
         Literal literal = analysis.normalizeInputValue(stringDoubleLiteral, new Reference(objInfo));

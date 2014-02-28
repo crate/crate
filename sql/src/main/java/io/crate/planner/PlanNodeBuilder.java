@@ -23,10 +23,10 @@ package io.crate.planner;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import io.crate.analyze.Analysis;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.DQLPlanNode;
+import io.crate.analyze.AbstractDataAnalysis;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.symbol.Symbol;
 
@@ -34,7 +34,7 @@ import java.util.List;
 
 class PlanNodeBuilder {
 
-    static CollectNode distributingCollect(Analysis analysis,
+    static CollectNode distributingCollect(AbstractDataAnalysis analysis,
                                            List<Symbol> toCollect,
                                            List<String> downstreamNodes,
                                            ImmutableList<Projection> projections) {
@@ -91,7 +91,7 @@ class PlanNodeBuilder {
         nextNode.outputTypes(Planner.extractDataTypes(nextNode.projections(), nextNode.inputTypes()));
     }
 
-    static CollectNode collect(Analysis analysis,
+    static CollectNode collect(AbstractDataAnalysis analysis,
                                List<Symbol> toCollect,
                                ImmutableList<Projection> projections) {
         CollectNode node = new CollectNode("collect", analysis.table().getRouting(analysis.whereClause()));

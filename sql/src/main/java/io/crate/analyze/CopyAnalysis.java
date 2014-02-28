@@ -25,7 +25,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
 
-public class CopyAnalysis extends Analysis {
+public class CopyAnalysis extends AbstractDataAnalysis {
 
     public static enum Mode {
         FROM,

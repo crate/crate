@@ -35,7 +35,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 
-public class SelectAnalysis extends Analysis {
+public class SelectAnalysis extends AbstractDataAnalysis {
 
     private Query query;
 
