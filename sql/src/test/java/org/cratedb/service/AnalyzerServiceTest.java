@@ -21,18 +21,20 @@
 
 package org.cratedb.service;
 
+import com.google.common.base.Joiner;
 import org.cratedb.SQLTransportIntegrationTest;
-import org.cratedb.action.sql.SQLAction;
-import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.node.internal.InternalNode;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static org.hamcrest.Matchers.*;
 
@@ -240,6 +242,53 @@ public class AnalyzerServiceTest extends SQLTransportIntegrationTest {
                 fullAnalyzerSettings.getAsArray("index.analysis.analyzer.a5e.char_filter"),
                 arrayContainingInAnyOrder("html_strip", "a5e_mymapping")
         );
+    }
+
+    @Test
+    public void testBuiltInAnalyzers() throws Exception {
+        List<String> analyzers = new ArrayList<>(analyzerService.getBuiltInAnalyzers());
+        Collections.sort(analyzers);
+        assertThat(Joiner.on(", ").join(analyzers),
+                is("arabic, armenian, basque, brazilian, bulgarian, catalan, chinese, cjk, " +
+                        "classic, czech, danish, default, dutch, english, finnish, french, " +
+                        "galician, german, greek, hindi, hungarian, indonesian, irish, " +
+                        "italian, keyword, latvian, norwegian, pattern, persian, portuguese, " +
+                        "romanian, russian, simple, snowball, spanish, standard, " +
+                        "standard_html_strip, stop, swedish, thai, turkish, whitespace"));
+    }
+
+    @Test
+    public void testBuiltInTokenizers() throws Exception {
+        List<String> tokenizers = new ArrayList<>(analyzerService.getBuiltInTokenizers());
+        Collections.sort(tokenizers);
+        assertThat(Joiner.on(", ").join(tokenizers),
+                is("classic, edgeNGram, edge_ngram, keyword, letter, lowercase, " +
+                        "nGram, ngram, path_hierarchy, pattern, standard, " +
+                        "uax_url_email, whitespace"));
+    }
+
+    @Test
+    public void testBuiltInTokenFilters() throws Exception {
+        List<String> tokenFilters = new ArrayList<>(analyzerService.getBuiltInTokenFilters());
+        Collections.sort(tokenFilters);
+        assertThat(Joiner.on(", ").join(tokenFilters),
+                is("arabic_normalization, arabic_stem, asciifolding, brazilian_stem, " +
+                        "cjk_bigram, cjk_width, classic, common_grams, czech_stem, " +
+                        "delimited_payload_filter, dictionary_decompounder, dutch_stem, " +
+                        "edgeNGram, edge_ngram, elision, french_stem, german_stem, hunspell, " +
+                        "hyphenation_decompounder, keep, keyword_marker, keyword_repeat, " +
+                        "kstem, length, limit, lowercase, nGram, ngram, pattern_capture, " +
+                        "pattern_replace, persian_normalization, porter_stem, reverse, " +
+                        "russian_stem, shingle, snowball, standard, stemmer, stemmer_override, " +
+                        "stop, synonym, trim, truncate, type_as_payload, unique, word_delimiter"));
+    }
+
+    @Test
+    public void testBuiltInCharFilters() throws Exception {
+        List<String> charFilters = new ArrayList<>(analyzerService.getBuiltInCharFilters());
+        Collections.sort(charFilters);
+        assertThat(Joiner.on(", ").join(charFilters),
+                is("htmlStrip, html_strip, mapping, pattern_replace"));
     }
 
 }

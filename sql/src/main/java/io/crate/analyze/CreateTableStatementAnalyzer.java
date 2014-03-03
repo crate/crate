@@ -24,8 +24,6 @@ import com.google.common.collect.Lists;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.*;
 import org.cratedb.Constants;
-import org.cratedb.sql.CrateException;
-import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
@@ -224,12 +222,8 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
 
         String analyzerName = expressionVisitor.process(analyzerExpressions.get(0), context.parameters());
         if (context.analyzerService().hasCustomAnalyzer(analyzerName)) {
-            try {
-                Settings settings = context.analyzerService().resolveFullCustomAnalyzerSettings(analyzerName);
-                context.indexSettingsBuilder().put(settings.getAsMap());
-            } catch (StandardException e) {
-                throw new CrateException(e);
-            }
+            Settings settings = context.analyzerService().resolveFullCustomAnalyzerSettings(analyzerName);
+            context.indexSettingsBuilder().put(settings.getAsMap());
         }
 
         columnDefinition.put("analyzer", analyzerName);
