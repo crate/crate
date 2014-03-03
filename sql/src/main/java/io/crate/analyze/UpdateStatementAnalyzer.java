@@ -33,7 +33,6 @@ public class UpdateStatementAnalyzer extends StatementAnalyzer<UpdateAnalysis> {
 
     @Override
     public Symbol visitUpdate(Update node, UpdateAnalysis context) {
-        context.updateStatement(node);
         process(node.table(), context);
 
         for (Assignment assignment : node.assignements()) {
