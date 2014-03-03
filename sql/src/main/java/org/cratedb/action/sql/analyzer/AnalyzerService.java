@@ -44,7 +44,9 @@ import org.elasticsearch.indices.analysis.IndicesAnalysisService;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Service to get builtin and custom analyzers, tokenizers, token_filters, char_filters
@@ -56,24 +58,15 @@ public class AnalyzerService {
 
     // redefined list of extended analyzers not available outside of
     // a concrete index (see AnalyzerModule.ExtendedProcessor)
-    // TODO: maybe extract them from ExtendedProcessor
-    private static final ImmutableSet<String> EXTENDED_BUILTIN_TOKEN_FILTERS = ImmutableSet.of("snowball",
-            "stemmer", "word_delimiter", "synonym",
-            "elision", "keep", "pattern_capture", "pattern_replace",
+    // stripped Prebuilt<Thingy> (e.g. PreBuiltTokenFilters)
+    private static final ImmutableSet<String> EXTENDED_BUILTIN_TOKEN_FILTERS = ImmutableSet.of(
+            "limit", "delimited_payload_filter", "synonym",
+            "keep", "pattern_capture", "pattern_replace",
             "dictionary_decompounder", "hyphenation_decompounder",
-            "arabic_stem", "brazilian_stem", "czech_stem", "dutch_stem", "french_stem",
-            "german_stem", "russian_stem", "keyword_marker", "stemmer_override",
-            "arabic_normalization", "persian_normalization",
+            "keyword_marker", "stemmer_override",
             "hunspell", "cjk_bigram", "cjk_width");
-    private static final ImmutableSet<String> EXTENDED_BUILTIN_TOKENIZERS = ImmutableSet.of("pattern");
-    private static final ImmutableSet<String> EXTENDED_BUILTIN_CHAR_FILTERS = ImmutableSet.of("mapping",
-            "html_strip", "pattern_replace");
-    private static final ImmutableSet<String> EXTENDED_BUILTIN_ANALYZERS = ImmutableSet.of("pattern",
-            "snowball", "arabic", "armenian", "basque", "brazilian", "bulgarian", "catalan",
-            "chinese", "cjk", "czech", "danish", "dutch",
-            "english", "finnish", "french", "galician", "german", "greek", "hindi", "hungarian",
-            "indonesian", "italian", "latvian", "norwegian", "persian", "portuguese",
-            "romanian", "russian", "spanish", "swedish", "turkish", "thai");
+    private static final ImmutableSet<String> EXTENDED_BUILTIN_CHAR_FILTERS = ImmutableSet
+            .of("mapping", "pattern_replace");
 
     private ESLogger logger = Loggers.getLogger(AnalyzerService.class);
 
@@ -96,7 +89,8 @@ public class AnalyzerService {
     }
 
     @Inject
-    public AnalyzerService(ClusterService clusterService, IndicesAnalysisService indicesAnalysisService) {
+    public AnalyzerService(ClusterService clusterService,
+                           IndicesAnalysisService indicesAnalysisService) {
         this.clusterService = clusterService;
         this.indicesAnalysisService = indicesAnalysisService;
     }
@@ -106,7 +100,7 @@ public class AnalyzerService {
     }
 
     public boolean hasBuiltInAnalyzer(String name) {
-        return EXTENDED_BUILTIN_ANALYZERS.contains(name) || indicesAnalysisService.hasAnalyzer(name);
+        return indicesAnalysisService.hasAnalyzer(name);
     }
 
     public Analyzer getBuiltInAnalyzer(String name) {
@@ -117,9 +111,8 @@ public class AnalyzerService {
      * get all the builtin Analyzers defined in Crate
      * @return an Iterable of Strings
      */
-    public Iterable<? extends String> getBuiltInAnalyzers() {
+    public Set<String> getBuiltInAnalyzers() {
         return new ImmutableSet.Builder<String>()
-                .addAll(EXTENDED_BUILTIN_ANALYZERS)
                 .addAll(indicesAnalysisService.analyzerProviderFactories().keySet()).build();
     }
 
@@ -169,11 +162,11 @@ public class AnalyzerService {
     }
 
     public boolean hasBuiltInTokenizer(String name) {
-        return EXTENDED_BUILTIN_TOKENIZERS.contains(name) || indicesAnalysisService.hasTokenizer(name);
+        return indicesAnalysisService.hasTokenizer(name);
     }
 
-    public Iterable<? extends String> getBuiltInTokenizers() {
-        return new ImmutableSet.Builder<String>().addAll(EXTENDED_BUILTIN_TOKENIZERS)
+    public Set<String> getBuiltInTokenizers() {
+        return new ImmutableSet.Builder<String>()
                 .addAll(indicesAnalysisService.tokenizerFactories().keySet())
                 .build();
     }
@@ -204,7 +197,7 @@ public class AnalyzerService {
         return hasCustomThingy(name, CustomType.CHAR_FILTER);
     }
 
-    public Iterable<? extends String> getBuiltInCharFilters() {
+    public Set<String> getBuiltInCharFilters() {
         return new ImmutableSet.Builder<String>().addAll(EXTENDED_BUILTIN_CHAR_FILTERS)
                 .addAll(indicesAnalysisService.charFilterFactories().keySet())
                 .build();
@@ -227,7 +220,7 @@ public class AnalyzerService {
         return EXTENDED_BUILTIN_TOKEN_FILTERS.contains(name) || indicesAnalysisService.hasTokenFilter(name);
     }
 
-    public Iterable<? extends String> getBuiltInTokenFilters() {
+    public Set<String> getBuiltInTokenFilters() {
         return new ImmutableSet.Builder<String>()
                 .addAll(EXTENDED_BUILTIN_TOKEN_FILTERS)
                 .addAll(indicesAnalysisService.tokenFilterFactories().keySet())
@@ -306,7 +299,7 @@ public class AnalyzerService {
      */
     private boolean hasCustomThingy(String name, CustomType type) {
         return clusterService.state().metaData().persistentSettings().getAsMap().containsKey(
-                String.format("%s.%s.%s", Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name));
+                String.format(Locale.ROOT, "%s.%s.%s", Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name));
     }
 
     /**
@@ -319,7 +312,7 @@ public class AnalyzerService {
      * @return Settings ready for inclusion into a CreateIndexRequest
      * @throws StandardException if no custom analyzer with name ``name`` could be found
      */
-    public Settings resolveFullCustomAnalyzerSettings(String name) throws StandardException {
+    public Settings resolveFullCustomAnalyzerSettings(String name) throws AnalyzerInvalidException {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
         Settings analyzerSettings = getCustomAnalyzer(name);
         if (analyzerSettings != null) {

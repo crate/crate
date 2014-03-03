@@ -26,22 +26,16 @@ import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.query.MatchQueryBuilder;
-import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
-import java.util.HashMap;
 
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
@@ -324,7 +318,7 @@ public class CrateClusterSettingsActionTest extends SQLTransportIntegrationTest 
                 "    lowercase," +
                 "    mystop WITH (" +
                 "      type='stop'," +
-                "      stopword=['the', 'over']" +
+                "      stopwords=['the', 'over']" +
                 "    )" +
                 "  )" +
                 ")");
@@ -344,19 +338,21 @@ public class CrateClusterSettingsActionTest extends SQLTransportIntegrationTest 
         builder.put(tokenFilterSettings);
 
         Client client = client();
-        assertAcked(
-                client.admin().indices().prepareCreate("test").setSettings(builder.build()).addMapping("default",
-                        "name", "type=string",
-                        "content", "type=string,analyzer=a11,index=analyzed,store=false")
-        );
-        client.prepareIndex("test", "default", "1")
-                .setSource("{\"name\":\"phrase\",\"content\":\"The quick brown fox jumps over the lazy dog.\"}")
-                .execute().actionGet();
-
-        client().admin().indices().prepareRefresh().execute().actionGet();
-
-        SearchResponse response = client.prepareSearch("test").setQuery(new MatchQueryBuilder("content", "brown jump").type(MatchQueryBuilder.Type.BOOLEAN)).execute().actionGet();
-        assertEquals(1L, response.getHits().getTotalHits());
-        assertEquals("1", response.getHits().getHits()[0].getId());
+        execute("create table test (" +
+                " id integer primary key," +
+                " name string," +
+                " content string index using fulltext with (analyzer='a11')" +
+                ")");
+        ensureGreen();
+        execute("insert into test (id, name, content) values (?, ?, ?)", new Object[]{
+                1, "phrase", "The quick brown fox jumps over the lazy dog."
+        });
+        execute("insert into test (id, name, content) values (?, ?, ?)", new Object[]{
+                2, "another phrase", "Don't panic!"
+        });
+        refresh();
+        SQLResponse response = execute("select id from test where match(content, 'brown jump')");
+        assertEquals(1L, response.rowCount());
+        assertEquals(1, response.rows()[0][0]);
     }
 }
