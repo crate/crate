@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,40 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node;
+package io.crate.analyze;
 
-import com.google.common.collect.ImmutableSet;
-import io.crate.analyze.WhereClause;
+import io.crate.metadata.TableIdent;
+import io.crate.sql.tree.DropTable;
 
-import java.util.Set;
-
-public class ESDeleteByQueryNode extends PlanNode {
-
-    private final Set<String> indices;
-    private final WhereClause whereClause;
-
-    public ESDeleteByQueryNode(Set<String> indices, WhereClause whereClause) {
-        assert whereClause != null;
-        this.indices = indices;
-        this.whereClause = whereClause;
-    }
-
-    public Set<String> indices() {
-        return indices;
-    }
-
-    public WhereClause whereClause() {
-        return whereClause;
-    }
+public class DropTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, DropTableAnalysis> {
 
     @Override
-    public Set<String> executionNodes() {
-        // always runs local (aka handler) since it uses its own routing internally
-        return ImmutableSet.of();
-    }
-
-    @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitESDeleteByQueryNode(this, context);
+    public Void visitDropTable(DropTable node, DropTableAnalysis context) {
+        context.table(TableIdent.of(node.table()));
+        return null;
     }
 }

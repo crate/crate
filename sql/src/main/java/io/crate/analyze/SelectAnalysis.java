@@ -35,7 +35,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 
-public class SelectAnalysis extends Analysis {
+public class SelectAnalysis extends AbstractDataAnalysis {
 
     private Query query;
 
@@ -46,12 +46,6 @@ public class SelectAnalysis extends Analysis {
     private List<Symbol> sortSymbols;
 
     private Multimap<String, Symbol> aliasMap = ArrayListMultimap.create();
-
-
-    @Override
-    public Type type() {
-        return Type.SELECT;
-    }
 
     public Query query() {
         return query;
@@ -154,5 +148,10 @@ public class SelectAnalysis extends Analysis {
         super.normalize();
         normalizer.normalizeInplace(groupBy());
         normalizer.normalizeInplace(sortSymbols());
+    }
+
+    @Override
+    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
+        return analysisVisitor.visitSelectAnalysis(this, context);
     }
 }

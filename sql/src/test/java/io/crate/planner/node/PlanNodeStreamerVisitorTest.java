@@ -29,6 +29,8 @@ import io.crate.metadata.Routing;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
 import io.crate.operator.aggregation.impl.CountAggregation;
 import io.crate.operator.aggregation.impl.MaximumAggregation;
+import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;

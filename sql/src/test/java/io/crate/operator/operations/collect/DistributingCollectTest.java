@@ -33,7 +33,7 @@ import io.crate.operator.operator.AndOperator;
 import io.crate.operator.operator.OperatorModule;
 import io.crate.operator.reference.sys.shard.ShardIdExpression;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.CollectNode;
+import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Reference;

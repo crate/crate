@@ -35,7 +35,7 @@ import io.crate.operator.projectors.NoopProjector;
 import io.crate.operator.projectors.ProjectionToProjectorVisitor;
 import io.crate.operator.projectors.Projector;
 import io.crate.planner.RowGranularity;
-import io.crate.planner.node.CollectNode;
+import io.crate.planner.node.dql.CollectNode;
 import org.apache.lucene.search.CollectionTerminatedException;
 import org.cratedb.Constants;
 import org.cratedb.sql.CrateException;

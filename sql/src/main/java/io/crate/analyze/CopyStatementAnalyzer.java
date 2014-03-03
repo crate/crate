@@ -28,7 +28,7 @@ import io.crate.planner.symbol.SymbolType;
 import io.crate.sql.tree.CopyFromStatement;
 import io.crate.sql.tree.Table;
 
-public class CopyStatementAnalyzer extends StatementAnalyzer<CopyAnalysis> {
+public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
 
     @Override
     public Symbol visitCopyFromStatement(CopyFromStatement node, CopyAnalysis context) {

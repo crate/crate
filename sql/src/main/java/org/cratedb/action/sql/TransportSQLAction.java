@@ -38,7 +38,6 @@ import io.crate.planner.Planner;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateTable;
-import io.crate.sql.tree.DropTable;
 import io.crate.sql.tree.Statement;
 import org.cratedb.Constants;
 import org.cratedb.DataType;
@@ -130,7 +129,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         try {
             try {
                 statement = SqlParser.createStatement(request.stmt());
-                if (statement instanceof DropTable || statement instanceof CreateTable) {
+                if (statement instanceof CreateTable) {
                     fallback(request, listener, null);
                     return;
                 }

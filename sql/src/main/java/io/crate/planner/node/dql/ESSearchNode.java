@@ -19,13 +19,14 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node;
+package io.crate.planner.node.dql;
 
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
+import io.crate.planner.node.PlanVisitor;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.cratedb.Constants;
@@ -34,7 +35,7 @@ import org.elasticsearch.common.Nullable;
 import java.util.Arrays;
 import java.util.List;
 
-public class ESSearchNode extends AbstractESNode {
+public class ESSearchNode extends ESDQLPlanNode {
 
     private final List<Reference> orderBy;
     private final int limit;

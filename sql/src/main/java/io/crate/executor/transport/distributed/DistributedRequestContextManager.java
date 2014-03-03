@@ -28,7 +28,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.transport.merge.NodeMergeResponse;
 import io.crate.metadata.Functions;
 import io.crate.operator.operations.DownstreamOperationFactory;
-import io.crate.planner.node.MergeNode;
+import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
 import org.cratedb.DataType;
 import org.elasticsearch.action.ActionListener;

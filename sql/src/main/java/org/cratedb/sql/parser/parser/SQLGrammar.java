@@ -4033,7 +4033,7 @@ class SQLGrammar implements SQLGrammarConstants {
                 break;
             case 'K':
             case 'k':
-                mul = 1024l;                        // 1 Kilo
+                mul = 1024L;                        // 1 Kilo
                 break;
             default:
                 mul = 1;

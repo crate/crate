@@ -23,12 +23,21 @@ package org.cratedb.sql;
 
 import org.elasticsearch.rest.RestStatus;
 
+import java.util.Locale;
+
 public class TableAlreadyExistsException extends CrateException {
+
+    private static final String MESSAGE_TMPL = "The table '%s' already exists.";
 
     String tableName;
 
+    public TableAlreadyExistsException(String tableName) {
+        super(String.format(Locale.ENGLISH, MESSAGE_TMPL, tableName));
+        this.tableName = tableName;
+    }
+
     public TableAlreadyExistsException(String tableName, Throwable e) {
-        super("A table with the same name already exists", e);
+        super(String.format(Locale.ENGLISH, MESSAGE_TMPL, tableName), e);
         this.tableName = tableName;
     }
 

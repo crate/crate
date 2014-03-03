@@ -19,25 +19,20 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node;
+package io.crate.planner.node.dml;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import io.crate.planner.node.PlanVisitor;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import org.cratedb.DataType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 
-public class ESIndexNode extends PlanNode {
+public class ESIndexNode extends DMLPlanNode {
 
-    private static final List<DataType> OUTPUT_TYPES = ImmutableList.of(DataType.LONG);
     private String index;
 
     private List<Reference> columns;
@@ -68,23 +63,8 @@ public class ESIndexNode extends PlanNode {
     }
 
     @Override
-    public Set<String> executionNodes() {
-        return null;
-    }
-
-    @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
         return visitor.visitESIndexNode(this, context);
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        throw new UnsupportedOperationException("ESIndexNode has no serialization support");
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        throw new UnsupportedOperationException("ESIndexNode has no serialization support");
     }
 
     public int[] primaryKeyIndices() {
@@ -93,10 +73,5 @@ public class ESIndexNode extends PlanNode {
 
     public boolean hasPrimaryKey() {
         return primaryKeyIndices.length > 0;
-    }
-
-    @Override
-    public List<DataType> outputTypes() {
-        return OUTPUT_TYPES;
     }
 }

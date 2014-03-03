@@ -25,7 +25,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
 
-public class CopyAnalysis extends Analysis {
+public class CopyAnalysis extends AbstractDataAnalysis {
 
     public static enum Mode {
         FROM,
@@ -47,11 +47,6 @@ public class CopyAnalysis extends Analysis {
         this.path = path;
     }
 
-    @Override
-    public Type type() {
-        return Type.COPY;
-    }
-
     public Mode mode() {
         return mode;
     }
@@ -60,6 +55,8 @@ public class CopyAnalysis extends Analysis {
         this.mode = mode;
     }
 
-
-
+    @Override
+    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
+        return analysisVisitor.visitCopyAnalysis(this, context);
+    }
 }

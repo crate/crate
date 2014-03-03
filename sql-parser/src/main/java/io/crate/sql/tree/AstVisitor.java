@@ -480,4 +480,8 @@ public abstract class AstVisitor<R, C>
     public R visitCollectionColumnType(CollectionColumnType node, C context) {
         return visitNode(node, context);
     }
+
+    public R visitDropTable(DropTable node, C context) {
+        return visitStatement(node, context);
+    }
 }

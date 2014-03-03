@@ -592,7 +592,7 @@ forRemote returns [QualifiedName value]
     ;
 
 dropTable returns [Statement value]
-    : ^(DROP_TABLE qname) { $value = new DropTable($qname.value); }
+    : ^(DROP_TABLE namedTable) { $value = new DropTable($namedTable.value); }
     ;
 
 

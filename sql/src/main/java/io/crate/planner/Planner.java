@@ -27,16 +27,23 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.analyze.*;
-import io.crate.planner.node.*;
+import io.crate.planner.node.dml.ESDeleteByQueryNode;
+import io.crate.planner.node.ddl.ESDeleteIndexNode;
+import io.crate.planner.node.dml.CopyNode;
+import io.crate.planner.node.dml.ESDeleteNode;
+import io.crate.planner.node.dml.ESIndexNode;
+import io.crate.planner.node.dml.ESUpdateNode;
+import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.ESGetNode;
+import io.crate.planner.node.dql.ESSearchNode;
+import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
-import io.crate.sql.tree.DefaultTraversalVisitor;
 import org.cratedb.Constants;
 import org.cratedb.DataType;
-import org.cratedb.sql.CrateException;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
@@ -45,7 +52,7 @@ import java.util.List;
 import java.util.Set;
 
 @Singleton
-public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
+public class Planner extends AnalysisVisitor<Void, Plan> {
 
 
     static final PlannerAggregationSplitter splitter = new PlannerAggregationSplitter();
@@ -58,31 +65,11 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
      * @return plan
      */
     public Plan plan(Analysis analysis) {
-        Plan plan;
-        switch (analysis.type()) {
-            case SELECT:
-                plan = planSelect((SelectAnalysis) analysis);
-                break;
-            case INSERT:
-                plan = planInsert((InsertAnalysis) analysis);
-                break;
-            case UPDATE:
-                plan = planUpdate((UpdateAnalysis) analysis);
-                break;
-            case DELETE:
-                plan = planDelete((DeleteAnalysis) analysis);
-                break;
-            case COPY:
-                plan = planCopy((CopyAnalysis) analysis);
-                break;
-            default:
-                throw new CrateException(String.format("unsupported analysis type '%s'", analysis.type().name()));
-        }
-        return plan;
+        return process(analysis, null);
     }
 
-
-    private Plan planSelect(SelectAnalysis analysis) {
+    @Override
+    protected Plan visitSelectAnalysis(SelectAnalysis analysis, Void context) {
         Plan plan = new Plan();
         plan.expectsAffectedRows(false);
 
@@ -107,14 +94,16 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         return plan;
     }
 
-    private Plan planInsert(InsertAnalysis analysis) {
+    @Override
+    protected Plan visitInsertAnalysis(InsertAnalysis analysis, Void context) {
         Preconditions.checkState(analysis.values().size() >= 1, "no values given");
         Plan plan = new Plan();
         ESIndex(analysis, plan);
         return plan;
     }
 
-    private Plan planUpdate(UpdateAnalysis analysis) {
+    @Override
+    protected Plan visitUpdateAnalysis(UpdateAnalysis analysis, Void context) {
         if (analysis.primaryKeyLiterals() !=null && analysis.primaryKeyLiterals().size() > 1) {
             throw new UnsupportedOperationException("Multi column primary keys are currently not supported");
         }
@@ -132,7 +121,8 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         return plan;
     }
 
-    private Plan planDelete(DeleteAnalysis analysis) {
+    @Override
+    protected Plan visitDeleteAnalysis(DeleteAnalysis analysis, Void context) {
         if (analysis.primaryKeyLiterals() !=null && analysis.primaryKeyLiterals().size() > 1) {
             throw new UnsupportedOperationException("Multi column primary keys are currently not supported");
         }
@@ -145,7 +135,8 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         return plan;
     }
 
-    private Plan planCopy(CopyAnalysis analysis) {
+    @Override
+    protected Plan visitCopyAnalysis(CopyAnalysis analysis, Void context) {
         Plan plan = new Plan();
         if (analysis.mode() == CopyAnalysis.Mode.FROM) {
             CopyNode copyNode = new CopyNode(analysis.path(), analysis.table().ident().name(), analysis.mode());
@@ -155,6 +146,20 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
         }
         plan.expectsAffectedRows(true);
         return plan;
+    }
+
+    @Override
+    protected Plan visitDropTableAnalysis(DropTableAnalysis analysis, Void context) {
+        Plan plan = new Plan();
+        ESDeleteIndexNode node = new ESDeleteIndexNode(analysis.index());
+        plan.add(node);
+        plan.expectsAffectedRows(true);
+        return plan;
+    }
+
+    @Override
+    protected Plan visitCreateTableAnalysis(CreateTableAnalysis analysis, Void context) {
+        throw new UnsupportedOperationException("planning create table analysis not supported yet");
     }
 
     private void ESDelete(DeleteAnalysis analysis, Plan plan) {
@@ -206,7 +211,7 @@ public class Planner extends DefaultTraversalVisitor<Symbol, Analysis> {
             }
 
             ESGetNode getNode = new ESGetNode(analysis.table().ident().name(), ids);
-           getNode.outputs(contextBuilder.toCollect());
+            getNode.outputs(contextBuilder.toCollect());
             getNode.outputTypes(extractDataTypes(analysis.outputSymbols()));
             plan.add(getNode);
 

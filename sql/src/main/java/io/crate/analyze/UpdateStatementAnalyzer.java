@@ -29,7 +29,7 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.*;
 
-public class UpdateStatementAnalyzer extends StatementAnalyzer<UpdateAnalysis> {
+public class UpdateStatementAnalyzer extends DataStatementAnalyzer<UpdateAnalysis> {
 
     @Override
     public Symbol visitUpdate(Update node, UpdateAnalysis context) {

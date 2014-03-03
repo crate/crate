@@ -32,7 +32,7 @@ import io.crate.planner.symbol.Symbol;
 import java.util.ArrayList;
 import java.util.List;
 
-public class InsertAnalysis extends Analysis {
+public class InsertAnalysis extends AbstractDataAnalysis {
 
     // TODO: change this to Map<Reference, Symbol> like in UpdateAnalysis
     // at all these are assignments too
@@ -46,11 +46,6 @@ public class InsertAnalysis extends Analysis {
                           Object[] parameters,
                           ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameters, referenceResolver);
-    }
-
-    @Override
-    public Type type() {
-        return Type.INSERT;
     }
 
     public void visitValues() {
@@ -103,4 +98,8 @@ public class InsertAnalysis extends Analysis {
         this.primaryKeyColumnIndices.add(primaryKeyColumnIdx);
     }
 
+    @Override
+    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
+        return analysisVisitor.visitInsertAnalysis(this, context);
+    }
 }

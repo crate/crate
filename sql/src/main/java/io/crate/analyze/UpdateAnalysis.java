@@ -30,7 +30,7 @@ import io.crate.planner.symbol.Symbol;
 import java.util.HashMap;
 import java.util.Map;
 
-public class UpdateAnalysis extends Analysis {
+public class UpdateAnalysis extends AbstractDataAnalysis {
 
     private Map<Reference, Symbol> assignments = new HashMap<>();
 
@@ -39,11 +39,6 @@ public class UpdateAnalysis extends Analysis {
                           Object[] parameters,
                           ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameters, referenceResolver);
-    }
-
-    @Override
-    public Type type() {
-        return Type.UPDATE;
     }
 
     public Map<Reference, Symbol> assignments() {
@@ -63,5 +58,10 @@ public class UpdateAnalysis extends Analysis {
     @Override
     public boolean hasNoResult() {
         return noMatch();
+    }
+
+    @Override
+    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
+        return analysisVisitor.visitUpdateAnalysis(this, context);
     }
 }

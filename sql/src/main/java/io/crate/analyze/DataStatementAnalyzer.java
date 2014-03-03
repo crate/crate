@@ -1,22 +1,39 @@
+/*
+ * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
+ */
+
 package io.crate.analyze;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.TableIdent;
 import io.crate.operator.aggregation.impl.CollectSetAggregation;
 import io.crate.operator.operator.*;
 import io.crate.operator.predicate.NotPredicate;
-import io.crate.planner.DataTypeVisitor;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
-import io.crate.sql.ExpressionFormatter;
-import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.*;
+import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.StringLiteral;
@@ -25,14 +42,8 @@ import org.cratedb.DataType;
 
 import java.util.*;
 
-abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVisitor<Symbol, T> {
+abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends AbstractStatementAnalyzer<Symbol, T> {
 
-    protected static OutputNameFormatter outputNameFormatter = new OutputNameFormatter();
-    protected static PrimaryKeyVisitor primaryKeyVisitor = new PrimaryKeyVisitor();
-
-    protected static SubscriptVisitor visitor = new SubscriptVisitor();
-    protected static DataTypeVisitor symbolDataTypeVisitor = new DataTypeVisitor();
-    protected static NegativeLiteralVisitor negativeLiteralVisitor = new NegativeLiteralVisitor();
     private final Map<String, String> swapOperatorTable = ImmutableMap.<String, String>builder()
             .put(GtOperator.NAME, LtOperator.NAME)
             .put(GteOperator.NAME, LteOperator.NAME)
@@ -40,35 +51,6 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
             .put(LteOperator.NAME, GteOperator.NAME)
             .build();
 
-    static class OutputNameFormatter extends ExpressionFormatter.Formatter {
-        @Override
-        protected String visitQualifiedNameReference(QualifiedNameReference node, Void context) {
-
-            List<String> parts = new ArrayList<>();
-            for (String part : node.getName().getParts()) {
-                parts.add(part);
-            }
-            return Joiner.on('.').join(parts);
-        }
-
-        @Override
-        protected String visitSubscriptExpression(SubscriptExpression node, Void context) {
-            return String.format("%s[%s]", process(node.name(), null), process(node.index(), null));
-        }
-    }
-
-    @Override
-    protected Symbol visitNode(Node node, T context) {
-        System.out.println("Not analyzed node: " + node);
-        return super.visitNode(node, context);
-    }
-
-    @Override
-    protected Symbol visitTable(Table node, T context) {
-        Preconditions.checkState(context.table() == null, "selecting from multiple tables is not supported");
-        context.table(TableIdent.of(node));
-        return null;
-    }
 
     @Override
     protected Symbol visitFunctionCall(FunctionCall node, T context) {
@@ -152,10 +134,7 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
                 ImmutableList.<Symbol>of(context.allocateFunction(isNullInfo, ImmutableList.of(argument))));
     }
 
-    @Override
-    protected Symbol visitBooleanLiteral(BooleanLiteral node, Analysis context) {
-        return new io.crate.planner.symbol.BooleanLiteral(node.getValue());
-    }
+
 
     @Override
     protected Symbol visitInListExpression(InListExpression node, T context) {
@@ -175,31 +154,6 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
             symbols.add(l);
         }
         return SetLiteral.fromLiterals(dataType, symbols);
-    }
-
-    @Override
-    protected Symbol visitStringLiteral(StringLiteral node, T context) {
-        return new io.crate.planner.symbol.StringLiteral(new BytesRef(node.getValue()));
-    }
-
-    @Override
-    protected Symbol visitDoubleLiteral(DoubleLiteral node, T context) {
-        return new io.crate.planner.symbol.DoubleLiteral(node.getValue());
-    }
-
-    @Override
-    protected Symbol visitLongLiteral(LongLiteral node, T context) {
-        return new io.crate.planner.symbol.LongLiteral(node.getValue());
-    }
-
-    @Override
-    public Symbol visitParameterExpression(ParameterExpression node, T context) {
-        Object parameter = context.parameterAt(node.index());
-        try {
-            return Literal.forValue(parameter);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Unsupported parameter type " + parameter.getClass());
-        }
     }
 
     @Override
@@ -383,11 +337,6 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
     }
 
     @Override
-    protected Symbol visitNullLiteral(NullLiteral node, T context) {
-        return Null.INSTANCE;
-    }
-
-    @Override
     protected Symbol visitNegativeExpression(NegativeExpression node, T context) {
         // in statements like "where x = -1" the  positive (expression)IntegerLiteral (1)
         // is just wrapped inside a negativeExpression
@@ -415,5 +364,40 @@ abstract class StatementAnalyzer<T extends Analysis> extends DefaultTraversalVis
     protected Symbol visitQualifiedNameReference(QualifiedNameReference node, T context) {
         ReferenceIdent ident = context.getReference(node.getName());
         return context.allocateReference(ident);
+    }
+
+    @Override
+    protected Symbol visitBooleanLiteral(BooleanLiteral node, T context) {
+        return new io.crate.planner.symbol.BooleanLiteral(node.getValue());
+    }
+
+    @Override
+    protected Symbol visitStringLiteral(StringLiteral node, T context) {
+        return new io.crate.planner.symbol.StringLiteral(new BytesRef(node.getValue()));
+    }
+
+    @Override
+    protected Symbol visitDoubleLiteral(DoubleLiteral node, T context) {
+        return new io.crate.planner.symbol.DoubleLiteral(node.getValue());
+    }
+
+    @Override
+    protected Symbol visitLongLiteral(LongLiteral node, T context) {
+        return new io.crate.planner.symbol.LongLiteral(node.getValue());
+    }
+
+    @Override
+    protected Symbol visitNullLiteral(NullLiteral node, T context) {
+        return Null.INSTANCE;
+    }
+
+    @Override
+    public Symbol visitParameterExpression(ParameterExpression node, T context) {
+        Object parameter = context.parameterAt(node.index());
+        try {
+            return io.crate.planner.symbol.Literal.forValue(parameter);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Unsupported parameter type " + parameter.getClass());
+        }
     }
 }

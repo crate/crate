@@ -22,7 +22,7 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.planner.node.ESUpdateNode;
+import io.crate.planner.node.dml.ESUpdateNode;
 import org.cratedb.Constants;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.update.TransportUpdateAction;
@@ -46,7 +46,7 @@ public class ESUpdateByIdTask extends AbstractESUpdateTask {
 
         @Override
         public void onResponse(UpdateResponse updateResponse) {
-            future.set(new Object[][]{new Object[]{updateResponse.getGetResult().isExists() ? 1l : 0l}});
+            future.set(new Object[][]{new Object[]{updateResponse.getGetResult().isExists() ? 1L : 0L}});
         }
 
         @Override

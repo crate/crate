@@ -19,10 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node;
+package io.crate.planner.node.dql;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
+import io.crate.planner.node.PlanVisitor;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -33,7 +34,7 @@ import java.util.*;
 /**
  * A plan node which merges results from upstreams
  */
-public class MergeNode extends PlanNode {
+public class MergeNode extends AbstractDQLPlanNode {
 
     private List<DataType> inputTypes;
     private int numUpstreams;

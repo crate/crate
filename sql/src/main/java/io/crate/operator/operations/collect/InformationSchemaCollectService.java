@@ -39,7 +39,7 @@ import io.crate.operator.operations.CollectInputSymbolVisitor;
 import io.crate.operator.projectors.Projector;
 import io.crate.operator.reference.information.ColumnContext;
 import io.crate.operator.reference.information.InformationDocLevelReferenceResolver;
-import io.crate.planner.node.CollectNode;
+import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.BooleanLiteral;
 import org.apache.lucene.search.CollectionTerminatedException;
 import org.cratedb.DataType;

@@ -19,21 +19,20 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node;
+package io.crate.planner.node.dml;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.operator.Input;
+import io.crate.planner.node.PlanVisitor;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 
 import javax.annotation.Nullable;
 import java.util.*;
 
-public class ESUpdateNode extends AbstractESNode {
-
-    private static final List<DataType> OUTPUT_TYPES = ImmutableList.of(DataType.LONG);
+public class ESUpdateNode extends DMLPlanNode {
 
     private final String index;
     private final Map<String, Object> updateDoc;
@@ -112,10 +111,5 @@ public class ESUpdateNode extends AbstractESNode {
 
     public Map<String, Object> updateDoc() {
         return updateDoc;
-    }
-
-    @Override
-    public List<DataType> outputTypes() {
-        return OUTPUT_TYPES;
     }
 }

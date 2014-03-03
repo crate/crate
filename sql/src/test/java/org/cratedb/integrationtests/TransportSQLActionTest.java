@@ -35,7 +35,6 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -1869,6 +1868,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .actionGet().isExists());
 
         execute("drop table test");
+        assertThat(response.rowCount(), is(1L));
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
         assertFalse(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());
@@ -2491,7 +2491,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         String tableAlias = tableAliasSetup();
 
         expectedException.expect(TableAlreadyExistsException.class);
-        expectedException.expectMessage("A table with the same name already exists");
+        expectedException.expectMessage("The table 'mytablealias' already exists.");
 
         execute(String.format("create table %s (content string index off)", tableAlias));
     }
@@ -2499,7 +2499,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testDropTableWithTableAlias() throws Exception {
         String tableAlias = tableAliasSetup();
-        expectedException.expect(SQLParseException.class);
+        expectedException.expect(UnsupportedFeatureException.class);
         expectedException.expectMessage("Table alias not allowed in DROP TABLE statement.");
         execute(String.format("drop table %s", tableAlias));
     }

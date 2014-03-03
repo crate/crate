@@ -25,19 +25,19 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
 
-public class DeleteAnalysis extends Analysis {
+public class DeleteAnalysis extends AbstractDataAnalysis {
 
     public DeleteAnalysis(ReferenceInfos referenceInfos, Functions functions, Object[] parameters, ReferenceResolver referenceResolver) {
         super(referenceInfos, functions, parameters, referenceResolver);
     }
 
     @Override
-    public Type type() {
-        return Type.DELETE;
+    public boolean hasNoResult() {
+        return noMatch();
     }
 
     @Override
-    public boolean hasNoResult() {
-        return noMatch();
+    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
+        return analysisVisitor.visitDeleteAnalysis(this, context);
     }
 }

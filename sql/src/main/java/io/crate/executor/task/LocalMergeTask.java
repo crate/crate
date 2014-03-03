@@ -31,7 +31,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.operator.operations.merge.MergeOperation;
-import io.crate.planner.node.MergeNode;
+import io.crate.planner.node.dql.MergeNode;
 import org.cratedb.Constants;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *  http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,48 +19,34 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node;
+package io.crate.planner.node.dml;
 
-import com.google.common.base.Objects;
+import io.crate.analyze.WhereClause;
+import io.crate.planner.node.PlanVisitor;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.Set;
 
+public class ESDeleteByQueryNode extends DMLPlanNode {
 
-public class ESGetNode extends AbstractESNode {
+    private final Set<String> indices;
+    private final WhereClause whereClause;
 
-    private String index;
-    private List<String> ids;
-
-    public ESGetNode(String index, List<String> ids) {
-        this.index = index;
-        this.ids = ids;
+    public ESDeleteByQueryNode(Set<String> indices, WhereClause whereClause) {
+        assert whereClause != null;
+        this.indices = indices;
+        this.whereClause = whereClause;
     }
 
-    public ESGetNode(String index, String id) {
-        this.index = index;
-        this.ids = Arrays.asList(id);
+    public Set<String> indices() {
+        return indices;
     }
 
-    public String index() {
-        return index;
+    public WhereClause whereClause() {
+        return whereClause;
     }
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitESGetNode(this, context);
-    }
-
-    public List<String> ids() {
-        return ids;
-    }
-
-    @Override
-    public String toString() {
-        return Objects.toStringHelper(this)
-                .add("index", index)
-                .add("ids", ids)
-                .add("outputs", outputs)
-                .toString();
+        return visitor.visitESDeleteByQueryNode(this, context);
     }
 }

@@ -19,42 +19,49 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node;
+package io.crate.analyze;
 
-import com.google.common.collect.ImmutableSet;
-import io.crate.planner.symbol.Symbol;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
+import org.cratedb.sql.TableAlreadyExistsException;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Set;
+public class CreateTableAnalysis extends AbstractDDLAnalysis {
 
-public abstract class AbstractESNode extends PlanNode {
+    private TableIdent tableIdent;
+    private final ReferenceInfos referenceInfos;
 
-    protected List<? extends Symbol> outputs;
-
-    public List<? extends Symbol> outputs() {
-        return outputs;
-    }
-
-    public void outputs(List<? extends Symbol> outputs) {
-        this.outputs = outputs;
+    public CreateTableAnalysis(ReferenceInfos referenceInfos, Object[] params) {
+        super(params);
+        this.referenceInfos = referenceInfos;
     }
 
     @Override
-    public Set<String> executionNodes() {
-        // always runs local (aka handler) since it uses its own routing internally
-        return ImmutableSet.of();
+    public void table(TableIdent tableIdent) {
+        if (referenceInfos.getTableInfo(tableIdent) != null) {
+            throw new TableAlreadyExistsException(tableIdent.name());
+        }
+        super.table(tableIdent);
     }
 
     @Override
-    public final void readFrom(StreamInput in) throws IOException {
-        throw new UnsupportedOperationException("ESNode has no serialization support");
+    public TableInfo table() {
+        return null;
     }
 
     @Override
-    public final void writeTo(StreamOutput out) throws IOException {
-        throw new UnsupportedOperationException("ESNode has no serialization support");
+    public SchemaInfo schema() {
+        return null;
+    }
+
+    @Override
+    public void normalize() {
+
+    }
+
+    @Override
+    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
+        return analysisVisitor.visitCreateTableAnalysis(this, context);
     }
 }

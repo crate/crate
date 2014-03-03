@@ -33,7 +33,7 @@ import org.cratedb.sql.SQLParseException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SelectStatementAnalyzer extends StatementAnalyzer<SelectAnalysis> {
+public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysis> {
 
     private final static AggregationSearcher aggregationSearcher = new AggregationSearcher();
 

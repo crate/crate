@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,25 +19,17 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node;
+package io.crate.planner.node.ddl;
 
-import com.google.common.base.Optional;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import io.crate.planner.node.PlanVisitor;
 
-import java.io.IOException;
-import java.util.Set;
+public class ESDeleteIndexNode extends DDLPlanNode {
 
-public class ESDeleteNode extends PlanNode {
+    private final String index;
 
-    private String index;
-    private String id;
-    private Optional<Long> version;
-
-    public ESDeleteNode(String index, String id, Optional<Long> version) {
+    public ESDeleteIndexNode(String index) {
+        assert index != null : "index is null";
         this.index = index;
-        this.id = id;
-        this.version = version;
     }
 
     public String index() {
@@ -45,30 +37,7 @@ public class ESDeleteNode extends PlanNode {
     }
 
     @Override
-    public Set<String> executionNodes() {
-        return null;
-    }
-
-    public String id() {
-        return id;
-    }
-
-    @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitESDeleteNode(this, context);
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        throw new UnsupportedOperationException("Must not serialize ESDeleteNodes");
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        throw new UnsupportedOperationException("Must not serialize ESDeleteNodes");
-    }
-
-    public Optional<Long> version() {
-        return version;
+        return visitor.visitESDeleteIndexNode(this, context);
     }
 }

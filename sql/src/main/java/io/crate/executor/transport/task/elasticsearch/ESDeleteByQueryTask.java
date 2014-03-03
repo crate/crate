@@ -25,7 +25,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.elasticsearch.ESQueryBuilder;
 import io.crate.executor.Task;
-import io.crate.planner.node.ESDeleteByQueryNode;
+import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryRequest;
 import org.elasticsearch.action.deletebyquery.DeleteByQueryResponse;

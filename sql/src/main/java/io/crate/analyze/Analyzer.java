@@ -1,3 +1,23 @@
+/*
+ * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
+ */
 package io.crate.analyze;
 
 import io.crate.metadata.Functions;
@@ -8,20 +28,11 @@ import org.elasticsearch.common.inject.Inject;
 
 public class Analyzer {
 
-    private final ReferenceInfos referenceInfos;
-    private final Functions functions;
-    private final ReferenceResolver referenceResolver;
-    private final StatementAnalyzer selectStatementAnalyzer = new SelectStatementAnalyzer();
-    private final StatementAnalyzer insertStatementAnalyzer = new InsertStatementAnalyzer();
-    private final StatementAnalyzer updateStatementAnalyzer = new UpdateStatementAnalyzer();
-    private final StatementAnalyzer deleteStatementAnalyzer = new DeleteStatementAnalyzer();
-    private final StatementAnalyzer copyStatementAnalyzer = new CopyStatementAnalyzer();
+    private final AnalyzerDispatcher dispatcher;
 
     @Inject
     public Analyzer(ReferenceInfos referenceInfos, Functions functions, ReferenceResolver referenceResolver) {
-        this.referenceInfos = referenceInfos;
-        this.functions = functions;
-        this.referenceResolver = referenceResolver;
+        this.dispatcher = new AnalyzerDispatcher(referenceInfos, functions, referenceResolver);
     }
 
     public Analysis analyze(Statement statement) {
@@ -29,30 +40,96 @@ public class Analyzer {
     }
 
     public Analysis analyze(Statement statement, Object[] parameters) {
-        Analysis analysis;
-        StatementAnalyzer statementAnalyzer;
+        Context ctx = new Context(parameters);
+        AbstractStatementAnalyzer statementAnalyzer = dispatcher.process(statement, ctx);
+        assert ctx.analysis != null;
 
-        if (statement instanceof Query) {
-            analysis = new SelectAnalysis(referenceInfos, functions, parameters, referenceResolver);
-            statementAnalyzer = selectStatementAnalyzer;
-        } else if (statement instanceof Delete) {
-            analysis = new DeleteAnalysis(referenceInfos, functions, parameters, referenceResolver);
-            statementAnalyzer = deleteStatementAnalyzer;
-        } else if (statement instanceof Insert) {
-            statementAnalyzer = insertStatementAnalyzer;
-            analysis = new InsertAnalysis(referenceInfos, functions, parameters, referenceResolver);
-        } else if (statement instanceof Update) {
-            statementAnalyzer = updateStatementAnalyzer;
-            analysis = new UpdateAnalysis(referenceInfos, functions, parameters, referenceResolver);
-        } else if (statement instanceof CopyFromStatement) {
-            statementAnalyzer = copyStatementAnalyzer;
-            analysis = new CopyAnalysis(referenceInfos, functions, parameters, referenceResolver);
-        } else {
-            throw new UnsupportedOperationException(String.format("cannot analyze statement: '%s'", statement));
-        }
-        statement.accept(statementAnalyzer, analysis);
-        analysis.normalize();
-        return analysis;
+        statement.accept(statementAnalyzer, ctx.analysis);
+        ctx.analysis.normalize();
+        return ctx.analysis;
     }
 
+    private static class Context {
+        Object[] parameters;
+        Analysis analysis;
+
+        private Context(Object[] parameters) {
+            this.parameters = parameters;
+        }
+    }
+
+    private static class AnalyzerDispatcher extends AstVisitor<AbstractStatementAnalyzer, Context> {
+
+        private final ReferenceInfos referenceInfos;
+        private final Functions functions;
+        private final ReferenceResolver referenceResolver;
+
+        private final AbstractStatementAnalyzer selectStatementAnalyzer = new SelectStatementAnalyzer();
+        private final AbstractStatementAnalyzer insertStatementAnalyzer = new InsertStatementAnalyzer();
+        private final AbstractStatementAnalyzer updateStatementAnalyzer = new UpdateStatementAnalyzer();
+        private final AbstractStatementAnalyzer deleteStatementAnalyzer = new DeleteStatementAnalyzer();
+        private final AbstractStatementAnalyzer copyStatementAnalyzer = new CopyStatementAnalyzer();
+        private final AbstractStatementAnalyzer dropTableStatementAnalyzer = new DropTableStatementAnalyzer();
+        //private final StatementAnalyzer createTableStatementAnalyzer = new CreateTableStatementAnalyzer();
+
+        public AnalyzerDispatcher(ReferenceInfos referenceInfos,
+                                  Functions functions,
+                                  ReferenceResolver referenceResolver) {
+            this.referenceInfos = referenceInfos;
+            this.functions = functions;
+            this.referenceResolver = referenceResolver;
+        }
+
+        @Override
+        protected AbstractStatementAnalyzer visitQuery(Query node, Context context) {
+            context.analysis = new SelectAnalysis(
+                    referenceInfos, functions, context.parameters, referenceResolver);
+            return selectStatementAnalyzer;
+        }
+
+        @Override
+        public AbstractStatementAnalyzer visitDelete(Delete node, Context context) {
+            context.analysis = new DeleteAnalysis(
+                    referenceInfos, functions, context.parameters, referenceResolver);
+            return deleteStatementAnalyzer;
+        }
+
+        @Override
+        public AbstractStatementAnalyzer visitInsert(Insert node, Context context) {
+            context.analysis = new InsertAnalysis(
+                    referenceInfos, functions, context.parameters, referenceResolver);
+            return insertStatementAnalyzer;
+        }
+
+        @Override
+        public AbstractStatementAnalyzer visitUpdate(Update node, Context context) {
+            context.analysis = new UpdateAnalysis(
+                    referenceInfos, functions, context.parameters, referenceResolver);
+            return updateStatementAnalyzer;
+        }
+
+        @Override
+        public AbstractStatementAnalyzer visitCopyFromStatement(CopyFromStatement node, Context context) {
+            context.analysis = new CopyAnalysis(
+                    referenceInfos, functions, context.parameters, referenceResolver);
+            return copyStatementAnalyzer;
+        }
+
+        @Override
+        public AbstractStatementAnalyzer visitDropTable(DropTable node, Context context) {
+            context.analysis = new DropTableAnalysis(referenceInfos);
+            return dropTableStatementAnalyzer;
+        }
+
+        //@Override
+        //public StatementAnalyzer visitCreateTable(CreateTable node, Context context) {
+        //    context.analysis = new CreateTableAnalysis();
+        //    return createTableStatementAnalyzer;
+        //}
+
+        @Override
+        protected DataStatementAnalyzer visitNode(Node node, Context context) {
+            throw new UnsupportedOperationException(String.format("cannot analyze statement: '%s'", node));
+        }
+    }
 }
