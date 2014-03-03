@@ -24,66 +24,51 @@ package io.crate.executor.transport.task.elasticsearch;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.Task;
-import io.crate.planner.node.dml.ESDeleteNode;
-import org.cratedb.Constants;
+import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.delete.DeleteResponse;
-import org.elasticsearch.action.delete.TransportDeleteAction;
-import org.elasticsearch.index.engine.VersionConflictEngineException;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
+import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 
 import java.util.Arrays;
 import java.util.List;
 
-public class ESDeleteTask implements Task<Object[][]> {
+public class ESClusterUpdateSettingsTask implements Task<Object[][]> {
 
     private final List<ListenableFuture<Object[][]>> results;
-    private final TransportDeleteAction transport;
-    private final DeleteRequest request;
-    private final ActionListener<DeleteResponse> listener;
+    private final TransportClusterUpdateSettingsAction transport;
+    private final ClusterUpdateSettingsRequest request;
+    private final ActionListener<ClusterUpdateSettingsResponse> listener;
 
-    public ESDeleteTask(TransportDeleteAction transport, ESDeleteNode node) {
+    public ESClusterUpdateSettingsTask(TransportClusterUpdateSettingsAction transport,
+                                       ESClusterUpdateSettingsNode node) {
         this.transport = transport;
 
         final SettableFuture<Object[][]> result = SettableFuture.create();
         results = Arrays.<ListenableFuture<Object[][]>>asList(result);
 
-
-        request = new DeleteRequest(node.index(), Constants.DEFAULT_MAPPING_TYPE, node.id());
-        if (node.version().isPresent()) {
-            request.version(node.version().get());
-        }
-        listener = new DeleteResponseListener(result);
+        request = new ClusterUpdateSettingsRequest();
+        request.persistentSettings(node.persistentSettings());
+        request.transientSettings(node.transientSettings());
+        listener = new ClusterUpdateSettingsResponseListener(result);
     }
 
-    static class DeleteResponseListener implements ActionListener<DeleteResponse> {
+    static class ClusterUpdateSettingsResponseListener implements ActionListener<ClusterUpdateSettingsResponse> {
 
         private final SettableFuture<Object[][]> result;
 
-        public DeleteResponseListener(SettableFuture<Object[][]> result) {
+        public ClusterUpdateSettingsResponseListener(SettableFuture<Object[][]> result) {
             this.result = result;
         }
 
         @Override
-        public void onResponse(DeleteResponse response) {
-            if (!response.isFound()) {
-                result.set(Constants.EMPTY_RESULT);
-            } else {
-                result.set(new Object[][] { new Object[] {1L}});
-            }
+        public void onResponse(ClusterUpdateSettingsResponse response) {
+            result.set(new Object[][] { new Object[] { 1L }});
         }
 
         @Override
         public void onFailure(Throwable e) {
-            Throwable cause = e.getCause();
-            // if the delete Operation was done locally (on the same node) e is the real exception
-            // otherwise the exception is wrapped inside a transportExecutionException
-            if (e instanceof VersionConflictEngineException || (cause != null && cause instanceof VersionConflictEngineException)) {
-                // treat version conflict as rows affected = 0
-                result.set(Constants.EMPTY_RESULT);
-            } else {
-                result.setException(e);
-            }
+            result.setException(e);
         }
     }
 

@@ -29,20 +29,19 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.inject.Key;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.NetworkUtils;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.engine.IndexEngineModule;
 import org.elasticsearch.node.Node;
@@ -51,7 +50,6 @@ import org.elasticsearch.test.engine.MockEngineModule;
 import org.elasticsearch.test.store.MockFSIndexStoreModule;
 import org.elasticsearch.test.transport.AssertingLocalTransportModule;
 import org.elasticsearch.transport.TransportModule;
-import org.elasticsearch.transport.TransportService;
 import org.junit.Assert;
 
 import java.io.Closeable;
@@ -623,6 +621,36 @@ public class CrateTestCluster implements Iterable<Client> {
 
     private synchronized <T> T getInstanceFromNode(Class<T> clazz, InternalNode node) {
         return node.injector().getInstance(clazz);
+    }
+
+    /**
+     * Returns a reference to the given nodes instances of the given key &gt;T&lt;
+     */
+    public synchronized <T> T getInstance(Key<T> key, final String node) {
+        final Predicate<CrateTestCluster.NodeAndClient> predicate;
+        if (node != null) {
+            predicate = new Predicate<CrateTestCluster.NodeAndClient>() {
+                public boolean apply(NodeAndClient nodeAndClient) {
+                    return node.equals(nodeAndClient.name);
+                }
+            };
+        } else {
+            predicate = Predicates.alwaysTrue();
+        }
+        NodeAndClient randomNodeAndClient = getRandomNodeAndClient(predicate);
+        assert randomNodeAndClient != null;
+        return getInstanceFromNode(key, randomNodeAndClient.node);
+    }
+
+    /**
+     * Returns a reference to a random nodes instances of the given key &gt;T&lt;
+     */
+    public synchronized <T> T getInstance(Key<T> key) {
+        return getInstance(key, null);
+    }
+
+    private synchronized <T> T getInstanceFromNode(Key<T> key, InternalNode node) {
+        return node.injector().getInstance(key);
     }
 
     /**
