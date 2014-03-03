@@ -26,14 +26,12 @@ import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.sql.tree.Update;
 
 import java.util.HashMap;
 import java.util.Map;
 
 public class UpdateAnalysis extends Analysis {
 
-    private Update updateStatement;
     private Map<Reference, Symbol> assignments = new HashMap<>();
 
     public UpdateAnalysis(ReferenceInfos referenceInfos,
@@ -46,14 +44,6 @@ public class UpdateAnalysis extends Analysis {
     @Override
     public Type type() {
         return Type.UPDATE;
-    }
-
-    public Update updateStatement() {
-        return updateStatement;
-    }
-
-    public void updateStatement(Update updateStatement) {
-        this.updateStatement = updateStatement;
     }
 
     public Map<Reference, Symbol> assignments() {

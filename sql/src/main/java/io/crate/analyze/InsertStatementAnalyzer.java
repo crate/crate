@@ -38,7 +38,6 @@ public class InsertStatementAnalyzer extends StatementAnalyzer<InsertAnalysis> {
 
     @Override
     public Symbol visitInsert(Insert node, InsertAnalysis context) {
-        context.insertStatement(node);
         process(node.table(), context);
 
         if (context.table().isAlias()) {
