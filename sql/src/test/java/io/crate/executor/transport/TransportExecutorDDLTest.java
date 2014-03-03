@@ -1,5 +1,6 @@
 package io.crate.executor.transport;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.Job;
@@ -13,7 +14,6 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -33,7 +33,25 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateIndexTask() throws Exception {
-        Map indexMapping = new HashMap<String, Object>();
+        Map indexMapping = ImmutableMap.of(
+                "properties", ImmutableMap.of(
+                    "id", ImmutableMap.builder()
+                        .put("type", "integer")
+                        .put("store", false)
+                        .put("index", "not_analyzed")
+                        .put("doc_values", true).build(),
+                    "name", ImmutableMap.builder()
+                        .put("type", "string")
+                        .put("store", false)
+                        .put("index", "not_analyzed")
+                        .put("doc_values", true).build(),
+                    "names", ImmutableMap.builder()
+                        .put("type", "string")
+                        .put("store", false)
+                        .put("index", "not_analyzed")
+                        .put("doc_values", false).build()
+                    )
+                );
 
         ESCreateIndexNode createTableNode = new ESCreateIndexNode(
                 "test",
@@ -54,6 +72,9 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         execute("select * from information_schema.tables where table_name = 'test' and number_of_replicas = 0 and number_of_shards = 2");
         assertThat(response.rowCount(), Matchers.is(1L));
+
+        execute("select count(*) from information_schema.columns where table_name = 'test'");
+        assertThat((Long)response.rows()[0][0], Matchers.is(3L));
     }
 
     @Test
