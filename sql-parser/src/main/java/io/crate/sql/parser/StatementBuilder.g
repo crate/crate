@@ -84,6 +84,7 @@ statement returns [Statement value]
     | delete                    { $value = $delete.value; }
     | update                    { $value = $update.value; }
     | copyFrom                  { $value = $copyFrom.value; }
+    | createAnalyzer            { $value = $createAnalyzer.value; }
     ;
 
 query returns [Query value]
@@ -756,4 +757,40 @@ clusteredBy returns [ClusteredBy value]
 
 replicas returns [Integer value]
     : ^(REPLICAS integer) { $value = Integer.parseInt($integer.value); }
+    ;
+
+
+createAnalyzer returns [CreateAnalyzer value]
+    : ^(ANALYZER ident extendsAnalyzer? analyzerElementList)
+        {
+            $value = new CreateAnalyzer($ident.value, $extendsAnalyzer.value, $analyzerElementList.value);
+        }
+    ;
+
+extendsAnalyzer returns [String value]
+    : ^(EXTENDS ident) { $value = $ident.value; }
+    ;
+
+analyzerElementList returns [List<AnalyzerElement> value = new ArrayList<>()]
+    : ^(ANALYZER_ELEMENTS ( analyzerElement { $value.add($analyzerElement.value); } )+ )
+    ;
+
+analyzerElement returns [AnalyzerElement value]
+    : ^(TOKENIZER namedProperties)  { $value = new Tokenizer($namedProperties.value); }
+    | tokenFilters                  { $value = new TokenFilters($tokenFilters.value); }
+    | charFilters                   { $value = new CharFilters($charFilters.value); }
+    | genericProperty               { $value = $genericProperty.value; }
+    ;
+
+
+tokenFilters returns [List<NamedProperties> value = new ArrayList<>()]
+    : ^(TOKEN_FILTERS ( namedProperties { $value.add($namedProperties.value); } )+ )
+    ;
+
+charFilters returns [List<NamedProperties> value = new ArrayList<>()]
+    : ^(CHAR_FILTERS ( namedProperties { $value.add($namedProperties.value); } )+ )
+    ;
+
+namedProperties returns [NamedProperties value]
+    : ^(NAMED_PROPERTIES ident genericProperties?) { $value = new NamedProperties($ident.value, $genericProperties.value); }
     ;

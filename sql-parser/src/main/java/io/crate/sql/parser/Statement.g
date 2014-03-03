@@ -100,6 +100,8 @@ tokens {
     LITERAL_LIST;
     OBJECT_COLUMNS;
     INDEX_OFF;
+    ANALYZER_ELEMENTS;
+    NAMED_PROPERTIES;
 }
 
 @header {
@@ -183,6 +185,7 @@ statement
     | deleteStmt
     | updateStmt
     | copyStmt
+    | createAnalyzerStmt
     ;
 
 query
@@ -829,6 +832,42 @@ replicas
     : REPLICAS integer -> ^(REPLICAS integer)
     ;
 
+
+createAnalyzerStmt
+    : CREATE ANALYZER ident extendsAnalyzer? analyzerElementList -> ^(ANALYZER ident extendsAnalyzer? analyzerElementList)
+    ;
+
+extendsAnalyzer
+    : EXTENDS ident -> ^(EXTENDS ident)
+    ;
+
+analyzerElementList
+    : WITH? '(' analyzerElement ( ',' analyzerElement )* ')' -> ^(ANALYZER_ELEMENTS analyzerElement+)
+    ;
+
+analyzerElement
+    : tokenizer
+    | tokenFilters
+    | charFilters
+    | genericProperty
+    ;
+
+tokenizer
+    : TOKENIZER namedProperties -> ^(TOKENIZER namedProperties)
+    ;
+
+tokenFilters
+    : TOKEN_FILTERS (WITH? '(' namedProperties (',' namedProperties )* ')' ) -> ^(TOKEN_FILTERS namedProperties+)
+    ;
+
+charFilters
+    : CHAR_FILTERS (WITH? '(' namedProperties (',' namedProperties )* ')' ) -> ^(CHAR_FILTERS namedProperties+)
+    ;
+
+namedProperties
+    : ident (WITH? '(' genericProperties ')' )? -> ^(NAMED_PROPERTIES ident genericProperties?)
+    ;
+
 nonReserved
     : SHOW | TABLES | COLUMNS | PARTITIONS | FUNCTIONS | SCHEMAS | CATALOGS
     | OVER | PARTITION | RANGE | ROWS | PRECEDING | FOLLOWING | CURRENT | ROW
@@ -839,7 +878,8 @@ nonReserved
     | TABLESAMPLE | SYSTEM | BERNOULLI
     | DYNAMIC | STRICT | IGNORED
     | PLAIN | FULLTEXT | OFF
-    | REPLICAS | SHARDS | CLUSTERED | COPY
+    | REPLICAS | SHARDS | CLUSTERED | COPY | ANALYZER
+    | EXTENDS | TOKENIZER | CHAR_FILTERS | TOKEN_FILTERS
     ;
 
 SELECT: 'SELECT';
@@ -981,6 +1021,12 @@ STRICT: 'STRICT';
 IGNORED: 'IGNORED';
 
 ARRAY: 'ARRAY';
+
+ANALYZER: 'ANALYZER';
+EXTENDS: 'EXTENDS';
+TOKENIZER: 'TOKENIZER';
+TOKEN_FILTERS: 'TOKEN_FILTERS';
+CHAR_FILTERS: 'CHAR_FILTERS';
 
 
 EQ  : '=';

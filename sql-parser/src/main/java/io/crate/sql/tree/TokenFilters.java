@@ -22,42 +22,24 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-/**
- *
- * A key-value entry mapping a string to a list of <code>Expression</code>s.
- * A <code>GenericProperty</code> always belongs to {@link io.crate.sql.tree.GenericProperties}.
- * <p>
- * It does not need to be visited.
- * Values are merged into {@link io.crate.sql.tree.GenericProperties}.
- * <p>
- * Instance of {@link io.crate.sql.tree.AnalyzerElement} but frequently used in other
- * {@link io.crate.sql.tree.GenericProperties} contexts.
- */
-public class GenericProperty extends AnalyzerElement {
+public class TokenFilters extends AnalyzerElement {
 
-    private final String key;
-    private final List<Expression> value;
+    private final List<NamedProperties> tokenFilters;
 
-    public GenericProperty(String key, List<Expression> value) {
-        this.key = key;
-        this.value = Objects.firstNonNull(value, ImmutableList.<Expression>of());
+    public TokenFilters(List<NamedProperties> tokenFilters) {
+        this.tokenFilters = tokenFilters;
     }
 
-    public String key() {
-        return key;
-    }
-
-    public List<Expression> value() {
-        return value;
+    public List<NamedProperties> tokenFilters() {
+        return tokenFilters;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(key, value);
+        return Objects.hashCode(tokenFilters);
     }
 
     @Override
@@ -65,19 +47,15 @@ public class GenericProperty extends AnalyzerElement {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        GenericProperty that = (GenericProperty) o;
+        TokenFilters that = (TokenFilters) o;
 
-        if (!key.equals(that.key)) return false;
-        if (!value.equals(that.value)) return false;
+        if (!tokenFilters.equals(that.tokenFilters)) return false;
 
         return true;
     }
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
-                .add("key", key)
-                .add("value", value)
-                .toString();
+        return Objects.toStringHelper(this).add("tokenFilters", tokenFilters).toString();
     }
 }

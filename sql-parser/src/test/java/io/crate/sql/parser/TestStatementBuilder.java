@@ -166,6 +166,32 @@ public class TestStatementBuilder
         printStatement("create table test (prime long, primes array(long), unique_dates set(timestamp))");
         printStatement("create table test (nested set(set(array(boolean))))");
         printStatement("create table test (object_array array(object(dynamic) as (i integer, s set(string))))");
+
+
+        printStatement("create analyzer myAnalyzer ( tokenizer german )");
+        printStatement("create analyzer my_analyzer WITH (" +
+                " token_filters WITH (" +
+                "   filter_1," +
+                "   filter_2," +
+                "   filter_3 WITH (" +
+                "     \"some\"=?" +
+                "   )" +
+                " )," +
+                " tokenizer my_tokenizer WITH (" +
+                "   property='value'," +
+                "   property_list=['l', 'i', 's', 't']" +
+                " )," +
+                " char_filters (" +
+                "   filter_1," +
+                "   filter_2 (" +
+                "     some='property'" +
+                "   )," +
+                "   filter_3" +
+                " )" +
+                ")");
+        printStatement("create analyzer my_builtin extends builtin (" +
+                "  over='write'" +
+                ")");
     }
 
     @Test

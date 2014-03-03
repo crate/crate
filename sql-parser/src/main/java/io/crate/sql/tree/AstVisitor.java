@@ -484,4 +484,8 @@ public abstract class AstVisitor<R, C>
     public R visitDropTable(DropTable node, C context) {
         return visitStatement(node, context);
     }
+
+    public R visitCreateAnalyzer(CreateAnalyzer node, C context) {
+        return visitStatement(node, context);
+    }
 }
