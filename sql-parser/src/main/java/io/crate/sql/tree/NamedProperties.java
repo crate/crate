@@ -22,42 +22,31 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableList;
+import com.google.common.base.Optional;
 
-import java.util.List;
+import javax.annotation.Nullable;
 
-/**
- *
- * A key-value entry mapping a string to a list of <code>Expression</code>s.
- * A <code>GenericProperty</code> always belongs to {@link io.crate.sql.tree.GenericProperties}.
- * <p>
- * It does not need to be visited.
- * Values are merged into {@link io.crate.sql.tree.GenericProperties}.
- * <p>
- * Instance of {@link io.crate.sql.tree.AnalyzerElement} but frequently used in other
- * {@link io.crate.sql.tree.GenericProperties} contexts.
- */
-public class GenericProperty extends AnalyzerElement {
+public class NamedProperties extends Node {
 
-    private final String key;
-    private final List<Expression> value;
+    private final String ident;
+    private final Optional<GenericProperties> properties;
 
-    public GenericProperty(String key, List<Expression> value) {
-        this.key = key;
-        this.value = Objects.firstNonNull(value, ImmutableList.<Expression>of());
+    public NamedProperties(String ident, @Nullable GenericProperties properties) {
+        this.ident = ident;
+        this.properties = Optional.fromNullable(properties);
     }
 
-    public String key() {
-        return key;
+    public String ident() {
+        return ident;
     }
 
-    public List<Expression> value() {
-        return value;
+    public Optional<GenericProperties> properties() {
+        return properties;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(key, value);
+        return Objects.hashCode(ident, properties);
     }
 
     @Override
@@ -65,10 +54,10 @@ public class GenericProperty extends AnalyzerElement {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        GenericProperty that = (GenericProperty) o;
+        NamedProperties that = (NamedProperties) o;
 
-        if (!key.equals(that.key)) return false;
-        if (!value.equals(that.value)) return false;
+        if (!ident.equals(that.ident)) return false;
+        if (!properties.equals(that.properties)) return false;
 
         return true;
     }
@@ -76,8 +65,8 @@ public class GenericProperty extends AnalyzerElement {
     @Override
     public String toString() {
         return Objects.toStringHelper(this)
-                .add("key", key)
-                .add("value", value)
+                .add("ident", ident)
+                .add("properties", properties)
                 .toString();
     }
 }

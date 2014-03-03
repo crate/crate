@@ -22,42 +22,27 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableList;
+import com.google.common.base.Optional;
 
-import java.util.List;
+public class Tokenizer extends AnalyzerElement {
 
-/**
- *
- * A key-value entry mapping a string to a list of <code>Expression</code>s.
- * A <code>GenericProperty</code> always belongs to {@link io.crate.sql.tree.GenericProperties}.
- * <p>
- * It does not need to be visited.
- * Values are merged into {@link io.crate.sql.tree.GenericProperties}.
- * <p>
- * Instance of {@link io.crate.sql.tree.AnalyzerElement} but frequently used in other
- * {@link io.crate.sql.tree.GenericProperties} contexts.
- */
-public class GenericProperty extends AnalyzerElement {
+    private final NamedProperties namedProperties;
 
-    private final String key;
-    private final List<Expression> value;
-
-    public GenericProperty(String key, List<Expression> value) {
-        this.key = key;
-        this.value = Objects.firstNonNull(value, ImmutableList.<Expression>of());
+    public Tokenizer(NamedProperties namedProperties) {
+        this.namedProperties = namedProperties;
     }
 
-    public String key() {
-        return key;
+    public Optional<GenericProperties> properties() {
+        return namedProperties.properties();
     }
 
-    public List<Expression> value() {
-        return value;
+    public String ident() {
+        return namedProperties.ident();
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(key, value);
+        return Objects.hashCode(namedProperties);
     }
 
     @Override
@@ -65,19 +50,15 @@ public class GenericProperty extends AnalyzerElement {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        GenericProperty that = (GenericProperty) o;
+        Tokenizer tokenizer = (Tokenizer) o;
 
-        if (!key.equals(that.key)) return false;
-        if (!value.equals(that.value)) return false;
+        if (!namedProperties.equals(tokenizer.namedProperties)) return false;
 
         return true;
     }
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
-                .add("key", key)
-                .add("value", value)
-                .toString();
+        return Objects.toStringHelper(this).add("namedProperties", namedProperties).toString();
     }
 }
