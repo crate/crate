@@ -34,8 +34,6 @@ import org.elasticsearch.common.rounding.DateTimeUnit;
 import org.elasticsearch.common.rounding.TimeZoneRounding;
 import org.joda.time.DateTimeZone;
 
-import java.util.TimeZone;
-
 public class DateTruncFunction implements Scalar<Long, Object> {
 
     public static final String NAME = "date_trunc";
@@ -51,7 +49,7 @@ public class DateTruncFunction implements Scalar<Long, Object> {
         .put(new BytesRef("minute"), DateTimeUnit.MINUTES_OF_HOUR)
         .put(new BytesRef("second"), DateTimeUnit.SECOND_OF_MINUTE)
         .immutableMap();
-    private static final DateTimeZone DEFAULT_TZ =  DateTimeZone.forTimeZone(TimeZone.getDefault());
+    private static final DateTimeZone DEFAULT_TZ = DateTimeZone.UTC;
     private final FunctionInfo info;
 
     public DateTruncFunction(FunctionInfo info) {
