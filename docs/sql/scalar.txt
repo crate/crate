@@ -17,8 +17,12 @@ date_trunc('interval', timestamp)
 The ``date_trunc`` function truncates given ``timestamp`` down to the given
 ``interval``.
 
-Truncation is based on the configured default time zone of
-the JVM.
+Truncation is based on UTC time zone since Crate Data stores timestamps
+as UTC milliseconds since the epoch.
+
+.. seealso::
+
+    :doc:`ddl`
 
 Valid values for ``interval`` are:
 
@@ -48,9 +52,9 @@ day based histogram::
     +---------------+---------------+
     | day           | num_locations |
     +---------------+---------------+
-    | 308530800000  | 4             |
-    | 1367359200000 | 1             |
-    | 1373925600000 | 8             |
+    | 308534400000  | 4             |
+    | 1367366400000 | 1             |
+    | 1373932800000 | 8             |
     +---------------+---------------+
     SELECT 3 rows in set (... sec)
 
