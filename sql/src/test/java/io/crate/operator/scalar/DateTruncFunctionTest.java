@@ -68,6 +68,18 @@ public class DateTruncFunctionTest {
         return func.normalizeSymbol(function);
     }
 
+    private void assertTruncated(String interval, Long timestamp, Long expected) throws Exception {
+        BytesRef ival = null;
+        if (interval != null) {
+            ival = new BytesRef(interval);
+        }
+        Input[] inputs = new Input[] {
+                new DateTruncInput(ival),
+                new DateTruncInput(timestamp),
+        };
+        assertThat(func.evaluate(inputs), is(expected));
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void testNormalizeSymbolUnknownInterval() throws Exception {
         normalize(new StringLiteral("unknown interval"), new StringLiteral(""));
@@ -115,18 +127,6 @@ public class DateTruncFunctionTest {
         assertTruncated("month", TIMESTAMP, 917827200000L);      // Mon Feb  1 00:00:00.000 UTC 1999
         assertTruncated("year", TIMESTAMP, 915148800000L);       // Fri Jan  1 00:00:00.000 UTC 1999
         assertTruncated("quarter", TIMESTAMP, 915148800000L);    // Fri Jan  1 00:00:00.000 UTC 1999
-    }
-
-    private void assertTruncated(String interval, Long timestamp, Long expected) throws Exception {
-        BytesRef ival = null;
-        if (interval != null) {
-            ival = new BytesRef(interval);
-        }
-        Input[] inputs = new Input[] {
-                new DateTruncInput(ival),
-                new DateTruncInput(timestamp),
-        };
-        assertThat(func.evaluate(inputs), is(expected));
     }
 
 }

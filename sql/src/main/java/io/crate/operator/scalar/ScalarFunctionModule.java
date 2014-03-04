@@ -42,5 +42,6 @@ public class ScalarFunctionModule extends AbstractModule {
         CollectionAverageFunction.register(this);
         MatchFunction.register(this);
         DateTruncFunction.register(this);
+        DateTruncTimeZoneAwareFunction.register(this);
     }
 }

@@ -21,40 +21,15 @@
 package io.crate.operator.scalar;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
 import io.crate.operator.Input;
 import io.crate.planner.symbol.*;
-import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
-import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.rounding.DateTimeUnit;
-import org.elasticsearch.common.rounding.TimeZoneRounding;
 import org.joda.time.DateTimeZone;
 
-public class DateTruncFunction implements Scalar<Long, Object> {
-
-    public static final String NAME = "date_trunc";
-    protected static final ImmutableMap<BytesRef, DateTimeUnit> DATE_FIELD_PARSERS = MapBuilder.<BytesRef, DateTimeUnit>newMapBuilder()
-        // we only store timestamps in milliseconds since epoch.
-        // therefore, we supporting 'milliseconds' and 'microseconds' wouldn't affect anything.
-        .put(new BytesRef("year"), DateTimeUnit.YEAR_OF_CENTURY)
-        .put(new BytesRef("quarter"), DateTimeUnit.QUARTER)
-        .put(new BytesRef("month"), DateTimeUnit.MONTH_OF_YEAR)
-        .put(new BytesRef("week"), DateTimeUnit.WEEK_OF_WEEKYEAR)
-        .put(new BytesRef("day"), DateTimeUnit.DAY_OF_MONTH)
-        .put(new BytesRef("hour"), DateTimeUnit.HOUR_OF_DAY)
-        .put(new BytesRef("minute"), DateTimeUnit.MINUTES_OF_HOUR)
-        .put(new BytesRef("second"), DateTimeUnit.SECOND_OF_MINUTE)
-        .immutableMap();
-    private static final DateTimeZone DEFAULT_TZ = DateTimeZone.UTC;
-    private final FunctionInfo info;
-
-    public DateTruncFunction(FunctionInfo info) {
-        this.info = info;
-    }
+public class DateTruncFunction extends BaseDateTruncFunction {
 
     public static void register(ScalarFunctionModule module) {
         FunctionIdent timestampFunctionIdent = new FunctionIdent(NAME,
@@ -63,9 +38,10 @@ public class DateTruncFunction implements Scalar<Long, Object> {
                 new FunctionInfo(timestampFunctionIdent, DataType.TIMESTAMP)));
     }
 
-    @Override
-    public FunctionInfo info() {
-        return info;
+    private static final DateTimeZone DEFAULT_TZ = DateTimeZone.UTC;
+
+    public DateTruncFunction(FunctionInfo info) {
+        super(info);
     }
 
     @Override
@@ -73,10 +49,7 @@ public class DateTruncFunction implements Scalar<Long, Object> {
         assert (symbol.arguments().size() == 2);
 
         StringLiteral interval = (StringLiteral) symbol.arguments().get(0);
-        if (!DATE_FIELD_PARSERS.containsKey(interval.value())) {
-            throw new IllegalArgumentException(
-                    SymbolFormatter.format("unknown interval %s for '%s'", interval, symbol));
-        }
+        isValidInterval(interval, symbol);
 
         if (symbol.arguments().get(1).symbolType().isLiteral()) {
             Literal timestamp = (Literal)symbol.arguments().get(1);
@@ -96,21 +69,7 @@ public class DateTruncFunction implements Scalar<Long, Object> {
         DateTimeUnit fieldParser = DATE_FIELD_PARSERS.get(args[0].value());
         assert fieldParser != null;
 
-        return truncate(fieldParser, (Long) args[1].value());
-    }
-
-    private Long truncate(DateTimeUnit interval, Long ts) {
-        TimeZoneRounding.Builder tzRoundingBuilder;
-        if (interval != null) {
-            tzRoundingBuilder = TimeZoneRounding.builder(interval);
-        } else {
-            return null;
-        }
-        TimeZoneRounding tzRounding = tzRoundingBuilder
-                .preZone(DEFAULT_TZ)
-                .preZoneAdjustLargeInterval(true)
-                .build();
-        return tzRounding.round(ts);
+        return truncate(fieldParser, (Long) args[1].value(), DEFAULT_TZ);
     }
 
 }
