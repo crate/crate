@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crate-admin to 0.2.1
+
  - added ``information_schema.table_constraints``
 
 2014/03/04 0.24.0
