@@ -28,11 +28,7 @@ import io.crate.operator.Input;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.util.TimeZone;
 
 import static junit.framework.Assert.assertSame;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -41,7 +37,7 @@ import static org.junit.Assert.assertThat;
 
 public class DateTruncFunctionTest {
 
-    // timestamp for Do Feb 25 13:38:01.123 CET 1999
+    // timestamp for Do Feb 25 12:38:01.123 UTC 1999
     private static final Long TIMESTAMP = 919946281123L;
 
     private final FunctionInfo functionInfo = new FunctionInfo(
@@ -53,17 +49,6 @@ public class DateTruncFunctionTest {
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
-    }
-
-    private static TimeZone systemDefaultTimeZone = TimeZone.getDefault();
-    @BeforeClass
-    public static void setTimeZone() {
-        TimeZone.setDefault(TimeZone.getTimeZone("Europe/Vienna"));
-    }
-
-    @AfterClass
-    public static void restoreTimeZone() {
-        TimeZone.setDefault(systemDefaultTimeZone);
     }
 
     protected class DateTruncInput implements Input<Object> {
@@ -100,7 +85,7 @@ public class DateTruncFunctionTest {
     public void testNormalizeSymbolTimestampLiteral() throws Exception {
         Symbol result = normalize(new StringLiteral("day"), new TimestampLiteral("2014-02-25T13:38:01.123"));
         assertThat(result, instanceOf(TimestampLiteral.class));
-        assertThat(((TimestampLiteral)result).value(), is(1393282800000L));
+        assertThat(((TimestampLiteral)result).value(), is(1393286400000L));
     }
 
     @Test(expected = AssertionError.class)
@@ -115,21 +100,21 @@ public class DateTruncFunctionTest {
 
     @Test
     public void testEvaluatePreconditions() throws Exception {
-        Long expected = 919946281000L;  // Thu Feb 25 13:38:01 CET 1999
+        Long expected = 919946281000L;  // Thu Feb 25 12:38:01 UTC 1999
         assertTruncated("second", null, null);
         assertTruncated("second", TIMESTAMP, expected);
     }
 
     @Test
     public void testEvaluate() throws Exception {
-        assertTruncated("second", TIMESTAMP, 919946281000L);     // Thu Feb 25 13:38:01.000 CET 1999
-        assertTruncated("minute", TIMESTAMP, 919946280000L);     // Thu Feb 25 13:38:00.000 CET 1999
-        assertTruncated("hour", TIMESTAMP, 919944000000L);       // Thu Feb 25 13:00:00.000 CET 1999
-        assertTruncated("day", TIMESTAMP, 919897200000L);        // Thu Feb 25 00:00:00.000 CET 1999
-        assertTruncated("week", TIMESTAMP, 919638000000L);       // Mon Feb 22 00:00:00.000 CET 1999
-        assertTruncated("month", TIMESTAMP, 917823600000L);      // Mon Feb  1 00:00:00.000 CET 1999
-        assertTruncated("year", TIMESTAMP, 915145200000L);       // Fri Jan  1 00:00:00.000 CET 1999
-        assertTruncated("quarter", TIMESTAMP, 915145200000L);    // Fri Jan  1 00:00:00.000 CET 1999
+        assertTruncated("second", TIMESTAMP, 919946281000L);     // Thu Feb 25 12:38:01.000 UTC 1999
+        assertTruncated("minute", TIMESTAMP, 919946280000L);     // Thu Feb 25 12:38:00.000 UTC 1999
+        assertTruncated("hour", TIMESTAMP, 919944000000L);       // Thu Feb 25 12:00:00.000 UTC 1999
+        assertTruncated("day", TIMESTAMP, 919900800000L);        // Thu Feb 25 00:00:00.000 UTC 1999
+        assertTruncated("week", TIMESTAMP, 919641600000L);       // Mon Feb 22 00:00:00.000 UTC 1999
+        assertTruncated("month", TIMESTAMP, 917827200000L);      // Mon Feb  1 00:00:00.000 UTC 1999
+        assertTruncated("year", TIMESTAMP, 915148800000L);       // Fri Jan  1 00:00:00.000 UTC 1999
+        assertTruncated("quarter", TIMESTAMP, 915148800000L);    // Fri Jan  1 00:00:00.000 UTC 1999
     }
 
     private void assertTruncated(String interval, Long timestamp, Long expected) throws Exception {

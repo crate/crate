@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - use UTC as default time zone when performing date_trunc
+
  - use crate-admin 0.1.1
 
  - added scalar function date_trunc
