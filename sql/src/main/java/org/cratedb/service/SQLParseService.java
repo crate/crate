@@ -21,7 +21,6 @@
 
 package org.cratedb.service;
 
-import org.cratedb.action.parser.visitors.AnalyzerVisitor;
 import org.cratedb.action.parser.visitors.BaseVisitor;
 import org.cratedb.action.parser.visitors.TableVisitor;
 import org.cratedb.action.sql.NodeExecutionContext;
@@ -131,9 +130,6 @@ public class SQLParseService {
                 case CREATE_TABLE_NODE:
                 case DROP_TABLE_NODE:
                     visitor = new TableVisitor(context, stmt, args);
-                    break;
-                case CREATE_ANALYZER_NODE:
-                    visitor = new AnalyzerVisitor(context, stmt, args);
                     break;
                 default:
                     throw new UnsupportedOperationException();

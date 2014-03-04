@@ -58,4 +58,9 @@ public class TokenFilters extends AnalyzerElement {
     public String toString() {
         return Objects.toStringHelper(this).add("tokenFilters", tokenFilters).toString();
     }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitTokenFilters(this, context);
+    }
 }

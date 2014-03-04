@@ -469,6 +469,10 @@ public abstract class AstVisitor<R, C>
         return visitNode(node, context);
     }
 
+    public R visitGenericProperty(GenericProperty node, C context) {
+        return visitNode(node, context);
+    }
+
     public R visitPrimaryKeyConstraint(PrimaryKeyConstraint node, C context) {
         return visitNode(node, context);
     }
@@ -487,5 +491,17 @@ public abstract class AstVisitor<R, C>
 
     public R visitCreateAnalyzer(CreateAnalyzer node, C context) {
         return visitStatement(node, context);
+    }
+
+    public R visitTokenizer(Tokenizer node, C context) {
+        return visitNode(node, context);
+    }
+
+    public R visitCharFilters(CharFilters node, C context) {
+        return visitNode(node, context);
+    }
+
+    public R visitTokenFilters(TokenFilters node, C context) {
+        return visitNode(node, context);
     }
 }

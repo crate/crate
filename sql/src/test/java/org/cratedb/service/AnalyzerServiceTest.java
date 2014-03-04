@@ -23,8 +23,12 @@ package org.cratedb.service;
 
 import com.google.common.base.Joiner;
 import org.cratedb.SQLTransportIntegrationTest;
+import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
+import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.parser.StandardException;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -32,11 +36,14 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.collection.IsMapContaining.hasEntry;
+import static org.hamcrest.collection.IsMapContaining.hasKey;
 
 public class AnalyzerServiceTest extends SQLTransportIntegrationTest {
 
@@ -55,6 +62,11 @@ public class AnalyzerServiceTest extends SQLTransportIntegrationTest {
         synchronized (AnalyzerServiceTest.class) {
             analyzerService = null;
         }
+    }
+
+    public Settings getPersistentClusterSettings() {
+        ClusterStateResponse response = client().admin().cluster().prepareState().execute().actionGet();
+        return response.getState().metaData().persistentSettings();
     }
 
     @Test
@@ -290,5 +302,168 @@ public class AnalyzerServiceTest extends SQLTransportIntegrationTest {
         assertThat(Joiner.on(", ").join(charFilters),
                 is("htmlStrip, html_strip, mapping, pattern_replace"));
     }
+
+    @Test
+    public void createAndExtendFullCustomAnalyzer() throws IOException {
+        execute("CREATE ANALYZER a7 (" +
+                "  char_filters (" +
+                "     mypattern WITH (" +
+                "       type='pattern_replace'," +
+                "      \"pattern\" ='sample(.*)',\n" +
+                "      \"replacement\" = 'replacedSample $1'" +
+                "     )," +
+                "     \"html_strip\"" +
+                "  )," +
+                "  tokenizer mytok WITH (" +
+                "    type='edgeNGram'," +
+                "    \"min_gram\" = 2," +
+                "    \"max_gram\" = 5," +
+                "    \"token_chars\" = [ 'letter', 'digit' ]" +
+                "  )," +
+                "  token_filters WITH (" +
+                "    myshingle WITH (" +
+                "      type='shingle'," +
+                "      \"output_unigrams\"=false," +
+                "      \"max_shingle_size\"=10" +
+                "    )," +
+                "    lowercase," +
+                "    \"my_stemmer\" WITH (" +
+                "      type='stemmer'," +
+                "      language='german'" +
+                "    )" +
+                "  )" +
+                ")");
+        Settings settings = getPersistentClusterSettings();
+
+        assertThat(
+                settings.getAsMap(),
+                allOf(
+                        hasKey("crate.analysis.custom.analyzer.a7"),
+                        hasKey("crate.analysis.custom.tokenizer.a7_mytok"),
+                        hasKey("crate.analysis.custom.char_filter.a7_mypattern"),
+                        hasKey("crate.analysis.custom.filter.a7_myshingle"),
+                        hasKey("crate.analysis.custom.filter.a7_my_stemmer")
+                )
+        );
+        Settings analyzerSettings = AnalyzerService.decodeSettings(settings.get("crate.analysis.custom.analyzer.a7"));
+        assertThat(
+                analyzerSettings.getAsArray("index.analysis.analyzer.a7.char_filter"),
+                arrayContainingInAnyOrder("a7_mypattern", "html_strip")
+        );
+        assertThat(
+                analyzerSettings.getAsArray("index.analysis.analyzer.a7.filter"),
+                arrayContainingInAnyOrder("a7_myshingle", "lowercase", "a7_my_stemmer")
+        );
+        assertThat(
+                analyzerSettings.getAsMap(),
+                hasEntry("index.analysis.analyzer.a7.tokenizer", "a7_mytok")
+        );
+        execute("CREATE ANALYZER a8 EXTENDS a7 WITH (" +
+                "  token_filters (" +
+                "    lowercase," +
+                "    kstem" +
+                "  )" +
+                ")");
+        Settings extendedSettings = getPersistentClusterSettings();
+        assertThat(
+                extendedSettings.getAsMap(),
+                allOf(
+                        hasKey("crate.analysis.custom.analyzer.a8"),
+                        hasKey("crate.analysis.custom.tokenizer.a7_mytok")
+                )
+        );
+        Settings extendedAnalyzerSettings = AnalyzerService.decodeSettings(extendedSettings.get("crate.analysis.custom.analyzer.a8"));
+        assertThat(
+                extendedAnalyzerSettings.getAsMap(),
+                hasEntry("index.analysis.analyzer.a8.type", "custom")
+        );
+        assertThat(
+                extendedAnalyzerSettings.getAsMap(),
+                hasEntry("index.analysis.analyzer.a8.tokenizer", "a7_mytok")
+        );
+        assertThat(
+                extendedAnalyzerSettings.getAsArray("index.analysis.analyzer.a8.filter"),
+                arrayContainingInAnyOrder("lowercase", "kstem")
+        );
+        assertThat(
+                extendedAnalyzerSettings.getAsArray("index.analysis.analyzer.a8.char_filter"),
+                arrayContainingInAnyOrder("a7_mypattern", "html_strip")
+        );
+
+    }
+
+    @Test
+    public void reuseExistingTokenizer() throws StandardException, IOException, InterruptedException {
+
+        execute("CREATE ANALYZER a9 (" +
+                "  TOKENIZER a9tok WITH (" +
+                "    type='nGram'," +
+                "    \"token_chars\"=['letter', 'digit']" +
+                "  )" +
+                ")");
+        try {
+            execute("CREATE ANALYZER a10 (" +
+                    "  TOKENIZER a9tok" +
+                    ")");
+            fail("Reusing existing tokenizer worked");
+        } catch (SQLParseException e) {
+            assertThat(e.getMessage(), is("Non-existing tokenizer 'a9tok'"));
+        }
+        /*
+         * NOT SUPPORTED UNTIL A CONSISTENT SOLUTION IS FOUND
+         * FOR IMPLICITLY CREATING TOKENIZERS ETC. WITHIN ANALYZER-DEFINITIONS
+
+        Settings settings = getPersistentClusterSettings();
+        Settings a10Settings = AnalyzerService.decodeSettings(settings.get("crate.analysis.custom.analyzer.a10"));
+        assertThat(
+                a10Settings.getAsMap(),
+                hasEntry("index.analysis.analyzer.a10.tokenizer", "a9tok")
+        );
+        */
+    }
+
+    @Test
+    public void useAnalyzerForIndexSettings() throws StandardException, IOException {
+        execute("CREATE ANALYZER a11 (" +
+                "  TOKENIZER standard," +
+                "  TOKEN_FILTERS WITH (" +
+                "    lowercase," +
+                "    mystop WITH (" +
+                "      type='stop'," +
+                "      stopword=['the', 'over']" +
+                "    )" +
+                "  )" +
+                ")");
+        Settings settings = getPersistentClusterSettings();
+        assertThat(
+                settings.getAsMap(),
+                allOf(
+                        hasKey("crate.analysis.custom.analyzer.a11"),
+                        hasKey("crate.analysis.custom.filter.a11_mystop")
+                )
+        );
+        Settings analyzerSettings = AnalyzerService.decodeSettings(settings.get("crate.analysis.custom.analyzer.a11"));
+        Settings tokenFilterSettings = AnalyzerService.decodeSettings(settings.get("crate" +
+                ".analysis.custom.filter.a11_mystop"));
+        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        builder.put(analyzerSettings);
+        builder.put(tokenFilterSettings);
+
+        execute("create table test (" +
+                " id integer primary key," +
+                " name string," +
+                " content string index using fulltext with (analyzer='a11')" +
+                ")");
+        ensureGreen();
+        execute("insert into test (id, name, content) values (?, ?, ?)", new Object[]{
+                1, "phrase", "The quick brown fox jumps over the lazy dog."
+        });
+        execute("insert into test (id, name, content) values (?, ?, ?)", new Object[]{
+                2, "another phrase", "Don't panic!"
+        });
+        refresh();
+        SQLResponse response = execute("select id from test where match(content, 'brown jump')");
+        assertEquals(1L, response.rowCount());
+        assertEquals(1, response.rows()[0][0]);    }
 
 }

@@ -24,7 +24,6 @@ package org.cratedb.action.sql.analyzer;
 import com.google.common.collect.ImmutableSet;
 import org.apache.lucene.analysis.Analyzer;
 import org.cratedb.Constants;
-import org.cratedb.action.parser.visitors.AnalyzerVisitor;
 import org.cratedb.sql.AnalyzerInvalidException;
 import org.cratedb.sql.AnalyzerUnknownException;
 import org.cratedb.sql.parser.StandardException;
@@ -67,6 +66,9 @@ public class AnalyzerService {
             "hunspell", "cjk_bigram", "cjk_width");
     private static final ImmutableSet<String> EXTENDED_BUILTIN_CHAR_FILTERS = ImmutableSet
             .of("mapping", "pattern_replace");
+
+    // used for saving the creation statement
+    public static final String SQL_STATEMENT_KEY = "_sql_stmt";
 
     private ESLogger logger = Loggers.getLogger(AnalyzerService.class);
 
@@ -137,7 +139,7 @@ public class AnalyzerService {
     public String getCustomAnalyzerSource(String name) {
         return clusterService.state().metaData().persistentSettings().get(
                 String.format("%s.%s.%s.%s", Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX,
-                        CustomType.ANALYZER.getName(), name, AnalyzerVisitor.SQL_STATEMENT_KEY)
+                        CustomType.ANALYZER.getName(), name, SQL_STATEMENT_KEY)
         );
     }
 
@@ -145,7 +147,7 @@ public class AnalyzerService {
         Map<String, Settings> result = new HashMap<>();
         for (Map.Entry<String, String> entry : getCustomThingies(CustomType.ANALYZER)
                 .getAsMap().entrySet()) {
-            if (!entry.getKey().endsWith("." + AnalyzerVisitor.SQL_STATEMENT_KEY)) {
+            if (!entry.getKey().endsWith("." + SQL_STATEMENT_KEY)) {
                 result.put(entry.getKey(), decodeSettings(entry.getValue()));
             }
         }
