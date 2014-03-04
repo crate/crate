@@ -256,7 +256,7 @@ public class DocIndexMetaData {
             Map<String, Object> columnProperties = (Map) columnEntry.getValue();
             DataType columnDataType = getColumnDataType(columnEntry.getKey(), columnIdent, columnProperties);
 
-            if (columnDataType == DataType.OBJECT) {
+            if (columnDataType == DataType.OBJECT || columnDataType == DataType.OBJECT_ARRAY) {
                 ReferenceInfo.ObjectType objectType =
                         ReferenceInfo.ObjectType.of(columnProperties.get("dynamic"));
                 ColumnIdent newIdent = childIdent(columnIdent, columnEntry.getKey());

@@ -750,6 +750,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         List<String> names = (List<String>)response.rows()[0][0];
         assertThat(names.get(0), is("foo"));
         assertThat(names.get(1), is("bar"));
+
+        execute("select objects['name'] from t1 where objects['name'] = ?", new Object[]{"foo"});
+        assertThat(response.rowCount(), is(1L));
     }
 
     @Test
