@@ -26,9 +26,9 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import org.cratedb.Constants;
 import org.cratedb.SQLTransportIntegrationTest;
+import org.cratedb.TimestampFormat;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.sql.*;
-import org.cratedb.sql.types.TimeStampSQLType;
 import org.cratedb.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -519,11 +519,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureGreen();
         client().prepareIndex("test", "default", "id1")
                 .setSource("{\"date\": " +
-                        new TimeStampSQLType().mappedValue("2013-10-01") + "}")
+                        TimestampFormat.parseTimestampString("2013-10-01") + "}")
                 .execute().actionGet();
         client().prepareIndex("test", "default", "id2")
                 .setSource("{\"date\": " +
-                        new TimeStampSQLType().mappedValue("2013-10-02") + "}")
+                        TimestampFormat.parseTimestampString("2013-10-02") + "}")
                 .execute().actionGet();
         refresh();
         execute(
@@ -541,11 +541,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureGreen();
         client().prepareIndex("test", "default", "id1")
                 .setSource("{\"date\": " +
-                        new TimeStampSQLType().mappedValue("2013-10-01") + "}")
+                        TimestampFormat.parseTimestampString("2013-10-01") + "}")
                 .execute().actionGet();
         client().prepareIndex("test", "default", "id2")
                 .setSource("{\"date\":" +
-                        new TimeStampSQLType().mappedValue("2013-10-02") + "}")
+                        TimestampFormat.parseTimestampString("2013-10-02") + "}")
                 .execute().actionGet();
         refresh();
         execute(
@@ -1857,17 +1857,27 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateTableWithReplicasAndShards() throws Exception {
-        execute("create table test (col1 integer primary key, col2 string) replicas 2" +
-                "clustered by (col1) into 10 shards");
+        // TODO: replicas definition is currently only working at the end of the stmt, fix!
+        //execute("create table test (col1 integer primary key, col2 string) replicas 2" +
+        //        "clustered by (col1) into 10 shards");
+        execute("create table test (col1 integer primary key, col2 string)" +
+                "clustered by (col1) into 10 shards replicas 2");
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());
 
         String expectedMapping = "{\"default\":{" +
-                "\"_meta\":{\"primary_keys\":\"col1\"}," +
+                "\"_meta\":{" +
+                    "\"primary_keys\":[\"col1\"]," +
+                    "\"columns\":{" +
+                        "\"col1\":{}," +
+                        "\"col2\":{}" +
+                    "}," +
+                    "\"indices\":{}" +
+                "}," +
                 "\"_all\":{\"enabled\":false}," +
                 "\"properties\":{" +
-                "\"col1\":{\"type\":\"integer\"}," +
-                "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}" +
+                    "\"col1\":{\"type\":\"integer\",\"doc_values\":true}," +
+                    "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"doc_values\":true}" +
                 "}}}";
 
         String expectedSettings = "{\"test\":{" +

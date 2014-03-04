@@ -1,1 +1,0 @@
-DROP INDEX if EXISTS table1.bad_index

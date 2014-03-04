@@ -1,1 +1,0 @@
-update t set a['b']['c']['d'] = 3

@@ -1,1 +1,0 @@
-FETCH 2 FROM pc

@@ -1,1 +1,0 @@
-SELECT * FROM t1 USE INDEX (idx_1, idx_2), t2

@@ -26,7 +26,6 @@ import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLResponse;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
 import org.cratedb.sql.SQLParseException;
-import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -70,7 +69,7 @@ public class AnalyzerServiceTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void resolveSimpleAnalyzerSettings() throws StandardException {
+    public void resolveSimpleAnalyzerSettings() throws Exception {
         execute("CREATE ANALYZER a1 WITH (tokenizer lowercase)");
         Settings fullAnalyzerSettings = analyzerService.resolveFullCustomAnalyzerSettings("a1");
         assertThat(fullAnalyzerSettings.getAsMap().size(), is(2));
@@ -85,7 +84,7 @@ public class AnalyzerServiceTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void resolveAnalyzerWithCustomTokenizer() throws StandardException {
+    public void resolveAnalyzerWithCustomTokenizer() throws Exception {
         execute("CREATE ANALYZER a2 WITH" +
                 "(" +
                 "   tokenizer tok2 with (" +
@@ -115,7 +114,7 @@ public class AnalyzerServiceTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void resolveAnalyzerWithCharFilters() throws StandardException {
+    public void resolveAnalyzerWithCharFilters() throws Exception {
         execute("CREATE ANALYZER a3 WITH" +
                 "(" +
                 "   tokenizer lowercase," +
@@ -154,7 +153,7 @@ public class AnalyzerServiceTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void resolveAnalyzerExtendingBuiltin() throws StandardException {
+    public void resolveAnalyzerExtendingBuiltin() throws Exception {
         execute("CREATE ANALYZER a4 EXTENDS " +
                 "german WITH (" +
                 "   \"stop_words\"=['der', 'die', 'das']" +
@@ -186,7 +185,7 @@ public class AnalyzerServiceTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void resolveAnalyzerExtendingCustom() throws StandardException {
+    public void resolveAnalyzerExtendingCustom() throws Exception {
         execute("CREATE ANALYZER a5 WITH (" +
                 "   tokenizer whitespace," +
                 "   token_filters (" +
@@ -393,7 +392,7 @@ public class AnalyzerServiceTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void reuseExistingTokenizer() throws StandardException, IOException, InterruptedException {
+    public void reuseExistingTokenizer() throws Exception {
 
         execute("CREATE ANALYZER a9 (" +
                 "  TOKENIZER a9tok WITH (" +
@@ -423,7 +422,7 @@ public class AnalyzerServiceTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void useAnalyzerForIndexSettings() throws StandardException, IOException {
+    public void useAnalyzerForIndexSettings() throws Exception {
         execute("CREATE ANALYZER a11 (" +
                 "  TOKENIZER standard," +
                 "  TOKEN_FILTERS WITH (" +

@@ -21,32 +21,22 @@
 
 package org.cratedb.sql.facet;
 
-import org.cratedb.action.sql.ParsedStatement;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.bytes.HashedBytesArray;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.facet.Facet;
 import org.elasticsearch.search.facet.InternalFacet;
 
 import java.io.IOException;
-import java.util.Map;
 
 public class InternalSQLFacet extends InternalFacet implements SQLFacet {
 
     private static final BytesReference STREAM_TYPE = new HashedBytesArray(Strings.toUTF8Bytes(
             "sql"));
 
-    private Object facet;
-    private String scriptLang;
-    private String reduceScript;
-    private Map<String, Object> reduceParams;
-    private ScriptService scriptService;
-    private Client client;
     private ReduceContext reduceContext;
     private Object[][] rows;
     private long rowCount;
@@ -72,7 +62,7 @@ public class InternalSQLFacet extends InternalFacet implements SQLFacet {
     /**
      * This method is called on the collecting node. In this implementation no reduction is done
      * here, since the statement is not known
-     * the real reduce happens in {@link SQLFacet#reduce(org.cratedb.action.sql.ParsedStatement)}
+     * the real reduce happens in {@link SQLFacet#reduce()}
      */
     @Override
     public Facet reduce(ReduceContext reduceContext) {

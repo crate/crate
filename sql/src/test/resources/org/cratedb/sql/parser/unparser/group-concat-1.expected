@@ -1,2 +1,0 @@
-SELECT (GROUP_CONCAT(type: null
-SEPARATOR ',')) FROM t

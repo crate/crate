@@ -1,1 +1,0 @@
-EXECUTE ps(100,'Smith')

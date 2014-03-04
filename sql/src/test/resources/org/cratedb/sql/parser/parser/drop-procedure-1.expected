@@ -1,4 +1,0 @@
-org.cratedb.sql.parser.parser.DropAliasNode@476020ed
-name: test.foo_bar
-statementType: DROP PROCEDURE
-existenceCheck: NO_CONDITION

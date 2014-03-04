@@ -1,1 +1,0 @@
-SET client_encoding TO 'ISO-8859-1'

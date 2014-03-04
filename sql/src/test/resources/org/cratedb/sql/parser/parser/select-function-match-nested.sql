@@ -1,1 +1,0 @@
-select col1 from t1 where match(col1['title'], 'test')

@@ -1,3 +1,0 @@
-[0]: DELETE FROM t1;
-[1]: DELETE FROM t2 WHERE x > 10;
-[2]: DELETE FROM t3;

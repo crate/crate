@@ -1,1 +1,0 @@
-org.cratedb.sql.parser.StandardException: Accessing nested columns by numeric index is not supported

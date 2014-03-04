@@ -1,1 +1,0 @@
-delete from t1 where name = 'fred' returning id

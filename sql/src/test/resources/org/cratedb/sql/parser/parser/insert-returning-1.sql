@@ -1,1 +1,0 @@
-insert into t1 (id, name, last_value) values (DEFAULT, 'fred', 'last') RETURNING id

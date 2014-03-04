@@ -1,1 +1,0 @@
-ALTER TABLE test.t1 RENAME test.t2

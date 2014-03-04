@@ -1,1 +1,0 @@
-CREATE TABLE t2(col1 object(STRICT) as (col11 integer, col12 string))

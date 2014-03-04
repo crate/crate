@@ -1,1 +1,0 @@
-select * from t offset 10 rows fetch next 90 rows only

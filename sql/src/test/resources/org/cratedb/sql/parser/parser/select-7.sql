@@ -1,1 +1,0 @@
-select * from t1 full outer join t2 on t1.x = t2.x
