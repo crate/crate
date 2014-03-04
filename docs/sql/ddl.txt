@@ -357,8 +357,8 @@ Example::
     ... ) replicas 1
     CREATE OK (... sec)
 
-While defining replication together with :ref:`sharding <sql_ddl_sharding>`,
-the ``REPLICAS <number_of_replicas>`` statement must comes last::
+While defining replication together with :ref:`sharding <sql_ddl_sharding>`, it needs to be
+defined after::
 
     cr> create table my_table10a (
     ...   first_column int,
