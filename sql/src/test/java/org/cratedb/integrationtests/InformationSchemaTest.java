@@ -21,6 +21,7 @@
 
 package org.cratedb.integrationtests;
 
+import com.google.common.base.Joiner;
 import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
@@ -31,11 +32,18 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.util.Collection;
 import java.util.HashMap;
+
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.is;
 
 
 @CrateIntegrationTest.ClusterScope(numNodes = 2, scope = CrateIntegrationTest.Scope.SUITE)
 public class InformationSchemaTest extends SQLTransportIntegrationTest {
+
+    static Joiner dotJoiner = Joiner.on('.');
+    static Joiner commaJoiner = Joiner.on(", ");
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -72,13 +80,14 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultTables() throws Exception {
         execute("select * from information_schema.tables order by schema_name, table_name");
-        assertEquals(5L, response.rowCount());
+        assertEquals(6L, response.rowCount());
 
         assertArrayEquals(response.rows()[0], new Object[]{"information_schema", "columns", 1, 0, null});
-        assertArrayEquals(response.rows()[1], new Object[]{"information_schema", "tables", 1, 0, null});
-        assertArrayEquals(response.rows()[2], new Object[]{"sys", "cluster", 1, 0, null});
-        assertArrayEquals(response.rows()[3], new Object[]{"sys", "nodes", 1, 0, null});
-        assertArrayEquals(response.rows()[4], new Object[]{"sys", "shards", 1, 0, null});
+        assertArrayEquals(response.rows()[1], new Object[]{"information_schema", "table_constraints", 1, 0, null});
+        assertArrayEquals(response.rows()[2], new Object[]{"information_schema", "tables", 1, 0, null});
+        assertArrayEquals(response.rows()[3], new Object[]{"sys", "cluster", 1, 0, null});
+        assertArrayEquals(response.rows()[4], new Object[]{"sys", "nodes", 1, 0, null});
+        assertArrayEquals(response.rows()[5], new Object[]{"sys", "shards", 1, 0, null});
     }
 
     @Test
@@ -86,7 +95,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         serviceSetup();
 
         execute("select * from information_schema.tables");
-        assertEquals(8L, response.rowCount());
+        assertEquals(9L, response.rowCount());
 
         client().execute(SQLAction.INSTANCE,
             new SQLRequest("create table t4 (col1 integer, col2 string)")).actionGet();
@@ -96,7 +105,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         Thread.sleep(10);
 
         execute("select * from information_schema.tables");
-        assertEquals(9L, response.rowCount());
+        assertEquals(10L, response.rowCount());
     }
 
 
@@ -193,22 +202,30 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rows()[0][3]);
         assertEquals("_id", response.rows()[0][4]);
     }
-    /* TODO: enable when other information schema tables are implemented
+
     @Test
     public void testSelectFromTableConstraints() throws Exception {
 
-        execute("select * from INFORMATION_SCHEMA.table_constraints");
-        assertEquals(0L, response.rowCount());
-        assertThat(response.cols(), arrayContaining("table_name", "constraint_name",
+        execute("select * from INFORMATION_SCHEMA.table_constraints order by schema_name asc, table_name asc");
+        assertEquals(4L, response.rowCount());
+        assertThat(response.cols(), arrayContaining("schema_name", "table_name", "constraint_name",
                 "constraint_type"));
+        assertThat(dotJoiner.join(response.rows()[0][0], response.rows()[0][1]), is("information_schema.columns"));
+        assertThat(commaJoiner.join((Collection<?>)response.rows()[0][2]), is("schema_name, table_name, column_name"));
+        assertThat(dotJoiner.join(response.rows()[1][0], response.rows()[1][1]), is("information_schema.tables"));
+        assertThat(commaJoiner.join((Collection<?>)response.rows()[1][2]), is("schema_name, table_name"));
+        assertThat(dotJoiner.join(response.rows()[2][0], response.rows()[2][1]), is("sys.nodes"));
+        assertThat(commaJoiner.join((Collection<?>)response.rows()[2][2]), is("id"));
+        assertThat(dotJoiner.join(response.rows()[3][0], response.rows()[3][1]), is("sys.shards"));
+        assertThat(commaJoiner.join((Collection<?>)response.rows()[3][2]), is("table_name, id"));
 
         execute("create table test (col1 integer primary key, col2 string)");
         ensureGreen();
         execute("select constraint_type, constraint_name, " +
-                "table_name from information_schema.table_constraints");
+                "table_name from information_schema.table_constraints where schema_name='doc'");
         assertEquals(1L, response.rowCount());
         assertEquals("PRIMARY_KEY", response.rows()[0][0]);
-        assertEquals("col1", response.rows()[0][1]);
+        assertThat(commaJoiner.join((Collection<?>) response.rows()[0][1]), is("col1"));
         assertEquals("test", response.rows()[0][2]);
     }
 
@@ -217,20 +234,21 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureGreen();
         execute("select table_name, constraint_name from INFORMATION_SCHEMA" +
-                ".table_constraints");
+                ".table_constraints where schema_name='doc'");
         assertEquals(1L, response.rowCount());
         assertEquals("test", response.rows()[0][0]);
-        assertEquals("col1", response.rows()[0][1]);
+        assertThat(commaJoiner.join((Collection<?>) response.rows()[0][1]), is("col1"));
 
         execute("create table test2 (col1a string primary key, col2a timestamp)");
         ensureGreen();
-        execute("select * from INFORMATION_SCHEMA.table_constraints order by table_name asc");
+        execute("select table_name, constraint_name from INFORMATION_SCHEMA.table_constraints where schema_name='doc' order by table_name asc");
 
         assertEquals(2L, response.rowCount());
         assertEquals("test2", response.rows()[1][0]);
-        assertEquals("col1a", response.rows()[1][1]);
+        assertThat(commaJoiner.join((Collection<?>) response.rows()[1][1]), is("col1a"));
     }
 
+    /* TODO: enable when other information schema tables are implemented
     @Test
     public void testSelectFromRoutines() throws Exception {
         String stmt1 = "CREATE ANALYZER myAnalyzer WITH (" +
@@ -363,7 +381,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by schema_name, table_name");
-        assertEquals(40L, response.rowCount());
+        assertEquals(44L, response.rowCount());
     }
 
     @Test
@@ -548,7 +566,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("select count(*) from information_schema.tables");
         assertEquals(1, response.rowCount());
-        assertEquals(8L, response.rows()[0][0]); // 3 + 5
+        assertEquals(9L, response.rows()[0][0]); // 3 + 5
     }
 
     @Test

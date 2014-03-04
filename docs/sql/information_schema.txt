@@ -19,20 +19,21 @@ settings like the number of shards or number of replicas::
 
     cr> select * from information_schema.tables 
     ... where table_name not like 'my_table%' order by schema_name asc, table_name asc
-    +--------------------+------------+------------------+--------------------+--------------+
-    | schema_name        | table_name | number_of_shards | number_of_replicas | clustered_by |
-    +--------------------+------------+------------------+--------------------+--------------+
-    | doc                | documents  | 5                | 1                  | _id          |
-    | doc                | locations  | 2                | 0                  | id           |
-    | doc                | myblobs    | 3                | 1                  | _id          |
-    | doc                | quotes     | 2                | 0                  | id           |
-    | information_schema | columns    | 1                | 0                  | NULL         |
-    | information_schema | tables     | 1                | 0                  | NULL         |
-    | sys                | cluster    | 1                | 0                  | NULL         |
-    | sys                | nodes      | 1                | 0                  | NULL         |
-    | sys                | shards     | 1                | 0                  | NULL         |
-    +--------------------+------------+------------------+--------------------+--------------+
-    SELECT 9 rows in set (... sec)
+    +--------------------+-------------------+------------------+--------------------+--------------+
+    | schema_name        | table_name        | number_of_shards | number_of_replicas | clustered_by |
+    +--------------------+-------------------+------------------+--------------------+--------------+
+    | doc                | documents         | 5                | 1                  | _id          |
+    | doc                | locations         | 2                | 0                  | id           |
+    | doc                | myblobs           | 3                | 1                  | _id          |
+    | doc                | quotes            | 2                | 0                  | id           |
+    | information_schema | columns           | 1                | 0                  | NULL         |
+    | information_schema | table_constraints | 1                | 0                  | NULL         |
+    | information_schema | tables            | 1                | 0                  | NULL         |
+    | sys                | cluster           | 1                | 0                  | NULL         |
+    | sys                | nodes             | 1                | 0                  | NULL         |
+    | sys                | shards            | 1                | 0                  | NULL         |
+    +--------------------+-------------------+------------------+--------------------+--------------+
+    SELECT 10 rows in set (... sec)
 
 
 Columns
@@ -90,8 +91,6 @@ You can even query this tables' own columns (attention: this might lead to infin
 Table Constraints
 =================
 
-.. note:: currently not implemented
-
 This table can be queries to get a list of all defined table constraints,
 their type, name and which table they are defined in.
 
@@ -101,19 +100,22 @@ their type, name and which table they are defined in.
 
 ::
 
-    cr> select * from information_schema.table_constraints order by table_name desc limit 10  #doctest: +SKIP
-    +------------+-----------------+-----------------+
-    | table_name | constraint_name | constraint_type |
-    +------------+-----------------+-----------------+
-    | quotes     | id              | PRIMARY_KEY     |
-    | my_table9  | first_column    | PRIMARY_KEY     |
-    | my_table8  | first_column    | PRIMARY_KEY     |
-    | my_table7  | first_column    | PRIMARY_KEY     |
-    | my_table6  | first_column    | PRIMARY_KEY     |
-    | my_table1  | first_column    | PRIMARY_KEY     |
-    | locations  | id              | PRIMARY_KEY     |
-    +------------+-----------------+-----------------+
-    SELECT 7 rows in set (... sec)
+    cr> select * from information_schema.table_constraints
+    ... where table_name not like 'my_table%'
+    ... order by schema_name desc, table_name desc limit 10
+    +--------------------+------------+-------------------------------------------------+-----------------+
+    | schema_name        | table_name | constraint_name                                 | constraint_type |
+    +--------------------+------------+-------------------------------------------------+-----------------+
+    | sys                | shards     | [u'table_name', u'id']                          | PRIMARY_KEY     |
+    | sys                | nodes      | [u'id']                                         | PRIMARY_KEY     |
+    | information_schema | tables     | [u'schema_name', u'table_name']                 | PRIMARY_KEY     |
+    | information_schema | columns    | [u'schema_name', u'table_name', u'column_name'] | PRIMARY_KEY     |
+    | doc                | quotes     | [u'id']                                         | PRIMARY_KEY     |
+    | doc                | myblobs    | [u'_id']                                        | PRIMARY_KEY     |
+    | doc                | locations  | [u'id']                                         | PRIMARY_KEY     |
+    | doc                | documents  | [u'_id']                                        | PRIMARY_KEY     |
+    +--------------------+------------+-------------------------------------------------+-----------------+
+    SELECT 8 rows in set (... sec)
 
 
 Indices

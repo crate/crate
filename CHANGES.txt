@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - added ``information_schema.table_constraints``
+
 2014/03/04 0.24.0
 =================
 
