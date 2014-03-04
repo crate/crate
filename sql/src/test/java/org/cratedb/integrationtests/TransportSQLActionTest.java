@@ -2290,11 +2290,12 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(2L, response.rowCount());
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
-        // TODO: more information_schema tables
-//        execute("select * from information_schema.table_constraints");
-//        assertEquals(1L, response.rowCount());
-//        assertThat(response.duration(), greaterThanOrEqualTo(0L));
-//
+
+        execute("select * from information_schema.table_constraints where schema_name='doc'");
+        assertEquals(1L, response.rowCount());
+        assertThat(response.duration(), greaterThanOrEqualTo(0L));
+
+//        // TODO: more information_schema tables
 //        execute("select * from information_schema.indices");
 //        assertEquals(2L, response.rowCount());
 //        assertEquals("id", response.rows()[0][1]);

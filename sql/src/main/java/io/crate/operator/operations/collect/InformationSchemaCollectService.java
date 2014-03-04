@@ -25,10 +25,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.Functions;
-import io.crate.metadata.HandlerSideRouting;
-import io.crate.metadata.ReferenceInfo;
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.information.InformationCollectorExpression;
 import io.crate.metadata.table.SchemaInfo;
@@ -53,6 +50,7 @@ public class InformationSchemaCollectService implements CollectService {
 
     private final Iterable<TableInfo> tablesIterable;
     private final Iterable<ColumnContext> columnsIterable;
+    private final Iterable<TableInfo> tableConstraintsIterable;
 
     private final CollectInputSymbolVisitor<InformationCollectorExpression<?, ?>> docInputSymbolVisitor;
     private final ImmutableMap<String, Iterable<?>> iterables;
@@ -80,9 +78,16 @@ public class InformationSchemaCollectService implements CollectService {
                         return new ColumnsIterator(input);
                     }
                 });
-        this.iterables = ImmutableMap.<String, Iterable<?>>of(
+        tableConstraintsIterable = FluentIterable.from(tablesIterable).filter(new Predicate<TableInfo>() {
+            @Override
+            public boolean apply(@Nullable TableInfo input) {
+                return input != null && input.primaryKey().size() > 0;
+            }
+        });
+        this.iterables = ImmutableMap.of(
                 "tables", tablesIterable,
-                "columns", columnsIterable
+                "columns", columnsIterable,
+                "table_constraints", tableConstraintsIterable
         );
 
     }

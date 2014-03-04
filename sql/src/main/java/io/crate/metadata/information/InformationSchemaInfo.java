@@ -54,10 +54,18 @@ public class InformationSchemaInfo implements SchemaInfo {
             .addPrimaryKey("column_name")
             .build();
 
+    public static final InformationTableInfo TABLE_INFO_TABLE_CONSTRAINTS = new InformationTableInfo.Builder("table_constraints")
+            .add("schema_name", DataType.STRING, null)
+            .add("table_name", DataType.STRING, null)
+            .add("constraint_name", DataType.STRING_SET, null)
+            .add("constraint_type", DataType.STRING, null)
+            .build();
+
     public static final ImmutableMap<String, TableInfo> TABLE_INFOS =
             ImmutableMap.<String, TableInfo>builder()
                     .put(TABLE_INFO_TABLES.ident().name(), TABLE_INFO_TABLES)
                     .put(TABLE_INFO_COLUMNS.ident().name(), TABLE_INFO_COLUMNS)
+                    .put(TABLE_INFO_TABLE_CONSTRAINTS.ident().name(), TABLE_INFO_TABLE_CONSTRAINTS)
                     .build();
 
     @Override
