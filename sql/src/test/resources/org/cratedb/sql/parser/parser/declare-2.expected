@@ -1,9 +1,0 @@
-org.cratedb.sql.parser.parser.DeclareStatementNode@739e8329
-name: pc
-statementType: DECLARE
-statement: 	
-	org.cratedb.sql.parser.parser.ExecuteStatementNode@2bb5340c
-	name: ps
-	statementType: EXECUTE
-	parameterList: 		
-		org.cratedb.sql.parser.parser.ValueNodeList@56c163f

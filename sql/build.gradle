@@ -25,9 +25,6 @@ buildscript {
     repositories {
         mavenCentral()
     }
-    dependencies {
-        classpath 'net.java.dev.javacc:javacc:5.0'
-    }
 }
 
 test {
@@ -43,27 +40,6 @@ test {
     exclude('org/cratedb/module/sql/benchmark/**')
 }
 
-task compileJavaCC {
-    def javaccPath = project.file('src/main/javacc')
-    def javaccTree = fileTree(dir: javaccPath, include: '**/*.jj')
-
-    def outputFiles = []
-    javaccTree.each {File file ->
-        def outPath = file.parentFile.absolutePath.replace('javacc/', 'java/')
-        outputFiles.add(outPath)
-    }
-
-    inputs.files javaccTree
-    outputs.files outputFiles
-
-    doLast {
-        javaccTree.each {File file ->
-            def outPath = file.parentFile.absolutePath.replace('javacc/', 'java/')
-            String[] args = ["-STATIC=false","-OUTPUT_DIRECTORY:$outPath", "$file"]
-            org.javacc.parser.Main.mainProgram(args)
-        }
-    }
-}
 
 task bench(type: Test) {
     description = 'Run the Crate JUnit Benchmarks'
@@ -93,8 +69,6 @@ task bench(type: Test) {
     }
 }
 
-
-compileJava.dependsOn compileJavaCC
 
 sourceSets {
     test {

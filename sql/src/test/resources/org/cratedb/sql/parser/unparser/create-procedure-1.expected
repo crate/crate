@@ -1,1 +1,0 @@
-CREATE PROCEDURE test.foo_bar(IN x INTEGER, OUT y DOUBLE) LANGUAGE java PARAMETER STYLE java EXTERNAL NAME 'org.cratedb.ProcTest.fooBar(int,double[])'

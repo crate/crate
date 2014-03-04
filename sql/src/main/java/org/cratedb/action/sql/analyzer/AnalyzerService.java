@@ -26,7 +26,6 @@ import org.apache.lucene.analysis.Analyzer;
 import org.cratedb.Constants;
 import org.cratedb.sql.AnalyzerInvalidException;
 import org.cratedb.sql.AnalyzerUnknownException;
-import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
@@ -312,7 +311,7 @@ public class AnalyzerService {
      *
      * @param name the name of the analyzer to resolve
      * @return Settings ready for inclusion into a CreateIndexRequest
-     * @throws StandardException if no custom analyzer with name ``name`` could be found
+     * @throws AnalyzerInvalidException if no custom analyzer with name ``name`` could be found
      */
     public Settings resolveFullCustomAnalyzerSettings(String name) throws AnalyzerInvalidException {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();

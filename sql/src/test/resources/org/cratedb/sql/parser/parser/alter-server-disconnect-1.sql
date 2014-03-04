@@ -1,1 +1,0 @@
-alter server disconnect session all

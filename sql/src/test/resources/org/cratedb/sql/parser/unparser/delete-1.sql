@@ -1,1 +1,0 @@
-DELETE FROM t t1 WHERE x in (1,2,?) AND EXISTS (SELECT * FROM t t2 WHERE t1.id <> t2.id AND t1.name = t2.name)

@@ -1,1 +1,0 @@
-SELECT (x + $2), z FROM t1 WHERE y <> $1

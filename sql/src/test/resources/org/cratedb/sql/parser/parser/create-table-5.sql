@@ -1,1 +1,0 @@
-create table test.t1 (col1 integer not null, primary key (col1))

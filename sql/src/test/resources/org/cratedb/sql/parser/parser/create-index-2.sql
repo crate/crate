@@ -1,1 +1,0 @@
-CReaTE INdeX index2 On table2 usING FulLteXt(table2.column2) with (prop1='abc', prop2=true, prop3=12, prop4=12.567)

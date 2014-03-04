@@ -22,7 +22,6 @@
 package org.cratedb.sql.facet;
 
 import com.google.common.base.Optional;
-import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.SQLParseException;
 import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.common.component.AbstractComponent;
@@ -43,16 +42,13 @@ import java.util.Map;
 public class SQLFacetParser extends AbstractComponent implements FacetParser {
 
     private final TransportUpdateAction updateAction;
-    private final SQLParseService parseService;
 
     @Inject
     public SQLFacetParser(
             Settings settings,
-            SQLParseService parseService,
             TransportUpdateAction updateAction) {
         super(settings);
         InternalSQLFacet.registerStreams();
-        this.parseService = parseService;
         this.updateAction = updateAction;
     }
 

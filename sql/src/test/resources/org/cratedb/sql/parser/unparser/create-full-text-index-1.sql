@@ -1,1 +1,0 @@
-CREATE INDEX text1 ON t1 using FULLTEXT(c1, "c2", t1.c3, "t1"."c4")

@@ -1,3 +1,0 @@
-org.cratedb.sql.parser.parser.AlterServerNode@46e45076
-statementType: ALTER SERVER
-shutdown immediate: true

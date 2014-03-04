@@ -1,9 +1,0 @@
-org.cratedb.sql.parser.parser.CreateSequenceNode@244aeb52
-name: newsequence
-statementType: CREATE SEQUENCE
-sequenceName: newsequence
-initial value: 1
-step value: 2
-maxValue: 1000
-minValue:1
-cycle: true

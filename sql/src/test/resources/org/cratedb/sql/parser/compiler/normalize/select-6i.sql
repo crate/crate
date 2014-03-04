@@ -1,1 +1,0 @@
-SELECT * FROM t WHERE NOT (c IN (SELECT c FROM u))

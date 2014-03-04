@@ -1,7 +1,0 @@
-org.cratedb.sql.parser.parser.RenameNode@7f70888e
-name: x.told
-statementType: RENAME TABLE
-oldTableName: 
-told
-newTableName: 
-tnew

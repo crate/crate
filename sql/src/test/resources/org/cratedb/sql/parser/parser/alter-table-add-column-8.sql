@@ -1,1 +1,0 @@
-ALTER TABLE t ADD COLUMN (c1 integer)

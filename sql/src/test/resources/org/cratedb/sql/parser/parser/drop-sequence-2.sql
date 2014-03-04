@@ -1,1 +1,0 @@
-DROP SEQUENCE IF EXISTS test.new_sequence RESTRICT

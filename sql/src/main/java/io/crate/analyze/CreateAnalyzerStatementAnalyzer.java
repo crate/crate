@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import com.google.common.base.Optional;
 import io.crate.sql.tree.*;
-import org.cratedb.sql.parser.StandardException;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
 import java.util.ArrayList;
@@ -221,7 +220,6 @@ public class CreateAnalyzerStatementAnalyzer extends AbstractStatementAnalyzer<V
      * @param builder
      * @param name
      * @param value
-     * @throws StandardException
      */
     private void genericPropertyToSetting(ImmutableSettings.Builder builder,
                                           String name,

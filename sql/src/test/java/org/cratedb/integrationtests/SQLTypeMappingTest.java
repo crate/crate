@@ -25,14 +25,11 @@ import org.cratedb.SQLTransportIntegrationTest;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.SQLRequest;
 import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.ColumnUnknownException;
 import org.cratedb.sql.SQLParseException;
 import org.cratedb.sql.UnsupportedFeatureException;
 import org.cratedb.sql.ValidationException;
 import org.elasticsearch.client.Client;
-import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -50,18 +47,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    private static SQLParseService parseService;
     private Setup setup = new Setup(this);
-
-    @Before
-    protected void beforeSQLTypeMappingTest() {
-        parseService = cluster().getInstance(SQLParseService.class);
-    }
-
-    @AfterClass
-    protected static void afterSQLTypeMappingTest() {
-        parseService = null;
-    }
 
     private void setUpSimple() throws IOException {
         setUpSimple(2);

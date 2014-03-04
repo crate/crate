@@ -1,1 +1,0 @@
-SELECT CASE WHEN x = y OR x = z THEN x WHEN y = z THEN y ELSE w END FROM t

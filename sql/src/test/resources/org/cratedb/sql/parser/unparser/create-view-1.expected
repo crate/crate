@@ -1,1 +1,0 @@
-CREATE VIEW v1(x, y) AS (SELECT y, z FROM t1 WHERE NOT (y IS NULL))

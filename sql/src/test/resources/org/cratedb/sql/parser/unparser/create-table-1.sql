@@ -1,1 +1,0 @@
-CREATE TABLE t1 (i int PRIMARY KEY, s char(30) NOT NULL, z VARCHAR(128))

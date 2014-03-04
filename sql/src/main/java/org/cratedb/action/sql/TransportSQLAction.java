@@ -21,7 +21,6 @@
 
 package org.cratedb.action.sql;
 
-import com.google.common.base.Objects;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -35,27 +34,12 @@ import io.crate.executor.transport.TransportExecutor;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanPrinter;
 import io.crate.planner.Planner;
-import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import org.cratedb.Constants;
 import org.cratedb.DataType;
-import org.cratedb.action.parser.ESRequestBuilder;
-import org.cratedb.action.parser.SQLResponseBuilder;
-import org.cratedb.service.SQLParseService;
 import org.cratedb.sql.ExceptionHelper;
-import org.cratedb.sql.SQLParseException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
-import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
-import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -75,64 +59,23 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private final static Planner planner = new Planner();
 
 
-    private final TransportCreateIndexAction transportCreateIndexAction;
-    private final TransportDeleteIndexAction transportDeleteIndexAction;
-    private final SQLParseService sqlParseService;
-    private final TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction;
-
-
     @Inject
     protected TransportSQLAction(Settings settings, ThreadPool threadPool,
-            SQLParseService sqlParseService,
             Analyzer analyzer,
             TransportExecutor transportExecutor,
-            TransportService transportService,
-            TransportCreateIndexAction transportCreateIndexAction,
-            TransportDeleteIndexAction transportDeleteIndexAction,
-            TransportClusterUpdateSettingsAction transportClusterUpdateSettingsAction) {
+            TransportService transportService) {
         super(settings, threadPool);
-        this.sqlParseService = sqlParseService;
         this.analyzer = analyzer;
         this.transportExecutor = transportExecutor;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
-        this.transportCreateIndexAction = transportCreateIndexAction;
-        this.transportDeleteIndexAction = transportDeleteIndexAction;
-        this.transportClusterUpdateSettingsAction = transportClusterUpdateSettingsAction;
-    }
-
-    private abstract class ESResponseToSQLResponseListener<T extends ActionResponse> implements ActionListener<T> {
-
-        protected final ActionListener<SQLResponse> listener;
-        protected final SQLResponseBuilder builder;
-        protected final long requestStartedTime;
-
-        public ESResponseToSQLResponseListener(ParsedStatement stmt,
-                                               ActionListener<SQLResponse> listener,
-                                               long requestStartedTime) {
-            this.listener = listener;
-            this.builder = new SQLResponseBuilder(sqlParseService.context, stmt);
-            this.requestStartedTime = requestStartedTime;
-        }
-
-        @Override
-        public void onFailure(Throwable e) {
-            listener.onFailure(ExceptionHelper.transformToCrateException(e));
-        }
     }
 
     @Override
     protected void doExecute(final SQLRequest request, final ActionListener<SQLResponse> listener) {
         logger.trace("doExecute: " + request);
 
-        Statement statement;
         try {
-            try {
-                statement = SqlParser.createStatement(request.stmt());
-            } catch (ParsingException ex) {
-                logger.info("Fallback to akiban based parser/execution layer");
-                fallback(request, listener, ex);
-                return;
-            }
+            Statement statement = SqlParser.createStatement(request.stmt());
 
             Analysis analysis = analyzer.analyze(statement, request.args());
             final String[] outputNames = analysis.outputNames().toArray(new String[analysis.outputNames().size()]);
@@ -186,49 +129,6 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                 listener.onFailure(ExceptionHelper.transformToCrateException(t));
             }
         });
-    }
-
-    private void fallback(SQLRequest request, ActionListener<SQLResponse> listener, ParsingException ex) {
-        ParsedStatement stmt;
-        try {
-            stmt = sqlParseService.parse(request.stmt(), request.args());
-        } catch (SQLParseException e) {
-            listener.onFailure(e);
-            return;
-        } catch (UnsupportedOperationException e) {
-            listener.onFailure(Objects.firstNonNull(ex, e));
-            return;
-        }
-
-        try {
-            ESRequestBuilder builder = new ESRequestBuilder(stmt);
-            switch (stmt.type()) {
-                case CREATE_INDEX_ACTION:
-                    CreateIndexRequest createIndexRequest = builder.buildCreateIndexRequest();
-                    transportCreateIndexAction.execute(createIndexRequest,
-                        new CreateIndexResponseListener(stmt, listener, request.creationTime()));
-                    break;
-                case DELETE_INDEX_ACTION:
-                    DeleteIndexRequest deleteIndexRequest = builder.buildDeleteIndexRequest();
-                    transportDeleteIndexAction.execute(deleteIndexRequest,
-                        new DeleteIndexResponseListener(stmt, listener, request.creationTime()));
-                    break;
-                case CREATE_ANALYZER_ACTION:
-                    ClusterUpdateSettingsRequest clusterUpdateSettingsRequest = builder.buildClusterUpdateSettingsRequest();
-                    transportClusterUpdateSettingsAction.execute(clusterUpdateSettingsRequest,
-                        new ClusterUpdateSettingsResponseListener(stmt, listener, request.creationTime()));
-                    break;
-
-                default:
-                    listener.onFailure(ex);
-            }
-        } catch (Exception e) {
-            if (ex == null) {
-                listener.onFailure(e);
-            } else {
-                listener.onFailure(ex);
-            }
-        }
     }
 
     private void emptyResponse(SQLRequest request, Analysis analysis, final ActionListener<SQLResponse> listener) {
@@ -286,45 +186,4 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
     }
 
-    private class CreateIndexResponseListener extends ESResponseToSQLResponseListener<CreateIndexResponse> {
-
-        public CreateIndexResponseListener(ParsedStatement stmt,
-                                           ActionListener<SQLResponse> listener,
-                                           long requestStartedTime) {
-            super(stmt, listener, requestStartedTime);
-        }
-
-        @Override
-        public void onResponse(CreateIndexResponse response) {
-            listener.onResponse(builder.buildResponse(response, requestStartedTime));
-        }
-    }
-
-    private class DeleteIndexResponseListener extends ESResponseToSQLResponseListener<DeleteIndexResponse> {
-
-        public DeleteIndexResponseListener(ParsedStatement stmt,
-                                           ActionListener<SQLResponse> listener,
-                                           long requestStartedTime) {
-            super(stmt, listener, requestStartedTime);
-        }
-
-        @Override
-        public void onResponse(DeleteIndexResponse response) {
-            listener.onResponse(builder.buildResponse(response, requestStartedTime));
-        }
-    }
-
-    private class ClusterUpdateSettingsResponseListener extends ESResponseToSQLResponseListener<ClusterUpdateSettingsResponse> {
-
-        public ClusterUpdateSettingsResponseListener(ParsedStatement stmt,
-                                                     ActionListener<SQLResponse> listener,
-                                                     long requestStartedTime) {
-            super(stmt, listener, requestStartedTime);
-        }
-
-        @Override
-        public void onResponse(ClusterUpdateSettingsResponse response) {
-            listener.onResponse(builder.buildResponse(response, requestStartedTime));
-        }
-    }
 }

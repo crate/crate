@@ -21,17 +21,12 @@
 
 package org.cratedb.module;
 
-import org.cratedb.DataType;
-import org.cratedb.action.sql.NodeExecutionContext;
 import org.cratedb.action.sql.SQLAction;
 import org.cratedb.action.sql.TransportSQLAction;
 import org.cratedb.action.sql.analyzer.AnalyzerService;
-import org.cratedb.service.SQLParseService;
-import org.cratedb.sql.types.*;
 import org.elasticsearch.action.GenericAction;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.assistedinject.FactoryProvider;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
 
@@ -39,9 +34,7 @@ public class SQLModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(SQLParseService.class).asEagerSingleton();
         bind(TransportSQLAction.class).asEagerSingleton();
-        bind(NodeExecutionContext.class).asEagerSingleton();
         bind(AnalyzerService.class).asEagerSingleton();
         MapBinder<GenericAction, TransportAction> transportActionsBinder = MapBinder.newMapBinder(binder(), GenericAction.class,
                 TransportAction.class);
@@ -51,23 +44,5 @@ public class SQLModule extends AbstractModule {
         MapBinder<String, GenericAction> actionsBinder = MapBinder.newMapBinder(binder(), String.class, GenericAction.class);
         actionsBinder.addBinding(SQLAction.NAME).toInstance(SQLAction.INSTANCE);
 
-        // SQL Types
-        MapBinder<DataType, SQLType> sqlTypeMapBinder = MapBinder.newMapBinder(binder(),
-                DataType.class, SQLType.class);
-        sqlTypeMapBinder.addBinding(DataType.BOOLEAN).to(BooleanSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(DataType.STRING).to(StringSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(DataType.BYTE).to(ByteSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(DataType.SHORT).to(ShortSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(DataType.INTEGER).to(IntegerSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(DataType.LONG).to(LongSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(DataType.FLOAT).to(FloatSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(DataType.DOUBLE).to(DoubleSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(DataType.TIMESTAMP).to(TimeStampSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(DataType.OBJECT).to(ObjectSQLType.class).asEagerSingleton();
-        sqlTypeMapBinder.addBinding(DataType.IP).to(IpSQLType.class).asEagerSingleton();
-
-        // get a factory for SQLFieldMapper
-        bind(SQLFieldMapperFactory.class).toProvider(FactoryProvider.newFactory
-                (SQLFieldMapperFactory.class, SQLFieldMapper.class));
     }
 }

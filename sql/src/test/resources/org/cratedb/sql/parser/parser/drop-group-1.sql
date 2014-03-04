@@ -1,1 +1,0 @@
-DROP GROUP test.root_table_1

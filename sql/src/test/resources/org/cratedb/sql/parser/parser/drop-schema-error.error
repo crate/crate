@@ -1,4 +1,0 @@
-org.cratedb.sql.parser.parser.SQLParserException: Encountered " "not" "not "" at line 1, column 16.
-Was expecting:
-    "exists" ...
-    

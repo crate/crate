@@ -1,1 +1,0 @@
-RENAME TABLE schema1.t1 to t2

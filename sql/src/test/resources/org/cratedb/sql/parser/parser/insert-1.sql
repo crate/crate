@@ -1,1 +1,0 @@
-INSERT INTO t1 VALUES(1, 'foo', 3 * 10)
