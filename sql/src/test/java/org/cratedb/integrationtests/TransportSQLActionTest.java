@@ -1857,9 +1857,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateTableWithReplicasAndShards() throws Exception {
-        // TODO: replicas definition is currently only working at the end of the stmt, fix!
-        //execute("create table test (col1 integer primary key, col2 string) replicas 2" +
-        //        "clustered by (col1) into 10 shards");
         execute("create table test (col1 integer primary key, col2 string)" +
                 "clustered by (col1) into 10 shards replicas 2");
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))

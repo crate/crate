@@ -278,6 +278,8 @@ Array types are defined as follows::
     cursors execute method.
 
 
+.. _sql_ddl_sharding:
+
 Sharding
 ========
 
@@ -353,6 +355,15 @@ Example::
     ...   first_column int,
     ...   second_column string
     ... ) replicas 1
+    CREATE OK (... sec)
+
+While defining replication together with :ref:`sharding <sql_ddl_sharding>`,
+the ``REPLICAS <number_of_replicas>`` statement must comes last::
+
+    cr> create table my_table10a (
+    ...   first_column int,
+    ...   second_column string
+    ... ) clustered by (first_column) into 10 shards replicas 1
     CREATE OK (... sec)
 
 .. note::
