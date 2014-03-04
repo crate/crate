@@ -5,19 +5,18 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - use crate-admin 0.1.2
+2014/03/04 0.24.0
+=================
 
- - use UTC as default time zone when performing date_trunc
-
- - use crate-admin 0.1.1
-
- - added scalar function date_trunc
+ - updated crate-admin to 0.1.2
 
  - upgraded elasticsearch to 1.0.1
 
+ - added scalar function date_trunc
+
  - fixed several issues with certain locales
 
- - create table support for new parser
+ - new parser is now used for create table and drop table
 
 2014/02/26 0.23.2
 =================

@@ -131,6 +131,8 @@ public class Version {
                 return V_0_23_00;
             case V_0_23_01_ID:
                 return V_0_23_01;
+            case V_0_23_02_ID:
+                return V_0_23_02;
             default:
                 return new Version(id, null, org.elasticsearch.Version.CURRENT);
         }
