@@ -28,6 +28,7 @@ import io.crate.operator.Input;
 import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.AggregationState;
 import org.cratedb.DataType;
+import org.cratedb.Streamer;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -72,10 +73,10 @@ public class AnyAggregation<T extends Comparable<T>> extends AggregationFunction
     public static class AnyAggState<T extends Comparable<T>> extends AggregationState<AnyAggState<T>> {
 
 
-        DataType.Streamer<T> streamer;
+        Streamer<T> streamer;
         private T value = null;
 
-        AnyAggState(DataType.Streamer<T> streamer) {
+        AnyAggState(Streamer<T> streamer) {
             this.streamer = streamer;
         }
 

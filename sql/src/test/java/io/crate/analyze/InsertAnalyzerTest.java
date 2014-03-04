@@ -33,6 +33,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import org.cratedb.DataType;
 import org.cratedb.sql.CrateException;
+import org.cratedb.sql.ValidationException;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
@@ -243,8 +244,9 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(values.get(3), instanceOf(ObjectLiteral.class));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = ValidationException.class)
     public void testInsertArrays() throws Exception {
+        // error because in the schema are non-array types:
         analyze("insert into users (id, name, awesome, details) values (?, ?, ?, ?)",
                 new Object[]{
                         new Long[]{1l ,2l},

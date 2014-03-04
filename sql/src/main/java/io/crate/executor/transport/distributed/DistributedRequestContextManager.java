@@ -30,7 +30,7 @@ import io.crate.metadata.Functions;
 import io.crate.operator.operations.DownstreamOperationFactory;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
-import org.cratedb.DataType;
+import org.cratedb.Streamer;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
@@ -106,7 +106,7 @@ public class DistributedRequestContextManager {
     /**
      * use to retrieve the streamers to read the incoming rows
      */
-    public Optional<DataType.Streamer<?>[]> getStreamer(UUID contextId) {
+    public Optional<Streamer<?>[]> getStreamer(UUID contextId) {
         DownstreamOperationContext downstreamOperationContext = activeMergeOperations.get(contextId);
         if (downstreamOperationContext != null) {
             return Optional.of(downstreamOperationContext.streamers());
@@ -165,7 +165,7 @@ public class DistributedRequestContextManager {
         logger.trace("addToContext: finished");
     }
 
-    private SettableFuture<Object[][]> wrapActionListener(final DataType.Streamer<?>[] streamers,
+    private SettableFuture<Object[][]> wrapActionListener(final Streamer<?>[] streamers,
                                                           final ActionListener<NodeMergeResponse> listener) {
         SettableFuture<Object[][]> settableFuture = SettableFuture.create();
         Futures.addCallback(settableFuture, new FutureCallback<Object[][]>() {

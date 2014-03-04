@@ -21,18 +21,14 @@
 
 package org.cratedb;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 // NOTE: all streamers must support null values, there for we do check for null with an additional byte
 // maybe we find a better way to handle NULL values?
@@ -195,7 +191,20 @@ public enum DataType {
     IP_SET("ip_set", SetStreamer.BYTES_REF_SET),
     TIMESTAMP_SET("timestamp_set", new SetStreamer<Long>(TIMESTAMP.streamer())),
     OBJECT_SET("object_set", new SetStreamer<Map<String, Object>>(OBJECT.streamer())),
-    NULL_SET("null_set", new SetStreamer<Void>(NULL.streamer()));
+    NULL_SET("null_set", new SetStreamer<Void>(NULL.streamer())),
+
+    BYTE_ARRAY("byte_array", new ArrayStreamer<Byte>(BYTE.streamer())),
+    SHORT_ARRAY("short_array", new ArrayStreamer<Short>(SHORT.streamer())),
+    INTEGER_ARRAY("integer_array", new ArrayStreamer<Integer>(INTEGER.streamer())),
+    LONG_ARRAY("long_array", new ArrayStreamer<Long>(LONG.streamer())),
+    FLOAT_ARRAY("float_array", new ArrayStreamer<Float>(FLOAT.streamer())),
+    DOUBLE_ARRAY("double_array", new ArrayStreamer<Double>(DOUBLE.streamer())),
+    BOOLEAN_ARRAY("boolean_array", new ArrayStreamer<Boolean>(BOOLEAN.streamer())),
+    STRING_ARRAY("string_array", new ArrayStreamer<BytesRef>(STRING.streamer())),
+    IP_ARRAY("ip_array", new ArrayStreamer<BytesRef>(STRING.streamer())),
+    TIMESTAMP_ARRAY("timestamp_array", new ArrayStreamer<Long>(TIMESTAMP.streamer())),
+    OBJECT_ARRAY("object_array", new ArrayStreamer<Map<String, Object>>(OBJECT.streamer())),
+    NULL_ARRAY("null_array", new ArrayStreamer<Void>(NULL.streamer()));
 
     /**
      * Keep the order of the following to Lists (ALL_TYPES, SET_TYPES) in sync
@@ -232,6 +241,27 @@ public enum DataType {
             OBJECT_SET,
             IP_SET
     );
+
+    public static final BiMap<DataType, DataType> ARRAY_TYPES_MAP = HashBiMap.create();
+
+    static {
+        ARRAY_TYPES_MAP.put(BYTE, BYTE_ARRAY);
+        ARRAY_TYPES_MAP.put(SHORT, SHORT_ARRAY);
+        ARRAY_TYPES_MAP.put(INTEGER, INTEGER_ARRAY);
+        ARRAY_TYPES_MAP.put(LONG, LONG_ARRAY);
+        ARRAY_TYPES_MAP.put(FLOAT, FLOAT_ARRAY);
+        ARRAY_TYPES_MAP.put(DOUBLE, DOUBLE_ARRAY);
+        ARRAY_TYPES_MAP.put(BOOLEAN, BOOLEAN_ARRAY);
+        ARRAY_TYPES_MAP.put(STRING, STRING_ARRAY);
+        ARRAY_TYPES_MAP.put(TIMESTAMP, TIMESTAMP_ARRAY);
+        ARRAY_TYPES_MAP.put(OBJECT, OBJECT_ARRAY);
+        ARRAY_TYPES_MAP.put(IP, IP_ARRAY);
+    }
+
+    public static final Map<DataType, DataType> REVERSE_ARRAY_TYPE_MAP = ARRAY_TYPES_MAP.inverse();
+
+
+    public static final ImmutableList<DataType> ARRAY_TYPES = ImmutableList.copyOf(ARRAY_TYPES_MAP.values());
 
     public static final ImmutableList<DataType> ALL_TYPES_INC_NULL = ImmutableList.of(
             BYTE,
@@ -276,85 +306,6 @@ public enum DataType {
 
     public static void toStream(DataType type, StreamOutput out) throws IOException {
         out.writeVInt(type.ordinal());
-    }
-
-    public interface Streamer<T> {
-
-        public T readFrom(StreamInput in) throws IOException;
-
-        public void writeTo(StreamOutput out, Object v) throws IOException;
-
-        public static final Streamer<BytesRef> BYTES_REF = new Streamer<BytesRef>() {
-
-            @Override
-            public BytesRef readFrom(StreamInput in) throws IOException {
-                int length = in.readVInt() -1 ;
-                if (length == -1) {
-                    return null;
-                }
-                return in.readBytesRef(length);
-            }
-
-            @Override
-            public void writeTo(StreamOutput out, Object v) throws IOException {
-                // .writeBytesRef isn't used here because it will convert null values to empty bytesRefs
-
-                // to distinguish between null and an empty bytesRef
-                // 1 is always added to the length so that
-                // 0 is null
-                // 1 is 0
-                // ...
-                if (v == null) {
-                    out.writeVInt(0);
-                } else {
-                    BytesRef bytesRef = (BytesRef) v;
-                    out.writeVInt(bytesRef.length + 1);
-                    out.writeBytes(bytesRef.bytes, bytesRef.offset, bytesRef.length);
-                }
-            }
-        };
-
-    }
-
-    public static class SetStreamer<T> implements Streamer {
-
-        private final Streamer<T> streamer;
-
-        public SetStreamer(Streamer streamer) {
-            this.streamer = streamer;
-        }
-
-
-        @Override
-        public Set<T> readFrom(StreamInput in) throws IOException {
-            int size = in.readVInt();
-            Set<T> s = new HashSet<>(size);
-            for (int i = 0; i < size; i++) {
-                s.add(streamer.readFrom(in));
-            }
-            if (in.readBoolean()) {
-                s.add(null);
-            }
-            return s;
-        }
-
-        @Override
-        public void writeTo(StreamOutput out, Object v) throws IOException {
-            Set<T> s = (Set<T>) v;
-            boolean containsNull = s.contains(null);
-            out.writeVInt(containsNull ? s.size() - 1 : s.size());
-            for (T e : s) {
-                if (e == null) {
-                    continue;
-                }
-                streamer.writeTo(out, e);
-            }
-            out.writeBoolean(containsNull);
-        }
-
-
-        public static final Streamer<Set<BytesRef>> BYTES_REF_SET = new SetStreamer<BytesRef>(BYTES_REF);
-
     }
 
 
@@ -428,6 +379,10 @@ public enum DataType {
         }
     }
 
+    public DataType arrayType() throws IllegalArgumentException {
+        return ARRAY_TYPES_MAP.get(this);
+    }
+
     @Nullable
     public static DataType guess(Object value) {
         return forValue(value, false);
@@ -440,10 +395,15 @@ public enum DataType {
      */
     @Nullable
     public static DataType forValue(Object value, boolean strict) {
+
         if (value == null) {
             return NULL;
-        } else if (value instanceof Map) { // reflection class checks don't work 100%
+        } else if (value instanceof Map) {
             return OBJECT;
+        } else if (value instanceof List) {
+            return valueFromList((List)value, strict);
+        } else if (value.getClass().isArray()) {
+            return valueFromList(Arrays.asList((Object[])value), strict);
         } else if (!strict && (value instanceof BytesRef || value instanceof String)) {
             // special treatment for timestamp strings
             if (TimestampFormat.isDateFormat(
@@ -456,5 +416,30 @@ public enum DataType {
         }
 
         return typesMap.get(value.getClass());
+    }
+
+    private static DataType valueFromList(List<Object> value, boolean strict) {
+        List<DataType> innerTypes = new ArrayList<>(value.size());
+
+        if (value.isEmpty()) {
+            throw new IllegalArgumentException("Can't detect the type from an empty list");
+        }
+
+        DataType previous = null;
+        DataType current = null;
+        for (Object o : value) {
+            if (o == null) {
+                continue;
+            }
+            current = forValue(o, strict);
+            if (previous != null && !current.equals(previous)) {
+                throw new IllegalArgumentException("Mixed dataTypes inside a list are not supported");
+            }
+            innerTypes.add(current);
+            previous = current;
+        }
+
+        assert innerTypes.size() > 0 && current != null;
+        return current.arrayType();
     }
 }

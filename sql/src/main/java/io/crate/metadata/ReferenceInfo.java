@@ -26,10 +26,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 import io.crate.planner.RowGranularity;
 import org.cratedb.DataType;
+import org.elasticsearch.common.Booleans;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 
 public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
@@ -91,7 +93,28 @@ public class ReferenceInfo implements Comparable<ReferenceInfo>, Streamable {
     public static enum ObjectType {
         DYNAMIC,
         STRICT,
-        IGNORED
+        IGNORED;
+
+        public static ObjectType of(@Nullable Object dynamic) {
+            if (dynamic == null) {
+                return DYNAMIC;
+            }
+
+            return of(dynamic.toString());
+        }
+
+        public static ObjectType of(String dynamic) {
+            if (Booleans.isExplicitTrue(dynamic)) {
+                return DYNAMIC;
+            }
+            if (Booleans.isExplicitFalse(dynamic)) {
+                return IGNORED;
+            }
+            if (dynamic.equalsIgnoreCase("strict")) {
+                return STRICT;
+            }
+            return DYNAMIC;
+        }
     }
 
     private ReferenceIdent ident;

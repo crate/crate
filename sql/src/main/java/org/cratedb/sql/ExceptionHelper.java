@@ -50,7 +50,7 @@ public class ExceptionHelper {
             e = e.getCause();
         }
         if (e instanceof IllegalArgumentException || e instanceof ParsingException) {
-            return new SQLParseException(e.getMessage());
+            return new SQLParseException(e.getMessage(), (Exception)e);
         } else if (e instanceof UnsupportedOperationException) {
             return new UnsupportedFeatureException(e);
         } else if (e instanceof DocumentAlreadyExistsException) {

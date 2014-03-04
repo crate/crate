@@ -26,37 +26,37 @@ import org.cratedb.DataType;
 public abstract class NumberLiteral<ValueType extends Number, LiteralType> extends Literal<ValueType, LiteralType> {
 
     @Override
-    public Literal convertTo(DataType type) {
-        Object convertedValue;
+    public Object convertValueTo(DataType type, ValueType value) {
+        if (value == null) {
+            return null;
+        }
         switch (type) {
             case LONG:
-                convertedValue = value().longValue();
-                break;
+                return value.longValue();
             case INTEGER:
-                convertedValue = value().longValue();
-                break;
+                return value.longValue();
             case DOUBLE:
-                convertedValue = value().doubleValue();
-                break;
+                return value.doubleValue();
             case FLOAT:
-                convertedValue = value().floatValue();
-                break;
+                return value.floatValue();
             case SHORT:
-                convertedValue = value().longValue();
-                break;
+                return value.longValue();
             case BYTE:
-                convertedValue = value().longValue();
-                break;
+                return value.longValue();
             case STRING:
-                convertedValue = value().toString();
-                break;
+                return value.toString();
             case TIMESTAMP:
-                convertedValue = value().longValue();
-                break;
+                return value.longValue();
             default:
-                return super.convertTo(type);
+                return super.convertValueTo(type, value);
         }
-        return Literal.forType(type, convertedValue);
     }
 
+    @Override
+    public Literal convertTo(DataType type) {
+        if (type == valueType()) {
+            return this;
+        }
+        return Literal.forType(type, convertValueTo(type));
+    }
  }

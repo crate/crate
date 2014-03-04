@@ -124,6 +124,8 @@ public class InsertStatementAnalyzer extends DataStatementAnalyzer<InsertAnalysi
             throw new IllegalArgumentException("incorrect number of values");
         }
         for (Expression value : node.values()) {
+            // TODO: instead of doing a type guessing and then a convertion this could
+            // be improved by using the dataType from the column Reference as a hint
             Symbol valuesSymbol = process(value, context);
             assert valuesSymbol instanceof ValueSymbol;
 

@@ -21,7 +21,7 @@
 
 package io.crate.executor.transport.merge;
 
-import org.cratedb.DataType;
+import org.cratedb.Streamer;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
@@ -30,15 +30,15 @@ import java.io.IOException;
 
 public class NodeMergeResponse extends TransportResponse {
 
-    private final DataType.Streamer<?>[] streamers;
+    private final Streamer<?>[] streamers;
     private Object[][] rows;
 
-    public NodeMergeResponse(DataType.Streamer<?>[] streamers, Object[][] rows) {
+    public NodeMergeResponse(Streamer<?>[] streamers, Object[][] rows) {
         this.streamers = streamers;
         this.rows = rows;
     }
 
-    public NodeMergeResponse(DataType.Streamer<?>[] streamers) {
+    public NodeMergeResponse(Streamer<?>[] streamers) {
         this.streamers = streamers;
     }
 

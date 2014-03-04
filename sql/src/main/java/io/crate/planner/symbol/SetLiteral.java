@@ -119,8 +119,9 @@ public class SetLiteral extends Literal<Set<?>, SetLiteral> {
 
     @Override
     public int compareTo(SetLiteral o) {
-        // Compare the size of the lists.
-        // We do this because it's quite easy to compare Set's in this case.
+        // only compare the size of the lists because this method is only used for sorting
+        // and it's currently not necessary to be deterministic.
+
         // A more sophisticated approach would be as follows:
         // - if the size of set1 and set2 differes, sort both sets ascending
         // - compare each value (s1[i].compateTo(s2[i]). If they are not equal, return the comparison result.

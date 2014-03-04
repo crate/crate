@@ -19,53 +19,53 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.executor.transport;
+package org.cratedb;
 
-import org.cratedb.Streamer;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
-public class NodeCollectResponse extends TransportResponse {
+public class SetStreamer<T> implements Streamer {
 
-    private Object[][] rows;
-    private final Streamer<?>[] streamers;
+    private final Streamer<T> streamer;
 
-
-    public NodeCollectResponse(Streamer<?>[] streamers) {
-        this.streamers = streamers;
+    public SetStreamer(Streamer streamer) {
+        this.streamer = streamer;
     }
 
-    public void rows(Object[][] rows) {
-        this.rows = rows;
-    }
 
-    public Object[][] rows() {
-        return rows;
+    @Override
+    public Set<T> readFrom(StreamInput in) throws IOException {
+        int size = in.readVInt();
+        Set<T> s = new HashSet<>(size);
+        for (int i = 0; i < size; i++) {
+            s.add(streamer.readFrom(in));
+        }
+        if (in.readBoolean()) {
+            s.add(null);
+        }
+        return s;
     }
 
     @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        rows = new Object[in.readVInt()][];
-        for (int r = 0; r < rows.length; r++) {
-            rows[r] = new Object[streamers.length];
-            for (int c = 0; c < rows[r].length; c++) {
-                rows[r][c] = streamers[c].readFrom(in);
+    public void writeTo(StreamOutput out, Object v) throws IOException {
+        Set<T> s = (Set<T>) v;
+        boolean containsNull = s.contains(null);
+        out.writeVInt(containsNull ? s.size() - 1 : s.size());
+        for (T e : s) {
+            if (e == null) {
+                continue;
             }
+            streamer.writeTo(out, e);
         }
+        out.writeBoolean(containsNull);
     }
 
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeVInt(rows.length);
-        for (Object[] row : rows) {
-            for (int c = 0; c < streamers.length; c++) {
-                streamers[c].writeTo(out, row[c]);
-            }
-        }
-    }
+
+    public static final Streamer<Set<BytesRef>> BYTES_REF_SET = new SetStreamer<BytesRef>(BYTES_REF);
+
 }

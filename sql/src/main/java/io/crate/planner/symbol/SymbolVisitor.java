@@ -96,6 +96,10 @@ public class SymbolVisitor<C, R> {
         return visitLiteral(symbol, context);
     }
 
+    public R visitArrayLiteral(ArrayLiteral symbol, C context) {
+        return visitLiteral(symbol, context);
+    }
+
     public R visitObjectLiteral(ObjectLiteral symbol, C context) {
         return visitLiteral(symbol, context);
     }
