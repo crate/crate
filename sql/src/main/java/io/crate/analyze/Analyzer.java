@@ -78,6 +78,7 @@ public class Analyzer {
         private final AbstractStatementAnalyzer copyStatementAnalyzer = new CopyStatementAnalyzer();
         private final AbstractStatementAnalyzer dropTableStatementAnalyzer = new DropTableStatementAnalyzer();
         private final AbstractStatementAnalyzer createTableStatementAnalyzer = new CreateTableStatementAnalyzer();
+        private final AbstractStatementAnalyzer createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer();
 
         public AnalyzerDispatcher(ReferenceInfos referenceInfos,
                                   Functions functions,
@@ -130,9 +131,16 @@ public class Analyzer {
             return dropTableStatementAnalyzer;
         }
 
+        @Override
         public AbstractStatementAnalyzer visitCreateTable(CreateTable node, Context context) {
             context.analysis = new CreateTableAnalysis(referenceInfos, analyzerService, context.parameters);
             return createTableStatementAnalyzer;
+        }
+
+        @Override
+        public AbstractStatementAnalyzer visitCreateAnalyzer(CreateAnalyzer node, Context context) {
+            context.analysis = new CreateAnalyzerAnalysis(analyzerService, context.parameters);
+            return createAnalyzerStatementAnalyzer;
         }
 
         @Override

@@ -37,7 +37,6 @@ import io.crate.planner.PlanPrinter;
 import io.crate.planner.Planner;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.CreateAnalyzer;
 import io.crate.sql.tree.Statement;
 import org.cratedb.Constants;
 import org.cratedb.DataType;
@@ -129,10 +128,6 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         try {
             try {
                 statement = SqlParser.createStatement(request.stmt());
-                if (statement instanceof CreateAnalyzer) {
-                    fallback(request, listener, null);
-                    return;
-                }
             } catch (ParsingException ex) {
                 logger.info("Fallback to akiban based parser/execution layer");
                 fallback(request, listener, ex);

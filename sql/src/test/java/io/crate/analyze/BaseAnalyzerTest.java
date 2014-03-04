@@ -134,6 +134,8 @@ public class BaseAnalyzerTest {
             ClusterState state = mock(ClusterState.class);
             MetaData metaData = mock(MetaData.class);
             when(metaData.settings()).thenReturn(ImmutableSettings.EMPTY);
+            when(metaData.persistentSettings()).thenReturn(ImmutableSettings.EMPTY);
+            when(metaData.transientSettings()).thenReturn(ImmutableSettings.EMPTY);
             when(state.metaData()).thenReturn(metaData);
             when(clusterService.state()).thenReturn(state);
             bind(ClusterService.class).toInstance(clusterService);

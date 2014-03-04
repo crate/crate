@@ -58,4 +58,9 @@ public class CharFilters extends AnalyzerElement {
     public String toString() {
         return Objects.toStringHelper(this).add("charFilters", charFilters).toString();
     }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitCharFilters(this, context);
+    }
 }

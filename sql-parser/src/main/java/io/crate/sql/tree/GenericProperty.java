@@ -80,4 +80,9 @@ public class GenericProperty extends AnalyzerElement {
                 .add("value", value)
                 .toString();
     }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitGenericProperty(this, context);
+    }
 }
