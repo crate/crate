@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/03/04 0.26.0
+=================
+
  - removed obsolete akiban sql parser and related code
 
 2014/03/04 0.25.0
