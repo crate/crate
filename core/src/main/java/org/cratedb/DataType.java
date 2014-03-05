@@ -206,14 +206,6 @@ public enum DataType {
     OBJECT_ARRAY("object_array", new ArrayStreamer<Map<String, Object>>(OBJECT.streamer())),
     NULL_ARRAY("null_array", new ArrayStreamer<Void>(NULL.streamer()));
 
-    /**
-     * Keep the order of the following to Lists (ALL_TYPES, SET_TYPES) in sync
-     * with the above 'enum' ordering.
-     *
-     * This gives you the advantage to get e.g. SET_TYPES more easily:
-     *
-     * DataType.SET_TYPES.get(DataType.LONG.ordinal());
-     */
     public static final ImmutableList<DataType> ALL_TYPES = ImmutableList.of(
             BYTE,
             SHORT,
@@ -228,19 +220,22 @@ public enum DataType {
             IP
     );
 
-    public static final ImmutableList<DataType> SET_TYPES = ImmutableList.of(
-            BYTE_SET,
-            SHORT_SET,
-            INTEGER_SET,
-            LONG_SET,
-            FLOAT_SET,
-            DOUBLE_SET,
-            BOOLEAN_SET,
-            STRING_SET,
-            TIMESTAMP_SET,
-            OBJECT_SET,
-            IP_SET
-    );
+    public static final BiMap<DataType, DataType> SET_TYPES_MAP = HashBiMap.create();
+    static {
+            SET_TYPES_MAP.put(BYTE, BYTE_SET);
+            SET_TYPES_MAP.put(SHORT, SHORT_SET);
+            SET_TYPES_MAP.put(INTEGER, INTEGER_SET);
+            SET_TYPES_MAP.put(LONG, LONG_SET);
+            SET_TYPES_MAP.put(FLOAT, FLOAT_SET);
+            SET_TYPES_MAP.put(DOUBLE, DOUBLE_SET);
+            SET_TYPES_MAP.put(BOOLEAN, BOOLEAN_SET);
+            SET_TYPES_MAP.put(STRING, STRING_SET);
+            SET_TYPES_MAP.put(TIMESTAMP, TIMESTAMP_SET);
+            SET_TYPES_MAP.put(OBJECT, OBJECT_SET);
+            SET_TYPES_MAP.put(IP, IP_SET);
+    }
+    public static final ImmutableList<DataType> SET_TYPES = ImmutableList.copyOf(SET_TYPES_MAP.values());
+    public static final Map<DataType, DataType> REVERSE_SET_TYPE_MAP = SET_TYPES_MAP.inverse();
 
     public static final BiMap<DataType, DataType> ARRAY_TYPES_MAP = HashBiMap.create();
 
@@ -375,7 +370,7 @@ public enum DataType {
         if (this == DataType.NULL) {
             return this;
         } else {
-            return SET_TYPES.get(ordinal());
+            return SET_TYPES_MAP.get(this);
         }
     }
 
