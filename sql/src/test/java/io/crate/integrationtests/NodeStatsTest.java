@@ -39,8 +39,8 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
         long free = (long)response.rows()[0][0];
         long used = (long)response.rows()[0][1];
 
-        double free_percent = (int) response.rows()[0][2] * 0.01;
-        double used_percent = (int) response.rows()[0][3] * 0.01;
+        double free_percent = ((Number) response.rows()[0][2]).intValue() * 0.01;
+        double used_percent = ((Number) response.rows()[0][3]).intValue() * 0.01;
 
         double calculated_free_percent = free / (double)(free + used) ;
         double calculated_used_percent = used/ (double)(free + used) ;
