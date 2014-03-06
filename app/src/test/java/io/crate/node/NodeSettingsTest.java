@@ -21,9 +21,8 @@
 
 package io.crate.node;
 
-import junit.framework.TestCase;
 import io.crate.Constants;
-import org.elasticsearch.ElasticsearchIllegalArgumentException;
+import junit.framework.TestCase;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -91,15 +90,6 @@ public class NodeSettingsTest extends TestCase {
         }
 
 
-    }
-
-    /**
-     * Deleting all indexes must be deactivated by default
-     */
-    @Test(expected = ElasticsearchIllegalArgumentException.class)
-    public void testDeleteAll() throws IOException {
-        doSetup();
-        client.admin().indices().prepareDelete().execute();
     }
 
     /**
