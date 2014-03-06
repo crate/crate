@@ -28,9 +28,9 @@ import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import org.cratedb.action.sql.analyzer.AnalyzerService;
-import org.cratedb.sql.TableAlreadyExistsException;
-import org.cratedb.sql.TableUnknownException;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.exceptions.TableAlreadyExistsException;
+import io.crate.exceptions.TableUnknownException;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
@@ -53,7 +53,7 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
      *  _meta : {
      *      columns: {
      *          "someColumn": {
-     *              "array": true
+     *              "collection_type": [array | set | null]
      *          }
      *      },
      *      indices: {
@@ -64,16 +64,17 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
      */
     private final Map<String, Object> crateMeta;
     private final ReferenceInfos referenceInfos;
-    private final AnalyzerService analyzerService;
+    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
     private String currentColumnName;
+    private Map<String, Object> currentMetaColumnDefinition = new HashMap<>();
 
     public CreateTableAnalysis(ReferenceInfos referenceInfos,
-                               AnalyzerService analyzerService,
+                               FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                Object[] parameters) {
         super(parameters);
         this.referenceInfos = referenceInfos;
-        this.analyzerService = analyzerService;
+        this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
 
         crateMeta = new HashMap<>();
         crateMeta.put("primary_keys", primaryKeys);
@@ -144,7 +145,8 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
 
     public void addColumnDefinition(String columnName,
                                     Map<String, Object> columnDefinition) {
-        metaColumns.put(columnName, new HashMap<>());
+        currentMetaColumnDefinition = new HashMap<>();
+        metaColumns.put(columnName, currentMetaColumnDefinition);
         currentColumnName = columnName;
         currentColumnDefinition().put(columnName, columnDefinition);
         propertiesStack.push(columnDefinition);
@@ -161,6 +163,10 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
                     String.format("the index name \"%s\" is already in use!", name));
         }
         metaIndices.put(name, new HashMap<>());
+    }
+
+    public Map<String, Object> currentMetaColumnDefinition() {
+        return currentMetaColumnDefinition;
     }
 
     public Map<String, Object> currentColumnDefinition() {
@@ -190,6 +196,10 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
         return mapping;
     }
 
+    public Map<String, Object> metaMapping() {
+        return crateMeta;
+    }
+
     public Stack<Map<String, Object>> propertiesStack() {
         return propertiesStack;
     }
@@ -207,7 +217,7 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
         return copyTo;
     }
 
-    public AnalyzerService analyzerService() {
-        return analyzerService;
+    public FulltextAnalyzerResolver analyzerService() {
+        return fulltextAnalyzerResolver;
     }
 }

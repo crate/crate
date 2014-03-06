@@ -1,7 +1,0 @@
-org.cratedb.sql.parser.parser.RenameNode@7f70888e
-name: x
-statementType: RENAME INDEX
-oldIndexName:
-iold
-newIndexName: 
-inew

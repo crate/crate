@@ -2,8 +2,9 @@ package io.crate.planner.symbol;
 
 import io.crate.operator.Input;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -13,6 +14,11 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
         implements Input<ValueType>, Comparable<LiteralType> {
 
     public static Literal forType(DataType type, Object value) {
+        /**
+         * NOTE: {@link io.crate.DataType} should be changed into a class
+         * and then creating an literal for a type can be done using polymorphism.
+         */
+
         if (value == null) {
             return Null.INSTANCE;
         }
@@ -53,7 +59,19 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
                 throw new UnsupportedOperationException();
         }
 
+        if (DataType.ARRAY_TYPES.contains(type)) {
+            return createArrayLiteral(type, value);
+        }
+
         return null;
+    }
+
+    private static Literal createArrayLiteral(DataType type, Object value) {
+        DataType itemType = DataType.REVERSE_ARRAY_TYPE_MAP.get(type);
+        if (value.getClass().isArray()) {
+            return new ArrayLiteral(itemType, (Object[])value);
+        }
+        return new ArrayLiteral(itemType, ((List)value).toArray(new Object[((List)value).size()]));
     }
 
     public String valueAsString() {
@@ -79,13 +97,29 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
         return forType(type, value);
     }
 
+    public Object convertValueTo(DataType type, ValueType value) {
+        if (valueType() == type) {
+            return value;
+        } else if (type == DataType.NOT_SUPPORTED) {
+            return Null.INSTANCE;
+        }
+
+        throw new UnsupportedOperationException(
+                "Invalid input for type " + type.getName() + ": " + value().toString());
+    }
+
+    public final Object convertValueTo(DataType type) {
+        return convertValueTo(type, value());
+    }
+
     public Literal convertTo(DataType type) {
         if (valueType() == type) {
             return this;
         } else if (type == DataType.NOT_SUPPORTED) {
             return Null.INSTANCE;
         }
-        throw new UnsupportedOperationException("Invalid input for type " + type.getName() + ": " + value().toString());
+        throw new UnsupportedOperationException(
+                "Invalid input for type " + type.getName() + ": " + value().toString());
     }
 
     @Override

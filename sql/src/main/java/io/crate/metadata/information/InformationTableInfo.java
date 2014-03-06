@@ -27,7 +27,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.table.AbstractTableInfo;
 import io.crate.planner.RowGranularity;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 import javax.annotation.Nullable;
 import java.util.Collection;

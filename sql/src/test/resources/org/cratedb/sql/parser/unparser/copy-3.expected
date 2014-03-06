@@ -1,1 +1,0 @@
-COPY t1 FROM '/tmp/t1.csv'

@@ -21,7 +21,7 @@
 
 package io.crate.executor.transport;
 
-import org.cratedb.DataType;
+import io.crate.Streamer;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
@@ -31,10 +31,10 @@ import java.io.IOException;
 public class NodeCollectResponse extends TransportResponse {
 
     private Object[][] rows;
-    private final DataType.Streamer<?>[] streamers;
+    private final Streamer<?>[] streamers;
 
 
-    public NodeCollectResponse(DataType.Streamer<?>[] streamers) {
+    public NodeCollectResponse(Streamer<?>[] streamers) {
         this.streamers = streamers;
     }
 

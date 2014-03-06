@@ -32,9 +32,9 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operator.operator.OperatorModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
-import org.cratedb.DataType;
-import org.cratedb.sql.TableUnknownException;
-import org.cratedb.sql.ValidationException;
+import io.crate.DataType;
+import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.ValidationException;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 

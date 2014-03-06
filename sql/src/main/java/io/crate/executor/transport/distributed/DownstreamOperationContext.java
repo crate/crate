@@ -24,7 +24,7 @@ package io.crate.executor.transport.distributed;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.UnknownUpstreamFailure;
 import io.crate.operator.operations.merge.DownstreamOperation;
-import org.cratedb.DataType;
+import io.crate.Streamer;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -38,14 +38,14 @@ public class DownstreamOperationContext {
     private final AtomicInteger mergeOperationsLeft;
     private final DownstreamOperation downstreamOperation;
     private final SettableFuture<Object[][]> listener;
-    private final DataType.Streamer<?>[] streamers;
+    private final Streamer<?>[] streamers;
     private final DistributedRequestContextManager.DoneCallback doneCallback;
     private boolean needsMoreRows = true;
     private final Object lock = new Object();
 
     public DownstreamOperationContext(DownstreamOperation downstreamOperation,
                                       SettableFuture<Object[][]> listener,
-                                      DataType.Streamer<?>[] streamers,
+                                      Streamer<?>[] streamers,
                                       DistributedRequestContextManager.DoneCallback doneCallback) {
         this.mergeOperationsLeft = new AtomicInteger(downstreamOperation.numUpstreams());
         this.downstreamOperation = downstreamOperation;
@@ -95,7 +95,7 @@ public class DownstreamOperationContext {
         }
     }
 
-    public DataType.Streamer<?>[] streamers() {
+    public Streamer<?>[] streamers() {
         return streamers;
     }
 }

@@ -11,7 +11,7 @@ task getVersion (dependsOn: 'classes') << {
     def stdout = new ByteArrayOutputStream()
     javaexec {
         classpath = sourceSets.main.runtimeClasspath
-        main = 'org.cratedb.Version'
+        main = 'io.crate.Version'
         standardOutput = stdout
     }
     ext.version = stdout.toString().trim().split(" ")[1].replace(',','')
@@ -44,7 +44,7 @@ ext {
     plugin_head_version = '2cd68c235f8b0fdf667090e8d2653d80e4183473'
     plugin_bigdesk_version = '2.2.2c'
     plugin_segmentspy_version = '0.2.0'
-    plugin_crateadmin_version = '0.1.2'
+    plugin_crateadmin_version = '0.2.2'
 }
 
 evaluationDependsOn(':es')
@@ -149,7 +149,7 @@ task downloadPlugins << {
     extractTopfolder(dest, 'plugins/bigdesk/_site')
     dest = download(
             "https://github.com/polyfractal/elasticsearch-segmentspy/archive/v${plugin_segmentspy_version}.zip",
-            "segementspy_${plugin_segmentspy_version}.zip"
+            "segmentspy_${plugin_segmentspy_version}.zip"
     )
     extractTopfolder(dest, 'plugins/segmentspy')
     dest = download(
@@ -162,7 +162,7 @@ task downloadPlugins << {
 processResources.dependsOn downloadPlugins
 
 task(runDebug, dependsOn: 'classes', type: JavaExec) {
-    main = 'org.cratedb.bootstrap.CrateF'
+    main = 'io.crate.bootstrap.CrateF'
     debug = true
     classpath = sourceSets.main.runtimeClasspath
     maxHeapSize = '512m'

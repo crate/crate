@@ -37,7 +37,7 @@ import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentBuilder;

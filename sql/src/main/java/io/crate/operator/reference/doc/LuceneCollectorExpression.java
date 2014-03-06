@@ -23,7 +23,7 @@ package io.crate.operator.reference.doc;
 
 import io.crate.operator.Input;
 import org.apache.lucene.index.AtomicReaderContext;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 /**
  * An expression which gets evaluated in the collect phase

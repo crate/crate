@@ -1,8 +1,0 @@
-org.cratedb.sql.parser.parser.CreateAliasNode@114beb40
-aliasType: PROCEDURE
-aliasInfo: () LANGUAGE java PARAMETER STYLE cratedb_loadable_plan
-createOrReplace: false
-javaClassName: org.cratedb
-methodName: PlanTest
-name: test.foo_baz
-statementType: CREATE PROCEDURE

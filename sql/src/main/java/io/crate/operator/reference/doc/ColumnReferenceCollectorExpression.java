@@ -22,7 +22,7 @@
 package io.crate.operator.reference.doc;
 
 
-import org.cratedb.core.StringUtils;
+import io.crate.core.StringUtils;
 
 public abstract class ColumnReferenceCollectorExpression<ReturnType> extends
         LuceneCollectorExpression<ReturnType> implements ColumnReferenceExpression {

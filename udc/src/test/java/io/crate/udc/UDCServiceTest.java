@@ -25,7 +25,7 @@ import io.crate.http.HttpTestServer;
 import io.crate.udc.plugin.UDCPlugin;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
-import org.cratedb.test.integration.CrateIntegrationTest;
+import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.junit.Test;

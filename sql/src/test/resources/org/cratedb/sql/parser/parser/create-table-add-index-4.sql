@@ -1,1 +1,0 @@
-create table t4 (c1 int, c2 string, c3 string INDEX OFF, INDEX "ft" USING fulltext(t4.c2, "c3"))

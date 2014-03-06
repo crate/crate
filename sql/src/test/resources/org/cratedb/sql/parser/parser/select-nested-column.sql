@@ -1,1 +1,0 @@
-select a['b']['d'] where a['b']['c']['name'] = 'crate'

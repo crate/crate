@@ -32,7 +32,7 @@ Installation
 
 - Download_ the latest release and unzip the archive.
 
-- Run ``bin/crate -f`` on unix or ``bin/crate.bat`` on Windows.
+- Run ``bin/crate`` on unix or ``bin/crate.bat`` on Windows.
 
 - Say hello to Crate Data ``curl -sS '127.0.0.1:4200/?pretty=1'``
 

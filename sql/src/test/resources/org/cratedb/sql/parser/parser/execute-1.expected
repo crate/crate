@@ -1,5 +1,0 @@
-org.cratedb.sql.parser.parser.ExecuteStatementNode@788ab708
-name: ps
-statementType: EXECUTE
-parameterList: 	
-	org.cratedb.sql.parser.parser.ValueNodeList@5af6ac0b

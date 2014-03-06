@@ -21,7 +21,7 @@
 
 package io.crate.operator.reference.doc;
 
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 import java.util.Map;
 

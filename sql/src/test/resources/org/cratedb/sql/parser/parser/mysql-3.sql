@@ -1,1 +1,0 @@
-SELECT CONCAT("hello ", x) FROM names

@@ -25,9 +25,6 @@ buildscript {
     repositories {
         mavenCentral()
     }
-    dependencies {
-        classpath 'net.java.dev.javacc:javacc:5.0'
-    }
 }
 
 test {
@@ -40,30 +37,9 @@ test {
     // force run, see: http://gradle.1045684.n5.nabble.com/how-does-gradle-decide-when-to-run-tests-td3314172.html
     outputs.upToDateWhen { false }
 
-    exclude('org/cratedb/module/sql/benchmark/**')
+    exclude('io/crate/module/sql/benchmark/**')
 }
 
-task compileJavaCC {
-    def javaccPath = project.file('src/main/javacc')
-    def javaccTree = fileTree(dir: javaccPath, include: '**/*.jj')
-
-    def outputFiles = []
-    javaccTree.each {File file ->
-        def outPath = file.parentFile.absolutePath.replace('javacc/', 'java/')
-        outputFiles.add(outPath)
-    }
-
-    inputs.files javaccTree
-    outputs.files outputFiles
-
-    doLast {
-        javaccTree.each {File file ->
-            def outPath = file.parentFile.absolutePath.replace('javacc/', 'java/')
-            String[] args = ["-STATIC=false","-OUTPUT_DIRECTORY:$outPath", "$file"]
-            org.javacc.parser.Main.mainProgram(args)
-        }
-    }
-}
 
 task bench(type: Test) {
     description = 'Run the Crate JUnit Benchmarks'
@@ -76,7 +52,7 @@ task bench(type: Test) {
     systemProperty 'jub.xml.file', benchmark_dir + 'results.xml'
     systemProperty 'jub.charts.dir', benchmark_dir
 
-    include('org/cratedb/module/sql/benchmark/**')
+    include('io/crate/module/sql/benchmark/**')
 
     testLogging {
         // show standard out and standard error of the test JVM(s) on the console
@@ -93,8 +69,6 @@ task bench(type: Test) {
     }
 }
 
-
-compileJava.dependsOn compileJavaCC
 
 sourceSets {
     test {

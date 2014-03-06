@@ -21,8 +21,8 @@
 
 package io.crate.planner.symbol;
 
-import org.cratedb.DataType;
-import org.cratedb.core.collections.MapComparator;
+import io.crate.DataType;
+import io.crate.core.collections.MapComparator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 

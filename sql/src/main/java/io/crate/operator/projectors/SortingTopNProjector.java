@@ -26,8 +26,8 @@ import com.google.common.collect.Ordering;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
 import org.apache.lucene.util.PriorityQueue;
-import org.cratedb.Constants;
-import org.cratedb.core.collections.ArrayIterator;
+import io.crate.Constants;
+import io.crate.core.collections.ArrayIterator;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;

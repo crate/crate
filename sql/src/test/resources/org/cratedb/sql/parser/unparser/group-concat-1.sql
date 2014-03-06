@@ -1,1 +1,0 @@
-SELECT GROUP_CONCAT(c1, c2) from t

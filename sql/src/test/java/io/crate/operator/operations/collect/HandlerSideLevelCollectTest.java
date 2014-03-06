@@ -34,9 +34,9 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.StringLiteral;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
-import org.cratedb.SQLTransportIntegrationTest;
-import org.cratedb.test.integration.CrateIntegrationTest;
+import io.crate.DataType;
+import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.test.integration.CrateIntegrationTest;
 import org.junit.Before;
 import org.junit.Test;
 

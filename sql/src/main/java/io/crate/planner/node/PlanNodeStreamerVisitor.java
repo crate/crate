@@ -30,27 +30,28 @@ import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
-import org.cratedb.DataType;
-import org.cratedb.sql.CrateException;
+import io.crate.DataType;
+import io.crate.Streamer;
+import io.crate.exceptions.CrateException;
 import org.elasticsearch.common.inject.Inject;
 
 import java.util.*;
 
 /**
- * get input and output {@link org.cratedb.DataType.Streamer}s for {@link io.crate.planner.node.dql.AbstractDQLPlanNode}s
+ * get input and output {@link io.crate.Streamer}s for {@link io.crate.planner.node.PlanNode}s
  */
 public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor.Context, Void> {
 
     public static class Context {
-        private List<DataType.Streamer<?>> inputStreamers = new ArrayList<>();
-        private List<DataType.Streamer<?>> outputStreamers = new ArrayList<>();
+        private List<Streamer<?>> inputStreamers = new ArrayList<>();
+        private List<Streamer<?>> outputStreamers = new ArrayList<>();
 
-        public DataType.Streamer<?>[] inputStreamers() {
-            return inputStreamers.toArray(new DataType.Streamer<?>[inputStreamers.size()]);
+        public Streamer<?>[] inputStreamers() {
+            return inputStreamers.toArray(new Streamer<?>[inputStreamers.size()]);
         }
 
-        public DataType.Streamer<?>[] outputStreamers() {
-            return outputStreamers.toArray(new DataType.Streamer<?>[outputStreamers.size()]);
+        public Streamer<?>[] outputStreamers() {
+            return outputStreamers.toArray(new Streamer<?>[outputStreamers.size()]);
         }
     }
 
@@ -65,8 +66,8 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
         return new AggregationStateStreamer(aggregationFunction);
     }
 
-    private DataType.Streamer<?> resolveStreamer(Aggregation aggregation, Aggregation.Step step) {
-        DataType.Streamer<?> streamer;
+    private Streamer<?> resolveStreamer(Aggregation aggregation, Aggregation.Step step) {
+        Streamer<?> streamer;
         AggregationFunction<?> aggFunction = (AggregationFunction<?>)functions.get(aggregation.functionIdent());
         if (aggFunction == null) {
             throw new CrateException("unknown aggregation function");
@@ -153,7 +154,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
     private void setOutputStreamers(List<DataType> outputTypes,
                                     List<DataType> inputTypes,
                                     List<Projection> projections, Context context) {
-        final DataType.Streamer<?>[] streamers = new DataType.Streamer[outputTypes.size()];
+        final Streamer<?>[] streamers = new Streamer[outputTypes.size()];
 
         int idx = 0;
         for (DataType outputType : outputTypes) {
@@ -165,7 +166,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
             idx++;
         }
 
-        for (DataType.Streamer<?> streamer : streamers) {
+        for (Streamer<?> streamer : streamers) {
             if (streamer == null) {
                 throw new IllegalStateException("Could not resolve all output streamers");
             }
@@ -176,7 +177,7 @@ public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor
     /**
      * traverse the projections backward until a output type/streamer is found for each symbol in the last projection
      */
-    private void resolveStreamer(DataType.Streamer<?>[] streamers,
+    private void resolveStreamer(Streamer<?>[] streamers,
                                  List<Projection> projections,
                                  int columnIdx,
                                  int projectionIdx,

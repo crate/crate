@@ -23,9 +23,14 @@ package io.crate.executor;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
-import org.cratedb.action.sql.SQLResponse;
+import io.crate.DataType;
+import io.crate.action.sql.SQLResponse;
+
+import javax.annotation.Nullable;
+import java.util.Set;
 
 public class RowsResponseBuilder implements ResponseBuilder {
 
@@ -55,10 +60,13 @@ public class RowsResponseBuilder implements ResponseBuilder {
         // if the map is coming from a ESSearchTask/EsGetTask they already contain strings
         // and we have no case in which another Task returns a Map with ByteRefs/Strings inside.
         final IntArrayList stringColumns = new IntArrayList();
+        final IntArrayList stringSetColumns = new IntArrayList();
         int idx = 0;
         for (DataType dataType : dataTypes) {
             if (dataType == DataType.STRING) {
                 stringColumns.add(idx);
+            } else if (dataType == DataType.STRING_SET) {
+                stringSetColumns.add(idx);
             }
             idx++;
         }
@@ -68,6 +76,19 @@ public class RowsResponseBuilder implements ResponseBuilder {
                 Object value = rows[r][stringColumn.value];
                 if (value != null && value instanceof BytesRef) {
                     rows[r][stringColumn.value] = ((BytesRef)value).utf8ToString();
+                }
+            }
+
+            for (IntCursor stringSetColumn : stringSetColumns) {
+                Object value = rows[r][stringSetColumn.value];
+                if (value != null && value instanceof Set) {
+                    rows[r][stringSetColumn.value] = Collections2.transform((Set<BytesRef>) value, new Function<BytesRef, String>() {
+                        @Nullable
+                        @Override
+                        public String apply(@Nullable BytesRef input) {
+                            return input == null ? null : input.utf8ToString();
+                        }
+                    });
                 }
             }
         }

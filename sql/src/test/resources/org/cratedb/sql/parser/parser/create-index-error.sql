@@ -1,1 +1,0 @@
-create index if idx1 on table1 (c1)

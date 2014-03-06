@@ -22,22 +22,22 @@
 package io.crate.executor.transport;
 
 import io.crate.planner.symbol.*;
-import org.cratedb.DataType;
+import io.crate.Streamer;
 
-public class StreamerVisitor extends SymbolVisitor<Void, DataType.Streamer> {
+public class StreamerVisitor extends SymbolVisitor<Void, Streamer> {
 
     @Override
-    public DataType.Streamer visitValue(Value symbol, Void context) {
+    public Streamer visitValue(Value symbol, Void context) {
         return symbol.valueType().streamer();
     }
 
     @Override
-    public DataType.Streamer visitReference(Reference symbol, Void context) {
+    public Streamer visitReference(Reference symbol, Void context) {
         return symbol.valueType().streamer();
     }
 
     @Override
-    protected DataType.Streamer visitSymbol(Symbol symbol, Void context) {
+    protected Streamer visitSymbol(Symbol symbol, Void context) {
         throw new UnsupportedOperationException(SymbolFormatter.format("Can't get a streamer for symbol %s", symbol));
     }
 }

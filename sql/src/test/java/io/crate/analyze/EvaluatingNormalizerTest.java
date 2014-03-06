@@ -8,7 +8,7 @@ import io.crate.operator.predicate.NotPredicate;
 import io.crate.operator.predicate.PredicateModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
 import org.junit.Test;

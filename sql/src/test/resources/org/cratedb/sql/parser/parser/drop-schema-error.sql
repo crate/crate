@@ -1,1 +1,0 @@
-drop schema if not exists test

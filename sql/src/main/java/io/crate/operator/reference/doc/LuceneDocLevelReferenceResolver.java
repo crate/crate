@@ -24,7 +24,7 @@ package io.crate.operator.reference.doc;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.operator.reference.DocLevelReferenceResolver;
 import io.crate.planner.RowGranularity;
-import org.cratedb.sql.CrateException;
+import io.crate.exceptions.CrateException;
 
 public class LuceneDocLevelReferenceResolver implements DocLevelReferenceResolver<LuceneCollectorExpression<?>> {
 

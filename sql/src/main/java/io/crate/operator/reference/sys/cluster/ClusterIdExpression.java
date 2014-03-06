@@ -22,7 +22,7 @@
 package io.crate.operator.reference.sys.cluster;
 
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.ClusterIdService;
+import io.crate.ClusterIdService;
 import org.elasticsearch.common.inject.Inject;
 
 public class ClusterIdExpression extends SysClusterExpression<BytesRef> {

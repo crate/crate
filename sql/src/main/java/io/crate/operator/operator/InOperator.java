@@ -25,7 +25,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operator.Input;
 import io.crate.planner.symbol.*;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 import java.util.Set;
 

@@ -41,10 +41,10 @@ import io.crate.operator.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
-import org.cratedb.sql.AmbiguousAliasException;
-import org.cratedb.sql.SQLParseException;
-import org.cratedb.sql.UnsupportedFeatureException;
+import io.crate.DataType;
+import io.crate.exceptions.AmbiguousAliasException;
+import io.crate.exceptions.SQLParseException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
@@ -529,7 +529,6 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertThat(1, is(id.value()));
         assertEquals(SetLiteralTest.stringSet("jalla", "kelle"), tableName);
     }
-
 
     @Test
     public void testGranularityWithSingleAggregation() throws Exception {

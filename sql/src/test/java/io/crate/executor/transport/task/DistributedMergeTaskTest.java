@@ -16,9 +16,10 @@ import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
-import org.cratedb.SQLTransportIntegrationTest;
-import org.cratedb.test.integration.CrateIntegrationTest;
+import io.crate.DataType;
+import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.Streamer;
+import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -67,7 +68,7 @@ public class DistributedMergeTaskTest extends SQLTransportIntegrationTest {
         mergeNode.projections(Arrays.asList(groupProjection, topNProjection));
         mergeNode.outputTypes(Arrays.asList(DataType.STRING, DataType.NULL));
 
-        DataType.Streamer<?>[] mapperOutputStreamer = new DataType.Streamer[] {
+        Streamer<?>[] mapperOutputStreamer = new Streamer[] {
                 new AggregationStateStreamer(countAggregation),
                 DataType.STRING.streamer()
         };

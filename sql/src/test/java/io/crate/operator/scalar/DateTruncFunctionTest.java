@@ -27,7 +27,7 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.operator.Input;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.junit.Test;
 
 import static junit.framework.Assert.assertSame;

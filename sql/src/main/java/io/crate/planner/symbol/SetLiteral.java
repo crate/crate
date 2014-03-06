@@ -24,13 +24,15 @@ import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 public class SetLiteral extends Literal<Set<?>, SetLiteral> {
@@ -119,8 +121,9 @@ public class SetLiteral extends Literal<Set<?>, SetLiteral> {
 
     @Override
     public int compareTo(SetLiteral o) {
-        // Compare the size of the lists.
-        // We do this because it's quite easy to compare Set's in this case.
+        // only compare the size of the lists because this method is only used for sorting
+        // and it's currently not necessary to be deterministic.
+
         // A more sophisticated approach would be as follows:
         // - if the size of set1 and set2 differes, sort both sets ascending
         // - compare each value (s1[i].compateTo(s2[i]). If they are not equal, return the comparison result.
@@ -145,6 +148,37 @@ public class SetLiteral extends Literal<Set<?>, SetLiteral> {
     @Override
     public SymbolType symbolType() {
         return SymbolType.SET_LITERAL;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Literal convertTo(DataType type) {
+        if (valueType() == type) {
+            return this;
+        } else if (type == DataType.NOT_SUPPORTED) {
+            return Null.INSTANCE;
+        }
+
+        DataType targetItemType = DataType.REVERSE_SET_TYPE_MAP.get(type);
+        Set newValues = new HashSet(values.size());
+        if (values.size() > 0) {
+            Iterator<?> iterator = values.iterator();
+            Object firstValue = null;
+            while (firstValue == null && iterator.hasNext()) {
+                firstValue = iterator.next();
+            }
+            if (firstValue == null) {
+                // still null, no type conversion possible
+                return this;
+            }
+            Literal literal = Literal.forType(itemType(), firstValue);
+
+            for (Object value : values) {
+                newValues.add(literal.convertValueTo(targetItemType, value));
+            }
+        }
+
+        return new SetLiteral(targetItemType, newValues);
     }
 
     @Override

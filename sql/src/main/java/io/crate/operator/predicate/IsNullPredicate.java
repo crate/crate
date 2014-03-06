@@ -29,7 +29,7 @@ import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 import java.util.Arrays;
 

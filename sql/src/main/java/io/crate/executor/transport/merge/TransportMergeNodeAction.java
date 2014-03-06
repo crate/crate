@@ -34,7 +34,7 @@ import io.crate.operator.operations.merge.MergeOperation;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
-import org.cratedb.DataType;
+import io.crate.Streamer;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -144,7 +144,7 @@ public class TransportMergeNodeAction {
         private final DiscoveryNode node;
         private final NodeMergeRequest request;
         private final ActionListener<NodeMergeResponse> listener;
-        private final DataType.Streamer<?>[] streamers;
+        private final Streamer<?>[] streamers;
         private final String nodeId;
 
         public AsyncMergeStartAction(String node, NodeMergeRequest request, ActionListener<NodeMergeResponse> listener) {

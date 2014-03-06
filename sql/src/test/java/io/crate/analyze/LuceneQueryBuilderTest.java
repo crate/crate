@@ -36,7 +36,7 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
 import org.junit.Before;

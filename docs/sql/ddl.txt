@@ -241,6 +241,45 @@ New columns added to ``ignored`` objects can be retrieved as result column in a 
 but one cannot order by them or use them in a where clause. They are simply there for fetching,
 nothing else.
 
+arrays
+......
+
+Crate supports arrays. An array is a collection of another `simple` data type.
+The simple data types are:
+
+* boolean
+* string
+* ip
+* any of the numeric types (integer, long, short, double, float, byte)
+* timestamp
+* object
+
+Array types are defined as follows::
+
+    cr> create table my_table_arrays (
+    ...     tags array(string),
+    ...     objects array(object as (age integer, name string))
+    ... )
+    CREATE OK (... sec)
+
+
+.. note::
+
+    Currently arrays cannot be nested. Something like array(array(string))
+    won't work.
+
+.. note::
+
+    Crash currently has no support to insert arrays. But it is possible to
+    insert arrays using the `_sql` REST Endpoint or any of the available crate
+    clients.
+
+    E.g. in the python client a python list can be used as an argument to the
+    cursors execute method.
+
+
+.. _sql_ddl_sharding:
+
 Sharding
 ========
 
@@ -316,6 +355,15 @@ Example::
     ...   first_column int,
     ...   second_column string
     ... ) replicas 1
+    CREATE OK (... sec)
+
+While defining replication together with :ref:`sharding <sql_ddl_sharding>`, it needs to be
+defined after::
+
+    cr> create table my_table10a (
+    ...   first_column int,
+    ...   second_column string
+    ... ) clustered by (first_column) into 10 shards replicas 1
     CREATE OK (... sec)
 
 .. note::

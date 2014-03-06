@@ -22,7 +22,7 @@
 package io.crate.operator.reference.doc;
 
 import org.apache.lucene.index.AtomicReaderContext;
-import org.cratedb.Constants;
+import io.crate.Constants;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.mapper.FieldMapper;
 

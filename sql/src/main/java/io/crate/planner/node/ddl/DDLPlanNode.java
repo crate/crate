@@ -2,7 +2,7 @@ package io.crate.planner.node.ddl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.node.PlanNode;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 import java.util.List;
 

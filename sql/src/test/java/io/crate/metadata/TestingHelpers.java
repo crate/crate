@@ -23,7 +23,7 @@ package io.crate.metadata;
 
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Reference;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 public class TestingHelpers {
 

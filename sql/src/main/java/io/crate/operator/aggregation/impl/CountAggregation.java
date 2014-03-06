@@ -31,7 +31,7 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.LongLiteral;
 import io.crate.planner.symbol.Symbol;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 

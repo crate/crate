@@ -60,4 +60,8 @@ public class AnalysisVisitor<C, R> {
     protected R visitDropTableAnalysis(DropTableAnalysis analysis, C context) {
         return visitAnalysis(analysis, context);
     }
+
+    protected R visitCreateAnalyzerAnalysis(CreateAnalyzerAnalysis analysis, C context) {
+        return visitAnalysis(analysis, context);
+    }
 }

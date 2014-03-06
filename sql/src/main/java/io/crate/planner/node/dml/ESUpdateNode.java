@@ -22,12 +22,10 @@
 package io.crate.planner.node.dml;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.operator.Input;
 import io.crate.planner.node.PlanVisitor;
 import io.crate.planner.symbol.*;
-import org.cratedb.DataType;
 
 import javax.annotation.Nullable;
 import java.util.*;

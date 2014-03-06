@@ -23,10 +23,11 @@ package io.crate.analyze;
 import com.google.common.collect.Lists;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.*;
-import org.cratedb.Constants;
+import io.crate.Constants;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
+
 
 public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, CreateTableAnalysis> {
 
@@ -87,11 +88,12 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         context.addColumnDefinition(node.ident(), columnDefinition);
         columnDefinition.put("store", false);
 
-        if (node.constraints().isEmpty()) { // set default if no constraints
-            columnDefinition.put("index", "not_analyzed");
-        }
         for (ColumnConstraint columnConstraint : node.constraints()) {
             process(columnConstraint, context);
+        }
+        if (!columnDefinition.containsKey("index")) {
+            // not set by the column constraints -> use default
+            columnDefinition.put("index", "not_analyzed");
         }
 
         process(node.type(), context);
@@ -127,6 +129,12 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         } else {
             typeName = node.name();
         }
+
+        Object indexName = context.currentColumnDefinition().get("index");
+        assert indexName != null;
+        if (indexName.equals("not_analyzed")) {
+            context.currentColumnDefinition().put("doc_values", true);
+        }
         context.currentColumnDefinition().put("type", typeName);
 
         return null;
@@ -161,20 +169,18 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
 
     @Override
     public Void visitCollectionColumnType(CollectionColumnType node, CreateTableAnalysis context) {
-        throw new UnsupportedOperationException("the ARRAY and SET dataTypes are currently not supported");
-        //if (node.type() == ColumnType.Type.SET) {
-        // throw new UnsupportedOperationException("the SET dataType is currently not supported");
-        //}
+        if (node.type() == ColumnType.Type.SET) {
+            throw new UnsupportedOperationException("the SET dataType is currently not supported");
+        }
+        context.currentMetaColumnDefinition().put("collection_type", "array");
+        context.currentColumnDefinition().put("doc_values", false);
 
-        //context.currentMetaColumnDefinition().put("collection_type", "array");
-        //context.currentColumnDefinition().put("doc_values", false);
+        if (node.innerType().type() != ColumnType.Type.PRIMITIVE) {
+            throw new UnsupportedOperationException("Nesting ARRAY or SET types is currently not supported");
+        }
 
-        //if (node.innerType().type() != ColumnType.Type.PRIMITIVE) {
-        //    throw new UnsupportedOperationException("Nesting ARRAY or SET types is currently not supported");
-        //}
-        //context.currentColumnDefinition().put("type", node.innerType().name());
-
-        //return null;
+        process(node.innerType(), context);
+        return null;
     }
 
     @Override

@@ -22,7 +22,7 @@
 package io.crate.executor.transport.distributed;
 
 import com.google.common.base.Optional;
-import org.cratedb.DataType;
+import io.crate.Streamer;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -35,7 +35,7 @@ import java.util.UUID;
 public class DistributedResultRequest extends TransportRequest {
 
     private DistributedRequestContextManager contextManager;
-    private DataType.Streamer<?>[] streamers;
+    private Streamer<?>[] streamers;
     private Object[][] rows;
     private UUID contextId;
     private BytesStreamOutput memoryStream;
@@ -48,7 +48,7 @@ public class DistributedResultRequest extends TransportRequest {
         this.contextManager = contextManager;
     }
 
-    public DistributedResultRequest(UUID contextId, DataType.Streamer<?>[] streamers) {
+    public DistributedResultRequest(UUID contextId, Streamer<?>[] streamers) {
         this.contextId = contextId;
         this.streamers = streamers;
     }
@@ -83,9 +83,9 @@ public class DistributedResultRequest extends TransportRequest {
             return;
         }
 
-        final Optional<DataType.Streamer<?>[]> optStreamer = contextManager.getStreamer(contextId);
+        final Optional<Streamer<?>[]> optStreamer = contextManager.getStreamer(contextId);
         if (optStreamer.isPresent()) {
-            final DataType.Streamer<?>[] streamers = optStreamer.get();
+            final Streamer<?>[] streamers = optStreamer.get();
             final int numColumns = streamers.length;
 
             rows = new Object[in.readVInt()][];
@@ -101,7 +101,7 @@ public class DistributedResultRequest extends TransportRequest {
         }
     }
 
-    public static Object[][] readRemaining(DataType.Streamer<?>[] streamers, StreamInput input) throws IOException {
+    public static Object[][] readRemaining(Streamer<?>[] streamers, StreamInput input) throws IOException {
         final int numColumns = streamers.length;
         final Object[][] rows = new Object[input.readVInt()][];
         for (int r = 0; r < rows.length; r++) {

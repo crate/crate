@@ -1,1 +1,0 @@
-update t3 set foo='bar' where db.tablename."_version" = 'newest'

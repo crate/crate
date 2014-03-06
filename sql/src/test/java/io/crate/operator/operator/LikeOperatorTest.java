@@ -27,7 +27,7 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.StringLiteral;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.junit.Test;
 
 import static io.crate.operator.operator.LikeOperator.DEFAULT_ESCAPE;

@@ -1,1 +1,0 @@
-CREATE TABLE t4 ( title string, stuff object as (name string, age integer))

@@ -27,7 +27,7 @@ import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operator.operator.OperatorModule;
-import org.cratedb.action.sql.analyzer.AnalyzerService;
+import io.crate.metadata.FulltextAnalyzerResolver;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -46,9 +47,9 @@ public class CreateTableStatementAnalyzerTest extends BaseAnalyzerTest {
     static class TestMetaDataModule extends MetaDataModule {
         @Override
         protected void configure() {
-            AnalyzerService analyzerService = mock(AnalyzerService.class);
-            when(analyzerService.hasCustomAnalyzer(anyString())).thenReturn(false);
-            bind(AnalyzerService.class).toInstance(analyzerService);
+            FulltextAnalyzerResolver fulltextAnalyzerResolver = mock(FulltextAnalyzerResolver.class);
+            when(fulltextAnalyzerResolver.hasCustomAnalyzer(anyString())).thenReturn(false);
+            bind(FulltextAnalyzerResolver.class).toInstance(fulltextAnalyzerResolver);
             super.configure();
         }
 
@@ -94,6 +95,12 @@ public class CreateTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat(analysis.indexSettings().get("number_of_shards"), is("3"));
         assertThat(analysis.indexSettings().get("number_of_replicas"), is("0"));
+
+        Map<String, Object> metaMapping = analysis.metaMapping();
+        Map<String, Object> metaName = (Map<String, Object>)((Map<String, Object>)
+                metaMapping.get("columns")).get("name");
+
+        assertNull(metaName.get("collection_type"));
 
         Map<String,Object> mappingProperties = analysis.mappingProperties();
 
@@ -186,26 +193,30 @@ public class CreateTableStatementAnalyzerTest extends BaseAnalyzerTest {
                         "INDEX author_title_ft using fulltext(title, author['name']['foo']['bla']))");
     }
 
-    // TODO: array support
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateTableWithObjectsArray() throws Exception {
+        CreateTableAnalysis analysis = (CreateTableAnalysis)analyze(
+                "create table foo (id integer primary key, details array(object as (name string, age integer)))");
 
-    //@Test
-    //@SuppressWarnings("unchecked")
-    //public void testCreateTableWithObjectsArray() throws Exception {
-    //    CreateTableAnalysis analysis = (CreateTableAnalysis)analyze(
-    //            "create table foo (id integer primary key, details array(object as (name string, age integer)))");
+        Map<String, Object> metaMapping = analysis.metaMapping();
+        Map<String, Object> metaDetails = (Map<String, Object>)((Map<String, Object>)
+                metaMapping.get("columns")).get("details");
 
-    //    Map<String, Object> mappingProperties = analysis.mappingProperties();
-    //    Map<String, Object> details = (Map<String, Object>)mappingProperties.get("details");
+        assertThat((String) metaDetails.get("collection_type"), is("array"));
 
-    //    assertThat((String)details.get("type"), is("object"));
+        Map<String, Object> mappingProperties = analysis.mappingProperties();
+        Map<String, Object> details = (Map<String, Object>)mappingProperties.get("details");
 
-    //    Map<String, Object> detailsProperties = (Map<String, Object>)details.get("properties");
-    //    Map<String, Object> nameProperties = (Map<String, Object>) detailsProperties.get("name");
-    //    assertThat((String)nameProperties.get("type"), is("string"));
+        assertThat((String)details.get("type"), is("object"));
 
-    //    Map<String, Object> ageProperties = (Map<String, Object>) detailsProperties.get("age");
-    //    assertThat((String)ageProperties.get("type"), is("integer"));
-    //}
+        Map<String, Object> detailsProperties = (Map<String, Object>)details.get("properties");
+        Map<String, Object> nameProperties = (Map<String, Object>) detailsProperties.get("name");
+        assertThat((String)nameProperties.get("type"), is("string"));
+
+        Map<String, Object> ageProperties = (Map<String, Object>) detailsProperties.get("age");
+        assertThat((String)ageProperties.get("type"), is("integer"));
+    }
 
     @Test
     @SuppressWarnings("unchecked")

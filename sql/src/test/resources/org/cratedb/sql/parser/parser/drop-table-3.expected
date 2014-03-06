@@ -1,5 +1,0 @@
-org.cratedb.sql.parser.parser.DropTableNode@2d04faf8
-name: test
-statementType: DROP TABLE
-dropBehavior: 2
-existenceCheck: IF_EXISTS

@@ -61,4 +61,9 @@ public class Tokenizer extends AnalyzerElement {
     public String toString() {
         return Objects.toStringHelper(this).add("namedProperties", namedProperties).toString();
     }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitTokenizer(this, context);
+    }
 }

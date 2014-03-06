@@ -31,8 +31,8 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.operator.projectors.Projector;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
-import org.cratedb.Constants;
-import org.cratedb.DataType;
+import io.crate.Constants;
+import io.crate.Streamer;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
@@ -70,7 +70,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
                                               List<Projector> projectorChain,
                                               List<DiscoveryNode> downStreams,
                                               TransportService transportService,
-                                              DataType.Streamer<?>[] streamers) {
+                                              Streamer<?>[] streamers) {
             super(numShards, projectorChain);
             Preconditions.checkNotNull(downStreams);
             Preconditions.checkNotNull(jobId);
@@ -200,7 +200,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
             downStreams.add(node);
         }
         assert collectNode.jobId().isPresent();
-        DataType.Streamer<?>[] streamers = streamerVisitor.process(collectNode).outputStreamers();
+        Streamer<?>[] streamers = streamerVisitor.process(collectNode).outputStreamers();
         return new DistributingShardCollectFuture(
                 collectNode.jobId().get(),
                 numShards,

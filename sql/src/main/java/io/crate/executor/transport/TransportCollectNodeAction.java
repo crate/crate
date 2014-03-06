@@ -29,8 +29,8 @@ import io.crate.operator.operations.collect.DistributingCollectOperation;
 import io.crate.operator.operations.collect.MapSideDataCollectOperation;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
-import org.cratedb.DataType;
-import org.cratedb.sql.CrateException;
+import io.crate.Streamer;
+import io.crate.exceptions.CrateException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ListenableActionFuture;
 import org.elasticsearch.action.support.PlainListenableActionFuture;
@@ -126,7 +126,7 @@ public class TransportCollectNodeAction {
 
         private final NodeCollectRequest request;
         private final ActionListener<NodeCollectResponse> listener;
-        private final DataType.Streamer<?>[] streamers;
+        private final Streamer<?>[] streamers;
         private final DiscoveryNode node;
         private final String nodeId;
         private final ClusterState clusterState;

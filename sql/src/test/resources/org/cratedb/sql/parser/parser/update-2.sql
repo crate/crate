@@ -1,1 +1,0 @@
-UPDATE customers SET name='new' WHERE CURRENT OF customer

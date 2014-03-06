@@ -1,6 +1,0 @@
-org.cratedb.sql.parser.parser.RenameNode@162200d5
-statementType: RENAME INDEX
-oldIndexName:
-index1
-newIndexName: 
-index2

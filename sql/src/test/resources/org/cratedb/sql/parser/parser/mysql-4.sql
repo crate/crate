@@ -1,1 +1,0 @@
-SELECT * FROM t WHERE x > y || y < z && x <> z

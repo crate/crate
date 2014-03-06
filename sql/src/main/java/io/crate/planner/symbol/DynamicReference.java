@@ -24,7 +24,7 @@ package io.crate.planner.symbol;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.RowGranularity;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 

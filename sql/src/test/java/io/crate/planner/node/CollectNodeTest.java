@@ -26,7 +26,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.Value;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;

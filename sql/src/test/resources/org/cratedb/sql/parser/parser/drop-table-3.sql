@@ -1,1 +1,0 @@
-DROP TABLE if exists test

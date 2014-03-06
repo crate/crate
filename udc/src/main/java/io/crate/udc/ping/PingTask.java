@@ -22,8 +22,8 @@
 package io.crate.udc.ping;
 
 import com.google.common.base.Joiner;
-import org.cratedb.ClusterIdService;
-import org.cratedb.Version;
+import io.crate.ClusterIdService;
+import io.crate.Version;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;

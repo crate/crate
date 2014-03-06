@@ -24,7 +24,7 @@ package io.crate.planner.symbol;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.junit.Test;
 
 import java.util.Arrays;

@@ -22,8 +22,8 @@
 package io.crate.operator.reference.doc;
 
 import org.apache.lucene.index.AtomicReaderContext;
-import org.cratedb.DataType;
-import org.cratedb.sql.GroupByOnArrayUnsupportedException;
+import io.crate.DataType;
+import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import org.elasticsearch.index.fielddata.DoubleValues;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 

@@ -1,6 +1,6 @@
 package io.crate.planner.node;
 
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 import java.util.List;
 

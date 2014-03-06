@@ -27,13 +27,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.analyze.*;
+import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.ddl.ESCreateIndexNode;
-import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.ddl.ESDeleteIndexNode;
-import io.crate.planner.node.dml.CopyNode;
-import io.crate.planner.node.dml.ESDeleteNode;
-import io.crate.planner.node.dml.ESIndexNode;
-import io.crate.planner.node.dml.ESUpdateNode;
+import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.dql.ESSearchNode;
@@ -43,11 +40,14 @@ import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
-import org.cratedb.Constants;
-import org.cratedb.DataType;
+import io.crate.Constants;
+import io.crate.DataType;
+import io.crate.exceptions.CrateException;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -167,6 +167,23 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                 analysis.mapping()
         );
 
+        plan.add(node);
+        plan.expectsAffectedRows(true);
+        return plan;
+    }
+
+    @Override
+    protected Plan visitCreateAnalyzerAnalysis(CreateAnalyzerAnalysis analysis, Void context) {
+        Plan plan = new Plan();
+
+        Settings analyzerSettings;
+        try {
+            analyzerSettings = analysis.buildSettings();
+        } catch (IOException ioe) {
+            throw new CrateException("Could not build analyzer Settings", ioe);
+        }
+
+        ESClusterUpdateSettingsNode node = new ESClusterUpdateSettingsNode(analyzerSettings);
         plan.add(node);
         plan.expectsAffectedRows(true);
         return plan;

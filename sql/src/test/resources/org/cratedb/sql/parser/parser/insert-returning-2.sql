@@ -1,1 +1,0 @@
-insert into t1 values (default, 'fred') returning *

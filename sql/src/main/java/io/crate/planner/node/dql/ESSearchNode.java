@@ -29,7 +29,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.planner.node.PlanVisitor;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import org.cratedb.Constants;
+import io.crate.Constants;
 import org.elasticsearch.common.Nullable;
 
 import java.util.Arrays;
