@@ -32,9 +32,12 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServer;
 import org.elasticsearch.indices.recovery.BlobRecoverySource;
+import org.elasticsearch.transport.TransportService;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -68,7 +71,17 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
     @Override
     protected void doStart() throws ElasticsearchException {
         logger.info("BlobService.doStart() {}", this);
+
+        // suppress warning about replaced recovery handler
+        ESLogger transportServiceLogger = Loggers.getLogger(TransportService.class);
+        String previousLevel = transportServiceLogger.getLevel();
+        transportServiceLogger.setLevel("ERROR");
+
         injector.getInstance(BlobRecoverySource.class).registerHandler();
+
+        transportServiceLogger.setLevel(previousLevel);
+
+
         blobHeadRequestHandler.registerHandler();
 
         // by default the http server is started after the discovery service.
