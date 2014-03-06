@@ -125,9 +125,6 @@
 # Use the Table Status API (<http://localhost:4200/A/_status>) to inspect
 # the table status.
 
-# Enable/disable to delete all tables (Delete on root):
-# action.disable_delete_all_indices: true
-
 
 #################################### Paths ####################################
 
