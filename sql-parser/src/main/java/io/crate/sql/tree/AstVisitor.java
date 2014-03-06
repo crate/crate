@@ -504,4 +504,8 @@ public abstract class AstVisitor<R, C>
     public R visitTokenFilters(TokenFilters node, C context) {
         return visitNode(node, context);
     }
+
+    public R visitCreateBlobTable(CreateBlobTable node, C context) {
+        return visitNode(node, context);
+    }
 }
