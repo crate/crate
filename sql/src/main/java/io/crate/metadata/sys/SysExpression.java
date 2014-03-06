@@ -22,7 +22,7 @@
 package io.crate.metadata.sys;
 
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.operator.Input;
+import io.crate.operation.Input;
 
 /**
  * Base class for system expressions. Implementations of system expressions should inherit from it.

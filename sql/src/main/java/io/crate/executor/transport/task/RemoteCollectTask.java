@@ -30,7 +30,7 @@ import io.crate.executor.Task;
 import io.crate.executor.transport.NodeCollectRequest;
 import io.crate.executor.transport.NodeCollectResponse;
 import io.crate.executor.transport.TransportCollectNodeAction;
-import io.crate.operator.operations.collect.HandlerSideDataCollectOperation;
+import io.crate.operation.collect.HandlerSideDataCollectOperation;
 import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.action.ActionListener;
 

@@ -24,7 +24,7 @@ package io.crate.planner.node;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.Functions;
-import io.crate.operator.aggregation.AggregationFunction;
+import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.planner.node.dql.AbstractDQLPlanNode;
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;

@@ -25,10 +25,10 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operator.operator.AndOperator;
-import io.crate.operator.operator.EqOperator;
-import io.crate.operator.operator.InOperator;
-import io.crate.operator.operator.OrOperator;
+import io.crate.operation.operator.AndOperator;
+import io.crate.operation.operator.EqOperator;
+import io.crate.operation.operator.InOperator;
+import io.crate.operation.operator.OrOperator;
 import io.crate.planner.symbol.*;
 import io.crate.DataType;
 

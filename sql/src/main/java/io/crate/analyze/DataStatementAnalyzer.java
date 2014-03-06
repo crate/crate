@@ -27,9 +27,9 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceIdent;
-import io.crate.operator.aggregation.impl.CollectSetAggregation;
-import io.crate.operator.operator.*;
-import io.crate.operator.predicate.NotPredicate;
+import io.crate.operation.aggregation.impl.CollectSetAggregation;
+import io.crate.operation.operator.*;
+import io.crate.operation.predicate.NotPredicate;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
@@ -126,7 +126,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         DataType argumentType = symbolDataTypeVisitor.process(argument, null);
 
         FunctionIdent isNullIdent =
-                new FunctionIdent(io.crate.operator.predicate.IsNullPredicate.NAME, ImmutableList.of(argumentType));
+                new FunctionIdent(io.crate.operation.predicate.IsNullPredicate.NAME, ImmutableList.of(argumentType));
         FunctionInfo isNullInfo = context.getFunctionInfo(isNullIdent);
 
         return context.allocateFunction(
@@ -330,7 +330,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         }
 
         FunctionIdent functionIdent =
-                new FunctionIdent(io.crate.operator.predicate.IsNullPredicate.NAME,
+                new FunctionIdent(io.crate.operation.predicate.IsNullPredicate.NAME,
                         ImmutableList.of(symbolDataTypeVisitor.process(value, null)));
         FunctionInfo functionInfo = context.getFunctionInfo(functionIdent);
         return context.allocateFunction(functionInfo, ImmutableList.of(value));

@@ -23,7 +23,7 @@ package io.crate.analyze;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.operator.Input;
+import io.crate.operation.Input;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import org.elasticsearch.common.logging.ESLogger;

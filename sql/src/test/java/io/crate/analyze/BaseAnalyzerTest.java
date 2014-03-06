@@ -28,8 +28,8 @@ import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operator.Input;
-import io.crate.operator.reference.sys.cluster.SysClusterExpression;
+import io.crate.operation.Input;
+import io.crate.operation.reference.sys.cluster.SysClusterExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.LongLiteral;
@@ -123,7 +123,7 @@ public class BaseAnalyzerTest {
     }
 
     /**
-     * borrowed from {@link io.crate.operator.reference.sys.TestGlobalSysExpressions}
+     * borrowed from {@link io.crate.operation.reference.sys.TestGlobalSysExpressions}
      * // TODO share it
      */
     static class TestModule extends AbstractModule {

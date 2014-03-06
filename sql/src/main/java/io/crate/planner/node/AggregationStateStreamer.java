@@ -21,8 +21,8 @@
 
 package io.crate.planner.node;
 
-import io.crate.operator.aggregation.AggregationFunction;
-import io.crate.operator.aggregation.AggregationState;
+import io.crate.operation.aggregation.AggregationFunction;
+import io.crate.operation.aggregation.AggregationState;
 import io.crate.Streamer;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -30,7 +30,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 
 /**
- * Streamer used for {@link io.crate.operator.aggregation.AggregationState}s
+ * Streamer used for {@link io.crate.operation.aggregation.AggregationState}s
  */
 public class AggregationStateStreamer implements Streamer<AggregationState> {
 

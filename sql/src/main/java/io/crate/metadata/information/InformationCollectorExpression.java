@@ -23,7 +23,7 @@ package io.crate.metadata.information;
 
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.ReferenceInfo;
-import io.crate.operator.Input;
+import io.crate.operation.Input;
 
 /**
  * Base class for information_schema expressions.

@@ -25,7 +25,7 @@ import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.operator.operator.OperatorModule;
+import io.crate.operation.operator.OperatorModule;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import org.elasticsearch.common.inject.Module;

@@ -1,6 +1,6 @@
 package io.crate.planner.symbol;
 
-import io.crate.operator.Input;
+import io.crate.operation.Input;
 import org.apache.lucene.util.BytesRef;
 import io.crate.DataType;
 

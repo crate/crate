@@ -21,7 +21,7 @@
 
 package io.crate.metadata;
 
-import io.crate.operator.Input;
+import io.crate.operation.Input;
 import io.crate.planner.symbol.Function;
 
 /**
