@@ -24,8 +24,8 @@ package io.crate.analyze.elasticsearch;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import io.crate.DataType;
 import io.crate.analyze.WhereClause;
-import io.crate.lucene.SQLToLuceneHelper;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operator.operator.*;
@@ -33,11 +33,10 @@ import io.crate.operator.predicate.IsNullPredicate;
 import io.crate.operator.predicate.NotPredicate;
 import io.crate.operator.scalar.MatchFunction;
 import io.crate.planner.node.dml.ESDeleteByQueryNode;
-import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.node.dml.ESUpdateNode;
+import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -307,13 +306,26 @@ public class ESQueryBuilder {
             }
         }
 
+        public static String convertWildcard(String wildcardString) {
+            // lucene uses * and ? as wildcard characters
+            // but via SQL they are used as % and _
+            // here they are converted back.
+            wildcardString = wildcardString.replaceAll("(?<!\\\\)\\*", "\\\\*");
+            wildcardString = wildcardString.replaceAll("(?<!\\\\)%", "*");
+            wildcardString = wildcardString.replaceAll("\\\\%", "%");
+
+            wildcardString = wildcardString.replaceAll("(?<!\\\\)\\?", "\\\\?");
+            wildcardString = wildcardString.replaceAll("(?<!\\\\)_", "?");
+            return wildcardString.replaceAll("\\\\_", "_");
+        }
+
         class LikeConverter extends CmpConverter {
 
             @Override
             public void convert(Function function, Context context) throws IOException {
                 Tuple<String, Object> prepare = prepare(function);
                 String like = prepare.v2().toString();
-                like = SQLToLuceneHelper.convertWildcard(like);
+                like = convertWildcard(like);
                 context.builder.startObject("wildcard").field(prepare.v1(), like).endObject();
             }
         }
