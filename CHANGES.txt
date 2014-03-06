@@ -2,6 +2,11 @@
 Changes for Crate Data
 ======================
 
+unreleased
+==========
+
+ - updated crate-admin to 0.2.4
+
  - BREAKING CHANGE: replaced the `REPLICAS` table setting with the table
    property `number_of_replicas`.
 
