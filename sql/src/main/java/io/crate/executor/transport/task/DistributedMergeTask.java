@@ -93,10 +93,10 @@ public class DistributedMergeTask implements Task<Object[][]> {
                         if (t instanceof RemoteTransportException){
                             t = t.getCause();
                         }
-                        countDownLatch.countDown();
                         for (ListenableFuture<Object[][]> result : results) {
                             ((SettableFuture<Object[][]>)result).setException(t);
                         }
+                        countDownLatch.countDown();
                         logger.error("remote collect request failed", t);
                     }
                 });
