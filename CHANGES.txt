@@ -7,6 +7,8 @@ Unreleased
 
  - date_trunc: implemented optional parameter 'timezone'.
 
+ - corrected sys.nodes.mem percentages
+
  - bin/crate will now start crate in the foreground by default.
    In order to start it in the background add `-d`
 
