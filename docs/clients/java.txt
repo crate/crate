@@ -12,7 +12,7 @@ Usage
 
 A minimal example is just a few lines of code::
 
-    import org.cratedb.client.CrateClient;
+    import io.crate.client.CrateClient;
 
     CrateClient client = new CrateClient("server1.crate.org:4300", "server2.crate.org:4300");
     SQLResponse r = client.sql("select firstName, lastName from users").actionGet();
@@ -42,7 +42,7 @@ The easiest way to use the crateclient is to include it as a dependency using
 maven::
 
     <dependency>
-        <groupId>org.crate<groupId>
+        <groupId>io.crate<groupId>
         <artifactId>crateClient</artifactId>
         <version>0.1.0</version>
     </dependency>

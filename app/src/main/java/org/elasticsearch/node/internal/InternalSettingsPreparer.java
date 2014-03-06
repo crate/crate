@@ -21,8 +21,8 @@
 
 package org.elasticsearch.node.internal;
 
-import org.cratedb.Constants;
-import org.cratedb.node.NodeSettings;
+import io.crate.Constants;
+import io.crate.node.NodeSettings;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.Names;
 import org.elasticsearch.common.collect.Tuple;

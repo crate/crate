@@ -27,7 +27,7 @@ import io.crate.operator.reference.DocLevelReferenceResolver;
 import io.crate.planner.symbol.DynamicReference;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.SymbolFormatter;
-import org.cratedb.sql.CrateException;
+import io.crate.exceptions.CrateException;
 
 import java.util.ArrayList;
 

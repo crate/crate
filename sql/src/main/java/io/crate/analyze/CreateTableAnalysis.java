@@ -28,9 +28,9 @@ import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import org.cratedb.action.sql.analyzer.AnalyzerService;
-import org.cratedb.sql.TableAlreadyExistsException;
-import org.cratedb.sql.TableUnknownException;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.exceptions.TableAlreadyExistsException;
+import io.crate.exceptions.TableUnknownException;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
@@ -64,17 +64,17 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
      */
     private final Map<String, Object> crateMeta;
     private final ReferenceInfos referenceInfos;
-    private final AnalyzerService analyzerService;
+    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
     private String currentColumnName;
     private Map<String, Object> currentMetaColumnDefinition = new HashMap<>();
 
     public CreateTableAnalysis(ReferenceInfos referenceInfos,
-                               AnalyzerService analyzerService,
+                               FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                Object[] parameters) {
         super(parameters);
         this.referenceInfos = referenceInfos;
-        this.analyzerService = analyzerService;
+        this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
 
         crateMeta = new HashMap<>();
         crateMeta.put("primary_keys", primaryKeys);
@@ -217,7 +217,7 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
         return copyTo;
     }
 
-    public AnalyzerService analyzerService() {
-        return analyzerService;
+    public FulltextAnalyzerResolver analyzerService() {
+        return fulltextAnalyzerResolver;
     }
 }

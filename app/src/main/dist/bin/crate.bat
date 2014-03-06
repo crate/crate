@@ -65,7 +65,7 @@ REM JAVA_OPTS=%JAVA_OPTS% -XX:HeapDumpPath=$CRATE_HOME/logs/heapdump.hprof
 set CRATE_CLASSPATH=%CRATE_CLASSPATH%;%CRATE_HOME%/lib/crate-*.jar;%CRATE_HOME%/lib/*;%CRATE_HOME%/lib/sigar/*
 set CRATE_PARAMS=-Dcrate -Des-foreground=yes -Des.path.home="%CRATE_HOME%" -Des.config="%CRATE_HOME%/config/crate.yml"
 
-"%JAVA_HOME%\bin\java" %JAVA_OPTS% %CRATE_JAVA_OPTS% %CRATE_PARAMS% %* -cp "%CRATE_CLASSPATH%" "org.cratedb.bootstrap.Crate"
+"%JAVA_HOME%\bin\java" %JAVA_OPTS% %CRATE_JAVA_OPTS% %CRATE_PARAMS% %* -cp "%CRATE_CLASSPATH%" "io.crate.bootstrap.Crate"
 goto finally
 
 

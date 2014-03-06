@@ -23,7 +23,7 @@ package io.crate.udc.service;
 
 import io.crate.udc.ping.PingTask;
 import io.crate.udc.plugin.UDCPlugin;
-import org.cratedb.ClusterIdService;
+import io.crate.ClusterIdService;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;

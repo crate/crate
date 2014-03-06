@@ -24,7 +24,7 @@ package io.crate.planner.node.dql;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableSet;
 import io.crate.planner.node.PlanVisitor;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 

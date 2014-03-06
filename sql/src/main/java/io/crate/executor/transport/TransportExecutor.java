@@ -47,7 +47,7 @@ import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.node.dql.MergeNode;
-import org.cratedb.action.import_.TransportImportAction;
+import io.crate.action.import_.TransportImportAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;

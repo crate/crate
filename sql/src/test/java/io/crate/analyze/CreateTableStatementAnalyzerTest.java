@@ -27,7 +27,7 @@ import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operator.operator.OperatorModule;
-import org.cratedb.action.sql.analyzer.AnalyzerService;
+import io.crate.metadata.FulltextAnalyzerResolver;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
@@ -47,9 +47,9 @@ public class CreateTableStatementAnalyzerTest extends BaseAnalyzerTest {
     static class TestMetaDataModule extends MetaDataModule {
         @Override
         protected void configure() {
-            AnalyzerService analyzerService = mock(AnalyzerService.class);
-            when(analyzerService.hasCustomAnalyzer(anyString())).thenReturn(false);
-            bind(AnalyzerService.class).toInstance(analyzerService);
+            FulltextAnalyzerResolver fulltextAnalyzerResolver = mock(FulltextAnalyzerResolver.class);
+            when(fulltextAnalyzerResolver.hasCustomAnalyzer(anyString())).thenReturn(false);
+            bind(FulltextAnalyzerResolver.class).toInstance(fulltextAnalyzerResolver);
             super.configure();
         }
 

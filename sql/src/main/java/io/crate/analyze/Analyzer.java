@@ -24,7 +24,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.sql.tree.*;
-import org.cratedb.action.sql.analyzer.AnalyzerService;
+import io.crate.metadata.FulltextAnalyzerResolver;
 import org.elasticsearch.common.inject.Inject;
 
 public class Analyzer {
@@ -35,10 +35,10 @@ public class Analyzer {
     public Analyzer(ReferenceInfos referenceInfos,
                     Functions functions,
                     ReferenceResolver referenceResolver,
-                    AnalyzerService analyzerService) {
+                    FulltextAnalyzerResolver fulltextAnalyzerResolver) {
 
         this.dispatcher = new AnalyzerDispatcher(
-                referenceInfos, functions, referenceResolver, analyzerService);
+                referenceInfos, functions, referenceResolver, fulltextAnalyzerResolver);
     }
 
     public Analysis analyze(Statement statement) {
@@ -69,7 +69,7 @@ public class Analyzer {
         private final ReferenceInfos referenceInfos;
         private final Functions functions;
         private final ReferenceResolver referenceResolver;
-        private final AnalyzerService analyzerService;
+        private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
         private final AbstractStatementAnalyzer selectStatementAnalyzer = new SelectStatementAnalyzer();
         private final AbstractStatementAnalyzer insertStatementAnalyzer = new InsertStatementAnalyzer();
@@ -83,11 +83,11 @@ public class Analyzer {
         public AnalyzerDispatcher(ReferenceInfos referenceInfos,
                                   Functions functions,
                                   ReferenceResolver referenceResolver,
-                                  AnalyzerService analyzerService) {
+                                  FulltextAnalyzerResolver fulltextAnalyzerResolver) {
             this.referenceInfos = referenceInfos;
             this.functions = functions;
             this.referenceResolver = referenceResolver;
-            this.analyzerService = analyzerService;
+            this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         }
 
         @Override
@@ -133,13 +133,13 @@ public class Analyzer {
 
         @Override
         public AbstractStatementAnalyzer visitCreateTable(CreateTable node, Context context) {
-            context.analysis = new CreateTableAnalysis(referenceInfos, analyzerService, context.parameters);
+            context.analysis = new CreateTableAnalysis(referenceInfos, fulltextAnalyzerResolver, context.parameters);
             return createTableStatementAnalyzer;
         }
 
         @Override
         public AbstractStatementAnalyzer visitCreateAnalyzer(CreateAnalyzer node, Context context) {
-            context.analysis = new CreateAnalyzerAnalysis(analyzerService, context.parameters);
+            context.analysis = new CreateAnalyzerAnalysis(fulltextAnalyzerResolver, context.parameters);
             return createAnalyzerStatementAnalyzer;
         }
 

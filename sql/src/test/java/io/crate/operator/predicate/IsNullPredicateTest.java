@@ -24,7 +24,7 @@ package io.crate.operator.predicate;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.junit.Test;
 
 import java.util.Arrays;

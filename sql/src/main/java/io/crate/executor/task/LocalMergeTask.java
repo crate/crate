@@ -32,7 +32,7 @@ import io.crate.executor.Task;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.operator.operations.merge.MergeOperation;
 import io.crate.planner.node.dql.MergeNode;
-import org.cratedb.Constants;
+import io.crate.Constants;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.threadpool.ThreadPool;

@@ -34,7 +34,7 @@ import io.crate.operator.operations.merge.MergeOperation;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
-import org.cratedb.Streamer;
+import io.crate.Streamer;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;

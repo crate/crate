@@ -30,15 +30,15 @@ import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.*;
-import org.cratedb.DataType;
-import org.cratedb.Streamer;
-import org.cratedb.sql.CrateException;
+import io.crate.DataType;
+import io.crate.Streamer;
+import io.crate.exceptions.CrateException;
 import org.elasticsearch.common.inject.Inject;
 
 import java.util.*;
 
 /**
- * get input and output {@link org.cratedb.Streamer}s for {@link io.crate.planner.node.PlanNode}s
+ * get input and output {@link io.crate.Streamer}s for {@link io.crate.planner.node.PlanNode}s
  */
 public class PlanNodeStreamerVisitor extends PlanVisitor<PlanNodeStreamerVisitor.Context, Void> {
 

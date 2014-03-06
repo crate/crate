@@ -32,7 +32,7 @@ import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;

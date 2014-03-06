@@ -3,7 +3,7 @@ package io.crate.planner.symbol;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionInfo;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 

@@ -22,8 +22,8 @@
 package io.crate.planner.symbol;
 
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
-import org.cratedb.TimestampFormat;
+import io.crate.DataType;
+import io.crate.TimestampFormat;
 
 public class TimestampLiteral extends LongLiteral {
 

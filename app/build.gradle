@@ -11,7 +11,7 @@ task getVersion (dependsOn: 'classes') << {
     def stdout = new ByteArrayOutputStream()
     javaexec {
         classpath = sourceSets.main.runtimeClasspath
-        main = 'org.cratedb.Version'
+        main = 'io.crate.Version'
         standardOutput = stdout
     }
     ext.version = stdout.toString().trim().split(" ")[1].replace(',','')
@@ -162,7 +162,7 @@ task downloadPlugins << {
 processResources.dependsOn downloadPlugins
 
 task(runDebug, dependsOn: 'classes', type: JavaExec) {
-    main = 'org.cratedb.bootstrap.CrateF'
+    main = 'io.crate.bootstrap.CrateF'
     debug = true
     classpath = sourceSets.main.runtimeClasspath
     maxHeapSize = '512m'

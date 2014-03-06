@@ -6,7 +6,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.RowGranularity;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.elasticsearch.common.collect.Tuple;
 
 import java.util.ArrayList;

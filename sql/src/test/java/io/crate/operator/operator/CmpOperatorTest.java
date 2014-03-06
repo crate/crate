@@ -1,7 +1,7 @@
 package io.crate.operator.operator;
 
 import io.crate.planner.symbol.*;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.junit.Before;
 import org.junit.Test;
 

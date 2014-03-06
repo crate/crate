@@ -3,7 +3,7 @@ package io.crate.lucene;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 public abstract class QueryBuilderHelper {

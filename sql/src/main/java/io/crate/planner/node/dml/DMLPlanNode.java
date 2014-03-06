@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.planner.node.dql.DQLPlanNode;
 import io.crate.planner.projection.Projection;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 import java.util.List;
 import java.util.Set;

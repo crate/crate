@@ -39,7 +39,7 @@ import io.crate.operator.reference.information.InformationDocLevelReferenceResol
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.BooleanLiteral;
 import org.apache.lucene.search.CollectionTerminatedException;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;

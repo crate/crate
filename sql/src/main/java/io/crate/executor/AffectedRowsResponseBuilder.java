@@ -21,9 +21,9 @@
 
 package io.crate.executor;
 
-import org.cratedb.Constants;
-import org.cratedb.DataType;
-import org.cratedb.action.sql.SQLResponse;
+import io.crate.Constants;
+import io.crate.DataType;
+import io.crate.action.sql.SQLResponse;
 
 public class AffectedRowsResponseBuilder implements ResponseBuilder {
 

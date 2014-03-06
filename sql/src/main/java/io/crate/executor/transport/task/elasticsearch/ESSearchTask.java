@@ -30,7 +30,7 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.symbol.Reference;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.sql.ExceptionHelper;
+import io.crate.exceptions.ExceptionHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;

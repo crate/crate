@@ -38,7 +38,7 @@ import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.StringLiteral;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 import java.util.*;
 

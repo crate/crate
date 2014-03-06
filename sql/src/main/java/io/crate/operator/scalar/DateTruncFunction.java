@@ -28,7 +28,7 @@ import io.crate.metadata.Scalar;
 import io.crate.operator.Input;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.rounding.DateTimeUnit;
 import org.elasticsearch.common.rounding.TimeZoneRounding;

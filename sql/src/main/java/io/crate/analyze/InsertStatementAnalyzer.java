@@ -29,7 +29,7 @@ import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.ValueSymbol;
 import io.crate.sql.tree.*;
-import org.cratedb.sql.CrateException;
+import io.crate.exceptions.CrateException;
 
 import java.util.ArrayList;
 import java.util.List;

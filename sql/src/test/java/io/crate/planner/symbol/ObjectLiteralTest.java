@@ -22,7 +22,7 @@
 package io.crate.planner.symbol;
 
 import com.google.common.collect.ImmutableMap;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.junit.Test;
 
 import java.util.Arrays;

@@ -22,8 +22,8 @@
 package io.crate.metadata.doc;
 
 import io.crate.metadata.TableIdent;
-import org.cratedb.sql.CrateException;
-import org.cratedb.sql.TableUnknownException;
+import io.crate.exceptions.CrateException;
+import io.crate.exceptions.TableUnknownException;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.MetaData;

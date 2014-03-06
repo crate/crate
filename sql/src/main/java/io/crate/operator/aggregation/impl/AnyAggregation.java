@@ -27,8 +27,8 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.AggregationState;
-import org.cratedb.DataType;
-import org.cratedb.Streamer;
+import io.crate.DataType;
+import io.crate.Streamer;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 

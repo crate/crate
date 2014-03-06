@@ -26,7 +26,7 @@ import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
-import org.cratedb.sql.CrateException;
+import io.crate.exceptions.CrateException;
 
 import java.util.ArrayList;
 import java.util.Arrays;

@@ -23,8 +23,8 @@ package io.crate.executor.transport.distributed;
 
 import com.google.common.base.Optional;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
-import org.cratedb.Streamer;
+import io.crate.DataType;
+import io.crate.Streamer;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;

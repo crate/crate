@@ -23,6 +23,7 @@ package io.crate.analyze;
 import com.google.common.base.Joiner;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import io.crate.exceptions.*;
 import io.crate.metadata.*;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -30,8 +31,7 @@ import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import io.crate.sql.tree.QualifiedName;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
-import org.cratedb.sql.*;
+import io.crate.DataType;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -283,7 +283,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
      * @param inputValue the value to normalize, might be anything from {@link io.crate.metadata.Scalar} to {@link io.crate.planner.symbol.Literal}
      * @param reference  the reference to which the value has to comply in terms of type-compatibility
      * @return the normalized Symbol, should be a literal
-     * @throws org.cratedb.sql.ValidationException
+     * @throws io.crate.exceptions.ValidationException
      */
     public Literal normalizeInputValue(Symbol inputValue, Reference reference) {
         Literal normalized;

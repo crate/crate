@@ -1,7 +1,7 @@
 package io.crate.operator.operator;
 
 import io.crate.metadata.FunctionInfo;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 public class LteOperator extends CmpOperator {
 

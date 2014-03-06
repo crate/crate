@@ -26,8 +26,8 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
-import org.cratedb.action.sql.SQLResponse;
+import io.crate.DataType;
+import io.crate.action.sql.SQLResponse;
 
 import javax.annotation.Nullable;
 import java.util.Set;

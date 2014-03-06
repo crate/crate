@@ -28,7 +28,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.operator.InputCollectExpression;
 import io.crate.operator.aggregation.impl.AggregationImplModule;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;

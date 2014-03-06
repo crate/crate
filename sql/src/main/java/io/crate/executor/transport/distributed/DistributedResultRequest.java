@@ -22,7 +22,7 @@
 package io.crate.executor.transport.distributed;
 
 import com.google.common.base.Optional;
-import org.cratedb.Streamer;
+import io.crate.Streamer;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
