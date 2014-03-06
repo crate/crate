@@ -51,9 +51,6 @@ public class NodeSettings {
             }
         }
 
-        // Forbid DELETE on '/' aka. deleting all indices
-        settingsBuilder.put("action.disable_delete_all_indices", true);
-
         // Set the default cluster name if not explicitly defined
         if (settingsBuilder.get(ClusterName.SETTING).equals(ClusterName.DEFAULT.value())) {
             settingsBuilder.put("cluster.name", "crate");
