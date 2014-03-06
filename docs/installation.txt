@@ -11,10 +11,10 @@ https://crate.io/downloads/ the package needs to be unpacked::
 
 Now Cate can be started in the foreground like this::
 
-   sh$ ./bin/crate -f
+   sh$ ./bin/crate
 
-In order to start in the background omit the `-f` option. If started
-in the foreground you can use Control-C to stop the process again.
+In order to start in the background add the `-d` option. If started in the
+foreground you can use Control-C to stop the process again.
 
 .. Note::
 
