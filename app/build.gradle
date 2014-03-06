@@ -149,7 +149,7 @@ task downloadPlugins << {
     extractTopfolder(dest, 'plugins/bigdesk/_site')
     dest = download(
             "https://github.com/polyfractal/elasticsearch-segmentspy/archive/v${plugin_segmentspy_version}.zip",
-            "segementspy_${plugin_segmentspy_version}.zip"
+            "segmentspy_${plugin_segmentspy_version}.zip"
     )
     extractTopfolder(dest, 'plugins/segmentspy')
     dest = download(
