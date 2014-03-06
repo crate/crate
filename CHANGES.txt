@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - date_trunc: implemented optional parameter 'timezone'.
+
  - bin/crate will now start crate in the foreground by default.
    In order to start it in the background add `-d`
 
