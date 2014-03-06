@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.module;
+package io.crate.plugin;
 
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.TransportSQLAction;

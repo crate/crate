@@ -134,12 +134,10 @@ public class InternalSQLFacet extends InternalFacet implements SQLFacet {
         }
     }
 
-    @Override
     public Object[][] rows() {
         return rows;
     }
 
-    @Override
     public long rowCount() {
         return rowCount;
     }

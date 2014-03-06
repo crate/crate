@@ -38,7 +38,6 @@ import io.crate.operator.reference.sys.shard.SysShardExpressionModule;
 import io.crate.operator.scalar.ScalarFunctionModule;
 import io.crate.planner.PlanModule;
 import io.crate.Constants;
-import io.crate.module.SQLModule;
 import io.crate.rest.action.RestSQLAction;
 import io.crate.facet.sql.SQLFacetParser;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettingsModule;

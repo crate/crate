@@ -21,7 +21,17 @@
 
 package io.crate.action;
 
-public interface SQLResult extends PartialSQLResult {
+public interface SQLResult {
+
+    /**
+     * Returns the the rows of the result.
+     */
+    public Object[][] rows();
+
+    /**
+     * Returns the number of rows processed.
+     */
+    public long rowCount();
 
     /**
      * Returns the result column names of the result

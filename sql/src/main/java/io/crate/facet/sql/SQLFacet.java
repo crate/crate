@@ -21,11 +21,10 @@
 
 package io.crate.facet.sql;
 
-import io.crate.action.PartialSQLResult;
 import org.elasticsearch.search.facet.Facet;
 
 
-public interface SQLFacet extends Facet, PartialSQLResult {
+public interface SQLFacet extends Facet {
 
     /**
      * The type of the facet.
