@@ -19,10 +19,11 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze.elasticsearch;
+package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.crate.DataType;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.operator.operator.*;
@@ -36,7 +37,6 @@ import io.crate.planner.node.dml.ESDeleteByQueryNode;
 import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.ModulesBuilder;

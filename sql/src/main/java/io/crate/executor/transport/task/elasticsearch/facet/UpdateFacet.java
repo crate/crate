@@ -19,17 +19,17 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.facet.sql;
+package io.crate.executor.transport.task.elasticsearch.facet;
 
 import org.elasticsearch.search.facet.Facet;
 
 
-public interface SQLFacet extends Facet {
+public interface UpdateFacet extends Facet {
 
     /**
      * The type of the facet.
      */
-    public static final String TYPE = "sql";
+    public static final String TYPE = "update";
 
     /**
      * This is the "real" reduce hook for sql facets, where the sub-results of the shards are

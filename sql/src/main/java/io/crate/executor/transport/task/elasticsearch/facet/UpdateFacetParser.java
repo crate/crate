@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.facet.sql;
+package io.crate.executor.transport.task.elasticsearch.facet;
 
 import com.google.common.base.Optional;
 import io.crate.exceptions.SQLParseException;
@@ -39,23 +39,23 @@ import java.util.Map;
 /**
  *
  */
-public class SQLFacetParser extends AbstractComponent implements FacetParser {
+public class UpdateFacetParser extends AbstractComponent implements FacetParser {
 
     private final TransportUpdateAction updateAction;
 
     @Inject
-    public SQLFacetParser(
+    public UpdateFacetParser(
             Settings settings,
             TransportUpdateAction updateAction) {
         super(settings);
-        InternalSQLFacet.registerStreams();
+        InternalUpdateFacet.registerStreams();
         this.updateAction = updateAction;
     }
 
     @Override
     public String[] types() {
         return new String[]{
-                SQLFacet.TYPE
+                UpdateFacet.TYPE
         };
     }
 
@@ -90,6 +90,6 @@ public class SQLFacetParser extends AbstractComponent implements FacetParser {
         } catch (ClassCastException e) {
             throw new SQLParseException("invalid update doc");
         }
-        return new SQLFacetExecutor(doc, version, searchContext, updateAction);
+        return new UpdateFacetExecutor(doc, version, searchContext, updateAction);
     }
 }

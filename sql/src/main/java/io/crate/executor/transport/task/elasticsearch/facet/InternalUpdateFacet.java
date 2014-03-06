@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.facet.sql;
+package io.crate.executor.transport.task.elasticsearch.facet;
 
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -32,20 +32,19 @@ import org.elasticsearch.search.facet.InternalFacet;
 
 import java.io.IOException;
 
-public class InternalSQLFacet extends InternalFacet implements SQLFacet {
+public class InternalUpdateFacet extends InternalFacet implements UpdateFacet {
 
-    private static final BytesReference STREAM_TYPE = new HashedBytesArray(Strings.toUTF8Bytes(
-            "sql"));
+    private static final BytesReference STREAM_TYPE = new HashedBytesArray(Strings.toUTF8Bytes(TYPE));
 
     private ReduceContext reduceContext;
     private Object[][] rows;
     private long rowCount;
 
-    public InternalSQLFacet(String facetName) {
+    public InternalUpdateFacet(String facetName) {
         super(facetName);
     }
 
-    public InternalSQLFacet() {
+    public InternalUpdateFacet() {
         super();
     }
 
@@ -62,7 +61,7 @@ public class InternalSQLFacet extends InternalFacet implements SQLFacet {
     /**
      * This method is called on the collecting node. In this implementation no reduction is done
      * here, since the statement is not known
-     * the real reduce happens in {@link SQLFacet#reduce()}
+     * the real reduce happens in {@link UpdateFacet#reduce()}
      */
     @Override
     public Facet reduce(ReduceContext reduceContext) {
@@ -72,7 +71,7 @@ public class InternalSQLFacet extends InternalFacet implements SQLFacet {
 
     @Override
     public String getType() {
-        return SQLFacet.TYPE;
+        return UpdateFacet.TYPE;
     }
 
     @Override
@@ -118,8 +117,8 @@ public class InternalSQLFacet extends InternalFacet implements SQLFacet {
         throw new UnsupportedOperationException();
     }
 
-    public static InternalSQLFacet readMapReduceFacet(StreamInput in) throws IOException {
-        InternalSQLFacet facet = new InternalSQLFacet();
+    public static InternalUpdateFacet readMapReduceFacet(StreamInput in) throws IOException {
+        InternalUpdateFacet facet = new InternalUpdateFacet();
         facet.readFrom(in);
         return facet;
     }
@@ -129,7 +128,7 @@ public class InternalSQLFacet extends InternalFacet implements SQLFacet {
         // Currently only the rowcount gets accumulated
         for (Facet facet : reduceContext.facets()) {
             if (facet != this) {
-                rowCount += ((InternalSQLFacet) facet).rowCount();
+                rowCount += ((InternalUpdateFacet) facet).rowCount();
             }
         }
     }
@@ -152,7 +151,7 @@ public class InternalSQLFacet extends InternalFacet implements SQLFacet {
         public Facet readFacet(StreamInput in) throws IOException {
             // this gets executed on the HandlerNode, where the statement should have already
             // been parsed.
-            return InternalSQLFacet.readMapReduceFacet(in);
+            return InternalUpdateFacet.readMapReduceFacet(in);
         }
     }
 }

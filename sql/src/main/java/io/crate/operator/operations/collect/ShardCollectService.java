@@ -22,7 +22,7 @@
 package io.crate.operator.operations.collect;
 
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.elasticsearch.ESQueryBuilder;
+import io.crate.executor.transport.task.elasticsearch.ESQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.operator.collector.CrateCollector;

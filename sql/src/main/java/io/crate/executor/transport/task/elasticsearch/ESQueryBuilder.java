@@ -19,13 +19,14 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze.elasticsearch;
+package io.crate.executor.transport.task.elasticsearch;
 
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import io.crate.DataType;
 import io.crate.analyze.WhereClause;
+import io.crate.executor.transport.task.elasticsearch.facet.UpdateFacet;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operator.operator.*;
@@ -172,7 +173,7 @@ public class ESQueryBuilder {
         assert node != null;
 
         Context context = new Context();
-        context.filteredFields.add("_version"); // will be handed through to SQLFacet
+        context.filteredFields.add("_version"); // will be handled by to UpdateFacet
         context.builder = XContentFactory.jsonBuilder().startObject();
         XContentBuilder builder = context.builder;
 
@@ -181,7 +182,7 @@ public class ESQueryBuilder {
         if (node.version().isPresent()) {
             builder.field("version", true);
         }
-        builder.startObject("facets").startObject("sql").startObject("sql");
+        builder.startObject("facets").startObject(UpdateFacet.TYPE).startObject(UpdateFacet.TYPE);
 
         builder.field("doc", node.updateDoc());
         if (node.version().isPresent()) {

@@ -22,6 +22,7 @@
 package io.crate.plugin;
 
 import io.crate.executor.transport.TransportExecutorModule;
+import io.crate.executor.transport.task.elasticsearch.facet.UpdateFacetParser;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.doc.MetaDataDocModule;
 import io.crate.metadata.information.MetaDataInformationModule;
@@ -39,7 +40,6 @@ import io.crate.operator.scalar.ScalarFunctionModule;
 import io.crate.planner.PlanModule;
 import io.crate.Constants;
 import io.crate.rest.action.RestSQLAction;
-import io.crate.facet.sql.SQLFacetParser;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettingsModule;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
@@ -123,7 +123,7 @@ public class SQLPlugin extends AbstractPlugin {
     }
 
     public void onModule(FacetModule facetModule) {
-        facetModule.addFacetProcessor(SQLFacetParser.class);
+        facetModule.addFacetProcessor(UpdateFacetParser.class);
     }
 
     public void onModule(ClusterDynamicSettingsModule clusterDynamicSettingsModule) {

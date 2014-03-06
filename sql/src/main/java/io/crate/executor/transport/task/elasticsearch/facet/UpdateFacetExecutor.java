@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.facet.sql;
+package io.crate.executor.transport.task.elasticsearch.facet;
 
 import com.google.common.base.Optional;
 import org.elasticsearch.action.update.TransportUpdateAction;
@@ -29,11 +29,11 @@ import org.elasticsearch.search.internal.SearchContext;
 
 import java.util.Map;
 
-public class SQLFacetExecutor extends FacetExecutor {
+public class UpdateFacetExecutor extends FacetExecutor {
 
     private final UpdateCollector collector;
 
-    public SQLFacetExecutor(
+    public UpdateFacetExecutor(
             Map<String, Object> doc,
             Optional<Long> version,
             SearchContext searchContext,
@@ -50,7 +50,7 @@ public class SQLFacetExecutor extends FacetExecutor {
      */
     @Override
     public InternalFacet buildFacet(String facetName) {
-        InternalSQLFacet facet = new InternalSQLFacet(facetName);
+        InternalUpdateFacet facet = new InternalUpdateFacet(facetName);
         facet.rowCount(collector.rowCount());
         return facet;
     }
