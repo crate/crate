@@ -24,7 +24,7 @@ package io.crate.operator.aggregation.impl;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.operator.aggregation.AggregationTest;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.isOneOf;

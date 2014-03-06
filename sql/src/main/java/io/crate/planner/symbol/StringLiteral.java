@@ -24,8 +24,8 @@ package io.crate.planner.symbol;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Ordering;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
-import org.cratedb.TimestampFormat;
+import io.crate.DataType;
+import io.crate.TimestampFormat;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 

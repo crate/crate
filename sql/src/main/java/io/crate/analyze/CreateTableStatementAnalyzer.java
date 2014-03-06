@@ -23,7 +23,7 @@ package io.crate.analyze;
 import com.google.common.collect.Lists;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.*;
-import org.cratedb.Constants;
+import io.crate.Constants;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;

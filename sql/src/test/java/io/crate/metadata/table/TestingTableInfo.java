@@ -27,8 +27,8 @@ import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
-import org.cratedb.DataType;
-import org.cratedb.sql.ColumnUnknownException;
+import io.crate.DataType;
+import io.crate.exceptions.ColumnUnknownException;
 
 import java.util.Collection;
 import java.util.Iterator;

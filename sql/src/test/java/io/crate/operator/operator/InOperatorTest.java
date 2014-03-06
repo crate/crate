@@ -22,7 +22,7 @@ package io.crate.operator.operator;
 
 import io.crate.operator.operator.input.ObjectInput;
 import io.crate.planner.symbol.*;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.junit.Test;
 
 import java.util.*;

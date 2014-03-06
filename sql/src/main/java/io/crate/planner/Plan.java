@@ -23,7 +23,7 @@ package io.crate.planner;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.node.PlanNode;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 import java.util.ArrayList;
 import java.util.Iterator;

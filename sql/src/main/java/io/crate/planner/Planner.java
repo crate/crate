@@ -40,9 +40,9 @@ import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.*;
-import org.cratedb.Constants;
-import org.cratedb.DataType;
-import org.cratedb.sql.CrateException;
+import io.crate.Constants;
+import io.crate.DataType;
+import io.crate.exceptions.CrateException;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 

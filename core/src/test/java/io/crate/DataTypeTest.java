@@ -22,8 +22,6 @@
 package io.crate;
 
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
-import org.cratedb.Streamer;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;

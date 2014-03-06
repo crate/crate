@@ -122,12 +122,12 @@ launch_service()
     # The es-foreground option will tell ElasticSearch not to close stdout/stderr, but it's up to us not to background.
     if [ "x$daemonized" = "x" ]; then
         exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Des.path.home="$CRATE_HOME" -Des.config="$CRATE_CONFIG" -cp "$CRATE_CLASSPATH" $props \
-                org.cratedb.bootstrap.CrateF
+                io.crate.bootstrap.CrateF
         execval=$?
     else
         # Startup Crate, background it, and write the pid.
         exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Des.path.home="$CRATE_HOME" -Des.config="$CRATE_CONFIG" -cp "$CRATE_CLASSPATH" $props \
-                    org.cratedb.bootstrap.Crate <&- &
+                    io.crate.bootstrap.Crate <&- &
         execval=$?
         [ ! -z "$pidpath" ] && printf '%d' $! > "$pidpath"
     fi
@@ -143,7 +143,7 @@ while true; do
     case $1 in
         -v)
             "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Dcrate.path.home="$CRATE_HOME" -cp "$CRATE_CLASSPATH" $props \
-                    org.cratedb.Version
+                    io.crate.Version
             exit 0
         ;;
         -p)

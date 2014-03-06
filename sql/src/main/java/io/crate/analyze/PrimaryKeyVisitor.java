@@ -30,7 +30,7 @@ import io.crate.operator.operator.EqOperator;
 import io.crate.operator.operator.InOperator;
 import io.crate.operator.operator.OrOperator;
 import io.crate.planner.symbol.*;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 import javax.annotation.Nullable;
 import java.util.*;

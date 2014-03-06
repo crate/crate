@@ -28,7 +28,7 @@ import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.StringLiteral;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 import java.util.regex.Pattern;
 

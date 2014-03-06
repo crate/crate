@@ -29,7 +29,7 @@ import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.tree.Query;
-import org.cratedb.sql.AmbiguousAliasException;
+import io.crate.exceptions.AmbiguousAliasException;
 
 import javax.annotation.Nullable;
 import java.util.Collection;

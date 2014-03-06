@@ -22,7 +22,7 @@
 package io.crate.executor.transport;
 
 import io.crate.planner.symbol.*;
-import org.cratedb.Streamer;
+import io.crate.Streamer;
 
 public class StreamerVisitor extends SymbolVisitor<Void, Streamer> {
 

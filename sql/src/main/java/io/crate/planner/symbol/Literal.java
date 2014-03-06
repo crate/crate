@@ -2,7 +2,7 @@ package io.crate.planner.symbol;
 
 import io.crate.operator.Input;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 import java.util.List;
 import java.util.Map;
@@ -15,7 +15,7 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
 
     public static Literal forType(DataType type, Object value) {
         /**
-         * NOTE: {@link org.cratedb.DataType} should be changed into a class
+         * NOTE: {@link io.crate.DataType} should be changed into a class
          * and then creating an literal for a type can be done using polymorphism.
          */
 

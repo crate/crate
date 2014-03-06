@@ -21,7 +21,7 @@
 
 package io.crate.planner.symbol;
 
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 public abstract class NumberLiteral<ValueType extends Number, LiteralType> extends Literal<ValueType, LiteralType> {
 

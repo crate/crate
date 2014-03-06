@@ -30,7 +30,7 @@ import io.crate.metadata.Functions;
 import io.crate.operator.operations.DownstreamOperationFactory;
 import io.crate.planner.node.dql.MergeNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
-import org.cratedb.Streamer;
+import io.crate.Streamer;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamInput;

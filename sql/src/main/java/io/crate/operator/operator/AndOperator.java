@@ -26,7 +26,7 @@ import io.crate.operator.Input;
 import io.crate.planner.symbol.BooleanLiteral;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 public class AndOperator extends Operator<Boolean> {
 

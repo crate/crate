@@ -8,7 +8,7 @@ import io.crate.metadata.Scalar;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 public abstract class Operator<I> implements FunctionImplementation<Function>, Scalar<Boolean, I> {
 

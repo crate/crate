@@ -12,7 +12,7 @@ import io.crate.operator.aggregation.impl.CountAggregation;
 import io.crate.operator.operations.AggregationContext;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.Symbol;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Test;
 

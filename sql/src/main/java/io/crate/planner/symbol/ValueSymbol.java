@@ -22,7 +22,7 @@
 package io.crate.planner.symbol;
 
 import com.google.common.base.Function;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 import javax.annotation.Nullable;
 

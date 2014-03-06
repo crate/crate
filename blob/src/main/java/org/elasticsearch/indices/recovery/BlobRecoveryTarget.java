@@ -21,10 +21,10 @@
 
 package org.elasticsearch.indices.recovery;
 
-import org.cratedb.blob.BlobWriteException;
-import org.cratedb.blob.exceptions.IllegalBlobRecoveryStateException;
-import org.cratedb.blob.v2.BlobShard;
-import org.cratedb.common.Hex;
+import io.crate.blob.BlobWriteException;
+import io.crate.blob.exceptions.IllegalBlobRecoveryStateException;
+import io.crate.blob.v2.BlobShard;
+import io.crate.common.Hex;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.component.AbstractComponent;

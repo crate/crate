@@ -22,7 +22,7 @@
 package io.crate.planner;
 
 import io.crate.planner.symbol.*;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 public class DataTypeVisitor extends SymbolVisitor<Void, DataType> {
 

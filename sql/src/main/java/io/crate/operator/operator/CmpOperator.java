@@ -3,7 +3,7 @@ package io.crate.operator.operator;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operator.Input;
 import io.crate.planner.symbol.*;
-import org.cratedb.core.collections.MapComparator;
+import io.crate.core.collections.MapComparator;
 
 import java.util.Map;
 import java.util.Objects;

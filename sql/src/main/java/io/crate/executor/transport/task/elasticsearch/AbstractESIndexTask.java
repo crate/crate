@@ -30,8 +30,8 @@ import io.crate.planner.symbol.Literal;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.Constants;
-import org.cratedb.sql.CrateException;
+import io.crate.Constants;
+import io.crate.exceptions.CrateException;
 import org.elasticsearch.action.index.IndexRequest;
 
 import java.util.*;

@@ -28,7 +28,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
-import org.cratedb.sql.ColumnUnknownException;
+import io.crate.exceptions.ColumnUnknownException;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;

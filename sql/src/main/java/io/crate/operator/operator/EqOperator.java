@@ -24,7 +24,7 @@ package io.crate.operator.operator;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.operator.Input;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 
 public class EqOperator extends CmpOperator implements Scalar<Boolean, Object> {

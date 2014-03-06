@@ -27,7 +27,7 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
-import org.cratedb.DataType;
+import io.crate.DataType;
 import org.elasticsearch.common.inject.Inject;
 
 /**

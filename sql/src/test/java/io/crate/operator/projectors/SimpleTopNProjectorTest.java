@@ -30,8 +30,8 @@ import io.crate.operator.aggregation.CollectExpression;
 import io.crate.operator.aggregation.FunctionExpression;
 import io.crate.planner.symbol.Function;
 import io.crate.planner.symbol.Symbol;
-import org.cratedb.Constants;
-import org.cratedb.DataType;
+import io.crate.Constants;
+import io.crate.DataType;
 import org.junit.Test;
 
 import java.util.Arrays;

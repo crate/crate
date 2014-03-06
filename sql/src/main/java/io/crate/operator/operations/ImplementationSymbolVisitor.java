@@ -31,7 +31,7 @@ import io.crate.operator.aggregation.AggregationFunction;
 import io.crate.operator.aggregation.CollectExpression;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
-import org.cratedb.sql.CrateException;
+import io.crate.exceptions.CrateException;
 
 import java.util.*;
 

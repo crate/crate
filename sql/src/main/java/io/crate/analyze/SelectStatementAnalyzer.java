@@ -27,8 +27,8 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.LongLiteral;
 import io.crate.sql.tree.*;
-import org.cratedb.DataType;
-import org.cratedb.sql.SQLParseException;
+import io.crate.DataType;
+import io.crate.exceptions.SQLParseException;
 
 import java.util.ArrayList;
 import java.util.List;

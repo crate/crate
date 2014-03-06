@@ -25,8 +25,8 @@ import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
-import org.cratedb.Constants;
-import org.cratedb.core.collections.ArrayIterator;
+import io.crate.Constants;
+import io.crate.core.collections.ArrayIterator;
 
 import java.util.Arrays;
 import java.util.Collections;

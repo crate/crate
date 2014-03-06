@@ -21,7 +21,7 @@
 
 package io.crate.executor.transport.merge;
 
-import org.cratedb.Streamer;
+import io.crate.Streamer;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;

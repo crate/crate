@@ -26,8 +26,8 @@ import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import org.cratedb.sql.SchemaUnknownException;
-import org.cratedb.sql.TableUnknownException;
+import io.crate.exceptions.SchemaUnknownException;
+import io.crate.exceptions.TableUnknownException;
 
 import javax.annotation.Nullable;
 

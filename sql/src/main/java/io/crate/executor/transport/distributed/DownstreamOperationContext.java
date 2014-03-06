@@ -24,7 +24,7 @@ package io.crate.executor.transport.distributed;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.exceptions.UnknownUpstreamFailure;
 import io.crate.operator.operations.merge.DownstreamOperation;
-import org.cratedb.Streamer;
+import io.crate.Streamer;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 

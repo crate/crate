@@ -24,7 +24,7 @@ package io.crate.metadata.information;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import org.cratedb.DataType;
+import io.crate.DataType;
 
 import java.util.Collection;
 import java.util.Iterator;

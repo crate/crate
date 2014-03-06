@@ -8,8 +8,8 @@ import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
-import org.cratedb.DataType;
-import org.cratedb.sql.ColumnUnknownException;
+import io.crate.DataType;
+import io.crate.exceptions.ColumnUnknownException;
 import org.junit.Test;
 
 import java.util.Arrays;
