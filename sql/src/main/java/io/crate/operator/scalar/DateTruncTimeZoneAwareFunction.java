@@ -21,12 +21,12 @@
 package io.crate.operator.scalar;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.DataType;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operator.Input;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
-import org.cratedb.DataType;
 import org.elasticsearch.common.rounding.DateTimeUnit;
 import org.joda.time.DateTimeZone;
 

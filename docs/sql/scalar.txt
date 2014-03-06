@@ -5,26 +5,15 @@
 Scalar Functions
 ================
 
-date_truc
-=========
-
-
 .. _scalar-date-trunc:
 
-date_trunc('interval', timestamp)
----------------------------------
+date_trunc('interval', ['timezone',] timestamp)
+===============================================
 
-The ``date_trunc`` function truncates given ``timestamp`` down to the given
-``interval``.
+The ``date_trunc`` function truncates a timestamp to a given interval
+for a specific timezone.
 
-Truncation is based on UTC time zone since Crate Data stores timestamps
-as UTC milliseconds since the epoch.
-
-.. seealso::
-
-    :doc:`ddl`
-
-Valid values for ``interval`` are:
+Valid intervals are:
 
 * second
 
@@ -42,8 +31,30 @@ Valid values for ``interval`` are:
 
 * year
 
+Valid values for ``timezone`` are either the name of a time zone (for example
+'Europe/Vienna') or the UTC offset of a time zone (for example '+01:00').
+To get a complete overview of all possible values take a look at the
+`available time zones`_ supported by `Joda-Time`_.
+
 The following example shows how to use the date_trunc function to generate a
-day based histogram::
+day based histogram in the ``Europe/Moscow`` timezone::
+
+    cr> select
+    ... date_trunc('day', 'Europe/Moscow', date) as day,
+    ... count(*) as num_locations
+    ... from locations
+    ... group by date_trunc('day', 'Europe/Moscow', date)
+    ... order by date_trunc('day', 'Europe/Moscow', date)
+    +---------------+---------------+
+    | day           | num_locations |
+    +---------------+---------------+
+    | 308523600000  | 4             |
+    | 1367352000000 | 1             |
+    | 1373918400000 | 8             |
+    +---------------+---------------+
+    SELECT 3 rows in set (... sec)
+
+If the time zone is not specified, truncation is based on UTC time::
 
     cr> select date_trunc('day', date) as day, count(*) as num_locations
     ... from locations
@@ -59,41 +70,10 @@ day based histogram::
     SELECT 3 rows in set (... sec)
 
 
-.. _scalar-date-trunc-tz:
-
-date_trunc('interval', 'timezone', timestamp)
----------------------------------------------
-
-As described above, by default the truncation is based on the UTC time zone.
-``date_trunc`` accepts an optional time zone parameter
-to override the default behaviour and truncate with the set ``timezone``.
-
-Valid values for ``timezone`` are either the name of a time zone (for example
-'Europe/Vienna') or the UTC offset of a time zone (for example '+01:00').
-To get a complete overview of all possible values take a look at the
-`available time zones`_ supported by `Joda-Time`_.
-
-The following example shows the same day based histogram as above but truncated
-with the ``timezone`` set to 'Europe/Moscow'::
-
-    cr> select date_trunc('day', 'Europe/Moscow', date) as day, count(*) as num_locations
-    ... from locations
-    ... group by date_trunc('day', 'Europe/Moscow', date)
-    ... order by date_trunc('day', 'Europe/Moscow', date)
-    +---------------+---------------+
-    | day           | num_locations |
-    +---------------+---------------+
-    | 308523600000  | 4             |
-    | 1367352000000 | 1             |
-    | 1373918400000 | 8             |
-    +---------------+---------------+
-    SELECT 3 rows in set (... sec)
-
-
 .. Note::
 
     Currently scalar functions, such as ``date_trunc``, can only be used in
-    the ``GROUP BY`` clause.
+    the ``GROUP BY`` and ``ORDER BY`` clauses.
 
 .. _`available time zones`: http://www.joda.org/joda-time/timezones.html
 
