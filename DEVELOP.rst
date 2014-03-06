@@ -64,7 +64,7 @@ It is also possible to install the distribution locally by running::
 The root of the installation can then be found under
 ``./app/build/install/crate``. Start the server with::
 
- $ ./app/build/install/crate/bin/crate -f
+ $ ./app/build/install/crate/bin/crate
 
 IntelliJ
 ========

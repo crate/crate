@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - bin/crate will now start crate in the foreground by default.
+   In order to start it in the background add `-d`
+
  - add support for implicit type casts on set literals.
 
 2014/03/04 0.26.0
