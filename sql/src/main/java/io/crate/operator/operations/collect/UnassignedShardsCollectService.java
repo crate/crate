@@ -28,7 +28,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.shard.unassigned.UnassignedShardCollectorExpression;
 import io.crate.operator.Input;
-import io.crate.operator.collector.CrateCollector;
 import io.crate.operator.operations.CollectInputSymbolVisitor;
 import io.crate.operator.projectors.Projector;
 import io.crate.operator.reference.DocLevelReferenceResolver;

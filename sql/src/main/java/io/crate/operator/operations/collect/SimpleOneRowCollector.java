@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.operator.collector;
+package io.crate.operator.operations.collect;
 
 import io.crate.operator.AbstractRowCollector;
 import io.crate.operator.Input;

@@ -28,8 +28,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operator.Input;
 import io.crate.operator.aggregation.CollectExpression;
-import io.crate.operator.collector.CrateCollector;
-import io.crate.operator.collector.SimpleOneRowCollector;
 import io.crate.operator.operations.ImplementationSymbolVisitor;
 import io.crate.operator.projectors.NoopProjector;
 import io.crate.operator.projectors.ProjectionToProjectorVisitor;

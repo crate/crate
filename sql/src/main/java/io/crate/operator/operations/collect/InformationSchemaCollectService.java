@@ -31,7 +31,6 @@ import io.crate.metadata.information.InformationCollectorExpression;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operator.Input;
-import io.crate.operator.collector.CrateCollector;
 import io.crate.operator.operations.CollectInputSymbolVisitor;
 import io.crate.operator.projectors.Projector;
 import io.crate.operator.reference.information.ColumnContext;
