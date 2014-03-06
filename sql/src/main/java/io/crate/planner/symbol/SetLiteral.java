@@ -31,6 +31,8 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 public class SetLiteral extends Literal<Set<?>, SetLiteral> {
@@ -146,6 +148,37 @@ public class SetLiteral extends Literal<Set<?>, SetLiteral> {
     @Override
     public SymbolType symbolType() {
         return SymbolType.SET_LITERAL;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public Literal convertTo(DataType type) {
+        if (valueType() == type) {
+            return this;
+        } else if (type == DataType.NOT_SUPPORTED) {
+            return Null.INSTANCE;
+        }
+
+        DataType targetItemType = DataType.REVERSE_SET_TYPE_MAP.get(type);
+        Set newValues = new HashSet(values.size());
+        if (values.size() > 0) {
+            Iterator<?> iterator = values.iterator();
+            Object firstValue = null;
+            while (firstValue == null && iterator.hasNext()) {
+                firstValue = iterator.next();
+            }
+            if (firstValue == null) {
+                // still null, no type conversion possible
+                return this;
+            }
+            Literal literal = Literal.forType(itemType(), firstValue);
+
+            for (Object value : values) {
+                newValues.add(literal.convertValueTo(targetItemType, value));
+            }
+        }
+
+        return new SetLiteral(targetItemType, newValues);
     }
 
     @Override

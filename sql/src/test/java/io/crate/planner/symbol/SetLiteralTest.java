@@ -21,6 +21,7 @@
 package io.crate.planner.symbol;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import org.apache.lucene.util.BytesRef;
 import org.cratedb.DataType;
 import org.elasticsearch.common.io.stream.BytesStreamInput;
@@ -30,7 +31,9 @@ import org.junit.Test;
 import java.io.IOException;
 
 import static junit.framework.TestCase.assertSame;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 public class SetLiteralTest {
 
@@ -91,5 +94,21 @@ public class SetLiteralTest {
 
         assertEquals(setLiteralOut.valueType(), setLiteralIn.valueType());
         assertEquals(setLiteralOut.literals(), setLiteralIn.literals());
+    }
+
+    @Test
+    public void testConvertTo() throws Exception {
+        SetLiteral intSet = new SetLiteral(DataType.INTEGER, Sets.newHashSet(1, 2, 3, 4));
+
+        Literal literal = intSet.convertTo(DataType.LONG_SET);
+        assertThat(literal.valueType(), is(DataType.LONG_SET));
+    }
+
+    @Test
+    public void testConvertToWithNull() throws Exception {
+        SetLiteral intSet = new SetLiteral(DataType.INTEGER, Sets.newHashSet(null, 2, 3, 4));
+
+        Literal literal = intSet.convertTo(DataType.LONG_SET);
+        assertThat(literal.valueType(), is(DataType.LONG_SET));
     }
 }

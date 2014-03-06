@@ -530,7 +530,6 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(SetLiteralTest.stringSet("jalla", "kelle"), tableName);
     }
 
-
     @Test
     public void testGranularityWithSingleAggregation() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select count(*) from sys.nodes");

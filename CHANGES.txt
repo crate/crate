@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - add support for implicit type casts on set literals.
+
 2014/03/04 0.26.0
 =================
 
