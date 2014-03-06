@@ -22,9 +22,9 @@
 package org.cratedb.integrationtests;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import org.cratedb.SQLTransportIntegrationTest;
-import org.cratedb.action.sql.SQLResponse;
-import org.cratedb.test.integration.CrateIntegrationTest;
+import io.crate.action.sql.SQLResponse;
+import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.test.integration.CrateIntegrationTest;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
