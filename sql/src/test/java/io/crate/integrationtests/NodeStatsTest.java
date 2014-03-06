@@ -19,11 +19,10 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package org.cratedb.integrationtests;
+package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLResponse;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.junit.Test;
 

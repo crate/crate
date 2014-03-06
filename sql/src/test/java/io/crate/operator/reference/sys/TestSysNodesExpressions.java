@@ -80,8 +80,8 @@ public class TestSysNodesExpressions {
 
             OsStats.Mem mem = mock(OsStats.Mem.class);
             when(osStats.mem()).thenReturn(mem);
-            when(mem.free()).thenReturn(byteSizeValue);
-            when(mem.used()).thenReturn(byteSizeValue);
+            when(mem.actualFree()).thenReturn(byteSizeValue);
+            when(mem.actualUsed()).thenReturn(byteSizeValue);
             when(mem.usedPercent()).thenReturn((short) 22);
             when(mem.freePercent()).thenReturn((short) 78);
 
