@@ -67,7 +67,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "col2 string) clustered into " +
                 "10 shards");
         execute(
-            "create table t3 (col1 integer, col2 string) replicas 8");
+            "create table t3 (col1 integer, col2 string) with (number_of_replicas=8)");
         refresh();
     }
 
@@ -515,9 +515,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGlobalAggregationMany() throws Exception {
-        execute("create table t1 (id integer, col1 string) clustered into 10 shards replicas 14");
-        execute("create table t2 (id integer, col1 string) clustered into 5 shards replicas 7");
-        execute("create table t3 (id integer, col1 string) clustered into 3 shards replicas 2");
+        execute("create table t1 (id integer, col1 string) clustered into 10 shards with(number_of_replicas=14)");
+        execute("create table t2 (id integer, col1 string) clustered into 5 shards with(number_of_replicas=7)");
+        execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=2)");
         ensureYellow();
         execute("select min(number_of_replicas), max(number_of_replicas), avg(number_of_replicas)," +
                 "sum(number_of_shards) from information_schema.tables where schema_name='doc'");
@@ -531,9 +531,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGlobalAggregationWithWhere() throws Exception {
-        execute("create table t1 (id integer, col1 string) clustered into 10 shards replicas 14");
-        execute("create table t2 (id integer, col1 string) clustered into 5 shards replicas 7");
-        execute("create table t3 (id integer, col1 string) clustered into 3 shards replicas 2");
+        execute("create table t1 (id integer, col1 string) clustered into 10 shards with(number_of_replicas=14)");
+        execute("create table t2 (id integer, col1 string) clustered into 5 shards with(number_of_replicas=7)");
+        execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=2)");
         ensureYellow();
         execute("select min(number_of_replicas), max(number_of_replicas), avg(number_of_replicas)," +
                 "sum(number_of_shards) from information_schema.tables where schema_name='doc' and table_name != 't1'");
@@ -547,9 +547,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGlobalAggregationWithAlias() throws Exception {
-        execute("create table t1 (id integer, col1 string) clustered into 10 shards replicas 14");
-        execute("create table t2 (id integer, col1 string) clustered into 5 shards replicas 7");
-        execute("create table t3 (id integer, col1 string) clustered into 3 shards replicas 2");
+        execute("create table t1 (id integer, col1 string) clustered into 10 shards with(number_of_replicas=14)");
+        execute("create table t2 (id integer, col1 string) clustered into 5 shards with(number_of_replicas=7)");
+        execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=2)");
         ensureYellow();
         execute("select min(number_of_replicas) as min_replicas from information_schema.tables where table_name = 't1'");
         assertEquals(1, response.rowCount());
@@ -559,9 +559,9 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGlobalCount() throws Exception {
-        execute("create table t1 (id integer, col1 string) clustered into 10 shards replicas 14");
-        execute("create table t2 (id integer, col1 string) clustered into 5 shards replicas 7");
-        execute("create table t3 (id integer, col1 string) clustered into 3 shards replicas 2");
+        execute("create table t1 (id integer, col1 string) clustered into 10 shards with(number_of_replicas=14)");
+        execute("create table t2 (id integer, col1 string) clustered into 5 shards with(number_of_replicas=7)");
+        execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=2)");
         ensureYellow();
         execute("select count(*) from information_schema.tables");
         assertEquals(1, response.rowCount());
@@ -606,7 +606,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "    first_name string," +
                 "    last_name string" +
                 "  )" +
-                ") replicas 0");
+                ") with (number_of_replicas=0)");
         ensureGreen();
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
         assertEquals(4, response.rowCount());

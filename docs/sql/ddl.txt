@@ -348,13 +348,14 @@ Replication
 
 By default Crate uses an replication factor of 1. If e.g. a cluster with 2 nodes is set up and
 an index is created using 5 shards, each node will have 5 shards.
-Defining the number of replicas is done using the ``REPLICAS <number_of_replicas>`` statement.
+Defining the number of replicas is done using the ``number_of_replicas`` property.
+
 Example::
 
     cr> create table my_table10 (
     ...   first_column int,
     ...   second_column string
-    ... ) replicas 1
+    ... ) with (number_of_replicas=1)
     CREATE OK (... sec)
 
 While defining replication together with :ref:`sharding <sql_ddl_sharding>`, it needs to be
@@ -363,7 +364,7 @@ defined after::
     cr> create table my_table10a (
     ...   first_column int,
     ...   second_column string
-    ... ) clustered by (first_column) into 10 shards replicas 1
+    ... ) clustered by (first_column) into 10 shards with (number_of_replicas=1)
     CREATE OK (... sec)
 
 .. note::

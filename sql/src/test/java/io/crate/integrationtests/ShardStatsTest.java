@@ -64,7 +64,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     @Before
     public void initTestData() throws Exception {
         setup.groupBySetup();
-        execute("create table quotes (id integer primary key, quote string) replicas 1");
+        execute("create table quotes (id integer primary key, quote string) with(number_of_replicas=1)");
         ensureGreen();
     }
 
@@ -170,7 +170,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectIncludingUnassignedShards() throws Exception {
-        execute("create table locations (id integer primary key, name string) replicas 2");
+        execute("create table locations (id integer primary key, name string) with(number_of_replicas=2)");
         refresh();
 
         client().admin().cluster().prepareHealth("locations").setWaitForYellowStatus().execute().actionGet();
@@ -182,7 +182,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectGroupByIncludingUnassignedShards() throws Exception {
-        execute("create table locations (id integer primary key, name string) replicas 2");
+        execute("create table locations (id integer primary key, name string) with(number_of_replicas=2)");
         refresh();
         ensureYellow();
 

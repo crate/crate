@@ -2,6 +2,9 @@
 Changes for Crate Data
 ======================
 
+ - BREAKING CHANGE: replaced the `REPLICAS` table setting with the table
+   property `number_of_replicas`.
+
 2014/03/04 0.27.0
 =================
 

@@ -47,7 +47,7 @@ public class Setup {
                 " description string," +
                 " race object," +
                 " index name_description_ft using fulltext(name, description) with (analyzer='english')" +
-                ") clustered by(id) into 2 shards replicas 0");
+                ") clustered by(id) into 2 shards with(number_of_replicas=0)");
 
         String insertStmt = "insert into locations " +
                 "(id, name, date, kind, position, description, race) " +
@@ -174,7 +174,7 @@ public class Setup {
                 " age short," +
                 " income double, " +
                 " good boolean" +
-                ") replicas 0");
+                ") with (number_of_replicas=0)");
         test.ensureGreen();
         test.execute("insert into employees (name, department, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
                 new Object[]{"dilbert", "engineering", "1985-01-01", 47, 4000.0, true});
