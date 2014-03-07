@@ -358,6 +358,26 @@ Example::
     ... ) with (number_of_replicas=1)
     CREATE OK (... sec)
 
+
+The `number_of_replicas` property also accepts an string as parameter that
+contains a `range`.
+
+A range is a definition of `minimum number of replicas` to `maximum number of
+replicas`.
+
+For example:
+
+    ===== ======================================================================
+    Range Explanation
+    ===== ======================================================================
+    0-1   Will create 0 or 1 replicas depending on the number of available nodes
+    ----- ----------------------------------------------------------------------
+    2-4   Table requires at least 2 replicas to be fully replicated. Will
+          create up to 4 if nodes are added.
+    ----- ----------------------------------------------------------------------
+    0-all Will expand the number of replicas to the available number of nodes.
+    ----- ----------------------------------------------------------------------
+
 While defining replication together with :ref:`sharding <sql_ddl_sharding>`, it needs to be
 defined after::
 
