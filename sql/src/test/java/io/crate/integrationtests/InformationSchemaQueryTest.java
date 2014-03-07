@@ -42,7 +42,7 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
 
                 execute("create table t1 (col1 integer, col2 string) clustered into 7 shards");
                 execute("create table t2 (col1 integer, col2 string) clustered into 10 shards");
-                execute("create table t3 (col1 integer, col2 string) replicas 8");
+                execute("create table t3 (col1 integer, col2 string) with (number_of_replicas=8)");
 
                 createdTables = true;
             }
@@ -214,7 +214,7 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
     public void testIgnoreClosedTables() throws Exception {
         execute("drop table t1");
         execute("drop table t2");
-        execute("create table t1 (col1 integer, col2 string) replicas 0");
+        execute("create table t1 (col1 integer, col2 string) with (number_of_replicas=0)");
         client().admin().indices().close(new CloseIndexRequest("t3"));
         ensureGreen();
         exec("select * from information_schema.tables where schema_name = 'doc'");

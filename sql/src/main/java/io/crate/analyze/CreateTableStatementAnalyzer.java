@@ -20,20 +20,46 @@
  */
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import io.crate.Constants;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.*;
-import io.crate.Constants;
+import org.elasticsearch.common.Preconditions;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
+import java.util.regex.Pattern;
 
 
 public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, CreateTableAnalysis> {
 
     private final ExpressionVisitor expressionVisitor = new ExpressionVisitor();
 
-    @Override
+    private static final Pattern EXPAND_REPLICA_PATTERN = Pattern.compile("\\d+\\-(all|\\d+)");
+
+    public final Map<String, SettingsApplier> supportedProperties =
+            ImmutableMap.<String, SettingsApplier>builder()
+                    .put("number_of_replicas", new SettingsApplier() {
+                        @Override
+                        public void apply(ImmutableSettings.Builder settingsBuilder,
+                                          Object[] parameters,
+                                          List<Expression> expressions) {
+                            Preconditions.checkArgument(expressions.size() == 1,
+                                    "Invalid number of arguments passed to \"number_of_replicas\"");
+
+                            Object numReplicas = expressionVisitor.process(expressions.get(0), parameters);
+                            if (numReplicas instanceof String &&
+                                    EXPAND_REPLICA_PATTERN.matcher((String)numReplicas).matches()) {
+                                settingsBuilder.put("auto_expand_replicas", numReplicas);
+                            } else {
+                                settingsBuilder.put("number_of_replicas", numReplicas);
+                            }
+                        }
+                    })
+            .build();
+
     protected Void visitNode(Node node, CreateTableAnalysis context) {
         throw new RuntimeException(
                 String.format("Encountered node %s but expected a CreateTable node", node));
@@ -43,8 +69,23 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
     public Void visitCreateTable(CreateTable node, CreateTableAnalysis context) {
 
         context.table(TableIdent.of(node.name()));
-        context.indexSettingsBuilder().put("number_of_replicas",
-                node.replicas().or(Constants.DEFAULT_NUM_REPLICAS));
+
+        // apply default in case it is not specified in the genericProperties,
+        // if it is it will get overwritten afterwards.
+        context.indexSettingsBuilder().put("number_of_replicas", Constants.DEFAULT_NUM_REPLICAS);
+
+        if (node.properties().isPresent()) {
+            GenericProperties genericProperties = node.properties().get();
+            for (Map.Entry<String, List<Expression>> entry : genericProperties.properties().entrySet()) {
+                SettingsApplier settingsApplier = supportedProperties.get(entry.getKey());
+                if (settingsApplier == null) {
+                    throw new IllegalArgumentException(
+                            String.format("The property \"%s\" is not valid in the CREATE TABLE context", entry.getKey()));
+                }
+
+                settingsApplier.apply(context.indexSettingsBuilder(), context.parameters(), entry.getValue());
+            }
+        }
 
         if (node.clusteredBy().isPresent()) {
             ClusteredBy clusteredBy = node.clusteredBy().get();
@@ -112,7 +153,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         setAnalyzer(columnDefinition, node.properties(), context);
 
         for (Expression expression : node.columns()) {
-            String expressionName = expressionVisitor.process(expression, null);
+            String expressionName = expressionVisitor.process(expression, null).toString();
             context.addCopyTo(expressionName, node.ident());
         }
 
@@ -201,7 +242,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
     @Override
     public Void visitPrimaryKeyConstraint(PrimaryKeyConstraint node, CreateTableAnalysis context) {
         for (Expression expression : node.columns()) {
-            context.addPrimaryKey(expressionVisitor.process(expression, null));
+            context.addPrimaryKey(expressionVisitor.process(expression, null).toString());
         }
         return null;
     }
@@ -226,7 +267,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
             throw new IllegalArgumentException("Invalid argument(s) passed to the analyzer property");
         }
 
-        String analyzerName = expressionVisitor.process(analyzerExpressions.get(0), context.parameters());
+        String analyzerName = expressionVisitor.process(analyzerExpressions.get(0), context.parameters()).toString();
         if (context.analyzerService().hasCustomAnalyzer(analyzerName)) {
             Settings settings = context.analyzerService().resolveFullCustomAnalyzerSettings(analyzerName);
             context.indexSettingsBuilder().put(settings.getAsMap());
@@ -235,7 +276,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         columnDefinition.put("analyzer", analyzerName);
     }
 
-    private class ExpressionVisitor extends AstVisitor<String, Object[]> {
+    private class ExpressionVisitor extends AstVisitor<Object, Object[]> {
 
         @Override
         protected String visitQualifiedNameReference(QualifiedNameReference node, Object[] parameters) {
@@ -248,8 +289,13 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         }
 
         @Override
-        public String visitParameterExpression(ParameterExpression node, Object[] parameters) {
-            return parameters[node.index()].toString();
+        public Object visitParameterExpression(ParameterExpression node, Object[] parameters) {
+            return parameters[node.index()];
+        }
+
+        @Override
+        protected Object visitLongLiteral(LongLiteral node, Object[] context) {
+            return node.getValue();
         }
 
         @Override
@@ -258,8 +304,12 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         }
 
         @Override
-        protected String visitNode(Node node, Object[] context) {
+        protected Object visitNode(Node node, Object[] context) {
             throw new UnsupportedOperationException(String.format("Can't handle %s.", node));
         }
+    }
+
+    interface SettingsApplier {
+        void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, List<Expression> expressions);
     }
 }

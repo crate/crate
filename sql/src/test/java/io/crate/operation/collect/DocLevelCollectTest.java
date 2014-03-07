@@ -70,7 +70,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         execute(String.format("create table %s (" +
                 " id integer primary key," +
                 " doc integer" +
-                ") clustered into 2 shards replicas 0", TEST_TABLE_NAME));
+                ") clustered into 2 shards with(number_of_replicas=0)", TEST_TABLE_NAME));
         ensureGreen();
         execute(String.format("insert into %s (id, doc) values (?, ?)", TEST_TABLE_NAME), new Object[]{1, 2});
         execute(String.format("insert into %s (id, doc) values (?, ?)", TEST_TABLE_NAME), new Object[]{3, 4});

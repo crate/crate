@@ -66,7 +66,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                 " timestamp_field timestamp," +
                 " object_field object as (\"inner\" timestamp)," +
                 " ip_field ip" +
-                ") clustered by (id) into %d shards replicas 0", numShards);
+                ") clustered by (id) into %d shards with(number_of_replicas=0)", numShards);
         execute(stmt);
         ensureGreen();
     }
@@ -109,7 +109,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
                 "  path string, " +
                 "  dynamic_again object(dynamic) as (field timestamp)" +
                 " )" +
-                ") clustered into 2 shards replicas 0");
+                ") clustered into 2 shards with(number_of_replicas=0)");
         ensureGreen();
     }
 

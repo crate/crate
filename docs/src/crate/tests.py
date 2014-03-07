@@ -71,7 +71,7 @@ def setUpLocations(test):
           description string,
           race object,
           index name_description_ft using fulltext(name, description) with (analyzer='english')
-        ) clustered by(id) into 2 shards replicas 0""".strip())
+        ) clustered by(id) into 2 shards with (number_of_replicas=0)""".strip())
 
     requests.post('http://localhost:44200/_bulk?refresh=true',
                   open(project_path('sql/src/test/resources/essetup/data',
@@ -85,7 +85,7 @@ def setUpQuotes(test):
         create table quotes (
           id integer primary key,
           quote string
-        ) clustered by(id) into 2 shards replicas 0
+        ) clustered by(id) into 2 shards with(number_of_replicas=0)
     """.strip())
 
     crate_wd = empty_layer.wdPath()

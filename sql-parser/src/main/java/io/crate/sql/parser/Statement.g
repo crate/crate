@@ -733,7 +733,8 @@ createBlobTableStmt
 createTableStmt
     : CREATE TABLE table
       tableElementList
-      clusteredBy? replicas? -> ^(CREATE_TABLE table tableElementList clusteredBy? replicas?)
+      clusteredBy?
+      (WITH '(' genericProperties ')' )? -> ^(CREATE_TABLE table tableElementList clusteredBy? genericProperties?)
     ;
 
 tableElementList

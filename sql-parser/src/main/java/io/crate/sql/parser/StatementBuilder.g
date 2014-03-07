@@ -660,9 +660,12 @@ createBlobTable returns [Statement value]
     ;
 
 createTable returns [Statement value]
-    : ^(CREATE_TABLE namedTable tableElementList clusteredBy? replicas?)
+    : ^(CREATE_TABLE namedTable tableElementList clusteredBy? genericProperties?)
         {
-            $value = new CreateTable($namedTable.value, $tableElementList.value, $clusteredBy.value, $replicas.value);
+            $value = new CreateTable($namedTable.value,
+                                     $tableElementList.value,
+                                     $clusteredBy.value,
+                                     $genericProperties.value);
         }
     ;
 

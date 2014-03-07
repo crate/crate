@@ -32,17 +32,17 @@ public class CreateTable extends Statement {
     private final Table name;
     private final List<TableElement> tableElements;
     private final Optional<ClusteredBy> clusteredBy;
-    private final Optional<Integer> replicas;
+    private final Optional<GenericProperties> properties;
 
     public CreateTable(Table name,
                        List<TableElement> tableElements,
                        @Nullable ClusteredBy clusteredBy,
-                       @Nullable Integer replicas)
+                       @Nullable GenericProperties genericProperties)
     {
         this.name = name;
         this.tableElements = tableElements;
         this.clusteredBy = Optional.fromNullable(clusteredBy);
-        this.replicas = Optional.fromNullable(replicas);
+        this.properties = Optional.fromNullable(genericProperties);
     }
 
     public Table name() {
@@ -57,8 +57,8 @@ public class CreateTable extends Statement {
         return clusteredBy;
     }
 
-    public Optional<Integer> replicas() {
-        return replicas;
+    public Optional<GenericProperties> properties() {
+        return properties;
     }
 
     @Override
@@ -70,7 +70,7 @@ public class CreateTable extends Statement {
     @Override
     public int hashCode()
     {
-        return Objects.hashCode(name, tableElements, clusteredBy, replicas);
+        return Objects.hashCode(name, tableElements, clusteredBy, properties);
     }
 
     @Override
@@ -80,7 +80,7 @@ public class CreateTable extends Statement {
 
         CreateTable that = (CreateTable) o;
 
-        if (replicas != that.replicas) return false;
+        if (properties != that.properties) return false;
         if (!clusteredBy.equals(that.clusteredBy)) return false;
         if (!name.equals(that.name)) return false;
         if (!tableElements.equals(that.tableElements)) return false;
@@ -95,6 +95,6 @@ public class CreateTable extends Statement {
                 .add("name", name)
                 .add("tableElements", tableElements)
                 .add("clustered by", clusteredBy)
-                .add("replicas", replicas).toString();
+                .add("properties", properties).toString();
     }
 }

@@ -53,7 +53,7 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDocTable() throws Exception {
-        execute("create table t1 (id int primary key, name string, details object(dynamic) as (size byte, created timestamp)) clustered into 10 shards replicas 1");
+        execute("create table t1 (id int primary key, name string, details object(dynamic) as (size byte, created timestamp)) clustered into 10 shards with(number_of_replicas=1)");
         ensureGreen();
 
         DocTableInfo ti = (DocTableInfo) referenceInfos.getTableInfo(new TableIdent(null, "t1"));
@@ -126,8 +126,8 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testShardsTable() throws Exception {
-        execute("create table t2 (id int primary key) clustered into 4 shards replicas 0");
-        execute("create table t3 (id int primary key) clustered into 8 shards replicas 0");
+        execute("create table t2 (id int primary key) clustered into 4 shards with(number_of_replicas=0)");
+        execute("create table t3 (id int primary key) clustered into 8 shards with(number_of_replicas=0)");
         ensureGreen();
 
         TableInfo ti = referenceInfos.getTableInfo(new TableIdent("sys", "shards"));

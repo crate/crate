@@ -96,7 +96,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectCountStar() throws Exception {
-        execute("create table test (\"type\" string) replicas 0");
+        execute("create table test (\"type\" string) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into test (name) values (?)", new Object[]{"Arthur"});
         execute("insert into test (name) values (?)", new Object[]{"Trillian"});
@@ -108,7 +108,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectCountStarWithWhereClause() throws Exception {
-        execute("create table test (\"type\" string) replicas 0");
+        execute("create table test (\"type\" string) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into test (name) values (?)", new Object[]{"Arthur"});
         execute("insert into test (name) values (?)", new Object[]{"Trillian"});
@@ -658,7 +658,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testArraySupport() throws Exception {
-        execute("create table t1 (id int primary key, strings array(string), integers array(integer)) replicas 0");
+        execute("create table t1 (id int primary key, strings array(string), integers array(integer)) with (number_of_replicas=0)");
         ensureGreen();
 
         execute("insert into t1 (id, strings, integers) values (?, ?, ?)",
@@ -683,7 +683,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testArrayInsideObject() throws Exception {
-        execute("create table t1 (id int primary key, details object as (names array(string))) replicas 0");
+        execute("create table t1 (id int primary key, details object as (names array(string))) with (number_of_replicas=0)");
         ensureGreen();
 
         Map<String, Object> details = new HashMap<>();
@@ -700,7 +700,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testArraySupportWithNullValues() throws Exception {
-        execute("create table t1 (id int primary key, strings array(string)) replicas 0");
+        execute("create table t1 (id int primary key, strings array(string)) with (number_of_replicas=0)");
         ensureGreen();
 
         execute("insert into t1 (id, strings) values (?, ?)",
@@ -721,7 +721,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testObjectArrayInsertAndSelect() throws Exception {
-        execute("create table t1 (id int primary key, objects array(object as (name string, age int))) replicas 0");
+        execute("create table t1 (id int primary key, objects array(object as (name string, age int))) with (number_of_replicas=0)");
         ensureGreen();
 
         ImmutableMap<String, ? extends Serializable> obj1 = ImmutableMap.of("name", "foo", "age", 1);
@@ -766,7 +766,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                     "\"long\" array(long), " +
                     "\"short\" array(short), " +
                     "\"string\" array(string) " +
-                ") replicas 0"
+                ") with (number_of_replicas=0)"
         );
         ensureGreen();
 
@@ -1121,7 +1121,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test(expected = SQLParseException.class)
     public void testUpdateWithNestedObjectArrayIdxAccess() throws Exception {
-        execute("create table test (coolness array(float)) replicas 0");
+        execute("create table test (coolness array(float)) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into test values (?)", new Object[]{new Object[]{2.2, 2.3, 2.4}});
         assertEquals(1, response.rowCount());
@@ -1775,7 +1775,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         // generated using sqlalchemy
         // session.query(func.count('*')).filter(Test.name == 'foo').scalar()
 
-        execute("create table test (col1 integer primary key, col2 string) replicas 0");
+        execute("create table test (col1 integer primary key, col2 string) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
         execute("insert into test values (?, ?)", new Object[]{2, "bar"});
@@ -1793,7 +1793,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         // generated using sqlalchemy
         // session.query(Test.col1).filter(Test.col2 == 'foo').scalar()
 
-        execute("create table test (col1 integer primary key, col2 string) replicas 0");
+        execute("create table test (col1 integer primary key, col2 string) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
         execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
@@ -1811,7 +1811,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         // generated using sqlalchemy
         // session.query(func.count('*'), Test.col2).group_by(Test.col2).order_by(desc(func.count('*'))).all()
 
-        execute("create table test (col1 integer primary key, col2 string) replicas 0");
+        execute("create table test (col1 integer primary key, col2 string) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
         execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
@@ -1833,7 +1833,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         // session.query(func.count(Test.col1), Test.col2).group_by(Test.col2).order_by(desc(func.count(Test.col1))).all()
 
 
-        execute("create table test (col1 integer primary key, col2 string) replicas 0");
+        execute("create table test (col1 integer primary key, col2 string) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into test values (?, ?)", new Object[] { 1, "foo" });
         execute("insert into test values (?, ?)", new Object[] { 2, "bar" });
@@ -1857,7 +1857,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testCreateTableWithReplicasAndShards() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)" +
-                "clustered by (col1) into 10 shards replicas 2");
+                "clustered by (col1) into 10 shards with (number_of_replicas=2)");
         assertTrue(client().admin().indices().exists(new IndicesExistsRequest("test"))
                 .actionGet().isExists());
 
@@ -1967,7 +1967,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDeleteWhereVersion() throws Exception {
-        execute("create table test (col1 integer primary key, col2 string) replicas 0");
+        execute("create table test (col1 integer primary key, col2 string) with (number_of_replicas=0)");
         ensureGreen();
 
         execute("insert into test (col1, col2) values (?, ?)", new Object[]{1, "don't panic"});
@@ -2282,7 +2282,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "id integer primary key, " +
                 "quote string index off, " +
                 "index quote_fulltext using fulltext(quote) with (analyzer='snowball')" +
-                ") clustered by (id) into 3 shards replicas 10");
+                ") clustered by (id) into 3 shards with (number_of_replicas=10)");
         refresh();
 
         execute("select table_name, number_of_shards, number_of_replicas, clustered_by from " +
@@ -2454,8 +2454,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectTableAlias() throws Exception {
-        execute("create table quotes_en (id int primary key, quote string) replicas 0");
-        execute("create table quotes_de (id int primary key, quote string) replicas 0");
+        execute("create table quotes_en (id int primary key, quote string) with (number_of_replicas=0)");
+        execute("create table quotes_de (id int primary key, quote string) with (number_of_replicas=0)");
         client().admin().indices().prepareAliases().addAlias("quotes_en", "quotes")
                 .addAlias("quotes_de", "quotes").execute().actionGet();
         ensureGreen();
@@ -2484,8 +2484,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test (expected = TableAliasSchemaException.class)
     public void testSelectTableAliasSchemaExceptionColumnDataType() throws Exception {
-        execute("create table quotes_en (id int primary key, quote int) replicas 0");
-        execute("create table quotes_de (id int primary key, quote string) replicas 0");
+        execute("create table quotes_en (id int primary key, quote int) with (number_of_replicas=0)");
+        execute("create table quotes_de (id int primary key, quote string) with (number_of_replicas=0)");
         client().admin().indices().prepareAliases().addAlias("quotes_en", "quotes")
                 .addAlias("quotes_de", "quotes").execute().actionGet();
         ensureGreen();
@@ -2773,7 +2773,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectCountDistinctZero() throws Exception {
-        execute("create table test (col1 int) replicas 0");
+        execute("create table test (col1 int) with (number_of_replicas=0)");
         ensureGreen();
 
         execute("select count(distinct col1) from test");
@@ -2785,7 +2785,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testShardSelect() throws Exception {
-        execute("create table test (col1 int) clustered into 3 shards replicas 0");
+        execute("create table test (col1 int) clustered into 3 shards with (number_of_replicas=0)");
         ensureGreen();
 
         execute("select count(*) from sys.shards where table_name='test'");

@@ -91,7 +91,7 @@ public class CreateTableStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testSimpleCreateTable() throws Exception {
         CreateTableAnalysis analysis = (CreateTableAnalysis)analyze(
                 "create table foo (id integer primary key, name string) " +
-                "clustered into 3 shards replicas 0");
+                "clustered into 3 shards with (number_of_replicas=0)");
 
         assertThat(analysis.indexSettings().get("number_of_shards"), is("3"));
         assertThat(analysis.indexSettings().get("number_of_replicas"), is("0"));
