@@ -2,133 +2,56 @@
 Hello Crate
 ===========
 
-.. highlight:: sh
+To get started let's have a quick look on how Crate Data can be used.
+This tutorial uses the `crash` command-line SQL_ shell shipped with Crate.
 
-To get started let's have a quick look on how Crate Data can be accessed
-via the bare HTTP-Endpoints. This tutorial uses the Curl_ command-line
-utility to do the requests.
+First lets connect to a running node::
 
-To check if Crate Data is running, we can do a GET on the root, which
-displays basic system information::
-
-    sh$ curl -sS '127.0.0.1:4200/?pretty=1'
-    {
-      "ok" : true,
-      "status" : 200,
-      "name" : "crate",
-      "version" : {
-        "number" : "...",
-        "build_hash" : "...",
-        "build_timestamp" : "...",
-        "build_snapshot" : ...,
-        "es_version" : "...",
-        "lucene_version" : "..."
-      }
-    }
+    cr> connect 127.0.0.1:4200
+    +------------------------+-----------+-----------+---------+
+    | server_url             | node_name | connected | message |
+    +------------------------+-----------+-----------+---------+
+    | http://127.0.0.1:...   | crate     | TRUE      | OK      |
+    +------------------------+-----------+-----------+---------+
+    CONNECT OK
 
 
-.. note::
+In this guide we want to create a database for Twitter_ tweets. Let's create
+the table `tweets` with all columns we need.
+In order to keep this tutorial simple, we'll just inserting the user_id instead of a complete
+user object::
 
- The ``pretty`` query parameter used above tells Crate Data to pretty print
- results. This works for every endpoint.
+    cr> create table tweets (
+    ...   created_at timestamp,
+    ...   id string primary key,
+    ...   retweeted boolean,
+    ...   source string INDEX using fulltext,
+    ...   text string INDEX using fulltext,
+    ...   user_id string
+    ... )
+    CREATE OK (... sec)
 
-In this guide we want to create a database for quotes. Let's create
-the index and the ``quote`` type, which will contain information about
-the author of the quote and the quote itself::
+Now we are ready for inserting our first tweet::
 
-    sh$ curl -sSX POST 'http://127.0.0.1:4200/_sql?pretty=1&refresh=true' -d @- <<EOF
-    ... {
-    ... "stmt": "create table quotes (author string, content string)"
-    ... }
-    ... EOF
-    {
-      "cols" : [ ],
-      "rows" : [ ],
-      "rowcount" : 1,
-      "duration" : ...
-    }
+    cr> insert into tweets values(1394182937, '1', true, 'web', 'Don''t panic', 'Douglas')
+    INSERT OK, 1 row affected (... sec)
 
-Now we can add the first quote to the database::
+And another::
 
-    sh$ curl -sSX POST '127.0.0.1:4200/_sql?pretty=1&refresh=true' -d @- <<EOF
-    ... {
-    ... "stmt": "insert into quotes values('Me', 'Hello Crate!')"
-    ... }
-    ... EOF
-    {
-      "cols" : [ ],
-      "rows" : [ ],
-      "rowcount" : 1,
-      "duration" : ...
-    }
+    cr> insert into tweets values(1394182938, '2', true, 'web', 'Time is an illusion. Lunchtime doubly so', 'Ford')
+    INSERT OK, 1 row affected (... sec)
 
-Refresh in order to make the result immediately visible in subsequent queries::
+Looking up only Ford's tweets::
 
-    sh$ curl -sSX POST '127.0.0.1:4200/quotes/_refresh?pretty=1'
-    {
-      "_shards" : {
-        "total" : 10,
-        "successful" : 5,
-        "failed" : 0
-      }
-    }
+    cr> select * from tweets where id = '2'
+    +------------+----+-----------+--------+------------------------------------------+---------+
+    | created_at | id | retweeted | source | text                                     | user_id |
+    +------------+----+-----------+--------+------------------------------------------+---------+
+    | 1394182938 | 2  | TRUE      | web    | Time is an illusion. Lunchtime doubly so | Ford    |
+    +------------+----+-----------+--------+------------------------------------------+---------+
+    SELECT 1 row in set (... sec)
 
 
-We can now view what we have just inserted like this::
-
-    sh$ curl -sSX POST '127.0.0.1:4200/_sql?pretty=1' -d @- <<EOF
-    ... {
-    ... "stmt": "select author, content from quotes order by author"
-    ... }
-    ... EOF
-    {
-      "cols" : [ "author", "content" ],
-      "rows" : [ [ "Me", "Hello Crate!" ] ],
-      "rowcount" : 1,
-      "duration" : ...
-    }
-
-Let's add another quote::
-
-    sh$ curl -sSX POST '127.0.0.1:4200/_sql?pretty=1&refresh=true' -d @- <<EOF
-    ... {
-    ... "stmt": "insert into quotes values('Ford', 'Don''t panic... don''t panic...')"
-    ... }
-    ... EOF
-    {
-      "cols" : [ ],
-      "rows" : [ ],
-      "rowcount" : 1,
-      "duration" : ...
-    }
-
-Refresh again::
-
-    sh$ curl -sSX POST '127.0.0.1:4200/quotes/_refresh?pretty=1'
-    {
-      "_shards" : {
-        "total" : 10,
-        "successful" : 5,
-        "failed" : 0
-      }
-    }
-
-Looking up only Ford's quotes::
-
-    sh$ curl -sSX POST '127.0.0.1:4200/_sql?pretty=1' -d @- <<EOF
-    ... {
-    ... "stmt": "select content from quotes where author='Ford'"
-    ... }
-    ... EOF
-    {
-      "cols" : [ "content" ],
-      "rows" : [ [ "Don't panic... don't panic..." ] ],
-      "rowcount" : 1,
-      "duration" : ...
-    }
-
-
-.. _Curl: http://curl.haxx.se/
 .. _SQL: https://en.wikipedia.org/wiki/SQL
-
+.. _Twitter: https://twitter.com
 
