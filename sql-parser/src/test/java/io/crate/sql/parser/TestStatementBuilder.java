@@ -128,9 +128,9 @@ public class TestStatementBuilder
         printStatement("create table t (id integer primary key, name string) clustered into 3 shards");
         printStatement("create table t (id integer primary key, name string) clustered by (id)");
         printStatement("create table t (id integer primary key, name string) clustered by (id) into 4 shards");
-        printStatement("create table t (id integer primary key, name string) replicas 4");
-        printStatement("create table t (id integer primary key, name string) clustered by (id) replicas 4");
-        printStatement("create table t (id integer primary key, name string) clustered by (id) into 999 shards replicas 4");
+        printStatement("create table t (id integer primary key, name string) with (number_of_replicas=4)");
+        printStatement("create table t (id integer primary key, name string) clustered by (id) with (number_of_replicas=4)");
+        printStatement("create table t (id integer primary key, name string) clustered by (id) into 999 shards with (number_of_replicas=4)");
         printStatement("create table t (o object(dynamic) as (i integer, d double))");
         printStatement("create table t (id integer, name string, primary key (id))");
         printStatement("create table t (" +
