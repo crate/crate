@@ -38,7 +38,6 @@ Installation
 
 - Start some more servers to form a cluster and relax.
 
-.. _Download: https://crate.io/download/
 
 Get Crate Data
 ==============
@@ -85,7 +84,7 @@ The Crate Data Testing repository is disabled by default. It contains developmen
 frequently updated. If you want to enable the Testing repo on your server, set ``enabled=1`` in
 ``/etc/yum.repos.d/crate.repo``.
 
-.. _Download: https://crate.io/download/
+.. _Download: https://cdn.crate.io/downloads/releases/
 .. _Launchpad: https://launchpad.net/~crate
 
 Where to go from here?
@@ -93,7 +92,7 @@ Where to go from here?
 
 That is certainly not all Crate Data offers to you. Take a look at the
 documentation found under the ``docs`` directory or visit
-`https://crate.io/docs/ <https://crate.io/docs/>`_. If you already installed
+`https://docs.crate.io/current/ <https://docs.crate.io/current/>`_. If you already installed
 Crate Data you can also use the documentation it was shipped with available via
 `http://localhost:4200/_plugin/docs/ <http://localhost:4200/_plugin/docs/>`_.
 
@@ -111,10 +110,10 @@ There are several different ways to manage data in Crate.
 
 - `Java client`_
 
-.. _Python client: https://crate.io/docs/clients/python/
+.. _Python client: https://docs.crate.io/current/clients.html#crate-data-python-client
 .. _GitHub: https://github.com/crate/crate-python/
 .. _pypi: https://pypi.python.org/pypi/crate/
-.. _Java client: https://crate.io/docs/clients/java/
+.. _Java client: https://docs.crate.io/current/clients.html#crate-data-java-client
 
 Are you a Developer?
 ====================
