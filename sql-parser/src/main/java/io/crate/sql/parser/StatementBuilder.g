@@ -75,6 +75,7 @@ statement returns [Statement value]
     | showPartitions            { $value = $showPartitions.value; }
     | showFunctions             { $value = $showFunctions.value; }
     | createTable               { $value = $createTable.value; }
+    | createBlobTable           { $value = $createBlobTable.value; }
     | createMaterializedView    { $value = $createMaterializedView.value; }
     | refreshMaterializedView   { $value = $refreshMaterializedView.value; }
     | createAlias               { $value = $createAlias.value; }
@@ -649,6 +650,14 @@ copyFrom returns [Statement value]
     : ^(COPY_FROM namedTable path=expr) { $value = new CopyFromStatement($namedTable.value, $path.value); }
     ;
 
+createBlobTable returns [Statement value]
+    : ^(CREATE_BLOB_TABLE namedTable clusteredBy? genericProperties?)
+        {
+            $value = new CreateBlobTable($namedTable.value,
+                                         $clusteredBy.value,
+                                         $genericProperties.value);
+        }
+    ;
 
 createTable returns [Statement value]
     : ^(CREATE_TABLE namedTable tableElementList clusteredBy? replicas?)

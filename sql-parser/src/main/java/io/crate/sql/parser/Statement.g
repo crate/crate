@@ -75,6 +75,7 @@ tokens {
     SHOW_PARTITIONS;
     SHOW_FUNCTIONS;
     CREATE_TABLE;
+    CREATE_BLOB_TABLE;
     CREATE_MATERIALIZED_VIEW;
     REFRESH_MATERIALIZED_VIEW;
     VIEW_REFRESH;
@@ -176,6 +177,7 @@ statement
     | showPartitionsStmt
     | showFunctionsStmt
     | createTableStmt
+    | createBlobTableStmt
     | dropTableStmt
     | createMaterializedViewStmt
     | refreshMaterializedViewStmt
@@ -723,6 +725,10 @@ copyStmt
     : COPY table FROM expr -> ^(COPY_FROM table expr)
     ;
 
+createBlobTableStmt
+    : CREATE BLOB TABLE table clusteredInto?
+      (WITH '(' genericProperties ')' )? -> ^(CREATE_BLOB_TABLE table clusteredInto? genericProperties?)
+    ;
 
 createTableStmt
     : CREATE TABLE table
@@ -822,6 +828,10 @@ literalList
 
 primaryKeyConstraint
     : PRIMARY_KEY '(' subscript  ( ',' subscript )* ')' -> ^(PRIMARY_KEY subscript+)
+    ;
+
+clusteredInto
+    : CLUSTERED INTO integer SHARDS -> ^(CLUSTERED integer)
     ;
 
 clusteredBy
@@ -956,6 +966,7 @@ ROW: 'ROW';
 WITH: 'WITH';
 RECURSIVE: 'RECURSIVE';
 CREATE: 'CREATE';
+BLOB: 'BLOB';
 TABLE: 'TABLE';
 
 BOOLEAN: 'BOOLEAN';

@@ -236,6 +236,15 @@ public class TestStatementBuilder
     }
 
     @Test
+    public void testBlobTable() throws Exception {
+        printStatement("create blob table screenshots");
+        printStatement("create blob table screenshots clustered into 5 shards");
+        printStatement("create blob table screenshots with (number_of_replicas=3)");
+        printStatement("create blob table screenshots with (number_of_replicas='0-all')");
+        printStatement("create blob table screenshots clustered into 5 shards with (number_of_replicas=3)");
+    }
+
+    @Test
     public void testParameterExpressionLimitOffset() throws Exception {
         // ORMs like SQLAlchemy generate these kind of queries.
         printStatement("select * from foo limit ? offset ?");
