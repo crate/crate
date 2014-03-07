@@ -38,7 +38,7 @@ public class AnalysisVisitor<C, R> {
     }
 
     protected R visitCreateTableAnalysis(CreateTableAnalysis analysis, C context) {
-        return visitAnalysis(analysis, context);
+        return visitDDLAnalysis(analysis, context);
     }
 
     protected R visitDeleteAnalysis(DeleteAnalysis analysis, C context) {
@@ -58,10 +58,22 @@ public class AnalysisVisitor<C, R> {
     }
 
     protected R visitDropTableAnalysis(DropTableAnalysis analysis, C context) {
-        return visitAnalysis(analysis, context);
+        return visitDDLAnalysis(analysis, context);
     }
 
     protected R visitCreateAnalyzerAnalysis(CreateAnalyzerAnalysis analysis, C context) {
+        return visitDDLAnalysis(analysis, context);
+    }
+
+    protected R visitDataAnalysis(AbstractDataAnalysis analysis, C context) {
         return visitAnalysis(analysis, context);
+    }
+
+    protected R visitDDLAnalysis(AbstractDDLAnalysis analysis, C context) {
+        return visitAnalysis(analysis, context);
+    }
+
+    public R visitCreateBlobTableAnalysis(CreateBlobTableAnalysis analysis, C context) {
+        return visitDDLAnalysis(analysis, context);
     }
 }

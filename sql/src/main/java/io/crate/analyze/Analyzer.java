@@ -78,6 +78,7 @@ public class Analyzer {
         private final AbstractStatementAnalyzer copyStatementAnalyzer = new CopyStatementAnalyzer();
         private final AbstractStatementAnalyzer dropTableStatementAnalyzer = new DropTableStatementAnalyzer();
         private final AbstractStatementAnalyzer createTableStatementAnalyzer = new CreateTableStatementAnalyzer();
+        private final AbstractStatementAnalyzer createBlobTableStatementAnalyzer = new CreateBlobTableStatementAnalyzer();
         private final AbstractStatementAnalyzer createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer();
 
         public AnalyzerDispatcher(ReferenceInfos referenceInfos,
@@ -141,6 +142,12 @@ public class Analyzer {
         public AbstractStatementAnalyzer visitCreateAnalyzer(CreateAnalyzer node, Context context) {
             context.analysis = new CreateAnalyzerAnalysis(fulltextAnalyzerResolver, context.parameters);
             return createAnalyzerStatementAnalyzer;
+        }
+
+        @Override
+        public AbstractStatementAnalyzer visitCreateBlobTable(CreateBlobTable node, Context context) {
+            context.analysis = new CreateBlobTableAnalysis(context.parameters);
+            return createBlobTableStatementAnalyzer;
         }
 
         @Override

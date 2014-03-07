@@ -21,59 +21,64 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableList;
+import io.crate.core.NumberOfReplicas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.common.Preconditions;
 
-import java.util.List;
+import javax.annotation.Nullable;
 
-public abstract class Analysis {
+public class CreateBlobTableAnalysis extends AbstractDDLAnalysis {
 
-    private List<String> outputNames = ImmutableList.of();
-    private final Object[] parameters;
+    private NumberOfReplicas numberOfReplicas;
+    private Integer numberOfShards;
 
-    protected Analysis(Object[] parameters) {
-        this.parameters = parameters;
+    public CreateBlobTableAnalysis(Object[] parameters) {
+        super(parameters);
     }
 
-    public abstract void table(TableIdent tableIdent);
-
-    public abstract TableInfo table();
-
-    public abstract SchemaInfo schema();
-
-    public abstract boolean hasNoResult();
-
-    public abstract void normalize();
-
-    public void addOutputName(String s) {
-        this.outputNames.add(s);
+    @Override
+    public TableInfo table() {
+        return null;
     }
 
-    public void outputNames(List<String> outputNames) {
-        this.outputNames = outputNames;
+    @Override
+    public SchemaInfo schema() {
+        return null;
     }
 
-    public List<String> outputNames() {
-        return outputNames;
+    @Override
+    public void normalize() {
     }
 
-    public Object[] parameters() {
-        return parameters;
+    public String tableName() {
+        return tableIdent.name();
     }
 
-    public Object parameterAt(int idx) {
-        Preconditions.checkElementIndex(idx, parameters.length);
-        return parameters[idx];
+    public void numberOfReplicas(String numberOfReplicas) {
+        this.numberOfReplicas = new NumberOfReplicas(numberOfReplicas);
     }
 
-    public <C, R> R accept(AnalysisVisitor<C,R> analysisVisitor, C context) {
-        return analysisVisitor.visitAnalysis(this, context);
+    @Nullable
+    public NumberOfReplicas numberOfReplicas() {
+        return numberOfReplicas;
     }
 
-    public boolean isData() {
-        return true;
+    public void numberOfShards(Integer numberOfShards) {
+        this.numberOfShards = numberOfShards;
+    }
+
+    @Nullable
+    public Integer numberOfShards() {
+        return numberOfShards;
+    }
+
+    @Override
+    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
+        return analysisVisitor.visitCreateBlobTableAnalysis(this, context);
+    }
+
+    public TableIdent tableIdent() {
+        return tableIdent;
     }
 }

@@ -22,12 +22,22 @@
 package io.crate.blob.v2;
 
 import com.google.common.base.Function;
+import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.blob.BlobShardFuture;
+import io.crate.core.NumberOfReplicas;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
+import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.service.IndexService;
 import org.elasticsearch.index.shard.ShardId;
@@ -40,7 +50,10 @@ public class BlobIndices extends AbstractComponent {
 
     public static final String SETTING_BLOBS_ENABLED = "index.blobs.enabled";
     public static final String INDEX_PREFIX = ".blob_";
+    private static final int DEFAULT_NUMBER_OF_SHARDS = 5;
+    private static final int DEFAULT_NUMBER_OF_REPLICAS = 1;
 
+    private final TransportCreateIndexAction transportCreateIndexAction;
     private final IndicesService indicesService;
     private final IndicesLifecycle indicesLifecycle;
 
@@ -59,9 +72,12 @@ public class BlobIndices extends AbstractComponent {
     };
 
     @Inject
-    public BlobIndices(Settings settings, IndicesService indicesService,
+    public BlobIndices(Settings settings,
+                       TransportCreateIndexAction transportCreateIndexAction,
+                       IndicesService indicesService,
                        IndicesLifecycle indicesLifecycle) {
         super(settings);
+        this.transportCreateIndexAction = transportCreateIndexAction;
         this.indicesService = indicesService;
         this.indicesLifecycle = indicesLifecycle;
 
@@ -69,8 +85,7 @@ public class BlobIndices extends AbstractComponent {
 
     public boolean blobsEnabled(String index) {
         return indicesService.indexServiceSafe(index)
-                .settingsService().getSettings().getAsBoolean(SETTING_BLOBS_ENABLED,
-                        false);
+                .settingsService().getSettings().getAsBoolean(SETTING_BLOBS_ENABLED, false);
     }
 
     public boolean blobsEnabled(ShardId shardId) {
@@ -79,6 +94,35 @@ public class BlobIndices extends AbstractComponent {
 
     public BlobShard blobShardSafe(ShardId shardId) {
         return blobShardSafe(shardId.getIndex(), shardId.id());
+    }
+
+    public ListenableFuture<Void> createBlobTable(String tableName,
+                                                  @Nullable NumberOfReplicas numberOfReplicas,
+                                                  @Nullable Integer numberOfShards ) {
+        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        builder.put(SETTING_BLOBS_ENABLED, true);
+        builder.put("number_of_shards", Objects.firstNonNull(numberOfShards, DEFAULT_NUMBER_OF_SHARDS));
+        if (numberOfReplicas == null) {
+            builder.put("number_of_replicas", DEFAULT_NUMBER_OF_REPLICAS);
+        } else {
+            builder.put(numberOfReplicas.esSettingKey(), numberOfReplicas.esSettingValue());
+        }
+
+        tableName = INDEX_PREFIX + tableName;
+        final SettableFuture<Void> result = SettableFuture.create();
+        transportCreateIndexAction.execute(new CreateIndexRequest(tableName, builder.build()), new ActionListener<CreateIndexResponse>() {
+            @Override
+            public void onResponse(CreateIndexResponse createIndexResponse) {
+                assert createIndexResponse.isAcknowledged();
+                result.set(null);
+            }
+
+            @Override
+            public void onFailure(Throwable e) {
+                result.setException(e);
+            }
+        });
+        return result;
     }
 
     public BlobShard blobShard(String index, int shardId) {
@@ -121,6 +165,4 @@ public class BlobIndices extends AbstractComponent {
         return FluentIterable.from(indicesService.indices())
                 .filter(indicesFilter).toList();
     }
-
-
 }

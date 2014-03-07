@@ -682,5 +682,4 @@ public class PlannerTest {
         ESDeleteIndexNode node = (ESDeleteIndexNode) planNode;
         assertThat(node.index(), is("users"));
     }
-
 }

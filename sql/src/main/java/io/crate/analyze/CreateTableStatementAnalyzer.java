@@ -20,26 +20,25 @@
  */
 package io.crate.analyze;
 
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
+import io.crate.core.NumberOfReplicas;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.*;
-import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
-import java.util.regex.Pattern;
 
 
 public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, CreateTableAnalysis> {
 
-    private final ExpressionVisitor expressionVisitor = new ExpressionVisitor();
+    private final ExpressionToObjectVisitor expressionVisitor = new ExpressionToObjectVisitor();
 
-    private static final Pattern EXPAND_REPLICA_PATTERN = Pattern.compile("\\d+\\-(all|\\d+)");
-
-    public final Map<String, SettingsApplier> supportedProperties =
+    protected final Map<String, SettingsApplier> supportedProperties =
             ImmutableMap.<String, SettingsApplier>builder()
                     .put("number_of_replicas", new SettingsApplier() {
                         @Override
@@ -50,12 +49,9 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
                                     "Invalid number of arguments passed to \"number_of_replicas\"");
 
                             Object numReplicas = expressionVisitor.process(expressions.get(0), parameters);
-                            if (numReplicas instanceof String &&
-                                    EXPAND_REPLICA_PATTERN.matcher((String)numReplicas).matches()) {
-                                settingsBuilder.put("auto_expand_replicas", numReplicas);
-                            } else {
-                                settingsBuilder.put("number_of_replicas", numReplicas);
-                            }
+
+                            NumberOfReplicas numberOfReplicas = new NumberOfReplicas(numReplicas.toString());
+                            settingsBuilder.put(numberOfReplicas.esSettingKey(), numberOfReplicas.esSettingValue());
                         }
                     })
             .build();
@@ -67,24 +63,17 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
 
     @Override
     public Void visitCreateTable(CreateTable node, CreateTableAnalysis context) {
-
-        context.table(TableIdent.of(node.name()));
+        TableIdent tableIdent = TableIdent.of(node.name());
+        Preconditions.checkArgument(Strings.isNullOrEmpty(tableIdent.schema()),
+                "A custom schema name must not be specified in the CREATE TABLE clause");
+        context.table(tableIdent);
 
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.
         context.indexSettingsBuilder().put("number_of_replicas", Constants.DEFAULT_NUM_REPLICAS);
 
         if (node.properties().isPresent()) {
-            GenericProperties genericProperties = node.properties().get();
-            for (Map.Entry<String, List<Expression>> entry : genericProperties.properties().entrySet()) {
-                SettingsApplier settingsApplier = supportedProperties.get(entry.getKey());
-                if (settingsApplier == null) {
-                    throw new IllegalArgumentException(
-                            String.format("The property \"%s\" is not valid in the CREATE TABLE context", entry.getKey()));
-                }
-
-                settingsApplier.apply(context.indexSettingsBuilder(), context.parameters(), entry.getValue());
-            }
+            applySettingsFromProperties(node.properties().get(), context);
         }
 
         if (node.clusteredBy().isPresent()) {
@@ -100,6 +89,18 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         setCopyTo(context);
 
         return null;
+    }
+
+    protected void applySettingsFromProperties(GenericProperties genericProperties, CreateTableAnalysis context) {
+        for (Map.Entry<String, List<Expression>> entry : genericProperties.properties().entrySet()) {
+            SettingsApplier settingsApplier = supportedProperties.get(entry.getKey());
+            if (settingsApplier == null) {
+                throw new IllegalArgumentException(
+                        String.format("The property \"%s\" is not valid in the CREATE TABLE context", entry.getKey()));
+            }
+
+            settingsApplier.apply(context.indexSettingsBuilder(), context.parameters(), entry.getValue());
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -274,42 +275,5 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         }
 
         columnDefinition.put("analyzer", analyzerName);
-    }
-
-    private class ExpressionVisitor extends AstVisitor<Object, Object[]> {
-
-        @Override
-        protected String visitQualifiedNameReference(QualifiedNameReference node, Object[] parameters) {
-            return node.getName().getSuffix();
-        }
-
-        @Override
-        protected String visitStringLiteral(StringLiteral node, Object[] parameters) {
-            return node.getValue();
-        }
-
-        @Override
-        public Object visitParameterExpression(ParameterExpression node, Object[] parameters) {
-            return parameters[node.index()];
-        }
-
-        @Override
-        protected Object visitLongLiteral(LongLiteral node, Object[] context) {
-            return node.getValue();
-        }
-
-        @Override
-        protected String visitSubscriptExpression(SubscriptExpression node, Object[] context) {
-            return String.format("%s.%s", process(node.name(), null), process(node.index(), null));
-        }
-
-        @Override
-        protected Object visitNode(Node node, Object[] context) {
-            throw new UnsupportedOperationException(String.format("Can't handle %s.", node));
-        }
-    }
-
-    interface SettingsApplier {
-        void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, List<Expression> expressions);
     }
 }

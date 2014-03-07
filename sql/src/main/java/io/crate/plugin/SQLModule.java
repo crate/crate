@@ -21,6 +21,7 @@
 
 package io.crate.plugin;
 
+import io.crate.action.sql.DDLAnalysisDispatcher;
 import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.TransportSQLAction;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -35,6 +36,7 @@ public class SQLModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(TransportSQLAction.class).asEagerSingleton();
+        bind(DDLAnalysisDispatcher.class).asEagerSingleton();
         bind(FulltextAnalyzerResolver.class).asEagerSingleton();
         MapBinder<GenericAction, TransportAction> transportActionsBinder = MapBinder.newMapBinder(binder(), GenericAction.class,
                 TransportAction.class);

@@ -21,16 +21,17 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import io.crate.analyze.AbstractDDLAnalysis;
+import io.crate.analyze.AnalysisVisitor;
+import io.crate.exceptions.TableAlreadyExistsException;
+import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.exceptions.TableAlreadyExistsException;
-import io.crate.exceptions.TableUnknownException;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
@@ -90,15 +91,12 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
 
     @Override
     public void table(TableIdent tableIdent) {
-        if (!Strings.isNullOrEmpty(tableIdent.schema())) {
-            throw new UnsupportedOperationException("Custom schemas are currently not supported");
-        }
-
         // TODO: add a getTableInfoUnsafe() to make this a bit cleaner
         try {
             if (referenceInfos.getTableInfo(tableIdent) != null) {
                 throw new TableAlreadyExistsException(tableIdent.name());
             }
+            super.table(tableIdent);
         } catch (UncheckedExecutionException e) {
             if (e.getCause() instanceof TableUnknownException) {
                 super.table(tableIdent);
@@ -108,11 +106,6 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
         } catch (TableUnknownException e) {
             super.table(tableIdent);
         }
-    }
-
-
-    public String tableName() {
-        return tableIdent.name();
     }
 
     @Override
@@ -219,5 +212,15 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
 
     public FulltextAnalyzerResolver analyzerService() {
         return fulltextAnalyzerResolver;
+    }
+
+    public TableIdent tableIdent() {
+        return tableIdent;
+    }
+
+    @Override
+    public boolean isData() {
+        // TODO: remove DropTableAnalysis from Planner and extend DDLVisitor in the Transport
+        return true;
     }
 }

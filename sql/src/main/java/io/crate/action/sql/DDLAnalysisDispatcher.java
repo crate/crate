@@ -19,35 +19,33 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.action.sql;
 
-import io.crate.metadata.TableIdent;
+import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.analyze.Analysis;
+import io.crate.analyze.AnalysisVisitor;
+import io.crate.analyze.CreateBlobTableAnalysis;
+import io.crate.blob.v2.BlobIndices;
+import org.elasticsearch.common.inject.Inject;
 
-public abstract class AbstractDDLAnalysis extends Analysis {
+public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFuture<Void>> {
 
-    protected TableIdent tableIdent;
+    private final BlobIndices blobIndices;
 
-    protected AbstractDDLAnalysis(Object[] parameters) {
-        super(parameters);
+    @Inject
+    private DDLAnalysisDispatcher(BlobIndices blobIndices) {
+        this.blobIndices = blobIndices;
     }
 
     @Override
-    public void table(TableIdent tableIdent) {
-        this.tableIdent = tableIdent;
+    protected ListenableFuture<Void> visitAnalysis(Analysis analysis, Void context) {
+        throw new UnsupportedOperationException(String.format("Can't handle \"%s\"", analysis));
     }
 
     @Override
-    public boolean hasNoResult() {
-        return false;
-    }
-
-    @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitDDLAnalysis(this, context);
-    }
-
-    @Override
-    public boolean isData() {
-        return false;
+    public ListenableFuture<Void> visitCreateBlobTableAnalysis(
+            CreateBlobTableAnalysis analysis, Void context) {
+        return blobIndices.createBlobTable(
+                analysis.tableName(), analysis.numberOfReplicas(), analysis.numberOfShards());
     }
 }

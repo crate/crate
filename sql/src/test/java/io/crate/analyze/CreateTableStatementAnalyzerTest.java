@@ -246,7 +246,7 @@ public class CreateTableStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat((String)contentMapping.get("analyzer"), is("german"));
     }
 
-    @Test (expected = UnsupportedOperationException.class)
+    @Test (expected = IllegalArgumentException.class)
     public void testCreateTableWithSchemaName() throws Exception {
         analyze("create table something.foo (id integer primary key)");
     }

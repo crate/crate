@@ -329,4 +329,10 @@ public class CreateAnalyzerAnalysis extends AbstractDDLAnalysis {
         return suffix;
     }
 
+    @Override
+    public boolean isData() {
+        // TODO: remove DropTableAnalysis from Planner and extend DDLVisitor in the Transport
+        return true;
+    }
+
 }
