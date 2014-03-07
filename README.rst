@@ -73,8 +73,8 @@ containing the YUM repository definition on your system.
 
 ::
 
-sudo rpm --import https://cdn.crate.io/downloads/yum/RPM-GPG-KEY-crate
-sudo rpm -Uvh https://cdn.crate.io/downloads/yum/6/x86_64/crate-release-6.5-1.noarch.rpm
+    sudo rpm --import https://cdn.crate.io/downloads/yum/RPM-GPG-KEY-crate
+    sudo rpm -Uvh https://cdn.crate.io/downloads/yum/6/x86_64/crate-release-6.5-1.noarch.rpm
 
 Then install Crate Data:
 
