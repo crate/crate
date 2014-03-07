@@ -2,10 +2,14 @@
 Changes for Crate Data
 ======================
 
-unreleased
+Unreleased
 ==========
 
  - updated crate-admin to 0.2.4
+
+ - fix bug with empty lists or lists only containing ``null`` as parameter
+
+ - delay Parameter resolving until expected type is known.
 
  - BREAKING CHANGE: replaced the `REPLICAS` table setting with the table
    property `number_of_replicas`.

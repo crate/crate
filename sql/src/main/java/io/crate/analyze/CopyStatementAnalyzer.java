@@ -21,8 +21,10 @@
 
 package io.crate.analyze;
 
+import io.crate.DataType;
 import io.crate.metadata.TableIdent;
-import io.crate.planner.symbol.StringLiteral;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.Parameter;
 import io.crate.planner.symbol.Symbol;
 import io.crate.planner.symbol.SymbolType;
 import io.crate.sql.tree.CopyFromStatement;
@@ -35,12 +37,16 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
         context.mode(CopyAnalysis.Mode.FROM);
         process(node.table(), context);
         Symbol pathSymbol = process(node.path(), context);
-        if (pathSymbol.symbolType() == SymbolType.STRING_LITERAL) {
-            // ParameterExpression and StringLiteral only allowed inputs
-            context.path(((StringLiteral) pathSymbol).valueAsString());
-        } else {
+        if (pathSymbol.symbolType() != SymbolType.STRING_LITERAL && pathSymbol.symbolType() != SymbolType.PARAMETER) {
             throw new IllegalArgumentException("Invalid COPY FROM statement");
         }
+        if (pathSymbol.symbolType() == SymbolType.PARAMETER) {
+            if (((Parameter)pathSymbol).guessedValueType() != DataType.STRING) {
+                throw new IllegalArgumentException("Invalid COPY FROM statement");
+            }
+            pathSymbol = ((Parameter)pathSymbol).toLiteral(DataType.STRING);
+        }
+        context.path(((Literal) pathSymbol).valueAsString());
         return null;
     }
 

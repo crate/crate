@@ -257,6 +257,25 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
                                 new HashMap<String, Object>()
                         }
                 });
+    }
 
+    @Test
+    public void testInsertObjectArrayParameter() throws Exception {
+        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, friends) values(?, ?)",
+                new Object[]{ 0, new Map[]{
+                        new HashMap<String, Object>() {{ put("name", "Jeltz"); }},
+                        new HashMap<String, Object>() {{ put("name", "Prosser"); }}
+                    }
+                });
+        assertThat((LongLiteral)analysis.values().get(0).get(0), is(new LongLiteral(0L)));
+        assertThat(((ArrayLiteral)analysis.values().get(0).get(1)).itemType(), is(DataType.OBJECT));
+    }
+
+    @Test
+    public void testInsertEmptyObjectArrayParameter() throws Exception {
+        InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, friends) values(?, ?)",
+                new Object[]{ 0, new Map[0] });
+        assertThat((LongLiteral)analysis.values().get(0).get(0), is(new LongLiteral(0L)));
+        assertThat(((ArrayLiteral)analysis.values().get(0).get(1)).itemType(), is(DataType.OBJECT));
     }
 }

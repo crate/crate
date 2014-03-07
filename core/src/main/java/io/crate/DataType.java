@@ -233,6 +233,7 @@ public enum DataType {
             SET_TYPES_MAP.put(TIMESTAMP, TIMESTAMP_SET);
             SET_TYPES_MAP.put(OBJECT, OBJECT_SET);
             SET_TYPES_MAP.put(IP, IP_SET);
+            SET_TYPES_MAP.put(NULL, NULL_SET);
     }
     public static final ImmutableList<DataType> SET_TYPES = ImmutableList.copyOf(SET_TYPES_MAP.values());
     public static final Map<DataType, DataType> REVERSE_SET_TYPE_MAP = SET_TYPES_MAP.inverse();
@@ -251,6 +252,7 @@ public enum DataType {
         ARRAY_TYPES_MAP.put(TIMESTAMP, TIMESTAMP_ARRAY);
         ARRAY_TYPES_MAP.put(OBJECT, OBJECT_ARRAY);
         ARRAY_TYPES_MAP.put(IP, IP_ARRAY);
+        ARRAY_TYPES_MAP.put(NULL, NULL_ARRAY);
     }
 
     public static final Map<DataType, DataType> REVERSE_ARRAY_TYPE_MAP = ARRAY_TYPES_MAP.inverse();
@@ -417,7 +419,7 @@ public enum DataType {
         List<DataType> innerTypes = new ArrayList<>(value.size());
 
         if (value.isEmpty()) {
-            throw new IllegalArgumentException("Can't detect the type from an empty list");
+            return NULL_ARRAY;
         }
 
         DataType previous = null;
@@ -434,7 +436,10 @@ public enum DataType {
             previous = current;
         }
 
-        assert innerTypes.size() > 0 && current != null;
-        return current.arrayType();
+        if (innerTypes.size() > 0 && current == null) {
+            return NULL_ARRAY;
+        } else {
+            return current.arrayType();
+        }
     }
 }

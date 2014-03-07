@@ -285,24 +285,35 @@ public abstract class AbstractDataAnalysis extends Analysis {
      * @return the normalized Symbol, should be a literal
      * @throws io.crate.exceptions.ValidationException
      */
-    public Literal normalizeInputValue(Symbol inputValue, Reference reference) {
+    public Literal normalizeInputForReference(Symbol inputValue, Reference reference) {
         Literal normalized;
+        Symbol parameterOrLiteral = normalizer.process(inputValue, null);
 
         // 1. evaluate
-        try {
-            // everything that is allowed for input should evaluate to Literal
-            normalized = (Literal) normalizer.process(inputValue, null);
-        } catch (ClassCastException e) {
-            throw new ValidationException(
-                    reference.info().ident().columnIdent().name(),
-                    String.format("Invalid value of type '%s'", inputValue.symbolType().name()));
+        // guess type for dynamic column
+        if (reference instanceof DynamicReference) {
+            Object value;
+            if (parameterOrLiteral.symbolType() == SymbolType.PARAMETER) {
+                value = ((Parameter) parameterOrLiteral).value();
+            } else {
+                value = ((Literal)parameterOrLiteral).value();
+            }
+            DataType guessed = DataType.forValue(value, reference.info().objectType() == ReferenceInfo.ObjectType.IGNORED);
+            ((DynamicReference) reference).valueType(guessed);
         }
 
-        if (reference instanceof DynamicReference) {
-            // guess type for dynamic column
-            DataType type = DataType.forValue(normalized.value(),
-                    reference.info().objectType() == ReferenceInfo.ObjectType.IGNORED);
-            ((DynamicReference) reference).valueType(type);
+        // resolve parameter to literal
+        if (parameterOrLiteral.symbolType() == SymbolType.PARAMETER) {
+            normalized = ((Parameter)parameterOrLiteral).toLiteral(reference.info().type());
+
+        } else {
+            try {
+                normalized = (Literal)parameterOrLiteral;
+            } catch (ClassCastException e) {
+                throw new ValidationException(
+                        reference.info().ident().columnIdent().name(),
+                        String.format("Invalid value of type '%s'", inputValue.symbolType().name()));
+            }
         }
 
         // 2. convert if necessary (detect wrong types)
@@ -326,6 +337,39 @@ public abstract class AbstractDataAnalysis extends Analysis {
             normalized = new ObjectLiteral(normalizeObjectValue(value, reference.info()));
         }
 
+        return normalized;
+    }
+
+    /**
+     * normalize and validate the given value according to the given {@link io.crate.DataType}
+     *
+     * @param inputValue any {@link io.crate.planner.symbol.Symbol} that evaluates to a Literal or Parameter
+     * @param dataType the type to convert this input to
+     * @return a {@link io.crate.planner.symbol.Literal} of type <code>dataType</code>
+     */
+    public Literal normalizeInputForType(Symbol inputValue, DataType dataType) {
+        Literal normalized;
+        Symbol processed = normalizer.process(inputValue, null);
+        if (processed instanceof Parameter) {
+            normalized = ((Parameter) processed).toLiteral(dataType);
+        } else {
+            try {
+                normalized = (Literal)processed;
+            } catch (ClassCastException e) {
+                throw new IllegalArgumentException(String.format("Invalid value of type '%s'", inputValue.symbolType().name()));
+            }
+        }
+
+        try {
+            normalized = normalized.convertTo(dataType);
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {  // UnsupportedOperationException, NumberFormatException ...
+                throw new IllegalArgumentException(
+                        String.format("wrong type '%s'. expected: '%s'",
+                                normalized.valueType().getName(),
+                                dataType.getName()));
+        }
         return normalized;
     }
 

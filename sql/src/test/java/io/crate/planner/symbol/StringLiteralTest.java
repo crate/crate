@@ -67,7 +67,7 @@ public class StringLiteralTest {
         stringLiteral.convertTo(DataType.LONG).value();
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testConvertToUnsupportedBooleanConversion() {
         StringLiteral stringLiteral = new StringLiteral("hello");
         stringLiteral.convertTo(DataType.BOOLEAN).value();

@@ -38,37 +38,37 @@ public class BooleanLiteralTest {
         assertEquals(true, literal.convertTo(DataType.BOOLEAN).value());
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testConvertToLong() {
         Literal literal = new BooleanLiteral(true);
         literal.convertTo(DataType.LONG).value();
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testConvertToInteger() {
         Literal literal = new BooleanLiteral(true);
         literal.convertTo(DataType.INTEGER).value();
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testConvertToDouble() {
         Literal literal = new BooleanLiteral(true);
         literal.convertTo(DataType.DOUBLE).value();
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testConvertToFloat() {
         Literal literal = new BooleanLiteral(true);
         literal.convertTo(DataType.FLOAT).value();
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testConvertToShort() {
         Literal literal = new BooleanLiteral(true);
         literal.convertTo(DataType.SHORT).value();
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testConvertToByte() {
         Literal literal = new BooleanLiteral(true);
         literal.convertTo(DataType.BYTE).value();

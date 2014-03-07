@@ -212,7 +212,7 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     @Test
     public void testInvalidWhereInWhereClause() throws Exception {
         expectedException.expect(SQLParseException.class);
-        expectedException.expectMessage("invalid type in IN LIST 'string', expected 'byte'");
+        expectedException.expectMessage("invalid IN LIST value 'a'. expected type 'byte'");
 
         setUpSimple();
         execute("update t1 set byte_field=0 where byte_field in ('a')");

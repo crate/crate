@@ -22,13 +22,13 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
+import io.crate.DataType;
+import io.crate.exceptions.SQLParseException;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.planner.symbol.*;
-import io.crate.planner.symbol.LongLiteral;
+import io.crate.planner.symbol.Literal;
 import io.crate.sql.tree.*;
-import io.crate.DataType;
-import io.crate.exceptions.SQLParseException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,6 +52,10 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
     @Override
     protected Symbol visitSingleColumn(SingleColumn node, SelectAnalysis context) {
         Symbol symbol = process(node.getExpression(), context);
+        if (symbol.symbolType() == SymbolType.PARAMETER) {
+            //convert to Literal
+            symbol = ((Parameter)symbol).toLiteral();
+        }
         context.outputSymbols().add(symbol);
 
         if (node.getAlias().isPresent()) {
@@ -134,16 +138,15 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
     private Integer extractIntegerFromNode(Expression expression, String clauseName, SelectAnalysis context) {
         Symbol symbol = process(expression, context);
+        if (symbol.symbolType() == SymbolType.PARAMETER) {
+            symbol = ((Parameter)symbol).toLiteral(DataType.INTEGER);
+        }
         assert symbol.symbolType().isLiteral(); // due to parser this must be a parameterNode or integer
-        switch (symbol.symbolType()) {
-            case LONG_LITERAL:
-                return ((LongLiteral)symbol).value().intValue();
-            case INTEGER_LITERAL:
-                assert symbol instanceof IntegerLiteral;
-                return ((IntegerLiteral)symbol).value();
-            default:
-                throw new IllegalArgumentException(String.format(
-                        "The parameter %s that was passed to %s has an invalid type", SymbolFormatter.format(symbol), clauseName));
+        try {
+            return ((Number)((Literal)symbol).convertValueTo(DataType.INTEGER)).intValue();
+        } catch (Exception e) {
+            throw new IllegalArgumentException(String.format(
+                    "The parameter %s that was passed to %s has an invalid type", SymbolFormatter.format(symbol), clauseName), e);
         }
     }
 
@@ -153,6 +156,15 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         for (Expression expression : groupByExpressions) {
             Symbol s = process(expression, context);
             int idx;
+
+            // handle parameters
+            if (s.symbolType() == SymbolType.PARAMETER) {
+                try {
+                    s = ((Parameter)s).toLiteral(DataType.LONG);
+                } catch (Exception e) {
+                    throw new IllegalArgumentException(SymbolFormatter.format("invalid GROUP BY parameter '%s'", s));
+                }
+            }
             if (s.symbolType() == SymbolType.LONG_LITERAL) {
                 idx = ((io.crate.planner.symbol.LongLiteral) s).value().intValue() - 1;
                 if (idx < 1) {
@@ -201,7 +213,11 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
     @Override
     protected Symbol visitSortItem(SortItem node, SelectAnalysis context) {
-        return super.visitSortItem(node, context);
+        Symbol sortSymbol = super.visitSortItem(node, context);
+        if (sortSymbol.symbolType() == SymbolType.PARAMETER) {
+            sortSymbol = ((Parameter)sortSymbol).toLiteral();
+        }
+        return sortSymbol;
     }
 
     @Override

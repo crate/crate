@@ -22,14 +22,14 @@
 package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
+import io.crate.exceptions.CrateException;
+import io.crate.exceptions.ValidationException;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.ValueSymbol;
 import io.crate.sql.tree.*;
-import io.crate.exceptions.CrateException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -127,14 +127,13 @@ public class InsertStatementAnalyzer extends DataStatementAnalyzer<InsertAnalysi
             // TODO: instead of doing a type guessing and then a convertion this could
             // be improved by using the dataType from the column Reference as a hint
             Symbol valuesSymbol = process(value, context);
-            assert valuesSymbol instanceof ValueSymbol;
 
             // implicit type conversion
             Reference column = context.columns().get(i);
             try {
-                valuesSymbol = context.normalizeInputValue(valuesSymbol, column);
-            } catch (IllegalArgumentException e) {
-                throw new CrateException(e.getMessage(), e);
+                valuesSymbol = context.normalizeInputForReference(valuesSymbol, column);
+            } catch (IllegalArgumentException|UnsupportedOperationException e) {
+                throw new ValidationException(column.info().ident().columnIdent().fqn(), e);
             }
             symbols.add(valuesSymbol);
             i++;

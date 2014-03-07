@@ -70,6 +70,7 @@ public class BaseAnalyzerTest {
             .add("details", DataType.OBJECT, null)
             .add("awesome", DataType.BOOLEAN, null)
             .add("_version", DataType.INTEGER, null)
+            .add("friends", DataType.OBJECT_ARRAY, null, ReferenceInfo.ObjectType.DYNAMIC)
             .addPrimaryKey("id")
             .clusteredBy("id")
             .build();

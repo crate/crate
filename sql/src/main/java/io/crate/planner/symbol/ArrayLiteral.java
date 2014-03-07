@@ -89,24 +89,27 @@ public class ArrayLiteral extends Literal<Object[], ArrayLiteral> {
         } else if (type == DataType.NOT_SUPPORTED) {
             return Null.INSTANCE;
         }
+        try {
+            DataType targetItemType = DataType.REVERSE_ARRAY_TYPE_MAP.get(type);
+            if (values.length > 0) {
+                Object[] newValues = new Object[values.length];
+                Literal literal = Literal.forType(itemType(), values[0]);
 
-        DataType targetItemType = DataType.REVERSE_ARRAY_TYPE_MAP.get(type);
-        if (values.length > 0) {
-            Object[] newValues = new Object[values.length];
-            Literal literal = Literal.forType(itemType(), values[0]);
-
-            if (literal.valueType() == DataType.STRING) {
-                for (int i = 0; i < values.length; i++) {
-                    newValues[i] = ((StringLiteral)literal).convertValueTo(targetItemType, (String)values[i]);
+                if (literal.valueType() == DataType.STRING) {
+                    for (int i = 0; i < values.length; i++) {
+                        newValues[i] = ((StringLiteral)literal).convertValueTo(targetItemType, (String)values[i]);
+                    }
+                } else {
+                    for (int i = 0; i < values.length; i++) {
+                        newValues[i] = literal.convertValueTo(targetItemType, values[i]);
+                    }
                 }
+                return new ArrayLiteral(targetItemType, newValues);
             } else {
-                for (int i = 0; i < values.length; i++) {
-                    newValues[i] = literal.convertValueTo(targetItemType, values[i]);
-                }
+                return new ArrayLiteral(targetItemType, new Object[0]);
             }
-            return new ArrayLiteral(targetItemType, newValues);
-        } else {
-            return new ArrayLiteral(targetItemType, new Object[0]);
+        } catch (Exception e) {
+            throw new IllegalArgumentException(String.format("invalid conversion from %s to %s", valueType, type), e);
         }
     }
 

@@ -115,5 +115,9 @@ public class SymbolVisitor<C, R> {
     public R visitShortLiteral(ShortLiteral symbol, C context) {
         return visitLiteral(symbol, context);
     }
+
+    public R visitParameter(Parameter symbol, C context) {
+        return visitSymbol(symbol, context);
+    }
 }
 

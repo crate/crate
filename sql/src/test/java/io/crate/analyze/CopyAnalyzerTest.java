@@ -21,17 +21,18 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.SchemaUnknownException;
+import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
-import io.crate.exceptions.SchemaUnknownException;
-import io.crate.exceptions.TableUnknownException;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -96,5 +97,10 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     @Test( expected = IllegalArgumentException.class )
     public void testCopyFromInvalidPath() throws Exception {
         analyze("copy users from 1.2");
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void testCopyFromInvalidParameter() throws Exception {
+        analyze("copy users from ?", new Object[]{new HashMap<String, Object>()});
     }
 }

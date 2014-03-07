@@ -894,6 +894,22 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testInsertEmptyObjectArray() throws Exception {
+        execute("create table test (" +
+                "  id integer primary key," +
+                "  details array(object)" +
+                ")");
+        ensureGreen();
+        execute("insert into test (id, details) values (?, ?)", new Object[]{1, new Map[0]});
+        refresh();
+        execute("select id, details from test");
+        assertEquals(1, response.rowCount());
+        assertEquals(1, response.rows()[0][0]);
+        assertThat(response.rows()[0][1], instanceOf(List.class));
+        assertThat(((List)response.rows()[0][1]).size(), is(0));
+    }
+
+    @Test
     public void testUpdate() throws Exception {
         prepareCreate("test")
                 .addMapping("default",
@@ -964,16 +980,21 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUpdateWithArgs() throws Exception {
-        prepareCreate("test")
-                .addMapping("default",
-                        "coolness", "type=float,index=not_analyzed")
-                .execute().actionGet();
-
-        execute("insert into test values(1.1),(2.2)");
+        execute("create table test (" +
+                "  coolness float, " +
+                "  details array(object)" +
+                ")");
+        ensureGreen();
+        execute("insert into test values(1.1, ?),(2.2, ?)", new Object[]{ new Object[0],
+                new Object[]{
+                        new HashMap<String, Object>(),
+                        new HashMap<String, Object>() {{ put("hello", "world"); }}
+                }
+        });
         assertEquals(2, response.rowCount());
         refresh();
 
-        execute("update test set coolness=3.3 where coolness = ?", new Object[]{2.2});
+        execute("update test set coolness=3.3, details=? where coolness = ?", new Object[]{new Object[0], 2.2});
 
         assertEquals(1, response.rowCount());
         refresh();
