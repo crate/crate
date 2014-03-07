@@ -36,6 +36,10 @@ def bash_transform(s):
 
 
 def crash_transform(s):
+    # The examples in the docs show the real port '4200' to a reader.
+    # Our test suite requires the port to be '44200' to avoid conflicts.
+    # Therefore, we need to replace the ports before a test is being run.
+    s = s.replace(':4200', ':44200')
     return ('cmd.onecmd("""{0}""");'.format(s.strip()))
 
 
@@ -109,14 +113,13 @@ def tearDownDropQuotes(test):
 
 def test_suite():
     suite = unittest.TestSuite()
-    for fn in ('hello.txt', 'blob.txt'):
-        s = doctest.DocFileSuite('../../' + fn,
-                                 parser=bash_parser,
-                                 tearDown=tearDownDropQuotes,
-                                 optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS)
-        s.layer = empty_layer
-        suite.addTest(s)
+    s = doctest.DocFileSuite('../../blob.txt',
+                             parser=bash_parser,
+                             tearDown=tearDownDropQuotes,
+                             optionflags=doctest.NORMALIZE_WHITESPACE |
+                             doctest.ELLIPSIS)
+    s.layer = empty_layer
+    suite.addTest(s)
     for fn in ('sql/rest.txt',):
         s = doctest.DocFileSuite('../../' + fn,
                                  parser=bash_parser,
@@ -127,7 +130,8 @@ def test_suite():
         suite.addTest(s)
     for fn in ('sql/dml.txt', 'sql/occ.txt', 'sql/ddl.txt',
                'sql/information_schema.txt', 'sql/aggregation.txt',
-               'sql/scalar.txt', 'sql/stats.txt'):
+               'sql/scalar.txt', 'sql/stats.txt',
+               'hello.txt'):
         s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
                                  setUp=setUpLocationsAndQuotes,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
