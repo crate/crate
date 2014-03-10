@@ -2763,6 +2763,54 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testSelectOrderByNullSortingASC() throws Exception {
+        this.setup.groupBySetup();
+        execute("select age from characters order by age");
+        assertEquals(32, response.rows()[0][0]);
+        assertEquals(34, response.rows()[1][0]);
+        assertEquals(43, response.rows()[2][0]);
+        assertEquals(112, response.rows()[3][0]);
+        assertEquals(null, response.rows()[4][0]);
+        assertEquals(null, response.rows()[5][0]);
+        assertEquals(null, response.rows()[6][0]);
+    }
+
+    @Test
+    public void testSelectOrderByNullSortingDESC() throws Exception {
+        this.setup.groupBySetup();
+        execute("select age from characters order by age desc");
+        assertEquals(null, response.rows()[0][0]);
+        assertEquals(null, response.rows()[1][0]);
+        assertEquals(null, response.rows()[2][0]);
+        assertEquals(112, response.rows()[3][0]);
+        assertEquals(43, response.rows()[4][0]);
+        assertEquals(34, response.rows()[5][0]);
+        assertEquals(32, response.rows()[6][0]);
+    }
+
+    @Test
+    public void testSelectGroupByOrderByNullSortingASC() throws Exception {
+        this.setup.groupBySetup();
+        execute("select age from characters group by age order by age");
+        assertEquals(32, response.rows()[0][0]);
+        assertEquals(34, response.rows()[1][0]);
+        assertEquals(43, response.rows()[2][0]);
+        assertEquals(112, response.rows()[3][0]);
+        assertEquals(null, response.rows()[4][0]);
+    }
+
+    @Test
+    public void testSelectGroupByOrderByNullSortingDESC() throws Exception {
+        this.setup.groupBySetup();
+        execute("select age from characters group by age order by age desc");
+        assertEquals(null, response.rows()[0][0]);
+        assertEquals(112, response.rows()[1][0]);
+        assertEquals(43, response.rows()[2][0]);
+        assertEquals(34, response.rows()[3][0]);
+        assertEquals(32, response.rows()[4][0]);
+    }
+
+    @Test
     public void testSelectAggregateOnGlobalExpression() throws Exception {
         this.setup.groupBySetup();
         execute("select count(sys.cluster.name) from characters");

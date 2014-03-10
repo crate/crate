@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - fix null ordering in non 'group by' queries.
+
  - updated crate-admin to 0.2.4
 
  - fix bug with empty lists or lists only containing ``null`` as parameter

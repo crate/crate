@@ -267,14 +267,14 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("select title, author['dead'] from ot order by author['dead'] desc");
         assertEquals(3, response.rowCount());
-        assertEquals("Life, the Universe and Everything", response.rows()[0][0]);
-        assertEquals(true, response.rows()[0][1]);
+        assertEquals("The Hitchhiker's Guide to the Galaxy", response.rows()[0][0]);
+        assertNull(response.rows()[0][1]);
 
-        assertEquals("Don't Panic: Douglas Adams and the \"Hitchhiker's Guide to the Galaxy\"", response.rows()[1][0]);
-        assertEquals(false, response.rows()[1][1]);
+        assertEquals("Life, the Universe and Everything", response.rows()[1][0]);
+        assertEquals(true, response.rows()[1][1]);
 
-        assertEquals("The Hitchhiker's Guide to the Galaxy", response.rows()[2][0]);
-        assertNull(response.rows()[2][1]);
+        assertEquals("Don't Panic: Douglas Adams and the \"Hitchhiker's Guide to the Galaxy\"", response.rows()[2][0]);
+        assertEquals(false, response.rows()[2][1]);
     }
 
     @Test

@@ -201,9 +201,16 @@ public class ESQueryBuilder {
         builder.startArray("sort");
         int i = 0;
         for (Reference reference : orderBy) {
+            String order = "asc";
+            String missing = "_last";   // null > 'anyValue'; null values at the end.
+            if (reverseFlags[i]) {
+                order = "desc";
+                missing = "_first";     // null > 'anyValue'; null values at the beginning.
+            }
             builder.startObject()
                     .startObject(reference.info().ident().columnIdent().fqn())
-                    .field("order", reverseFlags[i] ? "desc" : "asc")
+                    .field("order", order)
+                    .field("missing", missing)
                     .field("ignore_unmapped", true)
                     .endObject()
                     .endObject();
