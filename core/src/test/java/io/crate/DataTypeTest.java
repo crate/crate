@@ -126,9 +126,10 @@ public class DataTypeTest {
         DataType.forValue(objects);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testForValueWithEmptyList() {
         List<Object> objects = Arrays.<Object>asList();
-        DataType.forValue(objects);
+        DataType type = DataType.forValue(objects);
+        assertThat(type, is(DataType.NULL_ARRAY));
     }
 }
