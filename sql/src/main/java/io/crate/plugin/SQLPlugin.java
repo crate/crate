@@ -21,9 +21,11 @@
 
 package io.crate.plugin;
 
+import io.crate.Constants;
 import io.crate.executor.transport.TransportExecutorModule;
 import io.crate.executor.transport.task.elasticsearch.facet.UpdateFacetParser;
 import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.blob.MetaDataBlobModule;
 import io.crate.metadata.doc.MetaDataDocModule;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.shard.MetaDataShardModule;
@@ -38,7 +40,6 @@ import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
 import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.PlanModule;
-import io.crate.Constants;
 import io.crate.rest.action.RestSQLAction;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettingsModule;
 import org.elasticsearch.common.component.LifecycleComponent;
@@ -95,6 +96,7 @@ public class SQLPlugin extends AbstractPlugin {
             modules.add(MetaDataModule.class);
             modules.add(MetaDataSysModule.class);
             modules.add(MetaDataDocModule.class);
+            modules.add(MetaDataBlobModule.class);
             modules.add(MetaDataInformationModule.class);
             modules.add(OperatorModule.class);
             modules.add(PredicateModule.class);

@@ -21,6 +21,9 @@
 
 package io.crate.blob.v2;
 
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 import io.crate.blob.BlobShardFuture;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -31,12 +34,29 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
 
+import java.util.List;
+
 public class BlobIndices extends AbstractComponent {
 
     public static final String SETTING_BLOBS_ENABLED = "index.blobs.enabled";
+    public static final String INDEX_PREFIX = ".blob_";
 
     private final IndicesService indicesService;
     private final IndicesLifecycle indicesLifecycle;
+
+    public static final Predicate<String> indicesFilter = new Predicate<String>() {
+        @Override
+        public boolean apply(String indexName) {
+            return indexName.startsWith(INDEX_PREFIX);
+        }
+    };
+
+    public static final Function<String, String> stripPrefix = new Function<String, String>() {
+        @Override
+        public String apply(String indexName) {
+            return indexName.substring(BlobIndices.INDEX_PREFIX.length());
+        }
+    };
 
     @Inject
     public BlobIndices(Settings settings, IndicesService indicesService,
@@ -44,6 +64,7 @@ public class BlobIndices extends AbstractComponent {
         super(settings);
         this.indicesService = indicesService;
         this.indicesLifecycle = indicesLifecycle;
+
     }
 
     public boolean blobsEnabled(String index) {
@@ -95,4 +116,11 @@ public class BlobIndices extends AbstractComponent {
         return new BlobShardFuture(this, indicesLifecycle, index, shardId);
 
     }
+
+    public List<String> indices() {
+        return FluentIterable.from(indicesService.indices())
+                .filter(indicesFilter).toList();
+    }
+
+
 }
