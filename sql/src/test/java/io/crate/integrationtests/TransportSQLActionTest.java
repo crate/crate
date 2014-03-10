@@ -118,7 +118,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rows()[0][0]);
     }
 
-    /*
     @Test
     public void testGroupByOnSysNodes() throws Exception {
         execute("select count(*), name from sys.nodes group by name");
@@ -127,7 +126,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select count(*), hostname from sys.nodes group by hostname");
         assertThat(response.rowCount(), is(1L));
     }
-    */
 
     @Test
     public void testSysCluster() throws Exception {
