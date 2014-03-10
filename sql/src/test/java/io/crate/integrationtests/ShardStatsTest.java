@@ -24,10 +24,14 @@ package io.crate.integrationtests;
 import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLResponse;
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import io.crate.blob.v2.BlobIndices;
 import io.crate.core.NumberOfReplicas;
 >>>>>>> 8554e10... fixup! fixup! fixup! implemented blob shards on sys.shards
+=======
+import io.crate.blob.v2.BlobIndices;
+>>>>>>> 73c7408... adapt SysShardExpressions for BlobShards to new BlobSchemaInfo
 import io.crate.exceptions.CrateException;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -72,7 +76,11 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
         setup.groupBySetup();
         execute("create table quotes (id integer primary key, quote string) with(number_of_replicas=1)");
 <<<<<<< HEAD
+<<<<<<< HEAD
         client().admin().indices().prepareCreate(".blob_blobs")
+=======
+        client().admin().indices().prepareCreate(BlobIndices.INDEX_PREFIX + "blobs")
+>>>>>>> 73c7408... adapt SysShardExpressions for BlobShards to new BlobSchemaInfo
                 .setSettings(
                         ImmutableSettings.builder()
                                 .put("blobs.enabled", true).build()).execute().actionGet();

@@ -40,9 +40,7 @@ import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.service.IndexService;
-import org.elasticsearch.index.settings.IndexSettings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.script.ScriptService;
 
@@ -63,7 +61,6 @@ public class ShardCollectService {
     @Inject
     public ShardCollectService(ClusterService clusterService,
                                ShardId shardId,
-                               @IndexSettings Settings indexSettings,
                                IndexService indexService,
                                ScriptService scriptService,
                                CacheRecycler cacheRecycler,

@@ -21,6 +21,7 @@
 
 package io.crate.operation.reference.sys.shard.blob;
 
+import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import io.crate.operation.reference.sys.shard.SysShardExpression;
 import org.apache.lucene.util.BytesRef;
@@ -28,7 +29,7 @@ import org.apache.lucene.util.BytesRef;
 public class BlobShardSchemaNameExpression extends SysShardExpression<BytesRef> implements BlobShardReferenceImplementation {
 
     public static final String NAME = "schema_name";
-    public static final BytesRef BLOB_SCHEMA_NAME = new BytesRef("blob"); // TODO: use constant from BlobSchemaInfo
+    public static final BytesRef BLOB_SCHEMA_NAME = new BytesRef(BlobSchemaInfo.NAME);
 
     protected BlobShardSchemaNameExpression() {
         super(NAME);
