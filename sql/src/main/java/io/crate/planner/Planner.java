@@ -23,6 +23,7 @@ package io.crate.planner;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -30,6 +31,7 @@ import io.crate.Constants;
 import io.crate.DataType;
 import io.crate.analyze.*;
 import io.crate.exceptions.CrateException;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.ddl.ESCreateIndexNode;
 import io.crate.planner.node.ddl.ESDeleteIndexNode;
@@ -161,12 +163,15 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     @Override
     protected Plan visitCreateTableAnalysis(CreateTableAnalysis analysis, Void context) {
         Plan plan = new Plan();
+        TableIdent tableIdent = analysis.tableIdent();
+        Preconditions.checkArgument(Strings.isNullOrEmpty(tableIdent.schema()),
+                "a SCHEMA name other than null isn't allowed.");
+
         ESCreateIndexNode node = new ESCreateIndexNode(
-                analysis.tableName(),
+                tableIdent.name(),
                 analysis.indexSettings(),
                 analysis.mapping()
         );
-
         plan.add(node);
         plan.expectsAffectedRows(true);
         return plan;

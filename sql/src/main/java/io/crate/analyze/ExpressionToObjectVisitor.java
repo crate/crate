@@ -21,33 +21,37 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.TableIdent;
+import io.crate.sql.tree.*;
 
-public abstract class AbstractDDLAnalysis extends Analysis {
+class ExpressionToObjectVisitor extends AstVisitor<Object, Object[]> {
 
-    protected TableIdent tableIdent;
-
-    protected AbstractDDLAnalysis(Object[] parameters) {
-        super(parameters);
+    @Override
+    protected String visitQualifiedNameReference(QualifiedNameReference node, Object[] parameters) {
+        return node.getName().getSuffix();
     }
 
     @Override
-    public void table(TableIdent tableIdent) {
-        this.tableIdent = tableIdent;
+    protected String visitStringLiteral(StringLiteral node, Object[] parameters) {
+        return node.getValue();
     }
 
     @Override
-    public boolean hasNoResult() {
-        return false;
+    public Object visitParameterExpression(ParameterExpression node, Object[] parameters) {
+        return parameters[node.index()];
     }
 
     @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitDDLAnalysis(this, context);
+    protected Object visitLongLiteral(LongLiteral node, Object[] context) {
+        return node.getValue();
     }
 
     @Override
-    public boolean isData() {
-        return false;
+    protected String visitSubscriptExpression(SubscriptExpression node, Object[] context) {
+        return String.format("%s.%s", process(node.name(), null), process(node.index(), null));
+    }
+
+    @Override
+    protected Object visitNode(Node node, Object[] context) {
+        throw new UnsupportedOperationException(String.format("Can't handle %s.", node));
     }
 }

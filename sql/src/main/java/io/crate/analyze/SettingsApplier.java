@@ -21,33 +21,11 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.TableIdent;
+import io.crate.sql.tree.Expression;
+import org.elasticsearch.common.settings.ImmutableSettings;
 
-public abstract class AbstractDDLAnalysis extends Analysis {
+import java.util.List;
 
-    protected TableIdent tableIdent;
-
-    protected AbstractDDLAnalysis(Object[] parameters) {
-        super(parameters);
-    }
-
-    @Override
-    public void table(TableIdent tableIdent) {
-        this.tableIdent = tableIdent;
-    }
-
-    @Override
-    public boolean hasNoResult() {
-        return false;
-    }
-
-    @Override
-    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitDDLAnalysis(this, context);
-    }
-
-    @Override
-    public boolean isData() {
-        return false;
-    }
+public interface SettingsApplier {
+    void apply(ImmutableSettings.Builder settingsBuilder, Object[] parameters, List<Expression> expressions);
 }

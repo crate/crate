@@ -467,4 +467,9 @@ public abstract class AbstractDataAnalysis extends Analysis {
         }
         return ident;
     }
+
+    @Override
+    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
+        return analysisVisitor.visitDataAnalysis(this, context);
+    }
 }

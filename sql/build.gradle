@@ -15,6 +15,7 @@ dependencies {
     compile project(':es')
     compile project(':core')
     compile project(':inout')
+    compile project(':blob')
     compile project(':sql-parser')
     compile project(':blob')
     testCompile 'org.skyscreamer:jsonassert:1.2.0'

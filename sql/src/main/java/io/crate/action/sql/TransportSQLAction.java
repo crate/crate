@@ -24,8 +24,11 @@ package io.crate.action.sql;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.Constants;
+import io.crate.DataType;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
+import io.crate.exceptions.ExceptionHelper;
 import io.crate.executor.AffectedRowsResponseBuilder;
 import io.crate.executor.Job;
 import io.crate.executor.ResponseBuilder;
@@ -36,9 +39,6 @@ import io.crate.planner.PlanPrinter;
 import io.crate.planner.Planner;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
-import io.crate.Constants;
-import io.crate.DataType;
-import io.crate.exceptions.ExceptionHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.inject.Inject;
@@ -55,18 +55,22 @@ import java.util.List;
 public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse> {
 
     private final Analyzer analyzer;
+    private final Planner planner;
     private final TransportExecutor transportExecutor;
-    private final static Planner planner = new Planner();
-
+    private final DDLAnalysisDispatcher dispatcher;
 
     @Inject
     protected TransportSQLAction(Settings settings, ThreadPool threadPool,
             Analyzer analyzer,
+            Planner planner,
             TransportExecutor transportExecutor,
+            DDLAnalysisDispatcher dispatcher,
             TransportService transportService) {
         super(settings, threadPool);
         this.analyzer = analyzer;
+        this.planner = planner;
         this.transportExecutor = transportExecutor;
+        this.dispatcher = dispatcher;
         transportService.registerHandler(SQLAction.NAME, new TransportHandler());
     }
 
@@ -76,35 +80,84 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         try {
             Statement statement = SqlParser.createStatement(request.stmt());
-
             Analysis analysis = analyzer.analyze(statement, request.args());
-            final String[] outputNames = analysis.outputNames().toArray(new String[analysis.outputNames().size()]);
 
-            if (analysis.hasNoResult()) {
-                emptyResponse(request, analysis, listener);
-                return;
+            if (analysis.isData()) {
+                processWithPlanner(analysis, request, listener);
+            } else {
+                processNonData(analysis, request, listener);
             }
-            final Plan plan = planner.plan(analysis);
-            if (logger.isTraceEnabled()) {
-                PlanPrinter printer = new PlanPrinter();
-                logger.trace(printer.print(plan));
-            }
-            final ResponseBuilder responseBuilder = getResponseBuilder(plan);
-            final Job job = transportExecutor.newJob(plan);
-            final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(transportExecutor.execute(job));
-
-            addResultCallback(request, listener, outputNames, plan, responseBuilder, resultFuture);
         } catch (Exception e) {
             listener.onFailure(ExceptionHelper.transformToCrateException(e));
         }
     }
 
-    private void addResultCallback(final SQLRequest request,
-                                   final ActionListener<SQLResponse> listener,
-                                   final String[] outputNames,
-                                   final Plan plan,
-                                   final ResponseBuilder responseBuilder,
-                                   ListenableFuture<List<Object[][]>> resultFuture) {
+    private void processNonData(final Analysis analysis,
+                                final SQLRequest request,
+                                final ActionListener<SQLResponse> listener) {
+        ListenableFuture<Void> future = dispatcher.process(analysis, null);
+        Futures.addCallback(future, new FutureCallback<Void>() {
+            @Override
+            public void onSuccess(@Nullable Void result) {
+                listener.onResponse(
+                        new SQLResponse(
+                                analysis.outputNames().toArray(new String[analysis.outputNames().size()]),
+                                Constants.EMPTY_RESULT,
+                                1,
+                                request.creationTime()));
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                listener.onFailure(t);
+            }
+        });
+    }
+
+    private void processWithPlanner(Analysis analysis, SQLRequest request, ActionListener<SQLResponse> listener) {
+        final String[] outputNames = analysis.outputNames().toArray(new String[analysis.outputNames().size()]);
+
+        if (analysis.hasNoResult()) {
+            emptyResponse(request, analysis, listener);
+            return;
+        }
+        final Plan plan = planner.plan(analysis);
+        if (logger.isTraceEnabled()) {
+            PlanPrinter printer = new PlanPrinter();
+            logger.trace(printer.print(plan));
+        }
+        final ResponseBuilder responseBuilder = getResponseBuilder(plan);
+        final Job job = transportExecutor.newJob(plan);
+        final ListenableFuture<List<Object[][]>> resultFuture = Futures.allAsList(transportExecutor.execute(job));
+
+        addResultCallback(request, listener, outputNames, plan, responseBuilder, resultFuture);
+    }
+
+    private static void emptyResponse(SQLRequest request,
+                                      Analysis analysis,
+                                      final ActionListener<SQLResponse> listener) {
+        SQLResponse response = new SQLResponse(
+                analysis.outputNames().toArray(new String[analysis.outputNames().size()]),
+                Constants.EMPTY_RESULT,
+                0,
+                request.creationTime());
+        listener.onResponse(response);
+    }
+
+    private static ResponseBuilder getResponseBuilder(Plan plan) {
+        if (plan.expectsAffectedRows()) {
+            return new AffectedRowsResponseBuilder();
+        } else {
+            return new RowsResponseBuilder(true);
+        }
+    }
+
+    private static void addResultCallback(final SQLRequest request,
+                                          final ActionListener<SQLResponse> listener,
+                                          final String[] outputNames,
+                                          final Plan plan,
+                                          final ResponseBuilder responseBuilder,
+                                          ListenableFuture<List<Object[][]>> resultFuture) {
         Futures.addCallback(resultFuture, new FutureCallback<List<Object[][]>>() {
             @Override
             public void onSuccess(@Nullable List<Object[][]> result) {
@@ -117,10 +170,10 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                 }
 
                 SQLResponse response = responseBuilder.buildResponse(
-                    plan.outputTypes().toArray(new DataType[plan.outputTypes().size()]),
-                    outputNames,
-                    rows,
-                    request.creationTime());
+                        plan.outputTypes().toArray(new DataType[plan.outputTypes().size()]),
+                        outputNames,
+                        rows,
+                        request.creationTime());
                 listener.onResponse(response);
             }
 
@@ -129,23 +182,6 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                 listener.onFailure(ExceptionHelper.transformToCrateException(t));
             }
         });
-    }
-
-    private void emptyResponse(SQLRequest request, Analysis analysis, final ActionListener<SQLResponse> listener) {
-        SQLResponse response = new SQLResponse(
-                analysis.outputNames().toArray(new String[analysis.outputNames().size()]),
-                Constants.EMPTY_RESULT,
-                0,
-                request.creationTime());
-        listener.onResponse(response);
-    }
-
-    private ResponseBuilder getResponseBuilder(Plan plan) {
-        if (plan.expectsAffectedRows()) {
-            return new AffectedRowsResponseBuilder();
-        } else {
-            return new RowsResponseBuilder(true);
-        }
     }
 
     private class TransportHandler extends BaseTransportRequestHandler<SQLRequest> {
@@ -174,7 +210,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                     try {
                         channel.sendResponse(e);
                     } catch (Exception e1) {
-                        logger.warn("Failed to send response for sql query", e1);
+                        logger.error("Failed to send response for sql query", e1);
                     }
                 }
             });
@@ -185,5 +221,4 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
             return ThreadPool.Names.SAME;
         }
     }
-
 }
