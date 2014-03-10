@@ -52,8 +52,8 @@ the master branch please don't merge them but use rebase::
     git rebase origin/master
 
 This will apply all commits on your feature branch on top of the master branch.
-Any conflicts can be resolved just the same as if `git merge` was used. After
-the conflict has been resolved use `git rebase --continue` to continue the
+Any conflicts can be resolved just the same as if ``git merge`` was used. After
+the conflict has been resolved use ``git rebase --continue`` to continue the
 rebase process.
 
 
@@ -63,7 +63,7 @@ Squash
 Minor commits that only fix typos or rename variables that are related to a
 bigger change should be squashed into that commit.
 
-This can be done using `git rebase -i ( <hash> | <branch> )`
+This can be done using ``git rebase -i ( <hash> | <branch> )``
 
 For example while working on a feature branch you'd use::
 
@@ -82,11 +82,11 @@ For example while working on a feature branch you'd use::
 
     git rebase -i origin/master
 
-`git commit --fixup` will mark the commit as a fixup relating to the commit
+``git commit --fixup`` will mark the commit as a fixup relating to the commit
 HEAD currently points to.
 
-This is useful because `git rebase -i` will then automatically recognize the
+This is useful because ``git rebase -i`` will then automatically recognize the
 fixup commits and mark them to squash. But in order for that to work the
-`autosquash` setting has to be enabled in the `.gitconfig`::
+``autosquash`` setting has to be enabled in the ``.gitconfig``::
 
     git config --global rebase.autosquash true
