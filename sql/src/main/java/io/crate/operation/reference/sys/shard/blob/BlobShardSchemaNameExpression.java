@@ -19,26 +19,23 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.blob.v2;
+package io.crate.operation.reference.sys.shard.blob;
 
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.settings.IndexSettings;
+import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
+import io.crate.operation.reference.sys.shard.SysShardExpression;
+import org.apache.lucene.util.BytesRef;
 
-public class BlobShardModule extends AbstractModule {
+public class BlobShardSchemaNameExpression extends SysShardExpression<BytesRef> implements BlobShardReferenceImplementation {
 
-    private final Settings settings;
+    public static final String NAME = "schema_name";
+    public static final BytesRef BLOB_SCHEMA_NAME = new BytesRef("blob"); // TODO: use constant from BlobSchemaInfo
 
-    @Inject
-    public BlobShardModule(@IndexSettings Settings settings) {
-        this.settings = settings;
+    protected BlobShardSchemaNameExpression() {
+        super(NAME);
     }
 
     @Override
-    protected void configure() {
-        if (settings. getAsBoolean(BlobIndices.SETTING_BLOBS_ENABLED, false)){
-            bind(BlobShard.class).asEagerSingleton();
-        }
+    public BytesRef value() {
+        return BLOB_SCHEMA_NAME;
     }
 }

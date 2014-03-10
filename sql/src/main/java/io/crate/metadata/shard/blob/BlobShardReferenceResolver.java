@@ -19,26 +19,31 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.blob.v2;
+package io.crate.metadata.shard.blob;
 
-import org.elasticsearch.common.inject.AbstractModule;
+import io.crate.metadata.AbstractReferenceResolver;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceImplementation;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.settings.IndexSettings;
 
-public class BlobShardModule extends AbstractModule {
+import java.util.HashMap;
+import java.util.Map;
 
-    private final Settings settings;
+public class BlobShardReferenceResolver extends AbstractReferenceResolver {
+
+    private final Map<ReferenceIdent, ReferenceImplementation> implementations;
 
     @Inject
-    public BlobShardModule(@IndexSettings Settings settings) {
-        this.settings = settings;
+    public BlobShardReferenceResolver(final Map<ReferenceIdent, ReferenceImplementation> globalImplementations,
+                                      final Map<ReferenceIdent, BlobShardReferenceImplementation> blobShardImplementations) {
+        Map<ReferenceIdent, ReferenceImplementation> implementations = new HashMap<>();
+        implementations.putAll(globalImplementations);
+        implementations.putAll(blobShardImplementations);
+        this.implementations = implementations;
     }
 
     @Override
-    protected void configure() {
-        if (settings. getAsBoolean(BlobIndices.SETTING_BLOBS_ENABLED, false)){
-            bind(BlobShard.class).asEagerSingleton();
-        }
+    protected Map<ReferenceIdent, ReferenceImplementation> implementations() {
+        return implementations;
     }
 }

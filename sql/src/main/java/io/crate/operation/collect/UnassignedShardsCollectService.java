@@ -24,7 +24,10 @@ package io.crate.operation.collect;
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
+import io.crate.blob.v2.BlobIndices;
 import io.crate.metadata.Functions;
+import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.shard.unassigned.UnassignedShardCollectorExpression;
 import io.crate.operation.Input;
@@ -66,15 +69,16 @@ public class UnassignedShardsCollectService implements CollectService {
                 public Iterable<UnassignedShard> apply(@Nullable Map.Entry<String, Set<Integer>> input) {
                     assert input != null;
                     final String tableName = input.getKey();
+                    final String schemaName = BlobIndices.isBlobShard(input.getKey()) ? BlobSchemaInfo.NAME : DocSchemaInfo.NAME;
                     return FluentIterable.from(input.getValue())
-                        .transform(new Function<Integer, UnassignedShard>() {
-                            @Nullable
-                            @Override
-                            public UnassignedShard apply(@Nullable Integer input) {
-                                assert input != null;
-                                return new UnassignedShard(tableName, input);
-                            }
-                        });
+                            .transform(new Function<Integer, UnassignedShard>() {
+                                @Nullable
+                                @Override
+                                public UnassignedShard apply(@Nullable Integer input) {
+                                    assert input != null;
+                                    return new UnassignedShard(schemaName, tableName, input);
+                                }
+                            });
                 }
             });
     }
@@ -87,7 +91,7 @@ public class UnassignedShardsCollectService implements CollectService {
         }
         CollectInputSymbolVisitor.Context context = inputSymbolVisitor.process(node);
 
-        Map<String,Set<Integer>> tablesAndShards = node.routing().locations().get(null);
+        Map<String, Set<Integer>> tablesAndShards = node.routing().locations().get(null);
         Iterable<UnassignedShard> iterable = createIterator(tablesAndShards);
 
         Input<Boolean> condition;

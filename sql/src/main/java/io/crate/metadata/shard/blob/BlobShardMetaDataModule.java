@@ -19,26 +19,23 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.blob.v2;
+package io.crate.metadata.shard.blob;
 
+import io.crate.metadata.ReferenceIdent;
 import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.settings.IndexSettings;
+import org.elasticsearch.common.inject.multibindings.MapBinder;
 
-public class BlobShardModule extends AbstractModule {
+public class BlobShardMetaDataModule extends AbstractModule {
 
-    private final Settings settings;
-
-    @Inject
-    public BlobShardModule(@IndexSettings Settings settings) {
-        this.settings = settings;
-    }
+    protected MapBinder<ReferenceIdent, BlobShardReferenceImplementation> referenceBinder;
 
     @Override
     protected void configure() {
-        if (settings. getAsBoolean(BlobIndices.SETTING_BLOBS_ENABLED, false)){
-            bind(BlobShard.class).asEagerSingleton();
-        }
+        bindShardReferences();
+    }
+
+    protected void bindShardReferences() {
+        referenceBinder = MapBinder.newMapBinder(binder(), ReferenceIdent.class, BlobShardReferenceImplementation.class);
+        bind(BlobShardReferenceResolver.class).asEagerSingleton();
     }
 }

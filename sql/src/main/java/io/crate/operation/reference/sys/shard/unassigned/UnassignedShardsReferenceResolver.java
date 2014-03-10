@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.shard.unassigned.UnassignedShardCollectorExpression;
 import io.crate.operation.reference.DocLevelReferenceResolver;
+import io.crate.operation.reference.sys.shard.*;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
@@ -14,43 +15,49 @@ public class UnassignedShardsReferenceResolver implements DocLevelReferenceResol
 
     private static final ImmutableList<UnassignedShardCollectorExpression<?>> IMPLEMENTATIONS =
         ImmutableList.<UnassignedShardCollectorExpression<?>>builder()
-        .add(new UnassignedShardCollectorExpression<BytesRef>("table_name") {
-           @Override
-           public BytesRef value() {
-               return new BytesRef(this.row.tableName());
-           }
+        .add(new UnassignedShardCollectorExpression<BytesRef>(ShardSchemaNameExpression.NAME) {
+            @Override
+            public BytesRef value() {
+                return new BytesRef(this.row.schemaName());
+            }
         })
-        .add(new UnassignedShardCollectorExpression<Integer>("id") {
+        .add(new UnassignedShardCollectorExpression<BytesRef>(ShardTableNameExpression.NAME) {
+            @Override
+            public BytesRef value() {
+                return new BytesRef(this.row.tableName());
+            }
+        })
+        .add(new UnassignedShardCollectorExpression<Integer>(ShardIdExpression.NAME) {
             @Override
             public Integer value() {
                 return this.row.id();
             }
         })
-        .add(new UnassignedShardCollectorExpression<Long>("num_docs") {
+        .add(new UnassignedShardCollectorExpression<Long>(ShardNumDocsExpression.NAME) {
             @Override
             public Long value() {
                 return 0L;
             }
         })
-        .add(new UnassignedShardCollectorExpression<Boolean>("primary") {
+        .add(new UnassignedShardCollectorExpression<Boolean>(ShardPrimaryExpression.NAME) {
             @Override
             public Boolean value() {
                 return false;
             }
         })
-        .add(new UnassignedShardCollectorExpression<BytesRef>("relocating_node") {
+        .add(new UnassignedShardCollectorExpression<BytesRef>(ShardRelocatingNodeExpression.NAME) {
             @Override
             public BytesRef value() {
                 return null;
             }
         })
-        .add(new UnassignedShardCollectorExpression<Long>("size") {
+        .add(new UnassignedShardCollectorExpression<Long>(ShardSizeExpression.NAME) {
             @Override
             public Long value() {
                 return 0L;
             }
         })
-        .add(new UnassignedShardCollectorExpression<BytesRef>("state") {
+        .add(new UnassignedShardCollectorExpression<BytesRef>(ShardStateExpression.NAME) {
             @Override
             public BytesRef value() {
                 return new BytesRef("UNASSIGNED");

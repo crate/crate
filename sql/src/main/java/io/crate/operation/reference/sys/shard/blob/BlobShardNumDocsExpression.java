@@ -19,26 +19,27 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.blob.v2;
+package io.crate.operation.reference.sys.shard.blob;
 
-import org.elasticsearch.common.inject.AbstractModule;
+import io.crate.blob.v2.BlobShard;
+import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
+import io.crate.operation.reference.sys.shard.SysShardExpression;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.settings.IndexSettings;
 
-public class BlobShardModule extends AbstractModule {
+public class BlobShardNumDocsExpression extends SysShardExpression<Long> implements BlobShardReferenceImplementation {
+    public static final String NAME = "num_docs";
 
-    private final Settings settings;
+    private final BlobShard blobShard;
 
     @Inject
-    public BlobShardModule(@IndexSettings Settings settings) {
-        this.settings = settings;
+    protected BlobShardNumDocsExpression(BlobShard blobShard) {
+        super(NAME);
+        this.blobShard = blobShard;
     }
 
     @Override
-    protected void configure() {
-        if (settings. getAsBoolean(BlobIndices.SETTING_BLOBS_ENABLED, false)){
-            bind(BlobShard.class).asEagerSingleton();
-        }
+    public Long value() {
+        // TODO: cache stats result
+        return blobShard.blobStats().count();
     }
 }

@@ -7,6 +7,10 @@ Unreleased
 
  - fix null ordering in non 'group by' queries.
 
+ - added column ``schema_name`` to ``sys.shards`` table
+
+ - implemented blob shards on ``sys.shards`` table
+
  - updated crate-admin to 0.2.4
 
  - fix bug with empty lists or lists only containing ``null`` as parameter
