@@ -567,16 +567,19 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(setLiteral.valueType(), DataType.DOUBLE_SET);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testWhereInSelectDifferentDataTypeList() throws Exception {
-        analyze("select 'found' from users where 1 in (1.2, 2)");
+        SelectAnalysis analysis = (SelectAnalysis)analyze("select 'found' from users where 1 in (1.2, 2)");
+        assertFalse(analysis.whereClause().hasQuery()); // already normalized from 1 in (1, 2) --> true
+        assertFalse(analysis.whereClause().noMatch());
     }
 
-    @Test( expected = IllegalArgumentException.class)
+    @Test
     public void testWhereInSelectDifferentDataTypeValue() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select 'found' from users where 1.2 in (1, 2)");
-        // NOTE: type checking for IN LIST is currently very strict - implement conversion for SetLiterals
-        //assertTrue(analysis.noMatch());
+        assertFalse(analysis.whereClause().hasQuery()); // already normalized from 1.2 in (1.0, 2.0) --> false
+        assertTrue(analysis.noMatch());
+        assertTrue(analysis.hasNoResult());
     }
 
     @Test(expected = IllegalArgumentException.class)

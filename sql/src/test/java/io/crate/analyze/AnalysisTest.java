@@ -143,10 +143,10 @@ public class AnalysisTest {
                 .type(DataType.BOOLEAN)
                 .ident(TEST_TABLE_IDENT, new ColumnIdent("bool")).build();
         BooleanLiteral trueLiteral = new BooleanLiteral(true);
-        assertThat(analysis.normalizeInputValue(trueLiteral, new Reference(info)), Matchers.<Literal>is(trueLiteral));
+        assertThat(analysis.normalizeInputForReference(trueLiteral, new Reference(info)), Matchers.<Literal>is(trueLiteral));
 
-        assertThat(analysis.normalizeInputValue(new StringLiteral("true"), new Reference(info)), Matchers.<Literal>is(trueLiteral));
-        assertThat(analysis.normalizeInputValue(new StringLiteral("false"), new Reference(info)), Matchers.<Literal>is(new BooleanLiteral(false)));
+        assertThat(analysis.normalizeInputForReference(new StringLiteral("true"), new Reference(info)), Matchers.<Literal>is(trueLiteral));
+        assertThat(analysis.normalizeInputForReference(new StringLiteral("false"), new Reference(info)), Matchers.<Literal>is(new BooleanLiteral(false)));
     }
 
     @Test
@@ -157,7 +157,7 @@ public class AnalysisTest {
                 .type(DataType.DOUBLE)
                 .ident(TEST_TABLE_IDENT, new ColumnIdent("double")).build();
         Function f = new Function(TEST_FUNCTION_INFO, Arrays.<Symbol>asList(new DoubleLiteral(-9.9)));
-        assertThat(analysis.normalizeInputValue(f, new Reference(info)), Matchers.<Literal>is(new DoubleLiteral(9.9)));
+        assertThat(analysis.normalizeInputForReference(f, new Reference(info)), Matchers.<Literal>is(new DoubleLiteral(9.9)));
     }
 
     @Test
@@ -167,7 +167,7 @@ public class AnalysisTest {
         Map<String, Object> map = new HashMap<>();
         map.put("time", "2014-02-16T00:00:01");
         map.put("false", true);
-        ObjectLiteral normalized = (ObjectLiteral)analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
+        ObjectLiteral normalized = (ObjectLiteral)analysis.normalizeInputForReference(new ObjectLiteral(map), new Reference(objInfo));
         assertThat((Long) normalized.value().get("time"), is(1392508801000l));
         assertThat((Boolean)normalized.value().get("false"), is(true));
     }
@@ -178,7 +178,7 @@ public class AnalysisTest {
         ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<>();
         map.put("d", "2014-02-16T00:00:01");
-        analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
+        analysis.normalizeInputForReference(new ObjectLiteral(map), new Reference(objInfo));
     }
 
     @Test
@@ -188,7 +188,7 @@ public class AnalysisTest {
         Map<String, Object> map = new HashMap<>();
         map.put("d", "2.9");
 
-        Literal normalized = analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
+        Literal normalized = analysis.normalizeInputForReference(new ObjectLiteral(map), new Reference(objInfo));
         assertThat(normalized, instanceOf(ObjectLiteral.class));
         assertThat(((ObjectLiteral)normalized).value().get("d"), Matchers.<Object>is(2.9d));
     }
@@ -203,9 +203,9 @@ public class AnalysisTest {
                 put("double", "-88.7");
             }});
         }};
-        analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
+        analysis.normalizeInputForReference(new ObjectLiteral(map), new Reference(objInfo));
 
-        Literal normalized = analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
+        Literal normalized = analysis.normalizeInputForReference(new ObjectLiteral(map), new Reference(objInfo));
         assertThat(normalized, instanceOf(ObjectLiteral.class));
         assertThat(((ObjectLiteral)normalized).value().get("d"), Matchers.<Object>is(2.9d));
         assertThat(((ObjectLiteral)normalized).value().get("inner_strict"),
@@ -222,7 +222,7 @@ public class AnalysisTest {
         Map<String, Object> map = new HashMap<>();
         map.put("d", 2.9d);
         map.put("half", "1.45");
-        Literal normalized = analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
+        Literal normalized = analysis.normalizeInputForReference(new ObjectLiteral(map), new Reference(objInfo));
         assertThat(normalized.value(), Matchers.<Object>is(map)); // stays the same
     }
 
@@ -233,7 +233,7 @@ public class AnalysisTest {
         Map<String, Object> map = new HashMap<>();
         map.put("inner_d", 2.9d);
         map.put("half", "1.45");
-        analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
+        analysis.normalizeInputForReference(new ObjectLiteral(map), new Reference(objInfo));
     }
 
     @Test(expected = ColumnUnknownException.class)
@@ -245,7 +245,7 @@ public class AnalysisTest {
         map.put("inner_map", new HashMap<String, Object>(){{
             put("much_inner", "yaw");
         }});
-        analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
+        analysis.normalizeInputForReference(new ObjectLiteral(map), new Reference(objInfo));
     }
 
     @Test(expected = ColumnUnknownException.class)
@@ -259,7 +259,7 @@ public class AnalysisTest {
             put("half", "1.45");
         }});
         map.put("half", "1.45");
-        analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
+        analysis.normalizeInputForReference(new ObjectLiteral(map), new Reference(objInfo));
     }
 
     @Test
@@ -269,7 +269,7 @@ public class AnalysisTest {
         Map<String, Object> map = new HashMap<String, Object>() {{
             put("time", "1970-01-01T00:00:00");
         }};
-        ObjectLiteral literal = (ObjectLiteral)analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
+        ObjectLiteral literal = (ObjectLiteral)analysis.normalizeInputForReference(new ObjectLiteral(map), new Reference(objInfo));
         assertThat((Long) literal.value().get("time"), is(0l));
     }
 
@@ -280,7 +280,7 @@ public class AnalysisTest {
         Map<String, Object> map = new HashMap<String, Object>() {{
             put("time", "1970-01-01T00:00:00");
         }};
-        ObjectLiteral literal = (ObjectLiteral)analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
+        ObjectLiteral literal = (ObjectLiteral)analysis.normalizeInputForReference(new ObjectLiteral(map), new Reference(objInfo));
         assertThat((String)literal.value().get("time"), is("1970-01-01T00:00:00"));
     }
 
@@ -291,7 +291,7 @@ public class AnalysisTest {
         Map<String, Object> map = new HashMap<String, Object>() {{
             put("no_time", "1970");
         }};
-        ObjectLiteral literal = (ObjectLiteral)analysis.normalizeInputValue(new ObjectLiteral(map), new Reference(objInfo));
+        ObjectLiteral literal = (ObjectLiteral)analysis.normalizeInputForReference(new ObjectLiteral(map), new Reference(objInfo));
         assertThat((String)literal.value().get("no_time"), is("1970"));
     }
 
@@ -300,7 +300,7 @@ public class AnalysisTest {
         SelectAnalysis analysis = (SelectAnalysis)getAnalysis();
         ReferenceInfo objInfo = userTableInfo.getColumnInfo(new ColumnIdent("d"));
         StringLiteral stringDoubleLiteral = new StringLiteral("298.444");
-        Literal literal = analysis.normalizeInputValue(stringDoubleLiteral, new Reference(objInfo));
+        Literal literal = analysis.normalizeInputForReference(stringDoubleLiteral, new Reference(objInfo));
         assertThat(literal, instanceOf(DoubleLiteral.class));
         assertThat((Double)literal.value(), is(298.444d));
     }

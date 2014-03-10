@@ -54,49 +54,49 @@ public class ObjectLiteralTest {
         assertThat(literal.convertTo(DataType.OBJECT), is(literal));
     }
 
-    @Test( expected = UnsupportedOperationException.class)
+    @Test( expected = IllegalArgumentException.class)
     public void testConvertTo() {
         Literal literal = new ObjectLiteral(testMap);
         literal.convertTo(DataType.BOOLEAN);
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testConvertToLong() {
         Literal literal = new ObjectLiteral(testMap);
         literal.convertTo(DataType.LONG).value();
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testConvertToInteger() {
         Literal literal = new ObjectLiteral(testMap);
         literal.convertTo(DataType.INTEGER).value();
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testConvertToDouble() {
         Literal literal = new ObjectLiteral(testMap);
         literal.convertTo(DataType.DOUBLE).value();
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testConvertToFloat() {
         Literal literal = new ObjectLiteral(testMap);
         literal.convertTo(DataType.FLOAT).value();
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testConvertToShort() {
         Literal literal = new ObjectLiteral(testMap);
         literal.convertTo(DataType.SHORT).value();
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testConvertToByte() {
         Literal literal = new ObjectLiteral(testMap);
         literal.convertTo(DataType.BYTE).value();
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testConvertToTimestamp() {
         Literal literal = new ObjectLiteral(testMap);
         literal.convertTo(DataType.TIMESTAMP).value();

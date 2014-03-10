@@ -41,6 +41,7 @@ public enum SymbolType {
     TIMESTAMP_LITERAL(TimestampLiteral.FACTORY),
     ARRAY_LITERAL(ArrayLiteral.FACTORY),
     INPUT_COLUMN(InputColumn.FACTORY),
+    PARAMETER(Parameter.FACTORY),
     DYNAMIC_REFERENCE(DynamicReference.FACTORY);
 
     private final Symbol.SymbolFactory factory;

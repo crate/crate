@@ -67,7 +67,7 @@ public class UpdateStatementAnalyzer extends DataStatementAnalyzer<UpdateAnalysi
         Symbol value = process(node.expression(), context);
 
         // it's something that we can normalize to a literal
-        Literal updateValue = context.normalizeInputValue(value, reference);
+        Literal updateValue = context.normalizeInputForReference(value, reference);
         context.addAssignement(reference, updateValue);
         return null;
     }

@@ -21,9 +21,9 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.DataType;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.ReferenceIdent;
@@ -32,13 +32,12 @@ import io.crate.operation.operator.*;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.planner.symbol.*;
 import io.crate.planner.symbol.Literal;
-import io.crate.sql.tree.*;
 import io.crate.sql.tree.BooleanLiteral;
+import io.crate.sql.tree.*;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.StringLiteral;
 import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
 
 import java.util.*;
 
@@ -57,12 +56,18 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         List<Symbol> arguments = new ArrayList<>(node.getArguments().size());
         List<DataType> argumentTypes = new ArrayList<>(node.getArguments().size());
         for (Expression expression : node.getArguments()) {
-            ValueSymbol vs = (ValueSymbol) expression.accept(this, context);
+            Symbol argSymbol = expression.accept(this, context);
+
+            // cast parameter to literal, guess its type
+            if (argSymbol.symbolType() == SymbolType.PARAMETER) {
+                argSymbol = ((Parameter) argSymbol).toLiteral();
+            }
+            ValueSymbol vs = (ValueSymbol) argSymbol;
             arguments.add(vs);
             argumentTypes.add(vs.valueType());
         }
 
-        FunctionInfo functionInfo = null;
+        FunctionInfo functionInfo;
         if (node.isDistinct()) {
             if (argumentTypes.size() > 1) {
                 throw new UnsupportedOperationException("Function(DISTINCT x) does not accept more than one argument");
@@ -103,15 +108,30 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         }
 
         arguments.add(value);
-        SetLiteral inListSymbol = (SetLiteral) process(node.getValueList(), context);
 
-        if (inListSymbol.itemType() != valueDataType) {
-            // TODO: implement implicit type casting for set values to valueDataType
-            throw new IllegalArgumentException(String.format("invalid type in IN LIST '%s', expected '%s'",
-                    inListSymbol.itemType().getName(), valueDataType.getName()));
+        Set<Object> inListSet = new HashSet<>();
+        for (Expression expression : ((InListExpression)node.getValueList()).getValues()) {
+            Symbol inListValue = expression.accept(this, context);
+            Literal literal;
+            try {
+                if (value instanceof Literal) {
+                    literal = context.normalizeInputForType(inListValue, valueDataType);
+                } else if (value instanceof Reference) {
+                    literal = context.normalizeInputForReference(inListValue, (Reference) value);
+                } else {
+                    throw new Exception();
+                }
+            } catch (Exception e) {
+                throw new IllegalArgumentException(
+                        String.format("invalid IN LIST value %s. expected type '%s'",
+                                SymbolFormatter.format(inListValue),
+                                valueDataType.getName()));
+            }
+            inListSet.add(literal.value());
         }
-        arguments.add(inListSymbol);
+        Literal inListSymbol = new SetLiteral(valueDataType, inListSet);
 
+        arguments.add(inListSymbol);
         argumentTypes.add(valueDataType);
         argumentTypes.add(valueDataType.setType());
 
@@ -132,28 +152,6 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         return context.allocateFunction(
                 NotPredicate.INFO,
                 ImmutableList.<Symbol>of(context.allocateFunction(isNullInfo, ImmutableList.of(argument))));
-    }
-
-
-
-    @Override
-    protected Symbol visitInListExpression(InListExpression node, T context) {
-        Set<Literal> symbols = new HashSet<>();
-        DataType dataType = null;
-        for (Expression expression : node.getValues()) {
-            Symbol s = process(expression, context);
-            Preconditions.checkArgument(s.symbolType().isLiteral());
-            Literal l = (Literal) s;
-            // check dataTypes to be of the same dataType
-            if (dataType == null) {
-                // first loop run
-                dataType = l.valueType();
-            } else {
-                Preconditions.checkArgument(dataType == l.valueType());
-            }
-            symbols.add(l);
-        }
-        return SetLiteral.fromLiterals(dataType, symbols);
     }
 
     @Override
@@ -186,7 +184,11 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
     @Override
     protected Symbol visitNotExpression(NotExpression node, T context) {
-        return new Function(NotPredicate.INFO, Arrays.asList(process(node.getValue(), context)));
+        Symbol argument = process(node.getValue(), context);
+        if (argument.symbolType() == SymbolType.PARAMETER) {
+            argument = ((Parameter) argument).toLiteral();
+        }
+        return new Function(NotPredicate.INFO, Arrays.asList(argument));
     }
 
     @Override
@@ -205,7 +207,8 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
 
         // swap statements like  eq(2, name) to eq(name, 2)
-        if (arguments.get(0).symbolType().isLiteral() &&
+        // and eq(?, name) to eq(name, ?)
+        if (arguments.get(0).symbolType().isLiteral() || arguments.get(0).symbolType() == SymbolType.PARAMETER &&
                 (arguments.get(1).symbolType() == SymbolType.REFERENCE ||
                         arguments.get(1).symbolType() == SymbolType.DYNAMIC_REFERENCE)) {
             if (swapOperatorTable.containsKey(operatorName)) {
@@ -221,8 +224,26 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         }
 
         // try implicit type cast (conversion)
-        if (argumentTypes.get(0) != argumentTypes.get(1)) {
-            Symbol convertedSymbol = ((io.crate.planner.symbol.Literal) arguments.get(1)).convertTo(argumentTypes.get(0));
+        if (arguments.get(1).symbolType() == SymbolType.PARAMETER) {
+            switch (arguments.get(0).symbolType()) {
+                case PARAMETER:
+                    // ? = ? - can only guess types
+                    for (int i=0; i<arguments.size();i++) {
+                        Literal l = ((Parameter)arguments.get(i)).toLiteral();
+                        arguments.set(i, l);
+                        argumentTypes.set(i, l.valueType());
+                    }
+                    break;
+                case REFERENCE:
+                case DYNAMIC_REFERENCE:
+                    // Reference = ?
+                    Literal normalized = context.normalizeInputForReference(arguments.get(1), (Reference)arguments.get(0));
+                    arguments.set(1, normalized);
+                    argumentTypes.set(1, normalized.valueType());
+                    break;
+            }
+        } else if (argumentTypes.get(0) != argumentTypes.get(1)) {
+            Symbol convertedSymbol = context.normalizeInputForType(arguments.get(1), argumentTypes.get(0));
             arguments.set(1, convertedSymbol);
             argumentTypes.set(1, argumentTypes.get(0));
         }
@@ -254,8 +275,33 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
         // add arguments
         List<Symbol> arguments = new ArrayList<>(2);
-        arguments.add(process(node.getValue(), context));
-        arguments.add(process(node.getPattern(), context));
+        Symbol expressionSymbol = process(node.getValue(), context);
+        Symbol patternSymbol = process(node.getPattern(), context);
+
+        // handle possible parameter for expression
+        // try implicit conversion
+        if (! (expressionSymbol instanceof Reference)) {
+            try {
+                expressionSymbol = context.normalizeInputForType(expressionSymbol, DataType.STRING);
+            } catch (IllegalArgumentException|UnsupportedOperationException e) {
+                throw new UnsupportedOperationException("<expression> LIKE <pattern>: expression couldn't be implicitly casted to string. Try to explicitly cast to string.");
+            }
+        }
+
+        // handle possible parameter for pattern
+        // try implicit conversion
+        try {
+            if (expressionSymbol instanceof Reference) {
+                patternSymbol = context.normalizeInputForReference(patternSymbol, (Reference) expressionSymbol);
+            } else {
+                patternSymbol = context.normalizeInputForType(patternSymbol, DataType.STRING);
+            }
+        } catch (IllegalArgumentException|UnsupportedOperationException e) {
+            throw new UnsupportedOperationException("<expression> LIKE <pattern>: pattern couldn't be implicitly casted to string. Try to explicitly cast to string.");
+        }
+
+        arguments.add(expressionSymbol);
+        arguments.add(patternSymbol);
 
         // resolve argument types
         List<DataType> argumentTypes = new ArrayList<>(arguments.size());
@@ -267,7 +313,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
             return Null.INSTANCE;
         }
 
-        FunctionInfo functionInfo = null;
+        FunctionInfo functionInfo;
         try {
             // be optimistic. try to look up LikeOperator.
             FunctionIdent functionIdent = new FunctionIdent(LikeOperator.NAME, argumentTypes);
@@ -277,45 +323,10 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
             if (!(arguments.get(1).symbolType().isLiteral())) {
                 throw new UnsupportedOperationException("<expression> LIKE <pattern>: pattern must not be a reference.");
             }
-            try {
-                tryToCastImplicitly(arguments, argumentTypes, 1, DataType.STRING);
-            } catch (UnsupportedOperationException e2) {
-                throw new UnsupportedOperationException("<expression> LIKE <pattern>: pattern couldn't be implicitly casted to string. Try to explicitly cast to string.");
-            }
-
-            // check expression
-            if (argumentTypes.get(0) != DataType.STRING) {
-                try {
-                    tryToCastImplicitly(arguments, argumentTypes, 0, DataType.STRING);
-                } catch (UnsupportedOperationException e3) {
-                    throw new UnsupportedOperationException("<expression> LIKE <pattern>: expression couldn't be implicitly casted to string. Try to explicitly cast to string.");
-                }
-            }
-
-            FunctionIdent functionIdent = new FunctionIdent(LikeOperator.NAME, argumentTypes);
-            functionInfo = context.getFunctionInfo(functionIdent);
+            throw new UnsupportedOperationException("invalid LIKE clause");
         }
 
         return context.allocateFunction(functionInfo, arguments);
-    }
-
-    /**
-     * Checks if <code>arguments</code> at <code>index</code> is a literal and tries to cast it to given <code>DataType castTo</code>.
-     * If successful, the <code>arguments</code> and <code>argumentTypes</code> will be updated.
-     * @param arguments
-     * @param argumentTypes
-     * @param index
-     * @param castTo
-     * @throws UnsupportedOperationException
-     */
-    private void tryToCastImplicitly(List<Symbol> arguments, List<DataType> argumentTypes, int index, DataType castTo) throws UnsupportedOperationException {
-        if (arguments.get(index).symbolType().isLiteral()) {
-            Literal literal = ((Literal) arguments.get(index)).convertTo(castTo); // may throw UnsupportedOperationException.
-            arguments.set(index, literal);
-            argumentTypes.set(index, literal.valueType());
-        } else {
-            throw new UnsupportedOperationException("Symbol is not of type Literal");
-        }
     }
 
 
@@ -393,11 +404,6 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
 
     @Override
     public Symbol visitParameterExpression(ParameterExpression node, T context) {
-        Object parameter = context.parameterAt(node.index());
-        try {
-            return io.crate.planner.symbol.Literal.forValue(parameter);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Unsupported parameter type " + parameter.getClass());
-        }
+        return new Parameter(context.parameterAt(node.index()));
     }
 }

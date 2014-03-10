@@ -467,7 +467,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public void testGlobalAggregateAny() throws Exception {
         this.setup.groupBySetup();
 
-        execute("select any(age) from characters");
+        execute("select any(age) from characters where age is not null");
         assertEquals(1, response.rowCount());
         assertEquals(1,
                 execute("select count(*) from characters where age=?",

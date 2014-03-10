@@ -21,6 +21,10 @@
 
 package io.crate.analyze;
 
+import io.crate.DataType;
+import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.ValidationException;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
@@ -32,15 +36,13 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
-import io.crate.DataType;
-import io.crate.exceptions.TableUnknownException;
-import io.crate.exceptions.ValidationException;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -206,5 +208,47 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         Reference ref = analysis.assignments().keySet().iterator().next();
         assertThat(ref.info().ident().tableIdent().name(), is("users"));
         assertThat(ref.info().ident().columnIdent().fqn(), is("name"));
+    }
+
+    @Test
+    public void testUpdateWithParameter() throws Exception {
+        Map[] friends = new Map[]{
+                new HashMap<String, Object>() {{ put("name", "Slartibartfast"); }},
+                new HashMap<String, Object>() {{ put("name", "Marvin"); }}
+        };
+        UpdateAnalysis analysis = (UpdateAnalysis)analyze("update users set name=?, id=?, friends=? where id=?",
+                new Object[]{"Jeltz", 0, friends, "9"});
+        assertThat(analysis.assignments().size(), is(3));
+        assertThat(
+                (StringLiteral) analysis.assignments().get(new Reference(userTableInfo.getColumnInfo(new ColumnIdent("name")))),
+                is(new StringLiteral("Jeltz"))
+        );
+        assertThat(
+                (ArrayLiteral) analysis.assignments().get(new Reference(userTableInfo.getColumnInfo(new ColumnIdent("friends")))),
+                is(new ArrayLiteral(DataType.OBJECT, friends))
+        );
+        assertThat(
+                (LongLiteral) analysis.assignments().get(new Reference(userTableInfo.getColumnInfo(new ColumnIdent("id")))),
+                is(new LongLiteral(0))
+        );
+        assertThat(analysis.whereClause().query().arguments().get(1).symbolType(), is(SymbolType.LONG_LITERAL));
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void testUpdateWithWrongParameters() throws Exception {
+        analyze("update users set name=?, friends=? where id=?",
+                new Object[]{
+                        new HashMap<String, Object>(),
+                        new Map[0],
+                        new Long[]{1L, 2L, 3L}});
+    }
+
+    @Test
+    public void testUpdateWithEmptyObjectArray() throws Exception {
+        UpdateAnalysis analysis = (UpdateAnalysis) analyze("update users set friends=? where id=0",
+                new Object[]{ new Map[0], 0 });
+        ArrayLiteral friendsLiteral = (ArrayLiteral)analysis.assignments().get(new Reference(userTableInfo.getColumnInfo(new ColumnIdent("friends"))));
+        assertThat(friendsLiteral.itemType(), is(DataType.OBJECT));
+        assertThat(friendsLiteral.value().length, is(0));
     }
 }

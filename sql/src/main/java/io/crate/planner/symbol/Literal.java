@@ -36,10 +36,10 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
                 } else if (value instanceof String) {
                     return new TimestampLiteral((String)value);
                 } else {
-                    return new TimestampLiteral((Long)value);
+                    return new TimestampLiteral(((Number)value).longValue());
                 }
             case LONG:
-                return new LongLiteral((Long) value);
+                return new LongLiteral(((Number) value).longValue());
             case FLOAT:
                 return new FloatLiteral(((Number) value).floatValue());
             case DOUBLE:
@@ -118,7 +118,7 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
         } else if (type == DataType.NOT_SUPPORTED) {
             return Null.INSTANCE;
         }
-        throw new UnsupportedOperationException(
+        throw new IllegalArgumentException(
                 "Invalid input for type " + type.getName() + ": " + value().toString());
     }
 
