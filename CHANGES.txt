@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+
+2014/03/10 0.28.0
+=================
+
  - fix null ordering in non 'group by' queries.
 
  - added column ``schema_name`` to ``sys.shards`` table
