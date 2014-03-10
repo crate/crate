@@ -21,7 +21,17 @@
 
 package io.crate.integrationtests;
 
+import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLResponse;
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+import io.crate.blob.v2.BlobIndices;
+import io.crate.core.NumberOfReplicas;
+>>>>>>> 8554e10... fixup! fixup! fixup! implemented blob shards on sys.shards
+=======
+import io.crate.blob.v2.BlobIndices;
+>>>>>>> 73c7408... adapt SysShardExpressions for BlobShards to new BlobSchemaInfo
 import io.crate.exceptions.CrateException;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -65,6 +75,19 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     public void initTestData() throws Exception {
         setup.groupBySetup();
         execute("create table quotes (id integer primary key, quote string) with(number_of_replicas=1)");
+<<<<<<< HEAD
+<<<<<<< HEAD
+        client().admin().indices().prepareCreate(".blob_blobs")
+=======
+        client().admin().indices().prepareCreate(BlobIndices.INDEX_PREFIX + "blobs")
+>>>>>>> 73c7408... adapt SysShardExpressions for BlobShards to new BlobSchemaInfo
+                .setSettings(
+                        ImmutableSettings.builder()
+                                .put("blobs.enabled", true).build()).execute().actionGet();
+=======
+        BlobIndices blobIndices = cluster().getInstance(BlobIndices.class);
+        blobIndices.createBlobTable("blobs", new NumberOfReplicas(1), 5);
+>>>>>>> 8554e10... fixup! fixup! fixup! implemented blob shards on sys.shards
         ensureGreen();
     }
 
@@ -80,21 +103,24 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     public void testSelectGroupByAllTables() throws Exception {
         execute("select count(*), table_name from sys.shards " +
                 "group by table_name order by table_name");
-        assertEquals(2L, response.rowCount());
+        assertEquals(3L, response.rowCount());
         assertEquals(10L, response.rows()[0][0]);
-        assertEquals("characters", response.rows()[0][1]);
-        assertEquals("quotes", response.rows()[1][1]);
+        assertEquals("blobs", response.rows()[0][1]);
+        assertEquals("characters", response.rows()[1][1]);
+        assertEquals("quotes", response.rows()[2][1]);
     }
 
     @Test
     public void testSelectGroupByWhereNotLike() throws Exception {
         execute("select count(*), table_name from sys.shards " +
                 "where table_name not like 'my_table%' group by table_name order by table_name");
-        assertEquals(2, response.rowCount());
+        assertEquals(3L, response.rowCount());
         assertEquals(10L, response.rows()[0][0]);
-        assertEquals("characters", response.rows()[0][1]);
+        assertEquals("blobs", response.rows()[0][1]);
         assertEquals(10L, response.rows()[1][0]);
-        assertEquals("quotes", response.rows()[1][1]);
+        assertEquals("characters", response.rows()[1][1]);
+        assertEquals(10L, response.rows()[2][0]);
+        assertEquals("quotes", response.rows()[2][1]);
     }
 
     @Test
@@ -108,35 +134,36 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     public void testSelectStarWhereTable() throws Exception {
         execute("select * from sys.shards where table_name = 'characters'");
         assertEquals(10L, response.rowCount());
-        assertEquals(7, response.cols().length);
+        assertEquals(8, response.cols().length);
     }
 
     @Test
     public void testSelectStarAllTables() throws Exception {
         execute("select * from sys.shards");
-        assertEquals(20L, response.rowCount());
-        assertEquals(7, response.cols().length);
+        assertEquals(30L, response.rowCount());
+        assertEquals(8, response.cols().length);
+        assertEquals("schema_name, table_name, id, num_docs, primary, relocating_node, size, state", Joiner.on(", ").join(response.cols()));
     }
 
     @Test
     public void testSelectStarLike() throws Exception {
         execute("select * from sys.shards where table_name like 'charact%'");
         assertEquals(10L, response.rowCount());
-        assertEquals(7, response.cols().length);
+        assertEquals(8, response.cols().length);
     }
 
     @Test
     public void testSelectStarNotLike() throws Exception {
         execute("select * from sys.shards where table_name not like 'quotes%'");
-        assertEquals(10L, response.rowCount());
-        assertEquals(7, response.cols().length);
+        assertEquals(20L, response.rowCount());
+        assertEquals(8, response.cols().length);
     }
 
     @Test
     public void testSelectStarIn() throws Exception {
         execute("select * from sys.shards where table_name in ('characters')");
         assertEquals(10L, response.rowCount());
-        assertEquals(7, response.cols().length);
+        assertEquals(8, response.cols().length);
     }
 
     @Test(expected = UnsupportedFeatureException.class)
@@ -147,13 +174,13 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectOrderBy() throws Exception {
         execute("select * from sys.shards order by table_name");
-        assertEquals(20L, response.rowCount());
-        assertEquals("characters", response.rows()[0][0]);
-        assertEquals("characters", response.rows()[1][0]);
-        assertEquals("characters", response.rows()[2][0]);
-        assertEquals("characters", response.rows()[3][0]);
-        assertEquals("characters", response.rows()[4][0]);
-        assertEquals("quotes", response.rows()[10][0]);
+        assertEquals(30L, response.rowCount());
+        String[] schemaNames = {"blob", "doc", "doc"};
+        String[] tableNames = {"blobs", "characters", "quotes"};
+        for (int i=0; i<response.rowCount(); i++) {
+            int idx = i/10;
+            assertEquals(tableNames[idx], response.rows()[i][1]);
+        }
     }
 
     @Test
@@ -165,7 +192,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectWhereBoolean() throws Exception {
         execute("select * from sys.shards where \"primary\" = false");
-        assertEquals(10L, response.rowCount());
+        assertEquals(15L, response.rowCount());
     }
 
     @Test
@@ -176,8 +203,8 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
         client().admin().cluster().prepareHealth("locations").setWaitForYellowStatus().execute().actionGet();
 
         execute("select * from sys.shards order by state");
-        assertEquals(35L, response.rowCount());
-        assertEquals(7, response.cols().length);
+        assertEquals(45L, response.rowCount());
+        assertEquals(8, response.cols().length);
     }
 
     @Test
@@ -209,14 +236,14 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     public void testSelectGlobalCount() throws Exception {
         execute("select count(*) from sys.shards");
         assertEquals(1L, response.rowCount());
-        assertEquals(20L, response.rows()[0][0]);
+        assertEquals(30L, response.rows()[0][0]);
     }
 
     @Test
     public void testSelectGlobalCountAndOthers() throws Exception {
         execute("select count(*), max(table_name) from sys.shards");
         assertEquals(1L, response.rowCount());
-        assertEquals(20L, response.rows()[0][0]);
+        assertEquals(30L, response.rows()[0][0]);
         assertEquals("quotes", response.rows()[0][1]);
     }
 
@@ -224,14 +251,18 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     public void testSelectGlobalExpressionGroupBy() throws Exception {
         execute("select count(*), table_name, sys.cluster.name from sys.shards " +
                 "group by sys.cluster.name, table_name order by table_name");
-        assertEquals(2, response.rowCount());
+        assertEquals(3, response.rowCount());
         assertEquals(10L, response.rows()[0][0]);
-        assertEquals("characters", response.rows()[0][1]);
+        assertEquals("blobs", response.rows()[0][1]);
         assertEquals(cluster().clusterName(), response.rows()[0][2]);
 
         assertEquals(10L, response.rows()[1][0]);
-        assertEquals("quotes", response.rows()[1][1]);
+        assertEquals("characters", response.rows()[1][1]);
         assertEquals(cluster().clusterName(), response.rows()[1][2]);
+
+        assertEquals(10L, response.rows()[2][0]);
+        assertEquals("quotes", response.rows()[2][1]);
+        assertEquals(cluster().clusterName(), response.rows()[2][2]);
     }
 
     @Test

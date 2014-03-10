@@ -474,14 +474,14 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void test2ColPrimaryKeyLiteral() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name='jalla'");
-        assertEquals(ImmutableList.<Literal>of(new StringLiteral("jalla"), new IntegerLiteral(1)),
+    public void test3ColPrimaryKeyLiteral() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name='jalla' and schema_name='doc'");
+        assertEquals(ImmutableList.<Literal>of(new StringLiteral("doc"), new StringLiteral("jalla"), new IntegerLiteral(1)),
                 analysis.primaryKeyLiterals());
         assertFalse(analysis.noMatch());
 
-        analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name='jalla' and id=1");
-        assertEquals(ImmutableList.<Literal>of(new StringLiteral("jalla"), new IntegerLiteral(1)),
+        analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name='jalla' and id=1 and schema_name='doc'");
+        assertEquals(ImmutableList.<Literal>of(new StringLiteral("doc"), new StringLiteral("jalla"), new IntegerLiteral(1)),
                 analysis.primaryKeyLiterals());
         assertFalse(analysis.noMatch());
 
@@ -490,7 +490,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertNull(analysis.primaryKeyLiterals());
         assertFalse(analysis.noMatch());
 
-        analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name='jalla' and id=2");
+        analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and schema_name='doc' and table_name='jalla' and id=2");
         assertTrue(analysis.noMatch());
         assertNull(analysis.primaryKeyLiterals());
     }
@@ -520,13 +520,15 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void test2ColPrimaryKeySetLiteral() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name in ('jalla', 'kelle')");
-        assertEquals(2, analysis.primaryKeyLiterals().size());
-        SetLiteral tableName = (SetLiteral) analysis.primaryKeyLiterals().get(0);
-        IntegerLiteral id = (IntegerLiteral) analysis.primaryKeyLiterals().get(1);
+    public void test3ColPrimaryKeySetLiteral() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and schema_name='doc' and table_name in ('jalla', 'kelle')");
+        assertEquals(3, analysis.primaryKeyLiterals().size());
+        StringLiteral schemaName = (StringLiteral) analysis.primaryKeyLiterals().get(0);
+        SetLiteral tableName = (SetLiteral) analysis.primaryKeyLiterals().get(1);
+        IntegerLiteral id = (IntegerLiteral) analysis.primaryKeyLiterals().get(2);
 
         assertThat(1, is(id.value()));
+        assertThat(schemaName.value().utf8ToString(), is("doc"));
         assertEquals(SetLiteralTest.stringSet("jalla", "kelle"), tableName);
     }
 

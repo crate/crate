@@ -23,7 +23,7 @@ package io.crate.metadata;
 
 public interface ReferenceImplementation {
 
-    public abstract ReferenceInfo info();
+    public ReferenceInfo info();
 
     /**
      * Returns an implementation for a child.

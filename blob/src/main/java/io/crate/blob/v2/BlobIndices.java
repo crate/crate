@@ -80,20 +80,45 @@ public class BlobIndices extends AbstractComponent {
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.indicesService = indicesService;
         this.indicesLifecycle = indicesLifecycle;
-
     }
 
+    /**
+     * check if this index is a blob table
+     *
+     * This only works for indices that were created via SQL.
+     */
+    public static boolean isBlobShard(String index) {
+        return index.startsWith(INDEX_PREFIX);
+    }
+
+    /**
+     * check if this shards is part of an index that is a blob table
+     *
+     * This only works for indices that were created via SQL.
+     */
+    public static boolean isBlobShard(ShardId shardId) {
+        return isBlobShard(shardId.getIndex());
+    }
+
+    public BlobShard blobShardSafe(ShardId shardId) {
+        return blobShardSafe(shardId.getIndex(), shardId.id());
+    }
+
+    /**
+     * check if this index is a blob index
+     *
+     * this method is deprecated.
+     * Will be removed when being blob table is determined by index name.
+     */
+    @Deprecated
     public boolean blobsEnabled(String index) {
         return indicesService.indexServiceSafe(index)
                 .settingsService().getSettings().getAsBoolean(SETTING_BLOBS_ENABLED, false);
     }
 
+    @Deprecated
     public boolean blobsEnabled(ShardId shardId) {
         return blobsEnabled(shardId.getIndex());
-    }
-
-    public BlobShard blobShardSafe(ShardId shardId) {
-        return blobShardSafe(shardId.getIndex(), shardId.id());
     }
 
     public ListenableFuture<Void> createBlobTable(String tableName,

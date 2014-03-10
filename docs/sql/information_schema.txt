@@ -106,7 +106,7 @@ their type, name and which table they are defined in.
     +--------------------+------------+-------------------------------------------------+-----------------+
     | schema_name        | table_name | constraint_name                                 | constraint_type |
     +--------------------+------------+-------------------------------------------------+-----------------+
-    | sys                | shards     | [u'table_name', u'id']                          | PRIMARY_KEY     |
+    | sys                | shards     | [u'schema_name', u'table_name', u'id']          | PRIMARY_KEY     |
     | sys                | nodes      | [u'id']                                         | PRIMARY_KEY     |
     | information_schema | tables     | [u'schema_name', u'table_name']                 | PRIMARY_KEY     |
     | information_schema | columns    | [u'schema_name', u'table_name', u'column_name'] | PRIMARY_KEY     |

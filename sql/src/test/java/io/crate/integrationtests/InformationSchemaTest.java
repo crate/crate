@@ -236,7 +236,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertThat(dotJoiner.join(response.rows()[2][0], response.rows()[2][1]), is("sys.nodes"));
         assertThat(commaJoiner.join((Collection<?>)response.rows()[2][2]), is("id"));
         assertThat(dotJoiner.join(response.rows()[3][0], response.rows()[3][1]), is("sys.shards"));
-        assertThat(commaJoiner.join((Collection<?>)response.rows()[3][2]), is("table_name, id"));
+        assertThat(commaJoiner.join((Collection<?>)response.rows()[3][2]), is("schema_name, table_name, id"));
 
         execute("create table test (col1 integer primary key, col2 string)");
         ensureGreen();
@@ -400,7 +400,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by schema_name, table_name");
-        assertEquals(44L, response.rowCount());
+        assertEquals(45L, response.rowCount());
     }
 
     @Test

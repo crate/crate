@@ -28,6 +28,7 @@ import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
+import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.OperatorModule;
@@ -52,6 +53,7 @@ import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.service.IndexService;
+import org.elasticsearch.index.settings.IndexSettings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.service.IndexShard;
 import org.elasticsearch.index.shard.service.InternalIndexShard;
@@ -178,6 +180,12 @@ public class DistributingCollectTest {
             bind(ShardReferenceResolver.class).asEagerSingleton();
             bind(ScriptService.class).toInstance(mock(ScriptService.class));
             bind(ShardCollectService.class).asEagerSingleton();
+
+            // blob stuff
+            MapBinder<ReferenceIdent, BlobShardReferenceImplementation> blobBinder = MapBinder
+                    .newMapBinder(binder(), ReferenceIdent.class, BlobShardReferenceImplementation.class);
+            bind(Settings.class).annotatedWith(IndexSettings.class).toInstance(ImmutableSettings.EMPTY);
+
         }
     }
 

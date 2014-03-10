@@ -45,6 +45,7 @@ public class SysShardExpressionModule extends AbstractModule {
         b.addBinding(infos.get(new ColumnIdent(ShardStateExpression.NAME)).ident()).to(ShardStateExpression.class).asEagerSingleton();
         b.addBinding(infos.get(new ColumnIdent(ShardRelocatingNodeExpression.NAME)).ident()).to(ShardRelocatingNodeExpression.class).asEagerSingleton();
         b.addBinding(infos.get(new ColumnIdent(ShardTableNameExpression.NAME)).ident()).to(ShardTableNameExpression.class).asEagerSingleton();
+        b.addBinding(infos.get(new ColumnIdent(ShardSchemaNameExpression.NAME)).ident()).to(ShardSchemaNameExpression.class).asEagerSingleton();
     }
 
 }

@@ -21,18 +21,20 @@
 
 package io.crate.operation.collect;
 
+import io.crate.action.SQLXContentQueryParser;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.blob.v2.BlobIndices;
+import io.crate.exceptions.CrateException;
 import io.crate.executor.transport.task.elasticsearch.ESQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.ShardReferenceResolver;
+import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.doc.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.LuceneDocLevelReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
-import io.crate.action.SQLXContentQueryParser;
-import io.crate.exceptions.CrateException;
 import org.elasticsearch.cache.recycler.CacheRecycler;
 import org.elasticsearch.cache.recycler.PageCacheRecycler;
 import org.elasticsearch.cluster.ClusterService;
@@ -65,22 +67,32 @@ public class ShardCollectService {
                                PageCacheRecycler pageCacheRecycler,
                                SQLXContentQueryParser sqlxContentQueryParser,
                                Functions functions,
-                               ShardReferenceResolver referenceResolver) {
+                               ShardReferenceResolver referenceResolver,
+                               BlobShardReferenceResolver blobShardReferenceResolver) {
         this.clusterService = clusterService;
         this.shardId = shardId;
+
         this.indexService = indexService;
         this.scriptService = scriptService;
         this.cacheRecycler = cacheRecycler;
         this.pageCacheRecycler = pageCacheRecycler;
         this.sqlxContentQueryParser = sqlxContentQueryParser;
-        this.shardInputSymbolVisitor = new ImplementationSymbolVisitor(
-                referenceResolver, functions, RowGranularity.SHARD);
+
         this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(
                 functions, LuceneDocLevelReferenceResolver.INSTANCE);
         this.queryBuilder = new ESQueryBuilder();
-        this.shardNormalizer = new EvaluatingNormalizer(functions, RowGranularity.SHARD, referenceResolver);
 
-
+        boolean isBlobShard = BlobIndices.isBlobShard(this.shardId);
+        this.shardInputSymbolVisitor = new ImplementationSymbolVisitor(
+                (isBlobShard ? blobShardReferenceResolver :referenceResolver),
+                functions,
+                RowGranularity.SHARD
+        );
+        this.shardNormalizer = new EvaluatingNormalizer(
+                functions,
+                RowGranularity.SHARD,
+                (isBlobShard ? blobShardReferenceResolver :referenceResolver)
+        );
     }
 
     /**

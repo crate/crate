@@ -38,6 +38,7 @@ import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operation.reference.sys.node.SysNodeExpressionModule;
 import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
+import io.crate.operation.reference.sys.shard.blob.BlobShardExpressionModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.PlanModule;
 import io.crate.rest.action.RestSQLAction;
@@ -115,6 +116,7 @@ public class SQLPlugin extends AbstractPlugin {
         if (!settings.getAsBoolean("node.client", false)) {
             modules.add(MetaDataShardModule.class);
             modules.add(SysShardExpressionModule.class);
+            modules.add(BlobShardExpressionModule.class);
             modules.add(CollectShardModule.class);
         }
         return modules;

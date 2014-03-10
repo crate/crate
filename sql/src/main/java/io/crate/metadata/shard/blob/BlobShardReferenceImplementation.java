@@ -19,26 +19,9 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.blob.v2;
+package io.crate.metadata.shard.blob;
 
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.settings.IndexSettings;
+import io.crate.metadata.ReferenceImplementation;
 
-public class BlobShardModule extends AbstractModule {
-
-    private final Settings settings;
-
-    @Inject
-    public BlobShardModule(@IndexSettings Settings settings) {
-        this.settings = settings;
-    }
-
-    @Override
-    protected void configure() {
-        if (settings. getAsBoolean(BlobIndices.SETTING_BLOBS_ENABLED, false)){
-            bind(BlobShard.class).asEagerSingleton();
-        }
-    }
+public interface BlobShardReferenceImplementation extends ReferenceImplementation {
 }

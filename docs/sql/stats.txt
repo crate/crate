@@ -152,6 +152,11 @@ The table schema is as follows:
 +-----------------+---------------------------------+-------------------+
 | Name            | Description                     | Return Type       |
 +=================+=================================+===================+
+| schema_name     | The schema name.                | String            |
+|                 | This will be "blob" for         |                   |
+|                 | shards of blob tables and "doc" |                   |
+|                 | for shards of common tables.    |                   |
++-----------------+---------------------------------+-------------------+
 | table_name      | The table name.                 | String            |
 +-----------------+---------------------------------+-------------------+
 | id              | The shard id. This shard id is  | Integer           |
@@ -186,11 +191,11 @@ The table schema is as follows:
 For example, you can query shards like this::
 
   cr> select * from sys.shards where table_name='locations' and id = 1
-  +------------+----+----------+---------+-----------------+------+---------+
-  | table_name | id | num_docs | primary | relocating_node | size | state   |
-  +------------+----+----------+---------+-----------------+------+---------+
-  | locations  | 1  | 6        | TRUE    | NULL            | ...  | STARTED |
-  +------------+----+----------+---------+-----------------+------+---------+
+  +-------------+------------+----+----------+---------+-----------------+------+---------+
+  | schema_name | table_name | id | num_docs | primary | relocating_node | size | state   |
+  +-------------+------------+----+----------+---------+-----------------+------+---------+
+  | doc         | locations  | 1  | 6        | TRUE    | NULL            | ...  | STARTED |
+  +-------------+------------+----+----------+---------+-----------------+------+---------+
   SELECT 1 row in set (... sec)
 
 .. _configuration: ../configuration.html
