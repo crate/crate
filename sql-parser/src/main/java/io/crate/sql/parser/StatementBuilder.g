@@ -81,6 +81,7 @@ statement returns [Statement value]
     | createAlias               { $value = $createAlias.value; }
     | dropAlias                 { $value = $dropAlias.value; }
     | dropTable                 { $value = $dropTable.value; }
+    | dropBlobTable             { $value = $dropBlobTable.value; }
     | insert                    { $value = $insert.value; }
     | delete                    { $value = $delete.value; }
     | update                    { $value = $update.value; }
@@ -375,7 +376,7 @@ identList returns [List<String> value = new ArrayList<>()]
  * case sensitivity like it is in postgres
  * see also http://www.thenextage.com/wordpress/postgresql-case-sensitivity-part-1-the-ddl/
  *
- * unfortunately this has to be done in the parser because afterwards the 
+ * unfortunately this has to be done in the parser because afterwards the
  * knowledge of the IDENT / QUOTED_IDENT difference is lost
  */
 ident returns [String value]
@@ -593,10 +594,13 @@ forRemote returns [QualifiedName value]
     : ^(FOR qname) { $value = $qname.value; }
     ;
 
+dropBlobTable returns [Statement value]
+    : ^(DROP_BLOB_TABLE namedTable) { $value = new DropBlobTable($namedTable.value); }
+    ;
+
 dropTable returns [Statement value]
     : ^(DROP_TABLE namedTable) { $value = new DropTable($namedTable.value); }
     ;
-
 
 insert returns [Statement value]
     : ^(INSERT namedTable values=insertValues cols=insertColumnsList?)

@@ -82,6 +82,7 @@ tokens {
     CREATE_ALIAS;
     DROP_ALIAS;
     DROP_TABLE;
+    DROP_BLOB_TABLE;
     TABLE_ELEMENT_LIST;
     COLUMN_DEF;
     NOT_NULL;
@@ -179,6 +180,7 @@ statement
     | createTableStmt
     | createBlobTableStmt
     | dropTableStmt
+    | dropBlobTableStmt
     | createMaterializedViewStmt
     | refreshMaterializedViewStmt
     | createAliasStmt
@@ -628,6 +630,10 @@ showPartitionsStmt
 
 showFunctionsStmt
     : SHOW FUNCTIONS -> SHOW_FUNCTIONS
+    ;
+
+dropBlobTableStmt
+    : DROP BLOB TABLE table -> ^(DROP_BLOB_TABLE table)
     ;
 
 dropTableStmt
