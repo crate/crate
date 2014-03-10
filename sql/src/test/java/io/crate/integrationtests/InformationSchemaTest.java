@@ -190,6 +190,26 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testSelectBlobTablesFromInformationSchemaTable() throws Exception {
+        execute("select TABLE_NAME from INFORMATION_SCHEMA.Tables where schema_name='blob'");
+        assertEquals(0L, response.rowCount());
+
+        // TODO: replace with "create blob table test" SQL stmt when supported
+        prepareCreate(".blob_test")
+                .setSettings(new HashMap<String, Object>(){{put("blobs_enabled", true);}})
+                .execute().actionGet();
+        ensureGreen();
+
+        execute("select table_name, number_of_shards, number_of_replicas, " +
+                "clustered_by from INFORMATION_SCHEMA.Tables where schema_name='blob' ");
+        assertEquals(1L, response.rowCount());
+        assertEquals("test", response.rows()[0][0]);
+        assertEquals(5, response.rows()[0][1]);
+        assertEquals(1, response.rows()[0][2]);
+        assertEquals("name", response.rows()[0][3]);
+    }
+
+    @Test
     public void testSelectStarFromInformationSchemaTable() throws Exception {
         execute("create table test (col1 integer, col2 string)");
         ensureGreen();
