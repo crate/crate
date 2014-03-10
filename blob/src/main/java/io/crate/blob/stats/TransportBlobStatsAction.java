@@ -32,9 +32,11 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -127,7 +129,17 @@ public class TransportBlobStatsAction extends
 
     @Override
     protected GroupShardsIterator shards(ClusterState clusterState, BlobStatsRequest request, String[] concreteIndices) {
-        List<String> blobIndices = blobIndicesService.indices();
+
+        // TODO: use 'blobIndicesService.indices()' after transition for index prefix is done everywhere
+        List<String> blobIndices = new ArrayList<String>();
+        ImmutableOpenMap<String, IndexMetaData> indexMetaDataMap = clusterState.getMetaData().getIndices();
+        for (String index : concreteIndices) {
+            if (indexMetaDataMap.get(index).getSettings().getAsBoolean(
+                BlobIndices.SETTING_BLOBS_ENABLED, false))
+            {
+                blobIndices.add(index);
+            }
+        }
 
         if (blobIndices.isEmpty()) {
             return new GroupShardsIterator(new ArrayList<ShardIterator>());
