@@ -508,4 +508,8 @@ public abstract class AstVisitor<R, C>
     public R visitCreateBlobTable(CreateBlobTable node, C context) {
         return visitNode(node, context);
     }
+
+    public R visitDropBlobTable(DropBlobTable node, C context) {
+        return visitNode(node, context);
+    }
 }
