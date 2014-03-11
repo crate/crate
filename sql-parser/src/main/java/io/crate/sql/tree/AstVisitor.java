@@ -512,4 +512,8 @@ public abstract class AstVisitor<R, C>
     public R visitDropBlobTable(DropBlobTable node, C context) {
         return visitNode(node, context);
     }
+
+    public R visitRefreshStatement(RefreshStatement node, C context) {
+        return visitStatement(node, context);
+    }
 }

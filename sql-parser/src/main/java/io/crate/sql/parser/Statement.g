@@ -190,6 +190,7 @@ statement
     | updateStmt
     | copyStmt
     | createAnalyzerStmt
+    | refreshStmt
     ;
 
 query
@@ -883,6 +884,10 @@ charFilters
 
 namedProperties
     : ident (WITH? '(' genericProperties ')' )? -> ^(NAMED_PROPERTIES ident genericProperties?)
+    ;
+
+refreshStmt
+    : REFRESH TABLE table -> ^(REFRESH table)
     ;
 
 nonReserved
