@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - The `number_of_replicas` column in `information_schema.tables` is now a
+   string instead of a number as it might also return ranges like '0-all'.
+
  - blobs can now only be used on a ``BLOB TABLE`` created using sql,
    also the REST endpoint changed from ``/<tableName>/_blobs`` to ``/_blobs/<tableName>``
 

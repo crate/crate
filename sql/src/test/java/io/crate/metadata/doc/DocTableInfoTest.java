@@ -2,19 +2,20 @@ package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.DataType;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
-import io.crate.DataType;
-import io.crate.exceptions.ColumnUnknownException;
+import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Arrays;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
 public class DocTableInfoTest {
@@ -33,7 +34,7 @@ public class DocTableInfoTest {
                 new String[0],
                 null,
                 5,
-                0);
+                new BytesRef("0"));
 
         ReferenceInfo foobar = info.getColumnInfo(new ColumnIdent("foobar"));
         assertNull(foobar);
@@ -69,7 +70,7 @@ public class DocTableInfoTest {
                 new String[0],
                 null,
                 5,
-                0);
+                new BytesRef("0"));
 
 
         try {

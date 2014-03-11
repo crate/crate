@@ -28,6 +28,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
@@ -44,7 +45,7 @@ public class BlobTableInfo implements TableInfo {
 
     private final TableIdent ident;
     private final int numberOfShards;
-    private final int numberOfReplicas;
+    private final BytesRef numberOfReplicas;
     private final ClusterService clusterService;
     private final String index;
     private final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
@@ -60,7 +61,7 @@ public class BlobTableInfo implements TableInfo {
                         String index,
                         ClusterService clusterService,
                         int numberOfShards,
-                        int numberOfReplicas) {
+                        BytesRef numberOfReplicas) {
         this.ident = ident;
         this.index = index;
         this.clusterService = clusterService;
@@ -141,7 +142,7 @@ public class BlobTableInfo implements TableInfo {
     }
 
     @Override
-    public int numberOfReplicas() {
+    public BytesRef numberOfReplicas() {
         return numberOfReplicas;
     }
 

@@ -81,12 +81,12 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select * from information_schema.tables order by schema_name, table_name");
         assertEquals(6L, response.rowCount());
 
-        assertArrayEquals(response.rows()[0], new Object[]{"information_schema", "columns", 1, 0, null});
-        assertArrayEquals(response.rows()[1], new Object[]{"information_schema", "table_constraints", 1, 0, null});
-        assertArrayEquals(response.rows()[2], new Object[]{"information_schema", "tables", 1, 0, null});
-        assertArrayEquals(response.rows()[3], new Object[]{"sys", "cluster", 1, 0, null});
-        assertArrayEquals(response.rows()[4], new Object[]{"sys", "nodes", 1, 0, null});
-        assertArrayEquals(response.rows()[5], new Object[]{"sys", "shards", 1, 0, null});
+        assertArrayEquals(response.rows()[0], new Object[]{"information_schema", "columns", 1, "0", null});
+        assertArrayEquals(response.rows()[1], new Object[]{"information_schema", "table_constraints", 1, "0", null});
+        assertArrayEquals(response.rows()[2], new Object[]{"information_schema", "tables", 1, "0", null});
+        assertArrayEquals(response.rows()[3], new Object[]{"sys", "cluster", 1, "0", null});
+        assertArrayEquals(response.rows()[4], new Object[]{"sys", "nodes", 1, "0", null});
+        assertArrayEquals(response.rows()[5], new Object[]{"sys", "shards", 1, "0", null});
     }
 
     @Test
@@ -119,13 +119,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals("doc", response.rows()[0][0]);
         assertEquals("foo", response.rows()[0][1]);
         assertEquals(3, response.rows()[0][2]);
-        assertEquals(1, response.rows()[0][3]);
+        assertEquals("1", response.rows()[0][3]);
         assertEquals("col1", response.rows()[0][4]);
 
         assertEquals("doc", response.rows()[1][0]);
         assertEquals("test", response.rows()[1][1]);
         assertEquals(5, response.rows()[1][2]);
-        assertEquals(1, response.rows()[1][3]);
+        assertEquals("1", response.rows()[1][3]);
         assertEquals("col1", response.rows()[1][4]);
     }
 
@@ -139,7 +139,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals("doc", response.rows()[0][0]);
         assertEquals("foo", response.rows()[0][1]);
         assertEquals(3, response.rows()[0][2]);
-        assertEquals(1, response.rows()[0][3]);
+        assertEquals("1", response.rows()[0][3]);
     }
 
     @Test
@@ -168,7 +168,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals("doc", response.rows()[0][0]);
         assertEquals("test", response.rows()[0][1]);
         assertEquals(5, response.rows()[0][2]);
-        assertEquals(1, response.rows()[0][3]);
+        assertEquals("1", response.rows()[0][3]);
         assertEquals("col1", response.rows()[0][4]);
     }
 
@@ -185,7 +185,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
         assertEquals("test", response.rows()[0][0]);
         assertEquals(5, response.rows()[0][1]);
-        assertEquals(1, response.rows()[0][2]);
+        assertEquals("1", response.rows()[0][2]);
         assertEquals("col1", response.rows()[0][3]);
     }
 
@@ -205,7 +205,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
         assertEquals("test", response.rows()[0][0]);
         assertEquals(5, response.rows()[0][1]);
-        assertEquals(1, response.rows()[0][2]);
+        assertEquals("1", response.rows()[0][2]);
         assertEquals("digest", response.rows()[0][3]);
     }
 
@@ -218,7 +218,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals("doc", response.rows()[0][0]);
         assertEquals("test", response.rows()[0][1]);
         assertEquals(5, response.rows()[0][2]);
-        assertEquals(1, response.rows()[0][3]);
+        assertEquals("1", response.rows()[0][3]);
         assertEquals("_id", response.rows()[0][4]);
     }
 
@@ -539,13 +539,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table t2 (id integer, col1 string) clustered into 5 shards with(number_of_replicas=7)");
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=2)");
         ensureYellow();
-        execute("select min(number_of_replicas), max(number_of_replicas), avg(number_of_replicas)," +
+        execute("select min(number_of_shards), max(number_of_shards), avg(number_of_shards)," +
                 "sum(number_of_shards) from information_schema.tables where schema_name='doc'");
         assertEquals(1, response.rowCount());
 
-        assertEquals(2, response.rows()[0][0]);
-        assertEquals(14, response.rows()[0][1]);
-        assertEquals(7.666666666666667d, response.rows()[0][2]);
+        assertEquals(3, response.rows()[0][0]);
+        assertEquals(10, response.rows()[0][1]);
+        assertEquals(6.0d, response.rows()[0][2]);
         assertEquals(18.0d, response.rows()[0][3]);
     }
 
@@ -555,13 +555,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table t2 (id integer, col1 string) clustered into 5 shards with(number_of_replicas=7)");
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=2)");
         ensureYellow();
-        execute("select min(number_of_replicas), max(number_of_replicas), avg(number_of_replicas)," +
+        execute("select min(number_of_shards), max(number_of_shards), avg(number_of_shards)," +
                 "sum(number_of_shards) from information_schema.tables where schema_name='doc' and table_name != 't1'");
         assertEquals(1, response.rowCount());
 
-        assertEquals(2, response.rows()[0][0]);
-        assertEquals(7, response.rows()[0][1]);
-        assertEquals(4.5d, response.rows()[0][2]);
+        assertEquals(3, response.rows()[0][0]);
+        assertEquals(5, response.rows()[0][1]);
+        assertEquals(4.0d, response.rows()[0][2]);
         assertEquals(8.0d, response.rows()[0][3]);
     }
 
@@ -571,10 +571,10 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table t2 (id integer, col1 string) clustered into 5 shards with(number_of_replicas=7)");
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=2)");
         ensureYellow();
-        execute("select min(number_of_replicas) as min_replicas from information_schema.tables where table_name = 't1'");
+        execute("select min(number_of_shards) as min_shards from information_schema.tables where table_name = 't1'");
         assertEquals(1, response.rowCount());
 
-        assertEquals(14, response.rows()[0][0]);
+        assertEquals(10, response.rows()[0][0]);
     }
 
     @Test

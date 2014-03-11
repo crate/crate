@@ -26,6 +26,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.symbol.DynamicReference;
+import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -40,7 +41,7 @@ public class BlobTableInfoTest {
             "dummy",
             null,
             5,
-            0);
+            new BytesRef("0"));
 
     @Test
     public void testGetColumnInfo() throws Exception {

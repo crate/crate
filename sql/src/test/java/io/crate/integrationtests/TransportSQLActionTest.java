@@ -2310,7 +2310,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
         assertEquals("quotes", response.rows()[0][0]);
         assertEquals(3, response.rows()[0][1]);
-        assertEquals(10, response.rows()[0][2]);
+        assertEquals("10", response.rows()[0][2]);
         assertEquals("id", response.rows()[0][3]);
         assertThat(response.duration(), greaterThanOrEqualTo(0L));
 
