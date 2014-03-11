@@ -22,10 +22,13 @@
 package io.crate.metadata.doc;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
+import io.crate.blob.v2.BlobIndices;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -46,6 +49,12 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     public static final String NAME = "doc";
     private final ClusterService clusterService;
 
+    private static final Predicate<String> tablesFilter = new Predicate<String>() {
+        @Override
+        public boolean apply(String input) {
+            return !BlobIndices.isBlobIndex(input);
+        }
+    };
 
     private final LoadingCache<String, DocTableInfo> cache = CacheBuilder.newBuilder()
             .maximumSize(10000)
@@ -93,7 +102,9 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     public Collection<String> tableNames() {
         // TODO: once we support closing/opening tables change this to concreteIndices()
         // and add  state info to the TableInfo.
-        return Arrays.asList(clusterService.state().metaData().concreteAllOpenIndices());
+        return Collections2.filter(
+                Arrays.asList(clusterService.state().metaData().concreteAllOpenIndices()),
+                tablesFilter);
     }
 
     @Override

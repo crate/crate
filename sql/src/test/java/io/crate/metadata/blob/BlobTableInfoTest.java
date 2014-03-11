@@ -44,7 +44,7 @@ public class BlobTableInfoTest {
 
     @Test
     public void testGetColumnInfo() throws Exception {
-        ReferenceInfo foobar = info.getColumnInfo(new ColumnIdent("name"));
+        ReferenceInfo foobar = info.getColumnInfo(new ColumnIdent("digest"));
         assertNotNull(foobar);
         assertThat(foobar.type(), is(DataType.STRING));
 
@@ -54,12 +54,12 @@ public class BlobTableInfoTest {
 
     @Test
     public void testPrimaryKey() throws Exception {
-        assertEquals(Arrays.asList(new String[]{"name"}), info.primaryKey());
+        assertEquals(Arrays.asList(new String[]{"digest"}), info.primaryKey());
     }
 
     @Test
     public void testClusteredBy() throws Exception {
-        assertEquals("name", info.clusteredBy());
+        assertEquals("digest", info.clusteredBy());
     }
 
     @Test

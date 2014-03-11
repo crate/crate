@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - blobs can now only be used on a ``BLOB TABLE`` created using sql,
+   also the REST endpoint changed from ``/<tableName>/_blobs`` to ``/_blobs/<tableName>``
+
  - updated fulltext utilities documentation
 
  - Fixed exceptions on ``sys.shards.num_docs`` when shard is not started yet.

@@ -22,9 +22,9 @@ settings like the number of shards or number of replicas::
     +--------------------+-------------------+------------------+--------------------+--------------+
     | schema_name        | table_name        | number_of_shards | number_of_replicas | clustered_by |
     +--------------------+-------------------+------------------+--------------------+--------------+
+    | blob               | myblobs           | 3                | 1                  | digest       |
     | doc                | documents         | 5                | 1                  | _id          |
     | doc                | locations         | 2                | 0                  | id           |
-    | doc                | myblobs           | 3                | 1                  | _id          |
     | doc                | quotes            | 2                | 0                  | id           |
     | information_schema | columns           | 1                | 0                  | NULL         |
     | information_schema | table_constraints | 1                | 0                  | NULL         |
@@ -111,9 +111,9 @@ their type, name and which table they are defined in.
     | information_schema | tables     | [u'schema_name', u'table_name']                 | PRIMARY_KEY     |
     | information_schema | columns    | [u'schema_name', u'table_name', u'column_name'] | PRIMARY_KEY     |
     | doc                | quotes     | [u'id']                                         | PRIMARY_KEY     |
-    | doc                | myblobs    | [u'_id']                                        | PRIMARY_KEY     |
     | doc                | locations  | [u'id']                                         | PRIMARY_KEY     |
     | doc                | documents  | [u'_id']                                        | PRIMARY_KEY     |
+    | blob               | myblobs    | [u'digest']                                     | PRIMARY_KEY     |
     +--------------------+------------+-------------------------------------------------+-----------------+
     SELECT 8 rows in set (... sec)
 

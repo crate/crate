@@ -64,14 +64,21 @@ public class BlobIndices extends AbstractComponent {
     public static final Predicate<String> indicesFilter = new Predicate<String>() {
         @Override
         public boolean apply(String indexName) {
-            return indexName.startsWith(INDEX_PREFIX);
+            return isBlobIndex(indexName);
         }
     };
 
     public static final Function<String, String> stripPrefix = new Function<String, String>() {
         @Override
         public String apply(String indexName) {
-            return indexName.substring(BlobIndices.INDEX_PREFIX.length());
+            return indexName(indexName);
+        }
+    };
+
+    public static final Function<String, String> addPrefix = new Function<String, String>() {
+        @Override
+        public String apply(String indexName) {
+            return fullIndexName(indexName);
         }
     };
 
@@ -88,43 +95,8 @@ public class BlobIndices extends AbstractComponent {
         this.indicesLifecycle = indicesLifecycle;
     }
 
-    /**
-     * check if this index is a blob table
-     *
-     * This only works for indices that were created via SQL.
-     */
-    public static boolean isBlobShard(String index) {
-        return index.startsWith(INDEX_PREFIX);
-    }
-
-    /**
-     * check if this shards is part of an index that is a blob table
-     *
-     * This only works for indices that were created via SQL.
-     */
-    public static boolean isBlobShard(ShardId shardId) {
-        return isBlobShard(shardId.getIndex());
-    }
-
     public BlobShard blobShardSafe(ShardId shardId) {
         return blobShardSafe(shardId.getIndex(), shardId.id());
-    }
-
-    /**
-     * check if this index is a blob index
-     *
-     * this method is deprecated.
-     * Will be removed when being blob table is determined by index name.
-     */
-    @Deprecated
-    public boolean blobsEnabled(String index) {
-        return indicesService.indexServiceSafe(index)
-                .settingsService().getSettings().getAsBoolean(SETTING_BLOBS_ENABLED, false);
-    }
-
-    @Deprecated
-    public boolean blobsEnabled(ShardId shardId) {
-        return blobsEnabled(shardId.getIndex());
     }
 
     public ListenableFuture<Void> createBlobTable(String tableName,
@@ -139,9 +111,8 @@ public class BlobIndices extends AbstractComponent {
             builder.put(numberOfReplicas.esSettingKey(), numberOfReplicas.esSettingValue());
         }
 
-        tableName = INDEX_PREFIX + tableName;
         final SettableFuture<Void> result = SettableFuture.create();
-        transportCreateIndexAction.execute(new CreateIndexRequest(tableName, builder.build()), new ActionListener<CreateIndexResponse>() {
+        transportCreateIndexAction.execute(new CreateIndexRequest(fullIndexName(tableName), builder.build()), new ActionListener<CreateIndexResponse>() {
             @Override
             public void onResponse(CreateIndexResponse createIndexResponse) {
                 assert createIndexResponse.isAcknowledged();
@@ -158,7 +129,7 @@ public class BlobIndices extends AbstractComponent {
 
     public ListenableFuture<Void> dropBlobTable(String tableName) {
         final SettableFuture<Void> result = SettableFuture.create();
-        transportDeleteIndexAction.execute(new DeleteIndexRequest(INDEX_PREFIX + tableName), new ActionListener<DeleteIndexResponse>() {
+        transportDeleteIndexAction.execute(new DeleteIndexRequest(fullIndexName(tableName)), new ActionListener<DeleteIndexResponse>() {
             @Override
             public void onResponse(DeleteIndexResponse deleteIndexResponse) {
                 result.set(null);
@@ -185,7 +156,7 @@ public class BlobIndices extends AbstractComponent {
     }
 
     public BlobShard blobShardSafe(String index, int shardId) {
-        if (blobsEnabled(index)) {
+        if (isBlobIndex(index)) {
             return indicesService.indexServiceSafe(index).shardInjectorSafe(shardId).getInstance(BlobShard.class);
         }
         throw new BlobsDisabledException(index);
@@ -211,6 +182,50 @@ public class BlobIndices extends AbstractComponent {
     public List<String> indices() {
         return FluentIterable.from(indicesService.indices())
                 .filter(indicesFilter).toList();
+    }
+
+    /**
+     * check if this index is a blob table
+     *
+     * This only works for indices that were created via SQL.
+     */
+    public static boolean isBlobIndex(String indexName) {
+        return indexName.startsWith(INDEX_PREFIX);
+    }
+
+    /**
+     * check if given shard is part of an index that is a blob table
+     *
+     * This only works for indices that were created via SQL.
+     */
+    public static boolean isBlobShard(ShardId shardId) {
+        return isBlobIndex(shardId.getIndex());
+    }
+
+    /**
+     * Returns the full index name, adds blob index prefix.
+     *
+     * @param indexName
+     * @return
+     */
+    public static String fullIndexName(String indexName) {
+        if (isBlobIndex(indexName)) {
+            return indexName;
+        }
+        return INDEX_PREFIX + indexName;
+    }
+
+    /**
+     * Strips the blob index prefix from a full index name
+     *
+     * @param indexName
+     * @return
+     */
+    public static String indexName(String indexName) {
+        if (!isBlobIndex(indexName)) {
+            return indexName;
+        }
+        return indexName.substring(INDEX_PREFIX.length());
     }
 
 }

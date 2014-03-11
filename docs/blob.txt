@@ -6,19 +6,16 @@ Crate Data includes support to store `binary large objects`_. By utilizing
 Crate Data's cluster features the files can be replicated and sharded just
 like regular data.
 
-Any index can hold blobs if enabled. To enable blobs on an index the
-``blobs.enabled`` flag needs to be set to true like this::
+Creating a table for blobs
+--------------------------
 
-    sh$ curl -sSX PUT '127.0.0.1:4200/myblobs?pretty' -d '{
-    ... "number_of_shards": 3,
-    ... "number_of_replicas": 1,
-    ... "blobs.enabled": true}'
-    {
-      "acknowledged" : true
-    }
+Before adding blobs a ``blob table`` must be created. Lets use the crate shell ``crash`` to issue
+the SQL statement::
 
-Now crate is configured to allow blobs to be management under the index's
-``_blobs`` endpoint.
+    sh$ crash -s "create blob table myblobs clustered into 3 shards with (number_of_replicas=1)"
+    CREATE OK (... sec)
+
+Now crate is configured to allow blobs to be management under the ``/_blobs/myblobs`` endpoint.
 
 Uploading
 ---------
@@ -32,13 +29,13 @@ we use a fancy python one-liner to compute the shasum::
 
 The blob can now be uploaded by issuing a PUT request::
 
-    sh$ curl -isSX PUT '127.0.0.1:4200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7' -d 'contents'
+    sh$ curl -isSX PUT '127.0.0.1:4200/_blobs/myblobs/4a756ca07e9487f482465a99e8286abc86ba4dc7' -d 'contents'
     HTTP/1.1 201 Created
     Content-Length: 0
 
 If a blob already exists with the given hash a 409 Conflict is returned::
 
-    sh$ curl -isSX PUT '127.0.0.1:4200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7' -d 'contents'
+    sh$ curl -isSX PUT '127.0.0.1:4200/_blobs/myblobs/4a756ca07e9487f482465a99e8286abc86ba4dc7' -d 'contents'
     HTTP/1.1 409 Conflict
     Content-Length: 0
 
@@ -47,7 +44,7 @@ Download
 
 To download a blob simply use a GET request::
 
-    sh$ curl -sS '127.0.0.1:4200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
+    sh$ curl -sS '127.0.0.1:4200/_blobs/myblobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
     contents
 
 .. note::
@@ -59,14 +56,14 @@ To download a blob simply use a GET request::
 
 If the blob doesn't exist a 404 Not Found error is returned::
 
-    sh$ curl -isS '127.0.0.1:4200/myblobs/_blobs/e5fa44f2b31c1fb553b6021e7360d07d5d91ff5e'
+    sh$ curl -isS '127.0.0.1:4200/_blobs/myblobs/e5fa44f2b31c1fb553b6021e7360d07d5d91ff5e'
     HTTP/1.1 404 Not Found
     Content-Length: 0
 
 To determine if a blob exists without downloading it, a HEAD request can be
 used::
 
-    sh$ curl -sS -I '127.0.0.1:4200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
+    sh$ curl -sS -I '127.0.0.1:4200/_blobs/myblobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
     HTTP/1.1 200 OK
     Content-Length: 8
     Accept-Ranges: bytes
@@ -83,14 +80,29 @@ Delete
 
 To delete a blob simply use a DELETE request::
 
-    sh$ curl -isS -XDELETE '127.0.0.1:4200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
+    sh$ curl -isS -XDELETE '127.0.0.1:4200/_blobs/myblobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
     HTTP/1.1 204 No Content
     Content-Length: 0
 
 If the blob doesn't exist a 404 Not Found error is returned::
 
-    sh$ curl -isS -XDELETE '127.0.0.1:4200/myblobs/_blobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
+    sh$ curl -isS -XDELETE '127.0.0.1:4200/_blobs/myblobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
     HTTP/1.1 404 Not Found
     Content-Length: 0
+
+
+Deleting a blob table
+---------------------
+
+Blob tables can be deleted similar to normal tables (again using the crate shell here)::
+
+    sh$ crash -s "drop blob table myblobs"
+    DROP OK (... sec)
+
+.. Hidden: Re-create the blob table so information_schema will show it::
+
+    sh$ crash -s "create blob table myblobs clustered into 3 shards with (number_of_replicas=1)"
+    CREATE OK (... sec)
+
 
 .. _`binary large objects`: http://en.wikipedia.org/wiki/Binary_large_object

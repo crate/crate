@@ -2872,4 +2872,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("create blob table screenshots with (number_of_replicas=0)");
         execute("drop blob table screenshots");
     }
+
+    @Test (expected = UnsupportedFeatureException.class)
+    public void testSelectFromBlobTable() throws Exception {
+        execute("create blob table screenshots with (number_of_replicas=0)");
+        execute("select * from blob.screenshots");
+    }
 }

@@ -5,6 +5,7 @@ from crate.testing.layer import CrateLayer
 import os
 import requests
 import shutil
+import re
 
 from crate.client.crash import CrateCmd
 cmd = CrateCmd()
@@ -30,6 +31,9 @@ def bash_transform(s):
     # Our test suite requires the port to be '44200' to avoid conflicts.
     # Therefore, we need to replace the ports before a test is being run.
     s = s.replace(':4200/', ':44200/')
+    if s.startswith("crash"):
+        s = re.search(r"crash\s+-s\s+\"(.*?)\"", s).group(1)
+        return ('cmd.onecmd("""{0}""");'.format(s.strip()))
     return (
         r'import subprocess;'
         r'print(subprocess.check_output(r"""%s""",stderr=subprocess.STDOUT,shell=True))' % s) + '\n'
@@ -115,6 +119,7 @@ def test_suite():
     suite = unittest.TestSuite()
     s = doctest.DocFileSuite('../../blob.txt',
                              parser=bash_parser,
+                             setUp=setUp,
                              tearDown=tearDownDropQuotes,
                              optionflags=doctest.NORMALIZE_WHITESPACE |
                              doctest.ELLIPSIS)

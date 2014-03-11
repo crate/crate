@@ -21,18 +21,18 @@
 
 package io.crate.integrationtests;
 
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
 import io.crate.blob.PutChunkAction;
 import io.crate.blob.PutChunkRequest;
 import io.crate.blob.StartBlobAction;
 import io.crate.blob.StartBlobRequest;
-import io.crate.blob.stats.BlobStatsAction;
-import io.crate.blob.stats.BlobStatsRequest;
-import io.crate.blob.stats.BlobStatsResponse;
+import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
+import io.crate.core.NumberOfReplicas;
 import io.crate.test.integration.CrateIntegrationTest;
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
@@ -44,13 +44,16 @@ import org.junit.Test;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.core.IsEqual.equalTo;
 
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 0)
@@ -97,16 +100,19 @@ public class RecoveryTests extends CrateIntegrationTest {
         return null;
     }
 
-    private void uploadFile(Client client, String content) {
+    private String uploadFile(Client client, String content) {
         byte[] digest = getDigest(content);
+        String digestString = Hex.encodeHexString(digest);
         byte[] contentBytes = content.getBytes();
-        logger.trace("Uploading {} digest {}", content, Hex.encodeHexString(digest));
+        logger.trace("Uploading {} digest {}", content, digestString);
         BytesArray bytes = new BytesArray(new byte[]{contentBytes[0]});
         if (content.length() == 1) {
-            client.execute(StartBlobAction.INSTANCE, new StartBlobRequest("test", digest, bytes,
-                    true)).actionGet();
+            client.execute(StartBlobAction.INSTANCE,
+                    new StartBlobRequest(BlobIndices.fullIndexName("test"), digest, bytes,true))
+                    .actionGet();
         } else {
-            StartBlobRequest startBlobRequest = new StartBlobRequest("test", digest, bytes, false);
+            StartBlobRequest startBlobRequest = new StartBlobRequest(
+                    BlobIndices.fullIndexName("test"), digest, bytes, false);
             client.execute(StartBlobAction.INSTANCE, startBlobRequest).actionGet();
             for (int i = 1; i < contentBytes.length; i++) {
                 try {
@@ -116,13 +122,15 @@ public class RecoveryTests extends CrateIntegrationTest {
                 bytes = new BytesArray(new byte[]{contentBytes[i]});
                 client.execute(PutChunkAction.INSTANCE,
                         new PutChunkRequest(
-                                "test", digest, startBlobRequest.transferId(), bytes, i,
+                                BlobIndices.fullIndexName("test"), digest,
+                                startBlobRequest.transferId(), bytes, i,
                                 (i + 1) == content.length())
                 ).actionGet();
             }
         }
-        logger.trace("Upload finished {} digest {}", content, Hex.encodeHexString(digest));
+        logger.trace("Upload finished {} digest {}", content, digestString);
 
+        return digestString;
     }
 
 
@@ -147,13 +155,10 @@ public class RecoveryTests extends CrateIntegrationTest {
 
         final String node1 = cluster().startNode();
 
+        BlobIndices blobIndices = cluster().getInstance(BlobIndices.class, node1);
+
         logger.trace("--> creating test index ...");
-        cluster().client(node1).admin().indices().prepareCreate("test")
-                .setSettings(settingsBuilder()
-                        .put("index.number_of_shards", 1)
-                        .put("index.number_of_replicas", 0)
-                        .put("blobs.enabled", true)
-                ).execute().actionGet();
+        blobIndices.createBlobTable("test", new NumberOfReplicas(0), 1).get();
 
         logger.trace("--> starting [node2] ...");
         final String node2 = cluster().startNode();
@@ -167,6 +172,7 @@ public class RecoveryTests extends CrateIntegrationTest {
         final CountDownLatch stopLatch = new CountDownLatch(writers.length);
 
         logger.trace("--> starting {} blob upload threads", writers.length);
+        final List<String> uploadedDigests = Collections.synchronizedList(new ArrayList<String>(writers.length));
         for (int i = 0; i < writers.length; i++) {
             final int indexerId = i;
             writers[i] = new Thread() {
@@ -176,7 +182,8 @@ public class RecoveryTests extends CrateIntegrationTest {
                         logger.trace("**** starting blob upload thread {}", indexerId);
                         while (!stop.get()) {
                             long id = idGenerator.incrementAndGet();
-                            uploadFile(cluster().client(node1), genFile(id));
+                            String digest = uploadFile(cluster().client(node1), genFile(id));
+                            uploadedDigests.add(digest);
                             indexCounter.incrementAndGet();
                         }
                         logger.trace("**** done indexing thread {}", indexerId);
@@ -191,9 +198,7 @@ public class RecoveryTests extends CrateIntegrationTest {
         }
 
         logger.trace("--> waiting for 2 blobs to be uploaded ...");
-        while (cluster().client(node1).execute(BlobStatsAction.INSTANCE, new BlobStatsRequest().indices(
-                "test"))
-                .actionGet().blobShardStats()[0].blobStats().count() < 2) {
+        while (uploadedDigests.size() < 2) {
             Thread.sleep(10);
         }
         logger.trace("--> 2 blobs uploaded");
@@ -207,7 +212,7 @@ public class RecoveryTests extends CrateIntegrationTest {
             String toNode = node1.equals(fromNode) ? node2 : node1;
             logger.trace("--> START relocate the shard from {} to {}", fromNode, toNode);
             cluster().client(node1).admin().cluster().prepareReroute()
-                    .add(new MoveAllocationCommand(new ShardId("test", 0), fromNode, toNode))
+                    .add(new MoveAllocationCommand(new ShardId(BlobIndices.fullIndexName("test"), 0), fromNode, toNode))
                     .execute().actionGet();
             ClusterHealthResponse clusterHealthResponse = cluster().client(node1).admin().cluster()
                     .prepareHealth()
@@ -232,13 +237,15 @@ public class RecoveryTests extends CrateIntegrationTest {
         stopLatch.await(60, TimeUnit.SECONDS);
         logger.trace("--> uploading threads stopped");
 
-        BlobStatsResponse response = cluster().client(node2)
-                .execute(BlobStatsAction.INSTANCE, new BlobStatsRequest().indices(
-                        "test")).actionGet();
-        assertTrue(response.blobShardStats().length > 0);
-        long numBlobs = response.blobShardStats()[0].blobStats().count();
-        long uploadedDocs = indexCounter.get();
-        logger.trace("--> expected {} got {}", uploadedDocs, numBlobs);
-        assertEquals(uploadedDocs, numBlobs);
+        logger.trace("--> expected {} got {}", indexCounter.get(), uploadedDigests.size());
+        assertEquals(indexCounter.get(), uploadedDigests.size());
+
+        blobIndices = cluster().getInstance(BlobIndices.class, node2);
+        for (String digest : uploadedDigests) {
+            BlobShard blobShard = blobIndices.localBlobShard(BlobIndices.fullIndexName("test"), digest);
+            long length = blobShard.blobContainer().getFile(digest).length();
+            assertThat(length, greaterThanOrEqualTo(1L));
+        }
+
     }
 }
