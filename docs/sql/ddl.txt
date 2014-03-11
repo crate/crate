@@ -241,8 +241,8 @@ New columns added to ``ignored`` objects can be retrieved as result column in a 
 but one cannot order by them or use them in a where clause. They are simply there for fetching,
 nothing else.
 
-arrays
-......
+array
+-----
 
 Crate supports arrays. An array is a collection of another `simple` data type.
 The simple data types are:
@@ -250,7 +250,7 @@ The simple data types are:
 * boolean
 * string
 * ip
-* any of the numeric types (integer, long, short, double, float, byte)
+* all numeric types (integer, long, short, double, float, byte)
 * timestamp
 * object
 

@@ -59,7 +59,7 @@ A simple where clause example using an equality operator::
     SELECT 1 row in set (... sec)
 
 Usual comparison operators to be used in filters are available for
-string, integer/long, float/double and date type:
+all simple data types:
 
     ===========  =================================
     Operator     Description
@@ -80,11 +80,7 @@ string, integer/long, float/double and date type:
 
   The field 'name' used for the request above is defined as
   'not_analyzed' in the schema. For an 'analyzed' field the result may
-  differ depending on the used Analyzer/Tokenizer. For details
-  regarding analysis please refer to the `elasticsearch analysis`_
-  site.
-
-.. _`elasticsearch analysis`: http://www.elasticsearch.org/guide/reference/index-modules/analysis/
+  differ depending on the used Analyzer/Tokenizer.
 
 For strings a lexicographical comparison is performed based on the
 Lucene TermRangeQuery::
@@ -118,10 +114,10 @@ The following example uses one of the supported ISO date formats::
     +--------------+----------+
     SELECT 2 rows in set (... sec)
 
-All supported default ISO date formats are comparable.
-For a full list please refer to the `elasticsearch date-format`_ site.
 
-.. _`elasticsearch date-format`: http://www.elasticsearch.org/guide/reference/mapping/date-format/
+For a detailed explanation of the supported ISO date formats please refer to the `joda date_optional_time`_ site.
+
+.. _`joda date_optional_time`: http://joda-time.sourceforge.net/api-release/org/joda/time/format/ISODateTimeFormat.html#dateOptionalTimeParser%28%29
 
 For custom date types, or defined date formats in the object mapping
 the corresponding format should be used for a comparison. Otherwise

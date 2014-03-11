@@ -29,9 +29,6 @@ tokenizers and token-filters to get proper search results for data provided in a
 Below the builtin analyzers, tokenizers, token-filters and char-filters are listed.
 They can be used as is or can be extended. See :ref:`fulltext-indices`.
 
-
-.. note:: This documentation is mainly derived from the `ElasticSearch Analysis Documentation`_ .
-
 .. _builtin-analyzer:
 
 Builtin Analyzer
@@ -48,9 +45,8 @@ An analyzer of type standard is built using the :ref:`standard-tokenizer` Tokeni
 with the :ref:`standard-tokenfilter` Token Filter,
 :ref:`lowercase-tokenfilter` Token Filter, and :ref:`stop-tokenfilter` Token Filter.
 
-Lowercase all Tokens, excludes english stopwords (common words you usually don't search for
-like 'the', 'and', 'a' etc.) and excludes tokens longer than 255 characters. Tokens are built
-using a grammar-based approach which is suited for most european language.
+Lowercase all Tokens, uses *NO* stopwords and excludes tokens longer than 255 characters.
+This analyzer uses unicode text segmentation, which is defined by `UAX_29`_.
 
 Example::
 
@@ -66,6 +62,16 @@ stopwords
 max_token_length
     The maximum token length. If a token is seen that exceeds this length then it is discarded.
     Defaults to ``255``.
+
+
+.. _default-analyzer:
+
+default
+-------
+
+``type='default'``
+
+This is the same as the `standard-analyzer`_ analyzer.
 
 
 .. _simple-analyzer:
@@ -197,7 +203,7 @@ stopwords
     A list of stopwords to initialize the stop filter with. Defaults to the english stop words.
 
 language
-    see the language-parameter of :ref:`snowball-tokenfilter`.
+    See the language-parameter of :ref:`snowball-tokenfilter`.
 
 
 .. _builtin-tokenizer:
@@ -229,7 +235,7 @@ max_token_length
 edgeNGram
 ---------
 
-``type='edgeNGram'``
+``type='edge_ngram'`` or ``type='edgeNGram'``
 
 This tokenizer is very similar to :ref:`ngram-tokenizer` but only keeps n-grams which start at
 the beginning of a token.
@@ -290,7 +296,7 @@ It divides text at non-letters and converts them to lower case.
 ngram
 -----
 
-``type='ngram'``
+``type='ngram'`` or ``type='nGram'``
 
 Parameters
 ..........
@@ -466,7 +472,7 @@ language
 ngram
 -----
 
-``type='ngram'``
+``type='ngram'`` or ``type='nGram'``
 
 Parameters
 ..........
@@ -483,10 +489,10 @@ max_gram
 edge ngram
 ----------
 
-``type='edgeNGram'``
+``type='edgeNGram'`` or ``type='edge_ngram'``
 
 Parameters
-...........
+..........
 
 min_gram
     Defaults to 1.
@@ -503,7 +509,7 @@ side
 porter stem
 -----------
 
-``type='porterStem'``
+``type='porter_stem'``
 
 Transforms the token stream as per the Porter stemming algorithm.
 
@@ -673,19 +679,6 @@ ignore_case
     Set to true to lower case all words first. Defaults to false.
 
 
-.. _keywordrepeat-tokenfilter:
-
-keyword repeat
---------------
-
-``type='keyword_repeat'``
-
-Emits each incoming token twice once as keyword and once as a non-keyword to allow an un-stemmed
-version of a term to be indexed side by side to the stemmed version of the term.
-Given the nature of this filter each token that isn’t transformed by a subsequent stemmer will
-be indexed twice.
-
-
 .. _kstem-tokenfilter:
 
 kstem
@@ -714,13 +707,6 @@ language
     Possible values: Armenian, Basque, Catalan, Danish, Dutch, English, Finnish, French, German,
     German2, Hungarian, Italian, Kp, Lovins, Norwegian, Porter, Portuguese, Romanian, Russian,
     Spanish, Swedish, Turkish.
-
-.. _phonetic-tokenfilter:
-
-phonetic
---------
-
-``type='phonetic'``
 
 
 .. _synonym-tokenfilter:
@@ -829,7 +815,7 @@ unique
 Used to only index unique tokens during analysis. By default it is applied on all the token stream.
 
 Parameters
-...........
+..........
 
 
 only_on_same_position
@@ -885,6 +871,8 @@ Trims the whitespace surrounding a token.
 
 limit token count
 -----------------
+
+``type='limit'``
 
 Limits the number of tokens that are indexed per document and field.
 
@@ -979,16 +967,116 @@ normalization
 ``type='arabic_normalization'`` or ``type='persian_normalization'``
 
 
-.. _typeaspayload-tokenfilter:
+.. _delimited_payload-tokenfilter:
 
-type_as_payload
----------------
+delimited payload
+-----------------
 
-``type='type_as_payload'``
+``type='delimited_payload_filter'``
 
-Stores the type of every single token encoded as UTF-8 String as additional payload.
-This is currently not usable from within crate, so it has no effect on how fulltext search
-works on your tables.
+Split tokens up by delimiter (default ``|``) into the real token being indexed and the payload
+stored additionally into the index. For example ``Trillian|65535`` will be indexed as ``Trillian``
+with ``65535`` as payload.
+
+Parameter
+.........
+
+encoding
+    How the payload should be interpreted, possible values are ``float`` for float values,
+    ``int`` for integer values and ``identity`` for keeping the payload as byte array (string).
+
+delimiter
+    The string used to separate the token and its payload.
+
+
+.. _keep-tokenfilter:
+
+keep
+----
+
+``type='keep'``
+
+Only keep tokens defined within the settings of this filter ``keep_words`` and variations.
+All other tokens will be filtered. This filter works like an inverse `stop-tokenfilter`_ filter.
+
+Parameter
+.........
+
+keep_words
+    A list of words to keep and index as tokens.
+
+keep_words_path
+    A path (either relative to config location, or absolute) to a list of words to keep and index.
+    Each word should be in its own "line" (separated by a line break). The file must be UTF-8
+    encoded.
+
+.. _stemmer_override-tokenfilter:
+
+stemmer override
+----------------
+
+``type='stemmer_override'``
+
+Override any previous stemmer that recognizes keywords with a custom mapping,
+defined by ``rules`` or ``rules_path``. One of these settings has to be set.
+
+Parameter
+.........
+
+rules
+    A list of rules for overriding, in the form of ``[<source>=><replacement>] e.g. "foo=>bar"``
+
+rules_path
+    A path to a file with one rule per line, like above.
+
+
+.. _cjk_bigram-tokenfilter:
+
+cjk bigram
+----------
+
+``type='cjk_bigram'``
+
+Handle Chinese, Japanese and Korean (CJK) bigrams.
+
+Parameters
+..........
+
+output_bigrams
+    Boolean flag to enable a combined unigram+bigram approach.
+    Default is ``false``, so single CJK characters that do not form a bigram are passed as unigrams.
+    All non CJK characters are output unmodified.
+
+ignored_scripts
+    Scripts to ignore. possible values: ``han``, ``hiragana``, ``katakana``, ``hangul``
+
+
+.. cjk_width-tokenfilter:
+
+cjk width
+---------
+
+``type='cjk_width'``
+
+A filter that normalizes CJK.
+
+
+.. language_stem-tokenfilter:
+
+language stem
+-------------
+
+| ``type='arabic_stem'`` or
+| ``type='brazilian_stem'`` or
+| ``type='czech_stem'`` or
+| ``type='dutch_stem'`` or
+| ``type='french_stem'`` or
+| ``type='german_stem'`` or
+| ``type='russian_stem'``
+
+A group of filters that applies language specific stemmers to the token stream.
+To prevent terms from being stemmed put a `keywordmarker-tokenfilter`_ before this
+filter into the ``token_filter`` chain.
 
 .. _builtin-char-filter:
 
@@ -1043,4 +1131,4 @@ replacement
 
 
 .. _Java Pattern Api: http://download.oracle.com/javase/6/docs/api/java/util/regex/Pattern.html#field_summary
-.. _ElasticSearch Analysis Documentation: http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/analysis.html
+.. _UAX_29 UAX 29: http://www.unicode.org/reports/tr29/
