@@ -21,8 +21,9 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
@@ -37,7 +38,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class CreateBlobTableAnalyzerTest extends BaseAnalyzerTest {
+public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
     static class TestMetaDataModule extends MetaDataModule {
         @Override
@@ -50,7 +51,7 @@ public class CreateBlobTableAnalyzerTest extends BaseAnalyzerTest {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
-            schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
+            schemaBinder.addBinding(BlobSchemaInfo.NAME).toInstance(schemaInfo);
         }
     }
 
@@ -97,5 +98,28 @@ public class CreateBlobTableAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.numberOfShards(), is(10));
         assert analysis.numberOfReplicas() != null;
         assertThat(analysis.numberOfReplicas().esSettingValue(), is("0-all"));
+    }
+
+    @Test
+    public void testDropBlobTable() {
+        DropBlobTableAnalysis analysis = (DropBlobTableAnalysis)analyze("drop blob table users");
+        assertThat(analysis.tableIdent().name(), is("users"));
+        assertThat(analysis.tableIdent().schema(), is(BlobSchemaInfo.NAME));
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void testDropBlobTableWithInvalidSchema() {
+        analyze("drop blob table doc.users");
+    }
+
+    @Test
+    public void testDropBlobTableWithValidSchema() {
+        DropBlobTableAnalysis analysis = (DropBlobTableAnalysis)analyze("drop blob table \"blob\".users");
+        assertThat(analysis.tableIdent().name(), is("users"));
+    }
+
+    @Test (expected = TableUnknownException.class)
+    public void testDropBlobTableThatDoesNotExist() {
+        analyze("drop blob table unknown");
     }
 }

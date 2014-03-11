@@ -80,6 +80,7 @@ public class Analyzer {
         private final AbstractStatementAnalyzer createTableStatementAnalyzer = new CreateTableStatementAnalyzer();
         private final AbstractStatementAnalyzer createBlobTableStatementAnalyzer = new CreateBlobTableStatementAnalyzer();
         private final AbstractStatementAnalyzer createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer();
+        private final AbstractStatementAnalyzer dropBlobTableStatementAnalyzer = new DropBlobTableStatementAnalyzer();
 
         public AnalyzerDispatcher(ReferenceInfos referenceInfos,
                                   Functions functions,
@@ -148,6 +149,12 @@ public class Analyzer {
         public AbstractStatementAnalyzer visitCreateBlobTable(CreateBlobTable node, Context context) {
             context.analysis = new CreateBlobTableAnalysis(context.parameters);
             return createBlobTableStatementAnalyzer;
+        }
+
+        @Override
+        public AbstractStatementAnalyzer visitDropBlobTable(DropBlobTable node, Context context) {
+            context.analysis = new DropBlobTableAnalysis(context.parameters, referenceInfos);
+            return dropBlobTableStatementAnalyzer;
         }
 
         @Override
