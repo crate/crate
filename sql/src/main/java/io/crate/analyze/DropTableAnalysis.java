@@ -66,7 +66,6 @@ public class DropTableAnalysis extends AbstractDDLAnalysis {
     }
 
     @Override
-    @Nullable
     public TableInfo table() {
         return tableInfo;
     }

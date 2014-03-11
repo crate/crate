@@ -72,4 +72,9 @@ public class DropBlobTableAnalysis extends AbstractDDLAnalysis {
     public TableIdent tableIdent() {
         return tableIdent;
     }
+
+    @Override
+    public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
+        return analysisVisitor.visitDropBlobTableAnalysis(this, context);
+    }
 }

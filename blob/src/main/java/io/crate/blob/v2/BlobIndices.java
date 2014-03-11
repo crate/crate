@@ -33,6 +33,9 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
+import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -54,6 +57,7 @@ public class BlobIndices extends AbstractComponent {
     private static final int DEFAULT_NUMBER_OF_REPLICAS = 1;
 
     private final TransportCreateIndexAction transportCreateIndexAction;
+    private final TransportDeleteIndexAction transportDeleteIndexAction;
     private final IndicesService indicesService;
     private final IndicesLifecycle indicesLifecycle;
 
@@ -74,10 +78,12 @@ public class BlobIndices extends AbstractComponent {
     @Inject
     public BlobIndices(Settings settings,
                        TransportCreateIndexAction transportCreateIndexAction,
+                       TransportDeleteIndexAction transportDeleteIndexAction,
                        IndicesService indicesService,
                        IndicesLifecycle indicesLifecycle) {
         super(settings);
         this.transportCreateIndexAction = transportCreateIndexAction;
+        this.transportDeleteIndexAction = transportDeleteIndexAction;
         this.indicesService = indicesService;
         this.indicesLifecycle = indicesLifecycle;
     }
@@ -150,6 +156,22 @@ public class BlobIndices extends AbstractComponent {
         return result;
     }
 
+    public ListenableFuture<Void> dropBlobTable(String tableName) {
+        final SettableFuture<Void> result = SettableFuture.create();
+        transportDeleteIndexAction.execute(new DeleteIndexRequest(INDEX_PREFIX + tableName), new ActionListener<DeleteIndexResponse>() {
+            @Override
+            public void onResponse(DeleteIndexResponse deleteIndexResponse) {
+                result.set(null);
+            }
+
+            @Override
+            public void onFailure(Throwable e) {
+                result.setException(e);
+            }
+        });
+        return result;
+    }
+
     public BlobShard blobShard(String index, int shardId) {
         IndexService indexService = indicesService.indexService(index);
         if (indexService != null) {
@@ -190,4 +212,5 @@ public class BlobIndices extends AbstractComponent {
         return FluentIterable.from(indicesService.indices())
                 .filter(indicesFilter).toList();
     }
+
 }
