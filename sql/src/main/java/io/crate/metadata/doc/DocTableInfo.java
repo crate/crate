@@ -24,11 +24,12 @@ package io.crate.metadata.doc;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.DynamicReference;
-import io.crate.exceptions.ColumnUnknownException;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
@@ -49,7 +50,7 @@ public class DocTableInfo implements TableInfo {
     private final String clusteredBy;
     private final String[] concreteIndices;
     private final int numberOfShards;
-    private final int numberOfReplicas;
+    private final BytesRef numberOfReplicas;
     private final ClusterService clusterService;
 
     private final String[] indices;
@@ -67,7 +68,7 @@ public class DocTableInfo implements TableInfo {
                         String[] concreteIndices,
                         ClusterService clusterService,
                         int numberOfShards,
-                        int numberOfReplicas) {
+                        BytesRef numberOfReplicas) {
         this.clusterService = clusterService;
         this.columns = columns;
         this.references = references;
@@ -201,7 +202,7 @@ public class DocTableInfo implements TableInfo {
     }
 
     @Override
-    public int numberOfReplicas() {
+    public BytesRef numberOfReplicas() {
         return numberOfReplicas;
     }
 

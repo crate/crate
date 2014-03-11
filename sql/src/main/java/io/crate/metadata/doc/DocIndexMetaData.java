@@ -27,17 +27,19 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
+import io.crate.Constants;
+import io.crate.DataType;
+import io.crate.exceptions.TableAliasSchemaException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.RowGranularity;
-import io.crate.Constants;
-import io.crate.DataType;
-import io.crate.exceptions.TableAliasSchemaException;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.Tuple;
+import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -59,7 +61,7 @@ public class DocIndexMetaData {
 
     private final TableIdent ident;
     private final int numberOfShards;
-    private final int numberOfReplicas;
+    private final BytesRef numberOfReplicas;
     private Map<String, Object> metaMap;
     private Map<String, Object> metaColumnsMap;
     private Map<String, Object> indicesMap;
@@ -90,7 +92,13 @@ public class DocIndexMetaData {
         this.metaData = metaData;
         this.isAlias = !metaData.getIndex().equals(ident.name());
         this.numberOfShards = metaData.numberOfShards();
-        this.numberOfReplicas = metaData.numberOfReplicas();
+        Settings settings = metaData.getSettings();
+        String autoExpandReplicas = settings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS);
+        if (autoExpandReplicas != null) {
+            this.numberOfReplicas = new BytesRef(autoExpandReplicas);
+        } else {
+            this.numberOfReplicas = new BytesRef(settings.get(IndexMetaData.SETTING_NUMBER_OF_REPLICAS));
+        }
         this.aliases = ImmutableSet.copyOf(metaData.aliases().keys().toArray(String.class));
         this.defaultMappingMetaData = this.metaData.mappingOrDefault(Constants.DEFAULT_MAPPING_TYPE);
         if (defaultMappingMetaData == null) {
@@ -393,7 +401,7 @@ public class DocIndexMetaData {
         return numberOfShards;
     }
 
-    public int numberOfReplicas() {
+    public BytesRef numberOfReplicas() {
         return numberOfReplicas;
     }
 }

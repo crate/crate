@@ -2,10 +2,13 @@ package io.crate.metadata.table;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.symbol.DynamicReference;
+import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nullable;
 
 public abstract class AbstractTableInfo implements TableInfo {
+
+    private static final BytesRef ZERO_REPLICAS = new BytesRef("0");
 
     @Override
     public int numberOfShards() {
@@ -13,8 +16,8 @@ public abstract class AbstractTableInfo implements TableInfo {
     }
 
     @Override
-    public int numberOfReplicas() {
-        return 0;
+    public BytesRef numberOfReplicas() {
+        return ZERO_REPLICAS;
     }
 
     @Override

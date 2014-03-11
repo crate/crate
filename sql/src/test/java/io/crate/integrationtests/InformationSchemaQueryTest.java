@@ -99,7 +99,7 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
     @Test
     public void testWhereAnd2() throws Exception {
         exec("select table_name from information_schema.tables where number_of_shards >= 7 and " +
-                "number_of_replicas < 8 order by table_name asc");
+                "number_of_replicas != '8' order by table_name asc");
         assertEquals(2L, response.rowCount());
         assertEquals("t1", response.rows()[0][0]);
         assertEquals("t2", response.rows()[1][0]);

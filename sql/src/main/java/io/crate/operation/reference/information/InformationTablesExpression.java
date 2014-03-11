@@ -65,9 +65,9 @@ public abstract class InformationTablesExpression<T>
                     return row.numberOfShards();
                 }
             })
-            .add(new InformationTablesExpression<Integer>("number_of_replicas") {
+            .add(new InformationTablesExpression<BytesRef>("number_of_replicas") {
                 @Override
-                public Integer value() {
+                public BytesRef value() {
                     return row.numberOfReplicas();
                 }
             })
