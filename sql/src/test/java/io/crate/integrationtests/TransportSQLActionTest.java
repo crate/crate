@@ -2859,4 +2859,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rowCount());
         assertEquals(3L, response.rows()[0][0]);
     }
+
+    @Test( expected = UnsupportedFeatureException.class )
+    public void testRefresh() throws Exception {
+        execute("create table test (id int primary key, name string)");
+        ensureGreen();
+        execute("refresh table test");
+    }
 }

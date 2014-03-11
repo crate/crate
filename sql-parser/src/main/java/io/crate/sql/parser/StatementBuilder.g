@@ -87,6 +87,7 @@ statement returns [Statement value]
     | update                    { $value = $update.value; }
     | copyFrom                  { $value = $copyFrom.value; }
     | createAnalyzer            { $value = $createAnalyzer.value; }
+    | refresh                   { $value = $refresh.value; }
     ;
 
 query returns [Query value]
@@ -570,8 +571,8 @@ showFunctions returns [Statement value]
     ;
 
 createMaterializedView returns [Statement value]
-    : ^(CREATE_MATERIALIZED_VIEW qname refresh=viewRefresh? select=restrictedSelectStmt)
-        { $value = new CreateMaterializedView($qname.value, Optional.fromNullable($refresh.value), $select.value); }
+    : ^(CREATE_MATERIALIZED_VIEW qname refreshView=viewRefresh? select=restrictedSelectStmt)
+        { $value = new CreateMaterializedView($qname.value, Optional.fromNullable($refreshView.value), $select.value); }
     ;
 
 refreshMaterializedView returns [Statement value]
@@ -809,4 +810,8 @@ charFilters returns [List<NamedProperties> value = new ArrayList<>()]
 
 namedProperties returns [NamedProperties value]
     : ^(NAMED_PROPERTIES ident genericProperties?) { $value = new NamedProperties($ident.value, $genericProperties.value); }
+    ;
+
+refresh returns [RefreshStatement value]
+    : ^(REFRESH namedTable) { $value = new RefreshStatement($namedTable.value); }
     ;

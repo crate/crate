@@ -192,6 +192,8 @@ public class TestStatementBuilder
         printStatement("create analyzer my_builtin extends builtin (" +
                 "  over='write'" +
                 ")");
+        printStatement("refresh table t");
+        printStatement("refresh table schemah.tableh");
     }
 
     @Test
