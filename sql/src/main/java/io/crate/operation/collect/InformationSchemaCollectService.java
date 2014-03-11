@@ -25,6 +25,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
+import io.crate.DataType;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.information.InformationCollectorExpression;
@@ -37,7 +38,6 @@ import io.crate.operation.reference.information.InformationDocLevelReferenceReso
 import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.symbol.BooleanLiteral;
 import org.apache.lucene.search.CollectionTerminatedException;
-import io.crate.DataType;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
@@ -49,12 +49,18 @@ public class InformationSchemaCollectService implements CollectService {
     private final Iterable<TableInfo> tablesIterable;
     private final Iterable<ColumnContext> columnsIterable;
     private final Iterable<TableInfo> tableConstraintsIterable;
+    private final Iterable<RoutineInfo> routinesIterable;
 
     private final CollectInputSymbolVisitor<InformationCollectorExpression<?, ?>> docInputSymbolVisitor;
     private final ImmutableMap<String, Iterable<?>> iterables;
 
+    private final RoutineInfos routineInfos;
+
     @Inject
-    protected InformationSchemaCollectService(Functions functions, ReferenceInfos referenceInfos) {
+    protected InformationSchemaCollectService(Functions functions, ReferenceInfos referenceInfos,
+                                              FulltextAnalyzerResolver ftResolver) {
+
+        routineInfos = new RoutineInfos(functions, ftResolver);
 
         this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions,
                 InformationDocLevelReferenceResolver.INSTANCE);
@@ -77,17 +83,24 @@ public class InformationSchemaCollectService implements CollectService {
                     }
                 });
         tableConstraintsIterable = FluentIterable.from(tablesIterable).filter(new Predicate<TableInfo>() {
-            @Override
-            public boolean apply(@Nullable TableInfo input) {
-                return input != null && input.primaryKey().size() > 0;
-            }
+                @Override
+                public boolean apply(@Nullable TableInfo input) {
+                    return input != null && input.primaryKey().size() > 0;
+                }
         });
+        routinesIterable = FluentIterable.from(routineInfos)
+                .filter(new Predicate<RoutineInfo>() {
+                    @Override
+                    public boolean apply(@Nullable RoutineInfo input) {
+                        return input != null;
+                    }
+                });
         this.iterables = ImmutableMap.of(
                 "tables", tablesIterable,
                 "columns", columnsIterable,
-                "table_constraints", tableConstraintsIterable
+                "table_constraints", tableConstraintsIterable,
+                "routines", routinesIterable
         );
-
     }
 
     class ColumnsIterator implements Iterator<ColumnContext>, Iterable<ColumnContext> {
@@ -130,7 +143,6 @@ public class InformationSchemaCollectService implements CollectService {
         }
 
     }
-
 
     static class InformationSchemaCollector<R> implements CrateCollector {
 

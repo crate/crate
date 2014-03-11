@@ -17,7 +17,7 @@ The information schema contains a table called `tables`.
 This table can be queried to get a list of all available tables and their
 settings like the number of shards or number of replicas::
 
-    cr> select * from information_schema.tables 
+    cr> select * from information_schema.tables
     ... where table_name not like 'my_table%' order by schema_name asc, table_name asc
     +--------------------+-------------------+------------------+--------------------+--------------+
     | schema_name        | table_name        | number_of_shards | number_of_replicas | clustered_by |
@@ -27,13 +27,14 @@ settings like the number of shards or number of replicas::
     | doc                | locations         | 2                | 0                  | id           |
     | doc                | quotes            | 2                | 0                  | id           |
     | information_schema | columns           | 1                | 0                  | NULL         |
+    | information_schema | routines          | 1                | 0                  | NULL         |
     | information_schema | table_constraints | 1                | 0                  | NULL         |
     | information_schema | tables            | 1                | 0                  | NULL         |
     | sys                | cluster           | 1                | 0                  | NULL         |
     | sys                | nodes             | 1                | 0                  | NULL         |
     | sys                | shards            | 1                | 0                  | NULL         |
     +--------------------+-------------------+------------------+--------------------+--------------+
-    SELECT 10 rows in set (... sec)
+    SELECT 11 rows in set (... sec)
 
 
 Columns
@@ -153,35 +154,33 @@ behaviour at Crate, so almost all columns are listed as an index as well::
 Routines
 ========
 
-.. note:: currently not implemented
+The routines table contains all custom analyzers, tokenizers, token-filters
+and char-filters and all custom analyzers created by ``CREATE ANALYZER``
+statements (see :ref:`sql-ddl-custom-analyzer`)::
 
-The routines table contains all custom analyzers, tokenizers, token-filters and char-filters
-and all custom analyzers created by ``CREATE ANALYZER`` statements
-(see :ref:`sql-ddl-custom-analyzer`).
+    cr> select routine_name, routine_type from information_schema.routines
+    ... group by routine_name, routine_type order by routine_name asc limit 5
+    +----------------------+--------------+
+    | routine_name         | routine_type |
+    +----------------------+--------------+
+    | arabic               | ANALYZER     |
+    | arabic_normalization | TOKEN_FILTER |
+    | arabic_stem          | TOKEN_FILTER |
+    | armenian             | ANALYZER     |
+    | asciifolding         | TOKEN_FILTER |
+    +----------------------+--------------+
+    SELECT 5 rows in set (... sec)
 
-The column ``routine_definition`` contains the string ``BUILTIN`` for all builtin *Routines*.
-For custom analyzers it contains the SQL statements used for their creation.
-::
-
-    cr> select * from information_schema.routines where routine_definition != 'BUILTIN' order by routine_name asc  #doctest: +SKIP
-    +-----------------+--------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | routine_name    | routine_type | routine_definition                                                                                                                                                                                       |
-    +-----------------+--------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | e2              | ANALYZER     | CREATE ANALYZER e2 EXTENDS myanalyzer WITH (TOKENIZER mypattern WITH ("pattern"='.*',"type"='pattern'))                                                                                                  |
-    | german_snowball | ANALYZER     | CREATE ANALYZER german_snowball EXTENDS snowball WITH ("language"='german')                                                                                                                              |
-    | myanalyzer      | ANALYZER     | CREATE ANALYZER myanalyzer WITH (TOKENIZER whitespace, TOKEN_FILTERS WITH (lowercase, kstem), CHAR_FILTERS WITH (html_strip, mymapping WITH ("mappings"=['ph=>f','qu=>q','foo=>bar'],"type"='mapping'))) |
-    +-----------------+--------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    SELECT 3 rows in set (... sec)
-
-You can use this table to see e.g. what builtin tokenizers exist::
+For example you can use this table to list existing tokenizers like this::
 
     cr> select routine_name from information_schema.routines
-    ... where routine_type='TOKENIZER' and  routine_definition='BUILTIN'
-    ... order by routine_name asc  #doctest: +SKIP
+    ... where routine_type='TOKENIZER'
+    ... order by routine_name asc limit 10
     +----------------+
     | routine_name   |
     +----------------+
     | classic        |
+    | e2_mypattern   |
     | edgeNGram      |
     | edge_ngram     |
     | keyword        |
@@ -190,29 +189,19 @@ You can use this table to see e.g. what builtin tokenizers exist::
     | nGram          |
     | ngram          |
     | path_hierarchy |
-    | pattern        |
-    | standard       |
-    | uax_url_email  |
-    | whitespace     |
     +----------------+
-    SELECT 13 rows in set (... sec)
+    SELECT 10 rows in set (... sec)
+
+Or get an overview of how many routines and routine types are available::
 
     cr> select count(*), routine_type from information_schema.routines
-    ... group by routine_type order by routine_type  #doctest: +SKIP
+    ... group by routine_type order by routine_type
     +----------+--------------+
-    | COUNT(*) | routine_type |
+    | count(*) | routine_type |
     +----------+--------------+
     | 45       | ANALYZER     |
-    | 4        | CHAR_FILTER  |
-    | 13       | TOKENIZER    |
-    | 44       | TOKEN_FILTER |
+    | 5        | CHAR_FILTER  |
+    | 14       | TOKENIZER    |
+    | 46       | TOKEN_FILTER |
     +----------+--------------+
     SELECT 4 rows in set (... sec)
-
-    cr> select count(distinct routine_type) as distinct_routines from information_schema.routines  #doctest: +SKIP
-    +-------------------+
-    | distinct_routines |
-    +-------------------+
-    | 4                 |
-    +-------------------+
-    SELECT 1 row in set (... sec)

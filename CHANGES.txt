@@ -5,6 +5,8 @@ Changes for Crate Data
 unreleased
 ==========
 
+ - added table information_schema.routines
+
  - error messages will no longer show the 'return type' of a function and
    aggregation
 

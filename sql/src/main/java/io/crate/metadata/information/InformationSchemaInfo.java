@@ -61,11 +61,17 @@ public class InformationSchemaInfo implements SchemaInfo {
             .add("constraint_type", DataType.STRING, null)
             .build();
 
+    public static final InformationTableInfo TABLE_INFO_ROUTINES = new InformationTableInfo.Builder("routines")
+            .add("routine_name", DataType.STRING, null)
+            .add("routine_type", DataType.STRING, null)
+            .build();
+
     public static final ImmutableMap<String, TableInfo> TABLE_INFOS =
             ImmutableMap.<String, TableInfo>builder()
                     .put(TABLE_INFO_TABLES.ident().name(), TABLE_INFO_TABLES)
                     .put(TABLE_INFO_COLUMNS.ident().name(), TABLE_INFO_COLUMNS)
                     .put(TABLE_INFO_TABLE_CONSTRAINTS.ident().name(), TABLE_INFO_TABLE_CONSTRAINTS)
+                    .put(TABLE_INFO_ROUTINES.ident().name(), TABLE_INFO_ROUTINES)
                     .build();
 
     @Override
