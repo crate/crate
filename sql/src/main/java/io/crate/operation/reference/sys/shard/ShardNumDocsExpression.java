@@ -22,6 +22,7 @@
 package io.crate.operation.reference.sys.shard;
 
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.service.IndexShard;
 
 public class ShardNumDocsExpression extends SysShardExpression<Long> {
@@ -38,6 +39,10 @@ public class ShardNumDocsExpression extends SysShardExpression<Long> {
 
     @Override
     public Long value() {
-        return indexShard.docStats().getCount();
+        try {
+            return indexShard.docStats().getCount();
+        } catch (IllegalIndexShardStateException e) {
+            return null;
+        }
     }
 }

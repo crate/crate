@@ -41,6 +41,7 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.DocsStats;
+import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.service.IndexShard;
@@ -48,6 +49,7 @@ import org.elasticsearch.index.store.StoreStats;
 import org.junit.Before;
 import org.junit.Test;
 
+import static junit.framework.Assert.assertNull;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -60,6 +62,7 @@ public class SysShardsExpressionsTest {
 
     class TestModule extends AbstractModule {
 
+        @SuppressWarnings("unchecked")
         @Override
         protected void configure() {
             bind(Settings.class).toInstance(ImmutableSettings.EMPTY);
@@ -84,7 +87,7 @@ public class SysShardsExpressionsTest {
             when(storeStats.getSizeInBytes()).thenReturn(123456L);
 
             DocsStats docsStats = mock(DocsStats.class);
-            when(indexShard.docStats()).thenReturn(docsStats);
+            when(indexShard.docStats()).thenReturn(docsStats).thenThrow(IllegalIndexShardStateException.class);
             when(docsStats.getCount()).thenReturn(654321L);
 
             ShardRouting shardRouting = mock(ShardRouting.class);
@@ -147,6 +150,9 @@ public class SysShardsExpressionsTest {
         ReferenceIdent ident = new ReferenceIdent(SysShardsTableInfo.IDENT, "num_docs");
         SysExpression<Long> shardExpression = (SysExpression<Long>) resolver.getImplementation(ident);
         assertEquals(new Long(654321), shardExpression.value());
+
+        // second call should throw Exception
+        assertNull(shardExpression.value());
     }
 
     @Test

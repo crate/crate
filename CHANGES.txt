@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - Fixed exceptions on ``sys.shards.num_docs`` when shard is not started yet.
+   Return ``null`` in this case.
 
 2014/03/10 0.28.0
 =================
