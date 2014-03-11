@@ -76,4 +76,8 @@ public class AnalysisVisitor<C, R> {
     public R visitCreateBlobTableAnalysis(CreateBlobTableAnalysis analysis, C context) {
         return visitDDLAnalysis(analysis, context);
     }
+
+    public R visitDropBlobTableAnalysis(DropBlobTableAnalysis analysis, C context) {
+        return visitDDLAnalysis(analysis, context);
+    }
 }

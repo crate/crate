@@ -50,10 +50,10 @@ public class BlobTableInfo implements TableInfo {
     private final LinkedHashSet<ReferenceInfo> columns = new LinkedHashSet<>();
 
     public static final Map<ColumnIdent, ReferenceInfo> INFOS = new LinkedHashMap<>();
-    private static final ImmutableList<String> primaryKey = ImmutableList.of("name");
+    private static final ImmutableList<String> primaryKey = ImmutableList.of("digest");
 
     private static List<Tuple<String, DataType>> staticColumns = ImmutableList.<Tuple<String,DataType>>builder()
-                .add(new Tuple<>("name", DataType.STRING))
+                .add(new Tuple<>("digest", DataType.STRING))
                 .build();
 
     public BlobTableInfo(TableIdent ident,

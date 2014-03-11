@@ -22,9 +22,7 @@
 package io.crate.action.sql;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.analyze.Analysis;
-import io.crate.analyze.AnalysisVisitor;
-import io.crate.analyze.CreateBlobTableAnalysis;
+import io.crate.analyze.*;
 import io.crate.blob.v2.BlobIndices;
 import org.elasticsearch.common.inject.Inject;
 
@@ -47,5 +45,10 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
             CreateBlobTableAnalysis analysis, Void context) {
         return blobIndices.createBlobTable(
                 analysis.tableName(), analysis.numberOfReplicas(), analysis.numberOfShards());
+    }
+
+    @Override
+    public ListenableFuture<Void> visitDropBlobTableAnalysis(DropBlobTableAnalysis analysis, Void context) {
+        return blobIndices.dropBlobTable(analysis.table().ident().name());
     }
 }

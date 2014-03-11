@@ -22,6 +22,7 @@
 package io.crate;
 
 import io.crate.blob.v2.BlobIndices;
+import io.crate.core.NumberOfReplicas;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.test.integration.DoctestClusterTestCase;
 import org.elasticsearch.common.settings.ImmutableSettings;
@@ -35,27 +36,13 @@ public class DoctestTest extends DoctestClusterTestCase {
     public void testBlob() throws Exception {
 
         BlobIndices blobIndices = cluster().getInstance(BlobIndices.class);
-        // TODO: use createBlobTable
-        //blobIndices.createBlobTable("test", new NumberOfReplicas(0), 2).get();
-        client().admin().indices().prepareCreate("test")
-            .setSettings(
-                ImmutableSettings.builder()
-                    .put("blobs.enabled", true)
-                    .put("number_of_shards", 2)
-                    .put("number_of_replicas", 0).build()).execute().actionGet();
 
-
-        client().admin().indices().prepareCreate("test_blobs2")
-            .setSettings(
-                ImmutableSettings.builder()
-                    .put("blobs.enabled", true)
-                    .put("number_of_shards", 2)
-                    .put("number_of_replicas", 0).build()).execute().actionGet();
+        blobIndices.createBlobTable("test", new NumberOfReplicas(0), 2).get();
+        blobIndices.createBlobTable("test_blobs2", new NumberOfReplicas(0), 2).get();
 
         client().admin().indices().prepareCreate("test_no_blobs")
             .setSettings(
                 ImmutableSettings.builder()
-                .put("blobs.enabled", false)
                 .put("number_of_shards", 2)
                 .put("number_of_replicas", 0).build()).execute().actionGet();
 

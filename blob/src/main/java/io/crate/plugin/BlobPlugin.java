@@ -25,8 +25,6 @@ package io.crate.plugin;
 import com.google.common.collect.Lists;
 import io.crate.blob.BlobModule;
 import io.crate.blob.BlobService;
-import io.crate.blob.rest.RestBlobIndicesStatsAction;
-import io.crate.blob.stats.BlobStatsModule;
 import io.crate.blob.v2.BlobIndexModule;
 import io.crate.blob.v2.BlobIndicesModule;
 import io.crate.blob.v2.BlobShardModule;
@@ -35,7 +33,6 @@ import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.AbstractPlugin;
-import org.elasticsearch.rest.RestModule;
 
 import java.util.Collection;
 
@@ -69,15 +66,9 @@ public class BlobPlugin extends AbstractPlugin {
         if (!settings.getAsBoolean("node.client", false)) {
             modules.add(BlobModule.class);
             modules.add(BlobIndicesModule.class);
-            modules.add(BlobStatsModule.class);
         }
         return modules;
     }
-
-    public void onModule(RestModule restModule) {
-        restModule.addRestAction(RestBlobIndicesStatsAction.class);
-    }
-
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> services() {

@@ -32,6 +32,7 @@ import io.crate.blob.v2.BlobShard;
 import io.crate.blob.v2.BlobsDisabledException;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.indices.IndexMissingException;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.*;
@@ -58,7 +59,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
 
     public static final String CACHE_CONTROL_VALUE = "max-age=315360000";
     public static final String EXPIRES_VALUE = "Thu, 31 Dec 2037 23:59:59 GMT";
-    private static final Pattern pattern = Pattern.compile("^/([^_][^/]+)/_blobs/([0-9a-f]{40})$");
+    private static final Pattern pattern = Pattern.compile("^/_blobs/([^_][^/]+)/([0-9a-f]{40})$");
     private final ESLogger logger = Loggers.getLogger(getClass());
 
     private static final ChannelBuffer CONTINUE = ChannelBuffers.copiedBuffer(
@@ -132,6 +133,8 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
 
             logger.trace("matches index:{} digest:{}", index, digest);
             logger.trace("HTTPMessage:\n{}", msg);
+
+            index = BlobIndices.fullIndexName(index);
 
             if (possibleRedirect(request, index, digest)) {
                 reset();
@@ -223,7 +226,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
         } else if (ex instanceof DigestNotFoundException) {
             status = HttpResponseStatus.NOT_FOUND;
             body = null;
-        } else if (ex instanceof BlobsDisabledException) {
+        } else if (ex instanceof BlobsDisabledException || ex instanceof IndexMissingException) {
             status = HttpResponseStatus.BAD_REQUEST;
             body = ex.getMessage();
         } else {

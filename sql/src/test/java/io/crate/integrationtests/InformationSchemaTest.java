@@ -206,7 +206,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals("test", response.rows()[0][0]);
         assertEquals(5, response.rows()[0][1]);
         assertEquals(1, response.rows()[0][2]);
-        assertEquals("name", response.rows()[0][3]);
+        assertEquals("digest", response.rows()[0][3]);
     }
 
     @Test

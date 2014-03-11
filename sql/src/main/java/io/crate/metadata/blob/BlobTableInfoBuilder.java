@@ -48,7 +48,7 @@ public class BlobTableInfoBuilder {
 
     public DocIndexMetaData docIndexMetaData() {
         DocIndexMetaData docIndexMetaData;
-        String index = BlobIndices.INDEX_PREFIX + ident.name();
+        String index = BlobIndices.fullIndexName(ident.name());
         try {
             concreteIndices = metaData.concreteIndices(new String[]{index}, IndicesOptions.strict());
         } catch (IndexMissingException ex) {

@@ -130,7 +130,7 @@ public class BlobRecoverySource extends AbstractComponent {
 
         final BlobRecoveryHandler blobRecoveryHandler;
 
-        if (blobIndices.blobsEnabled(shard.shardId().getIndex())) {
+        if (blobIndices.isBlobIndex(shard.shardId().getIndex())) {
             blobRecoveryHandler = new BlobRecoveryHandler(
                 transportService, recoverySettings, blobTransferTarget, blobIndices, shard, request);
         } else {

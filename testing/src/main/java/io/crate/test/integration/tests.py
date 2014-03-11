@@ -19,7 +19,7 @@ def print_json(content):
 
 
 def blob_url(digest, index="test"):
-    return '/{}/_blobs/{}'.format(index, digest)
+    return '/_blobs/{}/{}'.format(index, digest)
 
 
 def sha1sum(content):

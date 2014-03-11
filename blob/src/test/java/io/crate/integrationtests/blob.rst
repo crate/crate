@@ -4,12 +4,12 @@ Blob Support
 
 Upload a file that doesn't match the sha1 hash::
 
-    >>> put('/test/_blobs/d937ea65641c23fadc83616309e5b0e11acc5806', data='asdf')
+    >>> put('/_blobs/test/d937ea65641c23fadc83616309e5b0e11acc5806', data='asdf')
     HTTP Error 400: Bad Request
 
 Try to get a non-existing file::
 
-    >>> get('/test/_blobs/d937ea65641c23fadc83616309e5b0e11acc5806')
+    >>> get('/_blobs/test/d937ea65641c23fadc83616309e5b0e11acc5806')
     HTTP Error 404: Not Found
 
 Upload valid files::
@@ -45,7 +45,7 @@ Big file to test chunked upload with conflict::
 
     >>> big_data = ''
 
-Uploading a file to an index with disabled blob support::
+Uploading a file to an unknown blob table results in an error::
 
     >>> put(blob_url(small_digest, 'test_no_blobs'), data=small_data)
     HTTP Error 400: Bad Request
@@ -63,7 +63,7 @@ One of the nodes should redirect to the other::
     True
 
     >>> r2.redirects and r2.redirects or r.redirects
-    [(307, 'http://.../test/_blobs/f2356581794dac20797bff38ee2bdc4424d3f04a')]
+    [(307, 'http://.../_blobs/test/f2356581794dac20797bff38ee2bdc4424d3f04a')]
 
     >>> sha1sum(r.content) == big_digest
     True
@@ -221,140 +221,18 @@ Upload some more files to test the blob size calculation further below::
     >>> print r
     HTTP Response 201
 
-Statistics about the stored blobs like number of blobs or blob size can also be
-retrieved using the `_status` endpoint::
-
-    >>> url = '/test/_blobs/_status'
-    >>> r = get(url)
-    >>> print_json(r.content)
-    {
-        "_shards": {
-            "failed": 0, 
-            "successful": 2, 
-            "total": 2
-        },
-        "indices": {
-            "test": {
-                "blobs": {
-                    "count": 5, 
-                    "primary_size": 25332, 
-                    "size": 25332
-                },
-                "shards": {
-                    "0": [
-                        {
-                            "blobs": {
-                                "available_space": ..., 
-                                "count": 1, 
-                                "location": ".../indices/test/0/blobs",
-                                "size": 1501
-                            }, 
-                            "routing": {
-                                "index": "test", 
-                                "node": "...",
-                                "primary": true, 
-                                "relocating_node": null, 
-                                "shard": 0, 
-                                "state": "STARTED"
-                            }
-                        }
-                    ], 
-                    "1": [
-                        {
-                            "blobs": {
-                                "available_space": ..., 
-                                "count": 4, 
-                                "location": ".../indices/test/1/blobs",
-                                "size": 23831
-                            }, 
-                            "routing": {
-                                "index": "test", 
-                                "node": "...",
-                                "primary": true, 
-                                "relocating_node": null, 
-                                "shard": 1, 
-                                "state": "STARTED"
-                            }
-                        }
-                    ]
-                }
-            }
-        }
-    }
-
-    >>> stats = json.loads(r.content)
-    >>> blob_stats = stats['indices']['test']['shards']['0'][0]['blobs']
-    >>> blob_stats['available_space'] > 0
-    True
-
-Requesting the stats of all blob enabled indices is also supported. Indices
-that don't have blobs enabled are omitted::
-
-    >>> url = '/_blobs/_status'
-    >>> r = get(url)
-    >>> print_json(r.content)
-    {
-        "_shards": {
-            "failed": 0, 
-            "successful": 4, 
-            "total": 4
-        }, 
-        "indices": {
-            "test": {
-                ...
-            },
-            "test_blobs2": {
-                ...
-            }
-        }
-    }
-
-Calling the endpoint on multiple indices is also supported::
-
-    >>> url = '/test,test_blobs2/_blobs/_status'
-    >>> r = get(url)
-    >>> print_json(r.content)
-    {
-        "_shards": {
-            "failed": 0, 
-            "successful": 4, 
-            "total": 4
-        }, 
-        "indices": {
-            "test": {
-                ...
-            },
-            "test_blobs2": {
-                ...
-            }
-        }
-    }
-
-Direct access to an index that isn't blob enabled doesn't return anything::
-
-    >>> url = '/test_no_blobs/_blobs/_status'
-    >>> r = get(url)
-    >>> print_json(r.content)
-    {
-        "_shards": {
-            "failed": 0, 
-            "successful": 0, 
-            "total": 0
-        }, 
-        "indices": {}
-    }
 
 
 An empty file is handled just like any other file::
 
-    >>> put('/test/_blobs/da39a3ee5e6b4b0d3255bfef95601890afd80709', data='')
+    >>> put('/_blobs/test/da39a3ee5e6b4b0d3255bfef95601890afd80709', data='')
     HTTP Response 201
 
-    >>> put('/test/_blobs/da39a3ee5e6b4b0d3255bfef95601890afd80709', data='')
+    >>> put('/_blobs/test/da39a3ee5e6b4b0d3255bfef95601890afd80709', data='')
     HTTP Error 409: Conflict
 
 
-Indexing a huge document on a non-blob index is still possible::
+Indexing a huge document on a non-blob table is still possible::
 
     >>> url = '/test_no_blobs/default/1'
     >>> data = {"content": "a" * (64 * 1024)}

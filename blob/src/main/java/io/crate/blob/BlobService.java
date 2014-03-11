@@ -23,6 +23,7 @@ package io.crate.blob;
 
 import io.crate.blob.exceptions.MissingHTTPEndpointException;
 import io.crate.blob.pending_transfer.BlobHeadRequestHandler;
+import io.crate.blob.v2.BlobIndices;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -132,7 +133,7 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
         for (String nodeId : nodeIds) {
             node = nodes.get(nodeId);
             if (node.getAttributes().containsKey("http_address")) {
-                return node.getAttributes().get("http_address") + "/" + index + "/_blobs/" + digest;
+                return node.getAttributes().get("http_address") + "/_blobs/" + BlobIndices.indexName(index) + "/" + digest;
             }
             // else:
             // No HttpServer on node,
