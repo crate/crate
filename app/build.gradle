@@ -45,6 +45,7 @@ ext {
     plugin_bigdesk_version = '2.2.2c'
     plugin_segmentspy_version = '0.2.0'
     plugin_crateadmin_version = '0.2.6'
+    crash_version = '0.6.0'
 }
 
 evaluationDependsOn(':es')
@@ -98,6 +99,11 @@ distributions {
             }
             into('plugins') {
                 from 'plugins'
+            }
+            into('bin') {
+                from ("${downloadDir}/crash.zip.py") {
+                    fileMode = 0755
+                }
             }
         }
     }
@@ -159,7 +165,14 @@ task downloadPlugins << {
     extractTopfolder(dest, 'plugins/crate-admin/_site')
 }
 
-processResources.dependsOn downloadPlugins
+task downloadCrash << {
+    def dest = download(
+            "https://cdn.crate.io/downloads/releases/crash-${crash_version}.zip.py",
+            "crash.zip.py"
+    )
+}
+
+processResources.dependsOn(downloadPlugins, downloadCrash)
 
 task(runDebug, dependsOn: 'classes', type: JavaExec) {
     main = 'io.crate.bootstrap.CrateF'
