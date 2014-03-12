@@ -38,6 +38,7 @@ import io.crate.planner.RowGranularity;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.Booleans;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 
@@ -94,7 +95,7 @@ public class DocIndexMetaData {
         this.numberOfShards = metaData.numberOfShards();
         Settings settings = metaData.getSettings();
         String autoExpandReplicas = settings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS);
-        if (autoExpandReplicas != null) {
+        if (autoExpandReplicas != null && !Booleans.isExplicitFalse(autoExpandReplicas)) {
             this.numberOfReplicas = new BytesRef(autoExpandReplicas);
         } else {
             this.numberOfReplicas = new BytesRef(settings.get(IndexMetaData.SETTING_NUMBER_OF_REPLICAS));

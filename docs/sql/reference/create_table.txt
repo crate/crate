@@ -13,7 +13,7 @@ Synopsis
     { column_name data_type [ column_constraint [ ... ] ] | table_constraint }
     [, ... ] ] )
     [CUSTERED [ BY (routing_column) ] INTO num_shards SHARDS ]
-    [ WITH ( storage_parameter [= value] [, ... ] ) ]
+    [ WITH ( table_parameter [= value] [, ... ] ) ]
 
 
 where ``column_constraint`` is:
@@ -111,16 +111,16 @@ distributed accross a cluster.
 WITH Clause
 -----------
 
-The optional WITH clause can specify storage parameters for tables.
+The optional WITH clause can specify parameters for tables.
 
 .. code-block:: sql
 
-    [ WITH ( storage_parameter [= value] [, ... ] ) ]
+    [ WITH ( table_parameter [= value] [, ... ] ) ]
 
 
-:storage_parameter: specifies an optional storage parameter for the table.
+:table_parameter: specifies an optional parameter for the table.
 
-Available storage paramters are:
+Available paramters are:
 
 
 .. _number_of_replicas:

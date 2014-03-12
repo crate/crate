@@ -31,6 +31,9 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.refresh.TransportRefreshAction;
+import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsResponse;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
@@ -45,12 +48,15 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
 
     private final BlobIndices blobIndices;
     private final TransportRefreshAction transportRefreshAction;
+    private final TransportUpdateSettingsAction transportUpdateSettingsAction;
 
     @Inject
-    private DDLAnalysisDispatcher(BlobIndices blobIndices,
-                                  TransportRefreshAction transportRefreshAction) {
+    public DDLAnalysisDispatcher(BlobIndices blobIndices,
+                                  TransportRefreshAction transportRefreshAction,
+                                  TransportUpdateSettingsAction transportUpdateSettingsAction) {
         this.blobIndices = blobIndices;
         this.transportRefreshAction = transportRefreshAction;
+        this.transportUpdateSettingsAction = transportUpdateSettingsAction;
     }
 
     @Override
@@ -113,5 +119,27 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
             }
         });
         return wrappingFuture;
+    }
+
+    @Override
+    public ListenableFuture<Long> visitAlterTableAnalysis(AlterTableAnalysis analysis, Void context) {
+        final SettableFuture<Long> result = SettableFuture.create();
+        UpdateSettingsRequest request = new UpdateSettingsRequest(
+                analysis.settings(),
+                analysis.table().ident().name());
+
+        transportUpdateSettingsAction.execute(request, new ActionListener<UpdateSettingsResponse>() {
+            @Override
+            public void onResponse(UpdateSettingsResponse updateSettingsResponse) {
+                result.set(null);
+            }
+
+            @Override
+            public void onFailure(Throwable e) {
+                result.setException(e);
+            }
+        });
+
+        return result;
     }
 }
