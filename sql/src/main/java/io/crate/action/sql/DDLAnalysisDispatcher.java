@@ -78,6 +78,13 @@ public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFutur
     }
 
     @Override
+    public ListenableFuture<Long> visitAlterBlobTableAnalysis(AlterBlobTableAnalysis analysis, Void context) {
+        return wrapRowCountFuture(
+                blobIndices.alterBlobTable(analysis.table().ident().name(), analysis.numberOfReplicas()),
+                1L);
+    }
+
+    @Override
     public ListenableFuture<Long> visitDropBlobTableAnalysis(DropBlobTableAnalysis analysis, Void context) {
         return wrapRowCountFuture(blobIndices.dropBlobTable(analysis.table().ident().name()), 1L);
     }

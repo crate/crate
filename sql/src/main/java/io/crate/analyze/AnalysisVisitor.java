@@ -88,4 +88,8 @@ public class AnalysisVisitor<C, R> {
     public R visitAlterTableAnalysis(AlterTableAnalysis analysis, C context) {
         return visitDDLAnalysis(analysis, context);
     }
+
+    public R visitAlterBlobTableAnalysis(AlterBlobTableAnalysis analysis, C context) {
+        return visitDDLAnalysis(analysis, context);
+    }
 }

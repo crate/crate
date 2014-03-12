@@ -36,6 +36,9 @@ import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
+import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsResponse;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -53,9 +56,13 @@ public class BlobIndices extends AbstractComponent {
 
     public static final String SETTING_BLOBS_ENABLED = "index.blobs.enabled";
     public static final String INDEX_PREFIX = ".blob_";
+
+    private static final String NUMBER_OF_REPLICAS = "number_of_replicas";
+    private static final String AUTO_EXPAND_REPLICAS = "auto_expand_replicas";
     private static final int DEFAULT_NUMBER_OF_SHARDS = 5;
     private static final int DEFAULT_NUMBER_OF_REPLICAS = 1;
 
+    private final TransportUpdateSettingsAction transportUpdateSettingsAction;
     private final TransportCreateIndexAction transportCreateIndexAction;
     private final TransportDeleteIndexAction transportDeleteIndexAction;
     private final IndicesService indicesService;
@@ -86,17 +93,53 @@ public class BlobIndices extends AbstractComponent {
     public BlobIndices(Settings settings,
                        TransportCreateIndexAction transportCreateIndexAction,
                        TransportDeleteIndexAction transportDeleteIndexAction,
+                       TransportUpdateSettingsAction transportUpdateSettingsAction,
                        IndicesService indicesService,
                        IndicesLifecycle indicesLifecycle) {
         super(settings);
         this.transportCreateIndexAction = transportCreateIndexAction;
         this.transportDeleteIndexAction = transportDeleteIndexAction;
+        this.transportUpdateSettingsAction = transportUpdateSettingsAction;
         this.indicesService = indicesService;
         this.indicesLifecycle = indicesLifecycle;
     }
 
     public BlobShard blobShardSafe(ShardId shardId) {
         return blobShardSafe(shardId.getIndex(), shardId.id());
+    }
+
+    /**
+     * can be used to alter the number of replicas.
+     *
+     * @param tableName name of the blob table
+     * @param numberOfReplicas new number of replicas or null if it should be set to the default
+     */
+    public ListenableFuture<Void> alterBlobTable(String tableName, @Nullable NumberOfReplicas numberOfReplicas) {
+        ImmutableSettings.Builder builder = ImmutableSettings.builder();
+        builder.put(AUTO_EXPAND_REPLICAS, false); // deactivate - might be changing to fixed value
+
+        if (numberOfReplicas == null) {
+            builder.put(NUMBER_OF_REPLICAS, DEFAULT_NUMBER_OF_REPLICAS);
+        } else {
+            builder.put(numberOfReplicas.esSettingKey(), numberOfReplicas.esSettingValue());
+        }
+
+        final SettableFuture<Void> result = SettableFuture.create();
+        transportUpdateSettingsAction.execute(
+                new UpdateSettingsRequest(builder.build(), fullIndexName(tableName)),
+                new ActionListener<UpdateSettingsResponse>() {
+                    @Override
+                    public void onResponse(UpdateSettingsResponse updateSettingsResponse) {
+                        result.set(null);
+                    }
+
+                    @Override
+                    public void onFailure(Throwable e) {
+                        result.setException(e);
+
+                    }
+                });
+        return result;
     }
 
     public ListenableFuture<Void> createBlobTable(String tableName,
@@ -106,7 +149,7 @@ public class BlobIndices extends AbstractComponent {
         builder.put(SETTING_BLOBS_ENABLED, true);
         builder.put("number_of_shards", Objects.firstNonNull(numberOfShards, DEFAULT_NUMBER_OF_SHARDS));
         if (numberOfReplicas == null) {
-            builder.put("number_of_replicas", DEFAULT_NUMBER_OF_REPLICAS);
+            builder.put(NUMBER_OF_REPLICAS, DEFAULT_NUMBER_OF_REPLICAS);
         } else {
             builder.put(numberOfReplicas.esSettingKey(), numberOfReplicas.esSettingValue());
         }

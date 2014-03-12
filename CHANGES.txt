@@ -7,7 +7,7 @@ Unreleased
 
  - now downloading current ``crash.zip.py`` during build
 
- - added the sql `ALTER TABLE` clause.
+ - added the sql `ALTER [BLOB] TABLE` clause.
 
 2014/03/12 0.30.0
 =================

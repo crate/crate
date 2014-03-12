@@ -14,10 +14,19 @@ Creating a table for blobs
 Before adding blobs a ``blob table`` must be created. Lets use the crate shell ``crash`` to issue
 the SQL statement::
 
-    sh$ crash -s "create blob table myblobs clustered into 3 shards with (number_of_replicas=1)"
+    sh$ crash -c "create blob table myblobs clustered into 3 shards with (number_of_replicas=1)"
     CREATE OK (... sec)
 
 Now crate is configured to allow blobs to be management under the ``/_blobs/myblobs`` endpoint.
+
+Altering a blob table
+---------------------
+
+The number of replicas a blob table has can be changed using the ``ALTER BLOB
+TABLE`` clause::
+
+    sh$ crash -c "alter blob table myblobs set (number_of_replicas=0)"
+    ALTER OK (... sec)
 
 Uploading
 ---------
@@ -98,12 +107,12 @@ Deleting a blob table
 
 Blob tables can be deleted similar to normal tables (again using the crate shell here)::
 
-    sh$ crash -s "drop blob table myblobs"
+    sh$ crash -c "drop blob table myblobs"
     DROP OK (... sec)
 
 .. Hidden: Re-create the blob table so information_schema will show it::
 
-    sh$ crash -s "create blob table myblobs clustered into 3 shards with (number_of_replicas=1)"
+    sh$ crash -c "create blob table myblobs clustered into 3 shards with (number_of_replicas=1)"
     CREATE OK (... sec)
 
 
