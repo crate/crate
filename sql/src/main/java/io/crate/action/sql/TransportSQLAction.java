@@ -95,15 +95,15 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
     private void processNonData(final Analysis analysis,
                                 final SQLRequest request,
                                 final ActionListener<SQLResponse> listener) {
-        ListenableFuture<Void> future = dispatcher.process(analysis, null);
-        Futures.addCallback(future, new FutureCallback<Void>() {
+        ListenableFuture<Long> future = dispatcher.process(analysis, null);
+        Futures.addCallback(future, new FutureCallback<Long>() {
             @Override
-            public void onSuccess(@Nullable Void result) {
+            public void onSuccess(@Nullable Long rowCount) {
                 listener.onResponse(
                         new SQLResponse(
                                 analysis.outputNames().toArray(new String[analysis.outputNames().size()]),
                                 Constants.EMPTY_RESULT,
-                                1,
+                                rowCount == null ? SQLResponse.NO_ROW_COUNT : rowCount,
                                 request.creationTime()));
             }
 

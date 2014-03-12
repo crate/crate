@@ -21,34 +21,97 @@
 
 package io.crate.action.sql;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.*;
 import io.crate.blob.v2.BlobIndices;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
+import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
+import org.elasticsearch.action.admin.indices.refresh.TransportRefreshAction;
 import org.elasticsearch.common.inject.Inject;
 
-public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFuture<Void>> {
+import javax.annotation.Nullable;
+
+/**
+ * visitor that dispatches requests based on Analysis class to different actions.
+ *
+ * Its methods return a future returning a Long containing the response rowCount.
+ * If the future returns <code>null</code>, no row count shall be created.
+ */
+public class DDLAnalysisDispatcher extends AnalysisVisitor<Void, ListenableFuture<Long>> {
 
     private final BlobIndices blobIndices;
+    private final TransportRefreshAction transportRefreshAction;
 
     @Inject
-    private DDLAnalysisDispatcher(BlobIndices blobIndices) {
+    private DDLAnalysisDispatcher(BlobIndices blobIndices,
+                                  TransportRefreshAction transportRefreshAction) {
         this.blobIndices = blobIndices;
+        this.transportRefreshAction = transportRefreshAction;
     }
 
     @Override
-    protected ListenableFuture<Void> visitAnalysis(Analysis analysis, Void context) {
+    protected ListenableFuture<Long> visitAnalysis(Analysis analysis, Void context) {
         throw new UnsupportedOperationException(String.format("Can't handle \"%s\"", analysis));
     }
 
     @Override
-    public ListenableFuture<Void> visitCreateBlobTableAnalysis(
+    public ListenableFuture<Long> visitCreateBlobTableAnalysis(
             CreateBlobTableAnalysis analysis, Void context) {
-        return blobIndices.createBlobTable(
-                analysis.tableName(), analysis.numberOfReplicas(), analysis.numberOfShards());
+        return wrapRowCountFuture(
+                blobIndices.createBlobTable(
+                    analysis.tableName(),
+                    analysis.numberOfReplicas(),
+                    analysis.numberOfShards()
+                ),
+                1L
+        );
     }
 
     @Override
-    public ListenableFuture<Void> visitDropBlobTableAnalysis(DropBlobTableAnalysis analysis, Void context) {
-        return blobIndices.dropBlobTable(analysis.table().ident().name());
+    public ListenableFuture<Long> visitDropBlobTableAnalysis(DropBlobTableAnalysis analysis, Void context) {
+        return wrapRowCountFuture(blobIndices.dropBlobTable(analysis.table().ident().name()), 1L);
+    }
+
+    @Override
+    public ListenableFuture<Long> visitRefreshTableAnalysis(RefreshTableAnalysis analysis, Void context) {
+        final SettableFuture<Long> future = SettableFuture.create();
+        final String tableName = analysis.table().ident().name();
+        if (analysis.schema().systemSchema()) {
+            future.set(null); // shortcut when refreshing on system tables
+        } else {
+            RefreshRequest request = new RefreshRequest(tableName);
+            transportRefreshAction.execute(request, new ActionListener<RefreshResponse>() {
+                @Override
+                public void onResponse(RefreshResponse refreshResponse) {
+                    future.set(null); // no row count
+                }
+
+                @Override
+                public void onFailure(Throwable e) {
+                    future.setException(e);
+                }
+            });
+        }
+        return future;
+    }
+
+    private ListenableFuture<Long> wrapRowCountFuture(ListenableFuture<?> wrappedFuture, final Long rowCount) {
+        final SettableFuture<Long> wrappingFuture = SettableFuture.create();
+        Futures.addCallback(wrappedFuture, new FutureCallback<Object>() {
+            @Override
+            public void onSuccess(@Nullable Object result) {
+                wrappingFuture.set(rowCount);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                wrappingFuture.setException(t);
+            }
+        });
+        return wrappingFuture;
     }
 }

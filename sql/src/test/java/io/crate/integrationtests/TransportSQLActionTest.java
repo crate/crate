@@ -24,10 +24,10 @@ package io.crate.integrationtests;
 import com.carrotsearch.randomizedtesting.annotations.Seed;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
-import io.crate.exceptions.*;
 import io.crate.Constants;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLResponse;
+import io.crate.exceptions.*;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -2860,11 +2860,27 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(3L, response.rows()[0][0]);
     }
 
-    @Test( expected = UnsupportedFeatureException.class )
+    @Test
     public void testRefresh() throws Exception {
         execute("create table test (id int primary key, name string)");
         ensureGreen();
+        execute("insert into test (id, name) values (0, 'Trillian'), (1, 'Ford'), (2, 'Zaphod')");
+        execute("select count(*) from test");
+        assertThat((Long)response.rows()[0][0], lessThan(3L));
+
         execute("refresh table test");
+        assertFalse(response.hasRowCount());
+        assertThat(response.rows(), is(Constants.EMPTY_RESULT));
+
+        execute("select count(*) from test");
+        assertThat((Long)response.rows()[0][0], is(3L));
+    }
+
+    @Test
+    public void testRefreshSystemTable() throws Exception {
+        execute("refresh table sys.shards");
+        assertFalse(response.hasRowCount());
+        assertThat(response.rows(), is(Constants.EMPTY_RESULT));
     }
 
     @Test
