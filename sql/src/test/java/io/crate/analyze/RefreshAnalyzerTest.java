@@ -22,7 +22,9 @@
 package io.crate.analyze;
 
 import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import org.elasticsearch.common.inject.Module;
@@ -38,7 +40,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class RefreshAnalyzerTest extends BaseAnalyzerTest {
-
+    private static TableIdent TEST_BLOB_TABLE_IDENT = new TableIdent("blob", "blobs");
 
     static class TestMetaDataModule extends MetaDataModule {
 
@@ -46,7 +48,9 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
         protected void bindSchemas() {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
+            BlobTableInfo blobTableInfo = mock(BlobTableInfo.class);
+            when(blobTableInfo.ident()).thenReturn(TEST_BLOB_TABLE_IDENT);
+            when(schemaInfo.getTableInfo(TEST_BLOB_TABLE_IDENT.name())).thenReturn(blobTableInfo);
             schemaBinder.addBinding(BlobSchemaInfo.NAME).toInstance(schemaInfo);
         }
     }
@@ -71,9 +75,9 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testRefreshBlobTable() throws Exception {
-        RefreshTableAnalysis analysis = (RefreshTableAnalysis)analyze("refresh table blob.users");
+        RefreshTableAnalysis analysis = (RefreshTableAnalysis)analyze("refresh table blob.blobs");
         assertThat(analysis.table().ident().schema(), is("blob"));
-        assertThat(analysis.table().ident().name(), is("users"));
+        assertThat(analysis.table().ident().name(), is("blobs"));
 
     }
 }
