@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - streamlined ``CREATE ANALYZER`` syntax to only use the ``WITH`` keyword
+   on properties
+
  - implemented refresh sql command ``REFRESH TABLE <tableName>`` to make previous
    changes to this table available for further commands.
 

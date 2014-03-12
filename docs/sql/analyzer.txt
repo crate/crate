@@ -46,7 +46,7 @@ with the :ref:`standard-tokenfilter` Token Filter,
 :ref:`lowercase-tokenfilter` Token Filter, and :ref:`stop-tokenfilter` Token Filter.
 
 Lowercase all Tokens, uses *NO* stopwords and excludes tokens longer than 255 characters.
-This analyzer uses unicode text segmentation, which is defined by `UAX_29`_.
+This analyzer uses unicode text segmentation, which is defined by `UAX#29`_.
 
 Example::
 
@@ -1131,4 +1131,4 @@ replacement
 
 
 .. _Java Pattern Api: http://download.oracle.com/javase/6/docs/api/java/util/regex/Pattern.html#field_summary
-.. _UAX_29 UAX 29: http://www.unicode.org/reports/tr29/
+.. _`UAX#29`: http://www.unicode.org/reports/tr29/

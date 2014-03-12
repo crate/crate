@@ -592,7 +592,7 @@ A simple Example::
 
     cr> create ANALYZER myanalyzer (
     ...   TOKENIZER whitespace,
-    ...   TOKEN_FILTERS WITH (
+    ...   TOKEN_FILTERS (
     ...     lowercase,
     ...     kstem
     ...   ),
@@ -643,7 +643,7 @@ the extended one.
 Example::
 
     cr> create ANALYZER e2 EXTENDS myanalyzer (
-    ...     TOKENIZER mypattern (
+    ...     TOKENIZER mypattern WITH (
     ...       type='pattern',
     ...       pattern='.*'
     ...     )
