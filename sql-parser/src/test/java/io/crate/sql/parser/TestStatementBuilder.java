@@ -251,6 +251,10 @@ public class TestStatementBuilder
         printStatement("create blob table screenshots clustered into 5 shards with (number_of_replicas=3)");
 
         printStatement("drop blob table screenshots");
+
+        printStatement("alter blob table screenshots set (number_of_replicas=3)");
+        printStatement("alter blob table screenshots set (number_of_replicas='0-all')");
+        printStatement("alter blob table screenshots reset (number_of_replicas)");
     }
 
     @Test

@@ -76,6 +76,7 @@ statement returns [Statement value]
     | showFunctions             { $value = $showFunctions.value; }
     | createTable               { $value = $createTable.value; }
     | alterTable                { $value = $alterTable.value; }
+    | alterBlobTable            { $value = $alterBlobTable.value; }
     | createBlobTable           { $value = $createBlobTable.value; }
     | createMaterializedView    { $value = $createMaterializedView.value; }
     | refreshMaterializedView   { $value = $refreshMaterializedView.value; }
@@ -662,6 +663,17 @@ createBlobTable returns [Statement value]
             $value = new CreateBlobTable($namedTable.value,
                                          $clusteredBy.value,
                                          $genericProperties.value);
+        }
+    ;
+
+alterBlobTable returns [Statement value]
+    : ^(ALTER_BLOB_TABLE namedTable genericProperties)
+        {
+            $value = new AlterBlobTable($namedTable.value, $genericProperties.value);
+        }
+    | ^(ALTER_BLOB_TABLE namedTable identList)
+        {
+            $value = new AlterBlobTable($namedTable.value, $identList.value);
         }
     ;
 

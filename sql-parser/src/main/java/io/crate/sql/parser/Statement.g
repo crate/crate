@@ -75,6 +75,7 @@ tokens {
     SHOW_PARTITIONS;
     SHOW_FUNCTIONS;
     ALTER_TABLE;
+    ALTER_BLOB_TABLE;
     CREATE_TABLE;
     CREATE_BLOB_TABLE;
     CREATE_MATERIALIZED_VIEW;
@@ -179,6 +180,7 @@ statement
     | showPartitionsStmt
     | showFunctionsStmt
     | createTableStmt
+    | alterBlobTableStmt
     | alterTableStmt
     | createBlobTableStmt
     | dropTableStmt
@@ -732,6 +734,13 @@ assignment
 
 copyStmt
     : COPY table FROM expr -> ^(COPY_FROM table expr)
+    ;
+
+alterBlobTableStmt
+    : ALTER BLOB TABLE table
+      SET '(' genericProperties ')' -> ^(ALTER_BLOB_TABLE table genericProperties)
+    | ALTER BLOB TABLE table
+      RESET '(' ident (',' ident )* ')' -> ^(ALTER_BLOB_TABLE table ident+)
     ;
 
 alterTableStmt
