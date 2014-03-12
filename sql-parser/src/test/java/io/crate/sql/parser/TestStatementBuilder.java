@@ -194,6 +194,9 @@ public class TestStatementBuilder
                 ")");
         printStatement("refresh table t");
         printStatement("refresh table schemah.tableh");
+
+        printStatement("alter table t set (number_of_replicas=4)");
+        printStatement("alter table schema.t set (number_of_replicas=4)");
     }
 
     @Test

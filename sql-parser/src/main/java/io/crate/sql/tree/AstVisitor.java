@@ -516,4 +516,8 @@ public abstract class AstVisitor<R, C>
     public R visitRefreshStatement(RefreshStatement node, C context) {
         return visitStatement(node, context);
     }
+
+    public R visitAlterTable(AlterTable node, C context) {
+        return visitStatement(node, context);
+    }
 }
