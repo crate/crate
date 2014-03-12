@@ -56,7 +56,7 @@ The Usage Data Collector can be configured by following parameters:
 
 How to disable UDC
 ==================
-There are two ways you can disable UDC:
+Below are two ways you can disable UDC. However we hope you support us offering the open source edition, and leave UDC on, so we learn how many people use Crate.
 
 By configuration
 ----------------
