@@ -343,12 +343,19 @@ Example for combining custom routing and shard definition::
     CREATE OK (... sec)
 
 
+.. _replication:
+
 Replication
 ===========
 
-By default Crate uses an replication factor of 1. If e.g. a cluster with 2 nodes is set up and
-an index is created using 5 shards, each node will have 5 shards.
-Defining the number of replicas is done using the ``number_of_replicas`` property.
+Replication of a table in Crate means that each primary shard of a
+table is stored additionally on so called secondary shards. This might
+be useful for better read performance and high availability. If not
+specified, crate creates one replica, which means that a tables
+content is stored twice accross the nodes of a cluster.
+
+Defining the number of replicas is done using the
+``number_of_replicas`` property.
 
 Example::
 
@@ -362,30 +369,22 @@ Example::
 The `number_of_replicas` property also accepts an string as parameter that
 contains a `range`.
 
-A range is a definition of `minimum number of replicas` to `maximum number of
-replicas`.
+A range is a definition of `minimum number of replicas` to `maximum
+number of replicas` depending on the number of nodes in the
+cluster. The table below shows some examples.
 
-For example:
+===== ======================================================================
+Range Explanation
+===== ======================================================================
+0-1   Will create 0 or 1 replicas depending on the number of available nodes
+----- ----------------------------------------------------------------------
+2-4   Table requires at least 2 replicas to be fully replicated. Will
+      create up to 4 if nodes are added.
+----- ----------------------------------------------------------------------
+0-all Will expand the number of replicas to the available number of nodes.
+===== ======================================================================
 
-    =====  ======================================================================
-    Range  Explanation
-    =====  ======================================================================
-    0-1    Will create 0 or 1 replicas depending on the number of available nodes
-    -----  ----------------------------------------------------------------------
-    2-4    Table requires at least 2 replicas to be fully replicated. Will
-           create up to 4 if nodes are added.
-    -----  ----------------------------------------------------------------------
-    0-all  Will expand the number of replicas to the available number of nodes.
-    =====  ======================================================================
-
-While defining replication together with :ref:`sharding <sql_ddl_sharding>`, it needs to be
-defined after::
-
-    cr> create table my_table10a (
-    ...   first_column int,
-    ...   second_column string
-    ... ) clustered by (first_column) into 10 shards with (number_of_replicas=1)
-    CREATE OK (... sec)
+For details of the range syntax refer to :ref:`number_of_replicas`.
 
 .. note::
 
@@ -393,22 +392,26 @@ defined after::
 
 .. _fulltext-indices:
 
+
+.. _indices_and_fulltext:
+
 Indices and fulltext search
 ============================
 
-Fulltext indices take the contents of one or more fields and split it up into tokens that are
-used for fulltext-search. The transformation from a text to separate tokens is done by an
-analyzer. In order to create fulltext search queries a
-:ref:`fulltext index with an analyzer <sql_ddl_index_fulltext>` must be defined for the related
-columns.
+Fulltext indices take the contents of one or more fields and split it
+up into tokens that are used for fulltext-search. The transformation
+from a text to separate tokens is done by an analyzer. In order to
+create fulltext search queries a :ref:`fulltext index with an analyzer
+<sql_ddl_index_fulltext>` must be defined for the related columns.
 
 .. _sql_ddl_index_definition:
 
 Index Definition
 ----------------
 
-At Crate, every column's data is indexed using the ``plain`` index method by default.
-Currently 3 choices related to index definition exists:
+In Crate, every column's data is indexed using the ``plain`` index
+method by default.  Currently there are 3 choices related to index
+definition:
 
   - `Disable indexing`_
 
@@ -427,9 +430,9 @@ Currently 3 choices related to index definition exists:
 Disable indexing
 ................
 
-Indexing can be turned off by using the ``INDEX OFF`` column definition.
-Without an index the column can never be hit by a query, and is only available as a result
-column::
+Indexing can be turned off by using the ``INDEX OFF`` column
+definition. Without an index the column can never be hit by a query,
+and is only available as a result column::
 
     cr> create table my_table1b (
     ...   first_column string INDEX OFF
@@ -442,8 +445,9 @@ column::
 Plain index (Default)
 .....................
 
-An index of type ``plain`` is indexing the input data as-is without analyzing.
-Using the ``plain`` index method is the default behaviour but can also be declared explicitly::
+An index of type ``plain`` is indexing the input data as-is without
+analyzing.  Using the ``plain`` index method is the default behaviour
+but can also be declared explicitly::
 
     cr> create table my_table1b1 (
     ...   first_column string INDEX using plain
@@ -463,21 +467,22 @@ This results in the same behaviour than without any index declaration::
 Fulltext index with analyzer
 ............................
 
-By defining an index on a column, it's analyzed data is indexed instead of the raw data.
-Thus, depending on the used analyzer, querying for the exact data may not work anymore.
-See :ref:`builtin-analyzer` for details about available builtin analyzer or
-:ref:`sql-ddl-custom-analyzer`.
+By defining an index on a column, it's analyzed data is indexed
+instead of the raw data.  Thus, depending on the used analyzer,
+querying for the exact data may not work anymore.  See
+:ref:`builtin-analyzer` for details about available builtin analyzer
+or :ref:`sql-ddl-custom-analyzer`.
 
-If no analyzer is specified using a fulltext index, the :ref:`standard <standard-analyzer>`
-analyzer is used::
+If no analyzer is specified when using a fulltext index, the
+:ref:`standard <standard-analyzer>` analyzer is used::
 
     cr> create table my_table1c (
     ...   first_column string INDEX using fulltext
     ... )
     CREATE OK (... sec)
 
-Defining the usage of a concrete analyzer is straight forward by defining the analyzer as a
-parameter using the ``WITH`` statement::
+Defining the usage of a concrete analyzer is straight forward by
+defining the analyzer as a parameter using the ``WITH`` statement::
 
     cr> create table my_table1d (
     ...   first_column string INDEX using fulltext with(analyzer='english')
@@ -488,8 +493,9 @@ parameter using the ``WITH`` statement::
 Defining a named index column definition
 ........................................
 
-It's also possible to define an index column which treat the data of a given column as input.
-This is especially useful if you want to search for both, the exact and analyzed data::
+It's also possible to define an index column which treat the data of a
+given column as input.  This is especially useful if you want to
+search for both, the exact and analyzed data::
 
     cr> create table my_table1e (
     ...   first_column string,
@@ -509,8 +515,9 @@ Of course defining a custom analyzer is possible here too::
 Defining a composite index
 ..........................
 
-Defining a composite (or combined) index is done using the same syntax as above despite multiple
-columns are given to the ``fulltext`` index method::
+Defining a composite (or combined) index is done using the same syntax
+as above despite multiple columns are given to the ``fulltext`` index
+method::
 
     cr> create table documents (
     ...   title string,
@@ -533,62 +540,29 @@ Composite indices can include nested columns within object columns as well::
 
 .. _sql-ddl-custom-analyzer:
 
+.. _create_custom_analyzer:
+
 Create custom analyzer
 ----------------------
 
-An analyzer consists of one tokenizer, zero or more token-filters, and zero or more char-filters.
+An analyzer consists of one tokenizer, zero or more token-filters, and
+zero or more char-filters.
 
-When a field-content is analyzed to become a stream of tokens, the char-filter is applied at first.
-It is used to filter some special chars from the stream of characters that make up the content.
+When a field-content is analyzed to become a stream of tokens, the
+char-filter is applied at first.  It is used to filter some special
+chars from the stream of characters that make up the content.
 
 Tokenizers split the possibly filtered stream of characters into tokens.
 
-Token-filters can add tokens, delete tokens or transform them to finally produce the desired
-stream of tokens.
+Token-filters can add tokens, delete tokens or transform them to
+finally produce the desired stream of tokens.
 
-With these elements in place, analyzer provide finegrained control over building a token stream
-used for fulltext search.
-For example you can use language specific analyzers, tokenizers and token-filters to get proper
-search results for data provided in a certain language.
+With these elements in place, analyzers provide finegrained control
+over building a token stream used for fulltext search.  For example
+you can use language specific analyzers, tokenizers and token-filters
+to get proper search results for data provided in a certain language.
 
-
-
-Create Analyzer Syntax::
-
-    CREATE ANALYZER <analyzer_name> [EXTENDS <analyzer_name>] (
-        [
-          TOKENIZER <tokenizer_name> [WITH] (
-            <tokenizer_property>=<value>,
-            ...
-          ),
-        ]
-        [
-          TOKEN_FILTERS [WITH] (
-            <token_filter_name>
-            [ [WITH] (
-                <token_filter_property>=<value>,
-                ...
-              )
-            ],
-            ...
-          ),
-        ]
-        [
-          CHAR_FILTERS [WITH] (
-            <char_filter_name>
-            [ [WITH] (
-                <char_filter_property>=<value>,
-                ...
-              )
-            ],
-            ...
-          )
-        ]
-    )
-
-Multiple char filters and token filters are allowed but at maximum one tokenizer.
-Order does not matter.
-A simple Example::
+Here is a simple Example::
 
     cr> create ANALYZER myanalyzer (
     ...   TOKENIZER whitespace,
@@ -606,22 +580,17 @@ A simple Example::
     ... )
     CREATE OK (... sec)
 
-This example creates an analyzer called ``myanalyzer`` to be used in index-definitions and
-index-constraints.
-It will use a :ref:`whitespace-tokenizer` tokenizer, a :ref:`lowercase-tokenfilter` token-filter
-and a :ref:`kstem-tokenfilter` token-filter, a :ref:`htmlstrip-charfilter` char-filter
-and a custom char-filter that extends the :ref:`mapping-charfilter` char-filter.
+This example creates an analyzer called ``myanalyzer`` to be used in
+index-definitions and index-constraints.  It will use a
+:ref:`whitespace-tokenizer` tokenizer, a :ref:`lowercase-tokenfilter`
+token-filter and a :ref:`kstem-tokenfilter` token-filter, a
+:ref:`htmlstrip-charfilter` char-filter and a custom char-filter that
+extends the :ref:`mapping-charfilter` char-filter.
 
-You can use :ref:`builtin-tokenizer`, :ref:`builtin-token-filter` and :ref:`builtin-char-filter`
-by just writing their names and you can extend and parameterize them,
-see for example the ``mymapping`` char-filter above. You have to give these extended ones a
-unique name.
-
-.. note:: Starting with release 0.18.0 one could extend custom tokenizers,
-          token-filters and char-filters. This is not possible anymore.
-          Nonetheless you can still extend custom analyzers to reuse their elements.
-          We might reintroduce this feature when we support creating tokenizers etc. standalone
-          e.g. by a ``CREATE TOKENIZER`` statement.
+You can use :ref:`builtin-tokenizer`, :ref:`builtin-token-filter` and
+:ref:`builtin-char-filter` by just writing their names and you can
+extend and parameterize them, see for example the ``mymapping``
+char-filter above. You have to give these extended ones a unique name.
 
 Extending Bultin Analyzer
 -------------------------
@@ -635,12 +604,12 @@ You can extend and parameterize :ref:`builtin-analyzer` like this::
     ... )
     CREATE OK (... sec)
 
-If you extend :ref:`builtin-analyzer`, tokenizer, char-filter or token-filter cannot be defined.
-In this case use the parameters available for the extended :ref:`builtin-analyzer`.
+If you extend :ref:`builtin-analyzer`, tokenizer, char-filter or
+token-filter cannot be defined.  In this case use the parameters
+available for the extended :ref:`builtin-analyzer`.
 
-If you extend custom-analyzers, every part of the analyzer that is ommitted will be taken from
-the extended one.
-Example::
+If you extend custom-analyzers, every part of the analyzer that is
+ommitted will be taken from the extended one.  Example::
 
     cr> create ANALYZER e2 EXTENDS myanalyzer (
     ...     TOKENIZER mypattern WITH (
@@ -650,8 +619,8 @@ Example::
     ... )
     CREATE OK (... sec)
 
-This analyzer will use the char-filters and token-filters from ``myanalyzer``
-and will override the tokenizer with ``mypattern``.
+This analyzer will use the char-filters and token-filters from
+``myanalyzer`` and will override the tokenizer with ``mypattern``.
 
 Analyzer Reference
 ------------------

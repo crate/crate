@@ -1,0 +1,30 @@
+======
+DELETE
+======
+
+Delete rows of a table
+
+Synopsis
+========
+
+.. code-block:: sql
+
+    DELETE FROM table_ident [ WHERE condition ]
+
+Description
+===========
+
+DELETE deletes rows that satisfy the WHERE clause from the specified
+table. If the WHERE clause is absent, the effect is to delete all rows
+in the table. The result is a valid, but empty table.
+
+Parameters
+==========
+
+
+:table_ident: The name (optionally schema-qualified) of an existing
+    table to delete rows from.
+
+:condition: An expression that returns a value of type boolean. Only
+    rows for which this expression returns true will be deleted.
+

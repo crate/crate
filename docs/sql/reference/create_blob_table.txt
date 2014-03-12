@@ -1,0 +1,24 @@
+=================
+CREATE BLOB TABLE
+=================
+
+Define a new table for storing binary large objects.
+
+Synopsis
+========
+
+.. code-block:: sql
+
+    CREATE BLOB TABLE table_name
+    [CUSTERED [ BY (routing_column) ] INTO num_shards SHARDS ]
+    [ WITH ( storage_parameter [= value] [, ... ] ) ]
+
+
+Description
+===========
+
+CREATE BLOB TABLE will create a new table for holding BLOBS. For
+details and examples see :ref:`blob_support`.
+
+The CLUSTERED and WITH clauses follow the same semantics described
+under :ref:`clustered_clause` and :ref:`with_clause`.
