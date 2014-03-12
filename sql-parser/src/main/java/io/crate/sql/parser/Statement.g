@@ -74,6 +74,7 @@ tokens {
     SHOW_COLUMNS;
     SHOW_PARTITIONS;
     SHOW_FUNCTIONS;
+    ALTER_TABLE;
     CREATE_TABLE;
     CREATE_BLOB_TABLE;
     CREATE_MATERIALIZED_VIEW;
@@ -178,6 +179,7 @@ statement
     | showPartitionsStmt
     | showFunctionsStmt
     | createTableStmt
+    | alterTableStmt
     | createBlobTableStmt
     | dropTableStmt
     | dropBlobTableStmt
@@ -732,6 +734,11 @@ copyStmt
     : COPY table FROM expr -> ^(COPY_FROM table expr)
     ;
 
+alterTableStmt
+    : ALTER TABLE table
+      SET '(' genericProperties ')' -> ^(ALTER_TABLE table genericProperties)
+    ;
+
 createBlobTableStmt
     : CREATE BLOB TABLE table clusteredInto?
       (WITH '(' genericProperties ')' )? -> ^(CREATE_BLOB_TABLE table clusteredInto? genericProperties?)
@@ -980,6 +987,7 @@ RECURSIVE: 'RECURSIVE';
 CREATE: 'CREATE';
 BLOB: 'BLOB';
 TABLE: 'TABLE';
+ALTER: 'ALTER';
 
 BOOLEAN: 'BOOLEAN';
 BYTE: 'BYTE';

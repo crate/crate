@@ -75,6 +75,7 @@ statement returns [Statement value]
     | showPartitions            { $value = $showPartitions.value; }
     | showFunctions             { $value = $showFunctions.value; }
     | createTable               { $value = $createTable.value; }
+    | alterTable                { $value = $alterTable.value; }
     | createBlobTable           { $value = $createBlobTable.value; }
     | createMaterializedView    { $value = $createMaterializedView.value; }
     | refreshMaterializedView   { $value = $refreshMaterializedView.value; }
@@ -663,6 +664,15 @@ createBlobTable returns [Statement value]
                                          $genericProperties.value);
         }
     ;
+
+alterTable returns [Statement value]
+    : ^(ALTER_TABLE namedTable genericProperties)
+        {
+            $value = new AlterTable($namedTable.value,
+                                    $genericProperties.value);
+        }
+    ;
+
 
 createTable returns [Statement value]
     : ^(CREATE_TABLE namedTable tableElementList clusteredBy? genericProperties?)
