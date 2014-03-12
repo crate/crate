@@ -548,6 +548,8 @@ Deleting rows in Crate is done using the SQL ``DELETE`` statement::
     DELETE OK, ... rows affected (... sec)
 
 
+.. _importing_data:
+
 Importing data
 ==============
 

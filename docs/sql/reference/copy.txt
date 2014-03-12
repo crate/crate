@@ -1,0 +1,39 @@
+====
+COPY
+====
+
+Copy data between a file and a table.
+
+Synopsis
+========
+
+.. code-block:: sql
+
+    COPY table_ident FROM 'path'
+
+Description
+===========
+
+COPY FROM copies data from the filesystem of any cluster node to a
+specified table.
+
+The files to be copied from need to be accessible from the crate
+server process and the name must be specified from the viewpoint of
+the server.
+
+The input files need to have one line per record. Records are
+formatted in JSON.
+
+For examples see: :ref:`importing_data`.
+
+Parameters
+==========
+
+:table_ident: The name (optionally schema-qualified) of an existing
+    table where the data should be put.
+
+:path: A file or directory path with an optional `PCRE`_ file pattern
+    suffix. If the path is relative, it is based on the absolute path
+    of the node's data location.
+
+.. _PCRE: http://www.pcre.org/

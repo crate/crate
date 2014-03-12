@@ -1,0 +1,39 @@
+======
+UPDATE
+======
+
+Update rows of a table.
+
+Synopsis
+========
+
+.. code-block:: sql
+
+   UPDATE table_ident SET
+       { column_ident = expression |
+         ( column_ident [, ...] ) = ( expression [, ...] )
+       } [, ...]
+     [ WHERE condition ]
+
+Description
+===========
+
+UPDATE changes the values of the specified columns in all rows that
+satisfy the condition. Only the columns to be modified need be
+mentioned in the SET clause; columns not explicitly modified retain
+their previous values.
+
+Parameters
+----------
+
+:table_ident: The identifier (optionally schema-qualified) of an
+    existing table.
+
+:column_ident: The name of a column in the table identified by
+    table_ident. Subfields can also be defined by using the subscript
+    notation with square brackets.
+
+:expression: An expression to assign to the column.
+
+:condition: An expression that returns a value of type boolean. Only
+    rows for which this expression returns true will be updated.

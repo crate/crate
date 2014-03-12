@@ -1,0 +1,45 @@
+======
+INSERT
+======
+
+Create new rows in a table.
+
+Synopsis
+========
+
+.. code-block:: sql
+
+   INSERT INTO table_ident
+    [ ( column_ident [, ...] ) ]
+    VALUES ( expression [, ...] ) [, ...]
+
+Description
+===========
+
+INSERT creates one or more rows specified by value expressions.
+
+The target column names can be listed in any order. If no list of
+column names is given at all, the default is all the columns of the
+table in lexical order; or the first N column names, if there are only
+N columns supplied by the VALUES clause. The values supplied by the
+VALUES clause are associated with the explicit or implicit column list
+left-to-right.
+
+Each column not present in the explicit or implicit column list will
+not be filled.
+
+If the expression for any column is not of the correct data type,
+automatic type conversion will be attempted.
+
+
+Parameters
+==========
+
+:table_ident: The identifier (optionally schema-qualified) of an
+    existing table.
+
+:column_ident: The name of a column or field in the table pointed to
+   by table_ident.
+
+:expression: An expression or value to assign to the corresponding column.
+

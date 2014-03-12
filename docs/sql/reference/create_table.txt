@@ -1,0 +1,148 @@
+============
+CREATE TABLE
+============
+
+Define a new table.
+
+Synopsis
+========
+
+.. code-block:: sql
+
+    CREATE TABLE table_name ( [
+    { column_name data_type [ column_constraint [ ... ] ] | table_constraint }
+    [, ... ] ] )
+    [CUSTERED [ BY (routing_column) ] INTO num_shards SHARDS ]
+    [ WITH ( storage_parameter [= value] [, ... ] ) ]
+
+
+where ``column_constraint`` is:
+
+.. code-block:: sql
+
+  { PRIMARY KEY |
+    INDEX { OFF | USING { PLAIN |
+                          FULLTEXT [ WITH ( analyzer = analyzer_name ) ]  }
+  }
+
+
+and table_constraint is:
+
+.. code-block:: sql
+
+  { PRIMARY KEY ( column_name [, ... ] ) |
+    INDEX index_name USING FULLTEXT ( column_name [, ... ] )
+         [ WITH ( analyzer = analyzer_name ) ]
+  }
+
+Description
+===========
+
+CREATE TABLE will create a new, initially empty table.
+
+Setting a schema (for example, CREATE TABLE myschema.mytable ...) is
+currently not supprted. All userspace defined data tables are defined
+under the default schema named ``doc``.
+
+The optional constraint clauses specify constraints (tests) that new
+or updated rows must satisfy for an insert or update operation to
+succeed. A constraint is an SQL object that helps define the set of
+valid values in the table in various ways.
+
+There are two ways to define constraints: table constraints and column
+constraints. A column constraint is defined as part of a column
+definition. A table constraint definition is not tied to a particular
+column, and it can encompass more than one column. Every column
+constraint can also be written as a table constraint; a column
+constraint is only a notational convenience for use when the
+constraint only affects one column.
+
+Parameters
+==========
+
+:table_name: The name (optionally schema-qualified) of the table to
+    be created.
+
+:column_name: The name of a column to be created in the new table.
+
+:data_type: The data type of the column. This can include array and
+    object specifiers. For more information on the data types
+    supported by Crate see .
+
+PRIMARY KEY Constraint
+======================
+
+The PRIMARY KEY constraint specifies that a column or columns of a
+table can contain only unique (non-duplicate), nonnull values.
+
+Only one primary key can be specified for a table, whether as a column
+constraint or a table constraint.
+
+INDEX Constraint
+================
+
+The INDEX constraint specifies a specific index method on one or more
+columnns.
+
+It is possible to define more than one index per table, whether as a
+column constraint or a table constraint.
+
+For further details about the meaning of the options see
+:ref:`indices_and_fulltext`.
+
+.. _clustered_clause:
+
+CLUSTERED Clause
+================
+
+The optional CLUSTERED clause specifies how a table should be
+distributed accross a cluster.
+
+:num_shards: specifies the number of shards a table is stored in, the default is 5.
+
+:routing_column: allows to explicitly specify a column or field on
+    which basis rows are sharded. all rows having the same value in
+    ``routing_column`` are stored in the same shard. The default is
+    the primary key if specified, otherwise the internal ``_id``
+    column.
+
+.. _with_clause:
+
+WITH Clause
+-----------
+
+The optional WITH clause can specify storage parameters for tables.
+
+.. code-block:: sql
+
+    [ WITH ( storage_parameter [= value] [, ... ] ) ]
+
+
+:storage_parameter: specifies an optional storage parameter for the table.
+
+Available storage paramters are:
+
+
+.. _number_of_replicas:
+
+number_of_replicas
+~~~~~~~~~~~~~~~~~~
+
+Specifies the number or range of replicas each shard of a table should
+have for normal operation, the default is to have 1 replica.
+
+The number of replicas is defined like this:
+
+.. code-block:: sql
+
+    min_replicas [ - [ max_replicas ] ]
+
+:min_replicas: The minimum number of replicas required.
+
+:max_replicas: The maximum number of replicas. The actual maximum
+    number of replicas is max(num_replicas, N-1), where N is the
+    number of data nodes in the cluster. If ``max_replicas`` is the
+    string ``all`` then it will always be N.
+
+For further details and examples see :ref:`replication`.
+

@@ -1,3 +1,5 @@
+.. _blob_support:
+
 ============
 Blob Support
 ============

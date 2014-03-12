@@ -1,0 +1,193 @@
+======
+SELECT
+======
+
+Retrieve rows from a table.
+
+Synopsis
+========
+
+.. code-block:: sql
+
+   SELECT * | expression [ [ AS ] output_name ] [, ...] FROM table_ident
+     [ WHERE condition ]
+     [ GROUP BY expression [, ...] ]
+     [ ORDER BY expression [ ASC | DESC ] [, ...] ]
+     [ LIMIT num_results ]
+     [ OFFSET start ]
+
+
+Description
+===========
+
+SELECT retrieves rows from a table. The general processing of SELECT
+is as follows:
+
+- The FROM item points to the table where the data should be retrieved
+  from.
+
+- If the WHERE clause is specified, all rows that do not satisfy the
+  condition are eliminated from the output. (See WHERE Clause below.)
+
+- If the GROUP BY clause is specified, the output is combined into
+  groups of rows that match on one or more values.
+
+- The actual output rows are computed using the SELECT output
+  expressions for each selected row or row group.
+
+- If the ORDER BY clause is specified, the returned rows are sorted in
+  the specified order. If ORDER BY is not given, the rows are returned
+  in whatever order the system finds fastest to produce.
+
+- If the LIMIT or OFFSET clause is specified, the SELECT statement
+  only returns a subset of the result rows.
+
+Parameters
+==========
+
+SELECT List
+-----------
+
+The SELECT list specifies expressions that form the output rows of the
+SELECT statement. The expressions can (and usually do) refer to
+columns computed in the FROM clause.
+
+.. code-block:: sql
+
+    SELECT * | expression [ [ AS ] output_name ] [, ...]
+
+Just as in a table, every output column of a SELECT has a name. In a
+simple SELECT this name is just used to label the column for
+display. To specify the name to use for an output column, write AS
+``output_name`` after the column's ``expression``. (You can omit AS,
+but only if the desired output name does not match any reserved
+keyword. For protection against possible future keyword additions, it
+is recommended that you always either write AS or double-quote the
+output name.) If you do not specify a column name, a name is chosen
+automatically by Crate. If the column's expression is a simple column
+reference then the chosen name is the same as that column's name. In
+more complex cases a function or type name may be used, or the system
+may fall back on a generated name.
+
+An output column's name can be used to refer to the column's value in
+ORDER BY and GROUP BY clauses, but not in the WHERE clause; there you
+must write out the expression instead.
+
+Instead of an expression, ``*`` can be written in the output list as a
+shorthand for all the columns of the selected rows. Also, you can
+write table_name.* as a shorthand for the columns coming from just
+that table. In these cases it is not possible to specify new names
+with AS; the output column names will be the same as the table
+columns' names.
+
+FROM Clause
+-----------
+
+The FROM clause specifies the source table for the SELECT:
+
+.. code-block:: sql
+
+    FROM table_ident
+
+:table_ident: The name (optionally schema-qualified) of an existing table.
+
+
+WHERE Clause
+------------
+
+The optional WHERE clause defines the condition to be met for a row to
+be returned:
+
+.. code-block:: sql
+
+    WHERE condition
+
+:condition: a where condition is any expression that evaluates to a
+  result of type boolean. Any row that does not satisfy this condition
+  will be eliminated from the output. A row satisfies the condition if
+  it returns true when the actual row values are substituted for any
+  variable references.
+
+
+GROUP BY Clause
+---------------
+
+The optional GROUP BY clause will condense into a single row all
+selected rows that share the same values for the grouped expressions.
+
+Aggregate expressions, if any are used, are computed across all rows
+making up each group, producing a separate value for each group.
+
+.. code-block:: sql
+
+    GROUP BY expression [, ...]
+
+:expression: can be an input column name, or the name or ordinal
+  number of an output column, or an arbitrary expression formed from
+  input-column values. In case of ambiguity, a GROUP BY name will be
+  interpreted as an input-column name rather than an output column
+  name.
+
+.. note::
+
+  When GROUP BY is present, it is not valid for the SELECT list
+  expressions to refer to ungrouped columns except within aggregate
+  functions, since there would otherwise be more than one possible
+  value to return for an ungrouped column.
+
+ORDER BY Clause
+---------------
+
+The ORDER BY clause causes the result rows to be sorted according to
+the specified expression(s). :
+
+.. code-block:: sql
+
+    ORDER BY expression [ ASC | DESC ] [, ...]
+
+:expression: can be the name or ordinal number of an output column, or
+  it can be an arbitrary expression formed from input-column values.
+
+The optional keyword ASC (ascending) or DESC (descending) after any
+expression allows to define the direction in which values have are
+sorted. The default is ascending.
+
+.. note::
+
+  If two rows are equal according to the leftmost expression, they are
+  compared according to the next expression and so on. If they are
+  equal according to all specified expressions, they are returned in
+  an implementation-dependent order. Nulls are considered larger than
+  any value.
+
+Character-string data is sorted by its UTF-8 representation.
+
+LIMIT Clause
+------------
+
+The optional LIMIT Clause allows to limit the number or retured result rows:
+
+.. code-block:: sql
+
+    LIMIT num_results
+
+:num_results: specifies the maximum number of result rows to return,
+  the default is 10000.
+
+
+.. note::
+
+    It is possible for repeated executions of the same LIMIT query to
+    return different subsets of the rows of a table, if there is not
+    an ORDER BY to enforce selection of a deterministic subset.
+
+OFFSET Clause
+-------------
+
+The optional OFFSET Clause allows to skip result rows at the beginning:
+
+.. code-block:: sql
+
+    OFFSET start
+
+:start: specifies the number of rows to skip before starting to return rows.
