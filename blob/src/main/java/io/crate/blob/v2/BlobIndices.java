@@ -101,7 +101,7 @@ public class BlobIndices extends AbstractComponent {
 
     public ListenableFuture<Void> createBlobTable(String tableName,
                                                   @Nullable NumberOfReplicas numberOfReplicas,
-                                                  @Nullable Integer numberOfShards ) {
+                                                  @Nullable Integer numberOfShards) {
         ImmutableSettings.Builder builder = ImmutableSettings.builder();
         builder.put(SETTING_BLOBS_ENABLED, true);
         builder.put("number_of_shards", Objects.firstNonNull(numberOfShards, DEFAULT_NUMBER_OF_SHARDS));
