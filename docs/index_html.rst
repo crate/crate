@@ -21,4 +21,3 @@ Contents
    sql/index
    blob
    udc
-   clients

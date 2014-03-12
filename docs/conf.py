@@ -3,7 +3,6 @@ import sys
 
 import crate_theme.sphinx
 
-
 project = u'Crate Data'
 copyright = u'2014, CRATE Technology GmbH'
 
@@ -15,9 +14,8 @@ master_doc = 'index'
 nitpicky = True
 
 html_show_sourcelink = False
-html_favicon = 'favicon.png'
 
-exclude_trees = ['pyenv', 'tmp', 'out', 'crate-python/tmp', 'parts']
+exclude_trees = ['pyenv', 'tmp', 'out', 'parts', 'clients']
 
 extensions = ['sphinx.ext.autodoc']
 
