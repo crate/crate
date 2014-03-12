@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/03/12 0.29.0
+=================
+
  - update crate-admin to 0.2.6
 
  - The `number_of_replicas` column in `information_schema.tables` is now a
