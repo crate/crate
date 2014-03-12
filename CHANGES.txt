@@ -5,6 +5,10 @@ Changes for Crate Data
 Unreleased
 ==========
 
+
+2014/03/12 0.30.0
+=================
+
  - streamlined ``CREATE ANALYZER`` syntax to only use the ``WITH`` keyword
    on properties
 
