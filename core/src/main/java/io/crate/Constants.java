@@ -36,7 +36,6 @@ public class Constants {
 
     public static final Object[][] EMPTY_RESULT = new Object[0][];
     public static final String CUSTOM_ANALYSIS_SETTINGS_PREFIX = "crate.analysis.custom";
-    public static final Integer DEFAULT_NUM_REPLICAS = 1;
     public static final Integer DEFAULT_NUM_SHARDS = 5;
 
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;

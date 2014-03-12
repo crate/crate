@@ -2847,7 +2847,19 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         assertEquals(1, response.rowCount());
         assertEquals(0L, response.rows()[0][0]);
+    }
 
+    @Test
+    public void testAlterTable() throws Exception {
+        execute("create table test (col1 int) with (number_of_replicas='0-all')");
+        ensureGreen();
+
+        execute("select number_of_replicas from information_schema.tables where table_name = 'test'");
+        assertEquals("0-all", response.rows()[0][0]);
+
+        execute("alter table test set (number_of_replicas=0)");
+        execute("select number_of_replicas from information_schema.tables where table_name = 'test'");
+        assertEquals("0", response.rows()[0][0]);
     }
 
     @Test

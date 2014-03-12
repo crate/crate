@@ -42,7 +42,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class CreateTableStatementAnalyzerTest extends BaseAnalyzerTest {
+public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     static class TestMetaDataModule extends MetaDataModule {
         @Override
@@ -266,5 +266,33 @@ public class CreateTableStatementAnalyzerTest extends BaseAnalyzerTest {
         Map<String, Object> ft_mapping = (Map<String, Object>)mappingProperties.get("content_ft");
         assertThat((String)ft_mapping.get("index"), is("analyzed"));
         assertThat((String)ft_mapping.get("analyzer"), is("standard"));
+    }
+
+    @Test
+    public void testChangeNumberOfReplicas() throws Exception {
+        AlterTableAnalysis analysis =
+                (AlterTableAnalysis)analyze("alter table users set (number_of_replicas=2)");
+
+        assertThat(analysis.table().ident().name(), is("users"));
+        assertThat(analysis.settings().get("number_of_replicas"), is("2"));
+    }
+
+    @Test
+    public void testResetNumberOfReplicas() throws Exception {
+        AlterTableAnalysis analysis =
+                (AlterTableAnalysis)analyze("alter table users reset (number_of_replicas)");
+
+        assertThat(analysis.table().ident().name(), is("users"));
+        assertThat(analysis.settings().get("number_of_replicas"), is("1"));
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void testAlterTableWithInvalidProperty() throws Exception {
+        analyze("alter table users set (foobar='2')");
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void testAlterSystemTable() throws Exception {
+        analyze("alter table sys.shards reset (number_of_replicas)");
     }
 }

@@ -22,13 +22,10 @@ package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
-import io.crate.core.NumberOfReplicas;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.*;
-import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
@@ -38,23 +35,6 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
 
     private final ExpressionToObjectVisitor expressionVisitor = new ExpressionToObjectVisitor();
 
-    protected final Map<String, SettingsApplier> supportedProperties =
-            ImmutableMap.<String, SettingsApplier>builder()
-                    .put("number_of_replicas", new SettingsApplier() {
-                        @Override
-                        public void apply(ImmutableSettings.Builder settingsBuilder,
-                                          Object[] parameters,
-                                          List<Expression> expressions) {
-                            Preconditions.checkArgument(expressions.size() == 1,
-                                    "Invalid number of arguments passed to \"number_of_replicas\"");
-
-                            Object numReplicas = expressionVisitor.process(expressions.get(0), parameters);
-
-                            NumberOfReplicas numberOfReplicas = new NumberOfReplicas(numReplicas.toString());
-                            settingsBuilder.put(numberOfReplicas.esSettingKey(), numberOfReplicas.esSettingValue());
-                        }
-                    })
-            .build();
 
     protected Void visitNode(Node node, CreateTableAnalysis context) {
         throw new RuntimeException(
@@ -70,10 +50,11 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
 
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.
-        context.indexSettingsBuilder().put("number_of_replicas", Constants.DEFAULT_NUM_REPLICAS);
-
+        context.indexSettingsBuilder().put("number_of_replicas", TablePropertiesAnalysis.getDefault("number_of_replicas"));
         if (node.properties().isPresent()) {
-            applySettingsFromProperties(node.properties().get(), context);
+            Settings settings =
+                    TablePropertiesAnalysis.propertiesToSettings(node.properties().get(), context.parameters());
+            context.indexSettingsBuilder().put(settings);
         }
 
         if (node.clusteredBy().isPresent()) {
@@ -89,18 +70,6 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         setCopyTo(context);
 
         return null;
-    }
-
-    protected void applySettingsFromProperties(GenericProperties genericProperties, CreateTableAnalysis context) {
-        for (Map.Entry<String, List<Expression>> entry : genericProperties.properties().entrySet()) {
-            SettingsApplier settingsApplier = supportedProperties.get(entry.getKey());
-            if (settingsApplier == null) {
-                throw new IllegalArgumentException(
-                        String.format("The property \"%s\" is not valid in the CREATE TABLE context", entry.getKey()));
-            }
-
-            settingsApplier.apply(context.indexSettingsBuilder(), context.parameters(), entry.getValue());
-        }
     }
 
     @SuppressWarnings("unchecked")

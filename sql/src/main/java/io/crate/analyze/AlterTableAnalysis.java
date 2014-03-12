@@ -27,30 +27,36 @@ import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import org.elasticsearch.common.settings.Settings;
 
-public class RefreshTableAnalysis extends AbstractDDLAnalysis {
+public class AlterTableAnalysis extends AbstractDDLAnalysis {
 
     private final ReferenceInfos referenceInfos;
+    private Settings settings;
     private TableInfo tableInfo;
     private SchemaInfo schemaInfo;
 
-    protected RefreshTableAnalysis(ReferenceInfos referenceInfos, Object[] parameters) {
+    public AlterTableAnalysis(Object[] parameters, ReferenceInfos referenceInfos) {
         super(parameters);
         this.referenceInfos = referenceInfos;
     }
 
     @Override
     public void table(TableIdent tableIdent) {
-        SchemaInfo schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
+        this.tableIdent = tableIdent;
+
+        schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
         if (schemaInfo == null) {
             throw new SchemaUnknownException(tableIdent.schema());
         }
-        TableInfo tableInfo = schemaInfo.getTableInfo(tableIdent.name());
+        if (schemaInfo.systemSchema()) {
+            throw new IllegalArgumentException("Tables inside a system schema cannot be altered");
+        }
+
+        tableInfo = schemaInfo.getTableInfo(tableIdent.name());
         if (tableInfo == null) {
             throw new TableUnknownException(tableIdent.name());
         }
-        this.tableInfo = tableInfo;
-        this.schemaInfo = schemaInfo;
     }
 
     @Override
@@ -68,8 +74,16 @@ public class RefreshTableAnalysis extends AbstractDDLAnalysis {
 
     }
 
+    public void settings(Settings settings) {
+        this.settings = settings;
+    }
+
+    public Settings settings() {
+        return settings;
+    }
+
     @Override
     public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitRefreshTableAnalysis(this, context);
+        return analysisVisitor.visitAlterTableAnalysis(this, context);
     }
 }

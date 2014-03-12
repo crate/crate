@@ -1,0 +1,32 @@
+===========
+ALTER TABLE
+===========
+
+Alter an existing table
+
+Synopsis
+========
+
+.. code-block:: sql
+
+    ALTER TABLE table_name
+    { SET ( parameter = value [ , ... ] ) |
+      RESET ( parameter [ , ... ] )
+    }
+
+Description
+===========
+
+ALTER TABLE can be used to alter an existing table.
+
+``SET`` can be used to change a table parameter to a different value. Using
+``RESET`` will reset the parameter to its default value.
+
+Parameters
+==========
+
+:table_name: The name of the table to alter.
+
+:parameter: The name of the parameter that is set to a new value or its default.
+
+See the CREATE TABLE :ref:`with_clause` for a list of available parameters.
