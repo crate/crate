@@ -668,8 +668,11 @@ createBlobTable returns [Statement value]
 alterTable returns [Statement value]
     : ^(ALTER_TABLE namedTable genericProperties)
         {
-            $value = new AlterTable($namedTable.value,
-                                    $genericProperties.value);
+            $value = new AlterTable($namedTable.value, $genericProperties.value);
+        }
+    | ^(ALTER_TABLE namedTable identList)
+        {
+            $value = new AlterTable($namedTable.value, $identList.value);
         }
     ;
 

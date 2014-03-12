@@ -737,6 +737,8 @@ copyStmt
 alterTableStmt
     : ALTER TABLE table
       SET '(' genericProperties ')' -> ^(ALTER_TABLE table genericProperties)
+    | ALTER TABLE table
+      RESET '(' ident (',' ident )* ')' -> ^(ALTER_TABLE table ident+)
     ;
 
 createBlobTableStmt
@@ -1037,6 +1039,7 @@ VALUES: 'VALUES';
 DELETE: 'DELETE';
 UPDATE: 'UPDATE';
 SET: 'SET';
+RESET: 'RESET';
 COPY: 'COPY';
 CLUSTERED: 'CLUSTERED';
 SHARDS: 'SHARDS';
