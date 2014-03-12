@@ -884,15 +884,15 @@ tokenizer
     ;
 
 tokenFilters
-    : TOKEN_FILTERS (WITH? '(' namedProperties (',' namedProperties )* ')' ) -> ^(TOKEN_FILTERS namedProperties+)
+    : TOKEN_FILTERS '(' namedProperties (',' namedProperties )* ')' -> ^(TOKEN_FILTERS namedProperties+)
     ;
 
 charFilters
-    : CHAR_FILTERS (WITH? '(' namedProperties (',' namedProperties )* ')' ) -> ^(CHAR_FILTERS namedProperties+)
+    : CHAR_FILTERS '(' namedProperties (',' namedProperties )* ')' -> ^(CHAR_FILTERS namedProperties+)
     ;
 
 namedProperties
-    : ident (WITH? '(' genericProperties ')' )? -> ^(NAMED_PROPERTIES ident genericProperties?)
+    : ident (WITH '(' genericProperties ')' )? -> ^(NAMED_PROPERTIES ident genericProperties?)
     ;
 
 refreshStmt

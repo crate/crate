@@ -69,7 +69,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
 
     @Test
     public void resolveSimpleAnalyzerSettings() throws Exception {
-        execute("CREATE ANALYZER a1 WITH (tokenizer lowercase)");
+        execute("CREATE ANALYZER a1 (tokenizer lowercase)");
         Settings fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("a1");
         assertThat(fullAnalyzerSettings.getAsMap().size(), is(2));
         assertThat(
@@ -84,7 +84,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
 
     @Test
     public void resolveAnalyzerWithCustomTokenizer() throws Exception {
-        execute("CREATE ANALYZER a2 WITH" +
+        execute("CREATE ANALYZER a2" +
                 "(" +
                 "   tokenizer tok2 with (" +
                 "       type='ngram'," +
@@ -114,10 +114,10 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
 
     @Test
     public void resolveAnalyzerWithCharFilters() throws Exception {
-        execute("CREATE ANALYZER a3 WITH" +
+        execute("CREATE ANALYZER a3" +
                 "(" +
                 "   tokenizer lowercase," +
-                "   char_filters WITH (" +
+                "   char_filters (" +
                 "       \"html_strip\"," +
                 "       my_mapping WITH (" +
                 "           type='mapping'," +
@@ -185,7 +185,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
 
     @Test
     public void resolveAnalyzerExtendingCustom() throws Exception {
-        execute("CREATE ANALYZER a5 WITH (" +
+        execute("CREATE ANALYZER a5 (" +
                 "   tokenizer whitespace," +
                 "   token_filters (" +
                 "       lowercase," +
@@ -216,10 +216,9 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                 )
         );
 
-         execute("CREATE ANALYZER a5e EXTENDS a5" +
-                " WITH (" +
+         execute("CREATE ANALYZER a5e EXTENDS a5 (" +
                 "   tokenizer letter," +
-                "   char_filters WITH (" +
+                "   char_filters (" +
                 "       \"html_strip\"," +
                 "       mymapping WITH (" +
                 "           type='mapping'," +
@@ -318,7 +317,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                 "    \"max_gram\" = 5," +
                 "    \"token_chars\" = [ 'letter', 'digit' ]" +
                 "  )," +
-                "  token_filters WITH (" +
+                "  token_filters (" +
                 "    myshingle WITH (" +
                 "      type='shingle'," +
                 "      \"output_unigrams\"=false," +
@@ -356,7 +355,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                 analyzerSettings.getAsMap(),
                 hasEntry("index.analysis.analyzer.a7.tokenizer", "a7_mytok")
         );
-        execute("CREATE ANALYZER a8 EXTENDS a7 WITH (" +
+        execute("CREATE ANALYZER a8 EXTENDS a7 (" +
                 "  token_filters (" +
                 "    lowercase," +
                 "    kstem" +
@@ -424,7 +423,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
     public void useAnalyzerForIndexSettings() throws Exception {
         execute("CREATE ANALYZER a11 (" +
                 "  TOKENIZER standard," +
-                "  TOKEN_FILTERS WITH (" +
+                "  TOKEN_FILTERS (" +
                 "    lowercase," +
                 "    mystop WITH (" +
                 "      type='stop'," +

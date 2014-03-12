@@ -68,7 +68,7 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateAnalyzerSimple() throws Exception {
-        Analysis analysis = analyze("CREATE ANALYZER a1 WITH (tokenizer lowercase)");
+        Analysis analysis = analyze("CREATE ANALYZER a1 (tokenizer lowercase)");
         assertThat(analysis, instanceOf(CreateAnalyzerAnalysis.class));
         CreateAnalyzerAnalysis createAnalyzerAnalysis = (CreateAnalyzerAnalysis) analysis;
 
@@ -82,8 +82,7 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateAnalyzerWithCustomTokenizer() throws Exception {
-        Analysis analysis = analyze("CREATE ANALYZER a2 WITH" +
-                "(" +
+        Analysis analysis = analyze("CREATE ANALYZER a2 (" +
                 "   tokenizer tok2 with (" +
                 "       type='ngram'," +
                 "       \"min_ngram\"=2," +
@@ -111,10 +110,9 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateAnalyzerWithCharFilters() throws Exception {
-        Analysis analysis = analyze("CREATE ANALYZER a3 WITH" +
-                "(" +
+        Analysis analysis = analyze("CREATE ANALYZER a3 (" +
                 "   tokenizer lowercase," +
-                "   char_filters WITH (" +
+                "   char_filters (" +
                 "       \"html_strip\"," +
                 "       my_mapping WITH (" +
                 "           type='mapping'," +
@@ -151,7 +149,7 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
     public void testCreateAnalyzerWithTokenFilters() throws Exception {
         Analysis analysis = analyze("CREATE ANALYZER a11 (" +
                 "  TOKENIZER standard," +
-                "  TOKEN_FILTERS WITH (" +
+                "  TOKEN_FILTERS (" +
                 "    lowercase," +
                 "    mystop WITH (" +
                 "      type='stop'," +
@@ -208,11 +206,11 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
     @Test(expected = UnsupportedOperationException.class)
     public void createAnalyzerWithoutTokenizer() throws Exception {
         CreateAnalyzerAnalysis analysis = (CreateAnalyzerAnalysis)analyze(
-                "CREATE ANALYZER a6 WITH (" +
-                "  char_filters WITH (" +
+                "CREATE ANALYZER a6 (" +
+                "  char_filters (" +
                 "    \"html_strip\"" +
                 "  )," +
-                "  token_filters WITH (" +
+                "  token_filters (" +
                 "    lowercase" +
                 "  )" +
                 ")");
@@ -221,15 +219,15 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
 
     @Test( expected = IllegalArgumentException.class)
     public void overrideDefaultAnalyzer() throws Exception {
-        analyze("CREATE ANALYZER \"default\" WITH (" +
+        analyze("CREATE ANALYZER \"default\" (" +
                 "  TOKENIZER whitespace" +
                 ")");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void overrideBuiltInAnalyzer() throws Exception {
-        analyze("CREATE ANALYZER \"keyword\" WITH (" +
-                "  char_filters WITH (" +
+        analyze("CREATE ANALYZER \"keyword\" (" +
+                "  char_filters (" +
                 "    html_strip" +
                 "  )," +
                 "  tokenizer standard" +
