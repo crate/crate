@@ -169,8 +169,8 @@ public class TestStatementBuilder
 
 
         printStatement("create analyzer myAnalyzer ( tokenizer german )");
-        printStatement("create analyzer my_analyzer WITH (" +
-                " token_filters WITH (" +
+        printStatement("create analyzer my_analyzer (" +
+                " token_filters (" +
                 "   filter_1," +
                 "   filter_2," +
                 "   filter_3 WITH (" +
@@ -183,13 +183,13 @@ public class TestStatementBuilder
                 " )," +
                 " char_filters (" +
                 "   filter_1," +
-                "   filter_2 (" +
+                "   filter_2 WITH (" +
                 "     some='property'" +
                 "   )," +
                 "   filter_3" +
                 " )" +
                 ")");
-        printStatement("create analyzer my_builtin extends builtin (" +
+        printStatement("create analyzer my_builtin extends builtin WITH (" +
                 "  over='write'" +
                 ")");
         printStatement("refresh table t");
