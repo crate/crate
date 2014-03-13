@@ -19,8 +19,12 @@ exclude_trees = ['pyenv', 'tmp', 'out', 'parts', 'clients']
 
 extensions = ['sphinx.ext.autodoc']
 
-html_theme = 'bootstrap'
+html_theme = 'docs_admin'
 html_theme_path = crate_theme.sphinx.get_html_theme_path()
+
+html_favicon = 'out/html/_static/img/favicon.ico'
+
+html_sidebars = {'**': ['crate-sidebar.html', 'sourcelink.html', 'searchbox.html']}
 
 html_theme_options = {
     # HTML navbar class (Default: "navbar") to attach to <div> element.
@@ -37,5 +41,5 @@ html_theme_options = {
     # * crate-docs
     # * crate-admin
     # * crate-web
-    'bootstrap_theme': "crate-docs",
+    'bootstrap_theme': "crate-docs-admin",
 }
