@@ -32,14 +32,13 @@ import io.crate.DataType;
 import io.crate.analyze.*;
 import io.crate.exceptions.CrateException;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.ddl.ESCreateIndexNode;
 import io.crate.planner.node.ddl.ESDeleteIndexNode;
 import io.crate.planner.node.dml.*;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.ESGetNode;
-import io.crate.planner.node.dql.ESSearchNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
@@ -330,6 +329,13 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     }
 
     private void globalAggregates(SelectAnalysis analysis, Plan plan) {
+        String schema = analysis.table().ident().schema();
+        if ((schema == null || schema.equalsIgnoreCase(DocSchemaInfo.NAME))
+                && hasOnlyGlobalCount(analysis.outputSymbols())) {
+            plan.add(new ESCountNode(analysis.table().ident().name(), analysis.whereClause()));
+            return;
+        }
+
         // global aggregate: collect and partial aggregate on C and final agg on H
         PlannerContextBuilder contextBuilder = new PlannerContextBuilder(2)
                 .output(analysis.outputSymbols());
@@ -355,6 +361,22 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
             projections.add(topNProjection);
         }
         plan.add(PlanNodeBuilder.localMerge(projections, collectNode));
+    }
+
+    private boolean hasOnlyGlobalCount(List<Symbol> symbols) {
+        if (symbols.size() != 1) {
+            return false;
+        }
+
+        Symbol symbol = symbols.get(0);
+        if (symbol.symbolType() != SymbolType.FUNCTION) {
+            return false;
+        }
+
+        Function function = (Function)symbol;
+        return (function.info().isAggregate()
+                && function.arguments().size() == 0
+                && function.info().ident().name().equalsIgnoreCase(CountAggregation.NAME));
     }
 
     private void groupBy(SelectAnalysis analysis, Plan plan) {

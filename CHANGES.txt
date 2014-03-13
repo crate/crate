@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - optimized global count aggregations.
+
  - now downloading current ``crash.zip.py`` during build
 
  - added the sql `ALTER [BLOB] TABLE` clause.
