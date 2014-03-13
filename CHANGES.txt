@@ -5,6 +5,8 @@ Changes for Crate Data
 Unreleased
 ==========
 
+ - updated crate-admin to 0.2.9
+
  - optimized global count aggregations.
 
  - now downloading current ``crash.zip.py`` during build
