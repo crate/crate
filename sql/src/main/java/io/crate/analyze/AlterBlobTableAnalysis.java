@@ -22,63 +22,64 @@
 package io.crate.analyze;
 
 import io.crate.core.NumberOfReplicas;
+import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
-import javax.annotation.Nullable;
+public class AlterBlobTableAnalysis extends AbstractDDLAnalysis {
 
-public class CreateBlobTableAnalysis extends AbstractDDLAnalysis {
-
+    private final ReferenceInfos referenceInfos;
+    private TableInfo tableInfo;
+    private SchemaInfo schemaInfo;
     private NumberOfReplicas numberOfReplicas;
-    private Integer numberOfShards;
 
-    public CreateBlobTableAnalysis(Object[] parameters) {
+    public AlterBlobTableAnalysis(Object[] parameters, ReferenceInfos referenceInfos) {
         super(parameters);
+        this.referenceInfos = referenceInfos;
+    }
+
+    @Override
+    public void table(TableIdent tableIdent) {
+        assert tableIdent.schema().equalsIgnoreCase(BlobSchemaInfo.NAME);
+        this.tableIdent = tableIdent;
+
+        schemaInfo = referenceInfos.getSchemaInfo(tableIdent.schema());
+        assert schemaInfo != null; // schemaInfo for blob must exist.
+
+        tableInfo = schemaInfo.getTableInfo(tableIdent.name());
+        if (tableInfo == null) {
+            throw new TableUnknownException(tableIdent.name());
+        }
     }
 
     @Override
     public TableInfo table() {
-        return null;
+        return tableInfo;
     }
 
     @Override
     public SchemaInfo schema() {
-        return null;
+        return schemaInfo;
     }
 
     @Override
     public void normalize() {
-    }
 
-    public String tableName() {
-        return tableIdent.name();
-    }
-
-    public void numberOfReplicas(NumberOfReplicas numberOfReplicas) {
-        this.numberOfReplicas = numberOfReplicas;
-    }
-
-    @Nullable
-    public NumberOfReplicas numberOfReplicas() {
-        return numberOfReplicas;
-    }
-
-    public void numberOfShards(Integer numberOfShards) {
-        this.numberOfShards = numberOfShards;
-    }
-
-    @Nullable
-    public Integer numberOfShards() {
-        return numberOfShards;
     }
 
     @Override
     public <C, R> R accept(AnalysisVisitor<C, R> analysisVisitor, C context) {
-        return analysisVisitor.visitCreateBlobTableAnalysis(this, context);
+        return analysisVisitor.visitAlterBlobTableAnalysis(this, context);
     }
 
-    public TableIdent tableIdent() {
-        return tableIdent;
+    public NumberOfReplicas numberOfReplicas() {
+        return numberOfReplicas;
+    }
+
+    public void numberOfReplicas(NumberOfReplicas numberOfReplicas) {
+        this.numberOfReplicas = numberOfReplicas;
     }
 }

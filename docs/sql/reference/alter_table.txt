@@ -9,7 +9,7 @@ Synopsis
 
 .. code-block:: sql
 
-    ALTER TABLE table_name
+    ALTER [BLOB] TABLE table_name
     { SET ( parameter = value [ , ... ] ) |
       RESET ( parameter [ , ... ] )
     }
@@ -21,6 +21,8 @@ ALTER TABLE can be used to alter an existing table.
 
 ``SET`` can be used to change a table parameter to a different value. Using
 ``RESET`` will reset the parameter to its default value.
+
+Use the ``BLOB`` keyword in order to alter a blob table (see :ref:`blob_support`).
 
 Parameters
 ==========

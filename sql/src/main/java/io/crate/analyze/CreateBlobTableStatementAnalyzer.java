@@ -21,23 +21,16 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Preconditions;
-import io.crate.metadata.TableIdent;
-import io.crate.sql.tree.*;
+import io.crate.core.NumberOfReplicas;
+import io.crate.sql.tree.ClusteredBy;
+import io.crate.sql.tree.CreateBlobTable;
 
-import java.util.List;
-import java.util.Map;
+public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBlobTableAnalysis> {
 
-public class CreateBlobTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, CreateBlobTableAnalysis> {
-
-    private final ExpressionToObjectVisitor expressionVisitor = new ExpressionToObjectVisitor();
 
     @Override
     public Void visitCreateBlobTable(CreateBlobTable node, CreateBlobTableAnalysis context) {
-        List<String> tableNameParts = node.name().getName().getParts();
-        Preconditions.checkArgument(tableNameParts.size() == 1,
-                "blob table cannot be created inside a custom schema");
-        context.table(new TableIdent("blob", tableNameParts.get(0)));
+        context.table(tableToIdent(node.name()));
 
         if (node.clusteredBy().isPresent()) {
             ClusteredBy clusteredBy = node.clusteredBy().get();
@@ -45,29 +38,11 @@ public class CreateBlobTableStatementAnalyzer extends AbstractStatementAnalyzer<
         }
 
         if (node.genericProperties().isPresent()) {
-            Map<String,List<Expression>> properties = node.genericProperties().get().properties();
-            List<Expression> number_of_replicas = properties.remove("number_of_replicas");
-            if (number_of_replicas != null) {
-                setNumberOfReplicas(context, number_of_replicas);
-            }
-
-            if (properties.size() > 0) {
-                throw new IllegalArgumentException(
-                        String.format("Invalid properties \"%s\" passed to CREATE BLOB TABLE",
-                                properties.keySet()));
-            }
+            NumberOfReplicas numberOfReplicas =
+                    extractNumberOfReplicas(node.genericProperties().get(), context.parameters());
+            context.numberOfReplicas(numberOfReplicas);
         }
 
         return null;
-    }
-
-    private void setNumberOfReplicas(CreateBlobTableAnalysis context, List<Expression> number_of_replicas) {
-        Preconditions.checkArgument(number_of_replicas.size() == 1,
-                "Invalid number of arguments passed to \"number_of_replicas\"");
-
-        Object numReplicas = expressionVisitor.process(number_of_replicas.get(0), context.parameters());
-        if (numReplicas != null) {
-            context.numberOfReplicas(numReplicas.toString());
-        }
     }
 }

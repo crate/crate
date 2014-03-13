@@ -32,7 +32,7 @@ def bash_transform(s):
     # Therefore, we need to replace the ports before a test is being run.
     s = s.replace(':4200/', ':44200/')
     if s.startswith("crash"):
-        s = re.search(r"crash\s+-s\s+\"(.*?)\"", s).group(1)
+        s = re.search(r"crash\s+-c\s+\"(.*?)\"", s).group(1)
         return ('cmd.onecmd("""{0}""");'.format(s.strip()))
     return (
         r'import subprocess;'

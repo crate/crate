@@ -21,31 +21,13 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Preconditions;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.sql.tree.DropBlobTable;
 
-import java.util.List;
-
-public class DropBlobTableStatementAnalyzer extends AbstractStatementAnalyzer<Void, DropBlobTableAnalysis> {
+public class DropBlobTableStatementAnalyzer extends BlobTableAnalyzer<DropBlobTableAnalysis> {
 
     @Override
     public Void visitDropBlobTable(DropBlobTable node, DropBlobTableAnalysis context) {
-        List<String> tableNameParts = node.table().getName().getParts();
-        Preconditions.checkArgument(tableNameParts.size() < 3, "Invalid tableName \"%s\"", node.table().getName());
-
-        if (tableNameParts.size() == 2) {
-            Preconditions.checkArgument(tableNameParts.get(0).equalsIgnoreCase(BlobSchemaInfo.NAME),
-                    "The Schema \"%s\" isn't valid. Can't delete a blob table from a SCHEMA other than \"%s\".",
-                    tableNameParts.get(0), BlobSchemaInfo.NAME);
-
-            context.table(new TableIdent(tableNameParts.get(0), tableNameParts.get(1)));
-        } else {
-            assert tableNameParts.size() == 1;
-            context.table(new TableIdent(BlobSchemaInfo.NAME, tableNameParts.get(0)));
-        }
-
+        context.table(tableToIdent(node.table()));
         return null;
     }
 }

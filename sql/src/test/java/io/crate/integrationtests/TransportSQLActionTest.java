@@ -2896,8 +2896,12 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testCreateAndDropBlobTable() throws Exception {
+    public void testCreateAlterAndDropBlobTable() throws Exception {
         execute("create blob table screenshots with (number_of_replicas=0)");
+        execute("alter blob table screenshots set (number_of_replicas=1)");
+        execute("select number_of_replicas from information_schema.tables " +
+                "where schema_name = 'blob' and table_name = 'screenshots'");
+        assertEquals("1", response.rows()[0][0]);
         execute("drop blob table screenshots");
     }
 
