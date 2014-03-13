@@ -682,4 +682,15 @@ public class PlannerTest {
         ESDeleteIndexNode node = (ESDeleteIndexNode) planNode;
         assertThat(node.index(), is("users"));
     }
+
+    @Test
+    public void testGlobalCountPlan() throws Exception {
+        Plan plan = plan("select count(*) from users");
+        Iterator<PlanNode> iterator = plan.iterator();
+        PlanNode planNode = iterator.next();
+        assertThat(planNode, instanceOf(ESCountNode.class));
+
+        ESCountNode node = (ESCountNode)planNode;
+        assertThat(node.indexName(), is("users"));
+    }
 }

@@ -43,6 +43,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.ESCountNode;
 import io.crate.planner.node.dql.ESGetNode;
 import io.crate.planner.node.dql.ESSearchNode;
 import io.crate.planner.projection.Projection;
@@ -403,6 +404,20 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat(objects.length, is(1));
         assertThat((Integer)objects[0][0], is(99));
         assertThat((String)objects[0][1], is("Marvin"));
+    }
+
+    @Test
+    public void testESCountTask() throws Exception {
+        insertCharacters();
+        Plan plan = new Plan();
+        WhereClause whereClause = new WhereClause(null, false);
+        plan.add(new ESCountNode("characters", whereClause));
+
+        List<ListenableFuture<Object[][]>> result = executor.execute(executor.newJob(plan));
+        Object[][] rows = result.get(0).get();
+
+        assertThat(rows.length, is(1));
+        assertThat((Long)rows[0][0], is(3L));
     }
 
     @Test

@@ -43,15 +43,13 @@ import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.ddl.ESCreateIndexNode;
 import io.crate.planner.node.ddl.ESDeleteIndexNode;
 import io.crate.planner.node.dml.*;
-import io.crate.planner.node.dql.CollectNode;
-import io.crate.planner.node.dql.ESGetNode;
-import io.crate.planner.node.dql.ESSearchNode;
-import io.crate.planner.node.dql.MergeNode;
+import io.crate.planner.node.dql.*;
 import io.crate.action.import_.TransportImportAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.bulk.TransportBulkAction;
+import org.elasticsearch.action.count.TransportCountAction;
 import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.action.deletebyquery.TransportDeleteByQueryAction;
 import org.elasticsearch.action.get.TransportGetAction;
@@ -79,6 +77,7 @@ public class TransportExecutor implements Executor {
     private final TransportDeleteByQueryAction transportDeleteByQueryAction;
     private final TransportDeleteAction transportDeleteAction;
     private final TransportCreateIndexAction transportCreateIndexAction;
+    private final TransportCountAction transportCountAction;
     private final TransportIndexAction transportIndexAction;
     private final TransportBulkAction transportBulkAction;
     private final TransportUpdateAction transportUpdateAction;
@@ -97,6 +96,7 @@ public class TransportExecutor implements Executor {
                              TransportDeleteByQueryAction transportDeleteByQueryAction,
                              TransportDeleteAction transportDeleteAction,
                              TransportCreateIndexAction transportCreateIndexAction,
+                             TransportCountAction transportCountAction,
                              ThreadPool threadPool,
                              Functions functions,
                              ReferenceResolver referenceResolver,
@@ -116,6 +116,7 @@ public class TransportExecutor implements Executor {
         this.transportDeleteByQueryAction = transportDeleteByQueryAction;
         this.transportDeleteAction = transportDeleteAction;
         this.transportCreateIndexAction = transportCreateIndexAction;
+        this.transportCountAction = transportCountAction;
         this.transportIndexAction = transportIndexAction;
         this.transportBulkAction = transportBulkAction;
         this.transportUpdateAction = transportUpdateAction;
@@ -215,6 +216,12 @@ public class TransportExecutor implements Executor {
         @Override
         public Void visitESCreateIndexNode(ESCreateIndexNode node, Job context) {
             context.addTask(new ESCreateIndexTask(node, transportCreateIndexAction));
+            return null;
+        }
+
+        @Override
+        public Void visitESCountNode(ESCountNode node, Job context) {
+            context.addTask(new ESCountTask(node, transportCountAction));
             return null;
         }
 
