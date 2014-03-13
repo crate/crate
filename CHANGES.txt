@@ -5,6 +5,9 @@ Changes for Crate Data
 Unreleased
 ==========
 
+2014/03/13 0.31.0
+=================
+
  - updated crate-admin to 0.2.9
 
  - optimized global count aggregations.
