@@ -208,27 +208,33 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat(values.get(0), instanceOf(LongLiteral.class));
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test (expected = UnsupportedOperationException.class)
     public void testInsertIntoSysTable() throws Exception {
         analyze("insert into sys.nodes (id, name) values (666, 'evilNode')");
     }
 
-    @Test( expected = UnsupportedOperationException.class)
+    @Test (expected = UnsupportedOperationException.class)
     public void testInsertIntoAliasTable() throws Exception {
         analyze("insert into alias (bla) values ('blubb')");
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test (expected = IllegalArgumentException.class)
     public void testInsertWithoutPrimaryKey() throws Exception {
         analyze("insert into users (name) values ('Trillian')");
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void testNullPrimaryKey() throws Exception {
+        analyze("insert into users (id) values (?)",
+                new Object[]{null});
     }
 
     @Test
     public void testNullLiterals() throws Exception {
         InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, name, awesome, details) values (?, ?, ?, ?)",
-                new Object[]{null, null, null, null});
+                new Object[]{1, null, null, null});
         List<Symbol> values = analysis.values().get(0);
-        assertThat(values.get(0), instanceOf(Null.class));
+        assertThat(values.get(0), instanceOf(LongLiteral.class));
         assertThat(values.get(1), instanceOf(Null.class));
         assertThat(values.get(2), instanceOf(Null.class));
         assertThat(values.get(3), instanceOf(Null.class));
@@ -237,7 +243,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testObjectLiterals() throws Exception {
         InsertAnalysis analysis = (InsertAnalysis)analyze("insert into users (id, name, awesome, details) values (?, ?, ?, ?)",
-                new Object[]{null, null, null, new HashMap<String, Object>(){{
+                new Object[]{1, null, null, new HashMap<String, Object>(){{
                     put("new_col", "new value");
                 }}});
         List<Symbol> values = analysis.values().get(0);
@@ -278,4 +284,11 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
         assertThat((LongLiteral)analysis.values().get(0).get(0), is(new LongLiteral(0L)));
         assertThat(((ArrayLiteral)analysis.values().get(0).get(1)).itemType(), is(DataType.OBJECT));
     }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void testInsertSystemColumn() throws Exception {
+        analyze("insert into users (id, _id) values (?, ?)",
+                new Object[]{1, "1"});
+    }
+
 }

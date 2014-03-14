@@ -399,18 +399,18 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testClusteredBy() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select name from users where id=1");
-        assertEquals(1L, analysis.clusteredByLiteral().value());
+        assertEquals(ImmutableList.of("1"), analysis.routingValues());
 
         analysis = (SelectAnalysis)analyze("select name from users where id=1 or id=2");
-        assertNull(analysis.clusteredByLiteral());
+        assertEquals(ImmutableList.of("1", "2"), analysis.routingValues());
     }
 
     @Test
     public void testPrimaryKeyAndVersion() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze(
             "select name from users where id = 2 and \"_version\" = 1");
-        assertEquals(ImmutableList.<Literal>of(new LongLiteral(2)), analysis.primaryKeyLiterals());
-        assertThat(analysis.version().get(), is(1L));
+        assertEquals(ImmutableList.of("2"), analysis.ids());
+        assertThat(analysis.whereClause().version().get(), is(1L));
     }
 
     @Test
@@ -418,81 +418,76 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis analysis = (SelectAnalysis)analyze(
             "select name from users where id = 2 or id = 1");
 
-        assertEquals(1, analysis.primaryKeyLiterals().size());
-        SetLiteral sl = (SetLiteral) analysis.primaryKeyLiterals().get(0);
-        assertThat(sl.size(), is(2));
+        assertEquals(ImmutableList.of("1", "2"), analysis.ids());
     }
 
     @Test
     public void testMultiplePrimaryKeysAndInvalidColumn() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze(
             "select name from users where id = 2 or id = 1 and name = 'foo'");
-        assertNull(analysis.primaryKeyLiterals());
+        assertEquals(0, analysis.ids().size());
     }
 
     @Test
     public void testNotEqualsDoesntMatchPrimaryKey() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select name from users where id != 1");
-        assertNull(analysis.primaryKeyLiterals());
+        assertEquals(0, analysis.ids().size());
     }
 
     @Test
     public void testMultipleCompoundPrimaryKeys() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze(
             "select * from sys.shards where (id = 1 and table_name = 'foo') or (id = 2 and table_name = 'bla')");
-        assertNull(analysis.primaryKeyLiterals());
+        assertEquals(ImmutableList.of(), analysis.ids());
     }
 
     @Test
-    public void test1ColPrimaryKeyLiteral() throws Exception {
+    public void test1ColPrimaryKey() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select name from sys.nodes where id='jalla'");
-        assertEquals(analysis.primaryKeyLiterals(), ImmutableList.<Literal>of(new StringLiteral("jalla")));
+        assertEquals(ImmutableList.of("jalla"), analysis.ids());
 
         analysis = (SelectAnalysis)analyze("select name from sys.nodes where 'jalla'=id");
-        assertEquals(analysis.primaryKeyLiterals(), ImmutableList.<Literal>of(new StringLiteral("jalla")));
-
+        assertEquals(ImmutableList.of("jalla"), analysis.ids());
 
         analysis = (SelectAnalysis)analyze("select name from sys.nodes where id='jalla' and id='jalla'");
-        assertEquals(analysis.primaryKeyLiterals(), ImmutableList.<Literal>of(new StringLiteral("jalla")));
+        assertEquals(ImmutableList.of("jalla"), analysis.ids());
 
         analysis = (SelectAnalysis)analyze("select name from sys.nodes where id='jalla' and (id='jalla' or 1=1)");
-        assertEquals(analysis.primaryKeyLiterals(), ImmutableList.<Literal>of(new StringLiteral("jalla")));
+        assertEquals(ImmutableList.of("jalla"), analysis.ids());
 
         // a no match results in undefined key literals, since those are ambiguous
         analysis = (SelectAnalysis)analyze("select name from sys.nodes where id='jalla' and id='kelle'");
-        assertNull(analysis.primaryKeyLiterals());
+        assertEquals(ImmutableList.of(), analysis.ids());
         assertTrue(analysis.noMatch());
 
         analysis = (SelectAnalysis)analyze("select name from sys.nodes where id='jalla' or name = 'something'");
-        assertNull(analysis.primaryKeyLiterals());
+        assertEquals(ImmutableList.of(), analysis.ids());
         assertFalse(analysis.noMatch());
 
         analysis = (SelectAnalysis)analyze("select name from sys.nodes where name = 'something'");
-        assertNull(analysis.primaryKeyLiterals());
+        assertEquals(ImmutableList.of(), analysis.ids());
         assertFalse(analysis.noMatch());
 
     }
 
     @Test
-    public void test3ColPrimaryKeyLiteral() throws Exception {
+    public void test3ColPrimaryKey() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name='jalla' and schema_name='doc'");
-        assertEquals(ImmutableList.<Literal>of(new StringLiteral("doc"), new StringLiteral("jalla"), new IntegerLiteral(1)),
-                analysis.primaryKeyLiterals());
+        assertEquals(ImmutableList.of("doc:jalla:1"), analysis.ids());
         assertFalse(analysis.noMatch());
 
         analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name='jalla' and id=1 and schema_name='doc'");
-        assertEquals(ImmutableList.<Literal>of(new StringLiteral("doc"), new StringLiteral("jalla"), new IntegerLiteral(1)),
-                analysis.primaryKeyLiterals());
+        assertEquals(ImmutableList.of("doc:jalla:1"), analysis.ids());
         assertFalse(analysis.noMatch());
 
 
         analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1");
-        assertNull(analysis.primaryKeyLiterals());
+        assertEquals(ImmutableList.of(), analysis.ids());
         assertFalse(analysis.noMatch());
 
         analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and schema_name='doc' and table_name='jalla' and id=2");
+        assertEquals(ImmutableList.of(), analysis.ids());
         assertTrue(analysis.noMatch());
-        assertNull(analysis.primaryKeyLiterals());
     }
 
     @Test
@@ -500,11 +495,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis analysis = (SelectAnalysis)analyze(
                 "select name from sys.nodes where id in ('jalla', 'kelle') and id in ('jalla', 'something')");
         assertFalse(analysis.noMatch());
-        assertEquals(1, analysis.primaryKeyLiterals().size());
-        SetLiteral sl = (SetLiteral) analysis.primaryKeyLiterals().get(0);
-
-        assertEquals(1, sl.value().size());
-        assertEquals(SetLiteralTest.stringSet("jalla"), sl);
+        assertEquals(1, analysis.ids().size());
+        assertEquals("jalla", analysis.ids().get(0));
     }
 
 
@@ -512,24 +504,15 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void test1ColPrimaryKeySetLiteral() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select name from sys.nodes where id in ('jalla', 'kelle')");
         assertFalse(analysis.noMatch());
-        assertEquals(1, analysis.primaryKeyLiterals().size());
-        SetLiteral sl = (SetLiteral) analysis.primaryKeyLiterals().get(0);
-
-        assertEquals(SetLiteralTest.stringSet("jalla", "kelle"), sl);
-
+        assertEquals(2, analysis.ids().size());
+        assertEquals(ImmutableList.of("jalla", "kelle"), analysis.ids());
     }
 
     @Test
     public void test3ColPrimaryKeySetLiteral() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and schema_name='doc' and table_name in ('jalla', 'kelle')");
-        assertEquals(3, analysis.primaryKeyLiterals().size());
-        StringLiteral schemaName = (StringLiteral) analysis.primaryKeyLiterals().get(0);
-        SetLiteral tableName = (SetLiteral) analysis.primaryKeyLiterals().get(1);
-        IntegerLiteral id = (IntegerLiteral) analysis.primaryKeyLiterals().get(2);
-
-        assertThat(1, is(id.value()));
-        assertThat(schemaName.value().utf8ToString(), is("doc"));
-        assertEquals(SetLiteralTest.stringSet("jalla", "kelle"), tableName);
+        assertEquals(2, analysis.ids().size());
+        assertEquals(ImmutableList.of("doc:jalla:1", "doc:kelle:1"), analysis.ids());
     }
 
     @Test

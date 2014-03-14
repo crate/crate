@@ -198,7 +198,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     public void testESGetTask() throws Exception {
         insertCharacters();
 
-        ESGetNode node = new ESGetNode("characters", "2");
+        ESGetNode node = new ESGetNode("characters", "2", "2");
         node.outputs(ImmutableList.<Symbol>of(id_ref, name_ref));
         Plan plan = new Plan();
         plan.add(node);
@@ -215,7 +215,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     public void testESGetTaskWithDynamicReference() throws Exception {
         insertCharacters();
 
-        ESGetNode node = new ESGetNode("characters", "2");
+        ESGetNode node = new ESGetNode("characters", "2", "2");
         node.outputs(ImmutableList.<Symbol>of(id_ref, new DynamicReference(
                 new ReferenceIdent(new TableIdent(null, "characters"), "foo"), RowGranularity.DOC)));
         Plan plan = new Plan();
@@ -232,7 +232,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     @Test
     public void testESMultiGet() throws Exception {
         insertCharacters();
-        ESGetNode node = new ESGetNode("characters", asList("1", "2"));
+        ESGetNode node = new ESGetNode("characters", asList("1", "2"), asList("1", "2"));
         node.outputs(ImmutableList.<Symbol>of(id_ref, name_ref));
         Plan plan = new Plan();
         plan.add(node);
@@ -357,7 +357,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat((Long)rows[0][0], is(1L));
 
         // verify deletion
-        ESGetNode getNode = new ESGetNode("characters", "2");
+        ESGetNode getNode = new ESGetNode("characters", "2", "2");
         getNode.outputs(ImmutableList.<Symbol>of(id_ref, name_ref));
         plan = new Plan();
         plan.add(getNode);
@@ -371,15 +371,17 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESIndexTask() throws Exception {
-        insertCharacters();
+        execute("create table characters (id int primary key, name string)");
+        ensureGreen();
+
+        Map<String, Object> sourceMap = new HashMap<>();
+        sourceMap.put(id_ref.info().ident().columnIdent().name(), 99);
+        sourceMap.put(name_ref.info().ident().columnIdent().name(), "Marvin");
 
         ESIndexNode indexNode = new ESIndexNode("characters",
-                Arrays.asList(id_ref, name_ref),
-                Arrays.asList(Arrays.<Symbol>asList(
-                        new IntegerLiteral(99),
-                        new StringLiteral("Marvin")
-                )),
-                new int[]{0}
+                Arrays.asList(sourceMap),
+                ImmutableList.of("99"),
+                ImmutableList.of("99")
         );
         Plan plan = new Plan();
         plan.add(indexNode);
@@ -393,7 +395,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
 
         // verify insertion
-        ESGetNode getNode = new ESGetNode("characters", "99");
+        ESGetNode getNode = new ESGetNode("characters", "99", "99");
         getNode.outputs(ImmutableList.<Symbol>of(id_ref, name_ref));
         plan = new Plan();
         plan.add(getNode);
@@ -422,22 +424,23 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testESBulkInsertTask() throws Exception {
-        insertCharacters();
+        execute("create table characters (id int primary key, name string)");
+        ensureGreen();
+
+        Map<String, Object> sourceMap1 = new HashMap<>();
+        sourceMap1.put(id_ref.info().ident().columnIdent().name(), 99);
+        sourceMap1.put(name_ref.info().ident().columnIdent().name(), "Marvin");
+
+        Map<String, Object> sourceMap2 = new HashMap<>();
+        sourceMap2.put(id_ref.info().ident().columnIdent().name(), 42);
+        sourceMap2.put(name_ref.info().ident().columnIdent().name(), "Deep Thought");
 
         ESIndexNode indexNode = new ESIndexNode("characters",
-                Arrays.asList(id_ref, name_ref),
-                Arrays.asList(
-                        Arrays.<Symbol>asList(
-                                new IntegerLiteral(99),
-                                new StringLiteral("Marvin")
-                        ),
-                        Arrays.<Symbol>asList(
-                                new IntegerLiteral(42),
-                                new StringLiteral("Deep Thought")
-                        )
-                ),
-                new int[]{0}
+                Arrays.asList(sourceMap1, sourceMap2),
+                ImmutableList.of("99", "42"),
+                ImmutableList.of("99", "42")
         );
+
         Plan plan = new Plan();
         plan.add(indexNode);
         Job job = executor.newJob(plan);
@@ -450,7 +453,9 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
 
         // verify insertion
 
-        ESGetNode getNode = new ESGetNode("characters", Arrays.asList("99", "42"));
+        ESGetNode getNode = new ESGetNode("characters",
+                Arrays.asList("99", "42"),
+                Arrays.asList("99", "42"));
         getNode.outputs(ImmutableList.<Symbol>of(id_ref, name_ref));
         plan = new Plan();
         plan.add(getNode);
@@ -476,8 +481,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                     put(name_ref, new StringLiteral("Vogon lyric fan"));
                 }},
                 WhereClause.MATCH_ALL,
-                Optional.<Long>absent(),
-                Arrays.<Literal>asList(new StringLiteral("1")));
+                asList("1")
+        );
         Plan plan = new Plan();
         plan.add(updateNode);
         plan.expectsAffectedRows(true);
@@ -491,7 +496,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         assertThat((Long)rows[0][0], is(1l));
 
         // verify update
-        ESGetNode getNode = new ESGetNode("characters", Arrays.asList("1"));
+        ESGetNode getNode = new ESGetNode("characters", Arrays.asList("1"), Arrays.asList("1"));
         getNode.outputs(ImmutableList.<Symbol>of(id_ref, name_ref));
         plan = new Plan();
         plan.add(getNode);
@@ -509,7 +514,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         insertCharacters();
 
         // get version
-        ESGetNode getNode = new ESGetNode("characters", Arrays.asList("1"));
+        ESGetNode getNode = new ESGetNode("characters", Arrays.asList("1"), Arrays.asList("1"));
         getNode.outputs(ImmutableList.<Symbol>of(id_ref, version_ref));
         Plan getPlan = new Plan();
         getPlan.add(getNode);
@@ -521,7 +526,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         Integer id = (Integer)objects[0][0];
         Long version = (Long)objects[0][1];
         // do update
-        Function whereClause = new Function(AndOperator.INFO, Arrays.<Symbol>asList(
+        Function whereClauseFunction = new Function(AndOperator.INFO, Arrays.<Symbol>asList(
                 new Function(new FunctionInfo(
                         new FunctionIdent(EqOperator.NAME, asList(DataType.LONG, DataType.LONG)),
                         DataType.BOOLEAN),
@@ -533,13 +538,15 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                 )));
 
         // update characters set name='mostly harmless' where id=1 and "_version"=?
+        WhereClause whereClause = new WhereClause(whereClauseFunction);
+        whereClause.version(1L);
         ESUpdateNode updateNode = new ESUpdateNode("characters",
                 new HashMap<Reference, Symbol>(){{
                     put(name_ref, new StringLiteral("mostly harmless"));
                 }},
-                new WhereClause(whereClause),
-                Optional.of(1l),
-                ImmutableList.<Literal>of(new StringLiteral("1")));
+                whereClause,
+                asList("1")
+        );
         Plan plan = new Plan();
         plan.add(updateNode);
         plan.expectsAffectedRows(true);
@@ -600,8 +607,8 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                     put(name_ref, new StringLiteral("mostly harmless"));
                 }},
                 new WhereClause(whereClause),
-                Optional.<Long>absent(),
-                ImmutableList.<Literal>of());
+                new ArrayList<String>(0)
+        );
         Plan plan = new Plan();
         plan.add(updateNode);
         plan.expectsAffectedRows(true);

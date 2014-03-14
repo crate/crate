@@ -49,9 +49,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Singleton
 public class Planner extends AnalysisVisitor<Void, Plan> {
@@ -80,10 +78,10 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
         } else if (analysis.hasAggregates()) {
             globalAggregates(analysis, plan);
         } else {
+            WhereClause whereClause = analysis.whereClause();
             if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal()
-                    && analysis.table().getRouting(analysis.whereClause()).hasLocations()) {
-                    if (analysis.primaryKeyLiterals() != null
-                            && !analysis.primaryKeyLiterals().isEmpty()
+                    && analysis.table().getRouting(whereClause).hasLocations()) {
+                    if (analysis.ids().size() > 0
                             && !analysis.table().isAlias()) {
                         ESGet(analysis, plan);
                     } else {
@@ -106,17 +104,12 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
 
     @Override
     protected Plan visitUpdateAnalysis(UpdateAnalysis analysis, Void context) {
-        if (analysis.primaryKeyLiterals() !=null && analysis.primaryKeyLiterals().size() > 1) {
-            throw new UnsupportedOperationException("Multi column primary keys are currently not supported");
-        }
-
         Plan plan = new Plan();
         ESUpdateNode node = new ESUpdateNode(
                 analysis.table().ident().name(),
                 analysis.assignments(),
                 analysis.whereClause(),
-                analysis.version(),
-                analysis.primaryKeyLiterals()
+                analysis.ids()
         );
         plan.add(node);
         plan.expectsAffectedRows(true);
@@ -125,11 +118,8 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
 
     @Override
     protected Plan visitDeleteAnalysis(DeleteAnalysis analysis, Void context) {
-        if (analysis.primaryKeyLiterals() !=null && analysis.primaryKeyLiterals().size() > 1) {
-            throw new UnsupportedOperationException("Multi column primary keys are currently not supported");
-        }
         Plan plan = new Plan();
-        if (analysis.primaryKeyLiterals() != null && !analysis.primaryKeyLiterals().isEmpty()) {
+        if (analysis.ids().size() == 1) {
             ESDelete(analysis, plan);
         } else {
             ESDeleteByQuery(analysis, plan);
@@ -194,19 +184,14 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     }
 
     private void ESDelete(DeleteAnalysis analysis, Plan plan) {
-        assert analysis.primaryKeyLiterals() != null;
-        if (analysis.primaryKeyLiterals().size() > 1) {
-            throw new UnsupportedOperationException("Multi column primary keys are currently not supported");
+        WhereClause whereClause = analysis.whereClause();
+        if (analysis.ids().size() == 1 ) {
+            plan.add(new ESDeleteNode(
+                    analysis.table().ident().name(), analysis.ids().get(0), whereClause.version()));
+            plan.expectsAffectedRows(true);
         } else {
-            Literal literal = analysis.primaryKeyLiterals().get(0);
-            if (literal.symbolType() == SymbolType.SET_LITERAL) {
-                // TODO: implement bulk delete task / node
-                ESDeleteByQuery(analysis, plan);
-            } else {
-                plan.add(new ESDeleteNode(
-                        analysis.table().ident().name(), literal.valueAsString(), analysis.version()));
-                plan.expectsAffectedRows(true);
-            }
+            // TODO: implement bulk delete task / node
+            ESDeleteByQuery(analysis, plan);
         }
     }
 
@@ -219,45 +204,28 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     }
 
     private void ESGet(SelectAnalysis analysis, Plan plan) {
-        assert analysis.primaryKeyLiterals() != null;
+        PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
+                .output(analysis.outputSymbols())
+                .orderBy(analysis.sortSymbols());
 
-        if (analysis.primaryKeyLiterals().size() > 1) {
-            throw new UnsupportedOperationException("Multi column primary keys are currently not supported");
-        } else {
-            Literal literal = analysis.primaryKeyLiterals().get(0);
-            List<String> ids;
+        ESGetNode getNode = new ESGetNode(
+                analysis.table().ident().name(),
+                analysis.ids(),
+                analysis.routingValues());
+        getNode.outputs(contextBuilder.toCollect());
+        getNode.outputTypes(extractDataTypes(analysis.outputSymbols()));
+        plan.add(getNode);
 
-            PlannerContextBuilder contextBuilder = new PlannerContextBuilder()
-                    .output(analysis.outputSymbols())
-                    .orderBy(analysis.sortSymbols());
-
-            if (literal.symbolType() == SymbolType.SET_LITERAL) {
-                Set<Literal> literals = ((SetLiteral) literal).literals();
-                ids = new ArrayList<>(literals.size());
-                for (Literal id : literals) {
-                    ids.add(id.valueAsString());
-                }
-            } else {
-                ids = ImmutableList.of(literal.valueAsString());
-            }
-
-            ESGetNode getNode = new ESGetNode(analysis.table().ident().name(), ids);
-            getNode.outputs(contextBuilder.toCollect());
-            getNode.outputTypes(extractDataTypes(analysis.outputSymbols()));
-            plan.add(getNode);
-
-            // handle sorting, limit and offset
-            if (analysis.isSorted() || analysis.limit() != null || analysis.offset() > 0 ) {
-                TopNProjection tnp = new TopNProjection(
-                        Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
-                        analysis.offset(),
-                        contextBuilder.orderBy(),
-                        analysis.reverseFlags()
-                );
-                tnp.outputs(contextBuilder.outputs());
-                plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), getNode));
-            }
-
+        // handle sorting, limit and offset
+        if (analysis.isSorted() || analysis.limit() != null || analysis.offset() > 0 ) {
+            TopNProjection tnp = new TopNProjection(
+                    Objects.firstNonNull(analysis.limit(), Constants.DEFAULT_SELECT_LIMIT),
+                    analysis.offset(),
+                    contextBuilder.orderBy(),
+                    analysis.reverseFlags()
+            );
+            tnp.outputs(contextBuilder.outputs());
+            plan.add(PlanNodeBuilder.localMerge(ImmutableList.<Projection>of(tnp), getNode));
         }
     }
 
@@ -498,9 +466,9 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     private void ESIndex(InsertAnalysis analysis, Plan plan) {
         String index = analysis.table().ident().name();
         ESIndexNode indexNode = new ESIndexNode(index,
-                analysis.columns(),
-                analysis.values(),
-                analysis.primaryKeyColumnIndices().toArray());
+                analysis.sourceMaps(),
+                analysis.ids(),
+                analysis.routingValues());
         plan.add(indexNode);
         plan.expectsAffectedRows(true);
     }

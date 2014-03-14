@@ -63,14 +63,11 @@ public class ESIndexTask extends AbstractESIndexTask {
         super(node);
         this.transport = transport;
 
-        int primaryKeyIdx = -1;
-        if (node.hasPrimaryKey()) {
-            primaryKeyIdx = node.primaryKeyIndices()[0];
-        }
         request = buildIndexRequest(this.node.index(),
-                this.node.columns(),
-                this.node.valuesLists().get(0),
-                primaryKeyIdx);
+                this.node.sourceMaps().get(0),
+                this.node.ids().get(0),
+                this.node.routingValues().get(0)
+        );
         listener = new IndexResponseListener(result);
 
     }

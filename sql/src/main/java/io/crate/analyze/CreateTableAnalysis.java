@@ -23,8 +23,6 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import io.crate.analyze.AbstractDDLAnalysis;
-import io.crate.analyze.AnalysisVisitor;
 import io.crate.exceptions.TableAlreadyExistsException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -218,9 +216,29 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
         return tableIdent;
     }
 
+    public void routing(String routingPath) {
+        if (routingPath.equalsIgnoreCase("_id")) {
+            return;
+        }
+        crateMeta.put("routing", routingPath);
+
+        Map<String, Object> routing = new HashMap<>(1);
+        routing.put("required", true);
+        mapping.put("_routing", routing);
+
+    }
+
+    public boolean hasColumnDefinition(String columnName) {
+        if (columnName.equalsIgnoreCase("_id")) {
+            return true;
+        }
+        return mappingProperties.containsKey(columnName);
+    }
+
     @Override
     public boolean isData() {
-        // TODO: remove DropTableAnalysis from Planner and extend DDLVisitor in the Transport
+        // TODO: remove CreateTableAnalysis from Planner and extend DDLVisitor in the Transport
         return true;
     }
+
 }

@@ -306,14 +306,15 @@ The column used for routing can be freely defined using the ``CLUSTERED BY (<col
 statement and is used to route a row to a particular shard. Example::
 
     cr> create table my_table6 (
-    ...   first_column int primary key,
+    ...   first_column int,
     ...   second_column string
     ... ) clustered by (first_column)
     CREATE OK (... sec)
 
 
-By default Crate is using the primary keys for routing the request to the involved shards. So
-following two examples resulting in the same behaviour::
+If a primary key constraint is defined, the routing column definition
+can be omitted or must match a primary key column. So the following two
+examples result in the same behaviour::
 
     cr> create table my_table7 (
     ...   first_column int primary key,
@@ -327,12 +328,6 @@ following two examples resulting in the same behaviour::
     ... ) clustered by (first_column)
     CREATE OK (... sec)
 
-If no primary is defined an internal generated unique id is used for routing.
-
-.. note::
-
-  It is currently not supported to define a column for routing which is not a primary key or
-  member of a composite primary key.
 
 Example for combining custom routing and shard definition::
 

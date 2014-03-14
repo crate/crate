@@ -76,11 +76,7 @@ public class ESUpdateByQueryTask extends AbstractESUpdateTask {
         searchRequest.types(Constants.DEFAULT_MAPPING_TYPE);
         searchRequest.preference("_primary");
 
-        if (node.primaryKeyValues().length > 1) {
-            // multiple primary key values ('where pk in (1,2,3)') - optimize routing
-            // TODO: assumes that primary key is used for routing/clustered_by
-            searchRequest.routing(node.primaryKeyValues());
-        }
+        searchRequest.routing(node.whereClause().clusteredBy().orNull());
         try {
             searchRequest.source(queryBuilder.convert(node), false);
         } catch (IOException e) {

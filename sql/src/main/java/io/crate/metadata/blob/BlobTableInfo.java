@@ -119,7 +119,7 @@ public class BlobTableInfo implements TableInfo {
                 clusterService.state(),
                 Strings.EMPTY_ARRAY,
                 new String[]{index},
-                null, // TODO: compute routing from whereClause
+                null,
                 null // preference
         );
         ShardRouting shardRouting;

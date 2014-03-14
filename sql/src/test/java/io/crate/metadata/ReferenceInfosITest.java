@@ -22,6 +22,7 @@
 package io.crate.metadata;
 
 import com.google.common.collect.Sets;
+import io.crate.analyze.WhereClause;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -64,7 +65,7 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
         assertThat(ti.primaryKey().get(0), is("id"));
         assertThat(ti.clusteredBy(), is("id"));
 
-        Routing routing = ti.getRouting(null);
+        Routing routing = ti.getRouting(WhereClause.MATCH_ALL);
 
         Set<String> nodes = routing.nodes();
 

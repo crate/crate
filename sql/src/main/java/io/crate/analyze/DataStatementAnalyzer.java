@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import io.crate.DataType;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
@@ -360,12 +361,47 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
         if (whereClause.hasQuery()){
             PrimaryKeyVisitor.Context pkc = primaryKeyVisitor.process(context.table(), whereClause.query());
             if (pkc != null) {
+                whereClause.clusteredByLiteral(pkc.clusteredByLiteral());
                 if (pkc.noMatch) {
                     context.whereClause(WhereClause.NO_MATCH);
                 } else {
-                    context.primaryKeyLiterals(pkc.keyLiterals());
-                    context.version(pkc.version());
-                    context.clusteredByLiteral(pkc.clusteredByLiteral());
+                    whereClause.version(pkc.version());
+
+                    if (pkc.keyLiterals() != null) {
+                        List<List<String>> primaryKeyValuesList = new ArrayList<>(pkc.keyLiterals().size());
+                        primaryKeyValuesList.add(new ArrayList<String>(context.table().primaryKey().size()));
+
+                        for (int i=0; i<pkc.keyLiterals().size(); i++) {
+                            Literal primaryKey = pkc.keyLiterals().get(i);
+
+                            // support e.g. pk IN (Value..,)
+                            if (primaryKey.symbolType() == SymbolType.SET_LITERAL) {
+                                Set<Literal> literals = ((SetLiteral) primaryKey).literals();
+                                Iterator<Literal> literalIterator = literals.iterator();
+                                for (int s=0; s<literals.size(); s++) {
+                                    Literal pk = literalIterator.next();
+                                    if (s >= primaryKeyValuesList.size()) {
+                                        // copy already parsed pk values, so we have all possible multiple pk for all sets
+                                        primaryKeyValuesList.add(Lists.newArrayList(primaryKeyValuesList.get(s - 1)));
+                                    }
+                                    List<String> primaryKeyValues = primaryKeyValuesList.get(s);
+                                    if (primaryKeyValues.size() > i) {
+                                        primaryKeyValues.set(i, pk.valueAsString());
+                                    } else {
+                                        primaryKeyValues.add(pk.valueAsString());
+                                    }
+                                }
+                            } else {
+                                for (List<String> primaryKeyValues : primaryKeyValuesList) {
+                                    primaryKeyValues.add(primaryKey.valueAsString());
+                                }
+                            }
+                        }
+
+                        for (List<String> primaryKeyValues : primaryKeyValuesList) {
+                            context.addId(primaryKeyValues, pkc.clusteredBy());
+                        }
+                    }
                 }
             }
         }

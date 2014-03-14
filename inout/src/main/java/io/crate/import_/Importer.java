@@ -26,6 +26,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
+import io.crate.Constants;
 import io.crate.action.import_.ImportContext;
 import io.crate.action.import_.NodeImportRequest;
 import org.elasticsearch.ElasticsearchException;
@@ -42,6 +43,8 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
@@ -203,7 +206,8 @@ public class Importer {
 
     private ImportCounts handleFile(File file, String index, String type, int bulkSize, boolean compression) {
         if (file.isFile() && file.canRead()) {
-            String pk = getPrimaryKey(index);
+            List<String> pks = getPrimaryKey(index);
+            String routing = getRouting(index);
             ImportBulkListener bulkListener = new ImportBulkListener(file.getAbsolutePath());
             BulkProcessor bulkProcessor = BulkProcessor.builder(client, bulkListener)
                     .setBulkActions(bulkSize)
@@ -223,7 +227,7 @@ public class Importer {
                 while ((line = r.readLine()) != null) {
                     IndexRequest indexRequest;
                     try {
-                        indexRequest = parseObject(line, index, type, pk);
+                        indexRequest = parseObject(line, index, type, pks, routing);
                     } catch (ObjectImportException e) {
                         bulkListener.addFailure();
                         continue;
@@ -270,14 +274,17 @@ public class Importer {
 
     public static IndexRequest parseObject(String line,
             String index,
-            String type, String pk) throws ObjectImportException {
+            String type, @Nullable List<String> pks, @Nullable String routing) throws ObjectImportException {
         XContentParser parser;
         try {
             IndexRequest indexRequest = new IndexRequest();
             parser = XContentFactory.xContent(line.getBytes()).createParser(line.getBytes());
             Token token;
             XContentBuilder sourceBuilder = XContentFactory.contentBuilder(XContentType.JSON);
-            boolean checkPK = (pk != null);
+            boolean checkPK = (pks != null);
+            boolean checkRouting = (routing != null);
+            List<String> primaryKeyValues = new ArrayList<>();
+            String routingValue = null;
             long ttl = 0;
             int depth = 0;
             while (true) {
@@ -296,12 +303,14 @@ public class Importer {
                     if (fieldName.equals(IdFieldMapper.NAME) && token == Token.VALUE_STRING) {
                         indexRequest.id(parser.text());
                         checkPK = false;
+                        checkRouting = false;
                     } else if (fieldName.equals(IndexFieldMapper.NAME) && token == Token.VALUE_STRING) {
                         indexRequest.index(parser.text());
                     } else if (fieldName.equals(TypeFieldMapper.NAME) && token == Token.VALUE_STRING) {
                         indexRequest.type(parser.text());
                     } else if (fieldName.equals(RoutingFieldMapper.NAME) && token == Token.VALUE_STRING) {
                         indexRequest.routing(parser.text());
+                        checkRouting = false;
                     } else if (fieldName.equals(TimestampFieldMapper.NAME) && token == Token.VALUE_NUMBER) {
                         indexRequest.timestamp(String.valueOf(parser.longValue()));
                     } else if (fieldName.equals(TTLFieldMapper.NAME) && token == Token.VALUE_NUMBER) {
@@ -315,11 +324,27 @@ public class Importer {
                         } else {
                             depth ++;
                         }
-                    } else if(checkPK && pk.equals(fieldName)) {
-                        indexRequest.id(parser.text());
+                    } else if(checkPK && pks.contains(fieldName)) {
+                        primaryKeyValues.add(parser.text());
+                    }
+                    if(checkRouting && routing.equals(fieldName)) {
+                        routingValue = parser.text();
                     }
                 } else if (token == null) {
                     break;
+                }
+            }
+
+            if (checkRouting) {
+                if (routingValue != null) {
+                    indexRequest.routing(routingValue);
+                }
+            }
+
+            if (checkPK || checkRouting) {
+                String id = generateId(index, pks, routing, primaryKeyValues, routingValue);
+                if (id != null) {
+                    indexRequest.id(id);
                 }
             }
 
@@ -547,7 +572,7 @@ public class Importer {
         return new Tuple<>(path, file_pattern);
     }
 
-    private String getPrimaryKey(String index) {
+    private List<String> getPrimaryKey(String index) {
         // TODO: use meta data service from sql once this is package gets integrated
         // This also only supports single column keys
 
@@ -571,11 +596,13 @@ public class Importer {
             if (metaProperty != null) {
                     Object srcPks = ((Map)metaProperty).get("primary_keys");
                     if (srcPks instanceof String) {
-                        return (String)srcPks;
+                        return Arrays.asList((String)srcPks);
                     } else if (srcPks instanceof List) {
-                        if (((List) srcPks).size() == 1){
-                            return ((List<String>) srcPks).get(0);
+                        List<String> primaryKeys = new ArrayList<>();
+                        for (Object pk : ((List<Object>)srcPks)) {
+                            primaryKeys.add(pk.toString());
                         }
+                        return primaryKeys;
                     }
             }
 
@@ -583,4 +610,79 @@ public class Importer {
         return null;
     }
 
+    private String getRouting(String index) {
+        // TODO: use meta data service from sql once this is package gets integrated
+        if (index==null){
+            // if a dynamic import is done we do not support routing values,
+            // since this is not from sql in this case
+            return null;
+        }
+        IndexMetaData indexMetaData = clusterService.state().metaData().index(index);
+        if (indexMetaData==null){
+            return null;
+        }
+        MappingMetaData mappingMetaData = indexMetaData.mappingOrDefault("default");
+        if (mappingMetaData != null) {
+            Object metaProperty;
+            try {
+                metaProperty = mappingMetaData.sourceAsMap().get("_meta");
+            } catch (IOException e) {
+                return null;
+            }
+            if (metaProperty != null) {
+                return (String)((Map)metaProperty).get("routing");
+            }
+
+        }
+        return null;
+    }
+
+    private static String generateId(String index,
+                              List<String> primaryKeys,
+                              String clusteredBy,
+                              List<String> primaryKeyValues,
+                              @Nullable String clusteredByValue) {
+        List<String> idParts = new ArrayList<>();
+        boolean clusteredByAdded = false;
+        if (primaryKeys ==null
+                || (primaryKeys.size() == 1 && primaryKeys.get(0).equalsIgnoreCase("_id"))) {
+            idParts.add(Strings.randomBase64UUID());
+        } else {
+            if (primaryKeys.size() != primaryKeyValues.size()) {
+                // Primary key count does not match, cannot compute id
+                throw new UnsupportedOperationException("Missing required primary key values");
+            }
+            for (int i=0; i<primaryKeys.size(); i++)  {
+                String primaryKeyValue = primaryKeyValues.get(i);
+                if (primaryKeyValue == null) {
+                    // Missing primary key value, cannot compute id
+                    throw new UnsupportedOperationException("Primary key value must not be NULL");
+                }
+                if (primaryKeys.get(i).equalsIgnoreCase(clusteredBy)) {
+                    clusteredByValue = primaryKeyValue;
+                    clusteredByAdded = true;
+                }
+                idParts.add(primaryKeyValue);
+            }
+        }
+
+        if (clusteredBy != null && clusteredByValue != null) {
+            int idx = -1;
+            if (clusteredByAdded) {
+                idx = idParts.indexOf(clusteredByValue);
+            }
+            if (idx == -1) {
+                idParts.add(clusteredByValue);
+            } else if (idx != idParts.size()-1) {
+                // clustered-by value must always be last
+                idParts.remove(idx);
+                idParts.add(clusteredByValue);
+            }
+        } else if (clusteredByValue == null && (clusteredBy != null && !clusteredBy.equalsIgnoreCase("_id"))) {
+            // Missing routing value, cannot compute id
+            throw new UnsupportedOperationException("Missing required clustered-by value");
+        }
+
+        return Joiner.on(Constants.ID_SEPARATOR).join(idParts);
+    }
 }

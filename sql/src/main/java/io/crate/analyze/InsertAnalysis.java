@@ -29,8 +29,10 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class InsertAnalysis extends AbstractDataAnalysis {
 
@@ -40,6 +42,9 @@ public class InsertAnalysis extends AbstractDataAnalysis {
     private List<Reference> columns;
     private boolean visitingValues = false;
     private IntSet primaryKeyColumnIndices = new IntOpenHashSet(); // optional
+    private int routingColumnIndex = -1;
+
+    private final List<Map<String, Object>> sourceMaps = new ArrayList<>();
 
     public InsertAnalysis(ReferenceInfos referenceInfos,
                           Functions functions,
@@ -93,9 +98,26 @@ public class InsertAnalysis extends AbstractDataAnalysis {
 
     public void addPrimaryKeyColumnIdx(int primaryKeyColumnIdx) {
         if (this.primaryKeyColumnIndices.size() > 0) {
-            throw new UnsupportedOperationException("Multiple primary key columns are not supported.");
+            throw new UnsupportedOperationException("Multiple primary key columns are currently not supported.");
         }
         this.primaryKeyColumnIndices.add(primaryKeyColumnIdx);
+    }
+
+    public void routingColumnIndex(int routingColumnIndex) {
+        this.routingColumnIndex = routingColumnIndex;
+    }
+
+    public int routingColumnIndex() {
+        return routingColumnIndex;
+    }
+
+    public List<Map<String, Object>> sourceMaps() {
+        return sourceMaps;
+    }
+
+    @Override
+    public void addId(List<String> primaryKeyValues, @Nullable String clusteredByValue) {
+        addId(true, primaryKeyValues, clusteredByValue);
     }
 
     @Override

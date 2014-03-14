@@ -27,7 +27,6 @@ import io.crate.operation.Input;
 import io.crate.planner.node.PlanVisitor;
 import io.crate.planner.symbol.*;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 public class ESUpdateNode extends DMLPlanNode {
@@ -36,33 +35,17 @@ public class ESUpdateNode extends DMLPlanNode {
     private final Map<String, Object> updateDoc;
     private final String[] columns;
     private final WhereClause whereClause;
-    private final String[] primaryKeyValues;
     private final Optional<Long> version;
+    private final List<String> ids;
 
 
     public ESUpdateNode(String index,
                         Map<Reference, Symbol> assignments,
                         WhereClause whereClause,
-                        Optional<Long> version,
-                        @Nullable List<Literal> primaryKeyValues) {
+                        List<String> ids) {
         this.index = index;
-        if (primaryKeyValues == null) {
-            this.primaryKeyValues = new String[0];
-        } else {
-            assert primaryKeyValues.size() <= 1 : "compound primary keys not supported";
-            List<String> pkList = new ArrayList<>();
-            for (Literal pkLiteral : primaryKeyValues) {
-                if (pkLiteral instanceof SetLiteral) {
-                    for (Object setLiteralItem : (Set<?>)pkLiteral.value()) {
-                        pkList.add(setLiteralItem.toString());
-                    }
-                } else {
-                    pkList.add(pkLiteral.valueAsString());
-                }
-            }
-            this.primaryKeyValues = pkList.toArray(new String[pkList.size()]);
-        }
-        this.version = version;
+        this.ids = ids;
+        version = whereClause.version();
         updateDoc = new HashMap<>(assignments.size());
         for (Map.Entry<Reference, Symbol> entry: assignments.entrySet()) {
             Object value;
@@ -82,8 +65,8 @@ public class ESUpdateNode extends DMLPlanNode {
         this.whereClause = whereClause;
     }
 
-    public String[] primaryKeyValues() {
-        return primaryKeyValues;
+    public List<String> ids() {
+        return ids;
     }
 
     public String[] columns() {

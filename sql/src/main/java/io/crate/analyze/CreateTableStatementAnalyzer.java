@@ -57,14 +57,12 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
             context.indexSettingsBuilder().put(settings);
         }
 
-        if (node.clusteredBy().isPresent()) {
-            ClusteredBy clusteredBy = node.clusteredBy().get();
-            context.indexSettingsBuilder().put("number_of_shards",
-                    clusteredBy.numberOfShards().or(Constants.DEFAULT_NUM_SHARDS));
-        }
-
         for (TableElement tableElement : node.tableElements()) {
             process(tableElement, context);
+        }
+
+        if (node.clusteredBy().isPresent()) {
+            process(node.clusteredBy().get(), context);
         }
 
         setCopyTo(context);
@@ -95,6 +93,10 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
 
     @Override
     public Void visitColumnDefinition(ColumnDefinition node, CreateTableAnalysis context) {
+        if (node.ident().startsWith("_")) {
+            throw new IllegalArgumentException("Column ident must not start with '_'");
+        }
+
         Map<String, Object> columnDefinition = new HashMap<>();
         context.addColumnDefinition(node.ident(), columnDefinition);
         columnDefinition.put("store", false);
@@ -244,5 +246,27 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         }
 
         columnDefinition.put("analyzer", analyzerName);
+    }
+
+    @Override
+    public Void visitClusteredBy(ClusteredBy node, CreateTableAnalysis context) {
+        if (node.column().isPresent()) {
+            String routingColumn = expressionVisitor.process(
+                    node.column().get(), context.parameters()).toString();
+
+            if (!context.hasColumnDefinition(routingColumn)) {
+                throw new IllegalArgumentException(
+                        String.format(Locale.ENGLISH, "Invalid or non-existent routing column \"%s\"",
+                                routingColumn));
+            }
+            if (context.primaryKeys().size() > 0 && !context.primaryKeys().contains(routingColumn)) {
+                throw new IllegalArgumentException("Clustered by column must be part of primary keys");
+            }
+
+            context.routing(routingColumn);
+        }
+        context.indexSettingsBuilder().put("number_of_shards",
+                node.numberOfShards().or(Constants.DEFAULT_NUM_SHARDS));
+        return null;
     }
 }
