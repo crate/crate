@@ -13,6 +13,7 @@ supported by Crate.
     reference/update
     reference/copy
     reference/delete
+    reference/refresh
     reference/create_table
     reference/alter_table
     reference/create_blob_table

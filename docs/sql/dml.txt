@@ -548,6 +548,21 @@ Deleting rows in Crate is done using the SQL ``DELETE`` statement::
     DELETE OK, ... rows affected (... sec)
 
 
+.. _refreshing_data:
+
+Refreshing
+==========
+
+Crate is `eventually consistent`_. Data written with a former statement is
+not guaranteed to be fetched with the next following select statement for
+the affected rows.
+
+If required a table can be refreshed explicitly in order to ensure
+that the latest state of the table gets fetched::
+
+    cr> refresh table locations
+    REFRESH OK (... sec)
+
 .. _importing_data:
 
 Importing data
@@ -622,3 +637,5 @@ Path variables can be freely combined with `PCRE`_ patterns::
     COPY OK, 3 rows affected (... sec)
 
 .. _PCRE: http://www.pcre.org/
+
+.. _`eventually consistent`: http://en.wikipedia.org/wiki/Eventual_consistency
