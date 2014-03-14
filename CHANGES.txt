@@ -5,7 +5,7 @@ Changes for Crate Data
 Unreleased
 ==========
 
- - upgraded included crash to 0.7.0
+ - upgraded included crash to 0.7.1
 
 2014/03/13 0.31.0
 =================
