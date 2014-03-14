@@ -23,7 +23,7 @@ exit /b %ERRORLEVEL%
 :HASPYTHON
 REM Must set these first thing due to bug in Windows 7 when batch script filename has spaces in it
 SET BATCH_SCRIPT_FOLDER_PATHNAME=%~dp0
-"%BATCH_SCRIPT_FOLDER_PATHNAME%/crash.zip.py" %*
+"%BATCH_SCRIPT_FOLDER_PATHNAME%/crash_standalone" %*
 exit /b %ERRORLEVEL%
 
 ENDLOCAL

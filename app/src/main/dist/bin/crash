@@ -15,5 +15,5 @@ if [[ ! -e ${PYTHON_EXECUTABLE} ]]; then
     exit 1
 fi
 
-`dirname $0`/crash.zip.py $@
+`dirname $0`/crash_standalone $@
 exit $?

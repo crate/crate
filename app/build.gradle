@@ -45,7 +45,7 @@ ext {
     plugin_bigdesk_version = '2.2.2c'
     plugin_segmentspy_version = '0.2.0'
     plugin_crateadmin_version = '0.2.9'
-    crash_version = '0.6.0'
+    crash_version = '0.7.0'
 }
 
 evaluationDependsOn(':es')
@@ -101,7 +101,7 @@ distributions {
                 from 'plugins'
             }
             into('bin') {
-                from ("${downloadDir}/crash.zip.py") {
+                from ("${downloadDir}/crash_standalone") {
                     fileMode = 0755
                 }
             }
@@ -167,8 +167,8 @@ task downloadPlugins << {
 
 task downloadCrash << {
     def dest = download(
-            "https://cdn.crate.io/downloads/releases/crash-${crash_version}.zip.py",
-            "crash.zip.py"
+         "https://cdn.crate.io/downloads/releases/crash_standalone_${crash_version}",
+         "crash_standalone"
     )
 }
 
