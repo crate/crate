@@ -23,14 +23,24 @@ package io.crate;
 
 import io.crate.blob.v2.BlobIndices;
 import io.crate.core.NumberOfReplicas;
+import io.crate.rest.CrateRestFilter;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.test.integration.DoctestClusterTestCase;
 import org.elasticsearch.common.settings.ImmutableSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 
-@CrateIntegrationTest.ClusterScope(numNodes = 2, scope = CrateIntegrationTest.Scope.GLOBAL)
+@CrateIntegrationTest.ClusterScope(numNodes = 2, scope = CrateIntegrationTest.Scope.SUITE)
 public class DoctestTest extends DoctestClusterTestCase {
+
+    @Override
+    protected Settings nodeSettings(int nodeOrdinal) {
+        // enable es api for integration tests
+        return ImmutableSettings.builder()
+                .put(CrateRestFilter.ES_API_ENABLED_SETTING, true)
+                .build();
+    }
 
     @Test
     public void testBlob() throws Exception {

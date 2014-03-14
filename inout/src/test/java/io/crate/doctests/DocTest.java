@@ -21,6 +21,7 @@
 
 package io.crate.doctests;
 
+import io.crate.rest.CrateRestFilter;
 import io.crate.test.integration.CrateIntegrationTest;
 import io.crate.test.integration.DoctestTestCase;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
@@ -43,6 +44,7 @@ public class DocTest extends DoctestTestCase {
     String node1;
     String node2;
 
+
     @Before
     public void setUpNodes() throws Exception {
 
@@ -52,6 +54,7 @@ public class DocTest extends DoctestTestCase {
                 .put("transport.tcp.port", 44302)
                 .put("index.number_of_shards", 1)
                 .put("index.number_of_replicas", 0)
+                .put(CrateRestFilter.ES_API_ENABLED_SETTING, true)
                 .build();
 
         node1 = cluster().startNode(s1);
@@ -68,6 +71,7 @@ public class DocTest extends DoctestTestCase {
                 .put("cluster.name", "b")
                 .put("index.number_of_shards", 1)
                 .put("index.number_of_replicas", 0)
+                .put(CrateRestFilter.ES_API_ENABLED_SETTING, true)
                 .build();
         node2 = cluster().startNode(s2);
 

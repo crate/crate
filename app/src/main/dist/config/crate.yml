@@ -350,3 +350,14 @@
 
 # The url the ping is sent to.
 #udc.url: https://udc.crate.io/
+
+
+############################ ELASTICSEARCH HTTP REST API ############################
+
+# by default the elasticsearch HTTP REST API is disabled
+
+# WARNING: if you index data via elasticsearch and not
+# insert it via SQL you might get inconstistent data when querying
+
+# enable/disable elastic search HTTP REST API
+# es.api.enabled: false

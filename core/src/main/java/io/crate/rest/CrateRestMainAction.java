@@ -41,20 +41,27 @@ import static org.elasticsearch.rest.RestRequest.Method.HEAD;
 
 public class CrateRestMainAction extends BaseRestHandler {
 
+    public static final String PATH = "/";
+
     private final Version version;
     private final RestController controller;
 
     @Inject
-    public CrateRestMainAction(Settings settings, Client client, RestController controller) {
+    public CrateRestMainAction(Settings settings,
+                               Client client,
+                               RestController controller,
+                               CrateRestFilter crateRestFilter) {
         super(settings, client);
         this.version = Version.CURRENT;
         this.controller = controller;
         registerHandler();
+        controller.registerFilter(crateRestFilter);
+
     }
 
     public void registerHandler() {
-        controller.registerHandler(GET, "/", this);
-        controller.registerHandler(HEAD, "/", this);
+        controller.registerHandler(GET, PATH, this);
+        controller.registerHandler(HEAD, PATH, this);
     }
 
     @Override

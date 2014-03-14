@@ -190,12 +190,13 @@ The table schema is as follows:
 
 For example, you can query shards like this::
 
-  cr> select * from sys.shards where table_name='locations' and id = 1
-  +-------------+------------+----+----------+---------+-----------------+------+---------+
-  | schema_name | table_name | id | num_docs | primary | relocating_node | size | state   |
-  +-------------+------------+----+----------+---------+-----------------+------+---------+
-  | doc         | locations  | 1  | 6        | TRUE    | NULL            | ...  | STARTED |
-  +-------------+------------+----+----------+---------+-----------------+------+---------+
+  cr> select schema_name, table_name, id, num_docs, primary, relocating_node, state, size
+  ... from sys.shards where table_name='locations' and id = 1
+  +-------------+------------+----+----------+---------+-----------------+---------+------...
+  | schema_name | table_name | id | num_docs | primary | relocating_node | state   | size ...
+  +-------------+------------+----+----------+---------+-----------------+---------+------...
+  | doc         | locations  | 1  | 6        | TRUE    | NULL            | STARTED | ...
+  +-------------+------------+----+----------+---------+-----------------+---------+------...
   SELECT 1 row in set (... sec)
 
 .. _configuration: ../configuration.html
