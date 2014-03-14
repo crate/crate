@@ -7,6 +7,17 @@ Optimistic Concurrency Control with Crate
 Even though Crate does not support transactions, `Optimistic Concurrency Control`_ can be achieved
 by using the internal system column :ref:`_version <sql_ddl_system_column_version>`.
 
+.. Hidden: update some documents to raise their ``_version`` to 3. formerly done in other tests.::
+
+    cr> update locations set date=0 where name < 'Altair' and kind = 'Star System'
+    UPDATE OK, 3 rows affected (... sec)
+
+    cr> update locations set date=2 where name < 'Altair' and kind = 'Star System'
+    UPDATE OK, 3 rows affected (... sec)
+
+    cr> refresh table locations
+    REFRESH OK (... sec)
+
 It's possible to fetch the ``_version`` by selecting it::
 
     cr> select name, id, "_version" from locations where kind = 'Star System' order by name asc

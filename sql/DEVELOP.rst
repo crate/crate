@@ -38,14 +38,3 @@ Therefore, to run just the integration tests run::
 
     >>> mvn -Dtest=IntegrationTest test
 
-Sample data
-===========
-
-The used mapping for the test data can be found under:
-
-    ``src/main/resources/essetup/mappings/test_a.json``
-
-
-The sample data for running the tests can be found under: 
-
-    ``src/main/resources/essetup/data/test_a.json``

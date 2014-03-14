@@ -7,6 +7,11 @@ Unreleased
 
  - upgraded included crash to 0.7.1
 
+ - introduced setting ``es.api.enabled`` (Boolean) to enable
+   the elasticsearch HTTP REST API
+
+ - elasticsearch HTTP REST API now disabled by default
+
 2014/03/13 0.31.0
 =================
 
