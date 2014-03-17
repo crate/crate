@@ -2,6 +2,11 @@
 Changes for Crate Data
 ======================
 
+2014/03/17 0.32.1
+=================
+
+ - updated crate-admin to 0.3.0 - to no longer depend on elasticsearch REST API
+
 2014/03/17 0.32.0
 =================
 

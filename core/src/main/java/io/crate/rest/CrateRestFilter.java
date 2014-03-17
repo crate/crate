@@ -41,6 +41,7 @@ public class CrateRestFilter extends RestFilter {
 
     public static final String ES_API_ENABLED_SETTING = "es.api.enabled";
     public static final Set<String> SUPPORTED_ENDPOINTS = ImmutableSet.of(
+            "/admin",
             "/_sql",
             "/_plugin",
             "/_blobs"
