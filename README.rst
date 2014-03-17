@@ -34,7 +34,7 @@ Installation
 
 - Run ``bin/crate`` on unix or ``bin/crate.bat`` on Windows.
 
-- Say hello to Crate Data ``curl -sS '127.0.0.1:4200/?pretty=1'``
+- Start the crate shell by invoking ``bin/crash``.
 
 - Start some more servers to form a cluster and relax.
 
