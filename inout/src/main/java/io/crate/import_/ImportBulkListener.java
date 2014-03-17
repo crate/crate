@@ -21,16 +21,15 @@
 
 package io.crate.import_;
 
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicLong;
-
+import io.crate.import_.Importer.ImportCounts;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkProcessor;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.common.util.concurrent.BaseFuture;
 
-import io.crate.import_.Importer.ImportCounts;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class ImportBulkListener extends BaseFuture<ImportBulkListener> implements BulkProcessor.Listener {
 
@@ -51,7 +50,7 @@ public class ImportBulkListener extends BaseFuture<ImportBulkListener> implement
     }
 
     public void addFailure() {
-        counts.failures++;
+        counts.failures.incrementAndGet();
     }
 
     public ImportCounts importCounts() {
@@ -64,28 +63,30 @@ public class ImportBulkListener extends BaseFuture<ImportBulkListener> implement
     }
 
     @Override
-    public void afterBulk(long executionId, BulkRequest request,
-            BulkResponse response) {
+    public void afterBulk(long executionId, BulkRequest request, BulkResponse response) {
         bulksInProgress.decrementAndGet();
         if (response.hasFailures()) {
+            int failures = 0;
+            int success = 0;
             for (BulkItemResponse item : response.getItems()) {
                 if (item.isFailed()) {
-                    counts.failures++;
+                    failures++;
                 } else {
-                    counts.successes++;
+                    success++;
                 }
             }
+            counts.successes.addAndGet(success);
+            counts.failures.addAndGet(failures);
         } else {
-            counts.successes += response.getItems().length;
+            counts.successes.addAndGet(response.getItems().length);
         }
         checkRelease();
     }
 
     @Override
-    public void afterBulk(long executionId, BulkRequest request,
-            Throwable failure) {
+    public void afterBulk(long executionId, BulkRequest request, Throwable failure) {
         bulksInProgress.decrementAndGet();
-        counts.failures += request.requests().size();
+        counts.failures.addAndGet(request.requests().size());
         failure.printStackTrace();
         checkRelease();
     }

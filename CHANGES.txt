@@ -5,6 +5,9 @@ Changes for Crate Data
 unreleased
 ==========
 
+ - bugfix: the rowcount returned from `copy <table> from <path>` was sometimes
+   wrong.
+
  - log the current version of Crate Data
 
 2014/03/17 0.32.1

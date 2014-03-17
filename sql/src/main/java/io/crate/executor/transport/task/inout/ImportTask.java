@@ -55,7 +55,7 @@ public class ImportTask implements Task<Object[][]> {
             long rowCount = 0;
             for (NodeImportResponse nodeImportResponse : nodeImportResponses.getResponses()) {
                 for (Importer.ImportCounts importCounts : nodeImportResponse.result().importCounts) {
-                    rowCount += importCounts.successes;
+                    rowCount += importCounts.successes.get();
                 }
             }
             this.future.set(new Object[][]{new Object[]{rowCount}});

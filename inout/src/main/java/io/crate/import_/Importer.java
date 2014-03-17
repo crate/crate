@@ -67,6 +67,7 @@ import org.elasticsearch.indices.IndexMissingException;
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -525,8 +526,8 @@ public class Importer {
 
     public static class ImportCounts {
         public String fileName;
-        public int successes = 0;
-        public int failures = 0;
+        public AtomicLong successes = new AtomicLong(0);
+        public AtomicLong failures = new AtomicLong(0);
         public int invalid = 0;
     }
 
