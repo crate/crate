@@ -1,0 +1,35 @@
+=======
+REFRESH
+=======
+
+Refresh a table explicitly.
+
+Synopsis
+========
+
+.. code-block:: sql
+
+    REFRESH TABLE table_ident
+
+Description
+===========
+
+The REFRESH TABLE command refreshes a table and all its rows,
+making all changes made to that table available to all further commands.
+
+Without issuing this statement there is no guarantee that a change
+(``UPDATE``, ``DELETE``, ``COPY`` or ``INSERT``) will be seen by an
+immediately following ``SELECT`` statement for the row(s) affected by
+this change. By default a refresh is scheduled periodically.
+
+Internally a refresh opens a new table reader, which is then used by
+all subsequent searches on the affected table.
+
+For examples see: :ref:`refreshing_data`.
+
+Parameters
+==========
+
+:table_ident: The name (optionally schema-qualified) of an existing
+    table that is to be refreshed.
+
