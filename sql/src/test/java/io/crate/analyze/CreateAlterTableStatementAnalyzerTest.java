@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyString;
@@ -115,6 +116,27 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         List<String> primaryKeys = analysis.primaryKeys();
         assertThat(primaryKeys.size(), is(1));
         assertThat(primaryKeys.get(0), is("id"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testCreateTableWithClusteredBy() throws Exception {
+        CreateTableAnalysis analysis = (CreateTableAnalysis)analyze(
+                "create table foo (id integer, name string) clustered by(id)");
+
+        Map<String, Object> routingMapping = (Map)analysis.mapping().get("_routing");
+        assertNotNull(routingMapping);
+        assertThat((Boolean)routingMapping.get("required"), is(true));
+
+        Map<String, Object> meta = (Map)analysis.mapping().get("_meta");
+        assertNotNull(meta);
+        assertThat((String)meta.get("routing"), is("id"));
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    @SuppressWarnings("unchecked")
+    public void testCreateTableWithClusteredByNotInPrimaryKeys() throws Exception {
+        analyze("create table foo (id integer primary key, name string) clustered by(name)");
     }
 
     @Test
@@ -295,4 +317,15 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testAlterSystemTable() throws Exception {
         analyze("alter table sys.shards reset (number_of_replicas)");
     }
+
+    @Test (expected = UnsupportedOperationException.class)
+    public void testCreateTableWithMultiplePrimaryKeys() throws Exception {
+        analyze("create table test (id integer primary key, name string primary key)");
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void testCreateTableWithSystemColumnPrefix() throws Exception {
+        analyze("create table test (_id integer, name string)");
+    }
+
 }

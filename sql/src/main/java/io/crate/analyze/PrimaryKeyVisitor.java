@@ -96,6 +96,13 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
             return clusteredBy;
         }
 
+        public String clusteredBy() {
+            if (clusteredBy != null) {
+                return clusteredBy.valueAsString();
+            }
+            return null;
+        }
+
         void newBucket() {
             currentBucket = new KeyBucket(table.primaryKey().size());
             buckets.add(currentBucket);
@@ -184,12 +191,13 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
 
         boolean clusteredBySet = false;
         if (functionName.equals(EqOperator.NAME)) {
+            if (columnName.equals(context.table.clusteredBy())) {
+                setClusterBy(context, (Literal)right);
+                clusteredBySet = true;
+            }
             if (columnName.equals("_version") && functionName.equals(EqOperator.NAME)) {
                 setVersion(context, right);
                 return null;
-            } else if (columnName.equals(context.table.clusteredBy())) {
-                setClusterBy(context, (Literal)right);
-                clusteredBySet = true;
             }
         }
 
@@ -197,7 +205,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         if (idx < 0 && !clusteredBySet) {
             // do not return here, as we might be searching for version
             invalidate(context);
-        } else {
+        } else if (idx >= 0) {
             setPrimaryKey(context, (Literal)right, idx);
         }
         return null;

@@ -32,6 +32,7 @@ import io.crate.planner.symbol.DynamicReference;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -171,12 +172,20 @@ public class DocTableInfo implements TableInfo {
     @Override
     public Routing getRouting(WhereClause whereClause) {
 
+        ClusterState clusterState = clusterService.state();
         Map<String, Map<String, Set<Integer>>> locations = new HashMap<>();
+
+        Map<String, Set<String>> routingMap = null;
+        if (whereClause.clusteredBy().isPresent()) {
+            routingMap = clusterState.metaData().resolveSearchRouting(
+                    whereClause.clusteredBy().get(), ident.name());
+        }
+
         GroupShardsIterator shardIterators = clusterService.operationRouting().searchShards(
-                clusterService.state(),
+                clusterState,
                 indices,
                 concreteIndices,
-                null, // TODO: compute routing from whereClause
+                routingMap,
                 null // preference
         );
         ShardRouting shardRouting;

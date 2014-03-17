@@ -21,45 +21,47 @@
 
 package io.crate.planner.node.dml;
 
-import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import io.crate.planner.node.PlanVisitor;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Map;
 
 public class ESIndexNode extends DMLPlanNode {
 
     private String index;
 
-    private List<Reference> columns;
-    private List<List<Symbol>> valuesLists;
-    private int[] primaryKeyIndices;
+    private List<Map<String, Object>> sourceMaps;
+    private List<String> ids;
+    private List<String> routingValues;
 
     public ESIndexNode(String index,
-                       List<Reference> columns,
-                       List<List<Symbol>> valuesLists,
-                       @Nullable int[] primaryKeyIndices) {
+                       List<Map<String, Object>> sourceMaps,
+                       List<String> ids,
+                       @Nullable List<String> routingValues) {
         Preconditions.checkNotNull(index, "index is null");
         this.index = index;
-        this.columns = Objects.firstNonNull(columns, ImmutableList.<Reference>of());
-        this.valuesLists = Objects.firstNonNull(valuesLists, ImmutableList.<List<Symbol>>of());
-        this.primaryKeyIndices = Objects.firstNonNull(primaryKeyIndices, new int[0]);
+        this.sourceMaps = sourceMaps;
+        this.ids = ids;
+        this.routingValues = routingValues;
     }
 
     public String index() {
         return index;
     }
 
-    public List<Reference> columns() {
-        return columns;
+    public List<Map<String, Object>> sourceMaps() {
+        return sourceMaps;
     }
 
-    public List<List<Symbol>> valuesLists() {
-        return valuesLists;
+    public List<String> ids() {
+        return ids;
+    }
+
+    @Nullable
+    public List<String> routingValues() {
+        return routingValues;
     }
 
     @Override
@@ -67,11 +69,4 @@ public class ESIndexNode extends DMLPlanNode {
         return visitor.visitESIndexNode(this, context);
     }
 
-    public int[] primaryKeyIndices() {
-        return primaryKeyIndices;
-    }
-
-    public boolean hasPrimaryKey() {
-        return primaryKeyIndices.length > 0;
-    }
 }

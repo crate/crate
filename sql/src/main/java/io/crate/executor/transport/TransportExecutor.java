@@ -227,7 +227,7 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Void visitESIndexNode(ESIndexNode node, Job context) {
-            if (node.valuesLists().size() > 1) {
+            if (node.sourceMaps().size() > 1) {
                 context.addTask(new ESBulkIndexTask(transportBulkAction, node));
             } else {
                 context.addTask(new ESIndexTask(transportIndexAction, node));
@@ -238,7 +238,7 @@ public class TransportExecutor implements Executor {
         @Override
         public Void visitESUpdateNode(ESUpdateNode node, Job context) {
             // update with _version currently only possible in update by query
-            if (node.primaryKeyValues().length == 1 && !node.version().isPresent()) {
+            if (node.ids().size() == 1 && !node.version().isPresent()) {
                 context.addTask(new ESUpdateByIdTask(transportUpdateAction, node));
             } else {
                 context.addTask(new ESUpdateByQueryTask(transportSearchAction, node));

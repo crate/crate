@@ -22,8 +22,8 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.planner.node.dml.ESUpdateNode;
 import io.crate.Constants;
+import io.crate.planner.node.dml.ESUpdateNode;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.action.update.UpdateRequest;
@@ -59,7 +59,7 @@ public class ESUpdateByIdTask extends AbstractESUpdateTask {
         super(node);
         this.transport = transport;
 
-        assert node.primaryKeyValues().length == 1;
+        assert node.ids().size() == 1;
         this.request = buildUpdateRequest(node);
         listener = new UpdateResponseListener(result);
     }
@@ -71,10 +71,11 @@ public class ESUpdateByIdTask extends AbstractESUpdateTask {
 
     protected UpdateRequest buildUpdateRequest(ESUpdateNode node) {
         UpdateRequest request = new UpdateRequest(node.index(),
-                Constants.DEFAULT_MAPPING_TYPE, node.primaryKeyValues()[0]);
+                Constants.DEFAULT_MAPPING_TYPE, node.ids().get(0));
         request.fields(node.columns());
         request.paths(node.updateDoc());
         request.retryOnConflict(UPDATE_RETRY_ON_CONFLICT);
+        request.routing(node.whereClause().clusteredBy().orNull());
         return request;
     }
 }

@@ -43,9 +43,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import static junit.framework.Assert.assertTrue;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
@@ -140,12 +138,14 @@ public class PlannerTest {
                     .add("name", DataType.STRING, null)
                     .add("id", DataType.LONG, null)
                     .addPrimaryKey("id")
+                    .clusteredBy("id")
                     .build();
             TableIdent charactersTableIdent = new TableIdent(null, "characters");
             TableInfo charactersTableInfo = TestingTableInfo.builder(charactersTableIdent, RowGranularity.DOC, shardRouting)
                     .add("name", DataType.STRING, null)
                     .add("id", DataType.STRING, null)
                     .addPrimaryKey("id")
+                    .clusteredBy("id")
                     .build();
             when(schemaInfo.getTableInfo(charactersTableIdent.name())).thenReturn(charactersTableInfo);
             when(schemaInfo.getTableInfo(userTableIdent.name())).thenReturn(userTableInfo);
@@ -453,16 +453,13 @@ public class PlannerTest {
         assertThat(planNode, instanceOf(ESIndexNode.class));
 
         ESIndexNode indexNode = (ESIndexNode) planNode;
-        assertThat(indexNode.columns().size(), is(2));
-        assertThat(indexNode.columns().get(0).valueType(), is(DataType.LONG));
-        assertThat(indexNode.columns().get(0).info().ident().columnIdent().name(), is("id"));
+        assertThat(indexNode.sourceMaps().size(), is(1));
+        assertThat(indexNode.sourceMaps().get(0).size(), is(2));
 
-        assertThat(indexNode.columns().get(1).valueType(), is(DataType.STRING));
-        assertThat(indexNode.columns().get(1).info().ident().columnIdent().name(), is("name"));
+        assertThat(indexNode.sourceMaps().get(0).keySet(), contains("id", "name"));
 
-        assertThat(indexNode.valuesLists().size(), is(1));
-        assertThat(((LongLiteral) indexNode.valuesLists().get(0).get(0)).value(), is(42l));
-        assertThat(((StringLiteral) indexNode.valuesLists().get(0).get(1)).value().utf8ToString(), is("Deep Thought"));
+        assertThat((Long)indexNode.sourceMaps().get(0).get("id"), is(42L));
+        assertThat((String)indexNode.sourceMaps().get(0).get("name"), is("Deep Thought"));
 
         assertThat(indexNode.outputTypes().size(), is(1));
         assertThat(indexNode.outputTypes().get(0), is(DataType.LONG));
@@ -479,12 +476,15 @@ public class PlannerTest {
 
         ESIndexNode indexNode = (ESIndexNode) planNode;
 
-        assertThat(indexNode.valuesLists().size(), is(2));
-        assertThat(((LongLiteral) indexNode.valuesLists().get(0).get(0)).value(), is(42l));
-        assertThat(((StringLiteral) indexNode.valuesLists().get(0).get(1)).value().utf8ToString(), is("Deep Thought"));
+        assertThat(indexNode.sourceMaps().size(), is(2));
+        assertThat(indexNode.sourceMaps().get(0).size(), is(2));
+        assertThat(indexNode.sourceMaps().get(1).size(), is(2));
 
-        assertThat(((LongLiteral) indexNode.valuesLists().get(1).get(0)).value(), is(99l));
-        assertThat(((StringLiteral) indexNode.valuesLists().get(1).get(1)).value().utf8ToString(), is("Marvin"));
+        assertThat((Long)indexNode.sourceMaps().get(0).get("id"), is(42L));
+        assertThat((String)indexNode.sourceMaps().get(0).get("name"), is("Deep Thought"));
+
+        assertThat((Long)indexNode.sourceMaps().get(1).get("id"), is(99L));
+        assertThat((String)indexNode.sourceMaps().get(1).get("name"), is("Marvin"));
 
         assertThat(indexNode.outputTypes().size(), is(1));
         assertThat(indexNode.outputTypes().get(0), is(DataType.LONG));
@@ -624,8 +624,8 @@ public class PlannerTest {
 
         ESUpdateNode updateNode = (ESUpdateNode)planNode;
         assertThat(updateNode.index(), is("users"));
-        assertThat(updateNode.primaryKeyValues().length, is(1));
-        assertThat(updateNode.primaryKeyValues()[0], is("1"));
+        assertThat(updateNode.ids().size(), is(1));
+        assertThat(updateNode.ids().get(0), is("1"));
 
         assertThat(updateNode.outputTypes().size(), is(1));
         assertThat(updateNode.outputTypes().get(0), is(DataType.LONG));
@@ -645,8 +645,8 @@ public class PlannerTest {
         assertThat(planNode, instanceOf(ESUpdateNode.class));
 
         ESUpdateNode updateNode = (ESUpdateNode)planNode;
-        assertThat(updateNode.primaryKeyValues().length, is(3));
-        assertThat(updateNode.primaryKeyValues(), arrayContainingInAnyOrder("1", "2", "3"));
+        assertThat(updateNode.ids().size(), is(3));
+        assertThat(updateNode.ids(), containsInAnyOrder("1", "2", "3"));
     }
 
     @Test

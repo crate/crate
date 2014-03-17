@@ -22,10 +22,9 @@
 package io.crate.analyze;
 
 import com.google.common.base.Objects;
-import io.crate.planner.symbol.BooleanLiteral;
-import io.crate.planner.symbol.Function;
-import io.crate.planner.symbol.Symbol;
-import io.crate.planner.symbol.SymbolType;
+import com.google.common.base.Optional;
+import io.crate.planner.symbol.*;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -41,7 +40,10 @@ public class WhereClause implements Streamable {
     private Function query;
     private boolean noMatch = false;
 
-    private WhereClause(){
+    protected String clusteredBy;
+    protected Long version;
+
+    private WhereClause() {
     }
 
     public WhereClause(StreamInput in) throws IOException {
@@ -87,6 +89,24 @@ public class WhereClause implements Streamable {
     }
 
 
+    public Optional<String> clusteredBy() {
+        return Optional.fromNullable(clusteredBy);
+    }
+
+    public void clusteredByLiteral(@Nullable Literal clusteredByLiteral) {
+        if (clusteredByLiteral != null) {
+            clusteredBy = clusteredByLiteral.valueAsString();
+        }
+    }
+
+    public void version(@Nullable Long version) {
+        this.version = version;
+    }
+
+    public Optional<Long> version() {
+        return Optional.fromNullable(this.version);
+    }
+
     @Override
     public void readFrom(StreamInput in) throws IOException {
         if (in.readBoolean()) {
@@ -94,6 +114,14 @@ public class WhereClause implements Streamable {
             query.readFrom(in);
         } else {
             noMatch = in.readBoolean();
+        }
+
+        if (in.readBoolean()) {
+            clusteredBy = in.readBytesRef().utf8ToString();
+        }
+
+        if (in.readBoolean()) {
+            version = in.readVLong();
         }
     }
 
@@ -107,6 +135,19 @@ public class WhereClause implements Streamable {
             out.writeBoolean(noMatch);
         }
 
+        if (clusteredBy != null) {
+            out.writeBoolean(true);
+            out.writeBytesRef(new BytesRef(clusteredBy));
+        } else {
+            out.writeBoolean(false);
+        }
+
+        if (version != null) {
+            out.writeBoolean(true);
+            out.writeVLong(version);
+        } else {
+            out.writeBoolean(false);
+        }
     }
 
     public boolean hasQuery() {

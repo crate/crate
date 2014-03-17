@@ -63,9 +63,11 @@ public class ESGetTask implements Task<Object[][]> {
         results = Arrays.<ListenableFuture<Object[][]>>asList(result);
         if (node.ids().size() > 1) {
             MultiGetRequest multiGetRequest = new MultiGetRequest();
-            for (String id : node.ids()) {
+            for (int i = 0; i < node.ids().size(); i++) {
+                String id = node.ids().get(i);
                 MultiGetRequest.Item item = new MultiGetRequest.Item(node.index(), Constants.DEFAULT_MAPPING_TYPE, id);
                 item.fetchSourceContext(fsc);
+                item.routing(node.routingValues().get(i));
                 multiGetRequest.add(item);
             }
             multiGetRequest.realtime(true);
@@ -77,6 +79,7 @@ public class ESGetTask implements Task<Object[][]> {
             GetRequest getRequest = new GetRequest(node.index(), Constants.DEFAULT_MAPPING_TYPE, node.ids().get(0));
             getRequest.fetchSourceContext(fsc);
             getRequest.realtime(true);
+            getRequest.routing(node.routingValues().get(0));
 
             transportAction = getAction;
             request = getRequest;

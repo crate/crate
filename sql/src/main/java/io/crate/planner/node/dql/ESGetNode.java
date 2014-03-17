@@ -30,17 +30,20 @@ import java.util.List;
 
 public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
 
-    private String index;
-    private List<String> ids;
+    private final String index;
+    private final List<String> ids;
+    private final List<String> routingValues;
 
-    public ESGetNode(String index, List<String> ids) {
+    public ESGetNode(String index, List<String> ids, List<String> routingValues) {
         this.index = index;
         this.ids = ids;
+        this.routingValues = routingValues;
     }
 
-    public ESGetNode(String index, String id) {
+    public ESGetNode(String index, String id, String routingValue) {
         this.index = index;
         this.ids = Arrays.asList(id);
+        this.routingValues = Arrays.asList(routingValue);
     }
 
     public String index() {
@@ -54,6 +57,10 @@ public class ESGetNode extends ESDQLPlanNode implements DQLPlanNode {
 
     public List<String> ids() {
         return ids;
+    }
+
+    public List<String> routingValues() {
+        return routingValues;
     }
 
     @Override

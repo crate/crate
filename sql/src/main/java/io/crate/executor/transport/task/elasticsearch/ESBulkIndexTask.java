@@ -23,16 +23,12 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.planner.node.dml.ESIndexNode;
-import io.crate.planner.symbol.Reference;
-import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkItemResponse;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.bulk.TransportBulkAction;
 import org.elasticsearch.action.index.IndexRequest;
-
-import java.util.List;
 
 public class ESBulkIndexTask extends AbstractESIndexTask {
 
@@ -72,13 +68,14 @@ public class ESBulkIndexTask extends AbstractESIndexTask {
         this.bulkAction = bulkAction;
 
         this.request = new BulkRequest();
-        int primaryKeyIdx = -1;
-        if (node.hasPrimaryKey()) {
-            primaryKeyIdx = node.primaryKeyIndices()[0];
-        }
-        List<Reference> columns = this.node.columns();
-        for (List<Symbol> valuesList : this.node.valuesLists()) {
-            IndexRequest indexRequest = buildIndexRequest(node.index(), columns, valuesList, primaryKeyIdx);
+
+        for (int i = 0; i < this.node.sourceMaps().size(); i++) {
+
+            IndexRequest indexRequest = buildIndexRequest(
+                    node.index(),
+                    node.sourceMaps().get(i),
+                    node.ids().get(i),
+                    node.routingValues().get(i));
             this.request.add(indexRequest);
         }
 

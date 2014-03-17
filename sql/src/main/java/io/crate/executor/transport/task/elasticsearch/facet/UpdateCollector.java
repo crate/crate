@@ -21,10 +21,11 @@
 
 package io.crate.executor.transport.task.elasticsearch.facet;
 
+import com.google.common.base.Splitter;
+import io.crate.Constants;
 import org.apache.lucene.index.AtomicReaderContext;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Scorer;
-import io.crate.Constants;
 import org.elasticsearch.action.update.TransportUpdateAction;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.action.update.UpdateResponse;
@@ -38,6 +39,7 @@ import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.lookup.SearchLookup;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -64,6 +66,18 @@ public class UpdateCollector extends FacetExecutor.Collector {
             this.shardId = shardId.id();
             retryOnConflict(Constants.UPDATE_RETRY_ON_CONFLICT);
             paths(updateDoc);
+
+            // parse routing value out of id
+            String routing;
+            List<String> idParts = Splitter.on(Constants.ID_SEPARATOR)
+                    .splitToList(uid.id());
+            if (idParts.size() == 1) {
+                routing = uid.id();
+            } else {
+                // routing is always last
+                routing = idParts.get(idParts.size()-1);
+            }
+            this.routing(routing);
         }
     }
 

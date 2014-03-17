@@ -39,4 +39,7 @@ public class Constants {
     public static final Integer DEFAULT_NUM_SHARDS = 5;
 
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;
+
+    // separator used for computing id's of possible multiple primary keys and/or routing value
+    public static final String ID_SEPARATOR = ":";
 }

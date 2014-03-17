@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.annotations.Seed;
 import com.google.common.base.Joiner;
+import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.TimestampFormat;
@@ -470,27 +471,20 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSqlRequestWithOneOrFilter() throws Exception {
-        createIndex("test");
-        client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
-        client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
-        client().prepareIndex("test", "default", "id3").setSource("{}").execute().actionGet();
+        execute("create table test (id string)");
+        execute("insert into test (id) values ('id1'), ('id2'), ('id3')");
         refresh();
-        execute(
-                "select \"_id\" from test where \"_id\"='id1' or \"_id\"='id3'");
+        execute("select id from test where id='id1' or id='id3'");
         assertEquals(2, response.rowCount());
         assertThat(this.<String>getCol(response.rows(), 0), containsInAnyOrder("id1", "id3"));
     }
 
     @Test
     public void testSqlRequestWithOneMultipleOrFilter() throws Exception {
-        createIndex("test");
-        client().prepareIndex("test", "default", "id1").setSource("{}").execute().actionGet();
-        client().prepareIndex("test", "default", "id2").setSource("{}").execute().actionGet();
-        client().prepareIndex("test", "default", "id3").setSource("{}").execute().actionGet();
-        client().prepareIndex("test", "default", "id4").setSource("{}").execute().actionGet();
+        execute("create table test (id string)");
+        execute("insert into test (id) values ('id1'), ('id2'), ('id3'), ('id4')");
         refresh();
-        execute(
-                "select \"_id\" from test where \"_id\"='id1' or \"_id\"='id2' or \"_id\"='id4'");
+        execute("select id from test where id='id1' or id='id2' or id='id4'");
         assertEquals(3, response.rowCount());
         System.out.println(Arrays.toString(response.rows()[0]));
         System.out.println(Arrays.toString(response.rows()[1]));
@@ -1395,24 +1389,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test (expected = UnsupportedFeatureException.class)
     public void testMultiplePrimaryKeyColumns() throws Exception {
-        XContentBuilder mapping = XContentFactory.jsonBuilder().startObject()
-                    .startObject("default")
-                    .startObject("_meta").array("primary_keys", "pk_col1", "pk_col2").endObject()
-                    .startObject("properties")
-                    .startObject("pk_col1").field("type", "string").field("store",
-                            "false").field("index", "not_analyzed").endObject()
-                    .startObject("pk_col2").field("type", "string").field("store",
-                            "false").field("index", "not_analyzed").endObject()
-                    .startObject("message").field("type", "string").field("store",
-                            "false").field("index", "not_analyzed").endObject()
-                    .endObject()
-                    .endObject()
-                    .endObject();
-
-        prepareCreate("test")
-            .addMapping("default", mapping)
-            .execute().actionGet();
-
+        execute("create table test (pk_col1 string primary key, pk_col2 string primary key, " +
+                "message string)");
+        ensureGreen();
         Object[] args = new Object[] {
             "Life, loathe it or ignore it, you can't like it."
         };
@@ -1887,9 +1866,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                         "\"col1\":{}," +
                         "\"col2\":{}" +
                     "}," +
-                    "\"indices\":{}" +
+                    "\"indices\":{}," +
+                    "\"routing\":\"col1\"" +
                 "}," +
                 "\"_all\":{\"enabled\":false}," +
+                "\"_routing\":{\"required\":true}," +
                 "\"properties\":{" +
                     "\"col1\":{\"type\":\"integer\",\"doc_values\":true}," +
                     "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"doc_values\":true}" +
@@ -2885,7 +2866,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.rows(), is(Constants.EMPTY_RESULT));
 
         execute("select count(*) from test");
-        assertThat((Long)response.rows()[0][0], is(3L));
+        assertThat((Long) response.rows()[0][0], is(3L));
     }
 
     @Test
@@ -2909,5 +2890,77 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testSelectFromBlobTable() throws Exception {
         execute("create blob table screenshots with (number_of_replicas=0)");
         execute("select * from blob.screenshots");
+    }
+
+    @Test (expected = SQLParseException.class)
+    public void testInsertWithClusteredByNull() throws Exception {
+        execute("create table quotes (id integer, quote string) clustered by(id) " +
+                "with (number_of_replicas=0)");
+        execute("insert into quotes (id, quote) values(?, ?)",
+                new Object[]{null, "I'd far rather be happy than right any day."});
+    }
+
+    @Test (expected = SQLParseException.class)
+    public void testInsertWithClusteredByWithoutValue() throws Exception {
+        execute("create table quotes (id integer, quote string) clustered by(id) " +
+                "with (number_of_replicas=0)");
+        execute("insert into quotes (quote) values(?)",
+                new Object[]{"I'd far rather be happy than right any day."});
+    }
+
+    @Test
+    public void testInsertSelectWithClusteredBy() throws Exception {
+        execute("create table quotes (id integer, quote string) clustered by(id) " +
+                "with (number_of_replicas=0)");
+        execute("insert into quotes (id, quote) values(?, ?)",
+                new Object[]{1, "I'd far rather be happy than right any day."});
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("select \"_id\", id, quote from quotes where id=1");
+        assertEquals(1L, response.rowCount());
+
+        // Validate generated _id, must be: <generatedRandom>:1
+        String _id = (String)response.rows()[0][0];
+        List<String> idParts = Splitter.on(Constants.ID_SEPARATOR).splitToList(_id);
+        assertEquals(2, idParts.size());
+        assertEquals("1", idParts.get(1));
+    }
+
+    @Test
+    public void testInsertSelectWithAutoGeneratedId() throws Exception {
+        execute("create table quotes (id integer, quote string)" +
+                "with (number_of_replicas=0)");
+        execute("insert into quotes (id, quote) values(?, ?)",
+                new Object[]{1, "I'd far rather be happy than right any day."});
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("select \"_id\", id, quote from quotes where id=1");
+        assertEquals(1L, response.rowCount());
+
+        // Validate generated _id, must be: <generatedRandom>
+        assertNotNull(response.rows()[0][0]);
+        assertThat(((String)response.rows()[0][0]).length(), greaterThan(0));
+        assertThat((String)response.rows()[0][0], not(containsString(Constants.ID_SEPARATOR)));
+    }
+
+    @Test
+    public void testInsertSelectWithPrimaryKey() throws Exception {
+        execute("create table quotes (id integer primary key, quote string)" +
+                "with (number_of_replicas=0)");
+        execute("insert into quotes (id, quote) values(?, ?)",
+                new Object[]{1, "I'd far rather be happy than right any day."});
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("select \"_id\", id, quote from quotes where id=1");
+        assertEquals(1L, response.rowCount());
+
+        // Validate generated _id.
+        // Must equal to id because its the primary key
+        String _id = (String)response.rows()[0][0];
+        Integer id = (Integer)response.rows()[0][1];
+        assertEquals(id.toString(), _id);
     }
 }

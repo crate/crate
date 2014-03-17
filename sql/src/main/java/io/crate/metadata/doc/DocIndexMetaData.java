@@ -312,10 +312,15 @@ public class DocIndexMetaData {
 
     private String getRoutingCol() {
         if (defaultMappingMetaData != null) {
-            if (defaultMappingMetaData.routing().hasPath()) {
-                return defaultMappingMetaData.routing().path();
+            Map<String, Object> metaMap = (Map<String, Object>) defaultMappingMap.get("_meta");
+            if (metaMap != null) {
+                String routingPath = (String)metaMap.get("routing");
+                if (routingPath != null) {
+                    return routingPath;
+                }
             }
         }
+
         if (primaryKey.size() > 0) {
             return primaryKey.get(0);
         }
