@@ -486,12 +486,11 @@ public class RestImportActionTest extends AbstractRestActionTest {
         List<String> importedFiles = new ArrayList<>();
         for (NodeImportResponse nodeImportResponse : response.getResponses()) {
             for (Importer.ImportCounts importCounts : nodeImportResponse.result().importCounts) {
-                successfullyImported += importCounts.successes;
+                successfullyImported += importCounts.successes.get();
                 importedFiles.add(importCounts.fileName);
             }
         }
         assertEquals(1, successfullyImported);
-
         assertEquals(1, importedFiles.size());
         assertTrue(importedFiles.get(0).matches(
                 "(.*)/importdata/import_10/import_node-import-test-with-path-vars.json"));

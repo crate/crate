@@ -31,6 +31,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilderString;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class NodeImportResponse extends NodeOperationResponse implements ToXContent {
 
@@ -75,8 +76,8 @@ public class NodeImportResponse extends NodeOperationResponse implements ToXCont
         for (int i = 0; i < fileCount; i++) {
             Importer.ImportCounts counts = new Importer.ImportCounts();
             counts.fileName = in.readString();
-            counts.successes = in.readInt();
-            counts.failures = in.readInt();
+            counts.successes = new AtomicLong(in.readVLong());
+            counts.failures = new AtomicLong(in.readVLong());
             counts.invalid = in.readInt();
             result.importCounts.add(counts);
         }
@@ -89,8 +90,8 @@ public class NodeImportResponse extends NodeOperationResponse implements ToXCont
         out.writeInt(result.importCounts.size());
         for (Importer.ImportCounts counts : result.importCounts) {
             out.writeString(counts.fileName);
-            out.writeInt(counts.successes);
-            out.writeInt(counts.failures);
+            out.writeVLong(counts.successes.get());
+            out.writeVLong(counts.failures.get());
             out.writeInt(counts.invalid);
         }
     }
