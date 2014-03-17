@@ -47,8 +47,8 @@ Before creating a new distribution, a new version and tag should be created:
  - Create a tag using the ``create_tag.sh`` script
    (run ``./devtools/create_tag.sh``).
 
-Now everything is ready for building a new distribution, either manually or let jenkins do the
-job as usual :-)
+Now everything is ready for building a new distribution, either
+manually or let jenkins do the job as usual :-)
 
 Building a tarball and a zip is done by gradle with the command::
 
