@@ -2,6 +2,11 @@
 Changes for Crate Data
 ======================
 
+unreleased
+==========
+
+ - log the current version of Crate Data
+
 2014/03/17 0.32.1
 =================
 
