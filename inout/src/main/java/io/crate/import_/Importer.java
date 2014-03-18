@@ -281,7 +281,7 @@ public class Importer {
             parser = XContentFactory.xContent(line.getBytes()).createParser(line.getBytes());
             Token token;
             XContentBuilder sourceBuilder = XContentFactory.contentBuilder(XContentType.JSON);
-            boolean checkPK = (pks != null);
+            boolean checkPK = (pks != null && !pks.isEmpty());
             boolean checkRouting = (routing != null);
             List<String> primaryKeyValues = new ArrayList<>();
             String routingValue = null;
