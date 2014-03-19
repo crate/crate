@@ -5,7 +5,6 @@ Changes for Crate Data
 unreleased
 ==========
 
- - support clustered-by key without primary key constraint
 
 2014/03/17 0.32.2
 =================
