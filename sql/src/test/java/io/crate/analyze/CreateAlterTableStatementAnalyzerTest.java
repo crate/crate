@@ -118,7 +118,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(primaryKeys.get(0), is("id"));
     }
 
-    @Test
+    @Test (expected = IllegalArgumentException.class)
     @SuppressWarnings("unchecked")
     public void testCreateTableWithClusteredBy() throws Exception {
         CreateTableAnalysis analysis = (CreateTableAnalysis)analyze(
