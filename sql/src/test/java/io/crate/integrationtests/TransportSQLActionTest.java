@@ -2908,7 +2908,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 new Object[]{"I'd far rather be happy than right any day."});
     }
 
-    @Test
+    @Test (expected = SQLParseException.class)
     public void testInsertSelectWithClusteredBy() throws Exception {
         execute("create table quotes (id integer, quote string) clustered by(id) " +
                 "with (number_of_replicas=0)");

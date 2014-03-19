@@ -133,7 +133,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
         Symbol value = analysis.assignments().entrySet().iterator().next().getValue();
         assertThat(value, instanceOf(StringLiteral.class));
-        assertThat(((StringLiteral)value).value().utf8ToString(), is("Trillian"));
+        assertThat(((StringLiteral) value).value().utf8ToString(), is("Trillian"));
     }
 
     @Test
@@ -162,7 +162,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
         Symbol value = analysis.assignments().entrySet().iterator().next().getValue();
         assertThat(value, instanceOf(LongLiteral.class));
-        assertThat(((LongLiteral)value).value(), is(9l));
+        assertThat(((LongLiteral) value).value(), is(9l));
     }
 
     @Test
@@ -251,4 +251,21 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
         assertThat(friendsLiteral.itemType(), is(DataType.OBJECT));
         assertThat(friendsLiteral.value().length, is(0));
     }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void testUpdateSystemColumn() throws Exception {
+        analyze("update users set _id=1");
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void testUpdatePrimaryKey() throws Exception {
+        analyze("update users set id=1");
+    }
+
+    @Test( expected = IllegalArgumentException.class )
+    public void testUpdateClusteredBy() throws Exception {
+        // TODO: use table where clustered-by does not match primary key when this is supportd 
+        analyze("update users set id=1");
+    }
+
 }

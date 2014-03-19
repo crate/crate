@@ -64,6 +64,15 @@ public class UpdateStatementAnalyzer extends DataStatementAnalyzer<UpdateAnalysi
     public Symbol visitAssignment(Assignment node, UpdateAnalysis context) {
         // unknown columns in strict objects handled in here
         Reference reference = (Reference)process(node.columnName(), context);
+        String columnName = reference.info().ident().columnIdent().name();
+        if (columnName.startsWith("_")) {
+            throw new IllegalArgumentException("Updating system columns is not allowed");
+        } else if (context.table().primaryKey().contains(columnName)) {
+            throw new IllegalArgumentException("Updating a primary key is currently not supported");
+        } else if (context.table().clusteredBy().equals(columnName)) {
+            throw new IllegalArgumentException("Updating a clustered-by column is currently not supported");
+        }
+
         Symbol value = process(node.expression(), context);
 
         // it's something that we can normalize to a literal
