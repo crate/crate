@@ -5,6 +5,8 @@ Changes for Crate Data
 unreleased
 ==========
 
+ - fixed a threading issue that could occur when executing ``COPY`` statements.
+
  - fix: prevent updating of system, primary key and clustered-by column
 
 2014/03/17 0.32.2

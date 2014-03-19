@@ -252,7 +252,7 @@ public class Importer {
             } catch (FileNotFoundException e) {
                 // Ignore not existing files, actually they should exist, as they are filtered before.
             } catch (IOException e) {
-                logger.trace("[{}] error during file import of {} into index {}",
+                logger.error("[{}] error during file import of {} into index {}",
                         clusterService.localNode().id(),
                         file.getAbsolutePath(),
                         index);
@@ -262,11 +262,11 @@ public class Importer {
             try {
                 bulkListener.get();
             } catch (InterruptedException|ExecutionException e1) {
-                logger.trace("[{}] error waiting for ImportBulkListener", e1, clusterService.localNode().id());
+                logger.error("[{}] error waiting for ImportBulkListener", e1, clusterService.localNode().id());
             }
             return bulkListener.importCounts();
         } else {
-            logger.trace("[{}] file '{}' not readable", clusterService.localNode().id(), file.getAbsolutePath());
+            logger.debug("[{}] file '{}' not readable", clusterService.localNode().id(), file.getAbsolutePath());
         }
 
         return null;
