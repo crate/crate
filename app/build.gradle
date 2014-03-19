@@ -101,7 +101,7 @@ distributions {
                 from 'plugins'
             }
             into('bin') {
-                from ("${downloadDir}/crash_standalone") {
+                from ("${downloadDir}/crash_standalone.zip.py") {
                     fileMode = 0755
                 }
             }
@@ -168,7 +168,7 @@ task downloadPlugins << {
 task downloadCrash << {
     def dest = download(
          "https://cdn.crate.io/downloads/releases/crash_standalone_${crash_version}",
-         "crash_standalone"
+         "crash_standalone.zip.py"
     )
 }
 
