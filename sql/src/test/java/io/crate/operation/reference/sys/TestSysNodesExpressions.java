@@ -64,6 +64,8 @@ public class TestSysNodesExpressions {
     private Injector injector;
     private ReferenceResolver resolver;
 
+    private boolean onWindows = false;
+
     class TestModule extends AbstractModule {
 
         @Override
@@ -73,7 +75,16 @@ public class TestSysNodesExpressions {
             OsService osService = mock(OsService.class);
             OsStats osStats = mock(OsStats.class);
             when(osService.stats()).thenReturn(osStats);
-            when(osStats.loadAverage()).thenReturn(new double[]{1, 5, 15});
+            when(osStats.loadAverage()).thenAnswer(new Answer<double[]>() {
+                @Override
+                public double[] answer(InvocationOnMock invocation) throws Throwable {
+                    if (onWindows) {
+                        return new double[0];          // windows behaviour
+                    } else {
+                        return new double[]{1, 5, 15}; // unix behaviour
+                    }
+                }
+            });
             ByteSizeValue byteSizeValue = mock(ByteSizeValue.class);
             when(byteSizeValue.bytes()).thenReturn(12345342234L);
             when(byteSizeValue.toString()).thenReturn("11.4gb");
@@ -169,7 +180,18 @@ public class TestSysNodesExpressions {
         assertEquals(new Double(5), ci.value());
         ci = load.getChildImplementation("15");
         assertEquals(new Double(15), ci.value());
+    }
 
+    @Test
+    public void testWindowsLoad() throws Exception {
+        onWindows = true;
+        ReferenceIdent ident = new ReferenceIdent(SysNodesTableInfo.IDENT, "load");
+        SysObjectReference<Double> load = (SysObjectReference<Double>) resolver.getImplementation(ident);
+        Map<String, Double> windowsValue = load.value();
+        assertNull(windowsValue.get("1"));
+        assertNull(windowsValue.get("5"));
+        assertNull(windowsValue.get("10"));
+        onWindows = false;
     }
 
     @Test
