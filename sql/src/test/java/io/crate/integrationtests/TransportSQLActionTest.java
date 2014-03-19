@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.annotations.Seed;
 import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Constants;
 import io.crate.TimestampFormat;
@@ -588,11 +587,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertWithoutColumnNames() throws Exception {
-        prepareCreate("test")
-                .addMapping("default",
-                        "firstName", "type=string,store=true,index=not_analyzed",
-                        "lastName", "type=string,store=true,index=not_analyzed")
-                .execute().actionGet();
+        execute("create table test (\"firstName\" string, \"lastName\" string)");
         ensureGreen();
         execute("insert into test values('Youri', 'Zoon')");
         assertEquals(1, response.rowCount());
@@ -903,10 +898,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUpdate() throws Exception {
-        prepareCreate("test")
-                .addMapping("default",
-                        "message", "type=string,index=not_analyzed")
-                .execute().actionGet();
+        execute("create table test (message string)");
+        ensureGreen();
 
         execute("insert into test values('hello'),('again')");
         assertEquals(2, response.rowCount());
@@ -1870,7 +1863,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                     "\"routing\":\"col1\"" +
                 "}," +
                 "\"_all\":{\"enabled\":false}," +
-                "\"_routing\":{\"required\":true}," +
                 "\"properties\":{" +
                     "\"col1\":{\"type\":\"integer\",\"doc_values\":true}," +
                     "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\",\"doc_values\":true}" +
@@ -2908,7 +2900,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 new Object[]{"I'd far rather be happy than right any day."});
     }
 
-    @Test (expected = SQLParseException.class)
+    @Test
     public void testInsertSelectWithClusteredBy() throws Exception {
         execute("create table quotes (id integer, quote string) clustered by(id) " +
                 "with (number_of_replicas=0)");
@@ -2920,11 +2912,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select \"_id\", id, quote from quotes where id=1");
         assertEquals(1L, response.rowCount());
 
-        // Validate generated _id, must be: <generatedRandom>:1
-        String _id = (String)response.rows()[0][0];
-        List<String> idParts = Splitter.on(Constants.ID_SEPARATOR).splitToList(_id);
-        assertEquals(2, idParts.size());
-        assertEquals("1", idParts.get(1));
+        // Validate generated _id, must be: <generatedRandom>
+        assertNotNull(response.rows()[0][0]);
+        assertThat(((String)response.rows()[0][0]).length(), greaterThan(0));
     }
 
     @Test
@@ -2942,7 +2932,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         // Validate generated _id, must be: <generatedRandom>
         assertNotNull(response.rows()[0][0]);
         assertThat(((String)response.rows()[0][0]).length(), greaterThan(0));
-        assertThat((String)response.rows()[0][0], not(containsString(Constants.ID_SEPARATOR)));
     }
 
     @Test

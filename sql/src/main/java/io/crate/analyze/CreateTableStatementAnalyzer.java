@@ -262,10 +262,6 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
             if (context.primaryKeys().size() > 0 && !context.primaryKeys().contains(routingColumn)) {
                 throw new IllegalArgumentException("Clustered by column must be part of primary keys");
             }
-            // Temporarily forbid clustered-by without primary key
-            if (context.primaryKeys().size() == 0) {
-                throw new IllegalArgumentException("Clustered-by without primary key definition is currently not supported");
-            }
 
             context.routing(routingColumn);
         }

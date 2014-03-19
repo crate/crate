@@ -473,11 +473,13 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void test3ColPrimaryKey() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name='jalla' and schema_name='doc'");
-        assertEquals(ImmutableList.of("doc:jalla:1"), analysis.ids());
+        // base64 encoded string 'doc:jalla:1'
+        assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ=="), analysis.ids());
         assertFalse(analysis.noMatch());
 
         analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name='jalla' and id=1 and schema_name='doc'");
-        assertEquals(ImmutableList.of("doc:jalla:1"), analysis.ids());
+        // base64 encoded string 'doc:jalla:1'
+        assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ=="), analysis.ids());
         assertFalse(analysis.noMatch());
 
 
@@ -512,7 +514,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void test3ColPrimaryKeySetLiteral() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and schema_name='doc' and table_name in ('jalla', 'kelle')");
         assertEquals(2, analysis.ids().size());
-        assertEquals(ImmutableList.of("doc:jalla:1", "doc:kelle:1"), analysis.ids());
+        // base64 encoded versions of "doc:jalla:1" and "doc:kelle:1"
+        assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ==", "AwNkb2MFa2VsbGUBMQ=="), analysis.ids());
     }
 
     @Test

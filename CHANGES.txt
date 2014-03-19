@@ -5,6 +5,8 @@ Changes for Crate Data
 unreleased
 ==========
 
+ - support clustered-by key without primary key constraint
+
  - fix: windows compatibilty (sys.nodes.load, crash_standalone)
 
  - fixed a threading issue that could occur when executing ``COPY`` statements.

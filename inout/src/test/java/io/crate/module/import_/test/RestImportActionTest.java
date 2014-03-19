@@ -277,9 +277,9 @@ public class RestImportActionTest extends AbstractRestActionTest {
 
         wipeIndices("users");
         prepareCreate("users").setSettings(
-            ImmutableSettings.builder().loadFromClasspath("/essetup/settings/test_b.json").build()
+                stringFromPath("/essetup/settings/test_b.json", getClass())
         ).addMapping("d", stringFromPath("/essetup/mappings/test_b.json", getClass())).execute().actionGet();
-        waitForRelocation(ClusterHealthStatus.GREEN);
+        ensureGreen();
 
         // run import with relative directory
         ImportResponse response = executeImportRequest("{\"directory\": \"myExport\"}");

@@ -198,7 +198,7 @@ public class InsertStatementAnalyzer extends DataStatementAnalyzer<InsertAnalysi
         context.values().add(symbols);
 
         context.sourceMaps().add(sourceMap);
-        context.addId(primaryKeyValues, routingValue);
+        context.addIdAndRouting(primaryKeyValues, routingValue);
 
         return null;
     }

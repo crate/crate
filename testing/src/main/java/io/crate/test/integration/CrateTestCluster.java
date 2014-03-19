@@ -105,6 +105,8 @@ public class CrateTestCluster implements Iterable<Client> {
 
     private final NodeSettingsSource nodeSettingsSource;
 
+    private Path tmpDataDir = null;
+
     public CrateTestCluster(long clusterSeed, String clusterName) {
         this(clusterSeed, 2, clusterName, NodeSettingsSource.EMPTY);
     }
@@ -119,7 +121,6 @@ public class CrateTestCluster implements Iterable<Client> {
             sharedNodesSeeds[i] = random.nextLong();
         }
         logger.info("Setup TestCluster [{}] with seed [{}] using [{}] nodes", clusterName, SeedUtils.formatSeed(clusterSeed), numSharedNodes);
-        Path tmpDataDir = null;
         try {
             tmpDataDir = Files.createTempDirectory(null);
         } catch (IOException e) {
@@ -573,6 +574,7 @@ public class CrateTestCluster implements Iterable<Client> {
                 this.dataDirToClean.clear();
             }
         }
+        FileSystemUtils.deleteRecursively(tmpDataDir.toAbsolutePath().toFile());
     }
 
     /**
