@@ -157,7 +157,7 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertWithFunction() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users values (ABS(-1), 'Trillian')");
+        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users (id, name) values (ABS(-1), 'Trillian')");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
         assertThat(analysis.columns().size(), is(2));
 
@@ -176,21 +176,25 @@ public class InsertAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testInsertWithoutColumns() throws Exception {
-        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users values (1, 'Trillian')");
+        InsertAnalysis analysis = (InsertAnalysis) analyze("insert into users values (1, 1, 'Trillian')");
         assertThat(analysis.table().ident(), is(TEST_DOC_TABLE_IDENT));
-        assertThat(analysis.columns().size(), is(2));
+        assertThat(analysis.columns().size(), is(3));
 
         assertThat(analysis.columns().get(0).info().ident().columnIdent().name(), is("id"));
         assertThat(analysis.columns().get(0).valueType(), is(DataType.LONG));
 
-        assertThat(analysis.columns().get(1).info().ident().columnIdent().name(), is("name"));
-        assertThat(analysis.columns().get(1).valueType(), is(DataType.STRING));
+        assertThat(analysis.columns().get(1).info().ident().columnIdent().name(), is("other_id"));
+        assertThat(analysis.columns().get(1).valueType(), is(DataType.LONG));
+
+        assertThat(analysis.columns().get(2).info().ident().columnIdent().name(), is("name"));
+        assertThat(analysis.columns().get(2).valueType(), is(DataType.STRING));
 
         assertThat(analysis.values().size(), is(1));
         List<Symbol> values = analysis.values().get(0);
-        assertThat(values.size(), is(2));
+        assertThat(values.size(), is(3));
         assertThat(values.get(0), instanceOf(LongLiteral.class));
-        assertThat(values.get(1), instanceOf(StringLiteral.class));
+        assertThat(values.get(1), instanceOf(LongLiteral.class));
+        assertThat(values.get(2), instanceOf(StringLiteral.class));
     }
 
     @Test

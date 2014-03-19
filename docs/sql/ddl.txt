@@ -306,7 +306,7 @@ The column used for routing can be freely defined using the ``CLUSTERED BY (<col
 statement and is used to route a row to a particular shard. Example::
 
     cr> create table my_table6 (
-    ...   first_column int,
+    ...   first_column int primary key,
     ...   second_column string
     ... ) clustered by (first_column)
     CREATE OK (... sec)
