@@ -39,7 +39,7 @@ public class CollectionAverageFunction implements Scalar<Double, Set<Number>> {
 
     public static void register(ScalarFunctionModule mod) {
         for (DataType t : DataType.SET_NUMERIC_TYPES) {
-            mod.registerScalarFunction(
+            mod.register(
                     new CollectionAverageFunction(
                             new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), DataType.DOUBLE))
             );

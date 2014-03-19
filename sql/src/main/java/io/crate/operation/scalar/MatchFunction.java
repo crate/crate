@@ -40,7 +40,7 @@ public class MatchFunction implements FunctionImplementation<Function> {
     public static void register(ScalarFunctionModule module) {
         for (DataType dataType : ImmutableList.of(DataType.NULL, DataType.STRING)) {
             FunctionIdent functionIdent = new FunctionIdent(MatchFunction.NAME, ImmutableList.of(dataType, DataType.STRING));
-            module.registerScalarFunction(new MatchFunction(new FunctionInfo(functionIdent, DataType.BOOLEAN)));
+            module.register(new MatchFunction(new FunctionInfo(functionIdent, DataType.BOOLEAN)));
         }
     }
 

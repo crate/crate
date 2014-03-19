@@ -21,6 +21,7 @@
 
 package io.crate.operation.scalar;
 
+import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -29,19 +30,26 @@ import org.elasticsearch.common.inject.multibindings.MapBinder;
 public class ScalarFunctionModule extends AbstractModule {
 
     private MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
+    private MapBinder<String, DynamicFunctionResolver> resolverBinder;
 
-    public void registerScalarFunction(FunctionImplementation impl) {
+    public void register(FunctionImplementation impl) {
         functionBinder.addBinding(impl.info().ident()).toInstance(impl);
+    }
+
+    public void register(String name, DynamicFunctionResolver dynamicFunctionResolver) {
+        resolverBinder.addBinding(name).toInstance(dynamicFunctionResolver);
     }
 
     @Override
     protected void configure() {
         functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
+        resolverBinder = MapBinder.newMapBinder(binder(), String.class, DynamicFunctionResolver.class);
 
         CollectionCountFunction.register(this);
         CollectionAverageFunction.register(this);
         MatchFunction.register(this);
         DateTruncFunction.register(this);
         DateTruncTimeZoneAwareFunction.register(this);
+        FormatFunction.register(this);
     }
 }

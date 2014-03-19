@@ -1,5 +1,6 @@
 package io.crate.operation.operator;
 
+import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -16,6 +17,11 @@ public class OperatorModule extends AbstractModule {
     @Override
     protected void configure() {
         functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
+
+        // currently there are no dynamic operator functions, but the binder need to exist
+        // so that guice can create the Functions class
+        MapBinder.newMapBinder(binder(), String.class, DynamicFunctionResolver.class);
+
         AndOperator.register(this);
         OrOperator.register(this);
         EqOperator.register(this);

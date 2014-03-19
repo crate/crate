@@ -34,7 +34,7 @@ public class DateTruncFunction extends BaseDateTruncFunction {
     public static void register(ScalarFunctionModule module) {
         FunctionIdent timestampFunctionIdent = new FunctionIdent(NAME,
                 ImmutableList.of(DataType.STRING, DataType.TIMESTAMP));
-        module.registerScalarFunction(new DateTruncFunction(
+        module.register(new DateTruncFunction(
                 new FunctionInfo(timestampFunctionIdent, DataType.TIMESTAMP)));
     }
 

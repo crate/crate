@@ -28,13 +28,25 @@ import java.util.Map;
 public class Functions {
 
     private final Map<FunctionIdent, FunctionImplementation> functionImplementations;
+    private final Map<String, DynamicFunctionResolver> functionResolvers;
 
     @Inject
-    public Functions(Map<FunctionIdent, FunctionImplementation> functionImplementations) {
+    public Functions(Map<FunctionIdent, FunctionImplementation> functionImplementations,
+                     Map<String, DynamicFunctionResolver> functionResolvers) {
         this.functionImplementations = functionImplementations;
+        this.functionResolvers = functionResolvers;
     }
 
-    public FunctionImplementation get(FunctionIdent ident) {
-        return functionImplementations.get(ident);
+    public FunctionImplementation get(FunctionIdent ident) throws IllegalArgumentException {
+        FunctionImplementation implementation = functionImplementations.get(ident);
+        if (implementation != null) {
+            return implementation;
+        }
+
+        DynamicFunctionResolver dynamicResolver = functionResolvers.get(ident.name());
+        if (dynamicResolver != null) {
+            return dynamicResolver.getForTypes(ident.argumentTypes());
+        }
+        return null;
     }
 }
