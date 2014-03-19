@@ -29,23 +29,23 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.common.util.concurrent.BaseFuture;
 
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ImportBulkListener extends BaseFuture<ImportBulkListener> implements BulkProcessor.Listener {
 
+
     private AtomicLong bulksInProgress = new AtomicLong();
     private ImportCounts counts = new ImportCounts();
+    private AtomicBoolean allAdded = new AtomicBoolean(false);
 
     public ImportBulkListener(String fileName) {
         counts.fileName = fileName;
     }
 
     @Override
-    public ImportBulkListener get() throws InterruptedException,
-            ExecutionException {
-        if (bulksInProgress.get() == 0) {
-            return this;
-        }
+    public ImportBulkListener get() throws InterruptedException, ExecutionException {
+        allAdded.set(true);
         return super.get();
     }
 
@@ -64,7 +64,6 @@ public class ImportBulkListener extends BaseFuture<ImportBulkListener> implement
 
     @Override
     public void afterBulk(long executionId, BulkRequest request, BulkResponse response) {
-        bulksInProgress.decrementAndGet();
         if (response.hasFailures()) {
             int failures = 0;
             int success = 0;
@@ -85,15 +84,16 @@ public class ImportBulkListener extends BaseFuture<ImportBulkListener> implement
 
     @Override
     public void afterBulk(long executionId, BulkRequest request, Throwable failure) {
-        bulksInProgress.decrementAndGet();
         counts.failures.addAndGet(request.requests().size());
         failure.printStackTrace();
         checkRelease();
     }
 
     private void checkRelease() {
-        if (bulksInProgress.get() == 0) {
-            this.set(this);
+        if (bulksInProgress.decrementAndGet() == 0) {
+            if (allAdded.get()) {
+                this.set(this);
+            }
         }
     }
 
