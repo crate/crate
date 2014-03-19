@@ -66,6 +66,7 @@ public class BaseAnalyzerTest {
     static final TableIdent TEST_DOC_TABLE_IDENT = new TableIdent(null, "users");
     static final TableInfo userTableInfo = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT, RowGranularity.DOC, shardRouting)
             .add("id", DataType.LONG, null)
+            .add("other_id", DataType.LONG, null)
             .add("name", DataType.STRING, null)
             .add("details", DataType.OBJECT, null)
             .add("awesome", DataType.BOOLEAN, null)

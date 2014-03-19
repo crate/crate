@@ -150,12 +150,12 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Test( expected = ValidationException.class)
     public void testUpdateAssignmentWrongType() throws Exception {
-        analyze("update users set id='String'");
+        analyze("update users set other_id='String'");
     }
 
     @Test
     public void testUpdateAssignmentConvertableType() throws Exception {
-        UpdateAnalysis analysis = (UpdateAnalysis) analyze("update users set id=9.9");
+        UpdateAnalysis analysis = (UpdateAnalysis) analyze("update users set other_id=9.9");
         Reference ref = analysis.assignments().keySet().iterator().next();
         assertThat(ref, not(instanceOf(DynamicReference.class)));
         assertThat(ref.info().type(), is(DataType.LONG));
@@ -168,26 +168,26 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testUpdateMuchAssignments() throws Exception {
         UpdateAnalysis analysis = (UpdateAnalysis) analyze(
-                "update users set id=9.9, name='Trillian', details=?, stuff=true, foo='bar'",
+                "update users set other_id=9.9, name='Trillian', details=?, stuff=true, foo='bar'",
                 new Object[]{new HashMap<String, Object>()});
         assertThat(analysis.assignments().size(), is(5));
     }
 
     @Test
     public void testNoWhereClause() throws Exception {
-        UpdateAnalysis analysis = (UpdateAnalysis) analyze("update users set id=9");
+        UpdateAnalysis analysis = (UpdateAnalysis) analyze("update users set other_id=9");
         assertThat(analysis.whereClause(), is(WhereClause.MATCH_ALL));
     }
 
     @Test
     public void testNoMatchWhereClause() throws Exception {
-        UpdateAnalysis analysis = (UpdateAnalysis) analyze("update users set id=9 where true=false");
+        UpdateAnalysis analysis = (UpdateAnalysis) analyze("update users set other_id=9 where true=false");
         assertThat(analysis.whereClause().noMatch(), is(true));
     }
 
     @Test
     public void testUpdateWhereClause() throws Exception {
-        UpdateAnalysis analysis = (UpdateAnalysis) analyze("update users set id=9 where name='Trillian'");
+        UpdateAnalysis analysis = (UpdateAnalysis) analyze("update users set other_id=9 where name='Trillian'");
         assertThat(analysis.whereClause().hasQuery(), is(true));
         assertThat(analysis.whereClause().noMatch(), is(false));
     }
@@ -216,7 +216,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                 new HashMap<String, Object>() {{ put("name", "Slartibartfast"); }},
                 new HashMap<String, Object>() {{ put("name", "Marvin"); }}
         };
-        UpdateAnalysis analysis = (UpdateAnalysis)analyze("update users set name=?, id=?, friends=? where id=?",
+        UpdateAnalysis analysis = (UpdateAnalysis)analyze("update users set name=?, other_id=?, friends=? where id=?",
                 new Object[]{"Jeltz", 0, friends, "9"});
         assertThat(analysis.assignments().size(), is(3));
         assertThat(
@@ -228,7 +228,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
                 is(new ArrayLiteral(DataType.OBJECT, friends))
         );
         assertThat(
-                (LongLiteral) analysis.assignments().get(new Reference(userTableInfo.getColumnInfo(new ColumnIdent("id")))),
+                (LongLiteral) analysis.assignments().get(new Reference(userTableInfo.getColumnInfo(new ColumnIdent("other_id")))),
                 is(new LongLiteral(0))
         );
         assertThat(analysis.whereClause().query().arguments().get(1).symbolType(), is(SymbolType.LONG_LITERAL));
@@ -236,7 +236,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Test( expected = IllegalArgumentException.class )
     public void testUpdateWithWrongParameters() throws Exception {
-        analyze("update users set name=?, friends=? where id=?",
+        analyze("update users set name=?, friends=? where other_id=?",
                 new Object[]{
                         new HashMap<String, Object>(),
                         new Map[0],
@@ -245,7 +245,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testUpdateWithEmptyObjectArray() throws Exception {
-        UpdateAnalysis analysis = (UpdateAnalysis) analyze("update users set friends=? where id=0",
+        UpdateAnalysis analysis = (UpdateAnalysis) analyze("update users set friends=? where other_id=0",
                 new Object[]{ new Map[0], 0 });
         ArrayLiteral friendsLiteral = (ArrayLiteral)analysis.assignments().get(new Reference(userTableInfo.getColumnInfo(new ColumnIdent("friends"))));
         assertThat(friendsLiteral.itemType(), is(DataType.OBJECT));
