@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.junit.Test;
@@ -33,7 +32,6 @@ import static org.hamcrest.Matchers.lessThan;
 public class NodeStatsTest extends SQLTransportIntegrationTest {
 
     @Test
-    @Repeat(iterations = 100)
     public void testSysNodesMem() throws Exception {
         SQLResponse response = execute("select mem['free'], mem['used'], mem['free_percent'], mem['used_percent'] from sys.nodes limit 1");
         long free = (long)response.rows()[0][0];

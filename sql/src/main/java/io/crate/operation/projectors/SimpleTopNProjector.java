@@ -201,6 +201,11 @@ public class SimpleTopNProjector implements Projector {
     }
 
     @Override
+    public Projector getDownstream() {
+        return downStream.orNull();
+    }
+
+    @Override
     public void startProjection() {
         if (downStream.isPresent()) {
             wrappedProjector = new PassThroughTopNRowCollector(inputs, collectExpressions, downStream.get(), offset, limit);

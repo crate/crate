@@ -21,22 +21,21 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.DataType;
 import io.crate.metadata.*;
+import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.aggregation.impl.CountAggregation;
-import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.GroupProjection;
-import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.symbol.Aggregation;
 import io.crate.planner.symbol.InputColumn;
 import io.crate.planner.symbol.StringLiteral;
 import io.crate.planner.symbol.Symbol;
 import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Before;
@@ -44,7 +43,6 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -75,9 +73,8 @@ public class ProjectionToProjectorVisitorTest {
     public void testSimpleTopNProjection() {
         TopNProjection projection = new TopNProjection(10, 2);
         projection.outputs(Arrays.<Symbol>asList(new StringLiteral("foo"), new InputColumn(0)));
-        List<Projector> projectors = visitor.process(Arrays.<Projection>asList(projection));
-        assertThat(projectors.size(), is(1));
-        Projector projector = projectors.get(0);
+
+        Projector projector = visitor.process(projection);
         assertThat(projector, instanceOf(SimpleTopNProjector.class));
 
         projector.startProjection();
@@ -99,11 +96,8 @@ public class ProjectionToProjectorVisitorTest {
     public void testSortingTopNProjection() {
         TopNProjection projection = new TopNProjection(10, 0,
                 Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)), new boolean[]{false, false});
-
         projection.outputs(Arrays.<Symbol>asList(new StringLiteral("foo"), new InputColumn(0), new InputColumn(1)));
-        List<Projector> projectors = visitor.process(Arrays.<Projection>asList(projection));
-        assertThat(projectors.size(), is(1));
-        Projector projector = projectors.get(0);
+        Projector projector = visitor.process(projection);
         assertThat(projector, instanceOf(SortingTopNProjector.class));
 
         projector.startProjection();
@@ -142,7 +136,7 @@ public class ProjectionToProjectorVisitorTest {
                 new Aggregation(avgInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER, Aggregation.Step.FINAL),
                 new Aggregation(countInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL)
         ));
-        Projector projector = visitor.process(projection, new ProjectionToProjectorVisitor.Context());
+        Projector projector = visitor.process(projection);
         assertThat(projector, instanceOf(AggregationProjector.class));
 
         projector.startProjection();
@@ -166,7 +160,7 @@ public class ProjectionToProjectorVisitorTest {
                 new Aggregation(countInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER, Aggregation.Step.FINAL)
         ));
 
-        Projector projector = visitor.process(projection, new ProjectionToProjectorVisitor.Context());
+        Projector projector = visitor.process(projection);
         assertThat(projector, instanceOf(GroupingProjector.class));
 
         projector.startProjection();

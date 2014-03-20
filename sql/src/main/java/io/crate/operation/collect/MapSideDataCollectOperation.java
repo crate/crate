@@ -23,19 +23,18 @@ package io.crate.operation.collect;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceResolver;
-import io.crate.operation.Input;
-import io.crate.operation.ImplementationSymbolVisitor;
-import io.crate.operation.projectors.NoopProjector;
-import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.projectors.Projector;
-import io.crate.planner.RowGranularity;
-import io.crate.planner.node.dql.CollectNode;
 import io.crate.Constants;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.exceptions.CrateException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReferenceResolver;
+import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.Input;
+import io.crate.operation.projectors.FlatProjectorChain;
+import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.planner.RowGranularity;
+import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
@@ -55,17 +54,19 @@ import java.util.*;
 public class MapSideDataCollectOperation implements CollectOperation<Object[][]> {
 
     private ESLogger logger = Loggers.getLogger(getClass());
+    private final ProjectionToProjectorVisitor projectorVisitor;
+
 
     private static class SimpleShardCollectFuture extends ShardCollectFuture {
 
-        public SimpleShardCollectFuture(int numShards, List<Projector> projectorChain) {
+        public SimpleShardCollectFuture(int numShards, ShardProjectorChain projectorChain) {
             super(numShards, projectorChain);
         }
 
         @Override
         protected void onAllShardsFinished() {
-            projectorChain.get(0).finishProjection();
-            super.set(projectorChain.get(projectorChain.size() - 1).getRows());
+            projectorChain.finishProjections();
+            super.set(projectorChain.result());
         }
     }
 
@@ -75,6 +76,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
     protected final EvaluatingNormalizer nodeNormalizer;
     private final ThreadPool threadPool;
     protected final ClusterService clusterService;
+    private final ImplementationSymbolVisitor nodeImplementationSymbolVisitor;
 
     @Inject
     public MapSideDataCollectOperation(ClusterService clusterService,
@@ -88,6 +90,12 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         this.indicesService = indicesService;
         this.nodeNormalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
         this.threadPool = threadPool;
+        this.nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(
+                this.referenceResolver,
+                this.functions,
+                RowGranularity.NODE
+        );
+        this.projectorVisitor = new ProjectionToProjectorVisitor(nodeImplementationSymbolVisitor);
     }
 
 
@@ -133,22 +141,19 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         }
         assert collectNode.toCollect().size() > 0;
         // resolve Implementations
-        ImplementationSymbolVisitor.Context ctx = new ImplementationSymbolVisitor(
-                this.referenceResolver,
-                this.functions,
-                collectNode.maxRowGranularity() // could be CLUSTER or NODE
-        ).process(collectNode);
+        ImplementationSymbolVisitor.Context ctx = nodeImplementationSymbolVisitor.process(collectNode);
         List<Input<?>> inputs = ctx.topLevelInputs();
         Set<CollectExpression<?>> collectExpressions = ctx.collectExpressions();
 
         assert ctx.maxGranularity().ordinal() <= RowGranularity.NODE.ordinal() : "wrong RowGranularity";
 
-        List<Projector> projectors = extractProjectors(collectNode);
+        FlatProjectorChain projectorChain = new FlatProjectorChain(collectNode.projections(), projectorVisitor);
 
-        new SimpleOneRowCollector(inputs, collectExpressions, projectors.get(0)).doCollect();
-        projectors.get(0).finishProjection();
+        projectorChain.startProjections();
+        new SimpleOneRowCollector(inputs, collectExpressions, projectorChain.firstProjector()).doCollect();
+        projectorChain.finishProjections();
 
-        Object[][] collected = projectors.get(projectors.size() - 1).getRows();
+        Object[][] collected = projectorChain.result();
         if (logger.isTraceEnabled()) {
             logger.trace("collected {} on {}-level from node {}",
                     Objects.toString(Arrays.asList(collected[0])),
@@ -173,10 +178,11 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         String localNodeId = clusterService.localNode().id();
         final int numShards = collectNode.routing().numShards(localNodeId);
 
-        List<Projector> projectors = extractProjectors(collectNode);
-        final ShardCollectFuture result = getShardCollectFuture(numShards, projectors, collectNode);
-
         collectNode = collectNode.normalize(nodeNormalizer);
+        ShardProjectorChain projectorChain = new ShardProjectorChain(numShards, collectNode.projections(), projectorVisitor);
+
+        final ShardCollectFuture result = getShardCollectFuture(numShards, projectorChain, collectNode);
+
         if (collectNode.whereClause().noMatch()) {
             result.onAllShardsFinished();
             return result;
@@ -198,7 +204,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                 try {
                     shardInjector = indexService.shardInjectorSafe(shardId);
                     ShardCollectService shardCollectService = shardInjector.getInstance(ShardCollectService.class);
-                    CrateCollector crateCollector = shardCollectService.getCollector(collectNode, projectors.get(0));
+                    CrateCollector crateCollector = shardCollectService.getCollector(collectNode, projectorChain);
                     shardCollectors.add(crateCollector);
                 } catch (IndexShardMissingException e) {
                     throw new CrateException(
@@ -212,7 +218,7 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         }
 
         // start the projection
-        projectors.get(0).startProjection(); // finishProjection called in ShardCollectFuture
+        projectorChain.startProjections();
 
         // start shardCollectors
         for (final CrateCollector shardCollector : shardCollectors) {
@@ -239,32 +245,15 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         return result;
     }
 
-    protected List<Projector> extractProjectors(CollectNode collectNode) {
-        ImplementationSymbolVisitor visitor = new ImplementationSymbolVisitor(
-                this.referenceResolver,
-                this.functions,
-                RowGranularity.NODE
-        );
-        ProjectionToProjectorVisitor projectorVisitor = new ProjectionToProjectorVisitor(visitor);
-        List<Projector> projectors = new ArrayList<>(collectNode.projections().size());
-        if (collectNode.projections().size() == 0) {
-            projectors.add(new NoopProjector());
-        } else {
-            projectors = projectorVisitor.process(collectNode.projections());
-        }
-        assert projectors.size() >= 1 : "no projectors";
-        return projectors;
-    }
-
     /**
      * chose the right ShardCollectFuture for this class
      *
      * @param numShards   number of shards until the result is considered complete
-     * @param projectors  the projectors to process the collected rows
+     * @param projectorChain  the projector chain to process the collected rows
      * @param collectNode in case any other properties need to be extracted
      * @return a fancy ShardCollectFuture implementation
      */
-    protected ShardCollectFuture getShardCollectFuture(int numShards, List<Projector> projectors, CollectNode collectNode) {
-        return new SimpleShardCollectFuture(numShards, projectors);
+    protected ShardCollectFuture getShardCollectFuture(int numShards, ShardProjectorChain projectorChain, CollectNode collectNode) {
+        return new SimpleShardCollectFuture(numShards, projectorChain);
     }
 }

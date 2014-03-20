@@ -23,11 +23,11 @@ package io.crate.operation.merge;
 
 import io.crate.operation.DownstreamOperation;
 import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
 import io.crate.planner.node.dql.MergeNode;
 
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -35,25 +35,25 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class MergeOperation implements DownstreamOperation {
 
-    private final List<Projector> projectors;
-    private final Projector firstProjector;
     private final int numUpstreams;
+    private final FlatProjectorChain projectorChain;
+    private final Projector downstream;
 
     private AtomicBoolean wantMore = new AtomicBoolean(true);
 
     public MergeOperation(ImplementationSymbolVisitor symbolVisitor, MergeNode mergeNode) {
-        ProjectionToProjectorVisitor projectorVisitor = new ProjectionToProjectorVisitor(symbolVisitor);
-        this.projectors = projectorVisitor.process(mergeNode.projections());
-        assert this.projectors.size() > 0;
-        this.firstProjector = this.projectors.get(0);
-        this.firstProjector.startProjection();
+        assert mergeNode.projections().size()>0;
+        projectorChain = new FlatProjectorChain(mergeNode.projections(),
+                new ProjectionToProjectorVisitor(symbolVisitor));
+        projectorChain.startProjections();
+        downstream = projectorChain.firstProjector();
         this.numUpstreams = mergeNode.numUpstreams();
     }
 
-    public boolean addRows(Object[][] rows) throws Exception{
-        for (int i=0, length=rows.length; i< length && wantMore.get(); i++) {
+    public boolean addRows(Object[][] rows) throws Exception {
+        for (int i = 0, length = rows.length; i < length && wantMore.get(); i++) {
             // assume that all projectors .setNextRow(...) methods are threadsafe
-            if(!firstProjector.setNextRow(rows[i])) {
+            if (!downstream.setNextRow(rows[i])) {
                 wantMore.set(false);
             }
         }
@@ -65,8 +65,8 @@ public class MergeOperation implements DownstreamOperation {
         return numUpstreams;
     }
 
-    public Object[][] result() throws Exception  {
-        firstProjector.finishProjection();
-        return projectors.get(projectors.size()-1).getRows();
+    public Object[][] result() throws Exception {
+        projectorChain.finishProjections();
+        return projectorChain.result();
     }
 }

@@ -23,24 +23,26 @@ package io.crate.operation.collect;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.Constants;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.exceptions.CrateException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.operation.Input;
 import io.crate.operation.ImplementationSymbolVisitor;
-import io.crate.operation.projectors.NoopProjector;
+import io.crate.operation.Input;
+import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.projectors.Projector;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
 import org.apache.lucene.search.CollectionTerminatedException;
-import io.crate.Constants;
-import io.crate.exceptions.CrateException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 public class HandlerSideDataCollectOperation implements CollectOperation<Object[][]> {
 
@@ -94,17 +96,6 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         return result;
     }
 
-    protected List<Projector> extractProjectors(CollectNode collectNode) {
-        List<Projector> projectors = new ArrayList<>(collectNode.projections().size());
-        if (collectNode.projections().size() == 0) {
-            projectors.add(new NoopProjector());
-        } else {
-            projectors = projectorVisitor.process(collectNode.projections());
-        }
-        assert projectors.size() >= 1 : "no projectors";
-        return projectors;
-    }
-
     private Object[][] handleCluster(CollectNode collectNode) {
         collectNode = collectNode.normalize(clusterNormalizer);
         if (collectNode.whereClause().noMatch()) {
@@ -117,12 +108,13 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
         List<Input<?>> inputs = ctx.topLevelInputs();
         Set<CollectExpression<?>> collectExpressions = ctx.collectExpressions();
 
-        List<Projector> projectors = extractProjectors(collectNode);
+        FlatProjectorChain projectorChain = new FlatProjectorChain(collectNode.projections(), projectorVisitor);
 
-        new SimpleOneRowCollector(inputs, collectExpressions, projectors.get(0)).doCollect();
-        projectors.get(0).finishProjection();
+        projectorChain.startProjections();
+        new SimpleOneRowCollector(inputs, collectExpressions, projectorChain.firstProjector()).doCollect();
+        projectorChain.finishProjections();
 
-        Object[][] collected = projectors.get(projectors.size() - 1).getRows();
+        Object[][] collected = projectorChain.result();
         if (logger.isTraceEnabled()) {
             logger.trace("collected {} on {}-level",
                     Objects.toString(Arrays.asList(collected[0])),
@@ -133,16 +125,17 @@ public class HandlerSideDataCollectOperation implements CollectOperation<Object[
     }
 
     private Object[][] handleWithService(CollectService collectService, CollectNode node) throws Exception {
-        List<Projector> projectors = extractProjectors(node);
-        projectors.get(0).startProjection();
-        CrateCollector collector = collectService.getCollector(node, projectors.get(0));
+
+        FlatProjectorChain projectorChain = new FlatProjectorChain(node.projections(), projectorVisitor);
+        projectorChain.startProjections();
+        CrateCollector collector = collectService.getCollector(node, projectorChain.firstProjector());
         try {
             collector.doCollect();
         } catch (CollectionTerminatedException ex) {
             // ignore
         }
-        projectors.get(0).finishProjection();
-        Object[][] collected = projectors.get(projectors.size() - 1).getRows();
+        projectorChain.finishProjections();
+        Object[][] collected = projectorChain.result();
         return collected;
     }
 }

@@ -23,16 +23,15 @@ package io.crate.operation.collect;
 
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.Constants;
+import io.crate.Streamer;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.executor.transport.distributed.DistributedResultResponse;
 import io.crate.executor.transport.merge.TransportMergeNodeAction;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
-import io.crate.operation.projectors.Projector;
-import io.crate.planner.node.dql.CollectNode;
 import io.crate.planner.node.PlanNodeStreamerVisitor;
-import io.crate.Constants;
-import io.crate.Streamer;
+import io.crate.planner.node.dql.CollectNode;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
@@ -67,7 +66,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
 
         public DistributingShardCollectFuture(UUID jobId,
                                               int numShards,
-                                              List<Projector> projectorChain,
+                                              ShardProjectorChain projectorChain,
                                               List<DiscoveryNode> downStreams,
                                               TransportService transportService,
                                               Streamer<?>[] streamers) {
@@ -95,10 +94,10 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
             }
             super.set(Constants.EMPTY_RESULT);
 
-            projectorChain.get(0).finishProjection();
+            projectorChain.finishProjections();
             BucketingIterator bucketingIterator = new ModuloBucketingIterator(
                     this.numDownStreams,
-                    projectorChain.get(projectorChain.size()-1)
+                    projectorChain.lastProjector()
             );
 
             // send requests
@@ -193,7 +192,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
     }
 
     @Override
-    protected ShardCollectFuture getShardCollectFuture(int numShards, List<Projector> projectors, CollectNode collectNode) {
+    protected ShardCollectFuture getShardCollectFuture(int numShards, ShardProjectorChain projectorChain, CollectNode collectNode) {
         List<DiscoveryNode> downStreams = new ArrayList<>(collectNode.downStreamNodes().size());
         for (String nodeId : collectNode.downStreamNodes()) {
             DiscoveryNode node = clusterService.state().nodes().get(nodeId);
@@ -204,7 +203,7 @@ public class DistributingCollectOperation extends MapSideDataCollectOperation {
         return new DistributingShardCollectFuture(
                 collectNode.jobId().get(),
                 numShards,
-                projectors,
+                projectorChain,
                 downStreams,
                 transportService,
                 streamers

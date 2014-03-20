@@ -65,6 +65,11 @@ public class GroupingProjector implements Projector {
     }
 
     @Override
+    public Projector getDownstream() {
+        return downStream;
+    }
+
+    @Override
     public void startProjection() {
         for (CollectExpression collectExpression : collectExpressions) {
             collectExpression.startCollect();
@@ -181,10 +186,6 @@ public class GroupingProjector implements Projector {
         public Object[][] finish() {
             Object[][] rows = new Object[result.size()][1 + aggregationCollectors.length];
             boolean sendToDownStream = downStream != null;
-            if (sendToDownStream) {
-                downStream.startProjection();
-            }
-
             int r = 0;
             for (Map.Entry<Object, AggregationState[]> entry : result.entrySet()) {
                 Object[] row = rows[r];
@@ -194,11 +195,6 @@ public class GroupingProjector implements Projector {
                 }
                 r++;
             }
-
-            if (downStream != null) {
-                downStream.finishProjection();
-            }
-
             return rows;
         }
 
@@ -260,10 +256,6 @@ public class GroupingProjector implements Projector {
         public Object[][] finish() {
             Object[][] rows = new Object[result.size()][keyInputs.size() + aggregationCollectors.length];
             boolean sendToDownStream = downStream != null;
-            if (sendToDownStream) {
-                downStream.startProjection();
-            }
-
             int r = 0;
             for (Map.Entry<List<Object>, AggregationState[]> entry : result.entrySet()) {
                 Object[] row = rows[r];
@@ -273,11 +265,6 @@ public class GroupingProjector implements Projector {
                 }
                 r++;
             }
-
-            if (downStream != null) {
-                downStream.finishProjection();
-            }
-
             return rows;
         }
 

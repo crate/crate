@@ -273,7 +273,7 @@ public class SimpleTopNProjectorTest {
     public void testProjectLimitOnlyUpStream() {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
-        NoopProjector noop = new NoopProjector();
+        CollectingProjector noop = new CollectingProjector();
         projector.setDownStream(noop);
         projector.startProjection();
         int i;
@@ -300,7 +300,7 @@ public class SimpleTopNProjectorTest {
     public void testProjectLimitLessThanLimitUpStream() {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
-        NoopProjector noop = new NoopProjector();
+        CollectingProjector noop = new CollectingProjector();
         projector.setDownStream(noop);
         projector.startProjection();
         int i;
@@ -327,7 +327,7 @@ public class SimpleTopNProjectorTest {
     public void testProjectLimitOnly0UpStream() {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input}, 10, TopN.NO_OFFSET);
-        NoopProjector noop = new NoopProjector();
+        CollectingProjector noop = new CollectingProjector();
         projector.setDownStream(noop);
         projector.startProjection();
         projector.finishProjection();
@@ -347,7 +347,7 @@ public class SimpleTopNProjectorTest {
     public void testProjectOffsetBigger0UpStream() {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input}, 100, 10);
-        NoopProjector noop = new NoopProjector();
+        CollectingProjector noop = new CollectingProjector();
         projector.setDownStream(noop);
         projector.startProjection();
         int i;
@@ -373,7 +373,7 @@ public class SimpleTopNProjectorTest {
         SimpleTopNProjector projector = new SimpleTopNProjector(new Input<?>[]{input},
                 new CollectExpression[]{(CollectExpression)input},
                 TopN.NO_LIMIT, TopN.NO_OFFSET);
-        NoopProjector noop = new NoopProjector();
+        CollectingProjector noop = new CollectingProjector();
         projector.setDownStream(noop);
         projector.startProjection();
         int i = 0;

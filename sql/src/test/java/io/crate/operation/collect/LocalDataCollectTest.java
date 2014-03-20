@@ -79,6 +79,11 @@ import static org.mockito.Mockito.when;
 
 public class LocalDataCollectTest {
 
+    static {
+        ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
+    }
+
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
