@@ -5,8 +5,10 @@ DEVELOPMENT
 Prerequisites
 =============
 
-Crate Data is developed in Java_, so a working Java_ installation is required.
-The minimum supported JVM version is **1.7**.
+Crate Data is developed in Java_ 7, so a working Java 7 virtual machine
+installation is required. We recommend using `Oracle's Java`_ on OSX
+and OpenJDK_ on Linux Systems.
+
 
 Submodules
 ==========
@@ -200,4 +202,8 @@ task is run as a dependency of the ``dist`` task.
 
 .. _Gradle: http://www.gradle.org/
 
-.. _Java: http://www.oracle.com/technetwork/java/javase/downloads/index.html
+.. _Java: http://www.java.com/
+
+.. _`Oracle's Java`: http://www.java.com/en/download/help/mac_install.xml
+
+.. _OpenJDK: http://openjdk.java.net/projects/jdk7/
