@@ -43,9 +43,24 @@ the default routing value used for sharding. Example::
 Currently primary key's cannot be auto generated and have to be specified if
 data is inserted, otherwise an error is returned.
 
-.. note::
+Defining multiple columns with a primary key constraint is also supported::
 
-  Multiple primary keys are not supported yet.
+    cr> create table my_table1pk (
+    ...   first_column integer primary key,
+    ...   second_column string primary key,
+    ...   third_column string
+    ... )
+    CREATE OK (... sec)
+
+Or using a alternate syntax::
+
+    cr> create table my_table1pk1 (
+    ...   first_column integer,
+    ...   second_column string,
+    ...   third_column string,
+    ...   primary key (first_column, second_column)
+    ... )
+    CREATE OK (... sec)
 
 Data Types
 ==========

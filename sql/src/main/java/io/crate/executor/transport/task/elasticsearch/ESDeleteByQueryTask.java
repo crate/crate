@@ -59,6 +59,7 @@ public class ESDeleteByQueryTask implements Task<Object[][]> {
         try {
             request.source(queryBuilder.convert(deleteByQueryNode), false);
             request.indices(deleteByQueryNode.indices().toArray(new String[deleteByQueryNode.indices().size()]));
+            request.routing(deleteByQueryNode.whereClause().clusteredBy().orNull());
 
             transportDeleteByQueryAction.execute(request, new ActionListener<DeleteByQueryResponse>() {
                 @Override

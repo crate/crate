@@ -173,9 +173,6 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
     }
 
     public void addPrimaryKey(String columnName) {
-        if (primaryKeys.size() > 0) {
-            throw new UnsupportedOperationException("Multiple primary keys are currently not supported");
-        }
         primaryKeys.add(columnName);
     }
 

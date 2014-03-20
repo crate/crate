@@ -82,6 +82,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
             if (analysis.rowGranularity().ordinal() >= RowGranularity.DOC.ordinal()
                     && analysis.table().getRouting(whereClause).hasLocations()) {
                     if (analysis.ids().size() > 0
+                            && analysis.routingValues().size() > 0
                             && !analysis.table().isAlias()) {
                         ESGet(analysis, plan);
                     } else {
@@ -109,7 +110,8 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
                 analysis.table().ident().name(),
                 analysis.assignments(),
                 analysis.whereClause(),
-                analysis.ids()
+                analysis.ids(),
+                analysis.routingValues()
         );
         plan.add(node);
         plan.expectsAffectedRows(true);
@@ -119,7 +121,7 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     @Override
     protected Plan visitDeleteAnalysis(DeleteAnalysis analysis, Void context) {
         Plan plan = new Plan();
-        if (analysis.ids().size() == 1) {
+        if (analysis.ids().size() == 1 && analysis.routingValues().size() == 1) {
             ESDelete(analysis, plan);
         } else {
             ESDeleteByQuery(analysis, plan);
@@ -185,9 +187,12 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
 
     private void ESDelete(DeleteAnalysis analysis, Plan plan) {
         WhereClause whereClause = analysis.whereClause();
-        if (analysis.ids().size() == 1 ) {
+        if (analysis.ids().size() == 1 && analysis.routingValues().size() == 1) {
             plan.add(new ESDeleteNode(
-                    analysis.table().ident().name(), analysis.ids().get(0), whereClause.version()));
+                    analysis.table().ident().name(),
+                    analysis.ids().get(0),
+                    analysis.routingValues().get(0),
+                    whereClause.version()));
             plan.expectsAffectedRows(true);
         } else {
             // TODO: implement bulk delete task / node

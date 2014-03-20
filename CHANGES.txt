@@ -5,6 +5,8 @@ Changes for Crate Data
 unreleased
 ==========
 
+ - support primary key constraint with multiple columns
+
  - support clustered-by key without primary key constraint
 
  - fix: windows compatibilty (sys.nodes.load, crash_standalone)
