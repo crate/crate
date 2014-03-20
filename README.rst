@@ -84,7 +84,7 @@ The Crate Data Testing repository is disabled by default. It contains developmen
 frequently updated. If you want to enable the Testing repo on your server, set ``enabled=1`` in
 ``/etc/yum.repos.d/crate.repo``.
 
-.. _Download: https://cdn.crate.io/downloads/releases/
+.. _Download: https://crate.io/download
 .. _Launchpad: https://launchpad.net/~crate
 
 Where to go from here?
@@ -110,10 +110,10 @@ There are several different ways to manage data in Crate.
 
 - `Java client`_
 
-.. _Python client: https://docs.crate.io/current/clients.html#crate-data-python-client
+.. _Python client: https://crate.io/docs/clients/python/
 .. _GitHub: https://github.com/crate/crate-python/
 .. _pypi: https://pypi.python.org/pypi/crate/
-.. _Java client: https://docs.crate.io/current/clients.html#crate-data-java-client
+.. _Java client: https://crate.io/docs/clients/java/
 
 Are you a Developer?
 ====================
