@@ -357,7 +357,7 @@
 # by default the elasticsearch HTTP REST API is disabled
 
 # WARNING: if you index data via elasticsearch and not
-# insert it via SQL you might get inconstistent data when querying
+# insert it via SQL you might get inconsistent data when querying
 
-# enable/disable elastic search HTTP REST API
+# enable/disable elasticsearch HTTP REST API
 # es.api.enabled: false
