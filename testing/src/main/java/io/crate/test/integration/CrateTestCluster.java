@@ -574,7 +574,9 @@ public class CrateTestCluster implements Iterable<Client> {
                 this.dataDirToClean.clear();
             }
         }
-        FileSystemUtils.deleteRecursively(tmpDataDir.toAbsolutePath().toFile());
+        if (tmpDataDir != null) {
+            FileSystemUtils.deleteRecursively(tmpDataDir.toAbsolutePath().toFile());
+        }
     }
 
     /**

@@ -23,7 +23,6 @@ package io.crate;
 
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Base64;
-import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.*;
@@ -132,7 +131,7 @@ public class Id implements Streamable {
      * @throws IOException
      */
     public static Id fromString(String base64encodedString) throws IOException {
-        Preconditions.checkNotNull(base64encodedString);
+        assert base64encodedString != null;
         byte[] inputBytes = Base64.decode(base64encodedString);
         BytesStreamInput in = new BytesStreamInput(inputBytes, true);
         Id id = new Id(false);
