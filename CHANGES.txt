@@ -5,6 +5,9 @@ Changes for Crate Data
 unreleased
 ==========
 
+2014/03/20 0.32.3
+=================
+
  - fix: windows compatibilty (sys.nodes.load, crash_standalone)
 
  - fixed a threading issue that could occur when executing ``COPY`` statements.
