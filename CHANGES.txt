@@ -7,6 +7,9 @@ unreleased
 
  - support clustered-by key without primary key constraint
 
+2014/03/20 0.32.3
+=================
+
  - fix: windows compatibilty (sys.nodes.load, crash_standalone)
 
  - fixed a threading issue that could occur when executing ``COPY`` statements.
