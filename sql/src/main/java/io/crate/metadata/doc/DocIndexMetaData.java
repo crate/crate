@@ -321,7 +321,7 @@ public class DocIndexMetaData {
             }
         }
 
-        if (primaryKey.size() > 0) {
+        if (primaryKey.size() == 1) {
             return primaryKey.get(0);
         }
         return ID;

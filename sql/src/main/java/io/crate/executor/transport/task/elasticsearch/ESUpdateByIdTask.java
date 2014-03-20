@@ -75,7 +75,7 @@ public class ESUpdateByIdTask extends AbstractESUpdateTask {
         request.fields(node.columns());
         request.paths(node.updateDoc());
         request.retryOnConflict(UPDATE_RETRY_ON_CONFLICT);
-        request.routing(node.whereClause().clusteredBy().orNull());
+        request.routing(node.routingValues().get(0));
         return request;
     }
 }

@@ -347,7 +347,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
     public void testESDeleteTask() throws Exception {
         insertCharacters();
 
-        ESDeleteNode node = new ESDeleteNode("characters", "2", Optional.<Long>absent());
+        ESDeleteNode node = new ESDeleteNode("characters", "2", "2", Optional.<Long>absent());
         Plan plan = new Plan();
         plan.add(node);
         Job job = executor.newJob(plan);
@@ -476,11 +476,14 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         insertCharacters();
 
         // update characters set name='Vogon lyric fan' where id=1
+        WhereClause whereClause = WhereClause.MATCH_ALL;
+        whereClause.clusteredByLiteral(new StringLiteral("1"));
         ESUpdateNode updateNode = new ESUpdateNode("characters",
                 new HashMap<Reference, Symbol>(){{
                     put(name_ref, new StringLiteral("Vogon lyric fan"));
                 }},
-                WhereClause.MATCH_ALL,
+                whereClause,
+                asList("1"),
                 asList("1")
         );
         Plan plan = new Plan();
@@ -545,6 +548,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                     put(name_ref, new StringLiteral("mostly harmless"));
                 }},
                 whereClause,
+                asList("1"),
                 asList("1")
         );
         Plan plan = new Plan();
@@ -607,6 +611,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
                     put(name_ref, new StringLiteral("mostly harmless"));
                 }},
                 new WhereClause(whereClause),
+                new ArrayList<String>(0),
                 new ArrayList<String>(0)
         );
         Plan plan = new Plan();

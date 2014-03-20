@@ -73,10 +73,7 @@ PRIMARY KEY Constraint
 ======================
 
 The PRIMARY KEY constraint specifies that a column or columns of a
-table can contain only unique (non-duplicate), nonnull values.
-
-Only one primary key can be specified for a table, whether as a column
-constraint or a table constraint.
+table can contain only unique (non-duplicate), non-null values.
 
 INDEX Constraint
 ================

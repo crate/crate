@@ -37,14 +37,17 @@ public class ESUpdateNode extends DMLPlanNode {
     private final WhereClause whereClause;
     private final Optional<Long> version;
     private final List<String> ids;
+    private final List<String> routingValues;
 
 
     public ESUpdateNode(String index,
                         Map<Reference, Symbol> assignments,
                         WhereClause whereClause,
-                        List<String> ids) {
+                        List<String> ids,
+                        List<String> routingValues) {
         this.index = index;
         this.ids = ids;
+        this.routingValues = routingValues;
         version = whereClause.version();
         updateDoc = new HashMap<>(assignments.size());
         for (Map.Entry<Reference, Symbol> entry: assignments.entrySet()) {
@@ -67,6 +70,10 @@ public class ESUpdateNode extends DMLPlanNode {
 
     public List<String> ids() {
         return ids;
+    }
+
+    public List<String> routingValues() {
+        return routingValues;
     }
 
     public String[] columns() {
