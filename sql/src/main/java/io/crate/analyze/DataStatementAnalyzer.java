@@ -399,7 +399,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                         }
 
                         for (List<String> primaryKeyValues : primaryKeyValuesList) {
-                            context.addId(primaryKeyValues, pkc.clusteredBy());
+                            context.addIdAndRouting(primaryKeyValues, pkc.clusteredBy());
                         }
                     }
                 }

@@ -221,11 +221,6 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
             return;
         }
         crateMeta.put("routing", routingPath);
-
-        Map<String, Object> routing = new HashMap<>(1);
-        routing.put("required", true);
-        mapping.put("_routing", routing);
-
     }
 
     public boolean hasColumnDefinition(String columnName) {

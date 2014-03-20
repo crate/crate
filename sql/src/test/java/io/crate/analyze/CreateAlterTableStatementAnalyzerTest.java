@@ -118,15 +118,11 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(primaryKeys.get(0), is("id"));
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test
     @SuppressWarnings("unchecked")
     public void testCreateTableWithClusteredBy() throws Exception {
         CreateTableAnalysis analysis = (CreateTableAnalysis)analyze(
                 "create table foo (id integer, name string) clustered by(id)");
-
-        Map<String, Object> routingMapping = (Map)analysis.mapping().get("_routing");
-        assertNotNull(routingMapping);
-        assertThat((Boolean)routingMapping.get("required"), is(true));
 
         Map<String, Object> meta = (Map)analysis.mapping().get("_meta");
         assertNotNull(meta);

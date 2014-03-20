@@ -83,6 +83,7 @@ public class DocTest extends DoctestTestCase {
         client(node1).admin().indices().prepareDelete("users").execute().actionGet();
         cluster().stopNode(node1);
         cluster().stopNode(node2);
+        super.after();
     }
 
     @Test

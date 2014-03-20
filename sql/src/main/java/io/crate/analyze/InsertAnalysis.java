@@ -29,7 +29,6 @@ import io.crate.metadata.ReferenceResolver;
 import io.crate.planner.symbol.Reference;
 import io.crate.planner.symbol.Symbol;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -116,8 +115,8 @@ public class InsertAnalysis extends AbstractDataAnalysis {
     }
 
     @Override
-    public void addId(List<String> primaryKeyValues, @Nullable String clusteredByValue) {
-        addId(true, primaryKeyValues, clusteredByValue);
+    public void addIdAndRouting(List<String> primaryKeyValues, String clusteredByValue) {
+        addIdAndRouting(true, primaryKeyValues, clusteredByValue);
     }
 
     @Override

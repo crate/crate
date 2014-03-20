@@ -21,23 +21,20 @@
 
 package io.crate.import_;
 
-import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
+import io.crate.Id;
 import org.elasticsearch.action.index.IndexRequest;
 import org.junit.Test;
 
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.junit.Assert.*;
 
 public class ImporterTest {
 
     @Test
     public void testParseId() throws Exception {
         IndexRequest r = Importer.parseObject("{\"_id\":\"i\"}", "test",
-                "default", null, null);
+                "default", Importer.DEFAULT_PRIMARY_KEYS, null);
         assertEquals("i", r.id());
     }
 
@@ -45,7 +42,7 @@ public class ImporterTest {
     @Test
     public void testParseIdAfterSubObject() throws Exception {
         IndexRequest r = Importer.parseObject("{\"o\":{\"x\":1},\"_id\":\"i\"}", "test",
-                "default", null, null);
+                "default", Importer.DEFAULT_PRIMARY_KEYS, null);
         assertEquals("i", r.id());
     }
 
@@ -76,44 +73,39 @@ public class ImporterTest {
     @Test
     public void testParseRoutingValue() throws Exception {
         IndexRequest r = Importer.parseObject("{\"o\":{\"x\":1},\"mykey\":\"i\"}", "test",
-                "default", null, "mykey");
+                "default", Importer.DEFAULT_PRIMARY_KEYS, "mykey");
         assertEquals("i", r.routing());
     }
 
     @Test
     public void testPreferRoutingOverRoutingValue() throws Exception {
         IndexRequest r = Importer.parseObject("{\"mykey\":\"k\",\"_routing\":\"i\"}", "test",
-                "default", null, "mkey");
+                "default", Importer.DEFAULT_PRIMARY_KEYS, "mkey");
         assertEquals("i", r.routing());
-        r = Importer.parseObject("{\"_routing\":\"i\",\"mykey\":\"k\"}", "test", "default", null, "mykey");
+        r = Importer.parseObject("{\"_routing\":\"i\",\"mykey\":\"k\"}", "test", "default", Importer.DEFAULT_PRIMARY_KEYS, "mykey");
         assertEquals("i", r.routing());
     }
 
     @Test
     public void testGenerateIdWithRouting() throws Exception {
         IndexRequest r = Importer.parseObject("{\"o\":{\"x\":1},\"mykey\":\"i\"}", "test",
-                "default", null, "mykey");
+                "default", Importer.DEFAULT_PRIMARY_KEYS, "mykey");
 
-        // Validate generated _id, must be: <generatedRandom>:i
+        // Validate generated _id, must be: <generatedRandom>
         String _id = r.id();
         assertNotNull(_id);
-        List<String> idParts = Splitter.on(Constants.ID_SEPARATOR).splitToList(_id);
-        assertEquals(2, idParts.size());
-        assertEquals("i", idParts.get(1));
+        assertThat(_id.length(), greaterThan(0));
     }
 
     @Test
     public void testGenerateIdWithRoutingAndPks() throws Exception {
         IndexRequest r = Importer.parseObject("{\"mykey\":\"i\", \"mykey2\":\"b\"}", "test",
-                "default", ImmutableList.of("mykey", "mykey2"), "mykey");
+                "default", ImmutableList.of("mykey", "mykey2"), "mykey2");
 
-        // Validate generated _id, must be: b:i
+        // Validate generated _id, must be a base64 encoded string of: b:i
         String _id = r.id();
         assertNotNull(_id);
-        List<String> idParts = Splitter.on(Constants.ID_SEPARATOR).splitToList(_id);
-        assertEquals(2, idParts.size());
-        assertEquals("b", idParts.get(0));
-        assertEquals("i", idParts.get(1));
+        assertEquals(ImmutableList.of("b", "i"), Id.fromString(_id).values());
     }
 
 }

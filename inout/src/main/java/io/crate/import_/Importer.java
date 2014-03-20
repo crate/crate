@@ -26,7 +26,8 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Collections2;
-import io.crate.Constants;
+import com.google.common.collect.ImmutableList;
+import io.crate.Id;
 import io.crate.action.import_.ImportContext;
 import io.crate.action.import_.NodeImportRequest;
 import org.elasticsearch.ElasticsearchException;
@@ -44,7 +45,6 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
@@ -87,6 +87,8 @@ public class Importer {
     private final ByteSizeValue bulkByteSize = new ByteSizeValue(5, ByteSizeUnit.MB);
     private final TimeValue flushInterval = TimeValue.timeValueSeconds(5);
     private final int concurrentRequests = 4;
+
+    public static final List<String> DEFAULT_PRIMARY_KEYS = ImmutableList.of("_id");
 
     @Inject
     public Importer(Injector injector, ClusterService clusterService) {
@@ -281,10 +283,10 @@ public class Importer {
             parser = XContentFactory.xContent(line.getBytes()).createParser(line.getBytes());
             Token token;
             XContentBuilder sourceBuilder = XContentFactory.contentBuilder(XContentType.JSON);
-            boolean checkPK = (pks != null && !pks.isEmpty());
-            boolean checkRouting = (routing != null);
             List<String> primaryKeyValues = new ArrayList<>();
             String routingValue = null;
+            boolean checkPk = (pks != DEFAULT_PRIMARY_KEYS);
+            boolean autoGenerateId = true;
             long ttl = 0;
             int depth = 0;
             while (true) {
@@ -301,16 +303,16 @@ public class Importer {
                     String fieldName = parser.currentName();
                     token = parser.nextToken();
                     if (fieldName.equals(IdFieldMapper.NAME) && token == Token.VALUE_STRING) {
-                        indexRequest.id(parser.text());
-                        checkPK = false;
-                        checkRouting = false;
+                        primaryKeyValues.clear();
+                        primaryKeyValues.add(parser.text());
+                        checkPk = false;
+                        autoGenerateId = false;
                     } else if (fieldName.equals(IndexFieldMapper.NAME) && token == Token.VALUE_STRING) {
                         indexRequest.index(parser.text());
                     } else if (fieldName.equals(TypeFieldMapper.NAME) && token == Token.VALUE_STRING) {
                         indexRequest.type(parser.text());
                     } else if (fieldName.equals(RoutingFieldMapper.NAME) && token == Token.VALUE_STRING) {
-                        indexRequest.routing(parser.text());
-                        checkRouting = false;
+                        routingValue = parser.text();
                     } else if (fieldName.equals(TimestampFieldMapper.NAME) && token == Token.VALUE_NUMBER) {
                         indexRequest.timestamp(String.valueOf(parser.longValue()));
                     } else if (fieldName.equals(TTLFieldMapper.NAME) && token == Token.VALUE_NUMBER) {
@@ -324,10 +326,10 @@ public class Importer {
                         } else {
                             depth ++;
                         }
-                    } else if(checkPK && pks.contains(fieldName)) {
+                    } else if(checkPk && pks.contains(fieldName)) {
                         primaryKeyValues.add(parser.text());
                     }
-                    if(checkRouting && routing.equals(fieldName)) {
+                    if(routingValue == null && routing != null && routing.equals(fieldName)) {
                         routingValue = parser.text();
                     }
                 } else if (token == null) {
@@ -335,17 +337,13 @@ public class Importer {
                 }
             }
 
-            if (checkRouting) {
-                if (routingValue != null) {
-                    indexRequest.routing(routingValue);
-                }
+            if (routingValue != null) {
+                indexRequest.routing(routingValue);
             }
 
-            if (checkPK || checkRouting) {
-                String id = generateId(index, pks, routing, primaryKeyValues, routingValue);
-                if (id != null) {
-                    indexRequest.id(id);
-                }
+            Id id = new Id(autoGenerateId);
+            if (id.applyValues(pks, primaryKeyValues, routing)) {
+                indexRequest.id(id.toString());
             }
 
             if (ttl > 0) {
@@ -574,24 +572,23 @@ public class Importer {
 
     private List<String> getPrimaryKey(String index) {
         // TODO: use meta data service from sql once this is package gets integrated
-        // This also only supports single column keys
 
         if (index==null){
-            // if a dynamic import is done we do not support primary keys,
+            // if a dynamic import is done we use default primary keys,
             // since this is not from sql in this case
-            return null;
+            return DEFAULT_PRIMARY_KEYS;
         }
         IndexMetaData indexMetaData = clusterService.state().metaData().index(index);
         if (indexMetaData==null){
-            return null;
+            return DEFAULT_PRIMARY_KEYS;
         }
         MappingMetaData mappingMetaData = indexMetaData.mappingOrDefault("default");
         if (mappingMetaData != null) {
-            Object metaProperty = null;
+            Object metaProperty;
             try {
                 metaProperty = mappingMetaData.sourceAsMap().get("_meta");
             } catch (IOException e) {
-                return null;
+                return DEFAULT_PRIMARY_KEYS;
             }
             if (metaProperty != null) {
                     Object srcPks = ((Map)metaProperty).get("primary_keys");
@@ -607,7 +604,7 @@ public class Importer {
             }
 
         }
-        return null;
+        return DEFAULT_PRIMARY_KEYS;
     }
 
     private String getRouting(String index) {
@@ -635,54 +632,5 @@ public class Importer {
 
         }
         return null;
-    }
-
-    private static String generateId(String index,
-                              List<String> primaryKeys,
-                              String clusteredBy,
-                              List<String> primaryKeyValues,
-                              @Nullable String clusteredByValue) {
-        List<String> idParts = new ArrayList<>();
-        boolean clusteredByAdded = false;
-        if (primaryKeys ==null
-                || (primaryKeys.size() == 1 && primaryKeys.get(0).equalsIgnoreCase("_id"))) {
-            idParts.add(Strings.randomBase64UUID());
-        } else {
-            if (primaryKeys.size() != primaryKeyValues.size()) {
-                // Primary key count does not match, cannot compute id
-                throw new UnsupportedOperationException("Missing required primary key values");
-            }
-            for (int i=0; i<primaryKeys.size(); i++)  {
-                String primaryKeyValue = primaryKeyValues.get(i);
-                if (primaryKeyValue == null) {
-                    // Missing primary key value, cannot compute id
-                    throw new UnsupportedOperationException("Primary key value must not be NULL");
-                }
-                if (primaryKeys.get(i).equalsIgnoreCase(clusteredBy)) {
-                    clusteredByValue = primaryKeyValue;
-                    clusteredByAdded = true;
-                }
-                idParts.add(primaryKeyValue);
-            }
-        }
-
-        if (clusteredBy != null && clusteredByValue != null) {
-            int idx = -1;
-            if (clusteredByAdded) {
-                idx = idParts.indexOf(clusteredByValue);
-            }
-            if (idx == -1) {
-                idParts.add(clusteredByValue);
-            } else if (idx != idParts.size()-1) {
-                // clustered-by value must always be last
-                idParts.remove(idx);
-                idParts.add(clusteredByValue);
-            }
-        } else if (clusteredByValue == null && (clusteredBy != null && !clusteredBy.equalsIgnoreCase("_id"))) {
-            // Missing routing value, cannot compute id
-            throw new UnsupportedOperationException("Missing required clustered-by value");
-        }
-
-        return Joiner.on(Constants.ID_SEPARATOR).join(idParts);
     }
 }
