@@ -58,7 +58,7 @@ Of course the same can be done when deleting a row::
 Known Limitations
 -----------------
 
- - On deletes, this can only be done when using a primary key query (the primary key has to be
+ - On deletes, this can only be done when using a primary key query (all primary keys have to be
    included inside the ``WHERE`` clause). For example, the query below is not possible with our
    used testing data because ``name`` is not declared as a primary key and results in an error::
 

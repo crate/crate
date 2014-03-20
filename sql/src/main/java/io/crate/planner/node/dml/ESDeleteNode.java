@@ -28,11 +28,13 @@ public class ESDeleteNode extends DMLPlanNode {
 
     private String index;
     private String id;
+    private String routing;
     private Optional<Long> version;
 
-    public ESDeleteNode(String index, String id, Optional<Long> version) {
+    public ESDeleteNode(String index, String id, String routing, Optional<Long> version) {
         this.index = index;
         this.id = id;
+        this.routing = routing;
         this.version = version;
     }
 
@@ -42,6 +44,10 @@ public class ESDeleteNode extends DMLPlanNode {
 
     public String id() {
         return id;
+    }
+
+    public String routing() {
+        return routing;
     }
 
     @Override

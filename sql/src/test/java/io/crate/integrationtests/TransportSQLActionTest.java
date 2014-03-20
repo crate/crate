@@ -1380,17 +1380,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureGreen();
     }
 
-    @Test (expected = UnsupportedFeatureException.class)
-    public void testMultiplePrimaryKeyColumns() throws Exception {
-        execute("create table test (pk_col1 string primary key, pk_col2 string primary key, " +
-                "message string)");
-        ensureGreen();
-        Object[] args = new Object[] {
-            "Life, loathe it or ignore it, you can't like it."
-        };
-        execute("insert into test (pk_col1, pk_col2, message) values ('1', '2', ?)", args);
-    }
-
     @Test (expected = CrateException.class)
     public void testInsertWithPKMissingOnInsert() throws Exception {
         createTestIndexWithPkMapping();
@@ -2951,5 +2940,127 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         String _id = (String)response.rows()[0][0];
         Integer id = (Integer)response.rows()[0][1];
         assertEquals(id.toString(), _id);
+    }
+
+    @Test
+    public void testInsertSelectWithMultiplePrimaryKey() throws Exception {
+        execute("create table quotes (id integer primary key, author string primary key, " +
+                "quote string) with (number_of_replicas=0)");
+        execute("insert into quotes (id, author, quote) values(?, ?, ?)",
+                new Object[]{1, "Ford", "I'd far rather be happy than right any day."});
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("select \"_id\", id from quotes where id=1 and author='Ford'");
+        assertEquals(1L, response.rowCount());
+        assertThat((String)response.rows()[0][0], is("AgExBEZvcmQ="));
+        assertThat((Integer)response.rows()[0][1], is(1));
+    }
+
+    @Test
+    public void testInsertSelectWithMultiplePrimaryKeyAndClusteredBy() throws Exception {
+        execute("create table quotes (id integer primary key, author string primary key, " +
+                "quote string) clustered by(author) with (number_of_replicas=0)");
+        execute("insert into quotes (id, author, quote) values(?, ?, ?)",
+                new Object[]{1, "Ford", "I'd far rather be happy than right any day."});
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("select \"_id\", id from quotes where id=1 and author='Ford'");
+        assertEquals(1L, response.rowCount());
+        assertThat((String)response.rows()[0][0], is("AgRGb3JkATE="));
+        assertThat((Integer)response.rows()[0][1], is(1));
+    }
+
+    @Test
+    public void testInsertSelectWithMultiplePrimaryOnePkSame() throws Exception {
+        execute("create table quotes (id integer primary key, author string primary key, " +
+                "quote string) clustered by(author) with (number_of_replicas=0)");
+        execute("insert into quotes (id, author, quote) values (?, ?, ?), (?, ?, ?)",
+                new Object[]{1, "Ford", "I'd far rather be happy than right any day.",
+                             1, "Douglas", "Don't panic"});
+        assertEquals(2L, response.rowCount());
+        refresh();
+
+        execute("select \"_id\", id from quotes where id=1 order by author");
+        assertEquals(2L, response.rowCount());
+        assertThat((String)response.rows()[0][0], is("AgdEb3VnbGFzATE="));
+        assertThat((Integer)response.rows()[0][1], is(1));
+        assertThat((String)response.rows()[1][0], is("AgRGb3JkATE="));
+        assertThat((Integer)response.rows()[1][1], is(1));
+    }
+
+    @Test
+    public void testUpdateByIdWithMultiplePrimaryKeyAndClusteredBy() throws Exception {
+        execute("create table quotes (id integer primary key, author string primary key, " +
+                "quote string) clustered by(author) with (number_of_replicas=0)");
+        execute("insert into quotes (id, author, quote) values(?, ?, ?)",
+                new Object[]{1, "Ford", "I'd far rather be happy than right any day."});
+        assertEquals(1L, response.rowCount());
+
+        execute("update quotes set quote=? where id=1 and author='Ford'",
+                new Object[]{"Don't panic"});
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("select quote from quotes where id=1 and author='Ford'");
+        assertEquals(1L, response.rowCount());
+        assertThat((String)response.rows()[0][0], is("Don't panic"));
+    }
+
+    @Test
+    public void testUpdateByQueryWithMultiplePrimaryKeyAndClusteredBy() throws Exception {
+        execute("create table quotes (id integer primary key, author string primary key, " +
+                "quote string) clustered by(author) with (number_of_replicas=0)");
+        execute("insert into quotes (id, author, quote) values(?, ?, ?)",
+                new Object[]{1, "Ford", "I'd far rather be happy than right any day."});
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("update quotes set quote=? where id=1",
+                new Object[]{"Don't panic"});
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("select quote from quotes where id=1 and author='Ford'");
+        assertEquals(1L, response.rowCount());
+        assertThat((String)response.rows()[0][0], is("Don't panic"));
+    }
+
+    @Test
+    public void testDeleteByIdWithMultiplePrimaryKey() throws Exception {
+        execute("create table quotes (id integer primary key, author string primary key, " +
+                "quote string) with (number_of_replicas=0)");
+        execute("insert into quotes (id, author, quote) values (?, ?, ?), (?, ?, ?)",
+                new Object[]{1, "Ford", "I'd far rather be happy than right any day.",
+                             1, "Douglas", "Don't panic"});
+        assertEquals(2L, response.rowCount());
+        refresh();
+
+        execute("delete from quotes where id=1 and author='Ford'");
+        assertEquals(1L, response.rowCount());
+        refresh();
+
+        execute("select quote from quotes where id=1");
+        assertEquals(1L, response.rowCount());
+    }
+
+    @Test
+    public void testDeleteByQueryWithMultiplePrimaryKey() throws Exception {
+        execute("create table quotes (id integer primary key, author string primary key, " +
+                "quote string) with (number_of_replicas=0)");
+        execute("insert into quotes (id, author, quote) values (?, ?, ?), (?, ?, ?)",
+                new Object[]{1, "Ford", "I'd far rather be happy than right any day.",
+                             1, "Douglas", "Don't panic"});
+        assertEquals(2L, response.rowCount());
+        refresh();
+
+        execute("delete from quotes where id=1");
+        // no rowCount available for deleteByQuery requests
+        assertEquals(-1L, response.rowCount());
+        refresh();
+
+        execute("select quote from quotes where id=1");
+        assertEquals(0L, response.rowCount());
     }
 }

@@ -410,6 +410,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis analysis = (SelectAnalysis)analyze(
             "select name from users where id = 2 and \"_version\" = 1");
         assertEquals(ImmutableList.of("2"), analysis.ids());
+        assertEquals(ImmutableList.of("2"), analysis.routingValues());
         assertThat(analysis.whereClause().version().get(), is(1L));
     }
 
@@ -419,6 +420,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
             "select name from users where id = 2 or id = 1");
 
         assertEquals(ImmutableList.of("1", "2"), analysis.ids());
+        assertEquals(ImmutableList.of("1", "2"), analysis.routingValues());
     }
 
     @Test
@@ -432,6 +434,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testNotEqualsDoesntMatchPrimaryKey() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select name from users where id != 1");
         assertEquals(0, analysis.ids().size());
+        assertEquals(0, analysis.routingValues().size());
     }
 
     @Test
@@ -439,12 +442,14 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis analysis = (SelectAnalysis)analyze(
             "select * from sys.shards where (id = 1 and table_name = 'foo') or (id = 2 and table_name = 'bla')");
         assertEquals(ImmutableList.of(), analysis.ids());
+        assertEquals(ImmutableList.of(), analysis.routingValues());
     }
 
     @Test
     public void test1ColPrimaryKey() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select name from sys.nodes where id='jalla'");
         assertEquals(ImmutableList.of("jalla"), analysis.ids());
+        assertEquals(ImmutableList.of("jalla"), analysis.routingValues());
 
         analysis = (SelectAnalysis)analyze("select name from sys.nodes where 'jalla'=id");
         assertEquals(ImmutableList.of("jalla"), analysis.ids());
@@ -475,11 +480,13 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name='jalla' and schema_name='doc'");
         // base64 encoded versions of Streamable of ["doc","jalla","1"]
         assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ=="), analysis.ids());
+        assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ=="), analysis.routingValues());
         assertFalse(analysis.noMatch());
 
         analysis = (SelectAnalysis)analyze("select id from sys.shards where id=1 and table_name='jalla' and id=1 and schema_name='doc'");
         // base64 encoded versions of Streamable of ["doc","jalla","1"]
         assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ=="), analysis.ids());
+        assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ=="), analysis.routingValues());
         assertFalse(analysis.noMatch());
 
 
@@ -516,6 +523,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertEquals(2, analysis.ids().size());
         // base64 encoded versions of Streamable of ["doc","jalla","1"] and ["doc","kelle","1"]
         assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ==", "AwNkb2MFa2VsbGUBMQ=="), analysis.ids());
+        assertEquals(ImmutableList.of("AwNkb2MFamFsbGEBMQ==", "AwNkb2MFa2VsbGUBMQ=="), analysis.routingValues());
     }
 
     @Test

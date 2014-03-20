@@ -96,9 +96,6 @@ public class InsertAnalysis extends AbstractDataAnalysis {
     }
 
     public void addPrimaryKeyColumnIdx(int primaryKeyColumnIdx) {
-        if (this.primaryKeyColumnIndices.size() > 0) {
-            throw new UnsupportedOperationException("Multiple primary key columns are currently not supported.");
-        }
         this.primaryKeyColumnIndices.add(primaryKeyColumnIdx);
     }
 

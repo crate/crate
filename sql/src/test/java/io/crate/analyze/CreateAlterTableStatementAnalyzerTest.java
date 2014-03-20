@@ -79,12 +79,13 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCreateTableWithAlternativePrimaryKeySyntax() throws Exception {
         CreateTableAnalysis analysis = (CreateTableAnalysis)analyze(
-                "create table foo (id integer, primary key (id))"
+                "create table foo (id integer, name string, primary key (id, name))"
         );
 
         List<String> primaryKeys = analysis.primaryKeys();
-        assertThat(primaryKeys.size(), is(1));
+        assertThat(primaryKeys.size(), is(2));
         assertThat(primaryKeys.get(0), is("id"));
+        assertThat(primaryKeys.get(1), is("name"));
     }
 
     @Test
@@ -314,9 +315,32 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         analyze("alter table sys.shards reset (number_of_replicas)");
     }
 
-    @Test (expected = UnsupportedOperationException.class)
+    @Test
     public void testCreateTableWithMultiplePrimaryKeys() throws Exception {
-        analyze("create table test (id integer primary key, name string primary key)");
+        CreateTableAnalysis analysis = (CreateTableAnalysis) analyze(
+                "create table test (id integer primary key, name string primary key)");
+
+        List<String> primaryKeys = analysis.primaryKeys();
+        assertThat(primaryKeys.size(), is(2));
+        assertThat(primaryKeys.get(0), is("id"));
+        assertThat(primaryKeys.get(1), is("name"));
+    }
+
+    @Test
+    public void testCreateTableWithMultiplePrimaryKeysAndClusteredBy() throws Exception {
+        CreateTableAnalysis analysis = (CreateTableAnalysis) analyze(
+                "create table test (id integer primary key, name string primary key) " +
+                        "clustered by(name)");
+
+        List<String> primaryKeys = analysis.primaryKeys();
+        assertThat(primaryKeys.size(), is(2));
+        assertThat(primaryKeys.get(0), is("id"));
+        assertThat(primaryKeys.get(1), is("name"));
+
+        Map<String, Object> meta = (Map)analysis.mapping().get("_meta");
+        assertNotNull(meta);
+        assertThat((String)meta.get("routing"), is("name"));
+
     }
 
     @Test (expected = IllegalArgumentException.class)
