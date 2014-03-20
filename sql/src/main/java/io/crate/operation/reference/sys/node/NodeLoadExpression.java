@@ -57,7 +57,11 @@ public class NodeLoadExpression extends SysNodeObjectReference<Double> {
 
         @Override
         public Double value() {
-            return osService.stats().loadAverage()[idx];
+            try {
+                return osService.stats().loadAverage()[idx];
+            } catch (IndexOutOfBoundsException e) {
+                return null;
+            }
         }
     }
 

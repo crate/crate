@@ -2,18 +2,11 @@
 
 SETLOCAL
 
-reg query "hkcu\software\python" > NUL 2>&1
-IF ERRORLEVEL 1 (
-  REM no user python
-  reg query "hklm\software\python" > NUL 2>&1
-  IF ERRORLEVEL 1 (
-    REM no system python
-    goto :NOPYTHON
-  ) ELSE (
-    goto :HASPYTHON
-  )
+Python.exe -c '1+1'
+IF ERRORLEVEL 0 (
+  goto :HASPYTHON
 ) ELSE (
-    goto :HASPYTHON
+  goto :NOPYTHON
 )
 
 :NOPYTHON
@@ -23,7 +16,7 @@ exit /b %ERRORLEVEL%
 :HASPYTHON
 REM Must set these first thing due to bug in Windows 7 when batch script filename has spaces in it
 SET BATCH_SCRIPT_FOLDER_PATHNAME=%~dp0
-"%BATCH_SCRIPT_FOLDER_PATHNAME%/crash_standalone" %*
+Python.exe "%BATCH_SCRIPT_FOLDER_PATHNAME%/crash_standalone" %*
 exit /b %ERRORLEVEL%
 
 ENDLOCAL

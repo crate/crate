@@ -21,10 +21,10 @@
 
 package io.crate.operation.reference.sys;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.sys.SysExpression;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -40,10 +40,10 @@ public abstract class SysObjectReference<ChildType> extends SysExpression<Map<St
 
     @Override
     public Map<String, ChildType> value() {
-        ImmutableMap.Builder<String, ChildType> builder = ImmutableMap.builder();
+        Map<String, ChildType> map = new HashMap<>();
         for (Map.Entry<String, SysExpression<ChildType>> e : childImplementations.entrySet()) {
-            builder.put(e.getKey(), e.getValue().value());
+            map.put(e.getKey(), e.getValue().value());
         }
-        return builder.build();
+        return Collections.unmodifiableMap(map);
     }
 }

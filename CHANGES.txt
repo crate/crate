@@ -5,6 +5,8 @@ Changes for Crate Data
 unreleased
 ==========
 
+ - fix: windows compatibilty (sys.nodes.load, crash_standalone)
+
  - fixed a threading issue that could occur when executing ``COPY`` statements.
 
  - fix: prevent updating of system, primary key and clustered-by column
