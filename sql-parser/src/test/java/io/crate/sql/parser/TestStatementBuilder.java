@@ -123,6 +123,12 @@ public class TestStatementBuilder
         printStatement("copy foo from ?");
         printStatement("copy schemah.foo from '/folder/file.extension'");
 
+        printStatement("copy foo (nae) to '/folder/file.extension'");
+        printStatement("copy foo to '/folder/file.extension'");
+        printStatement("copy foo to DIRECTORY '/folder'");
+        printStatement("copy foo to DIRECTORY ?");
+        printStatement("copy foo to DIRECTORY '/folder' with (some_param=4)");
+
 
         printStatement("create table t (id integer primary key, name string)");
         printStatement("create table t (id integer primary key, name string) clustered into 3 shards");

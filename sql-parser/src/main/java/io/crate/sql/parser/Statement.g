@@ -98,6 +98,7 @@ tokens {
     ASSIGNMENT;
     ASSIGNMENT_LIST;
     COPY_FROM;
+    COPY_TO;
     INDEX_COLUMNS;
     GENERIC_PROPERTIES;
     GENERIC_PROPERTY;
@@ -192,7 +193,8 @@ statement
     | insertStmt
     | deleteStmt
     | updateStmt
-    | copyStmt
+    | copyFromStmt
+    | copyToStmt
     | createAnalyzerStmt
     | refreshStmt
     ;
@@ -732,8 +734,12 @@ assignment
     : subscript EQ expr -> ^(ASSIGNMENT subscript expr)
     ;
 
+copyToStmt
+    : COPY table columnList? TO DIRECTORY? expr
+      ( WITH '(' genericProperties ')' )? -> ^(COPY_TO table columnList? DIRECTORY? expr genericProperties?)
+    ;
 
-copyStmt
+copyFromStmt
     : COPY table FROM expr -> ^(COPY_FROM table expr)
     ;
 
@@ -921,12 +927,15 @@ nonReserved
     | PLAIN | FULLTEXT | OFF
     | REPLICAS | SHARDS | CLUSTERED | COPY | ANALYZER
     | EXTENDS | TOKENIZER | CHAR_FILTERS | TOKEN_FILTERS | BLOB
+    | TO
     ;
 
 SELECT: 'SELECT';
 FROM: 'FROM';
+TO: 'TO';
 AS: 'AS';
 ALL: 'ALL';
+DIRECTORY: 'DIRECTORY';
 DISTINCT: 'DISTINCT';
 WHERE: 'WHERE';
 GROUP: 'GROUP';

@@ -88,6 +88,7 @@ statement returns [Statement value]
     | delete                    { $value = $delete.value; }
     | update                    { $value = $update.value; }
     | copyFrom                  { $value = $copyFrom.value; }
+    | copyTo                    { $value = $copyTo.value; }
     | createAnalyzer            { $value = $createAnalyzer.value; }
     | refresh                   { $value = $refresh.value; }
     ;
@@ -184,6 +185,11 @@ withQuery returns [WithQuery value]
 
 selectClause returns [Select value]
     : ^(SELECT d=distinct[false] s=selectList) { $value = new Select($d.value, $s.value); }
+    ;
+
+copyToTargetSpec[boolean defaultValue] returns [boolean value]
+    : DIRECTORY { $value = true; }
+    |           { $value = $defaultValue; }
     ;
 
 distinct[boolean defaultValue] returns [boolean value]
@@ -643,6 +649,17 @@ assignmentList returns [List<Assignment> value = new ArrayList<>()]
 assignment returns [Assignment value]
     : ^(ASSIGNMENT subscript expr) { $value = new Assignment($subscript.value, $expr.value); }
     | ^(ASSIGNMENT qname expr) { $value = new Assignment(new QualifiedNameReference($qname.value), $expr.value); }
+    ;
+
+copyTo returns [Statement value]
+    : ^(COPY_TO namedTable columnIdentList? d=copyToTargetSpec[false] expr genericProperties?)
+        {
+            $value = new CopyTo($namedTable.value,
+                                $columnIdentList.value,
+                                $d.value,
+                                $expr.value,
+                                $genericProperties.value);
+        }
     ;
 
 copyFrom returns [Statement value]

@@ -524,4 +524,8 @@ public abstract class AstVisitor<R, C>
     public R visitAlterBlobTable(AlterBlobTable node, C context) {
         return visitStatement(node, context);
     }
+
+    public R visitCopyTo(CopyTo node, C context) {
+        return visitStatement(node, context);
+    }
 }
