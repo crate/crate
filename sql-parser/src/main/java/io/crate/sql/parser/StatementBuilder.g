@@ -606,12 +606,9 @@ dropTable returns [Statement value]
     ;
 
 insert returns [Statement value]
-    : ^(INSERT namedTable values=insertValues cols=insertColumnsList?)
+    : ^(INSERT namedTable values=insertValues cols=columnIdentList?)
         {
-            $value = new Insert($namedTable.value,
-                                $values.value,
-                                Objects.firstNonNull($cols.value, ImmutableList.<QualifiedNameReference>of())
-                                );
+            $value = new Insert($namedTable.value, $values.value, $cols.value);
         }
     ;
 
@@ -622,11 +619,6 @@ insertValues returns [List<ValuesList> value = new ArrayList<>()]
 valuesList returns [ValuesList value]
     : ^(VALUES_LIST exprList) { $value = new ValuesList($exprList.value); }
     ;
-
-insertColumnsList returns [List<QualifiedNameReference> value]
-    : ^(COLUMN_LIST qnameList) { $value = $qnameList.value; }
-    ;
-
 
 delete returns [Statement value]
     : ^(DELETE namedTable where=whereClause?)
@@ -671,9 +663,9 @@ alterBlobTable returns [Statement value]
         {
             $value = new AlterBlobTable($namedTable.value, $genericProperties.value);
         }
-    | ^(ALTER_BLOB_TABLE namedTable identList)
+    | ^(ALTER_BLOB_TABLE namedTable columnIdentList)
         {
-            $value = new AlterBlobTable($namedTable.value, $identList.value);
+            $value = new AlterBlobTable($namedTable.value, $columnIdentList.value);
         }
     ;
 
@@ -682,9 +674,9 @@ alterTable returns [Statement value]
         {
             $value = new AlterTable($namedTable.value, $genericProperties.value);
         }
-    | ^(ALTER_TABLE namedTable identList)
+    | ^(ALTER_TABLE namedTable columnIdentList)
         {
-            $value = new AlterTable($namedTable.value, $identList.value);
+            $value = new AlterTable($namedTable.value, $columnIdentList.value);
         }
     ;
 
@@ -776,6 +768,10 @@ indexDefinition returns [IndexDefinition value]
 
 indexColumns returns [List<Expression> value]
     : ^(INDEX_COLUMNS columnList) { $value = $columnList.value; }
+    ;
+
+columnIdentList returns [List<String> value]
+    : ^(COLUMN_LIST identList) { $value = $identList.value; }
     ;
 
 columnList returns [List<Expression> value = new ArrayList<>()]

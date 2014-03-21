@@ -703,8 +703,9 @@ insertStmt
     ;
 
 columnList
-    : '(' qname ( ',' qname )* ')' -> ^(COLUMN_LIST qname+)
+    : '(' ident ( ',' ident )* ')' -> ^(COLUMN_LIST ident+)
     ;
+
 insertValues
     : valuesList ( ',' valuesList )* -> ^(INSERT_VALUES valuesList+)
     ;
@@ -740,14 +741,14 @@ alterBlobTableStmt
     : ALTER BLOB TABLE table
       SET '(' genericProperties ')' -> ^(ALTER_BLOB_TABLE table genericProperties)
     | ALTER BLOB TABLE table
-      RESET '(' ident (',' ident )* ')' -> ^(ALTER_BLOB_TABLE table ident+)
+      RESET columnList -> ^(ALTER_BLOB_TABLE table columnList)
     ;
 
 alterTableStmt
     : ALTER TABLE table
       SET '(' genericProperties ')' -> ^(ALTER_TABLE table genericProperties)
     | ALTER TABLE table
-      RESET '(' ident (',' ident )* ')' -> ^(ALTER_TABLE table ident+)
+      RESET columnList -> ^(ALTER_TABLE table columnList)
     ;
 
 createBlobTableStmt

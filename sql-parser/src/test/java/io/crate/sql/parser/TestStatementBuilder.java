@@ -110,7 +110,7 @@ public class TestStatementBuilder
         printStatement("insert into foo (id, name) values ('string', 1.2)");
         printStatement("insert into foo values ('string', NULL)");
         printStatement("insert into foo (id, name) values ('string', 1.2), (abs(-4), 4+?)");
-        printStatement("insert into schemah.foo (foo.id, bar.name) values ('string', 1.2)");
+        printStatement("insert into schemah.foo (id, name) values ('string', 1.2)");
 
         printStatement("delete from foo");
         printStatement("delete from schemah.foo where foo.a=foo.b and a is not null");
