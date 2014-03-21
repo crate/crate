@@ -195,7 +195,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
                 setClusterBy(context, (Literal)right);
                 clusteredBySet = true;
             }
-            if (columnName.equals("_version") && functionName.equals(EqOperator.NAME)) {
+            if (columnName.equals("_version")) {
                 setVersion(context, right);
                 return null;
             }

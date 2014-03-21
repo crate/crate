@@ -81,6 +81,8 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
+            when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY.name())).thenReturn(userTableInfoClusteredByOnly);
+            when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_MULTI_PK.name())).thenReturn(userTableInfoMultiPk);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
     }
@@ -400,9 +402,52 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testClusteredBy() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select name from users where id=1");
         assertEquals(ImmutableList.of("1"), analysis.routingValues());
+        assertEquals("1", analysis.whereClause().clusteredBy().get());
 
         analysis = (SelectAnalysis)analyze("select name from users where id=1 or id=2");
         assertEquals(ImmutableList.of("1", "2"), analysis.routingValues());
+        assertFalse(analysis.whereClause().clusteredBy().isPresent());
+    }
+
+    @Test
+    public void testClusteredByOnly() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis)analyze("select name from users_clustered_by_only where id=1");
+        assertEquals(ImmutableList.of(), analysis.ids());
+        assertEquals(ImmutableList.of("1"), analysis.routingValues());
+        assertEquals("1", analysis.whereClause().clusteredBy().get());
+
+        analysis = (SelectAnalysis)analyze("select name from users_clustered_by_only where id=1 or id=2");
+        assertEquals(ImmutableList.of(), analysis.ids());
+        assertEquals(ImmutableList.of(), analysis.routingValues());
+        assertFalse(analysis.whereClause().clusteredBy().isPresent());
+
+        analysis = (SelectAnalysis)analyze("select name from users_clustered_by_only where id=1 and id=2");
+        assertEquals(ImmutableList.of(), analysis.ids());
+        assertEquals(ImmutableList.of(), analysis.routingValues());
+        assertFalse(analysis.whereClause().clusteredBy().isPresent());
+    }
+
+    @Test
+    public void testCompositePrimaryKey() throws Exception {
+        SelectAnalysis analysis = (SelectAnalysis)analyze("select name from users_multi_pk where id=1");
+        assertEquals(ImmutableList.of(), analysis.ids());
+        assertEquals(ImmutableList.of(), analysis.routingValues());
+        assertEquals("1", analysis.whereClause().clusteredBy().get());
+
+        analysis = (SelectAnalysis)analyze("select name from users_multi_pk where id=1 and name='Douglas'");
+        assertEquals(ImmutableList.of("AgExB0RvdWdsYXM="), analysis.ids());
+        assertEquals(ImmutableList.of("1"), analysis.routingValues());
+        assertEquals("1", analysis.whereClause().clusteredBy().get());
+
+        analysis = (SelectAnalysis)analyze("select name from users_multi_pk where id=1 or id=2 and name='Douglas'");
+        assertEquals(ImmutableList.of(), analysis.ids());
+        assertEquals(ImmutableList.of(), analysis.routingValues());
+        assertFalse(analysis.whereClause().clusteredBy().isPresent());
+
+        analysis = (SelectAnalysis)analyze("select name from users_multi_pk where id=1 and name='Douglas' or name='Arthur'");
+        assertEquals(ImmutableList.of(), analysis.ids());
+        assertEquals(ImmutableList.of(), analysis.routingValues());
+        assertFalse(analysis.whereClause().clusteredBy().isPresent());
     }
 
     @Test

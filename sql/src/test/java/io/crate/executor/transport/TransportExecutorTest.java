@@ -476,7 +476,7 @@ public class TransportExecutorTest extends SQLTransportIntegrationTest {
         insertCharacters();
 
         // update characters set name='Vogon lyric fan' where id=1
-        WhereClause whereClause = WhereClause.MATCH_ALL;
+        WhereClause whereClause = new WhereClause(null, false);
         whereClause.clusteredByLiteral(new StringLiteral("1"));
         ESUpdateNode updateNode = new ESUpdateNode("characters",
                 new HashMap<Reference, Symbol>(){{
