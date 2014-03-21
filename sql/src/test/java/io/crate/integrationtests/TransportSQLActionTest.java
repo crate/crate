@@ -1566,128 +1566,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     }
 
-    @Test
-    public void testCountWithGroupByNullArgs() throws Exception {
-        this.setup.groupBySetup();
-
-        execute("select count(*), race from characters group by race", null);
-        assertEquals(3, response.rowCount());
-        assertThat(response.duration(), greaterThanOrEqualTo(0L));
-    }
-
-    @Test
-    public void testGroupByAndOrderByAlias() throws Exception {
-        this.setup.groupBySetup();
-
-        execute("select characters.race as test_race from characters group by characters.race order by characters.race");
-        assertEquals(3, response.rowCount());
-
-        execute("select characters.race as test_race from characters group by characters.race order by test_race");
-        assertEquals(3, response.rowCount());
-    }
-
-
-    @Test
-    public void testCountWithGroupByWithWhereClause() throws Exception {
-        this.setup.groupBySetup();
-
-        execute("select count(*), race from characters where race = 'Human' group by race");
-        assertEquals(1, response.rowCount());
-    }
-
-    @Test
-    public void testCountWithGroupByOrderOnAggAscFuncAndLimit() throws Exception {
-        this.setup.groupBySetup();
-
-        execute("select count(*), race from characters group by race order by count(*) asc limit ?",
-                new Object[] { 2 });
-
-        assertEquals(2, response.rowCount());
-        assertEquals(1L, response.rows()[0][0]);
-        assertEquals("Android", response.rows()[0][1]);
-        assertEquals(2L, response.rows()[1][0]);
-        assertEquals("Vogon", response.rows()[1][1]);
-    }
-
-    @Test
-    public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimit() throws Exception {
-        this.setup.groupBySetup();
-
-        execute("select count(*), gender, race from characters group by race, gender order by count(*) desc, race, gender asc limit 2");
-
-        assertEquals(2L, response.rowCount());
-        assertEquals(2L, response.rows()[0][0]);
-        assertEquals("female", response.rows()[0][1]);
-        assertEquals("Human", response.rows()[0][2]);
-        assertEquals(2L, response.rows()[1][0]);
-        assertEquals("male", response.rows()[1][1]);
-        assertEquals("Human", response.rows()[1][2]);
-    }
-
-    @Test
-    public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimitAndOffset() throws Exception {
-        this.setup.groupBySetup();
-
-        execute("select count(*), gender, race from characters group by race, gender order by count(*) desc, race asc limit 2 offset 2");
-
-        assertEquals(2, response.rowCount());
-        assertEquals(2L, response.rows()[0][0]);
-        assertEquals("male", response.rows()[0][1]);
-        assertEquals("Vogon", response.rows()[0][2]);
-        assertEquals(1L, response.rows()[1][0]);
-        assertEquals("male", response.rows()[1][1]);
-        assertEquals("Android", response.rows()[1][2]);
-    }
-
-    @Test
-    public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimitAndTooLargeOffset() throws Exception {
-        this.setup.groupBySetup();
-
-        execute("select count(*), gender, race from characters group by race, gender order by count(*) desc, race asc limit 2 offset 20");
-
-        assertEquals(0, response.rows().length);
-        assertEquals(0, response.rowCount());
-    }
-
-    @Test
-    public void testCountWithGroupByOrderOnAggDescFuncAndLimit() throws Exception {
-        this.setup.groupBySetup();
-
-        execute("select count(*), race from characters group by race order by count(*) desc limit 2");
-
-        assertEquals(2, response.rowCount());
-        assertEquals(4L, response.rows()[0][0]);
-        assertEquals("Human", response.rows()[0][1]);
-        assertEquals(2L, response.rows()[1][0]);
-        assertEquals("Vogon", response.rows()[1][1]);
-    }
-
-    @Test
-    public void testCountWithGroupByOrderOnKeyAscAndLimit() throws Exception {
-        this.setup.groupBySetup();
-
-
-        execute("select count(*), race from characters group by race order by race asc limit 2");
-
-        assertEquals(2, response.rowCount());
-        assertEquals(1L, response.rows()[0][0]);
-        assertEquals("Android", response.rows()[0][1]);
-        assertEquals(4L, response.rows()[1][0]);
-        assertEquals("Human", response.rows()[1][1]);
-    }
-
-    @Test
-    public void testCountWithGroupByOrderOnKeyDescAndLimit() throws Exception {
-        this.setup.groupBySetup();
-
-        execute("select count(*), race from characters group by race order by race desc limit 2");
-
-        assertEquals(2L, response.rowCount());
-        assertEquals(2L, response.rows()[0][0]);
-        assertEquals("Vogon", response.rows()[0][1]);
-        assertEquals(4L, response.rows()[1][0]);
-        assertEquals("Human", response.rows()[1][1]);
-    }
 
     @Test
     public void testSelectWithWhereLike() throws Exception {
@@ -1902,19 +1780,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
     }
 
-    @Test
-    public void testGroupByNestedObject() throws Exception {
-        this.setup.groupBySetup();
-
-        execute("select count(*), details['job'] from characters group by details['job'] order by count(*), details['job']");
-        assertEquals(3, response.rowCount());
-        assertEquals(1L, response.rows()[0][0]);
-        assertEquals("Mathematician", response.rows()[0][1]);
-        assertEquals(1L, response.rows()[1][0]);
-        assertEquals("Sandwitch Maker", response.rows()[1][1]);
-        assertEquals(5L, response.rows()[2][0]);
-        assertNull(null, response.rows()[2][1]);
-    }
 
     @Test
     public void testGroupByEmpty() throws Exception {
@@ -1957,11 +1822,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 .actionGet().isExists());
     }
 
-    @Test (expected = TableUnknownException.class)
-    public void testDropUnknownTable() throws Exception {
-        execute("drop table test");
-    }
-
     @Test
     public void selectMultiGetRequestWithColumnAlias() throws IOException {
         createTestIndexWithSomeIdPkMapping();
@@ -1973,11 +1833,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(2L));
         assertThat(response.cols(), arrayContainingInAnyOrder("id", "foo"));
         assertThat(new String[]{(String) response.rows()[0][0], (String) response.rows()[1][0]}, arrayContainingInAnyOrder("1", "2"));
-    }
-
-    @Test (expected = TableUnknownException.class)
-    public void selectMultiGetRequestFromNonExistentTable() throws IOException {
-        execute("SELECT * FROM \"non_existent\" WHERE \"_id\" in (?,?)", new Object[]{"1", "2"});
     }
 
     @Test
@@ -2634,206 +2489,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         );
     }
 
-
-    /* GLOBAL AGGREGATE */
-
-    @Test
-    public void testGlobalAggregateSimple() throws Exception {
-        this.setup.groupBySetup();
-
-        execute("select max(age) from characters");
-
-        assertEquals(1, response.rowCount());
-        assertEquals("max(age)", response.cols()[0]);
-        assertEquals(112, response.rows()[0][0]);
-
-        execute("select min(name) from characters");
-
-        assertEquals(1, response.rowCount());
-        assertEquals("min(name)", response.cols()[0]);
-        assertEquals("Anjie", response.rows()[0][0]);
-
-        execute("select avg(age) as median_age from characters");
-        assertEquals(1, response.rowCount());
-        assertEquals("median_age", response.cols()[0]);
-        assertEquals(55.25d, response.rows()[0][0]);
-
-        execute("select sum(age) as sum_age from characters");
-        assertEquals(1, response.rowCount());
-        assertEquals("sum_age", response.cols()[0]);
-        assertEquals(221.0d, response.rows()[0][0]);
-    }
-
-    @Test
-    public void testGlobalAggregateWithoutNulls() throws Exception {
-        this.setup.groupBySetup();
-
-        execute("select sum(age) from characters");
-
-        SQLResponse first_response = this.response;
-
-        execute("select sum(age) from characters where age is not null");
-
-        assertEquals(
-                first_response.rowCount(),
-                this.response.rowCount()
-        );
-        assertEquals(
-                first_response.rows()[0][0],
-                this.response.rows()[0][0]
-        );
-    }
-
-    @Test
-    public void testGlobalAggregateNullRowWithoutMatchingRows() throws Exception {
-        this.setup.groupBySetup();
-        execute("select sum(age), avg(age) from characters where characters.age > 112");
-        assertEquals(1, response.rowCount());
-        assertNull(response.rows()[0][0]);
-        assertNull(response.rows()[0][1]);
-
-        execute("select sum(age) from characters limit 0");
-        assertEquals(0, response.rowCount());
-    }
-
-    @Test
-    public void testGlobalAggregateMany() throws Exception {
-        this.setup.groupBySetup();
-        execute("select sum(age), min(age), max(age), avg(age) from characters");
-        assertEquals(1, response.rowCount());
-        assertEquals(221.0d, response.rows()[0][0]);
-        assertEquals(32, response.rows()[0][1]);
-        assertEquals(112, response.rows()[0][2]);
-        assertEquals(55.25d, response.rows()[0][3]);
-    }
-
-
-    @Test
-    public void testSelectGlobalExpressionGroupBy() throws Exception {
-        this.setup.groupBySetup();
-        execute("select count(distinct race), sys.cluster.name from characters group by sys.cluster.name");
-        assertEquals(1, response.rowCount());
-        for (int i=0; i<response.rowCount();i++) {
-            assertEquals(3L, response.rows()[i][0]);
-            assertEquals(cluster().clusterName(), response.rows()[i][1]);
-        }
-    }
-
-    @Test
-    public void testSelectGlobalExpressionGroupByWith2GroupByKeys() throws Exception {
-        this.setup.groupBySetup();
-        execute("select count(name), sys.cluster.name from characters group by race, sys.cluster.name order by count(name) desc");
-        assertEquals(3, response.rowCount());
-        assertEquals(4L, response.rows()[0][0]);
-        assertEquals(cluster().clusterName(), response.rows()[0][1]);
-        assertEquals(response.rows()[0][1], response.rows()[1][1]);
-        assertEquals(response.rows()[0][1], response.rows()[2][1]);
-    }
-
-    @Test
-    public void testSelectGlobalExpressionGlobalAggregate() throws Exception {
-        this.setup.groupBySetup();
-        execute("select count(distinct race), sys.cluster.name from characters");
-        assertEquals(1, response.rowCount());
-        assertArrayEquals(new String[]{"count(DISTINCT race)", "sys.cluster.name"}, response.cols());
-        assertEquals(3L, response.rows()[0][0]);
-        assertEquals(cluster().clusterName(), response.rows()[0][1]);
-    }
-
-    @Test
-    public void testSelectNonExistentGlobalExpression() throws Exception {
-        this.setup.groupBySetup();
-        expectedException.expect(TableUnknownException.class);
-        expectedException.expectMessage("suess.cluster");
-        execute("select count(race), suess.cluster.name from characters");
-    }
-
-    @Test
-    public void testSelectOrderByGlobalExpression() throws Exception {
-        this.setup.groupBySetup();
-        execute("select count(*), sys.cluster.name from characters group by sys.cluster.name order by sys.cluster.name");
-        assertEquals(1, response.rowCount());
-        assertEquals(7L, response.rows()[0][0]);
-
-        assertEquals(cluster().clusterName(), response.rows()[0][1]);
-    }
-
-    @Test
-    public void testSelectOrderByNullSortingASC() throws Exception {
-        this.setup.groupBySetup();
-        execute("select age from characters order by age");
-        assertEquals(32, response.rows()[0][0]);
-        assertEquals(34, response.rows()[1][0]);
-        assertEquals(43, response.rows()[2][0]);
-        assertEquals(112, response.rows()[3][0]);
-        assertEquals(null, response.rows()[4][0]);
-        assertEquals(null, response.rows()[5][0]);
-        assertEquals(null, response.rows()[6][0]);
-    }
-
-    @Test
-    public void testSelectOrderByNullSortingDESC() throws Exception {
-        this.setup.groupBySetup();
-        execute("select age from characters order by age desc");
-        assertEquals(null, response.rows()[0][0]);
-        assertEquals(null, response.rows()[1][0]);
-        assertEquals(null, response.rows()[2][0]);
-        assertEquals(112, response.rows()[3][0]);
-        assertEquals(43, response.rows()[4][0]);
-        assertEquals(34, response.rows()[5][0]);
-        assertEquals(32, response.rows()[6][0]);
-    }
-
-    @Test
-    public void testSelectGroupByOrderByNullSortingASC() throws Exception {
-        this.setup.groupBySetup();
-        execute("select age from characters group by age order by age");
-        assertEquals(32, response.rows()[0][0]);
-        assertEquals(34, response.rows()[1][0]);
-        assertEquals(43, response.rows()[2][0]);
-        assertEquals(112, response.rows()[3][0]);
-        assertEquals(null, response.rows()[4][0]);
-    }
-
-    @Test
-    public void testSelectGroupByOrderByNullSortingDESC() throws Exception {
-        this.setup.groupBySetup();
-        execute("select age from characters group by age order by age desc");
-        assertEquals(null, response.rows()[0][0]);
-        assertEquals(112, response.rows()[1][0]);
-        assertEquals(43, response.rows()[2][0]);
-        assertEquals(34, response.rows()[3][0]);
-        assertEquals(32, response.rows()[4][0]);
-    }
-
-    @Test
-    public void testSelectAggregateOnGlobalExpression() throws Exception {
-        this.setup.groupBySetup();
-        execute("select count(sys.cluster.name) from characters");
-        assertEquals(1, response.rowCount());
-        assertEquals(7L, response.rows()[0][0]);
-
-        execute("select count(distinct sys.cluster.name) from characters");
-        assertEquals(1, response.rowCount());
-        assertEquals(1L, response.rows()[0][0]);
-    }
-
-    @Test
-    public void testSelectGlobalExpressionWithAlias() throws Exception {
-        this.setup.groupBySetup();
-        execute("select sys.cluster.name as cluster_name, race from characters " +
-                "group by sys.cluster.name, race " +
-                "order by cluster_name, race");
-        assertEquals(3L, response.rowCount());
-        assertEquals(cluster().clusterName(), response.rows()[0][0]);
-        assertEquals(cluster().clusterName(), response.rows()[1][0]);
-        assertEquals(cluster().clusterName(), response.rows()[2][0]);
-
-        assertEquals("Android", response.rows()[0][1]);
-        assertEquals("Human", response.rows()[1][1]);
-        assertEquals("Vogon", response.rows()[2][1]);
-    }
-
     @Test
     public void testSelectCountDistinctZero() throws Exception {
         execute("create table test (col1 int) with (number_of_replicas=0)");
@@ -2882,13 +2537,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select count(*) from test");
         assertThat((Long) response.rows()[0][0], is(3L));
-    }
-
-    @Test
-    public void testRefreshSystemTable() throws Exception {
-        execute("refresh table sys.shards");
-        assertFalse(response.hasRowCount());
-        assertThat(response.rows(), is(Constants.EMPTY_RESULT));
     }
 
     @Test
