@@ -31,13 +31,13 @@ public class Insert extends Statement {
 
     private final Table table;
     private final List<ValuesList> valuesLists;
-    private final List<QualifiedNameReference> columns;
+    private final List<String> columns;
     private final int maxValuesLength;
 
-    public Insert(Table table, List<ValuesList> valuesLists, @Nullable List<QualifiedNameReference> columns) {
+    public Insert(Table table, List<ValuesList> valuesLists, @Nullable List<String> columns) {
         this.table = table;
         this.valuesLists = valuesLists;
-        this.columns = Objects.firstNonNull(columns, ImmutableList.<QualifiedNameReference>of());
+        this.columns = Objects.firstNonNull(columns, ImmutableList.<String>of());
         int i = 0;
         for (ValuesList valuesList : valuesLists) {
             i = Math.max(i, valuesList.values().size());
@@ -49,7 +49,7 @@ public class Insert extends Statement {
         return table;
     }
 
-    public List<QualifiedNameReference> columns() {
+    public List<String> columns() {
         return columns;
     }
 

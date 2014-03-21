@@ -402,9 +402,6 @@ public abstract class DefaultTraversalVisitor<R, C>
     @Override
     public R visitInsert(Insert node, C context) {
         process(node.table(), context);
-        for (QualifiedNameReference column : node.columns()) {
-            process(column, context);
-        }
         for (ValuesList valuesList : node.valuesLists()) {
             process(valuesList, context);
         }
