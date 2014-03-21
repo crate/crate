@@ -35,7 +35,7 @@ public class RestSqlActionTest extends SQLTransportIntegrationTest {
 
     @Before
     public void setUpIndex() throws Exception {
-        new Setup(this).setUpLocations();
+        new Setup(sqlExecutor).setUpLocations();
     }
 
     @Test

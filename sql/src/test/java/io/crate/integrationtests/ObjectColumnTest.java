@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLResponse;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.test.integration.CrateIntegrationTest;
 import org.junit.Before;
@@ -37,8 +36,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    private SQLResponse response;
-    private Setup setup = new Setup(this);
+    private Setup setup = new Setup(sqlExecutor);
     private boolean setUpDone = false;
 
     @Before
@@ -47,15 +45,6 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
             this.setup.setUpObjectTable();
             setUpDone = true;
         }
-    }
-
-    /**
-     * override execute to store response in property for easier access
-     */
-    @Override
-    public SQLResponse execute(String stmt, Object[] args) {
-        response = super.execute(stmt, args);
-        return response;
     }
 
     @Test

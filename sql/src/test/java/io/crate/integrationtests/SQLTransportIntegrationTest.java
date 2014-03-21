@@ -22,13 +22,13 @@
 package io.crate.integrationtests;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
-import io.crate.action.sql.SQLAction;
-import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLRequestBuilder;
 import io.crate.action.sql.SQLResponse;
 import io.crate.test.integration.CrateIntegrationTest;
+import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
@@ -50,6 +50,15 @@ public class SQLTransportIntegrationTest extends CrateIntegrationTest {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
 
+    protected SQLTransportExecutor sqlExecutor = new SQLTransportExecutor(
+        new SQLTransportExecutor.ClientProvider() {
+            @Override
+            public Client client() {
+                return CrateIntegrationTest.client();
+            }
+        }
+    );
+
     protected long responseDuration;
     protected SQLResponse response;
 
@@ -67,7 +76,7 @@ public class SQLTransportIntegrationTest extends CrateIntegrationTest {
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt, Object[] args) {
-        response = client().execute(SQLAction.INSTANCE, new SQLRequest(stmt, args)).actionGet();
+        response = sqlExecutor.exec(stmt, args);
         return response;
     }
 
@@ -78,7 +87,8 @@ public class SQLTransportIntegrationTest extends CrateIntegrationTest {
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt) {
-        return execute(stmt, new Object[0]);
+        response = sqlExecutor.exec(stmt, new Object[0]);
+        return response;
     }
 
     /**

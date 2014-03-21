@@ -58,22 +58,13 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
     }
 
-    protected SQLResponse response;
-    private Setup setup = new Setup(this);
+    private Setup setup = new Setup(sqlExecutor);
 
     private String copyFilePath = getClass().getResource("/essetup/data/copy").getPath();
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    /**
-     * override execute to store response in property for easier access
-     */
-    @Override
-    public SQLResponse execute(String stmt, Object[] args) {
-        response = super.execute(stmt, args);
-        return response;
-    }
 
     private <T> List<T> getCol(Object[][] result, int idx){
         ArrayList<T> res = new ArrayList<>(result.length);
