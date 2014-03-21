@@ -75,6 +75,28 @@ public class BaseAnalyzerTest {
             .addPrimaryKey("id")
             .clusteredBy("id")
             .build();
+    static final TableIdent TEST_DOC_TABLE_IDENT_MULTI_PK = new TableIdent(null, "users_multi_pk");
+    static final TableInfo userTableInfoMultiPk = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT_MULTI_PK, RowGranularity.DOC, shardRouting)
+            .add("id", DataType.LONG, null)
+            .add("name", DataType.STRING, null)
+            .add("details", DataType.OBJECT, null)
+            .add("awesome", DataType.BOOLEAN, null)
+            .add("_version", DataType.INTEGER, null)
+            .add("friends", DataType.OBJECT_ARRAY, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .addPrimaryKey("id")
+            .addPrimaryKey("name")
+            .clusteredBy("id")
+            .build();
+    static final TableIdent TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY = new TableIdent(null, "users_clustered_by_only");
+    static final TableInfo userTableInfoClusteredByOnly = TestingTableInfo.builder(TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY, RowGranularity.DOC, shardRouting)
+            .add("id", DataType.LONG, null)
+            .add("name", DataType.STRING, null)
+            .add("details", DataType.OBJECT, null)
+            .add("awesome", DataType.BOOLEAN, null)
+            .add("_version", DataType.INTEGER, null)
+            .add("friends", DataType.OBJECT_ARRAY, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .clusteredBy("id")
+            .build();
     static final FunctionInfo ABS_FUNCTION_INFO = new FunctionInfo(
             new FunctionIdent("abs", Arrays.asList(DataType.LONG)),
             DataType.LONG);

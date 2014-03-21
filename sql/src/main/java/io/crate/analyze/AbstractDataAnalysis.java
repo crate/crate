@@ -451,11 +451,15 @@ public abstract class AbstractDataAnalysis extends Analysis {
         Id id = new Id(create);
         id.applyValues(table().primaryKey(), primaryKeyValues, table().clusteredBy());
         String idString = id.toString();
-        ids.add(idString);
-        if (clusteredByValue == null) {
-            clusteredByValue = idString;
+        if (idString != null) {
+            ids.add(idString);
+            if (clusteredByValue == null) {
+                clusteredByValue = idString;
+            }
         }
-        routingValues.add(clusteredByValue);
+        if (clusteredByValue != null) {
+            routingValues.add(clusteredByValue);
+        }
     }
 
     public List<String> ids() {
