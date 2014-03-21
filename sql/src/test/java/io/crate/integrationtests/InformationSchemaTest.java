@@ -724,7 +724,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUnknownTypes() throws Exception {
-        new Setup(this).setUpObjectMappingWithUnknownTypes();
+        new Setup(sqlExecutor).setUpObjectMappingWithUnknownTypes();
         execute("select * from information_schema.columns where table_name='ut' order by column_name");
         assertEquals(2, response.rowCount());
 

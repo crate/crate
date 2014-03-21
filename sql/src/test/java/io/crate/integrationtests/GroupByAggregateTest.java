@@ -35,8 +35,7 @@ import static org.hamcrest.Matchers.isIn;
 @CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class GroupByAggregateTest extends SQLTransportIntegrationTest {
 
-    private SQLResponse response;
-    private Setup setup = new Setup(this);
+    private Setup setup = new Setup(sqlExecutor);
     private boolean setUpDone = false;
 
     @Rule
@@ -49,15 +48,6 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
             this.setup.setUpEmployees();
             setUpDone = true;
         }
-    }
-
-    /**
-     * override execute to store response in property for easier access
-     */
-    @Override
-    public SQLResponse execute(String stmt, Object[] args) {
-        response = super.execute(stmt, args);
-        return response;
     }
 
     @Test

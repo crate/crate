@@ -119,11 +119,6 @@ public class CrateIntegrationTest extends ElasticsearchTestCase {
         return os.toString();
     }
 
-    public void createBlobIndex(String name) {
-        ImmutableSettings.Builder builder = ImmutableSettings.builder().put("blobs.enabled", true);
-        prepareCreate(name, 0, builder).execute().actionGet();
-    }
-
     public static void deleteAll() {
         wipeIndices("_all");
     }

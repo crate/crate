@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.Constants;
+import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.common.settings.ImmutableSettings;
 
 import java.util.HashMap;
@@ -31,23 +32,23 @@ import static com.google.common.collect.Maps.newHashMap;
 
 public class Setup {
 
-    private final SQLTransportIntegrationTest test;
+    private final SQLTransportExecutor transportExecutor;
 
-    public Setup(SQLTransportIntegrationTest test) {
-        this.test = test;
+    public Setup(SQLTransportExecutor transportExecutor) {
+        this.transportExecutor = transportExecutor;
     }
 
     public void setUpLocations() throws Exception {
-        test.execute("create table locations (" +
-                " id string primary key," +
-                " name string," +
-                " date timestamp," +
-                " kind string," +
-                " position integer," +
-                " description string," +
-                " race object," +
-                " index name_description_ft using fulltext(name, description) with (analyzer='english')" +
-                ") clustered by(id) into 2 shards with(number_of_replicas=0)");
+        transportExecutor.exec("create table locations (" +
+            " id string primary key," +
+            " name string," +
+            " date timestamp," +
+            " kind string," +
+            " position integer," +
+            " description string," +
+            " race object," +
+            " index name_description_ft using fulltext(name, description) with (analyzer='english')" +
+            ") clustered by(id) into 2 shards with(number_of_replicas=0)");
 
         String insertStmt = "insert into locations " +
                 "(id, name, date, kind, position, description, race) " +
@@ -126,7 +127,7 @@ public class Setup {
                 }
         };
         for (Object[] args : rows) {
-            test.execute(insertStmt, args);
+            transportExecutor.exec(insertStmt, args);
         }
     }
 
@@ -136,95 +137,96 @@ public class Setup {
 
     public void groupBySetup(String numericType) throws Exception {
 
-        test.execute(String.format("create table characters (" +
-                " race string," +
-                " gender string," +
-                " age %s," +
-                " birthdate timestamp," +
-                " name string," +
-                " details object" +
-                ")", numericType));
-        test.ensureGreen();
+        transportExecutor.exec(String.format("create table characters (" +
+            " race string," +
+            " gender string," +
+            " age %s," +
+            " birthdate timestamp," +
+            " name string," +
+            " details object" +
+            ")", numericType));
+        transportExecutor.ensureGreen();
 
         Map<String, String> details = newHashMap();
         details.put("job", "Sandwitch Maker");
-        test.execute("insert into characters (race, gender, age, birthdate, name, details) values (?, ?, ?, ?, ?, ?)",
-                new Object[]{"Human", "male", 34, "1975-10-01", "Arthur Dent", details});
+        transportExecutor.exec("insert into characters (race, gender, age, birthdate, name, details) values (?, ?, ?, ?, ?, ?)",
+            new Object[]{"Human", "male", 34, "1975-10-01", "Arthur Dent", details});
 
         details = newHashMap();
         details.put("job", "Mathematician");
-        test.execute("insert into characters (race, gender, age, birthdate, name, details) values (?, ?, ?, ?, ?, ?)",
-                new Object[] {"Human", "female", 32, "1978-10-11", "Trillian", details});
-        test.execute("insert into characters (race, gender, age, birthdate, name, details) values (?, ?, ?, ?, ?, ?)",
-                new Object[] {"Human", "female", 43, "1970-01-01", "Anjie", null});
-        test.execute("insert into characters (race, gender, age, name) values (?, ?, ?, ?)",
-                new Object[] {"Human", "male", 112, "Ford Perfect"});
+        transportExecutor.exec("insert into characters (race, gender, age, birthdate, name, details) values (?, ?, ?, ?, ?, ?)",
+            new Object[]{"Human", "female", 32, "1978-10-11", "Trillian", details});
+        transportExecutor.exec("insert into characters (race, gender, age, birthdate, name, details) values (?, ?, ?, ?, ?, ?)",
+            new Object[]{"Human", "female", 43, "1970-01-01", "Anjie", null});
+        transportExecutor.exec("insert into characters (race, gender, age, name) values (?, ?, ?, ?)",
+            new Object[]{"Human", "male", 112, "Ford Perfect"});
 
-        test.execute("insert into characters (race, gender, name) values ('Android', 'male', 'Marving')");
-        test.execute("insert into characters (race, gender, name) values ('Vogon', 'male', 'Jeltz')");
-        test.execute("insert into characters (race, gender, name) values ('Vogon', 'male', 'Kwaltz')");
-        test.refresh();
+        transportExecutor.exec("insert into characters (race, gender, name) values ('Android', 'male', 'Marving')");
+        transportExecutor.exec("insert into characters (race, gender, name) values ('Vogon', 'male', 'Jeltz')");
+        transportExecutor.exec("insert into characters (race, gender, name) values ('Vogon', 'male', 'Kwaltz')");
+        transportExecutor.refresh("characters");
     }
 
     public void setUpEmployees() {
-        test.execute("create table employees (" +
-                " name string, " +
-                " department string," +
-                " hired timestamp, " +
-                " age short," +
-                " income double, " +
-                " good boolean" +
-                ") with (number_of_replicas=0)");
-        test.ensureGreen();
-        test.execute("insert into employees (name, department, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
-                new Object[]{"dilbert", "engineering", "1985-01-01", 47, 4000.0, true});
-        test.execute("insert into employees (name, department, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
-                new Object[]{"wally", "engineering", "2000-01-01", 54, 6000.0, true});
-        test.execute("insert into employees (name, department, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
-                new Object[]{"pointy haired boss", "management", "2010-10-10", 45, Double.MAX_VALUE, false});
+        transportExecutor.exec("create table employees (" +
+            " name string, " +
+            " department string," +
+            " hired timestamp, " +
+            " age short," +
+            " income double, " +
+            " good boolean" +
+            ") with (number_of_replicas=0)");
+        transportExecutor.ensureGreen();
+        transportExecutor.exec("insert into employees (name, department, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
+            new Object[]{"dilbert", "engineering", "1985-01-01", 47, 4000.0, true});
+        transportExecutor.exec("insert into employees (name, department, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
+            new Object[]{"wally", "engineering", "2000-01-01", 54, 6000.0, true});
+        transportExecutor.exec("insert into employees (name, department, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
+            new Object[]{"pointy haired boss", "management", "2010-10-10", 45, Double.MAX_VALUE, false});
 
-        test.execute("insert into employees (name, department, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
-                new Object[]{"catbert", "HR", "1990-01-01", 12, 999999999.99, false});
-        test.execute("insert into employees (name, department, income) values (?, ?, ?)",
-                new Object[]{"ratbert", "HR", 0.50});
-        test.execute("insert into employees (name, department, age) values (?, ?, ?)",
-                new Object[]{"asok", "internship", 28});
-        test.refresh();
+        transportExecutor.exec("insert into employees (name, department, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
+            new Object[]{"catbert", "HR", "1990-01-01", 12, 999999999.99, false});
+        transportExecutor.exec("insert into employees (name, department, income) values (?, ?, ?)",
+            new Object[]{"ratbert", "HR", 0.50});
+        transportExecutor.exec("insert into employees (name, department, age) values (?, ?, ?)",
+            new Object[]{"asok", "internship", 28});
+        transportExecutor.refresh("employees");
     }
 
     public void setUpObjectTable() {
-        test.execute("create table ot (" +
-                "  title string," +
-                "  author object(dynamic) as (" +
-                "    name object(strict) as (" +
-                "      first_name string," +
-                "      last_name string" +
-                "    )," +
-                "    age integer" +
-                "  )," +
-                "  details object(ignored) as (" +
-                "    num_pages integer" +
-                "  )" +
-                ")");
-        test.execute("insert into ot (title, author, details) values (?, ?, ?)",
-                new Object[]{
-                    "The Hitchhiker's Guide to the Galaxy",
-                    new HashMap<String, Object>(){{
-                        put("name", new HashMap<String, Object>(){{
-                            put("first_name", "Douglas");
-                            put("last_name", "Adams");
-                        }});
-                        put("age", 49);
-                    }},
-                    new HashMap<String, Object>(){{
-                        put("num_pages", 224);
-                    }}
-                });
-        test.refresh();
+        transportExecutor.exec("create table ot (" +
+            "  title string," +
+            "  author object(dynamic) as (" +
+            "    name object(strict) as (" +
+            "      first_name string," +
+            "      last_name string" +
+            "    )," +
+            "    age integer" +
+            "  )," +
+            "  details object(ignored) as (" +
+            "    num_pages integer" +
+            "  )" +
+            ")");
+        transportExecutor.exec("insert into ot (title, author, details) values (?, ?, ?)",
+            new Object[]{
+                "The Hitchhiker's Guide to the Galaxy",
+                new HashMap<String, Object>() {{
+                    put("name", new HashMap<String, Object>() {{
+                        put("first_name", "Douglas");
+                        put("last_name", "Adams");
+                    }});
+                    put("age", 49);
+                }},
+                new HashMap<String, Object>() {{
+                    put("num_pages", 224);
+                }}
+            }
+        );
+        transportExecutor.refresh("ot");
     }
 
     public void setUpObjectMappingWithUnknownTypes() throws Exception {
-        test.prepareCreate("ut")
+        transportExecutor.prepareCreate("ut")
                 .setSettings(ImmutableSettings.builder().put("number_of_replicas", 0).put("number_of_shards", 2).build())
                 .addMapping(Constants.DEFAULT_MAPPING_TYPE, new HashMap<String, Object>(){{
                     put("properties", new HashMap<String, Object>(){{
@@ -247,12 +249,12 @@ public class Setup {
                         }});
                     }});
                 }}).execute().actionGet();
-        test.client().prepareIndex("ut", Constants.DEFAULT_MAPPING_TYPE, "id1")
+        transportExecutor.client().prepareIndex("ut", Constants.DEFAULT_MAPPING_TYPE, "id1")
                 .setSource("{\"name\":\"Berlin\",\"location\":\"52.5081,13.4416\", \"population\":3500000}")
                 .execute().actionGet();
-        test.client().prepareIndex("ut", Constants.DEFAULT_MAPPING_TYPE, "id2")
+        transportExecutor.client().prepareIndex("ut", Constants.DEFAULT_MAPPING_TYPE, "id2")
                 .setSource("{\"name\":\"Dornbirn\",\"location\":\"47.3904,9.7562\", \"population\":46080}")
                 .execute().actionGet();;
-        test.refresh();
+        transportExecutor.refresh("ut");
     }
 }

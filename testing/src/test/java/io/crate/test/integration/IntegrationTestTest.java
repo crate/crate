@@ -30,14 +30,7 @@ public class IntegrationTestTest extends DoctestClusterTestCase {
     }
 
     @Test
-    public void testBlobIndexGetsCreated() throws Exception {
-        createBlobIndex("blobby");
-        assert (clusterService().state().getMetaData().indices().containsKey("blobby"));
-    }
-
-    @Test
     public void testReadme() throws Exception {
         execDocFile("README.txt", getClass());
     }
-
 }
