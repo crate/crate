@@ -21,13 +21,32 @@
 
 package io.crate.metadata;
 
-import io.crate.planner.RowGranularity;
-import io.crate.planner.symbol.Reference;
+import com.google.common.collect.Lists;
 import io.crate.DataType;
+import io.crate.planner.RowGranularity;
+import io.crate.planner.symbol.Function;
+import io.crate.planner.symbol.Reference;
+import io.crate.planner.symbol.Symbol;
+import io.crate.planner.symbol.ValueSymbol;
+
+import javax.annotation.Nullable;
+import java.util.List;
 
 public class TestingHelpers {
 
 
+    public static Function createFunction(String functionName, DataType returnType, List<Symbol> arguments) {
+        List<DataType> dataTypes = Lists.transform(arguments, new com.google.common.base.Function<Symbol, DataType>() {
+            @Nullable
+            @Override
+            public DataType apply(@Nullable Symbol input) {
+                assert input instanceof ValueSymbol;
+                return ((ValueSymbol) input).valueType();
+            }
+        });
+        return new Function(
+                new FunctionInfo(new FunctionIdent(functionName, dataTypes), returnType), arguments);
+    }
 
     public static Reference createReference(String columnName, DataType dataType) {
         return createReference("dummyTable", new ColumnIdent(columnName), dataType);

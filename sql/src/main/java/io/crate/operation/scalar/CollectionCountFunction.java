@@ -39,7 +39,7 @@ public class CollectionCountFunction implements Scalar<Long, Set<DataType>> {
 
     public static void register(ScalarFunctionModule mod) {
         for (DataType t : DataType.SET_TYPES) {
-            mod.registerScalarFunction(
+            mod.register(
                     new CollectionCountFunction(
                             new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), DataType.LONG))
             );

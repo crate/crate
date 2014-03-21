@@ -35,7 +35,7 @@ public class DateTruncTimeZoneAwareFunction extends BaseDateTruncFunction {
     public static void register(ScalarFunctionModule module) {
         FunctionIdent timestampFunctionIdent = new FunctionIdent(NAME,
                 ImmutableList.of(DataType.STRING, DataType.STRING, DataType.TIMESTAMP));
-        module.registerScalarFunction(new DateTruncTimeZoneAwareFunction(
+        module.register(new DateTruncTimeZoneAwareFunction(
                 new FunctionInfo(timestampFunctionIdent, DataType.TIMESTAMP)));
     }
 

@@ -24,6 +24,7 @@ package io.crate.executor.transport.merge;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.transport.distributed.DistributedRequestContextManager;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
+import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -67,6 +68,7 @@ public class DistributedResultRequestTest {
         @Override
         protected void configure() {
             MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
+            MapBinder.newMapBinder(binder(), String.class, DynamicFunctionResolver.class);
         }
     }
 

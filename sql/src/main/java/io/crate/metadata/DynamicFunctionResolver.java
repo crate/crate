@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *  http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,13 +21,20 @@
 
 package io.crate.metadata;
 
-import io.crate.operation.Input;
+import io.crate.DataType;
 import io.crate.planner.symbol.Function;
 
+import java.util.List;
+
 /**
- * evaluatable function implementation
- * @param <ReturnType> the class of the returned value
+ * resolver for methods that take a variable number of arguments or work with a lots of different arguments
  */
-public interface Scalar<ReturnType, InputType> extends FunctionImplementation<Function> {
-    public ReturnType evaluate(Input<InputType>... args);
+public interface DynamicFunctionResolver {
+
+    /**
+     * returns the function implementation for the given types.
+     *
+     * @throws java.lang.IllegalArgumentException thrown if there is no function that can handle the given types.
+     */
+    public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException;
 }

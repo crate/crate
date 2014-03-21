@@ -21,6 +21,7 @@
 
 package io.crate.operation.aggregation.impl;
 
+import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.aggregation.AggregationFunction;
@@ -38,6 +39,10 @@ public class AggregationImplModule extends AbstractModule {
     @Override
     protected void configure() {
         functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
+        // currently there are no dynamic aggregation functions, but the binder need to exist
+        // so that guice can create the Functions class
+        MapBinder.newMapBinder(binder(), String.class, DynamicFunctionResolver.class);
+
         AverageAggregation.register(this);
         MinimumAggregation.register(this);
         MaximumAggregation.register(this);

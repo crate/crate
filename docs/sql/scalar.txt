@@ -5,10 +5,20 @@
 Scalar Functions
 ================
 
+Scalar functions return a single data value (not a table).
+
+.. note::
+
+    Crate can currently only execute scalar functions if used together with the
+    GROUP BY clause or if querying tables inside a system schema (either "sys"
+    or "information_schema")
+
+See below for a list of available scalar functions.
+
 .. _scalar-date-trunc:
 
-date_trunc('interval', ['timezone',] timestamp)
-===============================================
+date_trunc('interval', ['timezone',] timestamp) returns timestamp
+=================================================================
 
 The ``date_trunc`` function truncates a timestamp to a given interval
 for a specific timezone.
@@ -70,11 +80,35 @@ If the time zone is not specified, truncation is based on UTC time::
     SELECT 3 rows in set (... sec)
 
 
-.. Note::
-
-    Currently scalar functions, such as ``date_trunc``, can only be used in
-    the ``GROUP BY`` and ``ORDER BY`` clauses.
-
 .. _`available time zones`: http://www.joda.org/joda-time/timezones.html
 
 .. _`Joda-Time`: http://www.joda.org/joda-time/
+
+format('format_string', parameter, [ parameter , ... ]) returns string
+======================================================================
+
+The ``format`` function takes a format string and a variable number of
+arguments and returns a formatted string::
+
+    cr> select format('%s.%s', schema_name, table_name) from sys.shards
+    ... where table_name = 'locations'
+    ... limit 1
+    +------------------------------------------+
+    | format('%s.%s', schema_name, table_name) |
+    +------------------------------------------+
+    | doc.locations                            |
+    +------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+    cr> select format('%tY', date) from locations group by format('%tY', date)
+    +---------------------+
+    | format('%tY', date) |
+    +---------------------+
+    | 2013                |
+    | 1979                |
+    +---------------------+
+    SELECT 2 rows in set (... sec)
+
+For details about the format string syntax see `formatter`_
+
+.. _`formatter`: http://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
