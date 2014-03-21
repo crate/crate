@@ -29,7 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 2)
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
 
     private boolean createdTables = false;
