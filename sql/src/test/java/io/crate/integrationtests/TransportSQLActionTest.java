@@ -686,6 +686,49 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     @SuppressWarnings("unchecked")
+    public void testArrayInsideObjectArray() throws Exception {
+        execute("create table t1 (id int primary key, details array(object as (names array(string)))) with (number_of_replicas=0)");
+        ensureGreen();
+
+        Map<String, Object> detail1 = new HashMap<>();
+        detail1.put("names", new Object[]{"Arthur", "Trillian"});
+
+        Map<String, Object> detail2 = new HashMap<>();
+        detail2.put("names", new Object[]{"Ford", "Slarti"});
+
+        List<Map<String, Object>> details = Arrays.asList(detail1, detail2);
+
+        execute("insert into t1 (id, details) values (?, ?)", new Object[]{1, details});
+        refresh();
+
+        execute("select details['names'] from t1");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(((List<List<String>>)response.rows()[0][0]).get(0), is(Arrays.asList("Arthur", "Trillian")));
+        assertThat(((List<List<String>>)response.rows()[0][0]).get(1), is(Arrays.asList("Ford", "Slarti")));
+    }
+
+    @Test
+    public void testFullPathRequirement() throws Exception {
+        // verifies that the "fullPath" setting in the es mapping is no longer required
+        execute("create table t1 (id int primary key, details object as (id int, more_details object as (id int))) with (number_of_replicas=0)");
+        ensureGreen();
+
+        Map<String, Object> more_details = new HashMap<>();
+        more_details.put("id", 2);
+
+        Map<String, Object> details = new HashMap<>();
+        details.put("id", 1);
+        details.put("more_details", more_details);
+
+        execute("insert into t1 (id, details) values (2, ?)", new Object[] { details });
+        execute("refresh table t1");
+
+        execute("select details from t1 where details['id'] = 2");
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     public void testArraySupportWithNullValues() throws Exception {
         execute("create table t1 (id int primary key, strings array(string)) with (number_of_replicas=0)");
         ensureGreen();
@@ -2840,7 +2883,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("insert into test (id, name) values (0, 'Trillian'), (1, 'Ford'), (2, 'Zaphod')");
         execute("select count(*) from test");
-        assertThat((Long)response.rows()[0][0], lessThan(3L));
+        assertThat((Long) response.rows()[0][0], lessThan(3L));
 
         execute("refresh table test");
         assertFalse(response.hasRowCount());
@@ -2903,7 +2946,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         // Validate generated _id, must be: <generatedRandom>
         assertNotNull(response.rows()[0][0]);
-        assertThat(((String)response.rows()[0][0]).length(), greaterThan(0));
+        assertThat(((String) response.rows()[0][0]).length(), greaterThan(0));
     }
 
     @Test
@@ -2953,8 +2996,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select \"_id\", id from quotes where id=1 and author='Ford'");
         assertEquals(1L, response.rowCount());
-        assertThat((String)response.rows()[0][0], is("AgExBEZvcmQ="));
-        assertThat((Integer)response.rows()[0][1], is(1));
+        assertThat((String) response.rows()[0][0], is("AgExBEZvcmQ="));
+        assertThat((Integer) response.rows()[0][1], is(1));
     }
 
     @Test
@@ -2968,8 +3011,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select \"_id\", id from quotes where id=1 and author='Ford'");
         assertEquals(1L, response.rowCount());
-        assertThat((String)response.rows()[0][0], is("AgRGb3JkATE="));
-        assertThat((Integer)response.rows()[0][1], is(1));
+        assertThat((String) response.rows()[0][0], is("AgRGb3JkATE="));
+        assertThat((Integer) response.rows()[0][1], is(1));
     }
 
     @Test
@@ -2986,8 +3029,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertEquals(2L, response.rowCount());
         assertThat((String)response.rows()[0][0], is("AgdEb3VnbGFzATE="));
         assertThat((Integer)response.rows()[0][1], is(1));
-        assertThat((String)response.rows()[1][0], is("AgRGb3JkATE="));
-        assertThat((Integer)response.rows()[1][1], is(1));
+        assertThat((String) response.rows()[1][0], is("AgRGb3JkATE="));
+        assertThat((Integer) response.rows()[1][1], is(1));
     }
 
     @Test
@@ -3005,7 +3048,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select quote from quotes where id=1 and author='Ford'");
         assertEquals(1L, response.rowCount());
-        assertThat((String)response.rows()[0][0], is("Don't panic"));
+        assertThat((String) response.rows()[0][0], is("Don't panic"));
     }
 
     @Test

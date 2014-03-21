@@ -39,13 +39,13 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
 
     private final ImmutableSettings.Builder indexSettingsBuilder = ImmutableSettings.builder();
     private final Map<String, Object> mappingProperties = new HashMap<>();
-    private final Map<String, Object> metaColumns = new HashMap<>();
     private final Map<String, Object> metaIndices = new HashMap<>();
     private final List<String> primaryKeys = new ArrayList<>();
 
-    private final Stack<Map<String, Object>> propertiesStack = new Stack<>();
     private final Map<String, Object> mapping = new HashMap<>();
     private final Map<String, Set<String>> copyTo = new HashMap<>();
+
+    private final Stack<ColumnSchema> schemaStack = new Stack<>();
 
 
     /**
@@ -65,9 +65,6 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
     private final ReferenceInfos referenceInfos;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
-    private String currentColumnName;
-    private Map<String, Object> currentMetaColumnDefinition = new HashMap<>();
-
     public CreateTableAnalysis(ReferenceInfos referenceInfos,
                                FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                Object[] parameters) {
@@ -75,6 +72,7 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
         this.referenceInfos = referenceInfos;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
 
+        Map<String, Object> metaColumns = new HashMap<>();
         crateMeta = new HashMap<>();
         crateMeta.put("primary_keys", primaryKeys);
         crateMeta.put("columns", metaColumns);
@@ -84,7 +82,7 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
         mapping.put("properties", mappingProperties);
         mapping.put("_all", ImmutableMap.of("enabled", false));
 
-        propertiesStack.push(mappingProperties);
+        schemaStack.push(new ColumnSchema(null, mappingProperties, metaColumns));
     }
 
     @Override
@@ -134,40 +132,6 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
         return indexSettingsBuilder.build();
     }
 
-    public void addColumnDefinition(String columnName,
-                                    Map<String, Object> columnDefinition) {
-        currentMetaColumnDefinition = new HashMap<>();
-        metaColumns.put(columnName, currentMetaColumnDefinition);
-        currentColumnName = columnName;
-        currentColumnDefinition().put(columnName, columnDefinition);
-        propertiesStack.push(columnDefinition);
-    }
-
-    public void addIndexDefinition(String name,
-                                   Map<String, Object> columnDefinition) {
-        currentColumnName = name;
-        currentColumnDefinition().put(name, columnDefinition);
-        propertiesStack.push(columnDefinition);
-
-        if (metaIndices.containsKey(name)) {
-            throw new IllegalArgumentException(
-                    String.format("the index name \"%s\" is already in use!", name));
-        }
-        metaIndices.put(name, new HashMap<>());
-    }
-
-    public Map<String, Object> currentMetaColumnDefinition() {
-        return currentMetaColumnDefinition;
-    }
-
-    public Map<String, Object> currentColumnDefinition() {
-        return propertiesStack.peek();
-    }
-
-    public String currentColumnName() {
-        return currentColumnName;
-    }
-
     public Map<String, Object> mappingProperties() {
         return mappingProperties;
     }
@@ -186,10 +150,6 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
 
     public Map<String, Object> metaMapping() {
         return crateMeta;
-    }
-
-    public Stack<Map<String, Object>> propertiesStack() {
-        return propertiesStack;
     }
 
     public void addCopyTo(String sourceColumn, String targetColumn) {
@@ -233,4 +193,63 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
         return true;
     }
 
+    public ColumnSchema pushColumn(String ident) {
+        ColumnSchema columnSchema = schemaStack.peek();
+        Map<String, Object> esMapping = new HashMap<>();
+        Map<String, Object> crateMeta = new HashMap<>();
+        columnSchema.crateMeta.put(ident, crateMeta);
+        columnSchema.esMapping.put(ident, esMapping);
+
+        return schemaStack.push(new ColumnSchema(ident, esMapping, crateMeta));
+    }
+
+    public ColumnSchema pushIndex(String ident) {
+        if (metaIndices.containsKey(ident)) {
+            throw new IllegalArgumentException(
+                    String.format("the index name \"%s\" is already in use!", ident));
+        }
+        metaIndices.put(ident, ImmutableMap.of());
+        ColumnSchema columnSchema = schemaStack.peek();
+        Map<String, Object> esMapping = new HashMap<>();
+        columnSchema.esMapping.put(ident, esMapping);
+
+        return schemaStack.push(new ColumnSchema(ident, esMapping, null));
+    }
+
+    public Map<String, Object> currentColumnDefinition() {
+        return schemaStack.peek().esMapping;
+    }
+
+    public Map<String, Object> currentMetaColumnDefinition() {
+        return schemaStack.peek().crateMeta;
+    }
+
+    public String currentColumnName() {
+        return schemaStack.peek().name;
+    }
+
+    public ColumnSchema pop() {
+        return schemaStack.pop();
+    }
+
+    public ColumnSchema pushNestedProperties() {
+        ColumnSchema currentSchema = schemaStack.peek();
+        Map<String, Object> nestedProperties = new HashMap<>();
+        Map<String, Object> nestedMetaProperties = new HashMap<>();
+        currentSchema.esMapping.put("properties", nestedProperties);
+        currentSchema.crateMeta.put("properties", nestedMetaProperties);
+        return schemaStack.push(new ColumnSchema(null, nestedProperties, nestedMetaProperties));
+    }
+
+    class ColumnSchema {
+        final String name;
+        final Map<String, Object> crateMeta;
+        final Map<String, Object> esMapping;
+
+        public ColumnSchema(String name, Map<String, Object> esMapping, Map<String, Object> crateMeta) {
+            this.name = name;
+            this.esMapping = esMapping;
+            this.crateMeta = crateMeta;
+        }
+    }
 }

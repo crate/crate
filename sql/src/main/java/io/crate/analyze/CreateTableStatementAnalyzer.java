@@ -97,37 +97,37 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
             throw new IllegalArgumentException("Column ident must not start with '_'");
         }
 
-        Map<String, Object> columnDefinition = new HashMap<>();
-        context.addColumnDefinition(node.ident(), columnDefinition);
-        columnDefinition.put("store", false);
+        CreateTableAnalysis.ColumnSchema schema = context.pushColumn(node.ident());
+        schema.esMapping.put("store", false);
 
         for (ColumnConstraint columnConstraint : node.constraints()) {
             process(columnConstraint, context);
         }
-        if (!columnDefinition.containsKey("index")) {
+        if (!schema.esMapping.containsKey("index")) {
             // not set by the column constraints -> use default
-            columnDefinition.put("index", "not_analyzed");
+            schema.esMapping.put("index", "not_analyzed");
         }
 
         process(node.type(), context);
-        context.propertiesStack().pop();
+
+        context.pop();
 
         return null;
     }
 
     @Override
     public Void visitIndexDefinition(IndexDefinition node, CreateTableAnalysis context) {
-        Map<String, Object> columnDefinition = new HashMap<>();
-        context.addIndexDefinition(node.ident(), columnDefinition);
+        CreateTableAnalysis.ColumnSchema columnSchema = context.pushIndex(node.ident());
 
-        columnDefinition.put("store", false);
-        columnDefinition.put("type", "string");
-        setAnalyzer(columnDefinition, node.properties(), context);
+        columnSchema.esMapping.put("store", false);
+        columnSchema.esMapping.put("type", "string");
+        setAnalyzer(columnSchema.esMapping, node.properties(), context);
 
         for (Expression expression : node.columns()) {
             String expressionName = expressionVisitor.process(expression, null).toString();
             context.addCopyTo(expressionName, node.ident());
         }
+        context.pop();
 
         return null;
     }
@@ -156,8 +156,6 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
     @Override
     public Void visitObjectColumnType(ObjectColumnType node, CreateTableAnalysis context) {
         context.currentColumnDefinition().put("type", node.name());
-        Map<String, Object> nestedProperties = new HashMap<>();
-        context.currentColumnDefinition().put("properties", nestedProperties);
 
         switch (node.objectType().or("dynamic").toLowerCase(Locale.ENGLISH)) {
             case "dynamic":
@@ -171,11 +169,11 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
                 break;
         }
 
-        context.propertiesStack().push(nestedProperties);
+        context.pushNestedProperties();
         for (ColumnDefinition columnDefinition : node.nestedColumns()) {
             process(columnDefinition, context);
         }
-        context.propertiesStack().pop();
+        context.pop();
 
         return null;
     }

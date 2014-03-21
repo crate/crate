@@ -214,8 +214,8 @@ public class DocIndexMetaData {
         }
 
         List<String> path = new ArrayList<>(columnIdent.path());
-        path.add(0, columnIdent.name());
         path.add(0, columnName);
+        path.add(0, columnIdent.name());
         return getCollectionTypeFromNested(path);
     }
 
@@ -227,11 +227,19 @@ public class DocIndexMetaData {
                 break;
             }
             assert o instanceof Map;
-            metaColumn = (Map)o;
+            metaColumn = (Map) ((Map) o).get("properties");
             path = path.subList(1, path.size());
         }
+        if (metaColumn == null) {
+            return Optional.absent();
+        }
 
-        Object collection_type = metaColumn.get("collection_type");
+        Object o = metaColumn.get(path.get(0));
+        if (o == null) {
+            return Optional.absent();
+        }
+        assert o instanceof Map;
+        Object collection_type = ((Map)o).get("collection_type");
         if (collection_type != null) {
             return Optional.of(collection_type.toString());
         }
