@@ -28,6 +28,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.ValidationException;
+import io.crate.test.integration.CrateIntegrationTest;
 import org.elasticsearch.client.Client;
 import org.junit.Rule;
 import org.junit.Test;
@@ -41,6 +42,7 @@ import java.util.Map;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
 
     @Rule

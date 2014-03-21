@@ -46,7 +46,7 @@ import java.util.List;
 
 import static org.hamcrest.core.Is.is;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 1)
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     static {
@@ -73,7 +73,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         collectNode.maxRowGranularity(RowGranularity.CLUSTER);
         Object[][] result = operation.collect(collectNode).get();
         assertThat(result.length, is(1));
-        assertTrue(((BytesRef) result[0][0]).utf8ToString().startsWith("SUITE"));
+        assertTrue(((BytesRef) result[0][0]).utf8ToString().startsWith("shared-"));
     }
 
     @Test
