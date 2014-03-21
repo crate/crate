@@ -5,6 +5,8 @@ Changes for Crate Data
 unreleased
 ==========
 
+ - optimize sets of compound primary keys in where clause to multi gets
+
  - fixed schema creation for nested objects.
 
  - added the ``format`` scalar function.
