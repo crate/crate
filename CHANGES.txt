@@ -5,6 +5,8 @@ Changes for Crate Data
 unreleased
 ==========
 
+ - fixed schema creation for nested objects.
+
  - added the ``format`` scalar function.
 
  - support primary key constraint with multiple columns
