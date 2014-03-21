@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.crate.DataType;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
@@ -36,7 +37,6 @@ import io.crate.planner.symbol.LongLiteral;
 import io.crate.planner.symbol.Symbol;
 import io.crate.sql.parser.SqlParser;
 import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;

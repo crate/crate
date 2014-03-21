@@ -9,7 +9,8 @@ Synopsis
 
 .. code-block:: sql
 
-   SELECT * | expression [ [ AS ] output_name ] [, ...] FROM table_ident
+   SELECT [ ALL | DISTINCT ] * | expression [ [ AS ] output_name ] [, ...]
+     FROM table_ident
      [ WHERE condition ]
      [ GROUP BY expression [, ...] ]
      [ ORDER BY expression [ ASC | DESC ] [, ...] ]
@@ -39,6 +40,9 @@ is as follows:
   the specified order. If ORDER BY is not given, the rows are returned
   in whatever order the system finds fastest to produce.
 
+- If DISTINCT is specified, one unique row is kept. All other
+  duplicate rows are removed from the result set.
+
 - If the LIMIT or OFFSET clause is specified, the SELECT statement
   only returns a subset of the result rows.
 
@@ -54,7 +58,7 @@ columns computed in the FROM clause.
 
 .. code-block:: sql
 
-    SELECT * | expression [ [ AS ] output_name ] [, ...]
+    SELECT [ ALL | DISTINCT ] * | expression [ [ AS ] output_name ] [, ...]
 
 Just as in a table, every output column of a SELECT has a name. In a
 simple SELECT this name is just used to label the column for
