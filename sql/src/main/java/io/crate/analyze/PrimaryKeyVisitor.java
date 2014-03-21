@@ -24,13 +24,13 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import io.crate.DataType;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.InOperator;
 import io.crate.operation.operator.OrOperator;
 import io.crate.planner.symbol.*;
-import io.crate.DataType;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -71,7 +71,7 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
         public boolean invalid = false;
         public boolean versionInvalid = false;
 
-        private List<Literal> keyLiterals;
+        private List keyLiterals;
         private Long version;
         private Literal clusteredBy;
         public boolean noMatch = false;
@@ -82,8 +82,15 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
             newBucket();
         }
 
+        /**
+         * For compound primary keys we cannot use (array)literals here,
+         * because primary key literals can differ in type.
+         * We must return a nested list of primitive literals in such cases.
+         *
+         * @return
+         */
         @Nullable
-        public List<Literal> keyLiterals() {
+        public List keyLiterals() {
             return keyLiterals;
         }
 
@@ -135,8 +142,31 @@ public class PrimaryKeyVisitor extends SymbolVisitor<PrimaryKeyVisitor.Context, 
                     }
                     keyLiterals = Arrays.<Literal>asList(SetLiteral.fromLiterals(keyType, keys));
                 } else {
-                    // TODO: generate keyLiterals from bucket
-                    // if all buckets have partsFound == table.primaryKey().size()
+                    // support compound primary keys
+                    for (int b=0; b<buckets.size();b++) {
+                        KeyBucket bucket = buckets.get(b);
+                        if (bucket.partsFound == table.primaryKey().size()) {
+                            if (keyLiterals == null) {
+                                keyLiterals = new ArrayList<List>();
+                            }
+                            List keys = new ArrayList<Object>();
+                            keyLiterals.add(keys);
+                            for (int i=0; i<bucket.keyParts.length; i++) {
+                                Literal keyPart = bucket.keyParts[i];
+                                if (keyPart != null) {
+                                    if (keyPart.symbolType() != SymbolType.SET_LITERAL) {
+                                        keys.add(keyPart);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (keyLiterals != null && keyLiterals.size() != buckets.size()) {
+                        // not all parts of all buckets found
+                        keyLiterals = null;
+                    }
+
                 }
             }
         }

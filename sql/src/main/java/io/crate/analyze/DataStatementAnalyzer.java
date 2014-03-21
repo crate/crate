@@ -368,42 +368,56 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                     whereClause.version(pkc.version());
 
                     if (pkc.keyLiterals() != null) {
-                        List<List<String>> primaryKeyValuesList = new ArrayList<>(pkc.keyLiterals().size());
-                        primaryKeyValuesList.add(new ArrayList<String>(context.table().primaryKey().size()));
-
-                        for (int i=0; i<pkc.keyLiterals().size(); i++) {
-                            Literal primaryKey = pkc.keyLiterals().get(i);
-
-                            // support e.g. pk IN (Value..,)
-                            if (primaryKey.symbolType() == SymbolType.SET_LITERAL) {
-                                Set<Literal> literals = ((SetLiteral) primaryKey).literals();
-                                Iterator<Literal> literalIterator = literals.iterator();
-                                for (int s=0; s<literals.size(); s++) {
-                                    Literal pk = literalIterator.next();
-                                    if (s >= primaryKeyValuesList.size()) {
-                                        // copy already parsed pk values, so we have all possible multiple pk for all sets
-                                        primaryKeyValuesList.add(Lists.newArrayList(primaryKeyValuesList.get(s - 1)));
-                                    }
-                                    List<String> primaryKeyValues = primaryKeyValuesList.get(s);
-                                    if (primaryKeyValues.size() > i) {
-                                        primaryKeyValues.set(i, pk.valueAsString());
-                                    } else {
-                                        primaryKeyValues.add(pk.valueAsString());
-                                    }
-                                }
-                            } else {
-                                for (List<String> primaryKeyValues : primaryKeyValuesList) {
-                                    primaryKeyValues.add(primaryKey.valueAsString());
-                                }
-                            }
-                        }
-
-                        for (List<String> primaryKeyValues : primaryKeyValuesList) {
-                            context.addIdAndRouting(primaryKeyValues, pkc.clusteredBy());
-                        }
+                        processPrimaryKeyLiterals(pkc.keyLiterals(), context);
                     }
                 }
             }
+        }
+    }
+
+    protected void processPrimaryKeyLiterals(List primaryKeyLiterals, T context) {
+        List<List<String>> primaryKeyValuesList = new ArrayList<>(primaryKeyLiterals.size());
+        primaryKeyValuesList.add(new ArrayList<String>(context.table().primaryKey().size()));
+
+        for (int i=0; i<primaryKeyLiterals.size(); i++) {
+            Object primaryKey = primaryKeyLiterals.get(i);
+
+            if (primaryKey instanceof Literal) {
+                // support e.g. pk IN (Value..,)
+                if (((Literal)primaryKey).symbolType() == SymbolType.SET_LITERAL) {
+                    Set<Literal> literals = ((SetLiteral) primaryKey).literals();
+                    Iterator<Literal> literalIterator = literals.iterator();
+                    for (int s=0; s<literals.size(); s++) {
+                        Literal pk = literalIterator.next();
+                        if (s >= primaryKeyValuesList.size()) {
+                            // copy already parsed pk values, so we have all possible multiple pk for all sets
+                            primaryKeyValuesList.add(Lists.newArrayList(primaryKeyValuesList.get(s - 1)));
+                        }
+                        List<String> primaryKeyValues = primaryKeyValuesList.get(s);
+                        if (primaryKeyValues.size() > i) {
+                            primaryKeyValues.set(i, pk.valueAsString());
+                        } else {
+                            primaryKeyValues.add(pk.valueAsString());
+                        }
+                    }
+                } else {
+                    for (List<String> primaryKeyValues : primaryKeyValuesList) {
+                        primaryKeyValues.add(((Literal)primaryKey).valueAsString());
+                    }
+                }
+            } else if (primaryKey instanceof List) {
+                primaryKey = Lists.transform((List<Literal>) primaryKey, new com.google.common.base.Function<Literal, String>() {
+                    @Override
+                    public String apply(Literal input) {
+                        return input.valueAsString();
+                    }
+                });
+                primaryKeyValuesList.add((List<String>) primaryKey);
+            }
+        }
+
+        for (List<String> primaryKeyValues : primaryKeyValuesList) {
+            context.addIdAndRouting(primaryKeyValues, context.whereClause().clusteredBy().orNull());
         }
     }
 

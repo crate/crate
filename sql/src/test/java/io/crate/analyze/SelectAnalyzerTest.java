@@ -485,9 +485,18 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testMultipleCompoundPrimaryKeys() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze(
-            "select * from sys.shards where (id = 1 and table_name = 'foo') or (id = 2 and table_name = 'bla')");
+            "select * from sys.shards where (schema_name='doc' and id = 1 and table_name = 'foo') " +
+                    "or (schema_name='doc' and id = 2 and table_name = 'bla')");
+        assertEquals(ImmutableList.of("AwNkb2MDZm9vATE=", "AwNkb2MDYmxhATI="), analysis.ids());
+        assertEquals(ImmutableList.of("AwNkb2MDZm9vATE=", "AwNkb2MDYmxhATI="), analysis.routingValues());
+        assertFalse(analysis.whereClause().clusteredBy().isPresent());
+
+        analysis = (SelectAnalysis)analyze(
+            "select * from sys.shards where (schema_name='doc' and id = 1 and table_name = 'foo') " +
+                    "or (schema_name='doc' and id = 2 and table_name = 'bla') or id = 1");
         assertEquals(ImmutableList.of(), analysis.ids());
         assertEquals(ImmutableList.of(), analysis.routingValues());
+        assertFalse(analysis.whereClause().clusteredBy().isPresent());
     }
 
     @Test
