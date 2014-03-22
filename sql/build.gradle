@@ -39,6 +39,11 @@ test {
     outputs.upToDateWhen { false }
 
     exclude('io/crate/module/sql/benchmark/**')
+
+    // allow to set the number of test forks from the CLI
+    if (project.hasProperty('testForks')) {
+        maxParallelForks = project.testForks as int
+    }
 }
 
 

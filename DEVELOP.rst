@@ -167,6 +167,12 @@ Unit tests can be run like this::
 
   $ ./gradlew test
 
+It is also possible to run tests in parallel in order to speed up
+execution time by setting the project property ``testForks`` like
+this::
+
+  $ ./gradlew test -PtestForks=5
+
 Benchmark
 =========
 
