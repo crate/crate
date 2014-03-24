@@ -45,7 +45,7 @@ public class SymbolFormatterTest {
         Function f = new Function(new FunctionInfo(
                 new FunctionIdent("foo", Arrays.asList(DataType.STRING, DataType.DOUBLE)), DataType.DOUBLE, false),
                 Arrays.<Symbol>asList(new StringLiteral("bar"), new DoubleLiteral(3.4)));
-        assertFormat(f, "double foo(string, double)");
+        assertFormat(f, "foo(string, double)");
     }
 
     @Test
@@ -53,7 +53,7 @@ public class SymbolFormatterTest {
         Function f = new Function(new FunctionInfo(
                 new FunctionIdent("baz", ImmutableList.<DataType>of()), DataType.DOUBLE, false),
                 ImmutableList.<Symbol>of());
-        assertFormat(f, "double baz()");
+        assertFormat(f, "baz()");
     }
 
     @Test
@@ -62,7 +62,7 @@ public class SymbolFormatterTest {
                 new FunctionIdent("agg", Arrays.asList(DataType.INTEGER)), DataType.LONG, true
         ), Arrays.<Symbol>asList(new IntegerLiteral(-127)), Aggregation.Step.ITER, Aggregation.Step.PARTIAL);
 
-        assertFormat(a, "long agg(integer)");
+        assertFormat(a, "agg(integer)");
     }
 
     @Test
@@ -135,7 +135,7 @@ public class SymbolFormatterTest {
         Function f = new Function(new FunctionInfo(
                 new FunctionIdent("foo", Arrays.asList(DataType.STRING, DataType.NULL)), DataType.DOUBLE, false),
                 Arrays.<Symbol>asList(new StringLiteral("bar"), new DoubleLiteral(3.4)));
-        assertThat(SymbolFormatter.format("This Symbol is formatted %s", f), is("This Symbol is formatted double foo(string, null)"));
+        assertThat(SymbolFormatter.format("This Symbol is formatted %s", f), is("This Symbol is formatted foo(string, null)"));
     }
 
     @Test
