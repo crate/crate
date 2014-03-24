@@ -75,7 +75,8 @@ public class SymbolFormatter extends SymbolVisitor<Void, String> {
     @Override
     public String visitReference(Reference symbol, Void context) {
         StringBuilder builder = new StringBuilder();
-        if (!symbol.info().ident().tableIdent().schema().equals(DocSchemaInfo.NAME)) {
+        String schema = symbol.info().ident().tableIdent().schema();
+        if (schema != null && !schema.equals(DocSchemaInfo.NAME)) {
             builder.append(symbol.info().ident().tableIdent().schema()).append(".");
         }
         return builder.append(symbol.info().ident().tableIdent().name())

@@ -664,6 +664,10 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         assertSame(collectSet, innerFunction);
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testSelectAggregationMissingGroupBy() {
+        analyze("select name, count(id) from users");
+    }
 
     @Test
     public void testInsertMultipleValues() throws Exception {
