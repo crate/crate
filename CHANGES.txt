@@ -5,6 +5,8 @@ Changes for Crate Data
 unreleased
 ==========
 
+ - ``PARTITIONED BY`` parser support
+
  - fix: prevent select or filter of system columns if query has not a
    group-by or global aggregate clause and used table is not a system table
 

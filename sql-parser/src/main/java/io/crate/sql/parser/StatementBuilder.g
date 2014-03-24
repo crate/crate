@@ -704,11 +704,11 @@ alterTable returns [Statement value]
 
 
 createTable returns [Statement value]
-    : ^(CREATE_TABLE namedTable tableElementList clusteredBy? genericProperties?)
+    : ^(CREATE_TABLE namedTable tableElementList crateTableOptionList genericProperties?)
         {
             $value = new CreateTable($namedTable.value,
                                      $tableElementList.value,
-                                     $clusteredBy.value,
+                                     $crateTableOptionList.value,
                                      $genericProperties.value);
         }
     ;
@@ -809,14 +809,23 @@ primaryKeyConstraint returns [PrimaryKeyConstraint value]
     : ^(PRIMARY_KEY columnList) { $value = new PrimaryKeyConstraint($columnList.value); }
     ;
 
+crateTableOptionList returns [List<CrateTableOption> value = new ArrayList()]
+    : ( crateTableOption { $value.add( $crateTableOption.value ); } )*
+    ;
+
+crateTableOption returns [CrateTableOption value]
+    : clusteredBy   { $value = $clusteredBy.value; }
+    | partitionedBy { $value = $partitionedBy.value; }
+    ;
+
 clusteredBy returns [ClusteredBy value]
     : ^(CLUSTERED integer) { $value = new ClusteredBy(null, $integer.value); }
     | ^(CLUSTERED subscript integer?) { $value = new ClusteredBy($subscript.value, $integer.value); }
     | ^(CLUSTERED qname integer?) { $value = new ClusteredBy(new QualifiedNameReference($qname.value), $integer.value); }
     ;
 
-replicas returns [Integer value]
-    : ^(REPLICAS integer) { $value = Integer.parseInt($integer.value); }
+partitionedBy returns [PartitionedBy value]
+    : ^(PARTITIONED columns=columnIdentList) { $value = new PartitionedBy($columns.value); }
     ;
 
 

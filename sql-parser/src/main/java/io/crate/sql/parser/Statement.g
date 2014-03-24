@@ -766,8 +766,13 @@ createBlobTableStmt
 createTableStmt
     : CREATE TABLE table
       tableElementList
-      clusteredBy?
-      (WITH '(' genericProperties ')' )? -> ^(CREATE_TABLE table tableElementList clusteredBy? genericProperties?)
+      crateTableOption*
+      (WITH '(' genericProperties ')' )? -> ^(CREATE_TABLE table tableElementList crateTableOption* genericProperties?)
+    ;
+
+crateTableOption
+    : clusteredBy
+    | partitionedBy
     ;
 
 tableElementList
@@ -872,8 +877,8 @@ clusteredBy
     : CLUSTERED (BY '(' subscript ')' )? (INTO integer SHARDS)? -> ^(CLUSTERED subscript? integer?)
     ;
 
-replicas
-    : REPLICAS integer -> ^(REPLICAS integer)
+partitionedBy
+    : PARTITIONED BY columnList -> ^(PARTITIONED columnList)
     ;
 
 
@@ -926,9 +931,9 @@ nonReserved
     | TABLESAMPLE | SYSTEM | BERNOULLI
     | DYNAMIC | STRICT | IGNORED
     | PLAIN | FULLTEXT | OFF
-    | REPLICAS | SHARDS | CLUSTERED | COPY | ANALYZER
+    | SHARDS | CLUSTERED | COPY | ANALYZER
     | EXTENDS | TOKENIZER | CHAR_FILTERS | TOKEN_FILTERS | BLOB
-    | TO
+    | TO | PARTITIONED
     ;
 
 SELECT: 'SELECT';
@@ -1063,7 +1068,6 @@ RESET: 'RESET';
 COPY: 'COPY';
 CLUSTERED: 'CLUSTERED';
 SHARDS: 'SHARDS';
-REPLICAS: 'REPLICAS';
 PRIMARY_KEY: 'PRIMARY KEY';
 OFF: 'OFF';
 FULLTEXT: 'FULLTEXT';
@@ -1081,6 +1085,8 @@ EXTENDS: 'EXTENDS';
 TOKENIZER: 'TOKENIZER';
 TOKEN_FILTERS: 'TOKEN_FILTERS';
 CHAR_FILTERS: 'CHAR_FILTERS';
+
+PARTITIONED: 'PARTITIONED';
 
 
 EQ  : '=';

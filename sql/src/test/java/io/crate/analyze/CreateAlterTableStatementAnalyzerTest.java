@@ -152,7 +152,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat((String)nameProperties.get("type"), is("string"));
 
         Map<String, Object> ageProperties = (Map<String, Object>) detailsProperties.get("age");
-        assertThat((String)ageProperties.get("type"), is("integer"));
+        assertThat((String) ageProperties.get("type"), is("integer"));
     }
 
     @Test
@@ -286,7 +286,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
         Map<String, Object> ft_mapping = (Map<String, Object>)mappingProperties.get("content_ft");
         assertThat((String)ft_mapping.get("index"), is("analyzed"));
-        assertThat((String)ft_mapping.get("analyzer"), is("standard"));
+        assertThat((String) ft_mapping.get("analyzer"), is("standard"));
     }
 
     @Test
@@ -355,4 +355,9 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         analyze("create table \"abc.def\" (id integer primary key, name string)");
     }
 
+
+    @Test(expected = UnsupportedOperationException.class)
+    public void testCreateTablePartitionedBy() throws Exception {
+        analyze("create table my_table (id integer, name string, date timestamp) partitioned by (id, name)");
+    }
 }

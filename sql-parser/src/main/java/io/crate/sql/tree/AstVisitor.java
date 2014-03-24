@@ -528,4 +528,8 @@ public abstract class AstVisitor<R, C>
     public R visitCopyTo(CopyTo node, C context) {
         return visitStatement(node, context);
     }
+
+    public R visitPartitionedBy(PartitionedBy node, C context) {
+        return visitNode(node, context);
+    }
 }
