@@ -65,6 +65,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
             when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT.name())).thenReturn(userTableInfo);
             when(schemaInfo.getTableInfo(TEST_ALIAS_TABLE_IDENT.name())).thenReturn(TEST_ALIAS_TABLE_INFO);
+            when(schemaInfo.getTableInfo(TEST_DOC_TABLE_IDENT_CLUSTERED_BY_ONLY.name())).thenReturn(userTableInfoClusteredByOnly);
             schemaBinder.addBinding(DocSchemaInfo.NAME).toInstance(schemaInfo);
         }
 
@@ -264,8 +265,12 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     @Test( expected = IllegalArgumentException.class )
     public void testUpdateClusteredBy() throws Exception {
-        // TODO: use table where clustered-by does not match primary key when this is supportd 
-        analyze("update users set id=1");
+        analyze("update users_clustered_by_only set id=1");
+    }
+
+    @Test( expected = UnsupportedOperationException.class )
+    public void testUpdateWhereSysColumn() throws Exception {
+        analyze("update users set name='Ford' where sys.nodes.id = 'node_1'");
     }
 
 }

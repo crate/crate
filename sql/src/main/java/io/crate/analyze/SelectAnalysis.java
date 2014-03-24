@@ -73,6 +73,9 @@ public class SelectAnalysis extends AbstractDataAnalysis {
     }
 
     public void groupBy(List<Symbol> groupBy) {
+        if (groupBy != null && groupBy.size() > 0) {
+            sysExpressionsAllowed = true;
+        }
         this.groupBy = groupBy;
     }
 
@@ -145,6 +148,12 @@ public class SelectAnalysis extends AbstractDataAnalysis {
 
     @Override
     public void normalize() {
+        if (!sysExpressionsAllowed && hasSysExpressions) {
+            throw new UnsupportedOperationException("Selecting system columns from regular " +
+                    "tables is currently only supported by queries using group-by or " +
+                    "global aggregates.");
+        }
+
         super.normalize();
         normalizer.normalizeInplace(groupBy());
         normalizer.normalizeInplace(sortSymbols());

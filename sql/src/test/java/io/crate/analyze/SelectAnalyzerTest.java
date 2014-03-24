@@ -847,4 +847,9 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         analyze("select * from sys.shards limit ?", new Object[] { "invalid" });
     }
 
+    @Test (expected = UnsupportedOperationException.class)
+    public void testSelectSysExpressionWithoutGroupBy() throws Exception {
+        analyze("select sys.cluster.name, id from users");
+    }
+
 }

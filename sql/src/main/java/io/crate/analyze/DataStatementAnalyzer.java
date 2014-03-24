@@ -359,6 +359,11 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
     protected void processWhereClause(Expression whereExpression, T context) {
         WhereClause whereClause = context.whereClause(process(whereExpression, context));
         if (whereClause.hasQuery()){
+            if (!context.sysExpressionsAllowed && context.hasSysExpressions) {
+                throw new UnsupportedOperationException("Filtering system columns is currently " +
+                        "only supported by queries using group-by or global aggregates.");
+            }
+
             PrimaryKeyVisitor.Context pkc = primaryKeyVisitor.process(context.table(), whereClause.query());
             if (pkc != null) {
                 whereClause.clusteredByLiteral(pkc.clusteredByLiteral());
