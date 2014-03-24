@@ -5,6 +5,8 @@ Changes for Crate Data
 unreleased
 ==========
 
+ - table names may not contain '.'
+
 2014/03/24 0.33.0
 =================
 

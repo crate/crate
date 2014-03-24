@@ -21,13 +21,14 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.InvalidTableNameException;
+import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.operator.OperatorModule;
-import io.crate.metadata.FulltextAnalyzerResolver;
 import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
@@ -36,9 +37,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -179,7 +178,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         Map<String, Object> details = (Map<String, Object>)mappingProperties.get("details");
 
         assertThat((String)details.get("type"), is("object"));
-        assertThat((String)details.get("dynamic"), is("false"));
+        assertThat((String) details.get("dynamic"), is("false"));
     }
 
     @Test
@@ -203,13 +202,13 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test (expected = IllegalArgumentException.class)
     public void testCreateTableWithInvalidFulltextIndexDefinition() throws Exception {
-        analyze("create table my_table1g ("+
-                        "title string, " +
-                        "author object(dynamic) as ( " +
-                        "name string, " +
-                        "birthday timestamp " +
-                        "), " +
-                        "INDEX author_title_ft using fulltext(title, author['name']['foo']['bla']))");
+        analyze("create table my_table1g (" +
+                "title string, " +
+                "author object(dynamic) as ( " +
+                "name string, " +
+                "birthday timestamp " +
+                "), " +
+                "INDEX author_title_ft using fulltext(title, author['name']['foo']['bla']))");
     }
 
     @Test
@@ -250,7 +249,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
         Map<String, Object> contentMapping = (Map<String, Object>)mappingProperties.get("content");
 
         assertThat((String)contentMapping.get("index"), is("analyzed"));
-        assertThat((String)contentMapping.get("analyzer"), is("german"));
+        assertThat((String) contentMapping.get("analyzer"), is("german"));
     }
 
     @Test
@@ -349,6 +348,11 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test (expected = IllegalArgumentException.class)
     public void testCreateTableWithSystemColumnPrefix() throws Exception {
         analyze("create table test (_id integer, name string)");
+    }
+
+    @Test(expected = InvalidTableNameException.class)
+    public void testCreateTableIllegalTableName() throws Exception {
+        analyze("create table \"abc.def\" (id integer primary key, name string)");
     }
 
 }

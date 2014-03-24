@@ -21,6 +21,8 @@
 
 package io.crate.metadata;
 
+import io.crate.exceptions.SchemaUnknownException;
+import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.common.inject.Inject;
@@ -49,6 +51,32 @@ public class ReferenceInfos implements Iterable<SchemaInfo>{
             return schemaInfo.getTableInfo(ident.name());
         }
         return null;
+    }
+
+    /**
+     *
+     * @param ident the table ident to get a TableInfo for
+     * @return an instance of TableInfo for the given ident, guaranteed to be not null
+     * @throws io.crate.exceptions.SchemaUnknownException if schema given in <code>ident</code>
+     *         does not exist
+     * @throws io.crate.exceptions.TableUnknownException if table given in <code>ident</code> does
+     *         not exist in the given schema
+     */
+    public TableInfo getTableInfoUnsafe(TableIdent ident) {
+        TableInfo info;
+        SchemaInfo schemaInfo = getSchemaInfo(ident.schema());
+        if (schemaInfo == null) {
+            throw new SchemaUnknownException(ident.schema());
+        }
+        try {
+            info = schemaInfo.getTableInfo(ident.name());
+            if (info == null) {
+                throw new TableUnknownException(ident.name());
+            }
+        } catch (Exception e) {
+            throw new TableUnknownException(ident.name(), e);
+        }
+        return info;
     }
 
     @Nullable

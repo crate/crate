@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.InvalidTableNameException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.blob.BlobSchemaInfo;
@@ -98,6 +99,11 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.numberOfShards(), is(10));
         assert analysis.numberOfReplicas() != null;
         assertThat(analysis.numberOfReplicas().esSettingValue(), is("0-all"));
+    }
+
+    @Test(expected = InvalidTableNameException.class)
+    public void testCreateBlobTableIllegalTableName() throws Exception {
+        analyze("create blob table \"blob.s\"");
     }
 
     @Test
