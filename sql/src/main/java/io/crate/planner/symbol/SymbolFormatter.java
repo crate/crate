@@ -62,13 +62,13 @@ public class SymbolFormatter extends SymbolVisitor<Void, String> {
 
     @Override
     public String visitAggregation(Aggregation symbol, Void context) {
-        return format("%s %s(%s)", symbol.functionInfo().returnType(),
+        return format("%s(%s)",
                 symbol.functionIdent().name(), argJoiner.join(symbol.functionIdent().argumentTypes()));
     }
 
     @Override
     public String visitFunction(Function symbol, Void context) {
-        return format("%s %s(%s)", symbol.info().returnType(),
+        return format("%s(%s)",
                 symbol.info().ident().name(), argJoiner.join(symbol.info().ident().argumentTypes()));
     }
 

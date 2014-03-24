@@ -5,6 +5,9 @@ Changes for Crate Data
 unreleased
 ==========
 
+ - error messages will no longer show the 'return type' of a function and
+   aggregation
+
  - support global DISTINCT select statements
 
  - ``PARTITIONED BY`` parser support
