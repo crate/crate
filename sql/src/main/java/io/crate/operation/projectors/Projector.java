@@ -34,6 +34,7 @@ public interface Projector extends Iterable<Object[]> {
      */
     public void setDownStream(Projector downStream);
 
+    public Projector getDownstream();
 
     /**
      * initialize anything needed for proper projecting the projection
@@ -63,7 +64,7 @@ public interface Projector extends Iterable<Object[]> {
     /**
      * finally, return all collected rows.
      * @return
-     * @throws java.lang.IllegalStateException if this Projector is not done yet.
+     * @throws java.lang.IllegalStateException if this Projector is not done yet or the projector has a downstream.
      */
     public Object[][] getRows() throws IllegalStateException;
 }

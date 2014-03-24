@@ -239,6 +239,7 @@ public class CollectNode extends AbstractDQLPlanNode {
             result = new CollectNode(id(), routing, newToCollect, projections);
             result.downStreamNodes = downStreamNodes;
             result.maxRowgranularity = maxRowgranularity;
+            result.jobId = jobId;
             result.whereClause(newWhereClause);
         }
         return result;

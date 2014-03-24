@@ -21,6 +21,7 @@
 
 package io.crate.planner.projection;
 
+import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -30,6 +31,13 @@ import java.io.IOException;
 import java.util.List;
 
 public abstract class Projection implements Streamable {
+
+    /**
+     * The granularity required to run this projection
+     */
+    public RowGranularity requiredGranularity() {
+        return RowGranularity.CLUSTER;
+    }
 
     public interface ProjectionFactory<T extends Projection> {
         public T newInstance();

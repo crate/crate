@@ -22,45 +22,21 @@
 package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.planner.projection.*;
 import io.crate.planner.symbol.Aggregation;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
-public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> {
-
-    public static class Context {
-        List<Projector> projectors = new ArrayList<>();
-
-        /**
-         * add the projector to the list of projectors
-         * and connect this projector to the last gathered one by setting it as downStream.
-         *
-         * @param projector
-         */
-        public void add(Projector projector) {
-            if (!projectors.isEmpty()) {
-                projectors.get(projectors.size() - 1).setDownStream(projector);
-            }
-            projectors.add(projector);
-        }
-
-        public List<Projector> projectors() {
-            return projectors;
-        }
-    }
+public class ProjectionToProjectorVisitor extends ProjectionVisitor<Void, Projector> {
 
     private final ImplementationSymbolVisitor symbolVisitor;
 
-    public List<Projector> process(Collection<Projection> projections) {
-        Context ctx = new Context();
-        process(projections, ctx);
-        return ctx.projectors();
+    public Projector process(Projection projection) {
+        return process(projection, null);
     }
 
     public ProjectionToProjectorVisitor(ImplementationSymbolVisitor symbolVisitor) {
@@ -68,12 +44,12 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
     }
 
     @Override
-    public Projector visitColumnProjection(ColumnProjection projection, Context context) {
+    public Projector visitColumnProjection(ColumnProjection projection, Void context) {
         return super.visitColumnProjection(projection, context);
     }
 
     @Override
-    public Projector visitTopNProjection(TopNProjection projection, Context context) {
+    public Projector visitTopNProjection(TopNProjection projection, Void context) {
         Projector projector;
         List<Input<?>> inputs = new ArrayList<>();
         List<CollectExpression<?>> collectExpressions = new ArrayList<>();
@@ -111,12 +87,11 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                     projection.limit(),
                     projection.offset());
         }
-        context.add(projector);
         return projector;
     }
 
     @Override
-    public Projector visitGroupProjection(GroupProjection projection, Context context) {
+    public Projector visitGroupProjection(GroupProjection projection, Void context) {
         ImplementationSymbolVisitor.Context symbolContext = symbolVisitor.process(projection.keys());
         List<Input<?>> keyInputs = symbolContext.topLevelInputs();
 
@@ -128,12 +103,11 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
                 ImmutableList.copyOf(symbolContext.collectExpressions()),
                 symbolContext.aggregations()
         );
-        context.add(groupProjector);
         return groupProjector;
     }
 
     @Override
-    public Projector visitAggregationProjection(AggregationProjection projection, Context context) {
+    public Projector visitAggregationProjection(AggregationProjection projection, Void context) {
         ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
         for (Aggregation aggregation : projection.aggregations()) {
             symbolVisitor.process(aggregation, symbolContext);
@@ -141,7 +115,6 @@ public class ProjectionToProjectorVisitor extends ProjectionVisitor<ProjectionTo
         Projector aggregationProjector = new AggregationProjector(
                 symbolContext.collectExpressions(),
                 symbolContext.aggregations());
-        context.add(aggregationProjector);
         return aggregationProjector;
     }
 }

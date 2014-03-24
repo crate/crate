@@ -30,6 +30,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.reference.doc.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.LuceneDocLevelReferenceResolver;
@@ -55,8 +56,9 @@ public class ShardCollectService {
     private final PageCacheRecycler pageCacheRecycler;
     private final SQLXContentQueryParser sqlxContentQueryParser;
     private final ESQueryBuilder queryBuilder;
-    private final ImplementationSymbolVisitor shardInputSymbolVisitor;
+    private final ImplementationSymbolVisitor shardImplementationSymbolVisitor;
     private final EvaluatingNormalizer shardNormalizer;
+    private final ProjectionToProjectorVisitor projectorVisitor;
 
     @Inject
     public ShardCollectService(ClusterService clusterService,
@@ -83,30 +85,36 @@ public class ShardCollectService {
         this.queryBuilder = new ESQueryBuilder();
 
         boolean isBlobShard = BlobIndices.isBlobShard(this.shardId);
-        this.shardInputSymbolVisitor = new ImplementationSymbolVisitor(
+        this.shardImplementationSymbolVisitor = new ImplementationSymbolVisitor(
                 (isBlobShard ? blobShardReferenceResolver :referenceResolver),
                 functions,
                 RowGranularity.SHARD
         );
+
+        this.projectorVisitor = new ProjectionToProjectorVisitor(shardImplementationSymbolVisitor);
+
+
         this.shardNormalizer = new EvaluatingNormalizer(
                 functions,
                 RowGranularity.SHARD,
                 (isBlobShard ? blobShardReferenceResolver :referenceResolver)
         );
+
+
     }
 
     /**
      * get a collector
      *
      * @param collectNode describes the collectOperation
-     * @param downStream    every returned collector should call {@link io.crate.operation.projectors.Projector#setNextRow(Object...)}
-     *                    on this downStream Projector if a row is produced.
+     * @param projectorChain the shard projector chain to get the downstream from
      * @return collector wrapping different collect implementations, call {@link CrateCollector#doCollect()} to start
      * collecting with this collector
      */
-    public CrateCollector getCollector(CollectNode collectNode, Projector downStream) throws Exception {
+    public CrateCollector getCollector(CollectNode collectNode, ShardProjectorChain projectorChain) throws Exception {
 
         collectNode = collectNode.normalize(shardNormalizer);
+        Projector downstream = projectorChain.newShardDownstreamProjector(projectorVisitor);
 
         if (collectNode.whereClause().noMatch()) {
             return CrateCollector.NOOP;
@@ -120,11 +128,11 @@ public class ShardCollectService {
                         docCtx.topLevelInputs(),
                         docCtx.docLevelExpressions(),
                         querySource,
-                        downStream);
+                        downstream);
 
             } else if (granularity == RowGranularity.SHARD) {
-                ImplementationSymbolVisitor.Context shardCtx = shardInputSymbolVisitor.process(collectNode);
-                return new SimpleOneRowCollector(shardCtx.topLevelInputs(), shardCtx.collectExpressions(), downStream);
+                ImplementationSymbolVisitor.Context shardCtx = shardImplementationSymbolVisitor.process(collectNode);
+                return new SimpleOneRowCollector(shardCtx.topLevelInputs(), shardCtx.collectExpressions(), downstream);
             }
             throw new CrateException(String.format("Granularity %s not supported", granularity.name()));
         }

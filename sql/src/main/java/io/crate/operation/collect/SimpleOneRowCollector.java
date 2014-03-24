@@ -35,13 +35,13 @@ public class SimpleOneRowCollector extends AbstractRowCollector<Object[]> implem
     private final List<Input<?>> inputs;
     private final Set<CollectExpression<?>> collectExpressions;
     private final Object[] result;
-    private final Projector downStreamProjector;
+    private final Projector downstream;
 
-    public SimpleOneRowCollector(List<Input<?>> inputs, Set<CollectExpression<?>> collectExpressions, Projector downStream) {
+    public SimpleOneRowCollector(List<Input<?>> inputs, Set<CollectExpression<?>> collectExpressions, Projector downstream) {
         this.inputs = inputs;
         this.result = new Object[inputs.size()];
         this.collectExpressions = collectExpressions;
-        this.downStreamProjector = downStream;
+        this.downstream = downstream;
     }
 
     @Override
@@ -49,7 +49,6 @@ public class SimpleOneRowCollector extends AbstractRowCollector<Object[]> implem
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.startCollect();
         }
-        downStreamProjector.startProjection();
         return true;
     }
 
@@ -61,13 +60,12 @@ public class SimpleOneRowCollector extends AbstractRowCollector<Object[]> implem
                 result[i++] = input.value();
             }
         }
-        downStreamProjector.setNextRow(result);
+        downstream.setNextRow(result);
         return false;
     }
 
     @Override
     public Object[] finishCollect() {
-        // downStreamProjector.finishProjection() called somewhere outside
         return result;
     }
 

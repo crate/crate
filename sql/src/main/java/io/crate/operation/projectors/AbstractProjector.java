@@ -55,4 +55,9 @@ public abstract class AbstractProjector implements Projector {
     public void setDownStream(Projector downStream) {
         this.downStream = Optional.of(downStream);
     }
+
+    @Override
+    public Projector getDownstream() {
+        return downStream.orNull();
+    }
 }

@@ -22,9 +22,7 @@
 package io.crate.operation.collect;
 
 import com.google.common.util.concurrent.AbstractFuture;
-import io.crate.operation.projectors.Projector;
 
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -34,10 +32,10 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public abstract class ShardCollectFuture extends AbstractFuture<Object[][]> {
     private final AtomicInteger numShards;
-    protected final List<Projector> projectorChain;
+    protected final ShardProjectorChain projectorChain;
     protected final AtomicReference<Throwable> lastException = new AtomicReference<>();
 
-    public ShardCollectFuture(int numShards, List<Projector> projectorChain) {
+    public ShardCollectFuture(int numShards, ShardProjectorChain projectorChain) {
         this.numShards = new AtomicInteger(numShards);
         this.projectorChain = projectorChain;
     }

@@ -21,19 +21,28 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.operation.Input;
-import io.crate.operation.collect.CollectExpression;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-public class NoopProjector extends AbstractProjector {
+/**
+ * A projector which simply collects any rows it gets and makes them available afterwards.
+ * Downstreams are not supported with this projector. This class should only be used as a fallback if
+ * there are no other projectors in a chain but the result needs to be fetched at once after all
+ * upstreams provided their rows.
+ */
+public class CollectingProjector implements Projector {
 
     public List<Object[]> rows = new ArrayList<>();
 
-    public NoopProjector() {
-        super(new Input<?>[0], new CollectExpression<?>[0]);
+    @Override
+    public void setDownStream(Projector downStream) {
+        throw new UnsupportedOperationException("downstreams not supported by this projector");
+    }
+
+    @Override
+    public Projector getDownstream() {
+        return null;
     }
 
     @Override

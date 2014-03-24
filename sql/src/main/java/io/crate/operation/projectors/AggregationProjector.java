@@ -86,6 +86,11 @@ public class AggregationProjector implements Projector {
     }
 
     @Override
+    public Projector getDownstream() {
+        return downStream;
+    }
+
+    @Override
     public void startProjection() {
         for (CollectExpression<?> collectExpression : collectExpressions) {
             collectExpression.startCollect();
