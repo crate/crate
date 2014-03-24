@@ -26,6 +26,7 @@ import io.crate.DataType;
 import io.crate.Id;
 import io.crate.exceptions.*;
 import io.crate.metadata.*;
+import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.RowGranularity;
@@ -62,6 +63,8 @@ public abstract class AbstractDataAnalysis extends Analysis {
     protected WhereClause whereClause = WhereClause.MATCH_ALL;
     protected RowGranularity rowGranularity;
     protected boolean hasAggregates = false;
+    protected boolean hasSysExpressions = false;
+    protected boolean sysExpressionsAllowed = false;
 
 
     public AbstractDataAnalysis(ReferenceInfos referenceInfos, Functions functions,
@@ -86,6 +89,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
         // if we have a system schema, queries require scalar functions, since those are not using lucene
         schema = schemaInfo;
         onlyScalarsAllowed = schemaInfo.systemSchema();
+        sysExpressionsAllowed = schemaInfo.systemSchema();
         table = tableInfo;
         updateRowGranularity(table.rowGranularity());
     }
@@ -122,6 +126,10 @@ public abstract class AbstractDataAnalysis extends Analysis {
     }
 
     private Reference allocateReference(ReferenceIdent ident, boolean unique) {
+        if (ident.tableIdent().schema() != null
+                && ident.tableIdent().schema().equals(SysSchemaInfo.NAME)) {
+            hasSysExpressions = true;
+        }
         Reference reference = referenceSymbols.get(ident);
         if (reference == null) {
             ReferenceInfo info = getReferenceInfo(ident);
@@ -191,6 +199,7 @@ public abstract class AbstractDataAnalysis extends Analysis {
         } else {
             if (info.isAggregate()){
                 hasAggregates = true;
+                sysExpressionsAllowed = true;
             }
             functionSymbols.put(function, function);
         }
@@ -468,6 +477,10 @@ public abstract class AbstractDataAnalysis extends Analysis {
 
     public List<String> routingValues() {
         return routingValues;
+    }
+
+    public boolean hasSysExpressions() {
+        return hasSysExpressions;
     }
 
     @Override

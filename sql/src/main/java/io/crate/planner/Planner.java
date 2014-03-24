@@ -304,7 +304,8 @@ public class Planner extends AnalysisVisitor<Void, Plan> {
     private void globalAggregates(SelectAnalysis analysis, Plan plan) {
         String schema = analysis.table().ident().schema();
         if ((schema == null || schema.equalsIgnoreCase(DocSchemaInfo.NAME))
-                && hasOnlyGlobalCount(analysis.outputSymbols())) {
+                && hasOnlyGlobalCount(analysis.outputSymbols())
+                && !analysis.hasSysExpressions()) {
             plan.add(new ESCountNode(analysis.table().ident().name(), analysis.whereClause()));
             return;
         }

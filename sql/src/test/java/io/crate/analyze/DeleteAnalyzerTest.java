@@ -86,4 +86,9 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
     public void testDeleteSystemTable() throws Exception {
         analyze("delete from sys.nodes where name='Trillian'");
     }
+
+    @Test( expected = UnsupportedOperationException.class )
+    public void testUpdateWhereSysColumn() throws Exception {
+        analyze("delete from users where sys.nodes.id = 'node_1'");
+    }
 }
