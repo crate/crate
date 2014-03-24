@@ -81,6 +81,11 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         analyze("copy sys.shards from '/nope/nope/still.nope'");
     }
 
+    @Test( expected = UnsupportedOperationException.class)
+    public void testCopyFromWithProperties() throws Exception {
+        analyze("copy users from '/some/file.ext' with (some_property=1)");
+    }
+
     @Test( expected = SchemaUnknownException.class)
     public void testCopyFromUnknownSchema() throws Exception {
         analyze("copy suess.shards from '/nope/nope/still.nope'");

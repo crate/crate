@@ -22,16 +22,23 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Optional;
+
+import javax.annotation.Nullable;
 
 public class CopyFromStatement extends Statement {
 
     private final Table table;
     private final Expression path;
+    private final Optional<GenericProperties> genericProperties;
 
-    public CopyFromStatement(Table table, Expression path) {
+    public CopyFromStatement(Table table,
+                             Expression path,
+                             @Nullable GenericProperties genericProperties) {
 
         this.table = table;
         this.path = path;
+        this.genericProperties = Optional.fromNullable(genericProperties);
     }
 
     public Table table() {
@@ -42,6 +49,10 @@ public class CopyFromStatement extends Statement {
         return path;
     }
 
+    public Optional<GenericProperties> genericProperties() {
+        return genericProperties;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -49,6 +60,7 @@ public class CopyFromStatement extends Statement {
 
         CopyFromStatement that = (CopyFromStatement) o;
 
+        if (!genericProperties.equals(that.genericProperties)) return false;
         if (!path.equals(that.path)) return false;
         if (!table.equals(that.table)) return false;
 
@@ -59,6 +71,7 @@ public class CopyFromStatement extends Statement {
     public int hashCode() {
         int result = table.hashCode();
         result = 31 * result + path.hashCode();
+        result = 31 * result + genericProperties.hashCode();
         return result;
     }
 
@@ -67,6 +80,7 @@ public class CopyFromStatement extends Statement {
         return Objects.toStringHelper(this)
                 .add("table", table)
                 .add("path", path)
+                .add("properties", genericProperties)
                 .toString();
     }
 

@@ -740,7 +740,8 @@ copyToStmt
     ;
 
 copyFromStmt
-    : COPY table FROM expr -> ^(COPY_FROM table expr)
+    : COPY table FROM expr
+      ( WITH '(' genericProperties ')' )? -> ^(COPY_FROM table expr genericProperties?)
     ;
 
 alterBlobTableStmt
