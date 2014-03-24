@@ -3,6 +3,10 @@
 # OPTIONS:
 #   -d: start the daemon in the background
 #   -p <filename>: log the pid to a file (useful to kill it later)
+#   -v: print crate version to stdout
+#   -h: print usage information
+#   -D: set a java system property value
+#   -X: set a nonstandard java option
 
 # CONTROLLING STARTUP:
 #
@@ -35,7 +39,7 @@
 # Another option is to specify the full path to the include file in the
 # environment. For example:
 #
-#   $ CREATE_INCLUDE=/path/to/in.sh elasticsearch -p /var/run/es.pid
+#   $ CRATE_INCLUDE=/path/to/in.sh crate -p /var/run/crate.pid
 #
 # Note: This is particularly handy for running multiple instances on a
 # single installation, or for quick tests.
@@ -119,7 +123,6 @@ launch_service()
         es_parms="$es_parms -Des.pidfile=$pidpath"
     fi
 
-    # The es-foreground option will tell ElasticSearch not to close stdout/stderr, but it's up to us not to background.
     if [ "x$daemonized" = "x" ]; then
         exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Des.path.home="$CRATE_HOME" -Des.config="$CRATE_CONFIG" -cp "$CRATE_CLASSPATH" $props \
                 io.crate.bootstrap.CrateF
