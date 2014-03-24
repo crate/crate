@@ -5,6 +5,8 @@ Changes for Crate Data
 unreleased
 ==========
 
+ - upgraded crate-python and crash to 0.8.0
+
  - optimize sets of compound primary keys in where clause to multi gets
 
  - fixed schema creation for nested objects.
