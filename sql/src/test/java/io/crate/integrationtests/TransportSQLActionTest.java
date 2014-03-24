@@ -49,7 +49,7 @@ import static com.google.common.collect.Maps.newHashMap;
 import static org.elasticsearch.common.settings.ImmutableSettings.settingsBuilder;
 import static org.hamcrest.Matchers.*;
 
-@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.SUITE, numNodes = 2)
+@CrateIntegrationTest.ClusterScope(scope = CrateIntegrationTest.Scope.GLOBAL)
 @Seed("991C1014D4833E6C:1CDD059F87E0920F")
 public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
