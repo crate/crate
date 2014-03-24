@@ -663,7 +663,12 @@ copyTo returns [Statement value]
     ;
 
 copyFrom returns [Statement value]
-    : ^(COPY_FROM namedTable path=expr) { $value = new CopyFromStatement($namedTable.value, $path.value); }
+    : ^(COPY_FROM namedTable path=expr genericProperties?)
+        {
+            $value = new CopyFromStatement($namedTable.value,
+                                           $path.value,
+                                           $genericProperties.value);
+        }
     ;
 
 createBlobTable returns [Statement value]

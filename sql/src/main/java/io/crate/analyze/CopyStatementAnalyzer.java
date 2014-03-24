@@ -34,6 +34,9 @@ public class CopyStatementAnalyzer extends DataStatementAnalyzer<CopyAnalysis> {
 
     @Override
     public Symbol visitCopyFromStatement(CopyFromStatement node, CopyAnalysis context) {
+        if (node.genericProperties().isPresent()) {
+            throw new UnsupportedOperationException("Copy from currently doesn't support any properties");
+        }
         context.mode(CopyAnalysis.Mode.FROM);
         process(node.table(), context);
         Symbol pathSymbol = process(node.path(), context);
