@@ -5,6 +5,8 @@ Changes for Crate Data
 unreleased
 ==========
 
+ - support global DISTINCT select statements
+
  - ``PARTITIONED BY`` parser support
 
  - fix: prevent select or filter of system columns if query has not a

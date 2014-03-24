@@ -669,6 +669,45 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         analyze("select name, count(id) from users");
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testSelectGlobalDistinctAggregationMissingGroupBy() {
+        analyze("select distinct name, count(id) from users");
+    }
+
+    @Test
+    public void testSelectGlobalDistinctAggregate() {
+        SelectAnalysis distinctAnalysis = (SelectAnalysis) analyze("select distinct count(*) from users");
+        assertFalse(distinctAnalysis.hasGroupBy());
+    }
+
+    @Test
+    public void testSelectGlobalDistinctRewriteAggregateionGroupBy() {
+        SelectAnalysis distinctAnalysis = (SelectAnalysis) analyze("select distinct name, count(id) from users group by name");
+        SelectAnalysis groupByAnalysis = (SelectAnalysis) analyze("select name, count(id) from users group by name");
+        assertEquals(groupByAnalysis.groupBy(), distinctAnalysis.groupBy());
+    }
+
+    @Test
+    public void testSelectGlobalDistinctRewrite() {
+        SelectAnalysis distinctAnalysis = (SelectAnalysis) analyze("select distinct name from users");
+        SelectAnalysis groupByAnalysis = (SelectAnalysis) analyze("select name from users group by name");
+        assertEquals(groupByAnalysis.groupBy(), distinctAnalysis.groupBy());
+    }
+
+    @Test
+    public void testSelectGlobalDistinctRewriteAllColumns() {
+        SelectAnalysis distinctAnalysis = (SelectAnalysis) analyze("select distinct * from users");
+        SelectAnalysis groupByAnalysis =
+                (SelectAnalysis) analyze(
+                        "select _version, awesome, details, friends, id, name, other_id " +
+                        "from users " +
+                        "group by _version, awesome, details, friends, id, name, other_id");
+        assertEquals(groupByAnalysis.groupBy().size(), distinctAnalysis.groupBy().size());
+        for (Symbol s : distinctAnalysis.groupBy()) {
+            assertTrue(distinctAnalysis.groupBy().contains(s));
+        }
+    }
+
     @Test
     public void testInsertMultipleValues() throws Exception {
         InsertAnalysis analysis = (InsertAnalysis)analyze(
@@ -803,12 +842,12 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
     @Test(expected = SQLParseException.class)
     public void testNoFrom() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)analyze("select name");
+        analyze("select name");
     }
 
     @Test(expected = SQLParseException.class)
     public void test2From() throws Exception {
-        SelectAnalysis analysis = (SelectAnalysis)analyze("select name from a, b");
+        analyze("select name from a, b");
     }
 
 

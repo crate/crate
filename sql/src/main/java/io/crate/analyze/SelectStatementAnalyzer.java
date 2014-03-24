@@ -94,9 +94,8 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
 
     protected Symbol visitQuerySpecification(QuerySpecification node, SelectAnalysis context) {
         // visit the from first, since this qualifies the select
-
-        int numTables = node.getFrom()==null? 0 : node.getFrom().size();
-        if (numTables != 1){
+        int numTables = node.getFrom() == null ? 0 : node.getFrom().size();
+        if (numTables != 1) {
             throw new SQLParseException(
                     "Only exactly one table is allowed in the from clause, got: " + numTables
             );
@@ -119,8 +118,13 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         if (!node.getGroupBy().isEmpty()) {
             analyzeGroupBy(node.getGroupBy(), context);
         }
+
         if (!node.getGroupBy().isEmpty() || context.hasAggregates()) {
             ensureNonAggregatesInGroupBy(context);
+        }
+
+        if (node.getSelect().isDistinct() && node.getGroupBy().isEmpty()) {
+            rewriteGlobalDistinct(context);
         }
 
         Preconditions.checkArgument(node.getHaving().isPresent() == false, "having clause is not yet supported");
@@ -137,6 +141,21 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
             context.sortSymbols(sortSymbols);
         }
         return null;
+    }
+
+    private void rewriteGlobalDistinct(SelectAnalysis context) {
+        ArrayList<Symbol> groupBy = new ArrayList<>(context.outputSymbols().size());
+            context.groupBy(groupBy);
+
+        for (Symbol s : context.outputSymbols()) {
+            if (s.symbolType() == SymbolType.DYNAMIC_REFERENCE) {
+                throw new IllegalArgumentException(
+                        SymbolFormatter.format("unknown column '%s' not allowed in a global DISTINCT", s));
+            } else if (isAggregate(s)) {
+                continue; // do not add aggregates
+            }
+            groupBy.add(s);
+        }
     }
 
     private Integer extractIntegerFromNode(Expression expression, String clauseName, SelectAnalysis context) {
@@ -191,7 +210,6 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
             } else if (s.symbolType() == SymbolType.FUNCTION && ((Function) s).info().isAggregate()) {
                 throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
             }
-
             groupBy.add(s);
         }
         context.groupBy(groupBy);

@@ -45,6 +45,22 @@ Aliases can be used to change the output name of the columns::
     +-------------------+
     SELECT 1 row in set (... sec)
 
+Distinct Clause
+---------------
+
+If DISTINCT is specified, one unique row is kept. All other
+duplicate rows are removed from the result set::
+
+    cr> select distinct date from locations order by date
+    +---------------+
+    | date          |
+    +---------------+
+    | 308534400000  |
+    | 1367366400000 |
+    | 1373932800000 |
+    +---------------+
+    SELECT 3 rows in set (... sec)
+
 Where Clause
 ------------
 
