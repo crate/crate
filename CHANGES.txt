@@ -5,6 +5,9 @@ Changes for Crate Data
 unreleased
 ==========
 
+2014/03/24 0.33.0
+=================
+
  - upgraded crate-python and crash to 0.8.0
 
  - optimize sets of compound primary keys in where clause to multi gets
