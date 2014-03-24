@@ -131,7 +131,8 @@ public class TransportSQLActionClassLifecycleTest extends ClassLifecycleIntegrat
 
     @Test
     public void testSelectGlobalExpressionGlobalAggregate() throws Exception {
-        SQLResponse response = executor.exec("select count(distinct race), sys.cluster.name from characters");
+        SQLResponse response = executor.exec("select count(distinct race), sys.cluster.name " +
+                "from characters group by sys.cluster.name");
         assertEquals(1, response.rowCount());
         assertArrayEquals(new String[]{"count(DISTINCT race)", "sys.cluster.name"}, response.cols());
         assertEquals(3L, response.rows()[0][0]);

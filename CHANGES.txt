@@ -5,6 +5,10 @@ Changes for Crate Data
 unreleased
 ==========
 
+ - fixed global 'group by' analysis. analyzer now returns an improved
+   error message if a statement contains aggregates and column references but
+   missing the corresponding group by expression
+
  - table names may not contain '.'
 
 2014/03/24 0.33.0

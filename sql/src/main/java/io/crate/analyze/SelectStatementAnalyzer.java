@@ -119,6 +119,9 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
         if (!node.getGroupBy().isEmpty()) {
             analyzeGroupBy(node.getGroupBy(), context);
         }
+        if (!node.getGroupBy().isEmpty() || context.hasAggregates()) {
+            ensureNonAggregatesInGroupBy(context);
+        }
 
         Preconditions.checkArgument(node.getHaving().isPresent() == false, "having clause is not yet supported");
 
@@ -149,7 +152,6 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
                     "The parameter %s that was passed to %s has an invalid type", SymbolFormatter.format(symbol), clauseName), e);
         }
     }
-
 
     private void analyzeGroupBy(List<Expression> groupByExpressions, SelectAnalysis context) {
         List<Symbol> groupBy = new ArrayList<>(groupByExpressions.size());
@@ -193,22 +195,30 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
             groupBy.add(s);
         }
         context.groupBy(groupBy);
-
-        ensureOutputSymbolsInGroupBy(context);
     }
 
-    private void ensureOutputSymbolsInGroupBy(SelectAnalysis context) {
+    private void ensureNonAggregatesInGroupBy(SelectAnalysis context) {
         for (Symbol symbol : context.outputSymbols()) {
-            if (!context.groupBy().contains(symbol)) {
-                AggregationSearcherContext searcherContext = new AggregationSearcherContext();
-                aggregationSearcher.process(symbol, searcherContext);
-                if (!searcherContext.found) {
+            if (context.groupBy() == null || !context.groupBy().contains(symbol)) {
+                if (!isAggregate(symbol)) {
                     throw new IllegalArgumentException(
                             SymbolFormatter.format("column '%s' must appear in the GROUP BY clause or be used in an aggregation function",
                                     symbol));
                 }
             }
         }
+    }
+
+    private boolean isAggregate(Symbol s) {
+        if (s.symbolType() == SymbolType.FUNCTION) {
+            if (((Function) s).info().isAggregate()) {
+                return true;
+            }
+            AggregationSearcherContext searcherContext = new AggregationSearcherContext();
+            aggregationSearcher.process(s, searcherContext);
+            return searcherContext.found;
+        }
+        return false;
     }
 
     @Override
