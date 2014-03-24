@@ -40,6 +40,7 @@ public class ClassLifecycleIntegrationTest {
 
     public static final long CLUSTER_SEED = System.nanoTime();
 
+
     public static final CrateTestCluster GLOBAL_CLUSTER = new CrateTestCluster(
         CLUSTER_SEED,
         CrateTestCluster.clusterName("shared", ElasticsearchTestCase.CHILD_VM_ID, CLUSTER_SEED)
@@ -48,13 +49,13 @@ public class ClassLifecycleIntegrationTest {
     private static final Random random = new Random(CLUSTER_SEED);
 
     @BeforeClass
-    public static void beforeClass() {
+    public synchronized static void beforeClass() {
         GLOBAL_CLUSTER.beforeTest(random);
     }
 
     @AfterClass
-    public static void afterClass() {
+    public synchronized static void afterClass() throws Exception {
+        GLOBAL_CLUSTER.client().admin().indices().prepareDelete("_all").execute().get();
         GLOBAL_CLUSTER.afterTest();
-        GLOBAL_CLUSTER.close();
     }
 }
