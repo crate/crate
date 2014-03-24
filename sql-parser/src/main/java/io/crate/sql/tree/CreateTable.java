@@ -23,6 +23,7 @@ package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -31,17 +32,17 @@ public class CreateTable extends Statement {
 
     private final Table name;
     private final List<TableElement> tableElements;
-    private final Optional<ClusteredBy> clusteredBy;
+    private final List<CrateTableOption> crateTableOptions;
     private final Optional<GenericProperties> properties;
 
     public CreateTable(Table name,
                        List<TableElement> tableElements,
-                       @Nullable ClusteredBy clusteredBy,
+                       @Nullable List<CrateTableOption> crateTableOptions,
                        @Nullable GenericProperties genericProperties)
     {
         this.name = name;
         this.tableElements = tableElements;
-        this.clusteredBy = Optional.fromNullable(clusteredBy);
+        this.crateTableOptions = crateTableOptions != null ? crateTableOptions : ImmutableList.<CrateTableOption>of();
         this.properties = Optional.fromNullable(genericProperties);
     }
 
@@ -53,8 +54,8 @@ public class CreateTable extends Statement {
         return tableElements;
     }
 
-    public Optional<ClusteredBy> clusteredBy() {
-        return clusteredBy;
+    public List<CrateTableOption> crateTableOptions() {
+        return crateTableOptions;
     }
 
     public Optional<GenericProperties> properties() {
@@ -70,7 +71,7 @@ public class CreateTable extends Statement {
     @Override
     public int hashCode()
     {
-        return Objects.hashCode(name, tableElements, clusteredBy, properties);
+        return Objects.hashCode(name, tableElements, crateTableOptions, properties);
     }
 
     @Override
@@ -81,7 +82,7 @@ public class CreateTable extends Statement {
         CreateTable that = (CreateTable) o;
 
         if (properties != that.properties) return false;
-        if (!clusteredBy.equals(that.clusteredBy)) return false;
+        if (!crateTableOptions.equals(that.crateTableOptions)) return false;
         if (!name.equals(that.name)) return false;
         if (!tableElements.equals(that.tableElements)) return false;
 
@@ -94,7 +95,7 @@ public class CreateTable extends Statement {
         return Objects.toStringHelper(this)
                 .add("name", name)
                 .add("tableElements", tableElements)
-                .add("clustered by", clusteredBy)
+                .add("crateTableOptions", crateTableOptions)
                 .add("properties", properties).toString();
     }
 }

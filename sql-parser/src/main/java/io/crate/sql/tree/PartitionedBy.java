@@ -22,31 +22,26 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
-public class ClusteredBy extends CrateTableOption {
+public class PartitionedBy extends CrateTableOption {
 
-    private final Optional<Expression> column;
-    private final Optional<Integer> numberOfShards;
+    private final List<String> columns;
 
-    public ClusteredBy(@Nullable Expression column, @Nullable String numberOfShards) {
-        this.column = Optional.fromNullable(column);
-        this.numberOfShards = (numberOfShards == null ? Optional.<Integer>absent() : Optional.of(Integer.parseInt(numberOfShards)));
+    public PartitionedBy(@Nullable List<String> columns) {
+        this.columns = columns != null ? columns : ImmutableList.<String>of();
     }
 
-    public Optional<Expression> column() {
-        return column;
-    }
-
-    public Optional<Integer> numberOfShards() {
-        return numberOfShards;
+    public List<String> columns() {
+        return columns;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(column, numberOfShards);
+        return Objects.hashCode(columns);
     }
 
     @Override
@@ -54,23 +49,20 @@ public class ClusteredBy extends CrateTableOption {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        ClusteredBy that = (ClusteredBy) o;
+        PartitionedBy that = (PartitionedBy) o;
 
-        if (numberOfShards != that.numberOfShards) return false;
-        if (!column.equals(that.column)) return false;
+        if (columns != null ? !columns.equals(that.columns) : that.columns != null) return false;
 
         return true;
     }
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this)
-                .add("column", column)
-                .add("number of shards", numberOfShards).toString();
+        return Objects.toStringHelper(this).add("columns", columns).toString();
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitClusteredBy(this, context);
+        return visitor.visitPartitionedBy(this, context);
     }
 }

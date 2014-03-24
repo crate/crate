@@ -61,8 +61,8 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
             process(tableElement, context);
         }
 
-        if (node.clusteredBy().isPresent()) {
-            process(node.clusteredBy().get(), context);
+        for (CrateTableOption option : node.crateTableOptions()) {
+            process(option, context);
         }
 
         setCopyTo(context);
@@ -266,5 +266,10 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
         context.indexSettingsBuilder().put("number_of_shards",
                 node.numberOfShards().or(Constants.DEFAULT_NUM_SHARDS));
         return null;
+    }
+
+    @Override
+    public Void visitPartitionedBy(PartitionedBy node, CreateTableAnalysis context) {
+        throw new UnsupportedOperationException("partitioned by not supported yet.");
     }
 }

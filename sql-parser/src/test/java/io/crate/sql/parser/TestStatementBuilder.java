@@ -174,6 +174,10 @@ public class TestStatementBuilder
         printStatement("create table test (nested set(set(array(boolean))))");
         printStatement("create table test (object_array array(object(dynamic) as (i integer, s set(string))))");
 
+        printStatement("create table test (col1 int, col2 timestamp) partitioned by (col1)");
+        printStatement("create table test (col1 int, col2 timestamp) partitioned by (col1, col2)");
+        printStatement("create table test (col1 int, col2 timestamp) partitioned by (col1) clustered by (col2)");
+        printStatement("create table test (col1 int, col2 timestamp) clustered by (col2) partitioned by (col1)");
 
         printStatement("create analyzer myAnalyzer ( tokenizer german )");
         printStatement("create analyzer my_analyzer (" +
