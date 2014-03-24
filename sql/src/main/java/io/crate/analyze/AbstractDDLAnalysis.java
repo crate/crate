@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import io.crate.Constants;
+import io.crate.exceptions.InvalidTableNameException;
 import io.crate.metadata.TableIdent;
 
 public abstract class AbstractDDLAnalysis extends Analysis {
@@ -33,6 +35,9 @@ public abstract class AbstractDDLAnalysis extends Analysis {
 
     @Override
     public void table(TableIdent tableIdent) {
+        if (!isValidTableName(tableIdent.name())) {
+            throw new InvalidTableNameException(tableIdent.name());
+        }
         this.tableIdent = tableIdent;
     }
 
@@ -50,4 +55,14 @@ public abstract class AbstractDDLAnalysis extends Analysis {
     public boolean isData() {
         return false;
     }
+
+    public boolean isValidTableName(String name) {
+        for (String illegalCharacter: Constants.INVALID_TABLE_NAME_CHARACTERS) {
+            if (name.contains(illegalCharacter)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
 }

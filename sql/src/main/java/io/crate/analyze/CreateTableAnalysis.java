@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.exceptions.TableAlreadyExistsException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.FulltextAnalyzerResolver;
@@ -87,20 +86,12 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
 
     @Override
     public void table(TableIdent tableIdent) {
-        // TODO: add a getTableInfoUnsafe() to make this a bit cleaner
         try {
-            if (referenceInfos.getTableInfo(tableIdent) != null) {
-                throw new TableAlreadyExistsException(tableIdent.name());
-            }
-            super.table(tableIdent);
-        } catch (UncheckedExecutionException e) {
-            if (e.getCause() instanceof TableUnknownException) {
-                super.table(tableIdent);
-            } else {
-                throw new TableAlreadyExistsException(tableIdent.name());
-            }
+            referenceInfos.getTableInfoUnsafe(tableIdent);
+            // no exception thrown, table exists
+            throw new TableAlreadyExistsException(tableIdent.name());
         } catch (TableUnknownException e) {
-            super.table(tableIdent);
+            super.table(tableIdent); // name validated here
         }
     }
 

@@ -21,6 +21,10 @@
 
 package io.crate;
 
+import com.google.common.collect.ImmutableSet;
+
+import java.util.Set;
+
 public class Constants {
     /**
      * Mapping Type that contains table definitions
@@ -39,4 +43,6 @@ public class Constants {
     public static final Integer DEFAULT_NUM_SHARDS = 5;
 
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;
+
+    public static final Set<String> INVALID_TABLE_NAME_CHARACTERS = ImmutableSet.of(".");
 }
