@@ -68,6 +68,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.isOneOf;
@@ -293,8 +294,7 @@ public class LocalDataCollectTest {
     }
 
     @Test
-    public void testCollectUnknownReference() throws Exception {
-
+    public void testCollectUnknownReference() throws Throwable {
         expectedException.expect(CrateException.class);
         expectedException.expectMessage("Unknown Reference");
 
@@ -311,7 +311,11 @@ public class LocalDataCollectTest {
         );
         collectNode.toCollect(Arrays.<Symbol>asList(unknownReference));
         collectNode.maxRowGranularity(RowGranularity.NODE);
-        operation.collect(collectNode);
+        try {
+            operation.collect(collectNode).get();
+        } catch (ExecutionException e) {
+            throw e.getCause();
+        }
     }
 
     @Test
@@ -332,7 +336,7 @@ public class LocalDataCollectTest {
 
 
     @Test
-    public void testUnknownFunction() throws Exception {
+    public void testUnknownFunction() throws Throwable {
         // will be wrapped somewhere above
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot find implementation for function unknown()");
@@ -347,7 +351,11 @@ public class LocalDataCollectTest {
                 ImmutableList.<Symbol>of()
         );
         collectNode.toCollect(Arrays.<Symbol>asList(unknownFunction));
-        operation.collect(collectNode);
+        try {
+            operation.collect(collectNode).get();
+        } catch (ExecutionException e) {
+            throw e.getCause();
+        }
     }
 
     @Test

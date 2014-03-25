@@ -21,8 +21,8 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.exceptions.CrateException;
@@ -30,12 +30,18 @@ import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceResolver;
 import io.crate.operation.ImplementationSymbolVisitor;
-import io.crate.operation.Input;
+import io.crate.operation.collect.files.FileCollectInputSymbolVisitor;
+import io.crate.operation.collect.files.FileReadingCollector;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.node.dql.CollectNode;
+import io.crate.planner.node.dql.FileUriCollectNode;
+import io.crate.planner.symbol.Literal;
+import io.crate.planner.symbol.SymbolFormatter;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.Preconditions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.logging.ESLogger;
@@ -53,6 +59,7 @@ import java.util.*;
  */
 public class MapSideDataCollectOperation implements CollectOperation<Object[][]> {
 
+    private final FileCollectInputSymbolVisitor fileInputSymbolVisitor;
     private ESLogger logger = Loggers.getLogger(getClass());
     private final ProjectionToProjectorVisitor projectorVisitor;
 
@@ -70,8 +77,6 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
         }
     }
 
-    private final Functions functions;
-    private final ReferenceResolver referenceResolver;
     private final IndicesService indicesService;
     protected final EvaluatingNormalizer nodeNormalizer;
     private final ThreadPool threadPool;
@@ -85,16 +90,16 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                                        IndicesService indicesService,
                                        ThreadPool threadPool) {
         this.clusterService = clusterService;
-        this.functions = functions;
-        this.referenceResolver = referenceResolver;
         this.indicesService = indicesService;
         this.nodeNormalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, referenceResolver);
         this.threadPool = threadPool;
         this.nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(
-                this.referenceResolver,
-                this.functions,
+                referenceResolver,
+                functions,
                 RowGranularity.NODE
         );
+        this.fileInputSymbolVisitor =
+                new FileCollectInputSymbolVisitor(functions, FileLineReferenceResolver.INSTANCE);
         this.projectorVisitor = new ProjectionToProjectorVisitor(nodeImplementationSymbolVisitor);
     }
 
@@ -133,24 +138,19 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
      * @return the collect result from this node, one row only so return value is <code>Object[1][]</code>
      */
     protected ListenableFuture<Object[][]> handleNodeCollect(CollectNode collectNode) {
-        SettableFuture<Object[][]> result = SettableFuture.create();
         collectNode = collectNode.normalize(nodeNormalizer);
         if (collectNode.whereClause().noMatch()) {
-            result.set(Constants.EMPTY_RESULT);
-            return result;
+            return Futures.immediateFuture(Constants.EMPTY_RESULT);
         }
         assert collectNode.toCollect().size() > 0;
-        // resolve Implementations
-        ImplementationSymbolVisitor.Context ctx = nodeImplementationSymbolVisitor.process(collectNode);
-        List<Input<?>> inputs = ctx.topLevelInputs();
-        Set<CollectExpression<?>> collectExpressions = ctx.collectExpressions();
-
-        assert ctx.maxGranularity().ordinal() <= RowGranularity.NODE.ordinal() : "wrong RowGranularity";
 
         FlatProjectorChain projectorChain = new FlatProjectorChain(collectNode.projections(), projectorVisitor);
-
         projectorChain.startProjections();
-        new SimpleOneRowCollector(inputs, collectExpressions, projectorChain.firstProjector()).doCollect();
+        try {
+            getCollector(collectNode, projectorChain).doCollect();
+        } catch (Exception e) {
+            return Futures.immediateFailedFuture(e);
+        }
         projectorChain.finishProjections();
 
         Object[][] collected = projectorChain.result();
@@ -160,8 +160,36 @@ public class MapSideDataCollectOperation implements CollectOperation<Object[][]>
                     collectNode.maxRowGranularity().name().toLowerCase(),
                     clusterService.localNode().id());
         }
-        result.set(collected);
-        return result;
+        return Futures.immediateFuture(collected);
+    }
+
+    private CrateCollector getCollector(CollectNode collectNode,
+                                        FlatProjectorChain projectorChain) {
+        if (collectNode instanceof FileUriCollectNode) {
+            FileCollectInputSymbolVisitor.Context context = fileInputSymbolVisitor.process(collectNode);
+            FileUriCollectNode fileUriCollectNode = (FileUriCollectNode)collectNode;
+
+             // after normalize this must be a literal
+            Preconditions.checkArgument(fileUriCollectNode.targetUri().symbolType().isLiteral(),
+                    SymbolFormatter.format(
+                            "targetUri symbol \"%s\" must be a literal", fileUriCollectNode.targetUri())
+            );
+
+            // TODO: s3 support and explicit file schema in uri
+            return new FileReadingCollector(
+                    ((Literal)fileUriCollectNode.targetUri()).valueAsString(),
+                    context.topLevelInputs(),
+                    context.expressions(),
+                    projectorChain.firstProjector(),
+                    fileUriCollectNode.fileFormat(),
+                    fileUriCollectNode.compressed()
+            );
+        } else {
+            ImplementationSymbolVisitor.Context ctx = nodeImplementationSymbolVisitor.process(collectNode);
+            assert ctx.maxGranularity().ordinal() <= RowGranularity.NODE.ordinal() : "wrong RowGranularity";
+            return new SimpleOneRowCollector(
+                    ctx.topLevelInputs(), ctx.collectExpressions(), projectorChain.firstProjector());
+        }
     }
 
     /**
