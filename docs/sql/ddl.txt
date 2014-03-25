@@ -198,8 +198,8 @@ dynamic
 Another option is ``dynamic``, which means that new subcolumns can be added in this object.
 
 Note that adding new columns to a ``dynamic`` object will affect the schema of the
-table. Once a column is added, it shows up in the ``information_schema.columns`` and ``information_schema.indices``
-tables and its type and attributes are fixed. They will have the type that was guessed by their
+table. Once a column is added, it shows up in the ``information_schema.columns``
+table and its type and attributes are fixed. They will have the type that was guessed by their
 inserted/updated value and they will always be ``not_indexed`` which means
 they are analyzed with the ``plain`` analyzer, which means as-is.
 If a new column ``a`` was added with type ``integer``,
