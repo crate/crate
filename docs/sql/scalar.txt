@@ -54,7 +54,7 @@ day based histogram in the ``Europe/Moscow`` timezone::
     ... count(*) as num_locations
     ... from locations
     ... group by date_trunc('day', 'Europe/Moscow', date)
-    ... order by date_trunc('day', 'Europe/Moscow', date)
+    ... order by date_trunc('day', 'Europe/Moscow', date);
     +---------------+---------------+
     | day           | num_locations |
     +---------------+---------------+
@@ -69,7 +69,7 @@ If the time zone is not specified, truncation is based on UTC time::
     cr> select date_trunc('day', date) as day, count(*) as num_locations
     ... from locations
     ... group by date_trunc('day', date)
-    ... order by date_trunc('day', date)
+    ... order by date_trunc('day', date);
     +---------------+---------------+
     | day           | num_locations |
     +---------------+---------------+
@@ -92,7 +92,7 @@ arguments and returns a formatted string::
 
     cr> select format('%s.%s', schema_name, table_name) from sys.shards
     ... where table_name = 'locations'
-    ... limit 1
+    ... limit 1;
     +------------------------------------------+
     | format('%s.%s', schema_name, table_name) |
     +------------------------------------------+
@@ -100,7 +100,7 @@ arguments and returns a formatted string::
     +------------------------------------------+
     SELECT 1 row in set (... sec)
 
-    cr> select format('%tY', date) from locations group by format('%tY', date)
+    cr> select format('%tY', date) from locations group by format('%tY', date);
     +---------------------+
     | format('%tY', date) |
     +---------------------+

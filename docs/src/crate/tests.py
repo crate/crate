@@ -45,7 +45,7 @@ def crash_transform(s):
     # Our test suite requires the port to be '44200' to avoid conflicts.
     # Therefore, we need to replace the ports before a test is being run.
     s = s.replace(':4200', ':44200')
-    return ('cmd.onecmd("""{0}""");'.format(s.strip()))
+    return ('cmd.onecmd("""{0}""");'.format(s.strip().strip(";")))
 
 
 bash_parser = zc.customdoctests.DocTestParser(

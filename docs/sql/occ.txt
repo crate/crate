@@ -9,18 +9,18 @@ by using the internal system column :ref:`_version <sql_ddl_system_column_versio
 
 .. Hidden: update some documents to raise their ``_version`` to 3. formerly done in other tests.::
 
-    cr> update locations set date=0 where name < 'Altair' and kind = 'Star System'
+    cr> update locations set date=0 where name < 'Altair' and kind = 'Star System';
     UPDATE OK, 3 rows affected (... sec)
 
-    cr> update locations set date=2 where name < 'Altair' and kind = 'Star System'
+    cr> update locations set date=2 where name < 'Altair' and kind = 'Star System';
     UPDATE OK, 3 rows affected (... sec)
 
-    cr> refresh table locations
+    cr> refresh table locations;
     REFRESH OK (... sec)
 
 It's possible to fetch the ``_version`` by selecting it::
 
-    cr> select name, id, "_version" from locations where kind = 'Star System' order by name asc
+    cr> select name, id, "_version" from locations where kind = 'Star System' order by name asc;
     +----------------+----+----------+
     | name           | id | _version |
     +----------------+----+----------+
@@ -37,13 +37,13 @@ Optimistic Update
 
 The ``_version`` can now be used on updates to ensure no concurrent update has taken place::
 
-    cr> update locations set description = 'Updated description' where name = 'Algol' and "_version" = 3
+    cr> update locations set description = 'Updated description' where name = 'Algol' and "_version" = 3;
     UPDATE OK, 1 row affected (... sec)
 
 Updating a row with an wrong or outdated version number will not update and results in 0
 affected rows::
 
-    cr> update locations set description = 'Updated description' where name = 'Algol' and "_version" = 2
+    cr> update locations set description = 'Updated description' where name = 'Algol' and "_version" = 2;
     UPDATE OK, 0 rows affected (... sec)
 
 Optimistic Delete
@@ -51,7 +51,7 @@ Optimistic Delete
 
 Of course the same can be done when deleting a row::
 
-    cr> delete from locations where id = '6' and "_version" = 3
+    cr> delete from locations where id = '6' and "_version" = 3;
     DELETE OK, 1 row affected (... sec)
 
 
@@ -62,7 +62,7 @@ Known Limitations
    included inside the ``WHERE`` clause). For example, the query below is not possible with our
    used testing data because ``name`` is not declared as a primary key and results in an error::
 
-    cr> delete from locations where name = 'Aldebaran' and "_version" = 3
+    cr> delete from locations where name = 'Aldebaran' and "_version" = 3;
     UnsupportedFeatureException["_version" column is only valid in the WHERE clause if the primary key column is also present]; ...
 
 

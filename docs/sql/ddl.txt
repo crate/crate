@@ -17,12 +17,12 @@ Let's create a simple table with two columns of type ``integer`` and ``string``:
     cr> create table my_table (
     ...   first_column integer,
     ...   second_column string
-    ... )
+    ... );
     CREATE OK (... sec)
 
 A table can be removed by using the ``DROP TABLE`` command::
 
-    cr> drop table my_table
+    cr> drop table my_table;
     DROP OK (... sec)
 
 Constraints
@@ -37,7 +37,7 @@ the default routing value used for sharding. Example::
     cr> create table my_table1 (
     ...   first_column integer primary key,
     ...   second_column string
-    ... )
+    ... );
     CREATE OK (... sec)
 
 Currently primary key's cannot be auto generated and have to be specified if
@@ -49,7 +49,7 @@ Defining multiple columns with a primary key constraint is also supported::
     ...   first_column integer primary key,
     ...   second_column string primary key,
     ...   third_column string
-    ... )
+    ... );
     CREATE OK (... sec)
 
 Or using a alternate syntax::
@@ -59,7 +59,7 @@ Or using a alternate syntax::
     ...   second_column string,
     ...   third_column string,
     ...   primary key (first_column, second_column)
-    ... )
+    ... );
     CREATE OK (... sec)
 
 Data Types
@@ -72,10 +72,10 @@ A basic boolean type. Accepting ``true`` and ``false`` as values. Example::
 
     cr> create table my_bool_table (
     ...   first_column boolean
-    ... )
+    ... );
     CREATE OK (... sec)
 
-    cr> drop table my_bool_table
+    cr> drop table my_bool_table;
     DROP OK (... sec)
 
 string
@@ -85,7 +85,7 @@ A text-based basic type containing one or more character. Example::
 
     cr> create table my_table2 (
     ...   first_column string
-    ... )
+    ... );
     CREATE OK (... sec)
 
 
@@ -105,7 +105,7 @@ Example::
     ...   fourth_column double,
     ...   fifth_column float,
     ...   sixth_column byte
-    ... )
+    ... );
     CREATE OK (... sec)
 
 timestamp
@@ -123,22 +123,22 @@ fractions. Example::
     cr> create table my_table4 (
     ...   id integer,
     ...   first_column timestamp
-    ... )
+    ... );
     CREATE OK (... sec)
 
-    cr> insert into my_table4 (id, first_column) values (0, '1970-01-01T00:00:00')
+    cr> insert into my_table4 (id, first_column) values (0, '1970-01-01T00:00:00');
     INSERT OK, 1 row affected (... sec)
 
-    cr> insert into my_table4 (id, first_column) values (1, '1970-01-01T00:00:00+0100')
+    cr> insert into my_table4 (id, first_column) values (1, '1970-01-01T00:00:00+0100');
     INSERT OK, 1 row affected (... sec)
 
-    cr> insert into my_table4 (id, first_column) values (2, 0)
+    cr> insert into my_table4 (id, first_column) values (2, 0);
     INSERT OK, 1 row affected (... sec)
 
-    cr> insert into my_table4 (id, first_column) values (3, 1.0)
+    cr> insert into my_table4 (id, first_column) values (3, 1.0);
     INSERT OK, 1 row affected (... sec)
 
-    cr> insert into my_table4 (id, first_column) values (3, 'wrong')
+    cr> insert into my_table4 (id, first_column) values (3, 'wrong');
     ValidationException[Validation failed for first_column: wrong type 'string'. expected: 'timestamp']
 
 object
@@ -170,7 +170,7 @@ Example::
     ...       birthday timestamp
     ...     )
     ...   )
-    ... )
+    ... );
     CREATE OK (... sec)
 
 strict
@@ -188,7 +188,7 @@ Example::
     ...     name string,
     ...     birthday timestamp
     ...   )
-    ... )
+    ... );
     CREATE OK (... sec)
 
 
@@ -213,7 +213,7 @@ Examples::
     ...     name string,
     ...     birthday timestamp
     ...   )
-    ... )
+    ... );
     CREATE OK (... sec)
 
 which is exactly the same as::
@@ -224,7 +224,7 @@ which is exactly the same as::
     ...     name string,
     ...     birthday timestamp
     ...   )
-    ... )
+    ... );
     CREATE OK (... sec)
 
 New columns added to ``dynamic`` objects are, once added,
@@ -248,7 +248,7 @@ but otherwise ignore them.
     ...     num_pages integer,
     ...     font_size float
     ...   )
-    ... )
+    ... );
     CREATE OK (... sec)
 
 
@@ -274,7 +274,7 @@ Array types are defined as follows::
     cr> create table my_table_arrays (
     ...     tags array(string),
     ...     objects array(object as (age integer, name string))
-    ... )
+    ... );
     CREATE OK (... sec)
 
 
@@ -307,7 +307,7 @@ table creation. Example::
 
     cr> create table my_table5 (
     ...   first_column int
-    ... ) clustered into 10 shards
+    ... ) clustered into 10 shards;
     CREATE OK (... sec)
 
 .. note::
@@ -323,7 +323,7 @@ statement and is used to route a row to a particular shard. Example::
     cr> create table my_table6 (
     ...   first_column int,
     ...   second_column string
-    ... ) clustered by (first_column)
+    ... ) clustered by (first_column);
     CREATE OK (... sec)
 
 
@@ -334,13 +334,13 @@ examples result in the same behaviour::
     cr> create table my_table7 (
     ...   first_column int primary key,
     ...   second_column string
-    ... )
+    ... );
     CREATE OK (... sec)
 
     cr> create table my_table8 (
     ...   first_column int primary key,
     ...   second_column string
-    ... ) clustered by (first_column)
+    ... ) clustered by (first_column);
     CREATE OK (... sec)
 
 
@@ -349,7 +349,7 @@ Example for combining custom routing and shard definition::
     cr> create table my_table9 (
     ...   first_column int primary key,
     ...   second_column string
-    ... ) clustered by (first_column) into 10 shards
+    ... ) clustered by (first_column) into 10 shards;
     CREATE OK (... sec)
 
 
@@ -372,7 +372,7 @@ Example::
     cr> create table my_table10 (
     ...   first_column int,
     ...   second_column string
-    ... ) with (number_of_replicas=1)
+    ... ) with (number_of_replicas=1);
     CREATE OK (... sec)
 
 
@@ -446,7 +446,7 @@ and is only available as a result column::
 
     cr> create table my_table1b (
     ...   first_column string INDEX OFF
-    ... )
+    ... );
     CREATE OK (... sec)
 
 
@@ -461,14 +461,14 @@ but can also be declared explicitly::
 
     cr> create table my_table1b1 (
     ...   first_column string INDEX using plain
-    ... )
+    ... );
     CREATE OK (... sec)
 
 This results in the same behaviour than without any index declaration::
 
     cr> create table my_table1b2 (
     ...   first_column string
-    ... )
+    ... );
     CREATE OK (... sec)
 
 
@@ -488,7 +488,7 @@ If no analyzer is specified when using a fulltext index, the
 
     cr> create table my_table1c (
     ...   first_column string INDEX using fulltext
-    ... )
+    ... );
     CREATE OK (... sec)
 
 Defining the usage of a concrete analyzer is straight forward by
@@ -496,7 +496,7 @@ defining the analyzer as a parameter using the ``WITH`` statement::
 
     cr> create table my_table1d (
     ...   first_column string INDEX using fulltext with(analyzer='english')
-    ... )
+    ... );
     CREATE OK (... sec)
 
 
@@ -510,7 +510,7 @@ search for both, the exact and analyzed data::
     cr> create table my_table1e (
     ...   first_column string,
     ...   INDEX first_column_ft using fulltext(first_column)
-    ... )
+    ... );
     CREATE OK (... sec)
 
 Of course defining a custom analyzer is possible here too::
@@ -518,7 +518,7 @@ Of course defining a custom analyzer is possible here too::
     cr> create table my_table1f (
     ...   first_column string,
     ...   INDEX first_column_ft using fulltext(first_column) with(analyzer='english')
-    ... )
+    ... );
     CREATE OK (... sec)
 
 
@@ -533,7 +533,7 @@ method::
     ...   title string,
     ...   body string,
     ...   INDEX title_body_ft using fulltext(title, body) with(analyzer='english')
-    ... )
+    ... );
     CREATE OK (... sec)
 
 Composite indices can include nested columns within object columns as well::
@@ -545,7 +545,7 @@ Composite indices can include nested columns within object columns as well::
     ...     birthday timestamp
     ...   ),
     ...   INDEX author_title_ft using fulltext(title, author['name'])
-    ... )
+    ... );
     CREATE OK (... sec)
 
 .. _sql-ddl-custom-analyzer:
@@ -587,7 +587,7 @@ Here is a simple Example::
     ...       mappings = ['ph=>f', 'qu=>q', 'foo=>bar']
     ...     )
     ...   )
-    ... )
+    ... );
     CREATE OK (... sec)
 
 This example creates an analyzer called ``myanalyzer`` to be used in
@@ -611,7 +611,7 @@ You can extend and parameterize :ref:`builtin-analyzer` like this::
 
     cr> create ANALYZER "german_snowball" extends snowball WITH (
     ...   language='german'
-    ... )
+    ... );
     CREATE OK (... sec)
 
 If you extend :ref:`builtin-analyzer`, tokenizer, char-filter or
@@ -626,7 +626,7 @@ ommitted will be taken from the extended one.  Example::
     ...       type='pattern',
     ...       pattern='.*'
     ...     )
-    ... )
+    ... );
     CREATE OK (... sec)
 
 This analyzer will use the char-filters and token-filters from
@@ -678,12 +678,12 @@ Alter table
 
 The properties of a table can be modified using the `ALTER TABLE` clause::
 
-    cr> alter table my_table1 set (number_of_replicas='0-all')
+    cr> alter table my_table1 set (number_of_replicas='0-all');
     ALTER OK (... sec)
 
 In order to set a property to its default value use `reset`::
 
-    cr> alter table my_table1 reset (number_of_replicas)
+    cr> alter table my_table1 reset (number_of_replicas);
     ALTER OK (... sec)
 
 .. note::

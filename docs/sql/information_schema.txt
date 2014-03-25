@@ -18,7 +18,7 @@ This table can be queried to get a list of all available tables and their
 settings like the number of shards or number of replicas::
 
     cr> select * from information_schema.tables
-    ... where table_name not like 'my_table%' order by schema_name asc, table_name asc
+    ... where table_name not like 'my_table%' order by schema_name asc, table_name asc;
     +--------------------+-------------------+------------------+--------------------+--------------+
     | schema_name        | table_name        | number_of_shards | number_of_replicas | clustered_by |
     +--------------------+-------------------+------------------+--------------------+--------------+
@@ -45,7 +45,7 @@ definition like data type and ordinal position inside the table::
 
     cr> select * from information_schema.columns
     ... where schema_name='doc' and table_name not like 'my_table%'
-    ... order by table_name asc, column_name asc
+    ... order by table_name asc, column_name asc;
     +-------------+------------+------------------+------------------+--------------+
     | schema_name | table_name | column_name      | ordinal_position | data_type    |
     +-------------+------------+------------------+------------------+--------------+
@@ -70,7 +70,7 @@ definition like data type and ordinal position inside the table::
 You can even query this tables' own columns (attention: this might lead to infinite recursion of your mind, beware!)::
 
     cr> select column_name, data_type, ordinal_position from information_schema.columns
-    ... where schema_name = 'information_schema' and table_name = 'columns' order by ordinal_position asc
+    ... where schema_name = 'information_schema' and table_name = 'columns' order by ordinal_position asc;
     +------------------+-----------+------------------+
     | column_name      | data_type | ordinal_position |
     +------------------+-----------+------------------+
@@ -103,7 +103,7 @@ their type, name and which table they are defined in.
 
     cr> select * from information_schema.table_constraints
     ... where table_name not like 'my_table%'
-    ... order by schema_name desc, table_name desc limit 10
+    ... order by schema_name desc, table_name desc limit 10;
     +--------------------+------------+-------------------------------------------------+-----------------+
     | schema_name        | table_name | constraint_name                                 | constraint_type |
     +--------------------+------------+-------------------------------------------------+-----------------+
@@ -130,7 +130,7 @@ Using a :ref:`plain index <sql_ddl_index_plain>` for every column is the default
 behaviour at Crate, so almost all columns are listed as an index as well::
 
     cr> select * from information_schema.indices
-    ... where table_name not like 'my_table%' order by table_name asc, index_name asc  #doctest: +SKIP
+    ... where table_name not like 'my_table%' order by table_name asc, index_name asc; #doctest: +SKIP
     +------------+---------------------+----------+---------------------------+------------------+
     | table_name | index_name          | method   | columns                   | properties       |
     +------------+---------------------+----------+---------------------------+------------------+
@@ -159,7 +159,7 @@ and char-filters and all custom analyzers created by ``CREATE ANALYZER``
 statements (see :ref:`sql-ddl-custom-analyzer`)::
 
     cr> select routine_name, routine_type from information_schema.routines
-    ... group by routine_name, routine_type order by routine_name asc limit 5
+    ... group by routine_name, routine_type order by routine_name asc limit 5;
     +----------------------+--------------+
     | routine_name         | routine_type |
     +----------------------+--------------+
@@ -175,7 +175,7 @@ For example you can use this table to list existing tokenizers like this::
 
     cr> select routine_name from information_schema.routines
     ... where routine_type='TOKENIZER'
-    ... order by routine_name asc limit 10
+    ... order by routine_name asc limit 10;
     +----------------+
     | routine_name   |
     +----------------+
@@ -195,7 +195,7 @@ For example you can use this table to list existing tokenizers like this::
 Or get an overview of how many routines and routine types are available::
 
     cr> select count(*), routine_type from information_schema.routines
-    ... group by routine_type order by routine_type
+    ... group by routine_type order by routine_type;
     +----------+--------------+
     | count(*) | routine_type |
     +----------+--------------+
