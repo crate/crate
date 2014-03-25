@@ -29,7 +29,7 @@ The semantics are the same.
 The return value is always of type ``long``.
 ::
 
-    cr> select count(*) from locations
+    cr> select count(*) from locations;
     +----------+
     | count(*) |
     +----------+
@@ -39,7 +39,7 @@ The return value is always of type ``long``.
 
 ``count(*)`` can also be used on group by queries::
 
-    cr> select count(*), kind from locations group by kind order by kind asc
+    cr> select count(*), kind from locations group by kind order by kind asc;
     +----------+-------------+
     | count(*) | kind        |
     +----------+-------------+
@@ -59,7 +59,7 @@ with a non-``NULL`` value in that column.
 Example::
 
     cr> select count(name), count(*), date from locations group by date
-    ... order by count(name) desc, count(*) desc
+    ... order by count(name) desc, count(*) desc;
     +-------------+----------+---------------+
     | count(name) | count(*) | date          |
     +-------------+----------+---------------+
@@ -77,7 +77,7 @@ keyword changes the behaviour of the function so that it will only count the num
 of distinct values in this column that are not ``NULL``::
 
     cr> select count(distinct kind), count(*), date from locations group by date
-    ... order by count(distinct kind) desc, count(*) desc
+    ... order by count(distinct kind) desc, count(*) desc;
     +----------------------+----------+---------------+
     | count(DISTINCT kind) | count(*) | date          |
     +----------------------+----------+---------------+
@@ -87,7 +87,7 @@ of distinct values in this column that are not ``NULL``::
     +----------------------+----------+---------------+
      SELECT 3 rows in set (... sec)
 
-    cr> select count(distinct kind) from locations
+    cr> select count(distinct kind) from locations;
     +----------------------+
     | count(DISTINCT kind) |
     +----------------------+
@@ -102,7 +102,7 @@ The ``min`` aggregation function returns the smallest value in a column that is 
 Its single argument is a column name and its return value is always of the type of that column.
 Example::
 
-    cr> select min(position), kind from locations where name not like 'North %' group by kind order by min(position) asc, kind asc
+    cr> select min(position), kind from locations where name not like 'North %' group by kind order by min(position) asc, kind asc;
     +---------------+-------------+
     | min(position) | kind        |
     +---------------+-------------+
@@ -113,7 +113,7 @@ Example::
     SELECT 3 rows in set (... sec)
 
 
-    cr> select min(date) from locations
+    cr> select min(date) from locations;
     +--------------+
     | min(date)    |
     +--------------+
@@ -126,7 +126,7 @@ It is allowed on numeric columns (``byte``, ``short``, ``integer``, ``long``, ``
 on ``timestamp`` and ``string`` columns. On ``string`` columns it will return the lexicographically
 smallest.::
 
-    cr> select min(name), kind from locations group by kind order by kind asc
+    cr> select min(name), kind from locations group by kind order by kind asc;
     +------------------------------------+-------------+
     | min(name)                          | kind        |
     +------------------------------------+-------------+
@@ -143,7 +143,7 @@ max
 It behaves exactly like ``min`` but returns the biggest value in a column that is not ``NULL``.
 Some Examples::
 
-    cr> select max(position), kind from locations group by kind order by kind desc
+    cr> select max(position), kind from locations group by kind order by kind desc;
     +---------------+-------------+
     | max(position) | kind        |
     +---------------+-------------+
@@ -154,7 +154,7 @@ Some Examples::
     SELECT 3 rows in set (... sec)
 
 
-    cr> select max(position) from locations
+    cr> select max(position) from locations;
     +---------------+
     | max(position) |
     +---------------+
@@ -163,7 +163,7 @@ Some Examples::
     SELECT 1 row in set (... sec)
 
 
-    cr> select max(name), kind from locations group by kind order by max(name) desc
+    cr> select max(name), kind from locations group by kind order by max(name) desc;
     +-------------------+-------------+
     | max(name)         | kind        |
     +-------------------+-------------+
@@ -183,7 +183,7 @@ as a double value. Its single argument is the column name of a numeric column or
 
 ::
 
-    cr> select sum(position), kind from locations group by kind order by sum(position) asc
+    cr> select sum(position), kind from locations group by kind order by sum(position) asc;
     +---------------+-------------+
     | sum(position) | kind        |
     +---------------+-------------+
@@ -193,7 +193,7 @@ as a double value. Its single argument is the column name of a numeric column or
     +---------------+-------------+
     SELECT 3 rows in set (... sec)
 
-    cr> select sum(position) as position_sum from locations
+    cr> select sum(position) as position_sum from locations;
     +--------------+
     | position_sum |
     +--------------+
@@ -201,7 +201,7 @@ as a double value. Its single argument is the column name of a numeric column or
     +--------------+
     SELECT 1 row in set (... sec)
 
-    cr> select sum(name), kind from locations group by kind order by sum(name) desc
+    cr> select sum(name), kind from locations group by kind order by sum(name) desc;
     UnsupportedFeatureException[unknown function: sum(string)]...
 
 avg
@@ -213,7 +213,7 @@ and timestamp columns as single argument. Using ``avg`` on other column types is
 
 Example::
 
-    cr> select avg(position), kind from locations group by kind order by kind
+    cr> select avg(position), kind from locations group by kind order by kind;
     +---------------+-------------+
     | avg(position) | kind        |
     +---------------+-------------+
@@ -236,7 +236,7 @@ if the column contains ``NULL`` values.
 
 Example::
 
-    cr> select any(position) from locations
+    cr> select any(position) from locations;
     +---------------+
     | any(position) |
     +---------------+
@@ -246,7 +246,7 @@ Example::
 
     cr> select any(name), kind from locations
     ... where name != ''
-    ... group by kind order by kind desc
+    ... group by kind order by kind desc;
     +-...------------+-------------+
     | any(name)      | kind        |
     +-...------------+-------------+
