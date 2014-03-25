@@ -45,7 +45,7 @@ ext {
     plugin_bigdesk_version = '2.2.2c'
     plugin_segmentspy_version = '0.2.0'
     plugin_crateadmin_version = '0.3.1'
-    crash_version = '0.8.0'
+    crash_version = '0.8.1'
 }
 
 evaluationDependsOn(':es')
