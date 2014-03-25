@@ -891,4 +891,19 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         analyze("select sys.cluster.name, id from users");
     }
 
+    @Test (expected = UnsupportedOperationException.class)
+    public void testWhereSysExpressionWithoutGroupBy() throws Exception {
+        analyze("select id from users where sys.cluster.name ='crate'");
+    }
+
+    @Test (expected = UnsupportedOperationException.class)
+    public void testSelectFunctionWithSysExpressionWithoutGroupBy() throws Exception {
+        analyze("select format('%s', sys.nodes.id), id from users");
+    }
+
+    @Test (expected = UnsupportedOperationException.class)
+    public void testWhereFunctionWithSysExpressionWithoutGroupBy() throws Exception {
+        analyze("select id from users where format('%s', sys.nodes.id) = 'foo'");
+    }
+
 }
