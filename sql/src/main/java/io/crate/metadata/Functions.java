@@ -23,6 +23,7 @@ package io.crate.metadata;
 
 import org.elasticsearch.common.inject.Inject;
 
+import java.util.Collection;
 import java.util.Map;
 
 public class Functions {
@@ -48,5 +49,9 @@ public class Functions {
             return dynamicResolver.getForTypes(ident.argumentTypes());
         }
         return null;
+    }
+
+    public Collection<FunctionImplementation> functions() {
+        return functionImplementations.values();
     }
 }

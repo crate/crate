@@ -47,6 +47,9 @@ public class InformationDocLevelReferenceResolver implements DocLevelReferenceRe
         for (InformationCollectorExpression<?, ?> implementation : InformationTableConstraintsExpression.IMPLEMENTATIONS) {
             implementations.put(implementation.info().ident(), implementation);
         }
+        for (InformationCollectorExpression<?, ?> implementation : InformationRoutinesExpression.IMPLEMENTATIONS) {
+            implementations.put(implementation.info().ident(), implementation);
+        }
     }
 
     /**
