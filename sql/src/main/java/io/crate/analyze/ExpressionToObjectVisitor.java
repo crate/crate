@@ -23,6 +23,8 @@ package io.crate.analyze;
 
 import io.crate.sql.tree.*;
 
+import java.util.Locale;
+
 class ExpressionToObjectVisitor extends AstVisitor<Object, Object[]> {
 
     @Override
@@ -47,7 +49,7 @@ class ExpressionToObjectVisitor extends AstVisitor<Object, Object[]> {
 
     @Override
     protected String visitSubscriptExpression(SubscriptExpression node, Object[] context) {
-        return String.format("%s.%s", process(node.name(), null), process(node.index(), null));
+        return String.format(Locale.ENGLISH, "%s.%s", process(node.name(), null), process(node.index(), null));
     }
 
     @Override

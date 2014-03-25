@@ -6,6 +6,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Locale;
 
 public class IntegerLiteral extends NumberLiteral<Integer, IntegerLiteral> {
 
@@ -22,7 +23,7 @@ public class IntegerLiteral extends NumberLiteral<Integer, IntegerLiteral> {
 
     public IntegerLiteral(long value) {
         if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException(String.format("invalid integer literal %s", value));
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "invalid integer literal %s", value));
         }
         this.value = (int)value;
     }

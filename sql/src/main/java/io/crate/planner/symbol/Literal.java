@@ -1,10 +1,11 @@
 package io.crate.planner.symbol;
 
+import io.crate.DataType;
 import io.crate.operation.Input;
 import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -92,7 +93,7 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
         DataType type = DataType.forValue(value, strict);
         if (type == null) {
             throw new IllegalArgumentException(
-                    String.format("value of unsupported class '%s'", value.getClass().getSimpleName()));
+                    String.format(Locale.ENGLISH, "value of unsupported class '%s'", value.getClass().getSimpleName()));
         }
         return forType(type, value);
     }
@@ -119,7 +120,8 @@ public abstract class Literal<ValueType, LiteralType> extends ValueSymbol
             return Null.INSTANCE;
         }
         throw new IllegalArgumentException(
-                "Invalid input for type " + type.getName() + ": " + value().toString());
+                String.format(Locale.ENGLISH, "Invalid input for type %s: %s",
+                        type.getName(), value().toString()));
     }
 
     @Override

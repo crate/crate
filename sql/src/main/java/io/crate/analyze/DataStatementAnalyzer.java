@@ -124,7 +124,7 @@ abstract class DataStatementAnalyzer<T extends AbstractDataAnalysis> extends Abs
                 }
             } catch (Exception e) {
                 throw new IllegalArgumentException(
-                        String.format("invalid IN LIST value %s. expected type '%s'",
+                        String.format(Locale.ENGLISH, "invalid IN LIST value %s. expected type '%s'",
                                 SymbolFormatter.format(inListValue),
                                 valueDataType.getName()));
             }

@@ -204,7 +204,7 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
             context.currentColumnDefinition().put("index", "no");
         } else {
             throw new IllegalArgumentException(
-                    String.format("Invalid index method \"%s\"", node.indexMethod()));
+                    String.format(Locale.ENGLISH, "Invalid index method \"%s\"", node.indexMethod()));
         }
         return null;
     }

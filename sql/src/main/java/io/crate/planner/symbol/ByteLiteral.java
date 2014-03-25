@@ -27,6 +27,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Locale;
 
 public class ByteLiteral extends NumberLiteral<Integer, ByteLiteral> {
 
@@ -43,7 +44,7 @@ public class ByteLiteral extends NumberLiteral<Integer, ByteLiteral> {
 
     public ByteLiteral(long value) {
         if (value < Byte.MIN_VALUE || value > Byte.MAX_VALUE) {
-            throw new IllegalArgumentException(String.format("invalid byte literal %s", value));
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "invalid byte literal %s", value));
         }
         this.value = (byte)value;
     }

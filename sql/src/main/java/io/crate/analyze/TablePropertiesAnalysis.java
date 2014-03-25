@@ -30,6 +30,7 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class TablePropertiesAnalysis {
@@ -55,7 +56,7 @@ public class TablePropertiesAnalysis {
             SettingsApplier settingsApplier = supportedProperties.get(entry.getKey());
             if (settingsApplier == null) {
                 throw new IllegalArgumentException(
-                        String.format("TABLES don't have the \"%s\" property", entry.getKey()));
+                        String.format(Locale.ENGLISH, "TABLES don't have the \"%s\" property", entry.getKey()));
             }
 
             settingsApplier.apply(builder, parameters, entry.getValue());

@@ -197,7 +197,7 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
     public ColumnSchema pushIndex(String ident) {
         if (metaIndices.containsKey(ident)) {
             throw new IllegalArgumentException(
-                    String.format("the index name \"%s\" is already in use!", ident));
+                    String.format(Locale.ENGLISH, "the index name \"%s\" is already in use!", ident));
         }
         metaIndices.put(ident, ImmutableMap.of());
         ColumnSchema columnSchema = schemaStack.peek();
