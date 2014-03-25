@@ -37,7 +37,7 @@ public class WhereClause implements Streamable {
     public static final WhereClause MATCH_ALL = new WhereClause();
     public static final WhereClause NO_MATCH = new WhereClause(null, true);
 
-    private Function query;
+    private Symbol query;
     private boolean noMatch = false;
 
     protected String clusteredBy;
@@ -60,21 +60,15 @@ public class WhereClause implements Streamable {
     }
 
     public WhereClause(Symbol normalizedQuery) {
-        if (normalizedQuery.symbolType() == SymbolType.FUNCTION) {
-            this.query = (Function) normalizedQuery;
-            return;
-        }
         if (normalizedQuery.symbolType() == SymbolType.BOOLEAN_LITERAL) {
             if (!((BooleanLiteral) normalizedQuery).value()) {
                 this.noMatch = true;
             }
-            return;
-        }
-        if (normalizedQuery.symbolType() == SymbolType.NULL_LITERAL) {
+        } else if (normalizedQuery.symbolType() == SymbolType.NULL_LITERAL) {
             this.noMatch = true;
-            return;
+        } else {
+            this.query = normalizedQuery;
         }
-        throw new UnsupportedOperationException("Symbol not supported for where clause: " + normalizedQuery);
     }
 
     public WhereClause normalize(EvaluatingNormalizer normalizer) {
@@ -155,7 +149,7 @@ public class WhereClause implements Streamable {
     }
 
     @Nullable
-    public Function query() {
+    public Symbol query() {
         return query;
     }
 

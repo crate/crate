@@ -22,6 +22,10 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.DataType;
+import io.crate.exceptions.AmbiguousAliasException;
+import io.crate.exceptions.SQLParseException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.ReferenceInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -41,10 +45,6 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.RowGranularity;
 import io.crate.planner.symbol.*;
 import org.apache.lucene.util.BytesRef;
-import io.crate.DataType;
-import io.crate.exceptions.AmbiguousAliasException;
-import io.crate.exceptions.SQLParseException;
-import io.crate.exceptions.UnsupportedFeatureException;
 import org.elasticsearch.common.inject.Module;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Test;
@@ -111,7 +111,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testIsNullQuery() {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select * from sys.nodes where id is not null");
         assertTrue(analysis.whereClause().hasQuery());
-        Function query = analysis.whereClause().query();
+        Function query = (Function)analysis.whereClause().query();
 
         assertThat(query.info().ident().name(), is(NotPredicate.NAME));
         assertThat(query.arguments().get(0), instanceOf(Function.class));
@@ -175,7 +175,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testNegativeLiteral() throws Exception {
         SelectAnalysis analyze = (SelectAnalysis)analyze("select * from sys.nodes where port['http'] = -400");
-        Function whereClause = analyze.whereClause().query();
+        Function whereClause = (Function)analyze.whereClause().query();
         Symbol symbol = whereClause.arguments().get(1);
         assertThat(((IntegerLiteral) symbol).value(), is(-400));
     }
@@ -255,7 +255,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
         assertFalse(analysis.hasGroupBy());
 
-        Function whereClause = analysis.whereClause().query();
+        Function whereClause = (Function)analysis.whereClause().query();
         assertEquals(OrOperator.NAME, whereClause.info().ident().name());
         assertFalse(whereClause.info().isAggregate());
 
@@ -282,7 +282,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
                 new Short("1"),
                 "node 1"
         });
-        Function whereClause = analysis.whereClause().query();
+        Function whereClause = (Function)analysis.whereClause().query();
         assertEquals(OrOperator.NAME, whereClause.info().ident().name());
         assertFalse(whereClause.info().isAggregate());
 
@@ -384,7 +384,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
             SelectAnalysis analysis = (SelectAnalysis)analyze(statement);
             WhereClause whereClause = analysis.whereClause();
 
-            Function notFunction = whereClause.query();
+            Function notFunction = (Function)whereClause.query();
             assertThat(notFunction.info().ident().name(), is(NotPredicate.NAME));
             assertThat(notFunction.arguments().size(), is(1));
 
@@ -608,7 +608,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     public void testWhereInSelect() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select load from sys.nodes where load['1'] in (1.0, 2.0, 4.0, 8.0, 16.0)");
 
-        Function whereClause = analysis.whereClause().query();
+        Function whereClause = (Function)analysis.whereClause().query();
         assertEquals(InOperator.NAME, whereClause.info().ident().name());
         assertThat(whereClause.arguments().get(0), IsInstanceOf.instanceOf(Reference.class));
         assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(SetLiteral.class));
@@ -732,7 +732,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         map.put("15", 8.0);
         SelectAnalysis analysis = (SelectAnalysis) analyze("select id from sys.nodes where load=?",
                 new Object[]{map});
-        Function whereClause = analysis.whereClause().query();
+        Function whereClause = (Function)analysis.whereClause().query();
         assertThat(whereClause.arguments().get(1), instanceOf(ObjectLiteral.class));
         assertTrue(((ObjectLiteral) whereClause.arguments().get(1)).value().equals(map));
     }
@@ -742,7 +742,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select * from sys.nodes where name like 'foo'");
 
         assertNotNull(analysis.whereClause());
-        Function whereClause = analysis.whereClause().query();
+        Function whereClause = (Function)analysis.whereClause().query();
         assertEquals(LikeOperator.NAME, whereClause.info().ident().name());
         ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataType.STRING, DataType.STRING);
         assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
@@ -764,7 +764,7 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
 
         // check if the implicit cast of the pattern worked
         ImmutableList<DataType> argumentTypes = ImmutableList.<DataType>of(DataType.STRING, DataType.STRING);
-        Function whereClause = analysis.whereClause().query();
+        Function whereClause = (Function)analysis.whereClause().query();
         assertEquals(argumentTypes, whereClause.info().ident().argumentTypes());
         assertThat(whereClause.arguments().get(1), IsInstanceOf.instanceOf(StringLiteral.class));
         StringLiteral stringLiteral = (StringLiteral) whereClause.arguments().get(1);
@@ -831,13 +831,13 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testNotPredicate() {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select * from users where name not like 'foo%'");
-        assertThat(analysis.whereClause.query().info().ident().name(), is(NotPredicate.NAME));
+        assertThat(((Function)analysis.whereClause.query()).info().ident().name(), is(NotPredicate.NAME));
     }
 
     @Test
     public void testFilterByLiteralBoolean() throws Exception {
         SelectAnalysis analysis = (SelectAnalysis)analyze("select * from users where awesome=TRUE");
-        assertThat(analysis.whereClause().query().arguments().get(1).symbolType(), is(SymbolType.BOOLEAN_LITERAL));
+        assertThat(((Function)analysis.whereClause().query()).arguments().get(1).symbolType(), is(SymbolType.BOOLEAN_LITERAL));
     }
 
     @Test(expected = SQLParseException.class)
