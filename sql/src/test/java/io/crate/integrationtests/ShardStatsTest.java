@@ -60,9 +60,11 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
 
         client().admin().cluster().prepareHealth("locations").setWaitForYellowStatus().execute().actionGet();
 
-        execute("select * from sys.shards order by state");
+        execute("select * from sys.shards order by state, \"primary\"");
         assertEquals(45L, response.rowCount());
         assertEquals(8, response.cols().length);
+        assertEquals("UNASSIGNED", response.rows()[44][7]);
+        assertEquals(null, response.rows()[44][4]);
     }
 
     @Test
@@ -71,11 +73,12 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
         refresh();
         ensureYellow();
 
-        execute("select count(*), state from sys.shards " +
-                "group by state order by state desc");
+        execute("select count(*), state, \"primary\" from sys.shards " +
+                "group by state, \"primary\" order by state desc");
         assertThat(response.rowCount(), greaterThanOrEqualTo(2L));
-        assertEquals(2, response.cols().length);
+        assertEquals(3, response.cols().length);
         assertThat((Long) response.rows()[0][0], greaterThanOrEqualTo(5L));
         assertEquals("UNASSIGNED", response.rows()[0][1]);
+        assertEquals(null, response.rows()[0][2]);
     }
 }
