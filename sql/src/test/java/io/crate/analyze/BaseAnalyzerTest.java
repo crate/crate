@@ -72,6 +72,7 @@ public class BaseAnalyzerTest {
             .add("awesome", DataType.BOOLEAN, null)
             .add("_version", DataType.INTEGER, null)
             .add("friends", DataType.OBJECT_ARRAY, null, ReferenceInfo.ObjectType.DYNAMIC)
+            .add("friends", DataType.LONG, Arrays.asList("id"))
             .addPrimaryKey("id")
             .clusteredBy("id")
             .build();

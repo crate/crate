@@ -906,4 +906,13 @@ public class SelectAnalyzerTest extends BaseAnalyzerTest {
         analyze("select id from users where format('%s', sys.nodes.id) = 'foo'");
     }
 
+    @Test(expected = UnsupportedOperationException.class)
+    public void testOrderByQualifiedName() throws Exception {
+        // caused by:
+        // select * from tweets order by user.id
+        // table tweets has fields "id" and user['id']
+        // this order by clause referenced id, not user['id']
+        analyze("select * from users order by friends.id");
+    }
+
 }
