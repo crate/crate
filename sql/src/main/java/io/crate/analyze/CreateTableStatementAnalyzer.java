@@ -61,8 +61,18 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
             context.indexSettingsBuilder().put(settings);
         }
 
+        List<PrimaryKeyConstraint> primaryKeyConstraints = new ArrayList<>();
         for (TableElement tableElement : node.tableElements()) {
+            if (tableElement instanceof PrimaryKeyConstraint) {
+                // delay handling of primary key constraints
+                primaryKeyConstraints.add((PrimaryKeyConstraint) tableElement);
+                continue;
+            }
             process(tableElement, context);
+        }
+
+        for (PrimaryKeyConstraint pKeyConstraint : primaryKeyConstraints) {
+            process(pKeyConstraint, context);
         }
 
         for (CrateTableOption option : node.crateTableOptions()) {
@@ -91,6 +101,9 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
             }
 
             columnDef = (Map<String, Object>)columnDef.get(key[0]);
+            if (columnDef == null) {
+                throw new ColumnUnknownException(entry.getKey());
+            }
             columnDef.put("copy_to", Lists.newArrayList(entry.getValue()));
         }
     }
@@ -216,7 +229,11 @@ public class CreateTableStatementAnalyzer extends AbstractStatementAnalyzer<Void
     @Override
     public Void visitPrimaryKeyConstraint(PrimaryKeyConstraint node, CreateTableAnalysis context) {
         for (Expression expression : node.columns()) {
-            context.addPrimaryKey(expressionVisitor.process(expression, null).toString());
+            String columnName = expressionVisitor.process(expression, null).toString();
+            if (!context.hasColumnDefinition(columnName)) {
+                throw new ColumnUnknownException(columnName);
+            }
+            context.addPrimaryKey(columnName);
         }
         return null;
     }

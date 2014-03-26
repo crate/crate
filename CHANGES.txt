@@ -5,6 +5,9 @@ Changes for Crate Data
 unreleased
 ==========
 
+ - fix: allow ``PRIMARY KEY`` constraint and compound index definition
+   to appear anywhere in the table element list
+
  - fix: proper boolean column handling in where clause of select statements
 
  - fix: first parts of qualified name in ORDER BY were ignored
