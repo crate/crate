@@ -84,9 +84,12 @@ public class SelectStatementAnalyzer extends DataStatementAnalyzer<SelectAnalysi
     }
 
     protected Symbol visitQualifiedNameReference(QualifiedNameReference node, SelectAnalysis context) {
-        Symbol symbol = context.symbolFromAlias(node.getSuffix().getSuffix());
-        if (symbol != null) {
-            return symbol;
+        // only check for alias if we only have one name part
+        if (node.getName().getParts().size() == 1) {
+            Symbol symbol = context.symbolFromAlias(node.getSuffix().getSuffix());
+            if (symbol != null) {
+                return symbol;
+            }
         }
         ReferenceIdent ident = context.getReference(node.getName());
         return context.allocateReference(ident);

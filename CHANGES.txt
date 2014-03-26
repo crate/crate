@@ -5,6 +5,8 @@ Changes for Crate Data
 unreleased
 ==========
 
+ - fix: first parts of qualified name in ORDER BY were ignored
+
  - ``CREATE TABLE`` now supports ``PARTITIONED BY`` to create partitioned tables.
 
  - fix: unassigned shards must return NULL by default for the `primary` column
