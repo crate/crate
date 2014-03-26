@@ -35,6 +35,9 @@ import java.util.Locale;
 
 public class PartitionName implements Streamable {
 
+    public static final String NULL_MARKER = "N";
+    public static final String NOT_NULL_MARKER = "_";
+
     private final List<String> values = new ArrayList<>();
     private final String tableName;
 
@@ -77,7 +80,11 @@ public class PartitionName implements Streamable {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(values.size());
         for (String value : values) {
-            out.writeBytesRef(new BytesRef(value));
+            if (value == null) {
+                out.writeBytesRef(null);
+            } else {
+                out.writeBytesRef(new BytesRef(value));
+            }
         }
     }
 
@@ -101,10 +108,13 @@ public class PartitionName implements Streamable {
         if (values.size() == 0) {
             return null;
         } else if (values.size() == 1) {
-            if (values.get(0) == null) {
-                return Joiner.on(".").join(Constants.PARTITIONED_TABLE_PREFIX, tableName) + ".";
+            String value = values.get(0);
+            if (value == null) {
+                value = NULL_MARKER;
+            } else {
+                value = NOT_NULL_MARKER + value;
             }
-            return Joiner.on(".").join(Constants.PARTITIONED_TABLE_PREFIX, tableName, values.get(0));
+            return Joiner.on(".").join(Constants.PARTITIONED_TABLE_PREFIX, tableName, value);
         }
         BytesReference bytesReference = bytes();
         if (bytes() == null) {
@@ -143,6 +153,14 @@ public class PartitionName implements Streamable {
             BytesStreamInput in = new BytesStreamInput(inputBytes, true);
             partitionName.readFrom(in);
         } else {
+            String marker = valuesString.substring(0, 1);
+            if (marker.equals(NULL_MARKER)) {
+                valuesString = null;
+            } else if (marker.equals(NOT_NULL_MARKER)) {
+                valuesString = valuesString.substring(1);
+            } else {
+                throw new IllegalArgumentException("Invalid given input string");
+            }
             partitionName.values().add(valuesString);
         }
         return partitionName;

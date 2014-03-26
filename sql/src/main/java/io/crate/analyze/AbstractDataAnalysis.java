@@ -457,10 +457,9 @@ public abstract class AbstractDataAnalysis extends Analysis {
     }
 
     protected void addIdAndRouting(Boolean create, List<String> primaryKeyValues, String clusteredByValue) {
-        Id id = new Id(create);
-        id.applyValues(table().primaryKey(), primaryKeyValues, table().clusteredBy());
-        String idString = id.toString();
-        if (idString != null) {
+        Id id = new Id(table().primaryKey(), primaryKeyValues, table().clusteredBy(), create);
+        if (id.isValid()) {
+            String idString = id.stringValue();
             ids.add(idString);
             if (clusteredByValue == null) {
                 clusteredByValue = idString;

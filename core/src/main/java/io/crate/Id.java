@@ -23,6 +23,7 @@ package io.crate;
 
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Base64;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.*;
@@ -34,18 +35,14 @@ import java.util.List;
 public class Id implements Streamable {
 
     private final List<String> values = new ArrayList<>();
-    private final boolean create;
 
-    public Id() {
-        create = true;
+    public Id(List<String> primaryKeys, List<String> primaryKeyValues,
+              String clusteredBy) {
+        this(primaryKeys, primaryKeyValues, clusteredBy, true);
     }
 
-    public Id(boolean create) {
-        this.create = create;
-    }
-
-    public boolean applyValues(List<String> primaryKeys, List<String> primaryKeyValues,
-                            String clusteredBy) {
+    public Id(List<String> primaryKeys, List<String> primaryKeyValues,
+              String clusteredBy, boolean create) {
         if (primaryKeys.size() == 1 && primaryKeys.get(0).equals("_id") && create) {
             values.add(Strings.randomBase64UUID());
         } else {
@@ -54,13 +51,13 @@ public class Id implements Streamable {
                 if (create) {
                     throw new UnsupportedOperationException("Missing required primary key values");
                 }
-                return false;
+                return;
             }
             for (int i=0; i<primaryKeys.size(); i++)  {
                 String primaryKeyValue = primaryKeyValues.get(i);
                 if (primaryKeyValue == null) {
                     // Missing primary key value, cannot compute id
-                    return false;
+                    return;
                 }
                 if (primaryKeys.get(i).equals(clusteredBy)) {
                     // clusteredBy value must always be first
@@ -70,8 +67,13 @@ public class Id implements Streamable {
                 }
             }
         }
+    }
 
-        return true;
+    private Id() {
+    }
+
+    public boolean isValid() {
+        return values.size() > 0;
     }
 
     @Override
@@ -90,6 +92,7 @@ public class Id implements Streamable {
         }
     }
 
+    @Nullable
     public BytesReference bytes() {
         if (values.size() == 0) {
             return null;
@@ -104,7 +107,8 @@ public class Id implements Streamable {
         return out.bytes();
     }
 
-    public String toString() {
+    @Nullable
+    public String stringValue() {
         if (values.size() == 0) {
             return null;
         } else if (values.size() == 1) {
@@ -115,6 +119,11 @@ public class Id implements Streamable {
             return null;
         }
         return Base64.encodeBytes(bytesReference.toBytes());
+    }
+
+    @Nullable
+    public String toString() {
+        return stringValue();
     }
 
     public List<String> values() {
@@ -134,7 +143,7 @@ public class Id implements Streamable {
         assert base64encodedString != null;
         byte[] inputBytes = Base64.decode(base64encodedString);
         BytesStreamInput in = new BytesStreamInput(inputBytes, true);
-        Id id = new Id(false);
+        Id id = new Id();
         id.readFrom(in);
         return id;
     }

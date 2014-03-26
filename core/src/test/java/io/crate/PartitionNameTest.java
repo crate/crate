@@ -39,7 +39,8 @@ public class PartitionNameTest {
                 ImmutableList.of("id"), ImmutableList.of("1"));
 
         assertThat(partitionName.values().size(), is(1));
-        assertThat(partitionName.stringValue(), is(Constants.PARTITIONED_TABLE_PREFIX + ".test."+partitionName.values().get(0)));
+        assertThat(partitionName.stringValue(),
+                is(Constants.PARTITIONED_TABLE_PREFIX+".test."+PartitionName.NOT_NULL_MARKER+partitionName.values().get(0)));
 
         PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "test", 1);
         assertEquals(partitionName.values(), partitionName1.values());
@@ -70,12 +71,34 @@ public class PartitionNameTest {
 
         assertTrue(partitionName.isValid());
         assertThat(partitionName.values().size(), is(1));
-        assertEquals(Constants.PARTITIONED_TABLE_PREFIX+".test.", partitionName.stringValue());
+        assertEquals(Constants.PARTITIONED_TABLE_PREFIX+".test."+PartitionName.NULL_MARKER, partitionName.stringValue());
+
+        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "test", 1);
+        assertEquals(partitionName.values(), partitionName1.values());
+    }
+
+    @Test
+    public void testEmptyStringValue() throws Exception {
+        PartitionName partitionName = new PartitionName("test",
+                ImmutableList.of("id"), ImmutableList.of(""));
+
+        assertTrue(partitionName.isValid());
+        assertThat(partitionName.values().size(), is(1));
+        assertEquals(Constants.PARTITIONED_TABLE_PREFIX+".test."+PartitionName.NOT_NULL_MARKER, partitionName.stringValue());
+
+        PartitionName partitionName1 = PartitionName.fromString(partitionName.stringValue(), "test", 1);
+        assertEquals(partitionName.values(), partitionName1.values());
     }
 
     @Test (expected = IllegalArgumentException.class)
     public void testPartitionNameNotFromTable() throws Exception {
-        String partitionName = Constants.PARTITIONED_TABLE_PREFIX + ".test1.1";
+        String partitionName = Constants.PARTITIONED_TABLE_PREFIX + ".test1._1";
+        PartitionName.fromString(partitionName, "test", 1);
+    }
+
+    @Test (expected = IllegalArgumentException.class)
+    public void testInvalidValueString() throws Exception {
+        String partitionName = Constants.PARTITIONED_TABLE_PREFIX + ".test.1";
         PartitionName.fromString(partitionName, "test", 1);
     }
 
