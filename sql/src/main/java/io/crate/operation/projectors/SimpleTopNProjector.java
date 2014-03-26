@@ -28,6 +28,7 @@ import io.crate.operation.ProjectorUpstream;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class SimpleTopNProjector implements Projector {
 
@@ -38,6 +39,7 @@ public class SimpleTopNProjector implements Projector {
 
     private int remainingOffset;
     private int toCollect;
+    private AtomicReference<Throwable> failure = new AtomicReference<>(null);
 
     public SimpleTopNProjector(Input<?>[] inputs,
                                CollectExpression<?>[] collectExpressions,
@@ -88,7 +90,7 @@ public class SimpleTopNProjector implements Projector {
         }
 
         toCollect--;
-        return toCollect > 0;
+        return toCollect > 0 && failure.get() == null;
     }
 
     private Object[] generateNextRow(Object[] row) {
@@ -114,7 +116,23 @@ public class SimpleTopNProjector implements Projector {
             return;
         }
         if (downstream != null) {
-            downstream.upstreamFinished();
+            Throwable throwable = failure.get();
+            if (throwable == null) {
+                downstream.upstreamFinished();
+            } else {
+                downstream.upstreamFailed(throwable);
+            }
         }
+    }
+
+    @Override
+    public void upstreamFailed(Throwable throwable) {
+        if (remainingUpstreams.decrementAndGet() <= 0) {
+            if (downstream != null) {
+                downstream.upstreamFailed(throwable);
+            }
+            return;
+        }
+        failure.set(throwable);
     }
 }

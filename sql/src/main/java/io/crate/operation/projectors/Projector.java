@@ -52,4 +52,10 @@ public interface Projector extends ProjectorUpstream {
      * After this has been called a upstream projector must not send any more rows to the downstream.
      */
     public void upstreamFinished();
+
+    /**
+     * Has to be called by the upstream if an exception occurred.
+     * Should be called once the upstream is finished with any other concurrently running actions.
+     */
+    public void upstreamFailed(Throwable throwable);
 }

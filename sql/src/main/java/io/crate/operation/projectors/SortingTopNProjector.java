@@ -173,6 +173,13 @@ public class SortingTopNProjector implements Projector, ResultProvider {
         }
     }
 
+    @Override
+    public void upstreamFailed(Throwable throwable) {
+        if (remainingUpstreams.decrementAndGet() <= 0) {
+            result.setException(throwable);
+        }
+    }
+
     private void generateResult() {
         final int resultSize = Math.max(pq.size() - offset, 0);
         Object[][] rows = new Object[resultSize][];

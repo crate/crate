@@ -82,6 +82,13 @@ public class CollectingProjector implements ResultProvider, Projector {
     }
 
     @Override
+    public void upstreamFailed(Throwable throwable) {
+        if (upstreamsRemaining.decrementAndGet() <= 0) {
+            result.setException(throwable);
+        }
+    }
+
+    @Override
     public ListenableFuture<Object[][]> result() {
         return result;
     }
