@@ -9,9 +9,20 @@ allprojects {
 idea {
     project {
         languageLevel = 'JDK_1_7'
+
+        ipr {
+            withXml { provider ->
+                def node = provider.asNode()
+                def copyrightManager = node.component.find { it.'@name' == 'CopyrightManager' }
+                copyrightManager.@default = "CrateASL2"
+                def aslCopyright = copyrightManager.copyright.find { it.option.find { it.@name == "myName" }?.@value == "CrateASL2" }
+                if (aslCopyright == null) {
+                    copyrightManager.append(new XmlParser().parse(file("copyright.xml")))
+                }
+            }
+        }
     }
 }
-
 
 task wrapper(type: Wrapper) {
     gradleVersion = '1.11'
