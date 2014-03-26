@@ -341,9 +341,9 @@ public class Importer {
                 indexRequest.routing(routingValue);
             }
 
-            Id id = new Id(autoGenerateId);
-            if (id.applyValues(pks, primaryKeyValues, routing)) {
-                indexRequest.id(id.toString());
+            Id id = new Id(pks, primaryKeyValues, routing, autoGenerateId);
+            if (id.isValid()) {
+                indexRequest.id(id.stringValue());
             }
 
             if (ttl > 0) {
