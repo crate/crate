@@ -21,16 +21,22 @@
 
 package io.crate.executor.transport;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.Constants;
+import io.crate.PartitionName;
 import io.crate.executor.Job;
+import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.planner.Plan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsNode;
 import io.crate.planner.node.ddl.ESCreateIndexNode;
+import io.crate.planner.node.ddl.ESCreateTemplateNode;
 import io.crate.planner.node.ddl.ESDeleteIndexNode;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.test.integration.CrateIntegrationTest;
+import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
 import org.elasticsearch.cluster.settings.DynamicSettings;
 import org.elasticsearch.common.inject.Key;
@@ -224,5 +230,76 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         assertThat((Long) objects[0][0], Matchers.is(1L));
         assertEquals("normal", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().persistentSettings().get(persistentSetting));
         assertEquals("243", client().admin().cluster().prepareState().execute().actionGet().getState().metaData().transientSettings().get(transientSetting));
+    }
+
+    @Test
+    public void testCreateIndexTemplateTask() throws Exception {
+        Settings indexSettings = ImmutableSettings.builder()
+                .put("number_of_replicas", 0)
+                .put("number_of_shards", 2)
+                .build();
+        Map<String, Object> mapping = ImmutableMap.<String, Object>of(
+                "properties", ImmutableMap.of(
+                        "id", ImmutableMap.builder()
+                                .put("type", "integer")
+                                .put("store", false)
+                                .put("index", "not_analyzed")
+                                .put("doc_values", true).build(),
+                        "name", ImmutableMap.builder()
+                                .put("type", "string")
+                                .put("store", false)
+                                .put("index", "not_analyzed")
+                                .put("doc_values", true).build(),
+                        "names", ImmutableMap.builder()
+                                .put("type", "string")
+                                .put("store", false)
+                                .put("index", "not_analyzed")
+                                .put("doc_values", false).build()
+                ),
+                "_meta", ImmutableMap.of(
+                        "partitioned_by", ImmutableList.<List<String>>of(
+                                ImmutableList.of("name", "string")
+                        )
+                )
+        );
+        String templateName = PartitionName.templateName("partitioned");
+        String templatePrefix = PartitionName.templateName("partitioned") + "*";
+
+        ESCreateTemplateNode planNode = new ESCreateTemplateNode(
+                templateName,
+                templatePrefix,
+                indexSettings,
+                mapping);
+        Plan plan = new Plan();
+        plan.add(planNode);
+        plan.expectsAffectedRows(true);
+
+        Job job = executor.newJob(plan);
+        List<ListenableFuture<Object[][]>> futures = executor.execute(job);
+        ListenableFuture<List<Object[][]>> listenableFuture = Futures.allAsList(futures);
+        Object[][] objects = listenableFuture.get().get(0);
+        assertThat((Long)objects[0][0], Matchers.is(1L));
+
+        refresh();
+
+        GetIndexTemplatesResponse response = client().admin().indices()
+                .prepareGetTemplates(".partitioned.partitioned.").execute().actionGet();
+
+        assertThat(response.getIndexTemplates().size(), Matchers.is(1));
+        IndexTemplateMetaData templateMeta = response.getIndexTemplates().get(0);
+        assertThat(templateMeta.getName(), Matchers.is(".partitioned.partitioned."));
+        assertThat(templateMeta.mappings().get(Constants.DEFAULT_MAPPING_TYPE).string(),
+                Matchers.is("{\"default\":" +
+                        "{\"properties\":{" +
+                        "\"id\":{\"type\":\"integer\",\"store\":false,\"index\":\"not_analyzed\",\"doc_values\":true}," +
+                        "\"name\":{\"type\":\"string\",\"store\":false,\"index\":\"not_analyzed\",\"doc_values\":true}," +
+                        "\"names\":{\"type\":\"string\",\"store\":false,\"index\":\"not_analyzed\",\"doc_values\":false}" +
+                        "}," +
+                        "\"_meta\":{" +
+                        "\"partitioned_by\":[[\"name\",\"string\"]]" +
+                        "}}}"));
+        assertThat(templateMeta.template(), Matchers.is(".partitioned.partitioned.*"));
+        assertThat(templateMeta.settings().toDelimitedString(','),
+                Matchers.is("index.number_of_replicas=0,index.number_of_shards=2,"));
     }
 }

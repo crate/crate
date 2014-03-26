@@ -45,6 +45,7 @@ public class ShortLiteral extends NumberLiteral<Integer, ShortLiteral> {
         if (value < Short.MIN_VALUE || value > Short.MAX_VALUE) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "invalid short literal %s", value));
         }
+        String.format("g", new Object());
         this.value = (short)value;
     }
 

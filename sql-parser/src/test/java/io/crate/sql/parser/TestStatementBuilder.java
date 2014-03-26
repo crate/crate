@@ -178,6 +178,7 @@ public class TestStatementBuilder
         printStatement("create table test (col1 int, col2 timestamp) partitioned by (col1, col2)");
         printStatement("create table test (col1 int, col2 timestamp) partitioned by (col1) clustered by (col2)");
         printStatement("create table test (col1 int, col2 timestamp) clustered by (col2) partitioned by (col1)");
+        printStatement("create table test (col1 int, col2 object as (col3 timestamp)) partitioned by (col2['col3'])");
 
         printStatement("create analyzer myAnalyzer ( tokenizer german )");
         printStatement("create analyzer my_analyzer (" +

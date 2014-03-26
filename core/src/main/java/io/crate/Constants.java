@@ -45,4 +45,6 @@ public class Constants {
     public static final int UPDATE_RETRY_ON_CONFLICT = 3;
 
     public static final Set<String> INVALID_TABLE_NAME_CHARACTERS = ImmutableSet.of(".");
+
+    public static final String PARTITIONED_TABLE_PREFIX = ".partitioned";
 }
