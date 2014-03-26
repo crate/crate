@@ -249,6 +249,7 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
         }
 
         Map<String, Object> parentProperties = null;
+        Map<String, Object> columnsMeta = this.metaColumns;
         Map<String, Object> properties = mappingProperties;
         List<String> columPath = Splitter.on('.').splitToList(columnName);
         for (String namePart : columPath) {
@@ -260,13 +261,20 @@ public class CreateTableAnalysis extends AbstractDDLAnalysis {
                 if (fieldMapping.get("type").equals("object")
                         && fieldMapping.get("properties") != null) {
                     properties = (Map<String, Object>)fieldMapping.get("properties");
+                    if (columnsMeta != null) {
+                        columnsMeta = (Map<String, Object>) columnsMeta.get("properties");
+                    }
                 } else {
                     properties = fieldMapping;
                 }
             }
         }
         if (parentProperties != null && remove) {
-            parentProperties.remove(columPath.get(columPath.size()-1));
+            String lastPath = columPath.get(columPath.size()-1);
+            parentProperties.remove(lastPath);
+            if (columnsMeta != null) {
+                columnsMeta.remove(lastPath);
+            }
         }
         return properties;
     }

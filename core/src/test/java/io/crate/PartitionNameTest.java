@@ -28,8 +28,7 @@ import java.util.ArrayList;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class PartitionNameTest {
 
@@ -100,6 +99,28 @@ public class PartitionNameTest {
     public void testInvalidValueString() throws Exception {
         String partitionName = Constants.PARTITIONED_TABLE_PREFIX + ".test.1";
         PartitionName.fromString(partitionName, "test", 1);
+    }
+
+    @Test
+    public void testIsPartition() throws Exception {
+        assertFalse(
+                PartitionName.isPartition("test", "test")
+        );
+        assertTrue(PartitionName.isPartition(
+                Constants.PARTITIONED_TABLE_PREFIX + ".test.", "test"
+        ));
+        assertFalse(
+                PartitionName.isPartition(
+                        Constants.PARTITIONED_TABLE_PREFIX + ".tast.djfhjhdgfjy",
+                        "test"
+                )
+        );
+        assertFalse(
+                PartitionName.isPartition("partitioned.test.dshhjfgjsdh", "test")
+        );
+        assertFalse(
+                PartitionName.isPartition(".test.dshhjfgjsdh", "test")
+        );
     }
 
 }
